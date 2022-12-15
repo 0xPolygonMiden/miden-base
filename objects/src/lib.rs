@@ -4,10 +4,15 @@
 #[macro_use]
 extern crate alloc;
 
-use crypto::{hash::rpo::Rpo256 as Hasher, Felt, StarkField, Word, ZERO};
+use crypto::{
+    hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
+    Felt, StarkField, Word, ZERO,
+};
 
 mod accounts;
 pub use accounts::AccountId;
 
+pub mod assets;
+
 mod errors;
-pub use errors::AccountError;
+pub use errors::{AccountError, AssetError};
