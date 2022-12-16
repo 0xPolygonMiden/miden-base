@@ -17,7 +17,7 @@ use core::{fmt, ops::Deref};
 /// Additionally, account IDs have the following properties
 /// - For fungible asset faucets account IDs are guaranteed to start with ONE.
 /// - For regular accounts, the last 3 bytes of the ID are guaranteed to be all ZEROs.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountId([Felt; 3]);
 
 impl AccountId {
