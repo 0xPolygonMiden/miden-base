@@ -37,10 +37,26 @@ use core::{fmt, ops::Deref};
 ///   This guarantees that finding two assets with the same hash is infeasible.
 /// - Lastly, the first bit of the result is set to ZERO, and the last 32 bits of the 3rd element
 ///   are set to 2^31 (i.e., ONE followed by 32 ZEROs).
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Asset {
     Fungible(FungibleAsset),
     NonFungible(NonFungibleAsset),
+}
+
+impl Asset {
+    /// Returns true if this asset is the same as the specified asset.
+    ///
+    /// Two assets are defined to be the same if:
+    /// - For fungible assets, if they were issued by the same faucet.
+    /// - For non-fungible assets, if the assets are identical.
+    pub fn is_same(&self, other: &Self) -> bool {
+        use Asset::*;
+        match (self, other) {
+            (Fungible(l), Fungible(r)) => l.is_from_same_faucet(r),
+            (NonFungible(l), NonFungible(r)) => l == r,
+            _ => false,
+        }
+    }
 }
 
 impl From<Asset> for Word {
@@ -95,7 +111,7 @@ impl TryFrom<[u8; 32]> for Asset {
 ///
 /// A fungible asset consists of a faucet ID of the faucet which issued the asset as well as the
 /// asset amount. Asset amount is guaranteed to be 2^63 - 1 or smaller.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FungibleAsset {
     faucet_id: AccountId,
     amount: u64,
@@ -137,6 +153,11 @@ impl FungibleAsset {
     /// Returns the amount of this asset.
     pub fn amount(&self) -> u64 {
         self.amount
+    }
+
+    /// Returns true if this and the other assets were issued from the same faucet.
+    pub fn is_from_same_faucet(&self, other: &Self) -> bool {
+        self.faucet_id == other.faucet_id
     }
 
     // OPERATIONS
@@ -195,7 +216,7 @@ impl FungibleAsset {
             return Err(AssetError::fungible_asset_invalid_first_bit());
         }
 
-        let tag = id_elements[3].as_int() as u32;
+        let tag = id_elements[2].as_int() as u32;
         if tag != AccountId::FUNGIBLE_FAUCET_TAG {
             return Err(AssetError::fungible_asset_invalid_tag(tag));
         }
@@ -273,7 +294,7 @@ impl fmt::Display for FungibleAsset {
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NonFungibleAsset(Word);
 
 impl NonFungibleAsset {
@@ -403,6 +424,7 @@ impl fmt::Display for NonFungibleAsset {
 /// Details about a non-fungible asset.
 ///
 /// Unlike [NonFungibleAsset] struct, this struct contains full details of a non-fungible asset.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NonFungibleAssetDetails {
     faucet_id: AccountId,
     asset_data: Vec<u8>,
