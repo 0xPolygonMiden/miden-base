@@ -6,13 +6,15 @@ extern crate alloc;
 
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    Felt, StarkField, Word, ZERO,
+    utils::collections::Vec,
+    Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
 
 mod accounts;
 pub use accounts::AccountId;
 
 pub mod assets;
+pub mod notes;
 
 mod errors;
-pub use errors::{AccountError, AssetError};
+pub use errors::{AccountError, AssetError, NoteError};

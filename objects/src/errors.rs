@@ -1,4 +1,4 @@
-use super::{AccountId, Word};
+use super::{assets::NonFungibleAsset, AccountId, Word};
 use core::fmt;
 
 // ACCOUNT ERROR
@@ -111,3 +111,41 @@ impl fmt::Display for AssetError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for AssetError {}
+
+// NOTE ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum NoteError {
+    DuplicateFungibleAsset(AccountId),
+    DuplicateNonFungibleAsset(NonFungibleAsset),
+    EmptyAssetList,
+    TooManyAssets(usize),
+}
+
+impl NoteError {
+    pub fn duplicate_fungible_asset(faucet_id: AccountId) -> Self {
+        Self::DuplicateFungibleAsset(faucet_id)
+    }
+
+    pub fn duplicate_non_fungible_asset(asset: NonFungibleAsset) -> Self {
+        Self::DuplicateNonFungibleAsset(asset)
+    }
+
+    pub fn empty_asset_list() -> Self {
+        Self::EmptyAssetList
+    }
+
+    pub fn too_many_assets(num_assets: usize) -> Self {
+        Self::TooManyAssets(num_assets)
+    }
+}
+
+impl fmt::Display for NoteError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for NoteError {}

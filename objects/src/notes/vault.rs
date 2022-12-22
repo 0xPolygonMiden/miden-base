@@ -1,0 +1,76 @@
+use super::{Asset, Digest, Hasher, NoteError, Vec, Word, WORD_SIZE};
+
+// NOTE VAULT
+// ================================================================================================
+/// An asset container for a note.
+///
+/// A note vault can contain up to 1000 assets. The entire vault can be reduced to a single hash
+/// which is computed by sequentially hashing the list of the vault's assets.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct NoteVault {
+    assets: Vec<Asset>,
+    hash: Digest,
+}
+
+impl NoteVault {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The maximum number of assets which can be carried by a single note.
+    pub const MAX_NUM_ASSETS: usize = 1000;
+
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns an note asset vault constructed from the provided list of assets.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The asset list is empty.
+    /// - The list contains more than 1000 assets.
+    /// - There are duplicate assets in the list.
+    pub fn new(assets: &[Asset]) -> Result<Self, NoteError> {
+        if assets.is_empty() {
+            return Err(NoteError::EmptyAssetList);
+        } else if assets.len() > Self::MAX_NUM_ASSETS {
+            return Err(NoteError::too_many_assets(assets.len()));
+        }
+
+        let mut asset_elements = Vec::with_capacity(assets.len() * WORD_SIZE);
+
+        for (i, asset) in assets.iter().enumerate() {
+            // for all assets except the last one, check if the asset is the same as any other
+            // asset in the list, and if so return an error
+            if i < assets.len() - 1 && assets[i + 1..].iter().any(|a| a.is_same(asset)) {
+                return Err(match asset {
+                    Asset::Fungible(a) => NoteError::duplicate_fungible_asset(a.faucet_id()),
+                    Asset::NonFungible(a) => NoteError::duplicate_non_fungible_asset(*a),
+                });
+            }
+            // convert the asset into field elements and add them to the list elements
+            let asset_word: Word = (*asset).into();
+            asset_elements.extend_from_slice(&asset_word);
+        }
+
+        Ok(Self {
+            assets: assets.to_vec(),
+            hash: Hasher::hash_elements(&asset_elements),
+        })
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a commitment to this vault.
+    pub fn hash(&self) -> Digest {
+        self.hash
+    }
+
+    /// Returns the number of assets in this vault.
+    pub fn num_assets(&self) -> usize {
+        self.assets.len()
+    }
+
+    /// Returns an iterator over the assets of this vault.
+    pub fn iter(&self) -> core::slice::Iter<Asset> {
+        self.assets.iter()
+    }
+}
