@@ -1,4 +1,5 @@
-use super::{assets::NonFungibleAsset, AccountId, Word};
+use super::{assets::Asset, assets::NonFungibleAsset, AccountId, Word};
+use assembly::ParsingError;
 use core::fmt;
 
 // ACCOUNT ERROR
@@ -8,7 +9,10 @@ use core::fmt;
 pub enum AccountError {
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewTrailingZeros,
+    CodeParsingFailed(ParsingError),
     FungibleFaucetIdInvalidFirstBit,
+    NotAFungibleFaucetId(AccountId),
+    NotANonFungibleAsset(Asset),
 }
 
 impl AccountError {
@@ -22,6 +26,20 @@ impl AccountError {
 
     pub fn fungible_faucet_id_invalid_first_bit() -> Self {
         Self::FungibleFaucetIdInvalidFirstBit
+    }
+
+    pub fn not_a_fungible_faucet_id(account_id: AccountId) -> Self {
+        Self::NotAFungibleFaucetId(account_id)
+    }
+
+    pub fn not_a_non_fungible_asset(asset: Asset) -> Self {
+        Self::NotANonFungibleAsset(asset)
+    }
+}
+
+impl From<ParsingError> for AccountError {
+    fn from(err: ParsingError) -> Self {
+        Self::CodeParsingFailed(err)
     }
 }
 

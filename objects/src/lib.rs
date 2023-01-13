@@ -11,7 +11,7 @@ use crypto::{
 };
 
 mod accounts;
-pub use accounts::AccountId;
+pub use accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault};
 
 pub mod assets;
 pub mod notes;
