@@ -21,3 +21,4 @@ std = ["assembly/std", "crypto/std"]
 [dependencies]
 assembly = {  package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 crypto = {  package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
+miden-core = {  package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }

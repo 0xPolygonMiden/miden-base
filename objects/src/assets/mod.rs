@@ -57,6 +57,11 @@ impl Asset {
             _ => false,
         }
     }
+
+    /// Returns true if this asset is a fungible asset.
+    pub const fn is_fungible(&self) -> bool {
+        matches!(self, Self::Fungible(_))
+    }
 }
 
 impl From<Asset> for Word {

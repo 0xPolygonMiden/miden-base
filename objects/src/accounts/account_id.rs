@@ -70,6 +70,11 @@ impl AccountId {
         self.is_fungible_faucet() || self.is_non_fungible_faucet()
     }
 
+    /// Returns a slice of field elements defining this account ID.
+    pub fn as_elements(&self) -> &[Felt] {
+        &self.0
+    }
+
     // SEED GENERATORS
     // --------------------------------------------------------------------------------------------
 
