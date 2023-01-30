@@ -1,0 +1,161 @@
+#! Asserts that the top two words in the stack are equal
+#!
+#! input: [A, B, ...]
+#! output: [...]
+#! cycles: 10
+proc.assert_eqw.0
+  movup.4 assert_eq movup.3 assert_eq movup.2 assert_eq assert_eq
+end
+
+#! True if the element is odd (3 cycles)
+#!
+#! input: [el, ...]
+#! output: [b, ...]
+#! cycles: 4
+proc.is_odd.0
+  # drop the high bits
+  u32cast
+
+  # check if the odd bit is set
+  push.1 u32checked_and
+end
+
+#! This is an optimized version of the inner loop for even number of words. The
+#! gain in cycles comes from the simplified check for the loop variable.
+#!
+#! Given an initialized RPO state represented by [A, B, C], moves an even
+#! number of words from the advice tape sequentially to memory starting at address
+#! `write_ptr`.
+#!
+#! Note:
+#! - num_words must be even and greater than zero
+#! - The words A,B,C compose the state of the RPO, these words must have been
+#! properly initialized, including setting Capacity to [0,0,0,1] if the complete
+#! copy is for an odd number of words
+#
+#! input: [A, B, C, write_ptr, num_words, ...]
+#! output: [A, B, C, write_ptr, ...]
+#! cycles: 8 + 11 * num_words
+proc.move_even_words_from_tape_to_memory.0
+  # stack: [b, A, B, C, write_ptr, num_words, ...] (3 cycles)
+  dup.13 neq.0
+
+  # LOOP: [A, B, C, write_ptr, num_words, ...]
+  # while(words>0)
+  while.true
+    # stack: [A', B', C', write_ptr', num_words, ...] (2 cycles)
+    adv_pipe
+
+    # update `num_words` (note: `num_words` is required to be even)
+    # LOOP: [A', B', C', write_ptr', num_words-2, ...] (6 cycles)
+    swapw.3 swap sub.2 swap swapw.3
+
+    # while(words>0) (3 cycles)
+    dup.13 neq.0
+  end
+
+  # stack: [A', B', C', write_ptr', ...] (5 cycles)
+  movup.13 drop
+end
+
+#! Moves the `num_words` words from the advice tape to memory, starting at
+#! `write_ptr` address, the hash of the copied data is left on the stack for
+#! commitment checking.
+#!
+#! input: [num_words, write_ptr, ...]
+#! output: [HASH, write_ptr', ...]
+#! cycles:
+#!  even num_words: 41 + 8 * num_words
+#!  odd num_words: 58 + 8 * num_words
+export.move_words_from_tape_to_memory.0
+
+  # check if there is an odd number of words
+  # stack: [is_odd, num_words, write_ptr, ...] (5 cycles)
+  dup exec.is_odd
+
+  # copy the flag `is_odd`, this will later on define if padding is required
+  # stack: [is_odd, num_words, write_ptr, needs_padding, ...] (2 cycles)
+  dup movdn.3
+
+  # Make sure `num_words` is even. This is a requirement for the
+  # `move_even_words_from_tape_to_memory`.
+  # - even words will be `num_words-0` so result stays even
+  # - odd words will be `num_words-1` so result becomes even
+  #
+  # stack: [words_even, write_ptr, needs_padding, ...] (2 cycles)
+  sub swap
+
+  # Prepare the capacity word. For rescue prime optimized the first element is
+  # set to `1` when padding is used and `0` otherwse, this is determined by the
+  # `needs_padding` flag, so just copy it.
+  # stack: [C, write_ptr, words_even, needs_padding, ...] (4 cycles)
+  dup.2 push.0.0.0
+
+  # set initial state
+  # stack: [A, B, C, write_ptr, words_even, needs_padding, ...] (8 cycles)
+  padw padw
+
+  # stack: [A, B, C, write_ptr, needs_padding, ...] (8 + 11 * num_words)
+  exec.move_even_words_from_tape_to_memory
+
+  # stack: [needs_padding, A, B, C, write_ptr, ...] (4 cycles)
+  movup.13
+
+  # if(needs_padding) (17 cycles)
+  if.true
+    # Rescue Prime Optimized uses overwrite mode. Drop `A`.
+    # stack: [B, C, write_ptr, ...] (4 cycles)
+    dropw
+
+    # Overwrite the `B` with the new data
+    # stack: [B', C, write_ptr, ...] (1 cycles)
+    adv_loadw
+
+    # - get the memory address that B' should be saved to
+    # - update the write_ptr to point to the next address
+    # stack: [write_ptr, B', write_ptr+1, C, ...] (4 cycles)
+    movup.8 dup.0 add.1 movdn.5
+
+    # save data to memory
+    # stack: [B', write_ptr+1, C, ...] (1 cycles)
+    mem_storew
+
+    # Fix write_ptr position (`movdn.9` is 4 cycles, this save 1 cycle)
+    # stack: [B', C, write_ptr+1, ...] (2 cycles)
+    movup.4 movdn.8
+
+    # Push padding word
+    # stack: [A, B', C, write_ptr+1, ...] (4 cycles)
+    push.1.0.0.0
+
+    # Run RPO permutation (1 cycles)
+    # stack: [A', B', C', write_ptr+1, ...]
+    hperm
+  end
+
+  # The RPO hash is a single word, discard the unused one and the capacity.
+  # stack: [rpo_hash, write_ptr', ...] (9 cycles)
+  dropw swapw dropw
+end
+
+#! Moves the `num_words` words from the advice tape to memory, starting at
+#! `write_ptr` address, at the end asserts the commitment data was copied
+#!
+#! input: [num_words, write_ptr, commitment, ...]
+#! output: [write_ptr', ...]
+#! cycles:
+#!  even num_words: 53 + 8 * num_words
+#!  odd num_words: 70 + 8 * num_words
+export.move_words_from_tape_to_memory_with_commitment.0
+  # Copies the tape data to memory
+  # stack: [rpo_hash, write_ptr', commitment, ...]
+  exec.move_words_from_tape_to_memory
+
+  # Save the write_ptr
+  # stack: [rpo_hash, commitment, write_ptr', ...] (2 cycles)
+  movup.4 movdn.8
+
+  # Check the commitment
+  # stack: [write_ptr', ...] (10 cycles)
+  exec.assert_eqw
+end
