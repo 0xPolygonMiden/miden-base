@@ -139,6 +139,7 @@ pub enum NoteError {
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
     TooManyAssets(usize),
+    TooManyInputs(usize),
 }
 
 impl NoteError {
@@ -156,6 +157,10 @@ impl NoteError {
 
     pub fn too_many_assets(num_assets: usize) -> Self {
         Self::TooManyAssets(num_assets)
+    }
+
+    pub fn too_many_inputs(num_inputs: usize) -> Self {
+        Self::TooManyInputs(num_inputs)
     }
 }
 
