@@ -1,4 +1,4 @@
-use super::{AccountError, Felt, Hasher, StarkField, Word, ZERO};
+use super::{AccountError, Felt, Hasher, StarkField, ToString, Word, ZERO};
 use core::{fmt, ops::Deref};
 
 // ACCOUNT ID

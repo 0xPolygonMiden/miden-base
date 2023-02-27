@@ -16,7 +16,7 @@ bench = false
 
 [features]
 default = ["std"]
-std = ["assembly/std", "crypto/std"]
+std = ["assembly/std", "crypto/std", "miden-core/std"]
 
 [dependencies]
 assembly = {  package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }

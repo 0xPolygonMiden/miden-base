@@ -1,4 +1,4 @@
-use super::{AccountId, AssetError, Digest, Felt, Hasher, StarkField, Word, ZERO};
+use super::{AccountId, AssetError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word, ZERO};
 use core::{fmt, ops::Deref};
 
 // ASSET

@@ -1,4 +1,6 @@
-use super::{assets::Asset, AccountError, Digest, Felt, Hasher, StarkField, Word, ZERO};
+use super::{
+    assets::Asset, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word, ZERO,
+};
 
 mod account_id;
 pub use account_id::AccountId;
