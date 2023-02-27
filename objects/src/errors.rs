@@ -1,4 +1,4 @@
-use super::{assets::Asset, assets::NonFungibleAsset, AccountId, Word};
+use super::{assets::Asset, assets::NonFungibleAsset, AccountId, String, ToString, Word};
 use assembly::ParsingError;
 use core::fmt;
 

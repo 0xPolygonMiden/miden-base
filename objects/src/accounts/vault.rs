@@ -1,4 +1,5 @@
-use super::{AccountError, AccountId, Asset, Digest};
+use super::{AccountError, AccountId, Asset, Digest, Vec};
+use core::default::Default;
 
 // ACCOUNT VAULT
 // ================================================================================================
