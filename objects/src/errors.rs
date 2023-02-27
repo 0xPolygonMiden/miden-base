@@ -1,4 +1,4 @@
-use super::{assets::Asset, assets::NonFungibleAsset, AccountId, String, ToString, Word};
+use super::{assets::Asset, assets::NonFungibleAsset, AccountId, String, Word};
 use assembly::ParsingError;
 use core::fmt;
 
@@ -8,7 +8,8 @@ use core::fmt;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AccountError {
     AccountIdInvalidFieldElement(String),
-    AccountIdTooFewTrailingZeros,
+    AccountIdTooFewOnes,
+    SeedDigestTooFewTrailingZeros,
     CodeParsingFailed(ParsingError),
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
@@ -20,8 +21,12 @@ impl AccountError {
         Self::AccountIdInvalidFieldElement(msg)
     }
 
-    pub fn account_id_too_few_trailing_zeros() -> Self {
-        Self::AccountIdTooFewTrailingZeros
+    pub fn account_id_too_few_ones() -> Self {
+        Self::AccountIdTooFewOnes
+    }
+
+    pub fn seed_digest_too_few_trailing_zeros() -> Self {
+        Self::SeedDigestTooFewTrailingZeros
     }
 
     pub fn fungible_faucet_id_invalid_first_bit() -> Self {
@@ -61,8 +66,9 @@ pub enum AssetError {
     AssetAmountNotSufficient(u64, u64),
     FungibleAssetInvalidFirstBit,
     FungibleAssetInvalidTag(u32),
+    FungibleAssetInvalidWord(Word),
     InconsistentFaucetIds(AccountId, AccountId),
-    InvalidAccountId(String),
+    InvalidAccountId(AccountError),
     InvalidFieldElement(String),
     NonFungibleAssetInvalidFirstBit,
     NonFungibleAssetInvalidTag(u32),
@@ -88,12 +94,16 @@ impl AssetError {
         Self::FungibleAssetInvalidTag(tag)
     }
 
+    pub fn fungible_asset_invalid_word(word: Word) -> Self {
+        Self::FungibleAssetInvalidWord(word)
+    }
+
     pub fn inconsistent_faucet_ids(id1: AccountId, id2: AccountId) -> Self {
         Self::InconsistentFaucetIds(id1, id2)
     }
 
     pub fn invalid_account_id(err: AccountError) -> Self {
-        Self::InvalidAccountId(err.to_string())
+        Self::InvalidAccountId(err)
     }
 
     pub fn invalid_field_element(msg: String) -> Self {

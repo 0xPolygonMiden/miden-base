@@ -3,7 +3,7 @@ use super::{
 };
 
 mod account_id;
-pub use account_id::AccountId;
+pub use account_id::{AccountId, AccountType};
 
 mod code;
 pub use code::AccountCode;
@@ -14,6 +14,9 @@ use storage::StorageItem;
 
 mod vault;
 pub use vault::AccountVault;
+
+#[cfg(test)]
+mod tests;
 
 // ACCOUNT
 // ================================================================================================
@@ -75,7 +78,7 @@ impl Account {
     /// Computing the account hash requires 2 permutations of the hash function.
     pub fn hash(&self) -> Digest {
         let mut elements = [ZERO; 16];
-        elements[..3].copy_from_slice(self.id.as_elements());
+        elements[0] = *self.id;
         elements[3] = self.nonce;
         elements[4..8].copy_from_slice(self.vault.root().as_elements());
         elements[8..12].copy_from_slice(self.storage.root().as_elements());
@@ -86,6 +89,11 @@ impl Account {
     /// Returns unique identifier of this account.
     pub fn id(&self) -> AccountId {
         self.id
+    }
+
+    /// Returns the account type
+    pub fn account_type(&self) -> AccountType {
+        self.id.account_type()
     }
 
     /// Returns a reference to the vault of this account.
@@ -113,13 +121,13 @@ impl Account {
         self.id.is_faucet()
     }
 
-    /// Returns true if this account can issue fungible assets.
-    pub fn is_fungible_faucet(&self) -> bool {
-        self.id.is_fungible_faucet()
+    /// Returns true if this is a regular account.
+    pub fn is_regular_account(&self) -> bool {
+        self.id.is_regular_account()
     }
 
-    /// Returns true if this account can issue non-fungible assets.
-    pub fn is_non_fungible_faucet(&self) -> bool {
-        self.id.is_non_fungible_faucet()
+    /// Returns true if this account is on-chain.
+    pub fn is_on_chain(&self) -> bool {
+        self.id.is_on_chain()
     }
 }

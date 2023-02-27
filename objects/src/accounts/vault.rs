@@ -1,4 +1,4 @@
-use super::{AccountError, AccountId, Asset, Digest, Vec};
+use super::{AccountError, AccountId, AccountType, Asset, Digest, Vec};
 use core::default::Default;
 
 // ACCOUNT VAULT
@@ -56,7 +56,7 @@ impl AccountVault {
     /// # Errors
     /// Returns an error if the specified ID is not an ID of a fungible asset faucet.
     pub fn get_balance(&self, faucet_id: AccountId) -> Result<u64, AccountError> {
-        if !faucet_id.is_fungible_faucet() {
+        if !matches!(faucet_id.account_type(), AccountType::FungibleFaucet) {
             return Err(AccountError::not_a_fungible_faucet_id(faucet_id));
         }
         todo!()
