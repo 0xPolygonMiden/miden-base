@@ -1,53 +1,72 @@
-use super::{AccountError, Felt, Hasher, StarkField, ToString, Word, ZERO};
+use super::{AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
 use core::{fmt, ops::Deref};
 
 // ACCOUNT ID
 // ================================================================================================
 
+/// Specifies the account type.
+#[derive(Debug, PartialEq, Eq)]
+pub enum AccountType {
+    FungibleFaucet,
+    NonFungibleFaucet,
+    RegularAccountImmutableCode,
+    RegularAccountUpdatableCode,
+}
+
 /// Unique identifier of an account.
 ///
-/// Account ID consists of 3 field elements (24 bytes). These field elements uniquely identify a
-/// single account and also specify the type of the underlying account. Specifically:
-/// - If the least significant 32 bits of the 3rd element are all ZEROs, the account is a
-///   fungible asset faucet (i.e., it can issue fungible assets).
-/// - If the least significant 32 bits of the 3rd element are set to 2^31 (i.e ONE followed by 31
-///   ZEROs), the account is a non-fungible asset faucet (i.e., it can issue non-fungible assets).
-/// - Otherwise, the account is a regular account.
-///
-/// Additionally, account IDs have the following properties
-/// - For fungible asset faucets account IDs are guaranteed to start with ONE.
-/// - For regular accounts, the last 3 bytes of the ID are guaranteed to be all ZEROs.
+/// Account ID consists of 1 field element (~64 bits). This field element uniquely identifies a
+/// single account and also specifies the type of the underlying account. Specifically:
+/// - The two most significant bits of the ID specify the type of the account:
+///  - 00 - regular account with updatable code.
+///  - 01 - regular account with immutable code.
+///  - 10 - fungible asset faucet with immutable code.
+///  - 11 - non-fungible asset faucet with immutable code.
+/// - The third most significant bit of the ID specifies whether the account data is stored on-chain:
+///  - 0 - full account data is stored on-chain.
+///  - 1 - only the account hash is stored on-chain which serves as a commitment to the account state.
+/// As such the three most significant bits fully describes the type of the account.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct AccountId([Felt; 3]);
+pub struct AccountId(Felt);
 
 impl AccountId {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
-    pub const FUNGIBLE_FAUCET_TAG: u32 = 0;
-    pub const NON_FUNGIBLE_FAUCET_TAG: u32 = 1 << 31;
+    pub const FUNGIBLE_FAUCET_TAG: u64 = 0b10;
+    pub const NON_FUNGIBLE_FAUCET_TAG: u64 = 0b11;
+    pub const REGULAR_ACCOUNT_UPDATABLE_CODE_TAG: u64 = 0b00;
+    pub const REGULAR_ACCOUNT_IMMUTABLE_CODE_TAG: u64 = 0b01;
+    pub const ON_CHAIN_ACCOUNT_SELECTOR: u64 = 0b001;
 
-    /// Specifies a minimum number of trailing zeros for a valid account ID. Thus, all valid
-    /// account IDs have the last 3 bytes set to zeros.
-    pub const MIN_TRAILING_ZEROS: u32 = 24;
+    /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
+    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 24;
+    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 32;
+
+    /// Specifies a minimum number of ones for a valid account ID.
+    pub const MIN_ACCOUNT_ONES: u32 = 5;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new account ID derived from the specified seed.
     ///
-    /// The account ID is computed by hashing the seed and using 3 elements of the result to form
-    /// the ID. Specifically we are take elements 0, 1, and 3, omitting element 2. We omit element
-    /// 2 because unlike elements 0 and 3, it has no special structure which we need to carry over
-    /// into the derived account ID. Element 1 could have been omitted just as well.
+    /// The account ID is computed by hashing the seed and using 1 element of the result to form
+    /// the ID. Specifically we take element 0. We also require that the last element of the seed
+    /// digest has at least `24` trailing zeros if it is a regular account, or `32` trailing zeros
+    /// if it is a faucet account.
     ///
     /// # Errors
-    /// Returns an error if the resulting account ID does not comply with account ID rules.
+    /// Returns an error if the resulting account ID does not comply with account ID rules:
+    /// - the ID has at least `5` ones.
+    /// - the ID has at least `24` trailing zeros if it is a regular account.
+    /// - the ID has at least `32` trailing zeros if it is a faucet account.
     pub fn new(seed: Word) -> Result<Self, AccountError> {
-        // hash the seed and build the ID from the 1st, 2nd, and 4th elements of the result
-        let hash = Hasher::hash_elements(&seed);
-        let id = Self([hash[0], hash[1], hash[3]]);
+        let seed_digest = Hasher::hash_elements(&seed);
 
-        // verify that the ID satisfies all rules
-        id.validate()?;
+        // verify the seed digest satisfies all rules
+        Self::validate_seed_digest(&seed_digest)?;
+
+        // construct the ID from the first element of the seed hash
+        let id = Self(seed_digest[0]);
 
         Ok(id)
     }
@@ -55,72 +74,114 @@ impl AccountId {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns true if an account with this ID can issue fungible assets.
-    pub fn is_fungible_faucet(&self) -> bool {
-        self.tag() == Self::FUNGIBLE_FAUCET_TAG
+    /// Returns the type of this account ID.
+    pub fn account_type(&self) -> AccountType {
+        match self.0.as_int() >> 62 {
+            Self::REGULAR_ACCOUNT_UPDATABLE_CODE_TAG => AccountType::RegularAccountUpdatableCode,
+            Self::REGULAR_ACCOUNT_IMMUTABLE_CODE_TAG => AccountType::RegularAccountImmutableCode,
+            Self::FUNGIBLE_FAUCET_TAG => AccountType::FungibleFaucet,
+            Self::NON_FUNGIBLE_FAUCET_TAG => AccountType::NonFungibleFaucet,
+            _ => unreachable!(),
+        }
     }
 
-    /// Returns true if an account with this ID can issue non-fungible assets.
-    pub fn is_non_fungible_faucet(&self) -> bool {
-        self.tag() == Self::NON_FUNGIBLE_FAUCET_TAG
-    }
-
-    /// Returns true if an account with this ID can issue assets.
+    /// Returns true if an account with this ID is a faucet (can issue assets).
     pub fn is_faucet(&self) -> bool {
-        self.is_fungible_faucet() || self.is_non_fungible_faucet()
+        matches!(
+            self.account_type(),
+            AccountType::FungibleFaucet | AccountType::NonFungibleFaucet
+        )
     }
 
-    /// Returns a slice of field elements defining this account ID.
-    pub fn as_elements(&self) -> &[Felt] {
-        &self.0
+    /// Returns true if an account with this ID is a regular account.
+    pub fn is_regular_account(&self) -> bool {
+        matches!(
+            self.account_type(),
+            AccountType::RegularAccountUpdatableCode | AccountType::RegularAccountImmutableCode
+        )
+    }
+
+    /// Returns true if an account with this ID is an on-chain account.
+    pub fn is_on_chain(&self) -> bool {
+        self.0.as_int() >> 61 & Self::ON_CHAIN_ACCOUNT_SELECTOR == 1
     }
 
     // SEED GENERATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Finds and returns a seed suitable for creating regular account IDs using the provided seed
-    /// as a starting point.
-    pub fn get_account_seed(_init_seed: [u8; 32]) -> Word {
-        todo!()
-    }
+    /// Finds and returns a seed suitable for creating an account ID for the specified account type
+    /// using the provided seed as a starting point.
+    pub fn get_account_seed(
+        init_seed: [u8; 32],
+        account_type: AccountType,
+        on_chain: bool,
+    ) -> Result<Word, AccountError> {
+        let init_seed: Vec<[u8; 8]> =
+            init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
+        let mut current_seed: Word = [
+            Felt::from(init_seed[0]),
+            Felt::from(init_seed[1]),
+            Felt::from(init_seed[2]),
+            Felt::from(init_seed[3]),
+        ];
+        let mut current_digest = Hasher::hash_elements(&current_seed);
 
-    /// Finds and returns a seed suitable for creating account IDs for fungible faucets using the
-    /// provided seed as a starting point.
-    pub fn get_fungible_faucet_seed(_init_seed: [u8; 32]) -> Word {
-        todo!()
-    }
-
-    /// Finds and returns a seed suitable for creating account IDs for non-fungible faucets using
-    /// the provided seed as a starting point.
-    pub fn get_non_fungible_faucet_seed(_init_seed: [u8; 32]) -> Word {
-        todo!()
+        // loop until we have a seed that satisfies the specified account type.
+        loop {
+            // check if the seed satisfies the specified account type
+            if AccountId::validate_seed_digest(&current_digest).is_ok() {
+                if let Ok(account_id) = AccountId::try_from(current_digest[0]) {
+                    if account_id.account_type() == account_type
+                        && account_id.is_on_chain() == on_chain
+                    {
+                        return Ok(current_seed);
+                    };
+                }
+            }
+            current_seed = current_digest.into();
+            current_digest = Hasher::hash_elements(&current_seed);
+        }
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the first bit of this account ID.
-    fn first_bit(&self) -> u8 {
-        (self.0[0].as_int() >> 63) as u8
-    }
+    /// Returns an error if:
+    /// - There are fewer then:
+    ///     - 24 trailing ZEROs in the last element of the seed digest for regular accounts.
+    ///     - 32 trailing ZEROs in the last element of the seed digest for faucet accounts.
+    /// - There are fewer than 5 ONEs in the account ID (first element of the seed digest).
+    pub fn validate_seed_digest(digest: &Digest) -> Result<(), AccountError> {
+        let elements = digest.as_elements();
 
-    /// Returns the last 32 bits of this account ID.
-    fn tag(&self) -> u32 {
-        self.0[2].as_int() as u32
+        // accounts must have at least 5 ONEs in the ID.
+        if elements[0].as_int().count_ones() < Self::MIN_ACCOUNT_ONES {
+            return Err(AccountError::account_id_too_few_ones());
+        }
+
+        // we require that accounts have at least some number of trailing zeros in the last element,
+        let is_regular_account = elements[0].as_int() >> 63 == 0;
+        let pow_trailing_zeros = elements[3].as_int().trailing_zeros();
+
+        // check if there is there enough trailing zeros in the last element of the seed hash for
+        // the account type.
+        let sufficient_pow = match is_regular_account {
+            true => pow_trailing_zeros >= Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS,
+            false => pow_trailing_zeros >= Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS,
+        };
+
+        if !sufficient_pow {
+            return Err(AccountError::seed_digest_too_few_trailing_zeros());
+        }
+
+        Ok(())
     }
 
     /// Returns an error if:
-    /// - This account ID is for a fungible asset but the first bit of the ID is not ONE.
-    /// - There are fewer than 24 trailing ZEROs in this account ID.
+    /// - There are fewer then 5 ONEs in the account ID.
     fn validate(&self) -> Result<(), AccountError> {
-        if self.is_fungible_faucet() {
-            // IDs for fungible faucets must start with ONE
-            if self.first_bit() != 1 {
-                return Err(AccountError::fungible_faucet_id_invalid_first_bit());
-            }
-        } else if self.tag().trailing_zeros() < Self::MIN_TRAILING_ZEROS {
-            // all account IDs must end with at least 24 ZEROs
-            return Err(AccountError::account_id_too_few_trailing_zeros());
+        if self.0.as_int().count_ones() < Self::MIN_ACCOUNT_ONES {
+            return Err(AccountError::account_id_too_few_ones());
         }
 
         Ok(())
@@ -128,74 +189,58 @@ impl AccountId {
 }
 
 impl Deref for AccountId {
-    type Target = [Felt; 3];
+    type Target = Felt;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<AccountId> for [Felt; 3] {
+impl From<AccountId> for Felt {
     fn from(id: AccountId) -> Self {
         id.0
     }
 }
 
-impl From<AccountId> for Word {
+impl From<AccountId> for [u8; 8] {
     fn from(id: AccountId) -> Self {
-        [id.0[0], id.0[1], id.0[2], ZERO]
-    }
-}
-
-impl From<AccountId> for [u8; 24] {
-    fn from(id: AccountId) -> Self {
-        let mut result = [0_u8; 24];
-        result[..8].copy_from_slice(&id.0[0].as_int().to_le_bytes());
-        result[8..16].copy_from_slice(&id.0[1].as_int().to_le_bytes());
-        result[16..].copy_from_slice(&id.0[2].as_int().to_le_bytes());
+        let mut result = [0_u8; 8];
+        result[..8].copy_from_slice(&id.0.as_int().to_le_bytes());
         result
     }
 }
 
-/// This conversion is possible because the 3 least significant bytes of an account ID are always
-/// set to zeros.
-impl From<AccountId> for [u8; 21] {
+impl From<AccountId> for u64 {
     fn from(id: AccountId) -> Self {
-        let mut result = [0_u8; 21];
-        result[..8].copy_from_slice(&id.0[0].as_int().to_le_bytes());
-        result[8..16].copy_from_slice(&id.0[1].as_int().to_le_bytes());
-        result[16..].copy_from_slice(&id.0[2].as_int().to_le_bytes()[..5]);
-        result
+        id.0.as_int()
     }
 }
 
-impl TryFrom<[Felt; 3]> for AccountId {
+impl TryFrom<Felt> for AccountId {
     type Error = AccountError;
 
-    fn try_from(value: [Felt; 3]) -> Result<Self, Self::Error> {
+    fn try_from(value: Felt) -> Result<Self, Self::Error> {
         let id = Self(value);
         id.validate()?;
         Ok(id)
     }
 }
 
-impl TryFrom<[u8; 24]> for AccountId {
+impl TryFrom<[u8; 8]> for AccountId {
     type Error = AccountError;
 
-    fn try_from(value: [u8; 24]) -> Result<Self, Self::Error> {
-        let elements =
-            [parse_felt(&value[..8])?, parse_felt(&value[8..16])?, parse_felt(&value[16..])?];
-        Self::try_from(elements)
+    fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
+        let element = parse_felt(&value[..8])?;
+        Self::try_from(element)
     }
 }
 
-impl TryFrom<[u8; 21]> for AccountId {
+impl TryFrom<u64> for AccountId {
     type Error = AccountError;
 
-    fn try_from(value: [u8; 21]) -> Result<Self, Self::Error> {
-        let mut bytes = [0_u8; 24];
-        bytes[..21].copy_from_slice(&value);
-        Self::try_from(bytes)
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let element = parse_felt(&value.to_le_bytes())?;
+        Self::try_from(element)
     }
 }
 

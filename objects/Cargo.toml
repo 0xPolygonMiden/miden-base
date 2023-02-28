@@ -11,6 +11,10 @@ keywords = []
 edition = "2021"
 rust-version = "1.65"
 
+[[bench]]
+name = "account_seed"
+harness = false
+
 [lib]
 bench = false
 
@@ -22,3 +26,6 @@ std = ["assembly/std", "crypto/std", "miden-core/std"]
 assembly = {  package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 crypto = {  package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 miden-core = {  package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
