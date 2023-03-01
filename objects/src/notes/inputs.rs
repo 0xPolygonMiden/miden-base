@@ -60,10 +60,12 @@ impl NoteInputs {
 
 #[test]
 fn test_input_ordering() {
+    use crate::Vec;
+
     // inputs are provided in reverse stack order
-    let inputs = vec![Felt::new(1), Felt::new(2), Felt::new(3)];
+    let inputs = Vec::from([Felt::new(1), Felt::new(2), Felt::new(3)]);
     // we expect the inputs to be padded to length 16 and to remain in reverse stack order.
-    let expected_ordering = vec![
+    let expected_ordering = Vec::from([
         ZERO,
         ZERO,
         ZERO,
@@ -80,7 +82,7 @@ fn test_input_ordering() {
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
-    ];
+    ]);
 
     let note_inputs = NoteInputs::new(&inputs);
     assert_eq!(&expected_ordering, note_inputs.inputs());
