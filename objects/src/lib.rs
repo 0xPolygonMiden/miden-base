@@ -21,5 +21,4 @@ pub mod notes;
 mod errors;
 pub use errors::{AccountError, AssetError, NoteError};
 
-mod transaction;
-pub use transaction::ProvenTransaction;
+pub mod transaction;
