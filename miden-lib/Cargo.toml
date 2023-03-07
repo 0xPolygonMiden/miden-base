@@ -1,0 +1,27 @@
+[package]
+name = "miden_lib"
+version = "0.1.0"
+authors = ["miden contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/0xPolygonMiden/miden-base"
+keywords = ["miden", "program", "stdlib", "transaction", "kernel"]
+edition = "2021"
+rust-version = "1.67"
+
+[lib]
+
+[dependencies]
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+
+[dev-dependencies]
+crypto = { package = "miden-crypto", version = "0.1" }
+miden-objects = { package = "miden-objects", path = "../objects"}
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", features = ["internals"] }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+
+
+[build-dependencies]
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }

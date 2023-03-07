@@ -34,7 +34,14 @@ impl NoteVault {
             return Err(NoteError::too_many_assets(assets.len()));
         }
 
-        let mut asset_elements = Vec::with_capacity(assets.len() * WORD_SIZE);
+        // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
+        // ensure the number of elements is a multiple of 8 - the size of the hasher rate.
+        let word_capacity = if assets.len() % 2 == 0 {
+            assets.len()
+        } else {
+            assets.len() + 1
+        };
+        let mut asset_elements = Vec::with_capacity(word_capacity * WORD_SIZE);
 
         for (i, asset) in assets.iter().enumerate() {
             // for all assets except the last one, check if the asset is the same as any other
@@ -48,6 +55,13 @@ impl NoteVault {
             // convert the asset into field elements and add them to the list elements
             let asset_word: Word = (*asset).into();
             asset_elements.extend_from_slice(&asset_word);
+        }
+
+        // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
+        // ensure the number of elements is a multiple of 8 - the size of the hasher rate. This
+        // simplifies hashing inside of the virtual machine when ingesting assets from the vault.
+        if assets.len() % 2 == 1 {
+            asset_elements.extend_from_slice(&Word::default());
         }
 
         Ok(Self {

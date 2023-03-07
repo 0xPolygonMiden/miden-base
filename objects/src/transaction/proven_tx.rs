@@ -1,5 +1,8 @@
-use super::{AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, Vec};
-use miden_core::{ProgramInfo, StackInputs, StackOutputs};
+use super::{
+    AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, StackInputs, StackOutputs,
+    Vec,
+};
+use miden_core::ProgramInfo;
 use miden_verifier::{verify, ExecutionProof, VerificationError};
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
