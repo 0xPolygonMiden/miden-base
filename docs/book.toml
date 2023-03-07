@@ -1,0 +1,13 @@
+[book]
+authors = ["Dominik1999"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Polygon Miden Documentation"
+
+[output.katex]
+
+[output.html]
+
+[preprocessor.katex]
+renderers = ["html"]
