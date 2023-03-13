@@ -1,0 +1,35 @@
+# CONSTANTS
+# =================================================================================================
+
+# The size of the memory segment allocated to each consumed note
+const.CONSUMED_NOTE_MEM_SIZE=1024
+
+# The memory offset at which the consumed note section begins
+const.CONSUMED_NOTE_SECTION_OFFSET=1000
+
+# UTILS
+# =================================================================================================
+
+#! Computes a pointer to the memory address at which the data associated with a note with index i
+#! is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the memory address of the data segment for note i.
+export.consumed_note_data_ptr
+    push.1 add push.CONSUMED_NOTE_MEM_SIZE mul push.CONSUMED_NOTE_SECTION_OFFSET add
+end
+
+#! Computes a pointer to the memory address at which the nullifier associated a note with index i
+#! is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the nullifier memory address for note i.
+export.consumed_note_nullifier_ptr
+    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
+end

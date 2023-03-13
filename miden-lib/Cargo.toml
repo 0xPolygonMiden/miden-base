@@ -11,6 +11,10 @@ rust-version = "1.67"
 
 [lib]
 
+[features]
+default = ["std"]
+std = ["assembly/std", "processor/std"]
+
 [dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
