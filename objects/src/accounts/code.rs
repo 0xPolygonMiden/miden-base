@@ -1,4 +1,4 @@
-use super::{AccountError, Digest};
+use super::{AccountError, Digest, Word};
 use assembly::{parse_module, ModuleAst};
 use crypto::merkle::MerkleTree;
 use miden_core::Program; // TODO: we should be able to import it from the assembly crate
@@ -42,7 +42,10 @@ impl AccountCode {
         // be sorted so that the same set of programs always resolves to the same root. If the
         // number of programs is not a power of two, the remaining leaves should be set to ZEROs.
 
-        todo!()
+        Ok(Self {
+            method_tree: MerkleTree::new(vec![Word::default(); 4]).unwrap(),
+            module: _module_ast,
+        })
     }
 
     // PUBLIC ACCESSORS

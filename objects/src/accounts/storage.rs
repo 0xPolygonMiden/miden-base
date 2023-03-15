@@ -23,7 +23,7 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(_items: &[StorageItem]) -> Self {
-        todo!()
+        Self {}
     }
 
     // PUBLIC ACCESSORS
@@ -31,7 +31,7 @@ impl AccountStorage {
 
     /// Returns a commitment to this storage.
     pub fn root(&self) -> Digest {
-        todo!()
+        Digest::default()
     }
 
     /// Returns an item from the storage at the specified key. Both items and keys are Words which

@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "objects",
+  "miden-lib",
 ]
 
 [profile.release]

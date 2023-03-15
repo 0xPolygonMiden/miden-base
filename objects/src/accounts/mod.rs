@@ -131,3 +131,23 @@ impl Account {
         self.id.is_on_chain()
     }
 }
+
+impl From<&Account> for [Felt; 16] {
+    /// Returns an array of field elements representing this account.
+    /// The array (elements) is in the following format:
+    ///    elements[0]       = account id
+    ///    elements[2..3]    = padding ([Felt::ZERO; 2])
+    ///    elements[3]       = account nonce
+    ///    elements[4..8]    = account vault root
+    ///    elements[8..12]   = storage root
+    ///    elements[12..16]  = code root
+    fn from(account: &Account) -> Self {
+        let mut elements = [ZERO; 16];
+        elements[0] = *account.id;
+        elements[3] = account.nonce;
+        elements[4..8].copy_from_slice(account.vault.root().as_elements());
+        elements[8..12].copy_from_slice(account.storage.root().as_elements());
+        elements[12..].copy_from_slice(account.code.root().as_elements());
+        elements
+    }
+}

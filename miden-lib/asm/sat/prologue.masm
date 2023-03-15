@@ -1,0 +1,429 @@
+# MEMORY OFFSETS
+# =================================================================================================
+
+# GLOBAL INPUTS
+# -------------------------------------------------------------------------------------------------
+
+# The memory offset at which the global inputs section begins
+const.GLOBAL_INPUTS_SECTION_OFFSET=10
+
+# A pointer to the memory address at which the latest known block hash is stored
+const.BLK_HASH_PTR=10
+
+# A pointer to the memory address at which the account id is stored
+const.ACCT_ID_PTR=11
+
+# A pointer to the memory address at which the initial account hash is stored
+const.ACCT_HASH_PTR=12
+
+# A pointer to the memory address at which the global nullifier commitment is stored
+const.NULLIFIER_COM_PTR=13
+
+# ACCOUNT DATA
+# -------------------------------------------------------------------------------------------------
+
+# The memory offset at which the account data section begins
+const.ACCT_DATA_SECTION_OFFSET=100
+
+# A pointer to the memory address at which the account id and nonce is stored.
+# The account id is stored in the first element.
+# The account nonce is stored in the fourth element.
+const.ACCT_ID_AND_NONCE_PTR=100
+
+# A pointer to the memory address at which the account vault root is stored
+const.ACCT_VAULT_ROOT_PTR=101
+
+# A pointer to the memory address at which the account storage root is stored
+const.ACCT_STORAGE_ROOT_PTR=102
+
+# A pointer to the memory address at which the account code root is stored
+const.ACCT_CODE_ROOT_PTR=103
+
+# CONSUMED NOTES DATA
+# -------------------------------------------------------------------------------------------------
+
+# The memory offset at which the consumed note section begins
+const.CONSUMED_NOTE_SECTION_OFFSET=1000
+
+# A pointer to the memory address at which the number of consumed notes is stored
+const.CONSUMED_NOTE_NUM_PTR=1000
+
+# The size of the memory segment allocated to each consumed note
+const.CONSUMED_NOTE_MEM_SIZE=1024
+
+# The offsets at which data of a consumed note is stored relative to the start of its data segment
+const.CONSUMED_NOTE_HASH_OFFSET=0
+const.CONSUMED_NOTE_SERIAL_NUM_OFFSET=1
+const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
+const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
+const.CONSUMED_NOTE_VAULT_ROOT_OFFSET=4
+const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=5
+const.CONSUMED_NOTE_ASSETS_OFFSET=6
+
+# The maximum number of consumed notes that can be processed in a single transaction
+const.MAX_NUM_CONSUMED_NOTES=1023
+
+# The maximum number of assets that can be stored in a single note
+const.MAX_ASSETS_PER_NOTE=256
+
+
+# PUBLIC INPUTS
+# =================================================================================================
+
+#! Processes the global inputs provided via the stack. This involves storing the global inputs at
+#! the appropriate memory addresses.
+#!
+#! Stack: [BH, aid, IAH, NC]
+#! Output: []
+#!
+#! - BH is the latest known block hash at the time of transaction execution.
+#! - aid is the account id of the account that the transaction is being executed against.
+#! - IAH is the initial account hash of the account that the transaction is being executed against.
+#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
+#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+proc.process_global_inputs
+    # store the block hash
+    push.BLK_HASH_PTR mem_storew dropw
+
+    # store the account id
+    push.ACCT_ID_PTR mem_store
+
+    # store the initial account hash
+    push.ACCT_HASH_PTR mem_storew dropw
+
+    # store the nullifier commitment
+    push.NULLIFIER_COM_PTR mem_storew dropw
+end
+
+# ACCOUNT DATA
+# =================================================================================================
+
+#! Process the account data provided via the advice provider. This involves reading the data from
+#! the advice provider and storing it at the appropriate memory addresses. As the account data is
+#! read from the advice provider, the account hash is computed. It is asserted that the computed
+#! account hash matches the account hash stored in the global inputs. It is also asserted that the
+#! account id matches the account id provided via the stack public inputs.
+#!
+#! Stack: []
+#! Advice Tape: [aid, ZERO, ZERO, nonce, AVR, ASR, ACR]
+#! Output: []
+#!
+#! - aid is the account id.
+#! - nonce is the account nonce.
+#! - AVR is the account vault root.
+#! - ASR is the account storage root.
+#! - ACR is the account code root.
+proc.process_acct_data
+    # address to store the account data
+    push.ACCT_DATA_SECTION_OFFSET
+
+    # prepare the stack for reading account data
+    padw padw padw
+
+    # read the account data
+    adv_pipe adv_pipe
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+
+    # assert that the account hash matches the hash in global inputs
+    padw push.ACCT_HASH_PTR mem_loadw assert_eqw
+
+    # assert the account id matches the account id in global inputs
+    push.ACCT_ID_PTR mem_load
+    push.ACCT_ID_AND_NONCE_PTR mem_load
+    assert_eq
+
+    # clear the stack
+    drop
+end
+
+# CONSUMED NOTES DATA
+# =================================================================================================
+
+#! Computes a pointer to the memory address at which the data associated with a note with index i
+#! is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the memory address of the data segment for note i.
+proc.consumed_note_data_ptr
+    push.1 add push.CONSUMED_NOTE_MEM_SIZE mul push.CONSUMED_NOTE_SECTION_OFFSET add
+end
+
+#! Computes a pointer to the memory address at which the nullifier associated a note with index i
+#! is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the nullifier memory address for note i.
+proc.consumed_note_nullifier_ptr
+    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
+end
+
+#! Reads data for consumed note i from the advice provider and stores it in memory at the
+#! appropriate memory address. This includes computing and storing the nullifier and the
+#! note hash.
+#!
+#! Stack: [i]
+#! Advice Tape: [CN1_SN, CN1_SR, CN1_IR, CN1_VR,
+#!               CN1_NA,
+#!               CN1_A1, CN1_A2, ...]
+#!
+#! Output: []
+#!
+#! - i is the index of the consumed note.
+#! - CN1_SN is the serial number of consumed note 1.
+#! - CN1_SR is the script root of consumed note 1.
+#! - CN1_IR is the inputs root of consumed note 1.
+#! - CN1_VR is the vault root of consumed note 1.
+#! - CN1_NA is the number of assets in consumed note 1.
+#! - CN1_A1 is the first asset of consumed note 1.
+#! - CN1_A2 is the second asset of consumed note 1.
+proc.process_consumed_note
+    # read core note data
+    # ---------------------------------------------------------------------------------------------
+
+    # compute address to store note hash
+    exec.consumed_note_data_ptr
+
+    # compute address to store raw note data
+    dup push.1 add
+
+    # read note data from the advice provider
+    padw padw padw
+    adv_pipe adv_pipe
+
+    # extract nullifier
+    dropw swapw dropw
+
+    # compute address for nullifier
+    # dup.6 = counter / note index
+    dup.6 exec.consumed_note_nullifier_ptr
+
+    # store nullifier in memory and drop from stack
+    mem_storew dropw
+
+    # ingest note assets
+    # ---------------------------------------------------------------------------------------------
+
+    # read the number of assets from the advice provider and store in memory
+    adv_push.1 dup dup.2 mem_store
+
+    # assert the number of assets is within limits
+    dup push.MAX_ASSETS_PER_NOTE lte assert
+
+    # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
+    dup push.1 u32checked_and
+
+    # pad to multiple of two if odd
+    if.true
+        push.1 add
+    end
+
+    # initiate counter for assets
+    push.0
+
+    # prepare address and stack for reading assets
+    movup.2 push.1 add padw padw padw
+
+    # check if the number of assets is greater then 0
+    dup.14 dup.14 neq
+
+    # loop and read assets from the advice provider
+    while.true
+        # read assets from advice provider
+        adv_pipe
+
+        # check if we should loop again
+        movup.13 push.2 add dup movdn.14 dup.15 neq
+    end
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+
+    # load expected hash from memory
+    swapw drop drop drop dup movdn.5 push.4 add padw movup.4 mem_loadw
+
+    # assert that the computed hash matches the expected hash
+    assert_eqw
+
+    # compute note hash
+    # ---------------------------------------------------------------------------------------------
+
+    # TODO: This should be optimized using the `hperm` operation
+
+    # serial number hash - serial_hash = hmerge(serial_number, 0)
+    dup push.1 add padw movup.4 mem_loadw padw hmerge
+
+    # hash serial_hash with script hash - merge_script = hmerge(serial_hash, script_hash)
+    dup.4 push.2 add padw movup.4 mem_loadw hmerge
+
+    # hash merge_script with inputs hash - recipient = hmerge(merge_script, inputs_hash)
+    dup.4 push.3 add padw movup.4 mem_loadw hmerge
+
+    # hash recipient with vault hash - note_hash = hmerge(recipient, vault_hash)
+    dup.4 push.4 add padw movup.4 mem_loadw hmerge
+
+    # store note hash in memory and clear stack
+    dup.4 mem_storew dropw drop
+
+    # TODO: assert note hash exists in note db
+end
+
+#! Process the consumed notes data provided via the advice provider. This involves reading the data
+#! from the advice provider and storing it at the appropriate memory addresses. As each note is
+#! consumed its hash and nullifier is computed. The transaction nullifier commitment is computed
+#! via a sequential hash of all (nullifier, script_root) pairs for all consumed notes.
+#!
+#! Stack: []
+#! Advice Tape: [num_cn,
+#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR,
+#!               cn1_na,
+#!               CN1_A1, CN1_A2, ...
+#!
+#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR,
+#!               cn2_na,
+#!               CN2_A1, CN2_A2, ...
+#!               ...]
+#! Output: []
+#!
+#! - num_cn is the number of consumed notes.
+#! - CN1_SN is the serial number of consumed note 1.
+#! - CN1_SR is the script root of consumed note 1.
+#! - CN1_IR is the inputs root of consumed note 1.
+#! - CN1_VR is the vault root of consumed note 1.
+#! - cn1_na is the number of assets in consumed note 1.
+#! - CN1_A1 is the first asset of consumed note 1.
+#! - CN1_A2 is the second asset of consumed note 1.
+proc.process_consumed_notes_data
+    # read the number of consumed notes from the advice provider
+    adv_push.1
+
+    # store the number of consumed notes
+    dup push.CONSUMED_NOTE_NUM_PTR mem_store
+
+    # assert the number of consumed notes is within limits
+    dup push.MAX_NUM_CONSUMED_NOTES lte assert
+
+    # loop over consumed notes and read data
+    # ---------------------------------------------------------------------------------------------
+
+    # initialize counter for consumed notes
+    push.0
+
+    # check if the number of consumed notes is greater then 0. Conditional for the while loop.
+    dup.1 dup.1 neq
+
+    # loop and read note data from the advice provider
+    while.true
+        dup exec.process_consumed_note
+
+        # increment consumed note counter and check if we should loop again
+        push.1 add dup.1 dup.1 neq
+    end
+
+    # drop counter
+    drop
+
+    # compute nullifier commitment
+    # ---------------------------------------------------------------------------------------------
+
+    # initiate counter for nullifiers
+    push.0
+
+    # initiate stack for sequential hash to compute nullifier commitment
+    padw padw padw
+
+    # check if the number of consumed notes is greater then 0. Conditional for the while loop.
+    dup.13 dup.13 neq
+
+    # loop and sequentially hash hperm(nullifier, script_root) over all consumed notes
+    while.true
+        # compute address of nullifier
+        dup.12 exec.consumed_note_nullifier_ptr
+
+        # load nullifier from memory and push down stack
+        mem_loadw swapw
+
+        # compute address of script root
+        dup.12 exec.consumed_note_data_ptr push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
+
+        # load script root from memory
+        mem_loadw
+
+        # compute hperm(nullifier, script_root)
+        hperm
+
+        # increment nullifier counter and check if we should loop again
+        movup.12 push.1 add dup movdn.13 dup.14 neq
+    end
+
+    # extract nullifier hash
+    dropw swapw dropw
+
+    # assert nullifier hash is what we would expect
+    padw push.NULLIFIER_COM_PTR mem_loadw assert_eqw
+
+    # clear stack
+    drop drop
+end
+
+# TRANSACTION PROLOGUE
+# =================================================================================================
+
+#! The transaction prologue is executed at the beginning of a transaction. Its responsibility is:
+#! 1. "Unhash" inputs, authenticate the data and store it in the root contexts memory.
+#! 2. Build a single vault containing assets of all inputs (input notes combined with current
+#!    account vault).
+#! 3. Verify that all consumed notes are present in the note db.
+#!
+#! Errors:
+#!  - If data provided by the advice provider does not match global inputs.
+#!  - The account data is invalid.
+#!  - Any of the consumed notes do note exist in the note db.
+#!
+#! Stack:       [BH, aid, IAH, NC]
+#! Advice Tape: [aid, ZERO, ZERO, nonce, AVR, ASR, ACR,
+#!               num_cn,
+#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR,
+#!               cn1_na,
+#!               CN1_A1, CN1_A2, ...
+#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR,
+#!               cn2_na,
+#!               CN2_A1, CN2_A2, ...
+#!               ...]
+#! Output:      []
+#!
+#!
+#! - BH is the latest known block hash at the time of transaction execution.
+#! - aid is the account id of the account that the transaction is being executed against.
+#! - IAH is the initial account hash of the account that the transaction is being executed against.
+#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
+#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+#! - nonce is the account nonce.
+#! - AVR is the account vault root.
+#! - ASR is the account storage root.
+#! - ACR is the account code root.
+#! - num_cn is the number of consumed notes.
+#! - CN1_SN is the serial number of consumed note 1.
+#! - CN1_SR is the script root of consumed note 1.
+#! - CN1_IR is the inputs root of consumed note 1.
+#! - CN1_VR is the vault root of consumed note 1.
+#! - cn1_na is the number of assets in consumed note 1.
+#! - CN1_A1 is the first asset of consumed note 1.
+#! - CN1_A2 is the second asset of consumed note 1.
+proc.transaction_prologue
+    # process global inputs
+    exec.process_global_inputs
+
+    # process account data
+    exec.process_acct_data
+
+    # process consumed notes data
+    exec.process_consumed_notes_data
+end

@@ -39,7 +39,7 @@ impl AccountVault {
 
     /// Returns a commitment to this vault.
     pub fn root(&self) -> Digest {
-        todo!()
+        Digest::default()
     }
 
     /// Returns true if the specified non-fungible asset is stored in this vault.

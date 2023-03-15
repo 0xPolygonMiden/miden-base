@@ -79,6 +79,11 @@ impl Note {
         self.serial_num
     }
 
+    /// Returns the note data as a vector of elements.
+    pub fn to_elements(&self) -> Vec<Felt> {
+        self.into()
+    }
+
     /// Returns a commitment to this note.
     ///
     /// The note hash is computed as:
@@ -117,5 +122,46 @@ impl Note {
         elements.extend_from_slice(self.inputs.hash().as_elements());
         elements.extend_from_slice(self.vault.hash().as_elements());
         Hasher::hash_elements(&elements)
+    }
+}
+
+impl From<&Note> for Vec<Felt> {
+    /// Returns a vector of elements which represents this note.
+    /// The output vector (out) is constructed as follows:
+    ///     out[0..4]    = serial num
+    ///     out[4..8]    = script root
+    ///     out[8..12]   = input root
+    ///     out[12..16]  = vault_hash
+    ///     out[16]      = num_assets
+    ///     out[17..21]  = asset_1
+    ///     out[21..25]  = asset_2
+    ///     ...
+    ///     out[16 + num_assets * 4..] = Word::default() (this is conditional padding only applied
+    ///                                                   if the number of assets is odd)
+    fn from(note: &Note) -> Self {
+        // compute capacity of the output vector.  If we have an odd number of assets, we need to
+        // pad the output with an empty word.
+        let capacity = if note.vault.num_assets() % 2 == 1 {
+            17 + (note.vault.num_assets() + 1) * 4
+        } else {
+            17 + note.vault.num_assets() * 4
+        };
+        let mut out = Vec::with_capacity(capacity);
+
+        out.extend_from_slice(&note.serial_num);
+        out.extend_from_slice(note.script.hash().as_elements());
+        out.extend_from_slice(note.inputs.hash().as_elements());
+        out.extend_from_slice(note.vault.hash().as_elements());
+        out.push(Felt::from(note.vault.num_assets() as u64));
+        let assets: Vec<Felt> =
+            note.vault.iter().flat_map(|asset| <[Felt; 4]>::from(*asset)).collect();
+        out.extend(assets);
+
+        // pad with an empty word if we have an odd number of assets
+        if note.vault.num_assets() % 2 == 1 {
+            out.extend_from_slice(&Word::default());
+        }
+
+        out
     }
 }
