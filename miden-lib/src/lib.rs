@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 use assembly::{Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
 
@@ -31,4 +31,19 @@ impl Library for MidenLib {
     fn modules(&self) -> Self::ModuleIterator<'_> {
         self.contents.modules()
     }
+}
+
+#[test]
+fn test_compile() {
+    let path = "miden::sat::utils::consumed_note_data_ptr";
+    let miden = MidenLib::default();
+    let exists = miden.modules().any(|module| {
+        module
+            .ast
+            .local_procs
+            .iter()
+            .any(|proc| module.path.concatenate(&proc.name).as_str() == path)
+    });
+
+    assert!(exists);
 }

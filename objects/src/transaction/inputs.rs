@@ -69,6 +69,12 @@ impl TransactionInputs {
         inputs.push(Felt::new(self.consumed_notes.len() as u64));
         let note_data: Vec<Felt> = self.consumed_notes.iter().flat_map(<Vec<Felt>>::from).collect();
         inputs.extend(note_data);
+        let note_inputs: Vec<Felt> = self
+            .consumed_notes
+            .iter()
+            .flat_map(|note| note.inputs().inputs().to_vec())
+            .collect();
+        inputs.extend(note_inputs);
         AdviceInputs::default().with_tape(inputs)
     }
 

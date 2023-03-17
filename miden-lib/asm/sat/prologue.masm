@@ -1,3 +1,5 @@
+use.miden::sat::utils
+
 # MEMORY OFFSETS
 # =================================================================================================
 
@@ -47,9 +49,6 @@ const.CONSUMED_NOTE_SECTION_OFFSET=1000
 
 # A pointer to the memory address at which the number of consumed notes is stored
 const.CONSUMED_NOTE_NUM_PTR=1000
-
-# The size of the memory segment allocated to each consumed note
-const.CONSUMED_NOTE_MEM_SIZE=1024
 
 # The offsets at which data of a consumed note is stored relative to the start of its data segment
 const.CONSUMED_NOTE_HASH_OFFSET=0
@@ -141,30 +140,6 @@ end
 # CONSUMED NOTES DATA
 # =================================================================================================
 
-#! Computes a pointer to the memory address at which the data associated with a note with index i
-#! is stored.
-#!
-#! Stack: [i]
-#! Output: [ptr]
-#!
-#! - i is the index of the consumed note.
-#! - ptr is the memory address of the data segment for note i.
-proc.consumed_note_data_ptr
-    push.1 add push.CONSUMED_NOTE_MEM_SIZE mul push.CONSUMED_NOTE_SECTION_OFFSET add
-end
-
-#! Computes a pointer to the memory address at which the nullifier associated a note with index i
-#! is stored.
-#!
-#! Stack: [i]
-#! Output: [ptr]
-#!
-#! - i is the index of the consumed note.
-#! - ptr is the nullifier memory address for note i.
-proc.consumed_note_nullifier_ptr
-    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
-end
-
 #! Reads data for consumed note i from the advice provider and stores it in memory at the
 #! appropriate memory address. This includes computing and storing the nullifier and the
 #! note hash.
@@ -189,7 +164,7 @@ proc.process_consumed_note
     # ---------------------------------------------------------------------------------------------
 
     # compute address to store note hash
-    exec.consumed_note_data_ptr
+    exec.utils::consumed_note_data_ptr
 
     # compute address to store raw note data
     dup push.1 add
@@ -203,7 +178,7 @@ proc.process_consumed_note
 
     # compute address for nullifier
     # dup.6 = counter / note index
-    dup.6 exec.consumed_note_nullifier_ptr
+    dup.6 exec.utils::consumed_note_nullifier_ptr
 
     # store nullifier in memory and drop from stack
     mem_storew dropw
@@ -345,13 +320,13 @@ proc.process_consumed_notes_data
     # loop and sequentially hash hperm(nullifier, script_root) over all consumed notes
     while.true
         # compute address of nullifier
-        dup.12 exec.consumed_note_nullifier_ptr
+        dup.12 exec.utils::consumed_note_nullifier_ptr
 
         # load nullifier from memory and push down stack
         mem_loadw swapw
 
         # compute address of script root
-        dup.12 exec.consumed_note_data_ptr push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
+        dup.12 exec.utils::consumed_note_data_ptr push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
 
         # load script root from memory
         mem_loadw
@@ -417,7 +392,7 @@ end
 #! - cn1_na is the number of assets in consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
-proc.transaction_prologue
+export.prepare_transaction
     # process global inputs
     exec.process_global_inputs
 
