@@ -2,6 +2,8 @@
 
 use assembly::{Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
 
+pub mod memory;
+
 // STANDARD LIBRARY
 // ================================================================================================
 
@@ -35,7 +37,7 @@ impl Library for MidenLib {
 
 #[test]
 fn test_compile() {
-    let path = "miden::sat::utils::consumed_note_data_ptr";
+    let path = "miden::sat::utils::get_consumed_note_data_ptr";
     let miden = MidenLib::default();
     let exists = miden.modules().any(|module| {
         module

@@ -32,13 +32,13 @@ end
 #! 3. Authenticating the note inputs against the inputs hash stored in memory.
 #!
 #! Stack: [idx]
-#! Outputs: [i15, i14, ..., i0]
+#! Output: [i15, i14, ..., i0]
 #!
 #! idx is the index of the consumed note.
 #! i15, i14, ..., i0 are the inputs of the consumed note.
 export.prepare_note.4
     # convert the consumed note index to a pointer and store in memory
-    exec.utils::consumed_note_data_ptr push.CURRENT_CONSUMED_NOTE_PTR mem_store
+    exec.utils::get_consumed_note_data_ptr push.CURRENT_CONSUMED_NOTE_PTR mem_store
 
     # load the note inputs from the advice provider
     # TODO: optimize this to load items directly onto the stack.

@@ -65,7 +65,7 @@ impl ProvenTransaction {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the hash of the consumed notes.
+    /// Returns the consumed notes commitment.
     pub fn consumed_notes_hash(&self) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(self.consumed_notes.len() * 8);
         for note in self.consumed_notes.iter() {
@@ -75,8 +75,8 @@ impl ProvenTransaction {
         Hasher::hash_elements(&elements)
     }
 
-    /// Returns the hash of the created notes.
-    pub fn created_notes_hash(&self) -> Digest {
+    /// Returns the created notes commitment.
+    pub fn created_notes_commitment(&self) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(self.created_notes.len() * 8);
         for note in self.created_notes.iter() {
             elements.extend_from_slice(note.note_hash().as_elements());
@@ -103,7 +103,7 @@ impl ProvenTransaction {
     /// Returns the stack outputs for the transaction.
     pub fn stack_outputs(&self) -> StackOutputs {
         let mut stack_outputs: Vec<Felt> = Vec::with_capacity(8);
-        stack_outputs.extend_from_slice(self.created_notes_hash().as_elements());
+        stack_outputs.extend_from_slice(self.created_notes_commitment().as_elements());
         stack_outputs.extend_from_slice(self.final_account_hash.as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())

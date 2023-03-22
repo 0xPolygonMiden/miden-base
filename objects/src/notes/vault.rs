@@ -4,7 +4,7 @@ use super::{Asset, Digest, Hasher, NoteError, Vec, Word, WORD_SIZE};
 // ================================================================================================
 /// An asset container for a note.
 ///
-/// A note vault can contain up to 1000 assets. The entire vault can be reduced to a single hash
+/// A note vault can contain up to 255 assets. The entire vault can be reduced to a single hash
 /// which is computed by sequentially hashing the list of the vault's assets.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NoteVault {
@@ -16,7 +16,7 @@ impl NoteVault {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
     /// The maximum number of assets which can be carried by a single note.
-    pub const MAX_NUM_ASSETS: usize = 1000;
+    pub const MAX_NUM_ASSETS: usize = 255;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ impl NoteVault {
     /// # Errors
     /// Returns an error if:
     /// - The asset list is empty.
-    /// - The list contains more than 1000 assets.
+    /// - The list contains more than 255 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: &[Asset]) -> Result<Self, NoteError> {
         if assets.is_empty() {
