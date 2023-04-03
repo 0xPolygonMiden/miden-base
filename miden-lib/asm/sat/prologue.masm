@@ -1,73 +1,6 @@
+use.miden::sat::constants
+use.miden::sat::layout
 use.miden::sat::utils
-
-# MEMORY ADDRESSES
-# =================================================================================================
-
-# GLOBAL INPUTS
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the global inputs section begins
-const.GLOBAL_INPUTS_SECTION_OFFSET=10
-
-# The memory address at which the latest known block hash is stored
-const.BLK_HASH_PTR=10
-
-# The memory address at which the account id is stored
-const.ACCT_ID_PTR=11
-
-# The memory address at which the initial account hash is stored
-const.INIT_ACCT_HASH_PTR=12
-
-# The memory address at which the global nullifier commitment is stored
-const.NULLIFIER_COM_PTR=13
-
-# The memory address at which the initial nonce is stored
-const.INIT_NONCE_PTR=14
-
-# ACCOUNT DATA
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the account data section begins
-const.ACCT_DATA_SECTION_OFFSET=100
-
-# The memory address at which the account id and nonce is stored.
-# The account id is stored in the first element.
-# The account nonce is stored in the fourth element.
-const.ACCT_ID_AND_NONCE_PTR=100
-
-# The memory address at which the account vault root is stored
-const.ACCT_VAULT_ROOT_PTR=101
-
-# The memory address at which the account storage root is stored
-const.ACCT_STORAGE_ROOT_PTR=102
-
-# The memory address at which the account code root is stored
-const.ACCT_CODE_ROOT_PTR=103
-
-# CONSUMED NOTES DATA
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the consumed note section begins
-const.CONSUMED_NOTE_SECTION_OFFSET=1000
-
-# The memory address at which the number of consumed notes is stored
-const.CONSUMED_NOTE_NUM_PTR=1000
-
-# The offsets at which data of a consumed note is stored relative to the start of its data segment
-const.CONSUMED_NOTE_HASH_OFFSET=0
-const.CONSUMED_NOTE_SERIAL_NUM_OFFSET=1
-const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
-const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
-const.CONSUMED_NOTE_VAULT_ROOT_OFFSET=4
-const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=5
-const.CONSUMED_NOTE_ASSETS_OFFSET=6
-
-# The maximum number of consumed notes that can be processed in a single transaction
-const.MAX_NUM_CONSUMED_NOTES=1023
-
-# The maximum number of assets that can be stored in a single note
-const.MAX_ASSETS_PER_NOTE=255
-
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -85,16 +18,16 @@ const.MAX_ASSETS_PER_NOTE=255
 #!   (nullifier, script_root) pairs for the notes consumed in the transaction.
 proc.process_global_inputs
     # store the block hash
-    push.BLK_HASH_PTR mem_storew dropw
+    exec.layout::set_blk_hash
 
     # store the account id
-    push.ACCT_ID_PTR mem_store
+    exec.layout::set_global_acct_id
 
     # store the initial account hash
-    push.INIT_ACCT_HASH_PTR mem_storew dropw
+    exec.layout::set_init_acct_hash
 
     # store the nullifier commitment
-    push.NULLIFIER_COM_PTR mem_storew dropw
+    exec.layout::set_nullifier_com
 end
 
 # ACCOUNT DATA
@@ -117,7 +50,7 @@ end
 #! - ACR is the account code root.
 proc.process_acct_data
     # address to store the account data
-    push.ACCT_DATA_SECTION_OFFSET
+    exec.layout::get_acct_data_ptr
 
     # prepare the stack for reading account data
     padw padw padw
@@ -129,19 +62,19 @@ proc.process_acct_data
     dropw swapw dropw
 
     # assert that the account hash matches the hash in global inputs
-    padw push.INIT_ACCT_HASH_PTR mem_loadw assert_eqw
+    exec.layout::get_init_acct_hash assert_eqw
 
     # assert the account id matches the account id in global inputs
-    push.ACCT_ID_PTR mem_load
-    push.ACCT_ID_AND_NONCE_PTR mem_load
+    exec.layout::get_global_acct_id
+    exec.layout::get_acct_id
     assert_eq
 
     # clear the stack
     drop
 
     # store a copy of the initial nonce in global inputs
-    exec.utils::get_account_nonce
-    push.INIT_NONCE_PTR mem_store
+    exec.layout::get_acct_nonce
+    exec.layout::set_init_nonce
 end
 
 # CONSUMED NOTES DATA
@@ -171,7 +104,7 @@ proc.process_consumed_note
     # ---------------------------------------------------------------------------------------------
 
     # compute address to store note hash
-    exec.utils::get_consumed_note_data_ptr
+    exec.layout::get_consumed_note_ptr
 
     # compute address to store raw note data
     dup add.1
@@ -185,7 +118,7 @@ proc.process_consumed_note
 
     # compute address for nullifier
     # dup.6 = counter / note index
-    dup.6 exec.utils::get_consumed_note_nullifier_ptr
+    dup.6 exec.layout::get_consumed_note_nullifier_ptr
 
     # store nullifier in memory and drop from stack
     mem_storew dropw
@@ -197,7 +130,7 @@ proc.process_consumed_note
     adv_push.1 dup dup.2 mem_store
 
     # assert the number of assets is within limits
-    dup push.MAX_ASSETS_PER_NOTE lte assert
+    dup exec.constants::get_max_assets_per_note lte assert
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
     dup push.1 u32checked_and
@@ -287,10 +220,10 @@ proc.process_consumed_notes_data
     adv_push.1
 
     # store the number of consumed notes
-    dup push.CONSUMED_NOTE_NUM_PTR mem_store
+    dup exec.layout::set_num_consumed_notes
 
     # assert the number of consumed notes is within limits
-    dup push.MAX_NUM_CONSUMED_NOTES lte assert
+    dup exec.constants::get_max_num_consumed_notes lte assert
 
     # loop over consumed notes and read data
     # ---------------------------------------------------------------------------------------------
@@ -326,17 +259,14 @@ proc.process_consumed_notes_data
 
     # loop and sequentially hash hperm(nullifier, script_root) over all consumed notes
     while.true
-        # compute address of nullifier
-        dup.12 exec.utils::get_consumed_note_nullifier_ptr
+        # clear hasher rate
+        dropw dropw
 
-        # load nullifier from memory and push down stack
-        mem_loadw swapw
+        # get consumed note nullifier
+        dup.4 exec.layout::get_consumed_note_nullifier
 
-        # compute address of script root
-        dup.12 exec.utils::get_consumed_note_data_ptr push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
-
-        # load script root from memory
-        mem_loadw
+        # get consumed note script root
+        dup.8 exec.layout::get_consumed_note_ptr exec.layout::get_consumed_note_script_root
 
         # compute hperm(nullifier, script_root)
         hperm
@@ -349,7 +279,7 @@ proc.process_consumed_notes_data
     dropw swapw dropw
 
     # assert nullifier hash is what we would expect
-    padw push.NULLIFIER_COM_PTR mem_loadw assert_eqw
+    exec.layout::get_nullifier_com assert_eqw
 
     # clear stack
     drop drop
@@ -369,17 +299,17 @@ end
 #!  - The account data is invalid.
 #!  - Any of the consumed notes do note exist in the note db.
 #!
-#! Stack:       [BH, acct_id, IAH, NC]
+#! Stack:        [BH, acct_id, IAH, NC]
 #! Advice stack: [acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!               num_cn,
-#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!               cn1_na,
-#!               CN1_A1, CN1_A2, ...
-#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR,
-#!               cn2_na,
-#!               CN2_A1, CN2_A2, ...
-#!               ...]
-#! Output:      []
+#!                num_cn,
+#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR,
+#!                cn1_na,
+#!                CN1_A1, CN1_A2, ...
+#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR,
+#!                cn2_na,
+#!                CN2_A1, CN2_A2, ...
+#!                ...]
+#! Output:       []
 #!
 #!
 #! - BH is the latest known block hash at the time of transaction execution.

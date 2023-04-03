@@ -1,16 +1,5 @@
+use.miden::sat::layout
 use.miden::sat::utils
-
-# MEMORY OFFSETS
-# =================================================================================================
-
-# BOOK KEEPING
-# -------------------------------------------------------------------------------------------------
-
-# A pointer to the memory address at which a pointer to the current consumed note is stored.
-const.CURRENT_CONSUMED_NOTE_PTR=3
-
-# The offset at which a consumed notes hash is stored relative to the start of its data segment.
-const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
 
 # NOTE SETUP SCRIPT
 # =================================================================================================
@@ -22,8 +11,8 @@ const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
 #!
 #! inputs_hash is the sequential hash of the inputs of the current consumed note.
 proc.get_current_note_inputs_hash
-    padw push.CURRENT_CONSUMED_NOTE_PTR mem_load
-    push.CONSUMED_NOTE_INPUTS_HASH_OFFSET add mem_loadw
+    exec.layout::get_current_consumed_note
+    exec.layout::get_consumed_note_inputs_hash
 end
 
 #! Prepares the virtual machine for execution of a consumed note.  This involves:
@@ -38,7 +27,7 @@ end
 #! i15, i14, ..., i0 are the inputs of the consumed note.
 export.prepare_note.4
     # convert the consumed note index to a pointer and store in memory
-    exec.utils::get_consumed_note_data_ptr push.CURRENT_CONSUMED_NOTE_PTR mem_store
+    exec.layout::get_consumed_note_ptr exec.layout::set_current_consumed_note
 
     # load the note inputs from the advice provider
     # TODO: optimize this to load items directly onto the stack.

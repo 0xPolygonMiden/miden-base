@@ -1,0 +1,33 @@
+use.miden::sat::layout
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_acct_hash
+    # prepare the stack for computing the account hash
+    exec.layout::get_acct_data_ptr padw padw padw
+
+    # stream account data and compute sequential hash
+    mem_stream mem_stream
+
+    # extract account hash
+    dropw swapw dropw
+
+    # drop memory pointer
+    movup.4 drop
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by.
+export.incr_account_nonce
+    u32assert.1
+    exec.layout::get_acct_nonce add
+    exec.layout::set_acct_nonce
+end

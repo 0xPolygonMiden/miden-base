@@ -1,27 +1,9 @@
+use.miden::sat::layout
+use.miden::sat::account
 use.miden::sat::utils
 
 # CONSTANTS
 # =================================================================================================
-
-# BOOKKEEPING
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the number of created notes is stored.
-const.NUM_CREATED_NOTES_PTR=2
-
-# CREATED NOTES
-# -------------------------------------------------------------------------------------------------
-
-# The memory address at which the created notes section begins.
-const.CREATED_NOTE_SECTION_OFFSET=10000
-
-# The offsets at which data of a created note is stored relative to the start of its data segment.
-const.CREATED_NOTE_HASH_OFFSET=0
-const.CREATED_NOTE_META_OFFSET=1
-const.CREATED_NOTE_RECIPIENT_OFFSET=2
-const.CREATED_NOTE_VAULT_HASH_OFFSET=3
-const.CREATED_NOTE_NUM_ASSETS_OFFSET=4
-const.CREATED_NOTE_ASSETS_OFFSET=5
 
 # The diff between the memory address after first mem_stream operation and the next target when
 # generating the consumed notes commitment.
@@ -44,7 +26,7 @@ proc.compute_created_note_vault_hash
     dup
 
     # get the number of assets from memory
-    dup push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_load
+    dup exec.layout::get_created_note_num_assets
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
     add.1 u32checked_div.2
@@ -53,7 +35,7 @@ proc.compute_created_note_vault_hash
     push.0
 
     # prepare address and stack for reading assets
-    movup.2 push.CREATED_NOTE_ASSETS_OFFSET add padw padw padw
+    movup.2 exec.layout::get_created_note_asset_data_ptr padw padw padw
 
     # check if we should loop
     dup.14 dup.14 neq
@@ -80,7 +62,7 @@ proc.compute_created_note_vault_hash
     movup.4 drop
 
     # save vault hash to memory
-    movup.4 push.CREATED_NOTE_VAULT_HASH_OFFSET add mem_storew
+    movup.4 exec.layout::set_created_note_vault_hash
 end
 
 #! Computes the hash of a created note with index i. This is computed as follows:
@@ -99,7 +81,7 @@ proc.compute_created_note_hash
     padw
 
     # insert created note recipient into the first four elements of the hasher rate
-    padw dup.8 push.CREATED_NOTE_RECIPIENT_OFFSET add mem_loadw
+    dup.4 exec.layout::get_created_note_recipient
 
     # populate the last four elements of the hasher rate with the created note vault hash
     dup.8 exec.compute_created_note_vault_hash
@@ -120,13 +102,13 @@ end
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
 proc.process_created_notes
     # get the number of created notes from memory
-    push.NUM_CREATED_NOTES_PTR mem_load
+    exec.layout::get_num_created_notes
 
     # calculate the address at which we should stop looping
-    exec.utils::get_created_note_data_ptr
+    exec.layout::get_created_note_ptr
 
     # compute pointer for first address
-    push.0 exec.utils::get_created_note_data_ptr
+    push.0 exec.layout::get_created_note_ptr
 
     # prepare stack for hashing
     padw padw padw
@@ -173,10 +155,10 @@ end
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
     # get the initial account hash
-    exec.utils::get_initial_account_hash
+    exec.layout::get_init_acct_hash
 
     # compute the final account hash
-    exec.utils::get_account_hash
+    exec.account::get_acct_hash
 
     # check if the account has changed
     eqw
@@ -184,10 +166,10 @@ export.finalize_transaction
     # if the account has changed then apply nonce checks
     if.true
         # get initial nonce from memory
-        exec.utils::get_initial_account_nonce
+        exec.layout::get_init_nonce
 
         # get current nonce from memory
-        exec.utils::get_account_nonce
+        exec.layout::get_acct_nonce
 
         # assert that initial nonce is less than current nonce
         lt assert
