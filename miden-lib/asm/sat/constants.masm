@@ -1,0 +1,44 @@
+# CONSTANTS
+# =================================================================================================
+
+# The maximum number of assets that can be stored in a single note
+const.MAX_ASSETS_PER_NOTE=255
+
+# The maximum number of notes that can be consumed in a single transaction.
+const.MAX_NUM_CONSUMED_NOTES=1023
+
+# The size of the memory segment allocated to each note
+const.NOTE_MEM_SIZE=1024
+
+# PROCEDURES
+# =================================================================================================
+
+#! Returns the max allowed number of assets per note.
+#!
+#! Stack: []
+#! Output: [max_assets_per_note]
+#!
+#! - max_assets_per_note is the max assets per note.
+export.get_max_assets_per_note
+    push.MAX_ASSETS_PER_NOTE
+end
+
+#! Returns the max allow number of consumed notes.
+#!
+#! Stack: []
+#! Output: [max_num_consumed_notes]
+#!
+#! - max_num_consumed_notes is the max number of consumed notes.
+export.get_max_num_consumed_notes
+    push.MAX_NUM_CONSUMED_NOTES
+end
+
+#! Returns the size of the memory segment allocated to each note.
+#!
+#! Stack: []
+#! Output: [note_mem_size]
+#!
+#! - note_mem_size is the size of the memory segment allocated to each note.
+export.get_note_mem_size
+    push.NOTE_MEM_SIZE
+end

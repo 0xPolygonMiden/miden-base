@@ -22,7 +22,7 @@ fn test_epilogue() {
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
-            push.1 exec.utils::incr_account_nonce
+            push.1 exec.account::incr_account_nonce
             exec.finalize_transaction
         end
         "
@@ -72,7 +72,7 @@ fn test_compute_created_note_hash() {
         begin
             exec.create_mock_notes
             push.{i}
-            exec.utils::get_created_note_data_ptr
+            exec.layout::get_created_note_ptr
             exec.compute_created_note_hash
         end
         "
