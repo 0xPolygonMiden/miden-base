@@ -26,6 +26,7 @@ pub struct Note {
     inputs: NoteInputs,
     vault: NoteVault,
     serial_num: Word,
+    metadata: Word,
 }
 
 impl Note {
@@ -44,6 +45,7 @@ impl Note {
         inputs: &[Felt],
         assets: &[Asset],
         serial_num: Word,
+        metadata: Word,
     ) -> Result<Self, NoteError>
     where
         S: AsRef<str>,
@@ -53,6 +55,7 @@ impl Note {
             inputs: NoteInputs::new(inputs),
             vault: NoteVault::new(assets)?,
             serial_num,
+            metadata,
         })
     }
 
@@ -79,9 +82,23 @@ impl Note {
         self.serial_num
     }
 
+    /// Returns the metadata associated with this note.
+    pub fn metadata(&self) -> Word {
+        self.metadata
+    }
+
     /// Returns the note data as a vector of elements.
     pub fn to_elements(&self) -> Vec<Felt> {
         self.into()
+    }
+
+    /// Returns the recipient of this note.
+    /// Recipient is defined and calculated as:
+    ///  hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+    pub fn recipient(&self) -> Digest {
+        let serial_num_hash = Hasher::merge(&[self.serial_num.into(), Digest::default()]);
+        let merge_script = Hasher::merge(&[serial_num_hash, self.script.hash()]);
+        Hasher::merge(&[merge_script, self.inputs.hash()])
     }
 
     /// Returns a commitment to this note.
@@ -97,10 +114,8 @@ impl Note {
     ///  This allows computing note hash from recipient and note vault.
     /// - We compute hash of serial_num as hash(serial_num, [0; 4]) to simplify processing within
     ///   the VM.
-    pub fn get_hash(&self) -> Digest {
-        let serial_num_hash = Hasher::merge(&[self.serial_num.into(), Digest::default()]);
-        let merge_script = Hasher::merge(&[serial_num_hash, self.script.hash()]);
-        let recipient = Hasher::merge(&[merge_script, self.inputs.hash()]);
+    pub fn hash(&self) -> Digest {
+        let recipient = self.recipient();
         Hasher::merge(&[recipient, self.vault.hash()])
     }
 
@@ -112,7 +127,7 @@ impl Note {
     /// - We cannot derive a note's hash from its nullifier.
     /// - To compute the nullifier we must know all components of the note: serial_num,
     ///   script_hash, input_hash and vault hash.
-    pub fn get_nullifier(&self) -> Digest {
+    pub fn nullifier(&self) -> Digest {
         // The total number of elements to be hashed is 16. We can absorb them in
         // exactly two permutations
         let target_num_elements = 4 * WORD_SIZE;

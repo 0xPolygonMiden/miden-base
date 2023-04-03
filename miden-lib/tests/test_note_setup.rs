@@ -1,7 +1,8 @@
-mod common;
+pub mod common;
 use common::{
-    memory::CURRENT_CONSUMED_NOTE_PTR, mock_inputs, note_data_ptr, run_within_tx_kernel,
-    AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process, TX_KERNEL_DIR,
+    consumed_note_data_ptr, data::mock_inputs, memory::CURRENT_CONSUMED_NOTE_PTR,
+    run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
+    TX_KERNEL_DIR,
 };
 use miden_objects::transaction::TransactionInputs;
 
@@ -22,8 +23,8 @@ fn test_note_setup() {
         code,
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        TX_KERNEL_DIR,
-        NOTE_SETUP_FILE,
+        Some(TX_KERNEL_DIR),
+        Some(NOTE_SETUP_FILE),
     );
     note_setup_stack_assertions(&process, &inputs);
     note_setup_memory_assertions(&process);
@@ -45,6 +46,6 @@ fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<A>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
         process.get_memory_value(0, CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
-        Felt::try_from(note_data_ptr(0)).unwrap()
+        Felt::try_from(consumed_note_data_ptr(0)).unwrap()
     );
 }

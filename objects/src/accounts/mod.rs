@@ -59,13 +59,14 @@ impl Account {
         id: AccountId,
         storage_items: &[StorageItem],
         code_source: &str,
+        nonce: Felt,
     ) -> Result<Self, AccountError> {
         Ok(Self {
             id,
             vault: AccountVault::default(),
             storage: AccountStorage::new(storage_items),
             code: AccountCode::new(code_source)?,
-            nonce: ZERO,
+            nonce,
         })
     }
 

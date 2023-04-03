@@ -1,25 +1,54 @@
 # CONSTANTS
 # =================================================================================================
 
-# The size of the memory segment allocated to each consumed note
-const.CONSUMED_NOTE_MEM_SIZE=1024
+# The memory address at which the initial account hash is stored
+const.INIT_ACCT_HASH_PTR=12
 
-# The memory offset at which the consumed note section begins
+# The size of the memory segment allocated to each note
+const.NOTE_MEM_SIZE=1024
+
+# The memory address at which the consumed note section begins
 const.CONSUMED_NOTE_SECTION_OFFSET=1000
+
+# The memory address at which the created note section begins
+const.CREATED_NOTE_SECTION_OFFSET=10000
+
+# The memory address at which the account data section begins
+const.ACCT_DATA_SECTION_OFFSET=100
+
+# The memory address at which the account id and nonce is stored
+# The account id is stored in the first element
+# The account nonce is stored in the fourth element
+const.ACCT_ID_AND_NONCE_PTR=100
+
+# The memory address at which the initial nonce is stored
+const.INIT_NONCE_PTR=14
 
 # UTILS
 # =================================================================================================
 
-#! Computes a pointer to the memory address at which the data associated with a note with index i
-#! is stored.
+#! Computes a pointer to the memory address at which the data associated with a created note with
+#! index i is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the created note.
+#! - ptr is the memory address of the data segment for created note i.
+export.get_created_note_data_ptr
+    push.NOTE_MEM_SIZE mul push.CREATED_NOTE_SECTION_OFFSET add
+end
+
+#! Computes a pointer to the memory address at which the data associated with a consumed note with
+#! index i is stored.
 #!
 #! Stack: [i]
 #! Output: [ptr]
 #!
 #! - i is the index of the consumed note.
-#! - ptr is the memory address of the data segment for note i.
-export.consumed_note_data_ptr
-    push.1 add push.CONSUMED_NOTE_MEM_SIZE mul push.CONSUMED_NOTE_SECTION_OFFSET add
+#! - ptr is the memory address of the data segment for consumed note i.
+export.get_consumed_note_data_ptr
+    add.1 push.NOTE_MEM_SIZE mul push.CONSUMED_NOTE_SECTION_OFFSET add
 end
 
 #! Computes a pointer to the memory address at which the nullifier associated a note with index i
@@ -30,6 +59,70 @@ end
 #!
 #! - i is the index of the consumed note.
 #! - ptr is the nullifier memory address for note i.
-export.consumed_note_nullifier_ptr
+export.get_consumed_note_nullifier_ptr
     push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
+end
+
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [INIT_ACCT_HASH]
+#!
+#! - INIT_ACCT_HASH is the initial account hash.
+export.get_initial_account_hash
+    padw push.INIT_ACCT_HASH_PTR mem_loadw
+end
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_account_hash
+    # prepare the stack for computing the account hash
+    push.ACCT_DATA_SECTION_OFFSET padw padw padw
+
+    # stream account data and compute sequential hash
+    mem_stream mem_stream
+
+    # extract account hash
+    dropw swapw dropw
+
+    # drop memory pointer
+    movup.4 drop
+end
+
+#! Returns the initial account nonce.
+#!
+#! Stack: []
+#! Output: [INIT_ACCT_NONCE]
+#!
+#! - INIT_ACCT_NONCE is the initial account nonce.
+export.get_initial_account_nonce
+    push.INIT_NONCE_PTR mem_load
+end
+
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [acct_nonce]
+#!
+#! - acct_nonce is the account nonce.
+export.get_account_nonce
+    padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
+    movdn.3 drop drop drop
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by.
+export.incr_account_nonce
+    u32assert.1
+    padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
+    movup.4 add
+    push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end

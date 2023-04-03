@@ -1,0 +1,207 @@
+use.miden::sat::utils
+
+# CONSTANTS
+# =================================================================================================
+
+# BOOKKEEPING
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the number of created notes is stored.
+const.NUM_CREATED_NOTES_PTR=2
+
+# CREATED NOTES
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the created notes section begins.
+const.CREATED_NOTE_SECTION_OFFSET=10000
+
+# The offsets at which data of a created note is stored relative to the start of its data segment.
+const.CREATED_NOTE_HASH_OFFSET=0
+const.CREATED_NOTE_META_OFFSET=1
+const.CREATED_NOTE_RECIPIENT_OFFSET=2
+const.CREATED_NOTE_VAULT_HASH_OFFSET=3
+const.CREATED_NOTE_NUM_ASSETS_OFFSET=4
+const.CREATED_NOTE_ASSETS_OFFSET=5
+
+# The diff between the memory address after first mem_stream operation and the next target when
+# generating the consumed notes commitment.
+const.CREATED_NOTE_HASHING_MEM_DIFF=1022
+
+# CREATED NOTES PROCEDURES
+# =================================================================================================
+
+#! Computes the vault hash of the created note with index i. The hash is computed as a sequential
+#! hash of the assets contained in the note. If there are an odd number of assets, then for the
+#! final hashing permutation we pad the last word of the hasher rate with ZERO's.
+#!
+#! Stack: [note_data_ptr]
+#! Output: [VAULT_HASH]
+#!
+#! - note_data_ptr is a pointer to the data section of the created note.
+#! - VAULT_HASH is the vault hash of the created note with index i.
+proc.compute_created_note_vault_hash
+    # duplicate note pointer - we will use this to save vault hash to memory
+    dup
+
+    # get the number of assets from memory
+    dup push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_load
+
+    # calculate the number of pairs of assets (takes ceiling if we have an odd number)
+    add.1 u32checked_div.2
+
+    # initiate counter for assets
+    push.0
+
+    # prepare address and stack for reading assets
+    movup.2 push.CREATED_NOTE_ASSETS_OFFSET add padw padw padw
+
+    # check if we should loop
+    dup.14 dup.14 neq
+
+    # loop and read assets from memory
+    while.true
+        # read assets from memory.
+        # if this is the last permutation of the loop and we have an odd number of assets then we
+        # implicitly pad the last word of the hasher rate with ZERO's by reading from empty memory.
+        mem_stream
+
+        # check if we should loop again
+        movup.13 add.1 dup movdn.14 dup.15 neq
+
+        # TODO: construct final transaction vault here.
+    end
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+
+    # drop accessory variables from stack
+    movup.4 drop
+    movup.4 drop
+    movup.4 drop
+
+    # save vault hash to memory
+    movup.4 push.CREATED_NOTE_VAULT_HASH_OFFSET add mem_storew
+end
+
+#! Computes the hash of a created note with index i. This is computed as follows:
+#! - we define, recipient =
+#!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+#! - we then compute the created note hash as:
+#!       hash(recipient, vault_hash)
+#!
+#! Stack: [note_data_ptr]
+#! Output: [CREATED_NOTE_HASH]
+#!
+#! - note_data_ptr is a pointer to the data section of the created note.
+#! - CREATED_NOTE_HASH is the hash of the created note with index i.
+proc.compute_created_note_hash
+    # pad capacity elements of hasher
+    padw
+
+    # insert created note recipient into the first four elements of the hasher rate
+    padw dup.8 push.CREATED_NOTE_RECIPIENT_OFFSET add mem_loadw
+
+    # populate the last four elements of the hasher rate with the created note vault hash
+    dup.8 exec.compute_created_note_vault_hash
+
+    # compute created note hash and extract digest
+    hperm dropw swapw dropw
+
+    # save created note hash to memory
+    movup.4 mem_storew
+end
+
+#! Computes a commitment to the created notes. This is computed as a sequential hash of
+#! (note_hash, note_metadata) tuples.
+#!
+#! Stack: []
+#! Output: [CREATED_NOTES_COMMITMENT]
+#!
+#! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
+proc.process_created_notes
+    # get the number of created notes from memory
+    push.NUM_CREATED_NOTES_PTR mem_load
+
+    # calculate the address at which we should stop looping
+    exec.utils::get_created_note_data_ptr
+
+    # compute pointer for first address
+    push.0 exec.utils::get_created_note_data_ptr
+
+    # prepare stack for hashing
+    padw padw padw
+
+    # check if the number of created notes is greater then 0. Conditional for the while loop.
+    dup.13 dup.13 neq
+
+    # loop and hash created notes
+    while.true
+        # compute created note hash (this also computes created not vault hash)
+        dup.12 exec.compute_created_note_hash
+
+        # drop created note hash from stack
+        dropw
+
+        # permute over (note_hash, note_metadata)
+        mem_stream
+
+        # increment created note pointer and check if we should loop again
+        movup.12 push.CREATED_NOTE_HASHING_MEM_DIFF add dup movdn.13 dup.14 neq
+    end
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+
+    # drop accessory variables from stack
+    movup.4 drop
+    movup.4 drop
+end
+
+# TRANSACTION EPILOGUE PROCEDURE
+# =================================================================================================
+
+#! Finalizes the transaction by performing the following steps:
+#! - computes the final account hash
+#! - if the account has changed, assert that the final account nonce is greater than the initial
+#!   account nonce
+#! - computes the created notes commitment
+#!
+#! Stack: []
+#! Output: [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#!
+#! - CREATED_NOTES_COMMITMENT is the commitment of the created notes
+#! - FINAL_ACCOUNT_HASH is the final account hash
+export.finalize_transaction
+    # get the initial account hash
+    exec.utils::get_initial_account_hash
+
+    # compute the final account hash
+    exec.utils::get_account_hash
+
+    # check if the account has changed
+    eqw
+
+    # if the account has changed then apply nonce checks
+    if.true
+        # get initial nonce from memory
+        exec.utils::get_initial_account_nonce
+
+        # get current nonce from memory
+        exec.utils::get_account_nonce
+
+        # assert that initial nonce is less than current nonce
+        lt assert
+    end
+
+    # drop initial account hash
+    swapw dropw
+
+    # compute created note hash
+    exec.process_created_notes
+
+    # truncate stack
+    swapw.2 dropw swapw.2 dropw
+
+    # TODO: assert final vault matches initial vault (no assets were created or destroyed). The
+    # logic may need to be a bit more sophisticated to account for faucets which can create assets.
+end
