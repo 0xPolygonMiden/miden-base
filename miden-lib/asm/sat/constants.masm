@@ -4,7 +4,7 @@
 # The maximum number of assets that can be stored in a single note
 const.MAX_ASSETS_PER_NOTE=255
 
-# The maximum number of consumed notes that can be processed in a single transaction
+# The maximum number of notes that can be consumed in a single transaction.
 const.MAX_NUM_CONSUMED_NOTES=1023
 
 # The size of the memory segment allocated to each note

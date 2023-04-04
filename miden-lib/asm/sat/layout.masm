@@ -15,7 +15,7 @@ const.NUM_EXECUTED_NOTES_PTR=1
 # The memory address at which the number of created notes is stored.
 const.NUM_CREATED_NOTES_PTR=2
 
-# A pointer to the memory address at which a pointer to the current consumed note is stored.
+# The memory address at which a pointer to the consumed note being executed is stored.
 const.CURRENT_CONSUMED_NOTE_PTR=3
 
 # GLOBAL INPUTS
@@ -105,31 +105,31 @@ export.get_num_created_notes
     push.NUM_CREATED_NOTES_PTR mem_load
 end
 
-#! Returns a pointer to the current consumed note.
+#! Returns a pointer to the consumed note being executed.
 #!
 #! Stack: []
 #! Output: [ptr]
-export.get_current_consumed_note
+export.get_current_consumed_note_ptr
     push.CURRENT_CONSUMED_NOTE_PTR mem_load
 end
 
-#! Sets the current consumed note pointer.
+#! Sets the current consumed note pointer to the consumed note being executed.
 #!
 #! Stack: [ptr]
 #! Output: []
-export.set_current_consumed_note
+export.set_current_consumed_note_ptr
     push.CURRENT_CONSUMED_NOTE_PTR mem_store
 end
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the block hash.
+#! Sets the block hash of the last known block at the time of transaction execution.
 #!
 #! Stack: [BH]
 #! Output: []
 #!
-#! - BH is the block hash.
+#! - BH is the block hash of the last known block at the time of transaction execution.
 export.set_blk_hash
     push.BLK_HASH_PTR mem_storew dropw
 end
@@ -259,6 +259,79 @@ export.set_acct_nonce
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end
 
+# CONSUMED NOTES
+# -------------------------------------------------------------------------------------------------
+
+#! Sets the total number of consumed notes in the transaction.
+#!
+#! Stack: [num_consumed_notes]
+#! Output: []
+#!
+#! - num_consumed_notes is the total number of consumed notes in the transaction.
+export.set_total_num_consumed_notes
+    push.CONSUMED_NOTE_NUM_PTR mem_store
+end
+
+#! Computes a pointer to the memory address at which the data associated with a consumed note with
+#! index i is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the memory address of the data segment for consumed note i.
+export.get_consumed_note_ptr
+    add.1 exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_SECTION_OFFSET add
+end
+
+#! Computes a pointer to the memory address at which the nullifier associated a note with index i
+#! is stored.
+#!
+#! Stack: [i]
+#! Output: [ptr]
+#!
+#! - i is the index of the consumed note.
+#! - ptr is the nullifier memory address for note i.
+export.get_consumed_note_nullifier_ptr
+    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
+end
+
+#! Returns the nullifier of a consumed note with index i.
+#!
+#! Stack: [i]
+#! Output: [nullifier]
+#!
+#! - i is the index of the consumed note.
+#! - nullifier is the nullifier of the consumed note.
+export.get_consumed_note_nullifier
+    padw movup.4 push.CONSUMED_NOTE_SECTION_OFFSET.1 add add mem_loadw
+end
+
+#! Returns the script root of a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr]
+#! Output: [R]
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - R is the script root of the consumed note.
+export.get_consumed_note_script_root
+    padw
+    movup.4 push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
+    mem_loadw
+end
+
+#! Returns the inputs hash of a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr]
+#! Output: [I]
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - I is the inputs hash of the consumed note.
+export.get_consumed_note_inputs_hash
+    padw
+    movup.4 push.CONSUMED_NOTE_INPUTS_HASH_OFFSET add
+    mem_loadw
+end
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
@@ -319,78 +392,4 @@ end
 #! - V is the vault hash of the created note.
 export.set_created_note_vault_hash
     push.CREATED_NOTE_VAULT_HASH_OFFSET add mem_storew
-end
-
-# CONSUMED NOTES
-# -------------------------------------------------------------------------------------------------
-
-#! Sets the number of consumed notes.
-#!
-#! Stack: [num_consumed_notes]
-#! Output: []
-#!
-#! - num_consumed_notes is the number of consumed notes.
-export.set_num_consumed_notes
-    push.CONSUMED_NOTE_NUM_PTR mem_store
-end
-
-#! Computes a pointer to the memory address at which the data associated with a consumed note with
-#! index i is stored.
-#!
-#! Stack: [i]
-#! Output: [ptr]
-#!
-#! - i is the index of the consumed note.
-#! - ptr is the memory address of the data segment for consumed note i.
-export.get_consumed_note_ptr
-    add.1 exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_SECTION_OFFSET add
-end
-
-#! Computes a pointer to the memory address at which the nullifier associated a note with index i
-#! is stored.
-#!
-#! Stack: [i]
-#! Output: [ptr]
-#!
-#! - i is the index of the consumed note.
-#! - ptr is the nullifier memory address for note i.
-export.get_consumed_note_nullifier_ptr
-    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
-end
-
-#! Returns the consumed note nullifier
-#!
-#! Stack: [i]
-#! Output: [nullifier]
-#!
-#! - i is the index of the consumed note.
-#! - nullifier is the nullifier of the consumed note.
-export.get_consumed_note_nullifier
-    padw movup.4 push.CONSUMED_NOTE_SECTION_OFFSET.1 add add mem_loadw
-end
-
-#! Returns the consumed note script root
-#!
-#! Stack: [consumed_note_ptr]
-#! Output: [R]
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - R is the script root of the consumed note.
-export.get_consumed_note_script_root
-    padw
-    movup.4 push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
-    mem_loadw
-end
-
-#! Returns the consumed note inputs hash.
-#!
-#! Stack: [consumed_note_ptr]
-#! Output: [I]
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - I is the inputs hash of the consumed note.
-export.get_consumed_note_inputs_hash
-    padw
-    movup.4 push.CONSUMED_NOTE_INPUTS_HASH_OFFSET add
-    mem_loadw
 end

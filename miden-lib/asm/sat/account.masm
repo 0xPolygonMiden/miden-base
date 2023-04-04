@@ -10,7 +10,8 @@ export.get_acct_hash
     # prepare the stack for computing the account hash
     exec.layout::get_acct_data_ptr padw padw padw
 
-    # stream account data and compute sequential hash
+    # stream account data and compute sequential hash. We perform two `mem_stream` operations 
+    # because account data consists of exactly 4 words.
     mem_stream mem_stream
 
     # extract account hash
@@ -25,7 +26,8 @@ end
 #! Stack: [value]
 #! Output: []
 #!
-#! - value is the value to increment the nonce by.
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
 export.incr_account_nonce
     u32assert.1
     exec.layout::get_acct_nonce add

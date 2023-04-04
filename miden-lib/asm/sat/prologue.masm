@@ -1,6 +1,5 @@
 use.miden::sat::constants
 use.miden::sat::layout
-use.miden::sat::utils
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -220,7 +219,7 @@ proc.process_consumed_notes_data
     adv_push.1
 
     # store the number of consumed notes
-    dup exec.layout::set_num_consumed_notes
+    dup exec.layout::set_total_num_consumed_notes
 
     # assert the number of consumed notes is within limits
     dup exec.constants::get_max_num_consumed_notes lte assert

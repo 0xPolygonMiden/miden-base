@@ -13,7 +13,7 @@ pub const NUM_EXECUTED_NOTES_PTR: u64 = 1;
 /// The memory address at which the number of created notes is stored.
 pub const NUM_CREATED_NOTES_PTR: u64 = 2;
 
-/// A pointer to the memory address at which a pointer to the current consumed note is stored.
+/// The memory address at which a pointer to the consumed note being executed is stored.
 pub const CURRENT_CONSUMED_NOTE_PTR: u64 = 3;
 
 // GLOBAL INPUTS
