@@ -37,7 +37,7 @@ impl Library for MidenLib {
 
 #[test]
 fn test_compile() {
-    let path = "miden::sat::utils::get_consumed_note_data_ptr";
+    let path = "miden::sat::layout::get_consumed_note_ptr";
     let miden = MidenLib::default();
     let exists = miden.modules().any(|module| {
         module
