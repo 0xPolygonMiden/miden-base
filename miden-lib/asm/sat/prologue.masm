@@ -102,69 +102,96 @@ proc.process_consumed_note
     # read core note data
     # ---------------------------------------------------------------------------------------------
 
+    # dup the note index
+    dup
+    # => [i, i]
+
     # compute address to store note hash
     exec.layout::get_consumed_note_ptr
+    # => [note_ptr, i]
 
-    # compute address to store raw note data
-    dup add.1
+    # compute address to store core note data
+    dup exec.layout::get_consumed_note_core_ptr
+    # => [note_data_ptr, note_ptr, i]
 
     # read note data from the advice provider
     padw padw padw
     adv_pipe adv_pipe
+    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, i]
 
-    # extract nullifier
-    dropw swapw dropw
+    # extract nullifier (digest)
+    dropw swapw dropw movup.4 drop
+    # => [DIG, note_ptr, i]
 
     # compute address for nullifier
-    # dup.6 = counter / note index
-    dup.6 exec.layout::get_consumed_note_nullifier_ptr
+    movup.6 exec.layout::get_consumed_note_nullifier_ptr
+    # => [nullifier_ptr, DIG, note_ptr]
 
     # store nullifier in memory and drop from stack
     mem_storew dropw
+    # => [note_ptr]
 
     # ingest note assets
     # ---------------------------------------------------------------------------------------------
 
-    # read the number of assets from the advice provider and store in memory
-    adv_push.1 dup dup.2 mem_store
+    # read the metadata from the advice provider and store in memory
+    padw adv_loadw dup.4
+    # => [note_ptr, NOTE_META, note_ptr]
+
+    exec.layout::set_consumed_note_metadata
+    # => [note_ptr]
+
+    # get the number of assets
+    dup exec.layout::get_consumed_note_num_assets
+    # => [num_assets, note_ptr]
 
     # assert the number of assets is within limits
     dup exec.constants::get_max_assets_per_note lte assert
+    # => [num_assets, note_ptr]
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
-    dup push.1 u32checked_and
-
-    # pad to multiple of two if odd
-    if.true
-        add.1
-    end
+    dup push.1 u32checked_and add
+    # => [rounded_num_assets, note_ptr]
 
     # initiate counter for assets
     push.0
+    # => [counter, rounded_num_assets, note_ptr]
 
     # prepare address and stack for reading assets
-    movup.2 add.1 padw padw padw
+    dup.2 exec.layout::get_consumed_note_assets_ptr padw padw padw
+    # => [PAD, PAD, PADW, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # check if the number of assets is greater then 0
     dup.14 dup.14 neq
+    # => [should_loop, PAD, PAD, PAD, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # loop and read assets from the advice provider
     while.true
         # read assets from advice provider
         adv_pipe
+        # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
         # check if we should loop again
         movup.13 push.2 add dup movdn.14 dup.15 neq
+        # => [should_loop, PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
     end
+    # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # extract digest from hasher rate elements (h_0, ..., h_3)
     dropw swapw dropw
+    # => [DIG, assets_ptr, counter, rounded_num_assets, note_ptr]
 
-    # load expected hash from memory
-    swapw drop drop drop dup movdn.5 push.4 add padw movup.4 mem_loadw
+    # clean and rearrange stack
+    swapw drop drop drop dup movdn.5
+    # => [note_ptr, DIG, note_ptr]
+
+    # get expected note vault from memory
+    exec.layout::get_consumed_note_vault_root
+    # => [V, DIG, note_ptr]
 
     # assert that the computed hash matches the expected hash
     assert_eqw
+    # => [note_ptr]
 
     # compute note hash
     # ---------------------------------------------------------------------------------------------
@@ -172,19 +199,24 @@ proc.process_consumed_note
     # TODO: This should be optimized using the `hperm` operation
 
     # serial number hash - serial_hash = hmerge(serial_number, 0)
-    dup add.1 padw movup.4 mem_loadw padw hmerge
+    dup exec.layout::get_consumed_note_serial_num padw hmerge
+    # => [SERIAL_HASH, note_ptr]
 
     # hash serial_hash with script hash - merge_script = hmerge(serial_hash, script_hash)
-    dup.4 push.2 add padw movup.4 mem_loadw hmerge
+    dup.4 exec.layout::get_consumed_note_script_root hmerge
+    # => [MERGE_SCRIPT, note_ptr]
 
     # hash merge_script with inputs hash - recipient = hmerge(merge_script, inputs_hash)
-    dup.4 push.3 add padw movup.4 mem_loadw hmerge
+    dup.4 exec.layout::get_consumed_note_inputs_hash hmerge
+    # => [RECIPIENT, note_ptr]
 
     # hash recipient with vault hash - note_hash = hmerge(recipient, vault_hash)
-    dup.4 push.4 add padw movup.4 mem_loadw hmerge
+    dup.4 exec.layout::get_consumed_note_vault_root hmerge
+    # => [NOTE_HASH, note_ptr]
 
     # store note hash in memory and clear stack
-    dup.4 mem_storew dropw drop
+    movup.4 exec.layout::set_consumed_note_hash
+    # => []
 
     # TODO: assert note hash exists in note db
 end
@@ -196,12 +228,10 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_cn,
-#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!               cn1_na,
+#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
 #!               CN1_A1, CN1_A2, ...
 #!
-#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR,
-#!               cn2_na,
+#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
 #!               CN2_A1, CN2_A2, ...
 #!               ...]
 #! Output: []
@@ -211,7 +241,7 @@ end
 #! - CN1_SR is the script root of consumed note 1.
 #! - CN1_IR is the inputs root of consumed note 1.
 #! - CN1_VR is the vault root of consumed note 1.
-#! - cn1_na is the number of assets in consumed note 1.
+#! - CN1_M is the metadata of consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
 proc.process_consumed_notes_data
@@ -301,11 +331,9 @@ end
 #! Stack:        [BH, acct_id, IAH, NC]
 #! Advice stack: [acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
 #!                num_cn,
-#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!                cn1_na,
+#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
 #!                CN1_A1, CN1_A2, ...
-#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR,
-#!                cn2_na,
+#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
 #!                CN2_A1, CN2_A2, ...
 #!                ...]
 #! Output:       []
@@ -325,7 +353,7 @@ end
 #! - CN1_SR is the script root of consumed note 1.
 #! - CN1_IR is the inputs root of consumed note 1.
 #! - CN1_VR is the vault root of consumed note 1.
-#! - cn1_na is the number of assets in consumed note 1.
+#! - CN1_M is the metadata of consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
 export.prepare_transaction

@@ -81,7 +81,7 @@ pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: u64 = 1;
 pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: u64 = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: u64 = 3;
 pub const CONSUMED_NOTE_VAULT_ROOT_OFFSET: u64 = 4;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: u64 = 5;
+pub const CONSUMED_NOTE_METADATA_OFFSET: u64 = 5;
 pub const CONSUMED_NOTE_ASSETS_OFFSET: u64 = 6;
 
 /// The maximum number of consumed notes that can be processed in a single transaction.
@@ -98,5 +98,4 @@ pub const CREATED_NOTE_HASH_OFFET: u64 = 0;
 pub const CREATED_NOTE_METADATA_OFFSET: u64 = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: u64 = 2;
 pub const CREATED_NOTE_VAULT_HASH_OFFSET: u64 = 3;
-pub const CREATED_NOTE_NUM_ASSETS_OFFSET: u64 = 4;
-pub const CREATED_NOTE_ASSETS_OFFSET: u64 = 5;
+pub const CREATED_NOTE_ASSETS_OFFSET: u64 = 4;

@@ -1,7 +1,12 @@
+use crate::AccountId;
+
 use super::{assets::Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 
 mod inputs;
 use inputs::NoteInputs;
+
+mod metadata;
+pub use metadata::NoteMetadata;
 
 mod script;
 pub use script::NoteScript;
@@ -20,13 +25,15 @@ pub use vault::NoteVault;
 /// - A set of inputs which are placed onto the stack before a note's script is executed.
 /// - A set of assets stored in a vault.
 /// - A serial number which can be used to break linkability between note hash and note nullifier.
+/// - A metadata object which contains information about the sender, the tag and the number of
+///   assets in the note.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Note {
     script: NoteScript,
     inputs: NoteInputs,
     vault: NoteVault,
     serial_num: Word,
-    metadata: Word,
+    metadata: NoteMetadata,
 }
 
 impl Note {
@@ -45,17 +52,20 @@ impl Note {
         inputs: &[Felt],
         assets: &[Asset],
         serial_num: Word,
-        metadata: Word,
+        sender: AccountId,
+        tag: Felt,
     ) -> Result<Self, NoteError>
     where
         S: AsRef<str>,
     {
+        let vault = NoteVault::new(assets)?;
+        let num_assets = vault.num_assets();
         Ok(Self {
             script: NoteScript::new(script_src)?,
             inputs: NoteInputs::new(inputs),
-            vault: NoteVault::new(assets)?,
+            vault,
             serial_num,
-            metadata,
+            metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
         })
     }
 
@@ -83,8 +93,8 @@ impl Note {
     }
 
     /// Returns the metadata associated with this note.
-    pub fn metadata(&self) -> Word {
-        self.metadata
+    pub fn metadata(&self) -> &NoteMetadata {
+        &self.metadata
     }
 
     /// Returns the note data as a vector of elements.
@@ -157,9 +167,9 @@ impl From<&Note> for Vec<Felt> {
         // compute capacity of the output vector.  If we have an odd number of assets, we need to
         // pad the output with an empty word.
         let capacity = if note.vault.num_assets() % 2 == 1 {
-            17 + (note.vault.num_assets() + 1) * 4
+            20 + (note.vault.num_assets() + 1) * 4
         } else {
-            17 + note.vault.num_assets() * 4
+            20 + note.vault.num_assets() * 4
         };
         let mut out = Vec::with_capacity(capacity);
 
@@ -167,7 +177,7 @@ impl From<&Note> for Vec<Felt> {
         out.extend_from_slice(note.script.hash().as_elements());
         out.extend_from_slice(note.inputs.hash().as_elements());
         out.extend_from_slice(note.vault.hash().as_elements());
-        out.push(Felt::from(note.vault.num_assets() as u64));
+        out.extend_from_slice(&Word::from(note.metadata()));
         let assets: Vec<Felt> =
             note.vault.iter().flat_map(|asset| <[Felt; 4]>::from(*asset)).collect();
         out.extend(assets);

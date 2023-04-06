@@ -1,4 +1,7 @@
-use super::{notes::Note, Account, AccountId, Digest, Felt, Hasher, StarkField, Vec, Word};
+use super::{
+    notes::{Note, NoteMetadata},
+    Account, AccountId, Digest, Felt, Hasher, StarkField, Vec, Word,
+};
 use miden_core::{StackInputs, StackOutputs};
 use miden_processor::AdviceInputs;
 

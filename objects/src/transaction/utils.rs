@@ -1,5 +1,5 @@
 use super::{
-    Account, AccountId, AdviceInputs, Digest, Felt, Hasher, Note, StackInputs, StackOutputs,
+    Account, AccountId, AdviceInputs, Digest, Felt, Hasher, Note, StackInputs, StackOutputs, Word,
 };
 
 /// Returns the advice inputs required when executing a transaction.
@@ -29,7 +29,7 @@ use super::{
 /// - CN1_SR is the script root of consumed note 1.
 /// - CN1_IR is the inputs root of consumed note 1.
 /// - CN1_VR is the vault root of consumed note 1.
-/// - cn1_na is the number of assets in consumed note 1.
+/// - CN1_M is the metadata of consumed note 1.
 /// - CN1_A1 is the first asset of consumed note 1.
 /// - CN1_A2 is the second asset of consumed note 1.
 /// - CN1_I3..0 are the script inputs of consumed note 1.
@@ -105,7 +105,7 @@ pub fn generate_created_notes_commitment(notes: &[Note]) -> Digest {
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 8);
     for note in notes.iter() {
         elements.extend_from_slice(note.hash().as_elements());
-        elements.extend_from_slice(&note.metadata());
+        elements.extend_from_slice(&Word::from(note.metadata()));
     }
 
     Hasher::hash_elements(&elements)
