@@ -22,7 +22,7 @@ fn test_epilogue() {
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
-            push.1 exec.account::incr_account_nonce
+            push.1 exec.account::incr_nonce
             exec.finalize_transaction
         end
         "

@@ -134,6 +134,16 @@ export.set_blk_hash
     push.BLK_HASH_PTR mem_storew dropw
 end
 
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Stack: []
+#! Output: [BH]
+#!
+#! - BH is the block hash of the last known block at the time of transaction execution.
+export.get_blk_hash
+    padw push.BLK_HASH_PTR mem_loadw
+end
+
 #! Sets the account id.
 #!
 #! Stack: [acct_id]
