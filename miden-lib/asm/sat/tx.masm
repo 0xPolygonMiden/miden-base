@@ -1,0 +1,34 @@
+use.miden::sat::epilogue
+use.miden::sat::layout
+
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [H]
+#!
+#! H is the last known block hash.
+export.get_block_hash
+    exec.layout::get_blk_hash
+end
+
+#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
+#! tuples over all input notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the input notes hash.
+export.get_input_notes_hash
+    exec.layout::get_nullifier_com
+end
+
+#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! tuples over all output notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the output notes hash.
+export.get_output_notes_hash
+    exec.epilogue::process_created_notes
+end

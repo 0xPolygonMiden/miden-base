@@ -6,11 +6,11 @@ use.miden::sat::layout
 #! Output: [ACCT_HASH]
 #!
 #! - ACCT_HASH is the hash of the account data.
-export.get_acct_hash
+export.get_current_hash
     # prepare the stack for computing the account hash
     exec.layout::get_acct_data_ptr padw padw padw
 
-    # stream account data and compute sequential hash. We perform two `mem_stream` operations 
+    # stream account data and compute sequential hash. We perform two `mem_stream` operations
     # because account data consists of exactly 4 words.
     mem_stream mem_stream
 
@@ -28,8 +28,41 @@ end
 #!
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
-export.incr_account_nonce
+export.incr_nonce
     u32assert.1
     exec.layout::get_acct_nonce add
     exec.layout::set_acct_nonce
+end
+
+# TODO: change to re-export once supported.
+#! Returns the account id.
+#!
+#! Stack: []
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.get_id
+    exec.layout::get_acct_id
+end
+
+# TODO: change to re-export once supported.
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.get_nonce
+    exec.layout::get_acct_nonce
+end
+
+# TODO: change to re-export once supported.
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.get_initial_hash
+    exec.layout::get_init_acct_hash
 end

@@ -168,7 +168,7 @@ export.finalize_transaction
     exec.layout::get_init_acct_hash
 
     # compute the final account hash
-    exec.account::get_acct_hash
+    exec.account::get_current_hash
 
     # check if the account has changed
     eqw
