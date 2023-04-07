@@ -1,6 +1,6 @@
 use super::{
     AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, StackInputs, StackOutputs,
-    Vec,
+    Vec, Word,
 };
 use miden_core::ProgramInfo;
 use miden_verifier::{verify, ExecutionProof, VerificationError};
@@ -80,7 +80,7 @@ impl ProvenTransaction {
         let mut elements: Vec<Felt> = Vec::with_capacity(self.created_notes.len() * 8);
         for note in self.created_notes.iter() {
             elements.extend_from_slice(note.note_hash().as_elements());
-            elements.extend_from_slice(&note.note_metadata());
+            elements.extend_from_slice(&Word::from(note.metadata()));
         }
         Hasher::hash_elements(&elements)
     }

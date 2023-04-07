@@ -148,7 +148,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
         // The number of assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 5)
         assert_eq!(
             process.get_memory_value(0, consumed_note_data_ptr(note_idx) + 5).unwrap(),
-            [Felt::new(note.vault().num_assets() as u64), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+            Word::from(note.metadata())
         );
 
         // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)

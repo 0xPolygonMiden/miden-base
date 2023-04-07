@@ -6,6 +6,7 @@ use super::{
 // MOCK DATA
 // ================================================================================================
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
+pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
 const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
@@ -71,6 +72,9 @@ fn mock_consumed_notes() -> Vec<Note> {
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 200).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 300).unwrap().into();
 
+    // Sender account
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let note_1 = Note::new(
@@ -78,7 +82,8 @@ fn mock_consumed_notes() -> Vec<Note> {
         &[Felt::new(1)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_1,
-        Word::default(),
+        sender,
+        Felt::ZERO,
     )
     .unwrap();
 
@@ -88,7 +93,8 @@ fn mock_consumed_notes() -> Vec<Note> {
         &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
-        Word::default(),
+        sender,
+        Felt::ZERO,
     )
     .unwrap();
 
@@ -104,6 +110,9 @@ fn mock_created_notes() -> Vec<Note> {
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 100).unwrap().into();
 
+    // sender account
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
     // Created Notes
     const SERIAL_NUM_1: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
     let note_1 = Note::new(
@@ -111,7 +120,8 @@ fn mock_created_notes() -> Vec<Note> {
         &[Felt::new(1)],
         &[fungible_asset_1, fungible_asset_2],
         SERIAL_NUM_1,
-        Word::default(),
+        sender,
+        Felt::ZERO,
     )
     .unwrap();
 
@@ -121,7 +131,8 @@ fn mock_created_notes() -> Vec<Note> {
         &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
-        Word::default(),
+        sender,
+        Felt::ZERO,
     )
     .unwrap();
 
@@ -131,7 +142,8 @@ fn mock_created_notes() -> Vec<Note> {
         &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_3,
-        Word::default(),
+        sender,
+        Felt::ZERO,
     )
     .unwrap();
 
