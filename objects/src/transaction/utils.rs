@@ -1,5 +1,6 @@
 use super::{
-    Account, AccountId, AdviceInputs, Digest, Felt, Hasher, Note, StackInputs, StackOutputs, Word,
+    Account, AccountId, AdviceInputs, BlockHeader, Digest, Felt, Hasher, Note, StackInputs,
+    StackOutputs, Word,
 };
 
 /// Returns the advice inputs required when executing a transaction.
@@ -34,8 +35,14 @@ use super::{
 /// - CN1_A2 is the second asset of consumed note 1.
 /// - CN1_I3..0 are the script inputs of consumed note 1.
 /// - CN2_I3..0 are the script inputs of consumed note 2.
-pub fn generate_advice_provider_inputs(account: &Account, notes: &[Note]) -> AdviceInputs {
+pub fn generate_advice_provider_inputs(
+    account: &Account,
+    block_header: &BlockHeader,
+    notes: &[Note],
+) -> AdviceInputs {
     let mut inputs: Vec<Felt> = Vec::new();
+    let block_data = Vec::<Felt>::from(block_header);
+    inputs.extend(block_data);
     let account: [Felt; 16] = account.into();
     inputs.extend(account);
     inputs.push(Felt::new(notes.len() as u64));
@@ -74,13 +81,13 @@ pub fn generate_stack_inputs(
     account_id: &AccountId,
     account_hash: &Digest,
     notes: &[Note],
-    block_ref: &Digest,
+    block_header: &BlockHeader,
 ) -> StackInputs {
     let mut inputs: Vec<Felt> = Vec::with_capacity(13);
     inputs.extend_from_slice(generate_consumed_notes_commitment(notes).as_elements());
     inputs.extend_from_slice(account_hash.as_elements());
     inputs.push(**account_id);
-    inputs.extend_from_slice(block_ref.as_elements());
+    inputs.extend_from_slice(block_header.hash().as_elements());
     StackInputs::new(inputs)
 }
 

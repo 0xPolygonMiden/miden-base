@@ -18,6 +18,9 @@ pub use accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType,
 pub mod assets;
 pub mod notes;
 
+pub mod block;
+pub use block::BlockHeader;
+
 mod errors;
 pub use errors::{AccountError, AssetError, NoteError};
 

@@ -7,7 +7,7 @@ pub use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteVault},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
-    Account, AccountId,
+    Account, AccountId, BlockHeader,
 };
 pub use processor::{
     math::Felt, AdviceInputs, AdviceProvider, ExecutionError, MemAdviceProvider, Process,

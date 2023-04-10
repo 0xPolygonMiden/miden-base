@@ -39,6 +39,33 @@ const.NULLIFIER_COM_PTR=13
 # The memory address at which the initial nonce is stored
 const.INIT_NONCE_PTR=14
 
+# GLOBAL BLOCK DATA
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the block data section begins
+const.BLOCK_DATA_SECTION_OFFSET=40
+
+# The memory address at which the previous block hash is stored
+const.PREV_BLOCK_HASH_PTR=40
+
+# The memory address at which the chain root is stored
+const.CHAIN_ROOT_PTR=41
+
+# The memory address at which the state root is stored
+const.STATE_ROOT_PTR=42
+
+# The memory address at which the batch root is stored
+const.BATCH_ROOT_PTR=43
+
+# The memory address at which the proof hash is stored
+const.PROOF_HASH_PTR=44
+
+# The memory address at which the block number is stored
+const.BLOCK_NUM_PTR=45
+
+# The memory address at which the note root is stored
+const.NOTE_ROOT_PTR=46
+
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -222,6 +249,99 @@ end
 #! - init_nonce is the initial account nonce.
 export.set_init_nonce
     push.INIT_NONCE_PTR mem_store
+end
+
+# BLOCK DATA
+# -------------------------------------------------------------------------------------------------
+
+#! Returns a pointer to the block data section.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! - ptr is a pointer to the block data section.
+export.get_block_data_ptr
+    push.BLOCK_DATA_SECTION_OFFSET
+end
+
+#! Returns the previous block hash of the last known block.
+#!
+#! Stack: []
+#! Output: [PRV_BLK_HASH]
+#!
+#! - PRV_BLK_HASH is the previous block hash of the last known block.
+export.get_prv_blk_hash
+    padw push.PREV_BLOCK_HASH_PTR mem_loadw
+end
+
+#! Returns the block number of the last known block.
+#!
+#! Stack: []
+#! Output: [blk_num]
+#!
+#! - blk_num is the block number of the last known block.
+export.get_blk_num
+    push.BLOCK_NUM_PTR mem_load
+end
+
+#! Returns the chain root of the last known block.
+#!
+#! Stack: []
+#! Output: [CHAIN_ROOT]
+#!
+#! - CHAIN_ROOT is the chain root of the last known block.
+export.get_chain_root
+    padw push.CHAIN_ROOT_PTR mem_loadw
+end
+
+#! Returns the state root of the last known block.
+#!
+#! Stack: []
+#! Output: [STATE_ROOT]
+#!
+#! - STATE_ROOT is the state root of the last known block.
+export.get_state_root
+    padw push.STATE_ROOT_PTR mem_loadw
+end
+
+#! Returns the batch root of the last known block.
+#!
+#! Stack: []
+#! Output: [BATCH_ROOT]
+#!
+#! - BATCH_ROOT is the batch root of the last known block.
+export.get_batch_root
+    padw push.BATCH_ROOT_PTR mem_loadw
+end
+
+#! Returns the proof hash of the last known block.
+#!
+#! Stack: []
+#! Output: [PROOF_HASH]
+#!
+#! - PROOF_HASH is the proof hash of the last known block.
+export.get_proof_hash
+    padw push.PROOF_HASH_PTR mem_loadw
+end
+
+#! Returns the note root of the last known block.
+#!
+#! Stack: []
+#! Output: [NOTE_ROOT]
+#!
+#! - NOTE_ROOT is the note root of the last known block.
+export.get_note_root
+    padw push.NOTE_ROOT_PTR mem_loadw
+end
+
+#! Sets the note root of the last known block.
+#!
+#! Stack: [NOTE_ROOT]
+#! Output: []
+#!
+#! - NOTE_ROOT is the note root of the last known block.
+export.set_note_root
+    push.NOTE_ROOT_PTR mem_storew dropw
 end
 
 # ACCOUNT DATA

@@ -1,4 +1,4 @@
-use super::{utils, Account, AdviceInputs, Digest, Note, StackInputs, Vec};
+use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Note, StackInputs, Vec};
 
 /// A struct that contains all of the data required to execute a transaction. This includes:
 /// - account: Account that the transaction is being executed against.
@@ -7,7 +7,7 @@ use super::{utils, Account, AdviceInputs, Digest, Note, StackInputs, Vec};
 /// - tx_script_root: An optional transaction script root.
 pub struct TransactionInputs {
     account: Account,
-    block_ref: Digest,
+    block_header: BlockHeader,
     consumed_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
 }
@@ -15,13 +15,13 @@ pub struct TransactionInputs {
 impl TransactionInputs {
     pub fn new(
         account: Account,
-        block_ref: Digest,
+        block_header: BlockHeader,
         consumed_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
     ) -> Self {
         Self {
             account,
-            block_ref,
+            block_header,
             consumed_notes,
             tx_script_root,
         }
@@ -35,9 +35,9 @@ impl TransactionInputs {
         &self.account
     }
 
-    /// Returns the block reference.
-    pub fn block_ref(&self) -> Digest {
-        self.block_ref
+    // Returns the block header.
+    pub fn block_header(&self) -> &BlockHeader {
+        &self.block_header
     }
 
     /// Returns the consumed notes.
@@ -56,13 +56,17 @@ impl TransactionInputs {
             &self.account.id(),
             &self.account.hash(),
             &self.consumed_notes,
-            &self.block_ref,
+            &self.block_header,
         )
     }
 
     /// Returns the advice inputs required when executing the transaction.
     pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.account, &self.consumed_notes)
+        utils::generate_advice_provider_inputs(
+            &self.account,
+            &self.block_header,
+            &self.consumed_notes,
+        )
     }
 
     /// Returns the consumed notes commitment.

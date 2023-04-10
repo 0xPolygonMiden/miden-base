@@ -1,7 +1,9 @@
 use super::{
-    Account, AccountId, Asset, Digest, ExecutedTransaction, Felt, FieldElement, FungibleAsset,
-    Note, TransactionInputs, Word,
+    Account, AccountId, Asset, BlockHeader, Digest, ExecutedTransaction, Felt, FieldElement,
+    FungibleAsset, Note, TransactionInputs, Word,
 };
+
+use test_utils::rand;
 
 // MOCK DATA
 // ================================================================================================
@@ -12,21 +14,34 @@ const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
 pub const NONCE: Felt = Felt::ZERO;
 
+pub fn mock_block_header() -> BlockHeader {
+    let prev_hash: Digest = rand::rand_array().into();
+    let block_num: Felt = rand::rand_value();
+    let chain_root: Digest = rand::rand_array().into();
+    let state_root: Digest = rand::rand_array().into();
+    let note_root: Digest = rand::rand_array().into();
+    let batch_root: Digest = rand::rand_array().into();
+    let proof_hash: Digest = rand::rand_array().into();
+
+    BlockHeader::new(
+        prev_hash, block_num, chain_root, state_root, note_root, batch_root, proof_hash,
+    )
+}
+
 pub fn mock_inputs() -> TransactionInputs {
     // Create an account
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account = Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ZERO).unwrap();
 
-    // Block reference
-    let block_ref: Digest =
-        Digest::new([Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)]);
+    // Block header
+    let block_header: BlockHeader = mock_block_header();
 
     // Consumed notes
     let consumed_notes = mock_consumed_notes();
 
     // Transaction inputs
-    TransactionInputs::new(account, block_ref, consumed_notes, None)
+    TransactionInputs::new(account, block_header, consumed_notes, None)
 }
 
 pub fn mock_executed_tx() -> ExecutedTransaction {
@@ -48,9 +63,8 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     // Created notes
     let created_notes = mock_created_notes();
 
-    // Block reference
-    let block_ref: Digest =
-        Digest::new([Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)]);
+    // Block header
+    let block_header: BlockHeader = mock_block_header();
 
     // Executed Transaction
     ExecutedTransaction::new(
@@ -59,7 +73,7 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
         consumed_notes,
         created_notes,
         None,
-        block_ref,
+        block_header,
     )
 }
 
