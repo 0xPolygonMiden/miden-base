@@ -24,6 +24,7 @@ crypto = { package = "miden-crypto", version = "0.2" }
 miden-objects = { package = "miden-objects", path = "../objects"}
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", features = ["internals"] }
 vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
 
 
 [build-dependencies]

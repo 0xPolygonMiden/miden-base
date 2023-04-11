@@ -29,6 +29,63 @@ proc.process_global_inputs
     exec.layout::set_nullifier_com
 end
 
+# BLOCK DATA
+# =================================================================================================
+
+#! Process the block data provided via the advice provider. This involves reading the data from
+#! the advice provider and storing it at the appropriate memory addresses. As the block data is
+#! read from the advice provider, the block hash is computed. It is asserted that the computed
+#! block hash matches the block hash stored in the global inputs.
+#!
+#! Stack: []
+#! Advice stack: [NR, PH, CR, SR, BR, PH, BN]
+#! Output: []
+#!
+#! - NR is the note root of the last known block.
+#! - PH is the previous hash of the last known block.
+#! - CR is the chain root of the last known block.
+#! - SR is the state root of the last known block.
+#! - BR is the batch root of the last known block.
+#! - PH is the proof hash of the last known block.
+#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
+proc.process_block_data
+    # address to store the block data
+    exec.layout::get_block_data_ptr
+    # => [block_data_ptr]
+
+    # prepare the stack for reading block data
+    padw padw padw
+    # => [ZERO, ZERO, ZERO, block_data_ptr]
+
+    # read the block data
+    adv_pipe adv_pipe adv_pipe
+    # => [PERM, PERM, PERM, block_data_ptr']
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+    # => [DIG, block_data_ptr']
+
+    # load the note root from the advice provider
+    padw adv_loadw
+    # => [NR, DIG, block_data_ptr']
+
+    # store the note root in memory
+    dupw exec.layout::set_note_root
+    # => [NR, DIG, block_data_ptr']
+
+    # merge the note root with the block data digest
+    hmerge
+    # => [BH, block_data_ptr']
+
+    # assert that the block hash matches the hash in global inputs
+    exec.layout::get_blk_hash assert_eqw
+    # => [block_data_ptr']
+
+    # clear the stack
+    drop
+    # => []
+end
+
 # ACCOUNT DATA
 # =================================================================================================
 
@@ -329,7 +386,8 @@ end
 #!  - Any of the consumed notes do note exist in the note db.
 #!
 #! Stack:        [BH, acct_id, IAH, NC]
-#! Advice stack: [acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
+#! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
+#!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
 #!                num_cn,
 #!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
 #!                CN1_A1, CN1_A2, ...
@@ -341,6 +399,13 @@ end
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
+#! - NR is the note root of the last known block.
+#! - PH is the previous hash of the last known block.
+#! - CR is the chain root of the last known block.
+#! - SR is the state root of the last known block.
+#! - BR is the batch root of the last known block.
+#! - PH is the proof hash of the last known block.
+#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
 #! - IAH is the initial account hash of the account that the transaction is being executed against.
 #! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
 #!   (nullifier, script_root) pairs for the notes consumed in the transaction.
@@ -359,6 +424,9 @@ end
 export.prepare_transaction
     # process global inputs
     exec.process_global_inputs
+
+    # process block data
+    exec.process_block_data
 
     # process account data
     exec.process_acct_data

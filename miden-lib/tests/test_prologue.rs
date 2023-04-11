@@ -4,8 +4,9 @@ use common::{
     data::{mock_inputs, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, NONCE},
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR, ACCT_STORAGE_ROOT_PTR,
-        ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR,
-        NULLIFIER_COM_PTR,
+        ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR, CHAIN_ROOT_PTR,
+        CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR,
+        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, STATE_ROOT_PTR,
     },
     run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
     TransactionInputs, Word, TX_KERNEL_DIR,
@@ -31,6 +32,7 @@ fn test_transaction_prologue() {
     );
 
     public_input_memory_assertions(&process, &inputs);
+    block_data_memory_assertions(&process, &inputs);
     account_data_memory_assertions(&process, &inputs);
     consumed_notes_memory_assertions(&process, &inputs);
 }
@@ -42,7 +44,7 @@ fn public_input_memory_assertions<A: AdviceProvider>(
     // The block hash should be stored at the BLK_HASH_PTR
     assert_eq!(
         process.get_memory_value(0, BLK_HASH_PTR).unwrap(),
-        inputs.block_ref().as_elements()
+        inputs.block_header().hash().as_elements()
     );
 
     // The account ID should be stored at the ACCT_ID_PTR
@@ -61,6 +63,59 @@ fn public_input_memory_assertions<A: AdviceProvider>(
     assert_eq!(
         process.get_memory_value(0, NULLIFIER_COM_PTR).unwrap(),
         inputs.consumed_notes_commitment().as_elements()
+    );
+}
+
+fn block_data_memory_assertions<A: AdviceProvider>(
+    process: &Process<A>,
+    inputs: &TransactionInputs,
+) {
+    // The block hash should be stored at the BLK_HASH_PTR
+    assert_eq!(
+        process.get_memory_value(0, BLK_HASH_PTR).unwrap(),
+        inputs.block_header().hash().as_elements()
+    );
+
+    // The previous block hash should be stored at the PREV_BLK_HASH_PTR
+    assert_eq!(
+        process.get_memory_value(0, PREV_BLOCK_HASH_PTR).unwrap(),
+        inputs.block_header().prev_hash().as_elements()
+    );
+
+    // The chain root should be stored at the CHAIN_ROOT_PTR
+    assert_eq!(
+        process.get_memory_value(0, CHAIN_ROOT_PTR).unwrap(),
+        inputs.block_header().chain_root().as_elements()
+    );
+
+    // The state root should be stored at the STATE_ROOT_PTR
+    assert_eq!(
+        process.get_memory_value(0, STATE_ROOT_PTR).unwrap(),
+        inputs.block_header().state_root().as_elements()
+    );
+
+    // The batch root should be stored at the BATCH_ROOT_PTR
+    assert_eq!(
+        process.get_memory_value(0, BATCH_ROOT_PTR).unwrap(),
+        inputs.block_header().batch_root().as_elements()
+    );
+
+    // The note root should be stored at the NOTE_ROOT_PTR
+    assert_eq!(
+        process.get_memory_value(0, NOTE_ROOT_PTR).unwrap(),
+        inputs.block_header().note_root().as_elements()
+    );
+
+    // The proof hash should be stored at the PROOF_HASH_PTR
+    assert_eq!(
+        process.get_memory_value(0, PROOF_HASH_PTR).unwrap(),
+        inputs.block_header().proof_hash().as_elements()
+    );
+
+    // The block number should be stored at the BLOCK_NUM_PTR
+    assert_eq!(
+        process.get_memory_value(0, BLOCK_NUM_PTR).unwrap()[0],
+        inputs.block_header().block_num()
     );
 }
 

@@ -37,6 +37,33 @@ pub const NULLIFIER_COM_PTR: u64 = 13;
 /// The memory address at which the initial nonce is stored.
 pub const INIT_NONCE_PTR: u64 = 14;
 
+// BLOCK DATA
+// ------------------------------------------------------------------------------------------------
+
+/// The memory address at which the block data section begins
+pub const BLOCK_DATA_SECTION_OFFSET: u64 = 40;
+
+/// The memory address at which the previous block hash is stored
+pub const PREV_BLOCK_HASH_PTR: u64 = 40;
+
+/// The memory address at which the chain root is stored
+pub const CHAIN_ROOT_PTR: u64 = 41;
+
+/// The memory address at which the state root is stored
+pub const STATE_ROOT_PTR: u64 = 42;
+
+/// The memory address at which the batch root is stored
+pub const BATCH_ROOT_PTR: u64 = 43;
+
+/// The memory address at which the proof hash is stored
+pub const PROOF_HASH_PTR: u64 = 44;
+
+/// The memory address at which the block number is stored
+pub const BLOCK_NUM_PTR: u64 = 45;
+
+/// The memory address at which the note root is stored
+pub const NOTE_ROOT_PTR: u64 = 46;
+
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 

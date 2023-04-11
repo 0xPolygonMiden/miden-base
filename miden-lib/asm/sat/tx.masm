@@ -11,6 +11,16 @@ export.get_block_hash
     exec.layout::get_blk_hash
 end
 
+#! Returns the block number of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [num]
+#!
+#! num is the last known block number.
+export.get_block_number
+    exec.layout::get_blk_num
+end
+
 #! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
 #! tuples over all input notes.
 #!

@@ -1,6 +1,6 @@
 use miden_core::StackOutputs;
 
-use super::{utils, Account, AdviceInputs, Digest, Note, StackInputs};
+use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Note, StackInputs};
 
 pub struct ExecutedTransaction {
     initial_account: Account,
@@ -8,7 +8,7 @@ pub struct ExecutedTransaction {
     consumed_notes: Vec<Note>,
     created_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
-    block_ref: Digest,
+    block_header: BlockHeader,
 }
 
 impl ExecutedTransaction {
@@ -18,7 +18,7 @@ impl ExecutedTransaction {
         consumed_notes: Vec<Note>,
         created_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
-        block_ref: Digest,
+        block_header: BlockHeader,
     ) -> Self {
         Self {
             initial_account,
@@ -26,7 +26,7 @@ impl ExecutedTransaction {
             consumed_notes,
             created_notes,
             tx_script_root,
-            block_ref,
+            block_header,
         }
     }
 
@@ -57,7 +57,7 @@ impl ExecutedTransaction {
 
     /// Returns the block reference.
     pub fn block_ref(&self) -> Digest {
-        self.block_ref
+        self.block_header.hash()
     }
 
     /// Returns the stack inputs required when executing the transaction.
@@ -66,7 +66,7 @@ impl ExecutedTransaction {
             &self.initial_account.id(),
             &self.initial_account.hash(),
             &self.consumed_notes,
-            &self.block_ref,
+            &self.block_header,
         )
     }
 
@@ -77,7 +77,11 @@ impl ExecutedTransaction {
 
     /// Returns the advice inputs required when executing the transaction.
     pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.initial_account, &self.consumed_notes)
+        utils::generate_advice_provider_inputs(
+            &self.initial_account,
+            &self.block_header,
+            &self.consumed_notes,
+        )
     }
 
     /// Returns the stack outputs produced as a result of executing a transaction.
