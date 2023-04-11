@@ -10,6 +10,9 @@ const.MAX_NUM_CONSUMED_NOTES=1023
 # The size of the memory segment allocated to each note
 const.NOTE_MEM_SIZE=1024
 
+# The depth of the Merkle tree used to commit to notes produced in a block.
+const.NOTE_TREE_DEPTH=20
+
 # PROCEDURES
 # =================================================================================================
 
@@ -41,4 +44,14 @@ end
 #! - note_mem_size is the size of the memory segment allocated to each note.
 export.get_note_mem_size
     push.NOTE_MEM_SIZE
+end
+
+#! Returns the depth of the Merkle tree used to commit to notes produced in a block.
+#!
+#! Stack: []
+#! Output: [note_tree_depth]
+#!
+#! - note_tree_depth is the depth of the Merkle tree used to commit to notes produced in a block.
+export.get_note_tree_depth
+    push.NOTE_TREE_DEPTH
 end

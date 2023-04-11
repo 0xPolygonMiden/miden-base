@@ -64,6 +64,18 @@ pub const BLOCK_NUM_PTR: u64 = 45;
 /// The memory address at which the note root is stored
 pub const NOTE_ROOT_PTR: u64 = 46;
 
+// CHAIN DATA
+// ------------------------------------------------------------------------------------------------
+
+/// The memory address at which the chain data section begins
+pub const CHAIN_MMR_PTR: u64 = 60;
+
+/// The memory address at which the total number of leaves in the chain MMR is stored
+pub const CHAIN_MMR_NUM_LEAVES_PTR: u64 = 60;
+
+/// The memory address at which the chain mmr peaks are stored
+pub const CHAIN_MMR_PEAKS_PTR: u64 = 61;
+
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 

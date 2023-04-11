@@ -1,14 +1,16 @@
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
+    merkle::{MerkleStore, Mmr, NodeIndex, SimpleSmt},
     FieldElement, StarkField,
 };
 pub use miden_lib::{memory, MidenLib};
 pub use miden_objects::{
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteVault},
+    notes::{Note, NoteOrigin, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
     Account, AccountId, BlockHeader,
 };
+use miden_stdlib::StdLibrary;
 pub use processor::{
     math::Felt, AdviceInputs, AdviceProvider, ExecutionError, MemAdviceProvider, Process,
     StackInputs, Word,
@@ -49,7 +51,9 @@ where
 {
     let assembler = assembly::Assembler::default()
         .with_library(&MidenLib::default())
-        .expect("failed to load miden-lib");
+        .expect("failed to load miden-lib")
+        .with_library(&StdLibrary::default())
+        .expect("failed to load std-lib");
 
     let code = match (dir, file) {
         (Some(dir), Some(file)) => load_file_with_code(imports, code, dir, file),

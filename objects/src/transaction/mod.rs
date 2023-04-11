@@ -1,6 +1,6 @@
 use super::{
     notes::{Note, NoteMetadata},
-    Account, AccountId, BlockHeader, Digest, Felt, Hasher, StarkField, Vec, Word,
+    Account, AccountId, BlockHeader, Digest, Felt, Hasher, Mmr, StarkField, Vec, Word,
 };
 use miden_core::{StackInputs, StackOutputs};
 use miden_processor::AdviceInputs;

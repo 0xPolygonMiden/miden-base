@@ -12,6 +12,9 @@ use super::{Digest, Felt, Hasher, ZERO};
 /// - note_root is a commitment to all notes created in the current block.
 /// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
 /// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
+/// - sub_hash is a sequential hash of all fields except the note_root.
+/// - hash is a 2-to-1 hash of the sub_hash and the note_root.
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct BlockHeader {
     prev_hash: Digest,
     block_num: Felt,
@@ -20,6 +23,7 @@ pub struct BlockHeader {
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
+    sub_hash: Digest,
     hash: Digest,
 }
 
@@ -34,10 +38,15 @@ impl BlockHeader {
         batch_root: Digest,
         proof_hash: Digest,
     ) -> Self {
-        // compute block hash
-        let hash = Self::compute_hash(
-            prev_hash, chain_root, state_root, batch_root, proof_hash, block_num, note_root,
+        // compute block sub hash
+        let sub_hash = Self::compute_sub_hash(
+            prev_hash, chain_root, state_root, batch_root, proof_hash, block_num,
         );
+
+        // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the final
+        // hash. This is done to make the note_root easily accessible without having to unhash the
+        // entire header. Having the note_root easily accessible is useful when authenticating notes.
+        let hash = Hasher::merge(&[sub_hash, note_root]);
 
         Self {
             prev_hash,
@@ -47,6 +56,7 @@ impl BlockHeader {
             note_root,
             batch_root,
             proof_hash,
+            sub_hash,
             hash,
         }
     }
@@ -57,6 +67,14 @@ impl BlockHeader {
     /// Returns the hash of the block header.
     pub fn hash(&self) -> Digest {
         self.hash
+    }
+
+    /// Returns the sub hash of the block header. The sub hash is a sequential hash of all block
+    /// header fields except the note root. This is used in the block hash computation which is a
+    /// 2-to-1 hash of the sub hash and the note root [hash(sub_hash, note_root)]. This procedure
+    /// is used to make the note root easily accessible without having to unhash the entire header.
+    pub fn sub_hash(&self) -> Digest {
+        self.sub_hash
     }
 
     /// Returns the hash of the previous block header.
@@ -97,21 +115,18 @@ impl BlockHeader {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Computes the hash of the block header.
+    /// Computes the sub hash of the block header.
     ///
-    /// The hash is computed as a sequential hash of the following fields:
-    /// prev_hash, chain_root, state_root, note_root, batch_root, proof_hash, block_num.
-    /// The result is then merged with the note_root - merge(note_root, hash) to produce the final
-    /// hash. This is done to make the note_root easily accessible without having to unhash the
-    /// entire header. Having the note_root easily accessible is useful when authenticating notes.
-    fn compute_hash(
+    /// The sub hash is computed as a sequential hash of the following fields:
+    /// prev_hash, chain_root, state_root, note_root, batch_root, proof_hash, block_num (all fields
+    /// except the note_root).
+    fn compute_sub_hash(
         prev_hash: Digest,
         chain_root: Digest,
         state_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
         block_num: Felt,
-        note_root: Digest,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(24);
         elements.extend_from_slice(prev_hash.as_elements());
@@ -121,9 +136,7 @@ impl BlockHeader {
         elements.extend_from_slice(proof_hash.as_elements());
         elements.push(block_num);
         elements.resize(24, ZERO);
-        let body_hash = Hasher::hash_elements(&elements);
-
-        Hasher::merge(&[body_hash, note_root])
+        Hasher::hash_elements(&elements)
     }
 }
 

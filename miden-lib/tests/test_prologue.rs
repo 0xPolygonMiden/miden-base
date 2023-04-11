@@ -4,9 +4,9 @@ use common::{
     data::{mock_inputs, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, NONCE},
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR, ACCT_STORAGE_ROOT_PTR,
-        ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR, CHAIN_ROOT_PTR,
-        CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR,
-        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, STATE_ROOT_PTR,
+        ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR, CHAIN_MMR_NUM_LEAVES_PTR,
+        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR,
+        NOTE_ROOT_PTR, NULLIFIER_COM_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, STATE_ROOT_PTR,
     },
     run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
     TransactionInputs, Word, TX_KERNEL_DIR,
@@ -16,7 +16,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let inputs = mock_inputs();
+    let (merkle_store, inputs) = mock_inputs();
     let code = "
         begin
             exec.prepare_transaction
@@ -26,13 +26,14 @@ fn test_transaction_prologue() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(PROLOGUE_FILE),
     );
 
     public_input_memory_assertions(&process, &inputs);
     block_data_memory_assertions(&process, &inputs);
+    chain_mmr_memory_assertions(&process, &inputs);
     account_data_memory_assertions(&process, &inputs);
     consumed_notes_memory_assertions(&process, &inputs);
 }
@@ -117,6 +118,22 @@ fn block_data_memory_assertions<A: AdviceProvider>(
         process.get_memory_value(0, BLOCK_NUM_PTR).unwrap()[0],
         inputs.block_header().block_num()
     );
+}
+
+fn chain_mmr_memory_assertions<A: AdviceProvider>(
+    process: &Process<A>,
+    inputs: &TransactionInputs,
+) {
+    // The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR
+    assert_eq!(
+        process.get_memory_value(0, CHAIN_MMR_NUM_LEAVES_PTR).unwrap()[0],
+        Felt::new(inputs.block_chain().forest() as u64)
+    );
+
+    for (i, peak) in inputs.block_chain().accumulator().peaks.iter().enumerate() {
+        // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
+        assert_eq!(&process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i as u64).unwrap(), peak);
+    }
 }
 
 fn account_data_memory_assertions<A: AdviceProvider>(

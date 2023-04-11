@@ -10,7 +10,7 @@ const NOTE_SETUP_FILE: &str = "note_setup.masm";
 
 #[test]
 fn test_note_setup() {
-    let inputs = mock_inputs();
+    let (merkle_store, inputs) = mock_inputs();
     let imports = "use.miden::sat::prologue\n";
     let code = "
         begin
@@ -22,7 +22,7 @@ fn test_note_setup() {
         imports,
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(NOTE_SETUP_FILE),
     );
