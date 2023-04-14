@@ -149,6 +149,26 @@ proc.process_created_notes
     movup.4 drop
 end
 
+# ACCOUNT CODE UPDATE
+# =================================================================================================
+
+#! Updates the account code root if the account code has changed. `NEW_ACCT_CODE_ROOT` is set to
+#! the initial account code root in the prologue and as such this procedure will not result in a
+#! change to the account code root if the `account::set_code` procedure has not been invoked in
+#! this transaction.
+#!
+#! Stack: []
+#! Output: []
+proc.update_account_code
+    # check if the account code root has been updated
+    exec.layout::get_new_acct_code_root
+    # => [NEW_ACCT_CODE_ROOT]
+
+    # set the account code root to the new account code root (may not have changed)
+    exec.layout::set_acct_code_root
+    # => []
+end
+
 # TRANSACTION EPILOGUE PROCEDURE
 # =================================================================================================
 
@@ -164,6 +184,9 @@ end
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
+    # update account code
+    exec.update_account_code
+
     # get the initial account hash
     exec.layout::get_init_acct_hash
 

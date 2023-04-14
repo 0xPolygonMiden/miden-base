@@ -98,6 +98,9 @@ const.ACCT_STORAGE_ROOT_PTR=102
 # The memory address at which the account code root is stored
 const.ACCT_CODE_ROOT_PTR=103
 
+# The memory address at which the new account code root is stored
+const.ACCT_NEW_CODE_ROOT_PTR=104
+
 # CONSUMED NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -432,6 +435,46 @@ end
 export.set_acct_nonce
     padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
+end
+
+#! Sets the code root of the account.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the code root to be set.
+export.set_acct_code_root
+    push.ACCT_CODE_ROOT_PTR mem_storew dropw
+end
+
+#! Returns the code root of the account.
+#!
+#! Stack: []
+#! Output: [CODE_ROOT]
+#!
+#! - CODE_ROOT is the code root of the account.
+export.get_acct_code_root
+    padw push.ACCT_CODE_ROOT_PTR mem_loadw
+end
+
+#! Stores the new account code root in memory.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the new account code root.
+export.set_new_acct_code_root
+    push.ACCT_NEW_CODE_ROOT_PTR mem_storew dropw
+end
+
+#! Returns the new account code root.
+#!
+#! Stack: []
+#! Output: [CODE_ROOT]
+#!
+#! - CODE_ROOT is the new account code root.
+export.get_new_acct_code_root
+    padw push.ACCT_NEW_CODE_ROOT_PTR mem_loadw
 end
 
 # CONSUMED NOTES

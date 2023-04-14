@@ -1,5 +1,23 @@
 use.miden::sat::layout
 
+# CONSTANTS
+# =================================================================================================
+
+# An enum that represents a regular account with updatable code.
+const.REGULAR_ACCOUNT_UPDATABLE_CODE=0
+
+# An enum that represents a regular account with immutable code.
+const.REGULAR_ACCOUNT_IMMUTABLE_CODE=1
+
+# An enum that represents a fungible faucet with immutable code.
+const.FUNGIBLE_FAUCET_ACCOUNT=2
+
+# An enum that represents a non-fungible faucet with immutable code.
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
+
+# PROCEDURES
+# =================================================================================================
+
 #! Computes and returns the account hash from account data stored in memory.
 #!
 #! Stack: []
@@ -65,4 +83,47 @@ end
 #! - H is the initial account hash.
 export.get_initial_hash
     exec.layout::get_init_acct_hash
+end
+
+#! Returns the account type of the account the transaction is being executed against.
+#!
+#! The account type can be of the following forms:
+#! - regular account with updatable code: REGULAR_ACCOUNT
+#! - regular account with immutable code: NON_UPDATABLE_ACCOUNT
+#! - fungible asset faucet account with immutable code: FUNGIBLE_FAUCET_ACCOUNT
+#! - non-fungible asset faucet account with immutable code: NON_FUNGIBLE_FAUCET_ACCOUNT
+#!
+#! Stack: []
+#! Output: [acct_type]
+#!
+#! - acct_type is the account type.
+proc.type
+    # get the account id
+    exec.layout::get_acct_id
+    # => [acct_id]
+
+    # compute the account type
+    u32split swap drop u32checked_shr.30
+    # => [acct_type]
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_code
+    # get the account type
+    exec.type
+    # => [acct_type, CODE_ROOT]
+
+    # check that the account type is a regular account with updatable code
+    push.REGULAR_ACCOUNT_UPDATABLE_CODE assert_eq
+    # => [CODE_ROOT]
+
+    # set the code root
+    exec.layout::set_new_acct_code_root
+    # => []
 end

@@ -96,6 +96,9 @@ pub const ACCT_STORAGE_ROOT_PTR: u64 = 102;
 /// The memory address at which the account code root is stored.
 pub const ACCT_CODE_ROOT_PTR: u64 = 103;
 
+/// The memory address at which the new account code root is stored
+pub const ACCT_NEW_CODE_ROOT_PTR: u64 = 104;
+
 // NOTES DATA
 // ------------------------------------------------------------------------------------------------
 
