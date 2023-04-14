@@ -1,7 +1,7 @@
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::{MerkleStore, Mmr, NodeIndex, SimpleSmt},
-    FieldElement, StarkField,
+    FieldElement, StarkField, ZERO,
 };
 pub use miden_lib::{memory, MidenLib};
 pub use miden_objects::{

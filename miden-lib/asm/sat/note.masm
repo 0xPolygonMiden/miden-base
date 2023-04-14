@@ -1,0 +1,26 @@
+use.miden::sat::layout
+
+#! Returns the sender of the note currently being processed. Returns 0 if a note is not being
+#! processed.
+#!
+#! Inputs: []
+#! Outputs: [sender]
+#!
+#! - sender is the sender of the note currently being processed.
+export.get_sender
+    # get the current consumed note pointer
+    exec.layout::get_current_consumed_note_ptr
+    # => [ptr]
+
+    # check if the pointer is zero
+    dup neq.0
+    # => [is_not_zero, ptr]
+
+    if.true
+        # get the sender from the note pointer
+        exec.layout::get_consumed_note_sender
+        # => [sender]
+    end
+
+    # => [sender]
+end
