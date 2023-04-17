@@ -17,10 +17,10 @@ $
 It looks like 
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction/Transaction.png">
+    <img src="../diagrams/architecture/transaction/Transaction.png">
 </p>
 
-In addition to specifying inputs and outputs, a transaction must also include a single executable script. This script has a well-defined structure which must do the following:
+In addition to specifying inputs and outputs, a transaction must also include an executable program. The transaction program has a well-defined structure which must do the following:
 
 1. Build a single unified vault for all inputs.
 2. Execute scripts of all input notes (the scripts are executed one after another).
@@ -29,6 +29,8 @@ In addition to specifying inputs and outputs, a transaction must also include a 
 5. Make sure the unified input and output vaults contain the same set of assets.
 
 The last point ensures that a transaction does not create or destroy any assets.
+
+A transaction can also include a user-defined transaction script. <Some more info here is missing>
 
 ## Execution steps of a transaction
 Transaction execution consists of several steps. These steps (grouped slightly differently) are described below:
@@ -40,7 +42,7 @@ Transaction execution consists of several steps. These steps (grouped slightly d
 ### Example 1: transaction that sends assets out of a wallet (creating a note):
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction/Transaction_Example_Send_Asset.png">
+    <img src="../diagrams/architecture/transaction/Transaction_Example_Send_Asset.png">
 </p>
 
 This transaction does not consume any notes but has tx script which calls the send function. Send function then creates an output note (not pictured).
@@ -48,7 +50,7 @@ This transaction does not consume any notes but has tx script which calls the se
 ### Example 2: transaction that receives assets (consuming a note)
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction/Transaction_Example_Receive_Asset.png">
+    <img src="../diagrams/architecture/transaction/Transaction_Example_Receive_Asset.png">
 </p>
 
 As opposed to the previous transaction, this transaction consumes a single note (`note1`) but does not have a tx script.
@@ -57,7 +59,7 @@ As opposed to the previous transaction, this transaction consumes a single note 
 Under this model transferring assets between accounts requires two transactions as shown in the diagram below.
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction/Transaction_Flow.png">
+    <img src="../diagrams/architecture/transaction/Transaction_Flow.png">
 </p>
 
 The first transaction invokes a function on `account_a` (e.g., "send" function) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g., "receive" function), which also updates the internal state of `account_b`.
@@ -72,5 +74,10 @@ It is important to note that both transactions can be executed asynchronously: f
 ## Local vs. Network Transactions [WIP]
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction/Local_vs_Network_Transaction.png">
+    <img src="../diagrams/architecture/transaction/Local_vs_Network_Transaction.png">
 </p>
+
+This is the most important change in Polygon Miden. Users can execute transactions locally. In the context of Miden that means users can execute smart contracts locally. Specifically, for anything that doesn’t touch the public state, users can execute smart contracts on their devices and then send ZK proofs to the network. The operators can then verify these ZK proofs exponentially faster than executing the original transactions and update the state accordingly. Note that in most other zkRollups, only the operator(s) can create proofs.
+
+Not only does this reduce the computational burden on the operators, but it also makes such transactions inherently parallelizable. Even more exciting is that it lifts the limits on what can go into a smart contract. For example, anything that a user can execute and prove locally - no matter how complex - can be processed by the network with minimal costs.
+

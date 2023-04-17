@@ -1,16 +1,17 @@
 # Accounts
-An account is an entity which holds assets and defines rules of how these assets can be transferred. The diagram below illustrates basic components of an account.
+An account is an entity which holds assets and defines rules of how these assets can be transferred. The diagram below illustrates basic components of an account. In Miden every Account is a smart contract.
 
 <p align="center">
-    <img src="../diagrams/protocol/account/Account_Definition.png">
+    <img src="../diagrams/architecture/account/Account_Definition.png">
 </p>
 
 In the above:
 
-* ID is a unique identifier (32 bytes) of an account which does not change throughout its lifetime. This is not the same as address as accounts do not have addresses.
-* Storage is user-defined data which can be stored in an account. The exact mechanism is TBD. For example, this could be a key-value map or an index-based array.
-* Vault is collection of assets stored in an account. In this collection all fungible assets with the same ID are grouped together, and all non-fungible assets are represented as individual entries.
-* Code is a collection of functions which define an external interface for an account.
+* **Account ID** is a unique identifier (8 bytes) of an account which does not change throughout its lifetime. It also specifies the type of the underlying account. 
+* **Storage** is user-defined data which can be stored in an account. The data is stored as key-value map which maps 256-bit keys to 256-bit values.
+* **Nonce** is the account's nonce increments every time the account changes its state. 
+* **Vault** is collection of assets stored in an account. In this collection all fungible assets with the same ID are grouped together, and all non-fungible assets are represented as individual entries.
+* **Code** is a collection of functions which define an external interface for an account. The internal state of the account can only be modified by invoking these functions.
 
 Functions exposed by the account have the following properties:
 
@@ -18,10 +19,29 @@ Functions exposed by the account have the following properties:
 * Only account functions have mutable access to an account's storage and vault. Said another way, the only way to modify an account's internal state is through one of account's functions.
 * Account functions can take parameters and can create new notes.
 
-## Accounts with public and private state
+## Types of Accounts
+There are four types of Accounts in Miden. The first two bits of the Account ID specify the type of the account.
+
+### Regular Account with updatable code
+This account type will be used by most users. They can specify and change their code and use this account for a wallet. The Account ID will start with `00`.
+
+### Regular Account with immutable code
+This account type will be used by most regular smart contracts. Once deployed the code should not change and no one should be able to change it. The Account ID will start with `01`.
+
+### Fungible asset faucet with immutable code
+Assets need to be created by Accounts in Miden. The Account ID will start with `10`. 
+
+### Non-fungible asset faucet with immutable code
+Assets need to be created by Accounts in Miden. The Account ID will start with `11`. 
+
+
+## Account data storage
+Account data can be public or private.
 
 * Accounts with public state, where the actual state is stored on chain. These would be similar to how accounts work in public blockchains.
-* Accounts with private state, where only the hash of the account is stored on chain. The hash could be defined as something like `hash([account ID], [storage root], [vault root], [code root])`.
+* Accounts with private state, where only the hash of the account is stored on chain. The hash is defined as `hash([account ID], [storage root], [vault root], [code root])`.
+
+The third most significant bit of the ID specifies whether the account data is public (0) or private (1).
 
 Missing: 
 
