@@ -166,6 +166,11 @@ proc.process_acct_data
     # store a copy of the initial nonce in global inputs
     exec.layout::get_acct_nonce
     exec.layout::set_init_nonce
+
+    # set the new account code root to the initial account code root
+    # this is used for managing code root updates
+    exec.layout::get_acct_code_root
+    exec.layout::set_new_acct_code_root
 end
 
 # CONSUMED NOTES DATA

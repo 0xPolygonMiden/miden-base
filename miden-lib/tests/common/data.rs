@@ -7,7 +7,7 @@ use test_utils::rand;
 
 // MOCK DATA
 // ================================================================================================
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 0b0010011011u64 << 54;
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
 const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
@@ -86,7 +86,7 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
 pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
     // Create an account
     let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let account = Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ZERO).unwrap();
 
     // Create a Merkle store
@@ -112,7 +112,7 @@ pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
 pub fn mock_executed_tx() -> (MerkleStore, ExecutedTransaction) {
     // AccountId
     let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
 
     // Initial Account
     let initial_account =

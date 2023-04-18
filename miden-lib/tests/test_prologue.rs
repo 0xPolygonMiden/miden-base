@@ -1,7 +1,7 @@
 pub mod common;
 use common::{
     consumed_note_data_ptr,
-    data::{mock_inputs, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, NONCE},
+    data::{mock_inputs, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, NONCE},
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR, ACCT_STORAGE_ROOT_PTR,
         ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR, CHAIN_MMR_NUM_LEAVES_PTR,
@@ -143,7 +143,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]
     assert_eq!(
         process.get_memory_value(0, ACCT_ID_AND_NONCE_PTR).unwrap()[0],
-        Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
+        Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN)
     );
 
     // The account nonce should be stored at ACCT_ID_AND_NONCE_PTR[3]
