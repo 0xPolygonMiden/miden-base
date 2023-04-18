@@ -8,7 +8,7 @@ pub use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteOrigin, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
-    Account, AccountId, BlockHeader,
+    Account, AccountId, AccountType, BlockHeader,
 };
 use miden_stdlib::StdLibrary;
 pub use processor::{
