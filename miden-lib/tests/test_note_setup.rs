@@ -2,7 +2,7 @@ pub mod common;
 use common::{
     consumed_note_data_ptr, data::mock_inputs, memory::CURRENT_CONSUMED_NOTE_PTR,
     run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
-    TX_KERNEL_DIR,
+    TX_KERNEL_DIR, ZERO,
 };
 use miden_objects::transaction::TransactionInputs;
 
@@ -48,4 +48,52 @@ fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<A>) {
         process.get_memory_value(0, CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
         Felt::try_from(consumed_note_data_ptr(0)).unwrap()
     );
+}
+
+#[test]
+fn test_get_sender_no_sender() {
+    let (merkle_store, inputs) = mock_inputs();
+    let imports = "use.miden::sat::prologue\nuse.miden::sat::note\n";
+
+    // calling get_sender before prepare note should return 0
+    let code = "
+        begin
+            exec.prologue::prepare_transaction
+            exec.note::get_sender
+        end
+        ";
+    let process = run_within_tx_kernel(
+        imports,
+        code,
+        inputs.stack_inputs(),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        Some(TX_KERNEL_DIR),
+        Some(NOTE_SETUP_FILE),
+    );
+    assert_eq!(process.stack.get(0), ZERO);
+}
+
+#[test]
+fn test_get_sender() {
+    let (merkle_store, inputs) = mock_inputs();
+    let imports = "use.miden::sat::prologue\nuse.miden::sat::note\n";
+
+    // calling get_sender should return sender
+    let code = "
+        begin
+            exec.prologue::prepare_transaction
+            exec.prepare_note
+            exec.note::get_sender
+        end
+        ";
+    let process = run_within_tx_kernel(
+        imports,
+        code,
+        inputs.stack_inputs(),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        Some(TX_KERNEL_DIR),
+        Some(NOTE_SETUP_FILE),
+    );
+    let sender = inputs.consumed_notes()[0].metadata().sender().into();
+    assert_eq!(process.stack.get(0), sender);
 }
