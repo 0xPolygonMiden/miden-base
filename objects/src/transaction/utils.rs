@@ -1,7 +1,9 @@
 use super::{
-    Account, AccountId, AdviceInputs, BlockHeader, Digest, Felt, Hasher, Note, StackInputs,
+    Account, AccountId, AdviceInputs, BlockHeader, Digest, Felt, Hasher, Mmr, Note, StackInputs,
     StackOutputs, Word,
 };
+use assembly::utils::IntoBytes;
+use hashbrown::HashMap;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, the number of consumed notes, the core consumed note data,
@@ -19,7 +21,7 @@ use super::{
 ///               CN1_I3, CN1_I2, CN1_I1, CN1_I0,
 ///               CN2_I3, CN2_I2, CN2_I1, CN2_I0,
 ///               ...]
-///
+/// Advice Map: {CHAIN_ROOT, [num_leaves, PEAK_0, ..., PEAK_N]}
 /// - acct_id is the account id of the account that the transaction is being executed against.
 /// - nonce is the account nonce.
 /// - AVR is the account vault root.
@@ -35,23 +37,42 @@ use super::{
 /// - CN1_A2 is the second asset of consumed note 1.
 /// - CN1_I3..0 are the script inputs of consumed note 1.
 /// - CN2_I3..0 are the script inputs of consumed note 2.
+/// - CHAIN_ROOT is the root of the block chain MMR from the last known block.
+/// - num_leaves is the number of leaves in the block chain MMR from the last known block.
+/// - PEAK_0 is the first peak in the block chain MMR from the last known block.
+/// - PEAK_N is the n'th peak in the block chain MMR from the last known block.
 pub fn generate_advice_provider_inputs(
     account: &Account,
     block_header: &BlockHeader,
+    block_chain: &Mmr,
     notes: &[Note],
 ) -> AdviceInputs {
-    let mut inputs: Vec<Felt> = Vec::new();
+    let mut advice_map: HashMap<[u8; 32], Vec<Felt>> = HashMap::new();
+    let mut advice_stack: Vec<Felt> = Vec::new();
+
+    // insert block data
     let block_data = Vec::<Felt>::from(block_header);
-    inputs.extend(block_data);
+    advice_stack.extend(block_data);
+
+    // insert block chain mmr
+    let chain_accumulator = block_chain.accumulator();
+    advice_map.insert(chain_accumulator.hash_peaks().into_bytes(), (&chain_accumulator).into());
+
+    // insert account data
     let account: [Felt; 16] = account.into();
-    inputs.extend(account);
-    inputs.push(Felt::new(notes.len() as u64));
+    advice_stack.extend(account);
+
+    // insert consumed notes data
+    advice_stack.push(Felt::new(notes.len() as u64));
     let note_data: Vec<Felt> = notes.iter().flat_map(<Vec<Felt>>::from).collect();
-    inputs.extend(note_data);
+    advice_stack.extend(note_data);
+
+    // insert consumed notes inputs
     let note_inputs: Vec<Felt> =
         notes.iter().flat_map(|note| note.inputs().inputs().to_vec()).collect();
-    inputs.extend(note_inputs);
-    AdviceInputs::default().with_stack(inputs)
+    advice_stack.extend(note_inputs);
+
+    AdviceInputs::default().with_stack(advice_stack).with_map(advice_map)
 }
 
 /// Returns the consumed notes commitment.

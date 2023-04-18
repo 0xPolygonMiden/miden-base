@@ -1,8 +1,8 @@
 use super::{
     Account, AccountId, Asset, BlockHeader, Digest, ExecutedTransaction, Felt, FieldElement,
-    FungibleAsset, Note, TransactionInputs, Word,
+    FungibleAsset, MerkleStore, Mmr, NodeIndex, Note, NoteOrigin, TransactionInputs, Word,
+    NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
-
 use test_utils::rand;
 
 // MOCK DATA
@@ -14,12 +14,15 @@ const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
 pub const NONCE: Felt = Felt::ZERO;
 
-pub fn mock_block_header() -> BlockHeader {
+pub fn mock_block_header(
+    block_num: Felt,
+    chain_root: Option<Digest>,
+    note_root: Option<Digest>,
+) -> BlockHeader {
     let prev_hash: Digest = rand::rand_array().into();
-    let block_num: Felt = rand::rand_value();
-    let chain_root: Digest = rand::rand_array().into();
+    let chain_root: Digest = chain_root.unwrap_or(rand::rand_array().into());
     let state_root: Digest = rand::rand_array().into();
-    let note_root: Digest = rand::rand_array().into();
+    let note_root: Digest = note_root.unwrap_or(rand::rand_array().into());
     let batch_root: Digest = rand::rand_array().into();
     let proof_hash: Digest = rand::rand_array().into();
 
@@ -28,23 +31,85 @@ pub fn mock_block_header() -> BlockHeader {
     )
 }
 
-pub fn mock_inputs() -> TransactionInputs {
+pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Note]) -> Mmr {
+    let mut peaks = Vec::new();
+
+    // we use the index for both the block number and the leaf index
+    for (index, note) in consumed_notes.iter().enumerate() {
+        let tree_index = 2 * index;
+        let smt_entries = vec![
+            (tree_index as u64, note.hash().into()),
+            ((tree_index + 1) as u64, note.metadata().into()),
+        ];
+        let peak = merkle_store.add_sparse_merkle_tree(NOTE_LEAF_DEPTH, smt_entries).unwrap();
+        peaks.push(peak);
+    }
+
+    // create a dummy chain of block headers
+    let block_chain = vec![
+        mock_block_header(Felt::ZERO, None, Some(peaks[0].into())),
+        mock_block_header(Felt::ONE, None, Some(peaks[1].into())),
+        mock_block_header(Felt::new(2), None, None),
+        mock_block_header(Felt::new(3), None, None),
+    ];
+
+    // convert block hashes into words
+    let block_hashes: Vec<Word> = block_chain.iter().map(|h| Word::from(h.hash())).collect();
+
+    // instantiate and populate MMR
+    let mut mmr = Mmr::new();
+    for hash in block_hashes.iter() {
+        mmr.add(*hash)
+    }
+
+    // set origin for consumed notes using chain and block data
+    for (index, note) in consumed_notes.iter_mut().enumerate() {
+        let block_header = &block_chain[index];
+        let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
+        note.set_origin(
+            NoteOrigin::new(
+                block_header.block_num(),
+                block_header.sub_hash(),
+                block_header.note_root(),
+                index as u64,
+                merkle_store.get_path(*block_header.note_root(), auth_index).unwrap().path,
+            )
+            .unwrap(),
+        );
+    }
+
+    // add MMR to the store
+    let _peak = merkle_store.add_mmr(block_hashes).unwrap();
+    mmr
+}
+
+pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
     // Create an account
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account = Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ZERO).unwrap();
 
-    // Block header
-    let block_header: BlockHeader = mock_block_header();
+    // Create a Merkle store
+    let mut merkle_store = MerkleStore::new();
 
     // Consumed notes
-    let consumed_notes = mock_consumed_notes();
+    let mut consumed_notes = mock_consumed_notes();
+
+    // Chain data
+    let chain_mmr: Mmr = mock_chain_data(&mut merkle_store, &mut consumed_notes);
+
+    // Block header
+    let block_header: BlockHeader =
+        mock_block_header(Felt::new(4), Some(chain_mmr.accumulator().hash_peaks().into()), None);
 
     // Transaction inputs
-    TransactionInputs::new(account, block_header, consumed_notes, None)
+    (
+        merkle_store,
+        TransactionInputs::new(account, block_header, chain_mmr, consumed_notes, None),
+    )
 }
 
-pub fn mock_executed_tx() -> ExecutedTransaction {
+pub fn mock_executed_tx() -> (MerkleStore, ExecutedTransaction) {
     // AccountId
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
@@ -58,22 +123,33 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
         Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ONE).unwrap();
 
     // Consumed notes
-    let consumed_notes = mock_consumed_notes();
+    let mut consumed_notes = mock_consumed_notes();
 
     // Created notes
     let created_notes = mock_created_notes();
 
+    // Create a Merkle store
+    let mut merkle_store = MerkleStore::new();
+
+    // Chain data
+    let chain_mmr: Mmr = mock_chain_data(&mut merkle_store, &mut consumed_notes);
+
     // Block header
-    let block_header: BlockHeader = mock_block_header();
+    let block_header: BlockHeader =
+        mock_block_header(Felt::new(4), Some(chain_mmr.accumulator().hash_peaks().into()), None);
 
     // Executed Transaction
-    ExecutedTransaction::new(
-        initial_account,
-        final_account,
-        consumed_notes,
-        created_notes,
-        None,
-        block_header,
+    (
+        merkle_store,
+        ExecutedTransaction::new(
+            initial_account,
+            final_account,
+            consumed_notes,
+            created_notes,
+            None,
+            block_header,
+            chain_mmr,
+        ),
     )
 }
 
@@ -98,6 +174,7 @@ fn mock_consumed_notes() -> Vec<Note> {
         SERIAL_NUM_1,
         sender,
         Felt::ZERO,
+        None,
     )
     .unwrap();
 
@@ -109,6 +186,7 @@ fn mock_consumed_notes() -> Vec<Note> {
         SERIAL_NUM_2,
         sender,
         Felt::ZERO,
+        None,
     )
     .unwrap();
 
@@ -136,6 +214,7 @@ fn mock_created_notes() -> Vec<Note> {
         SERIAL_NUM_1,
         sender,
         Felt::ZERO,
+        None,
     )
     .unwrap();
 
@@ -147,6 +226,7 @@ fn mock_created_notes() -> Vec<Note> {
         SERIAL_NUM_2,
         sender,
         Felt::ZERO,
+        None,
     )
     .unwrap();
 
@@ -158,6 +238,7 @@ fn mock_created_notes() -> Vec<Note> {
         SERIAL_NUM_3,
         sender,
         Felt::ZERO,
+        None,
     )
     .unwrap();
 

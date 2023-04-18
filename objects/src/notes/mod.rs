@@ -8,11 +8,25 @@ use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
+mod origin;
+pub use origin::NoteOrigin;
+
 mod script;
 pub use script::NoteScript;
 
 mod vault;
 pub use vault::NoteVault;
+
+// CONSTANTS
+// ================================================================================================
+
+/// The depth of the Merkle tree used to commit to notes produced in a block.
+pub const NOTE_TREE_DEPTH: u8 = 20;
+
+/// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
+/// This is equal `NOTE_TREE_DEPTH + 1`. In the kernel we do not authenticate leaf data directly
+/// but rather authenticate hash(left_leaf, right_leaf).
+pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 
 // NOTE
 // ================================================================================================
@@ -21,19 +35,25 @@ pub use vault::NoteVault;
 ///
 /// This struct is a full description of a note which is needed to execute a note in a transaction.
 /// A note consists of:
+///
+/// Core on-chain data which is used to execute a note:
 /// - A script which must be executed in a context of some account to claim the assets.
 /// - A set of inputs which are placed onto the stack before a note's script is executed.
 /// - A set of assets stored in a vault.
 /// - A serial number which can be used to break linkability between note hash and note nullifier.
+///
+/// Auxiliary data which is used to verify authenticity and signal additional information:
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
-#[derive(Debug, Eq, PartialEq)]
+/// - An origin which provides information about the origin of the note.
+#[derive(Debug)]
 pub struct Note {
     script: NoteScript,
     inputs: NoteInputs,
     vault: NoteVault,
     serial_num: Word,
     metadata: NoteMetadata,
+    origin: Option<NoteOrigin>,
 }
 
 impl Note {
@@ -54,6 +74,7 @@ impl Note {
         serial_num: Word,
         sender: AccountId,
         tag: Felt,
+        origin: Option<NoteOrigin>,
     ) -> Result<Self, NoteError>
     where
         S: AsRef<str>,
@@ -66,6 +87,7 @@ impl Note {
             vault,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
+            origin,
         })
     }
 
@@ -90,6 +112,11 @@ impl Note {
     /// Returns a serial number of this note.
     pub fn serial_num(&self) -> Word {
         self.serial_num
+    }
+
+    /// Returns the origin of the note.
+    pub fn origin(&self) -> &Option<NoteOrigin> {
+        &self.origin
     }
 
     /// Returns the metadata associated with this note.
@@ -148,6 +175,12 @@ impl Note {
         elements.extend_from_slice(self.vault.hash().as_elements());
         Hasher::hash_elements(&elements)
     }
+
+    // MODIFIERS
+    // --------------------------------------------------------------------------------------------
+    pub fn set_origin(&mut self, origin: NoteOrigin) {
+        self.origin = Some(origin);
+    }
 }
 
 impl From<&Note> for Vec<Felt> {
@@ -163,14 +196,19 @@ impl From<&Note> for Vec<Felt> {
     ///     ...
     ///     out[16 + num_assets * 4..] = Word::default() (this is conditional padding only applied
     ///                                                   if the number of assets is odd)
+    ///     out[-10]      = origin.block_number
+    ///     out[-9..-5]   = origin.SUB_HASH
+    ///     out[-5..-1]   = origin.NOTE_ROOT
+    ///     out[-1]       = origin.node_index
     fn from(note: &Note) -> Self {
         // compute capacity of the output vector.  If we have an odd number of assets, we need to
         // pad the output with an empty word.
         let capacity = if note.vault.num_assets() % 2 == 1 {
-            20 + (note.vault.num_assets() + 1) * 4
+            30 + (note.vault.num_assets() + 1) * 4
         } else {
-            20 + note.vault.num_assets() * 4
+            30 + note.vault.num_assets() * 4
         };
+
         let mut out = Vec::with_capacity(capacity);
 
         out.extend_from_slice(&note.serial_num);
@@ -186,6 +224,15 @@ impl From<&Note> for Vec<Felt> {
         if note.vault.num_assets() % 2 == 1 {
             out.extend_from_slice(&Word::default());
         }
+
+        // TODO: this is a temporary solution - replace with TryFrom
+        let origin = note.origin().as_ref().unwrap();
+
+        // populate origin data
+        out.push(origin.block_num());
+        out.extend(Word::from(origin.sub_hash()));
+        out.extend(Word::from(origin.note_root()));
+        out.push(Felt::from(origin.node_index().value()));
 
         out
     }

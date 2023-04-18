@@ -1,6 +1,6 @@
 use miden_core::StackOutputs;
 
-use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Note, StackInputs};
+use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Mmr, Note, StackInputs};
 
 pub struct ExecutedTransaction {
     initial_account: Account,
@@ -9,6 +9,7 @@ pub struct ExecutedTransaction {
     created_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
     block_header: BlockHeader,
+    block_chain: Mmr,
 }
 
 impl ExecutedTransaction {
@@ -19,6 +20,7 @@ impl ExecutedTransaction {
         created_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
         block_header: BlockHeader,
+        block_chain: Mmr,
     ) -> Self {
         Self {
             initial_account,
@@ -27,6 +29,7 @@ impl ExecutedTransaction {
             created_notes,
             tx_script_root,
             block_header,
+            block_chain,
         }
     }
 
@@ -56,7 +59,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns the block reference.
-    pub fn block_ref(&self) -> Digest {
+    pub fn block_hash(&self) -> Digest {
         self.block_header.hash()
     }
 
@@ -80,6 +83,7 @@ impl ExecutedTransaction {
         utils::generate_advice_provider_inputs(
             &self.initial_account,
             &self.block_header,
+            &self.block_chain,
             &self.consumed_notes,
         )
     }

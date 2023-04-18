@@ -1,4 +1,4 @@
-use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Note, StackInputs, Vec};
+use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Mmr, Note, StackInputs, Vec};
 
 /// A struct that contains all of the data required to execute a transaction. This includes:
 /// - account: Account that the transaction is being executed against.
@@ -8,6 +8,7 @@ use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Note, StackInputs
 pub struct TransactionInputs {
     account: Account,
     block_header: BlockHeader,
+    block_chain: Mmr,
     consumed_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
 }
@@ -16,12 +17,14 @@ impl TransactionInputs {
     pub fn new(
         account: Account,
         block_header: BlockHeader,
+        block_chain: Mmr,
         consumed_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
     ) -> Self {
         Self {
             account,
             block_header,
+            block_chain,
             consumed_notes,
             tx_script_root,
         }
@@ -35,9 +38,14 @@ impl TransactionInputs {
         &self.account
     }
 
-    // Returns the block header.
+    /// Returns the block header.
     pub fn block_header(&self) -> &BlockHeader {
         &self.block_header
+    }
+
+    /// Returns the block chain.
+    pub fn block_chain(&self) -> &Mmr {
+        &self.block_chain
     }
 
     /// Returns the consumed notes.
@@ -65,6 +73,7 @@ impl TransactionInputs {
         utils::generate_advice_provider_inputs(
             &self.account,
             &self.block_header,
+            &self.block_chain,
             &self.consumed_notes,
         )
     }

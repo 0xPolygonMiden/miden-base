@@ -66,6 +66,18 @@ const.BLOCK_NUM_PTR=45
 # The memory address at which the note root is stored
 const.NOTE_ROOT_PTR=46
 
+# CHAIN MMR
+# -------------------------------------------------------------------------------------------------
+
+# The memory address at which the chain data section begins
+const.CHAIN_MMR_PTR=60
+
+# The memory address at which the total number of leaves in the chain MMR is stored
+const.CHAIN_MMR_NUM_LEAVES_PTR=60
+
+# The memory address at which the chain mmr peaks are stored
+const.CHAIN_MMR_PEAKS_PTR=61
+
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -344,6 +356,39 @@ export.set_note_root
     push.NOTE_ROOT_PTR mem_storew dropw
 end
 
+# CHAIN DATA
+# -------------------------------------------------------------------------------------------------
+
+#! Returns a pointer to the chain MMR section.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! - ptr is a pointer to the chain MMR section.
+export.get_chain_mmr_ptr
+    push.CHAIN_MMR_PTR
+end
+
+#! Sets the number of leaves in the chain MMR.
+#!
+#! Stack: [num_leaves]
+#! Output: []
+#!
+#! - num_leaves is the number of leaves in the chain MMR.
+export.set_chain_mmr_num_leaves
+    push.CHAIN_MMR_NUM_LEAVES_PTR mem_store
+end
+
+#! Returns a pointer to start of the chain MMR peaks section.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! - ptr is a pointer to the start of the chain MMR peaks section.
+export.get_chain_mmr_peaks_ptr
+    push.CHAIN_MMR_PEAKS_PTR
+end
+
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -417,12 +462,12 @@ end
 #! Set the hash of the consumed note at the specified memory address.
 #!
 #! Stack: [consumed_note_ptr, H]
-#! Output: []
+#! Output: [H]
 #!
 #! - consumed_note_ptr is the memory address of the consumed note.
 #! - H is the hash of the consumed note.
 export.set_consumed_note_hash
-    mem_storew dropw
+    mem_storew
 end
 
 #! Computes a pointer to the memory address at which the nullifier associated a note with index i

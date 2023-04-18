@@ -148,6 +148,7 @@ pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
+    InvalidOriginIndex(String),
     TooManyAssets(usize),
     TooManyInputs(usize),
 }
@@ -163,6 +164,10 @@ impl NoteError {
 
     pub fn empty_asset_list() -> Self {
         Self::EmptyAssetList
+    }
+
+    pub fn invalid_origin_index(msg: String) -> Self {
+        Self::InvalidOriginIndex(msg)
     }
 
     pub fn too_many_assets(num_assets: usize) -> Self {

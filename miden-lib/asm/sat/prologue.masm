@@ -1,3 +1,5 @@
+use.std::collections::mmr
+
 use.miden::sat::constants
 use.miden::sat::layout
 
@@ -86,6 +88,39 @@ proc.process_block_data
     # => []
 end
 
+# CHAIN DATA
+# =================================================================================================
+
+#! Process the chain data provided via the advice provider. This involves reading the MMR data from
+#! the advice provider and storing it at the appropriate memory addresses. As the MMR peaks are
+#! read from the advice provider, the chain root is computed. It is asserted that the computed
+#! chain root matches the chain root stored in the block data section. The number of words that the
+#! advice provider will send for MMR peaks is variable: it will be at least 16 but could be up to
+#! 63. The actual number will be computed based on num_leaves.
+#!
+#! Stack: []
+#! Advice Map: {
+#!              MMR_ROOT: [num_leaves, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14,
+#!                         P15, P16, ..., ...]
+#!             }
+#! Output: []
+#!
+#! - num_leaves is the number of leaves in the MMR.
+#! - P1, P2, ... are the MMR peaks.
+proc.process_chain_data
+    # get a pointer to the chain mmr data
+    exec.layout::get_chain_mmr_ptr
+    # => [chain_mmr_ptr]
+
+    # get the chain root
+    exec.layout::get_chain_root
+    # => [CHAIN_ROOT, chain_mmr_ptr]
+
+    # unpack mmr
+    exec.mmr::unpack
+    # => []
+end
+
 # ACCOUNT DATA
 # =================================================================================================
 
@@ -135,6 +170,65 @@ end
 
 # CONSUMED NOTES DATA
 # =================================================================================================
+
+#! Authenticate the consumed note data provided via the advice provider is consistent with the
+#! the chain history.  This is achieved by:
+#! - authenticating the MMR leaf associated with the block the note was created in.
+#! - authenticating the note root associated with the block the note was created in.
+#! - authenticating the note and its metadata in the note Merkle tree from the block the note was
+#!   created in.
+#!
+#! Stack: [AUTH_DIGEST]
+#! Advice Stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
+#! Output: []
+#!
+#! - AUTH_DIGEST is the digest of the consumed note data computed as hash(NOTE_HASH, NOTE_METADATA)
+#! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created
+#!   in. This is equivalent to the block number.
+#! - SUB_HASH is the sub hash of the block the note was created in.
+#! - NOTE_ROOT is the note root of the block the note was created in.
+#! - note_index is the index of the note in the note Merkle tree.
+proc.authenticate_note.2
+    # load data required for MMR get operation
+    exec.layout::get_chain_mmr_ptr adv_push.1
+    # => [leaf_pos, chain_mmr_ptr, AUTH_DIGEST]
+
+    # get the chain MMR leaf associated with the block the note was created in
+    exec.mmr::get
+    # => [MMR_LEAF, AUTH_DIGEST]
+
+    # prepare the stack to read the sub hash and note root from the advice provider
+    locaddr.0 padw padw padw
+    # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, AUTH_DIGEST]
+
+    # read the core hash and note root from the advice provider
+    adv_pipe
+    # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, AUTH_DIGEST]
+
+    # extract the digest and assert it matches MMR_LEAF
+    dropw movup.8 drop movupw.2 assert_eqw
+    # => [AUTH_DIGEST]
+
+    # load the note root from memory
+    loc_loadw.1 swapw
+    # => [AUTH_DIGEST, NOTE_ROOT]
+
+    # load the index of the note
+    adv_push.1 movdn.4
+    # => [AUTH_DIGEST, note_index, NOTE_ROOT]
+
+    # get the depth of the note tree
+    exec.constants::get_note_tree_depth movdn.4
+    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+
+    # verify the note hash
+    mtree_verify
+    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+
+    # clean the stack
+    dropw drop drop dropw
+    # => []
+end
 
 #! Reads data for consumed note i from the advice provider and stores it in memory at the
 #! appropriate memory address. This includes computing and storing the nullifier and the
@@ -272,10 +366,18 @@ proc.process_consumed_note
     # => [NOTE_HASH, note_ptr]
 
     # store note hash in memory and clear stack
-    movup.4 exec.layout::set_consumed_note_hash
-    # => []
+    dup.4 exec.layout::set_consumed_note_hash
+    # => [NOTE_HASH]
 
-    # TODO: assert note hash exists in note db
+    # load the note metadata
+    movup.4 exec.layout::get_consumed_note_metadata
+    # => [NOTE_META, NOTE_HASH]
+
+    # merge the note hash with the note metadata to compute authentication digest
+    hmerge
+    # => [AUTH_DIGEST]
+
+    exec.authenticate_note
 end
 
 #! Process the consumed notes data provided via the advice provider. This involves reading the data
@@ -427,6 +529,9 @@ export.prepare_transaction
 
     # process block data
     exec.process_block_data
+
+    # process chain data
+    exec.process_chain_data
 
     # process account data
     exec.process_acct_data
