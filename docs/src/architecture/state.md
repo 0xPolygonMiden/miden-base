@@ -6,7 +6,7 @@ the system maintains 3 databases to describe the state:
 3. A database of nullifiers for already consumed notes.
 
 <p align="center">
-  <img src="../diagrams/protocol/state/State.svg">
+  <img src="../diagrams/architecture/state/State.svg">
 </p>
 
 ## State components
@@ -17,7 +17,7 @@ As mentioned above, the state consists of 3 components: account, note, and nulli
 Account states could be recorded in a Sparse Merkle tree (or a variation thereof) which maps account IDs to account hashes, where account hash is computed as `hash([account ID], [storage root], [vault root], [code root])`.
 
 <p align="center">
-  <img src="../diagrams/protocol/state/Account_DB.png">
+  <img src="../diagrams/architecture/state/Account_DB.png">
 </p>
 
 There could be two types of accounts:
@@ -52,7 +52,7 @@ Both of these properties are needed for supporting local transactions and privat
 Notes database could look as shown on the diagram below. Here, the database contains $6$ notes: $1$ through $6$, and the commitment to this database are the roots of individual trees `(a, b)`. Thus, the size of the commitment grows logarithmically with the number of items in it.
 
 <p align="center">
-  <img src="../diagrams/protocol/state/Notes_DB.png">
+  <img src="../diagrams/architecture/state/Notes_DB.png">
 </p>
 
 As with accounts, there could be two types of notes:
@@ -77,7 +77,7 @@ With nullifier database we want to achieve the following properties:
 To satisfy these properties we can use a Sparse Merkle tree which maps nullifiers to block heights at which they were created. For example, in the diagram below, the tree contains 2 nullifiers: nullifier `01` was inserted into the database at block height $4$, while nullifier `10` was inserted into the database at block height $5$.
 
 <p align="center">
-  <img src="../diagrams/protocol/state/Nullifier_DB.png">
+  <img src="../diagrams/architecture/state/Nullifier_DB.png">
 </p>
 
 To prove that nullifier `11` is not in the database we need to provide a Merkle path to its node, and then show that the value in that node is $0$. In our case nullifiers would be 32 bytes each, and thus, the height of the Sparse Merkle tree would need to be 256.
