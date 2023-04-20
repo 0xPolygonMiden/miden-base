@@ -2,7 +2,7 @@
 Polygon Miden is a Rollup. We are batching state transitions - or more precisely proofs thereof - that happen in the same time period together into a block. 512 blocks together form an epoc of which the state root gets published to Ethereum. 
 
 <p align="center">
-  <img src="../diagrams/protocol/execution/Execution.png">
+  <img src="../diagrams/architecture/execution/Execution.png">
 </p>
 
 ## Transaction Execution
@@ -55,7 +55,7 @@ For simplicity, let's imagine a simple centralized model:
 A block which the Miden Node produces looks like this:
 
 <p align="center">
-  <img src="../diagrams/protocol/execution/Block.png">
+  <img src="../diagrams/architecture/execution/Block.png">
 </p>
 
 A few notes about the above:
