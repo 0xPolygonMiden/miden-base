@@ -85,26 +85,93 @@ export.get_initial_hash
     exec.layout::get_init_acct_hash
 end
 
-#! Returns the account type of the account the transaction is being executed against.
+#! Returns the account type of the account id provided via the stack.
 #!
 #! The account type can be of the following forms:
-#! - regular account with updatable code: REGULAR_ACCOUNT
-#! - regular account with immutable code: NON_UPDATABLE_ACCOUNT
-#! - fungible asset faucet account with immutable code: FUNGIBLE_FAUCET_ACCOUNT
-#! - non-fungible asset faucet account with immutable code: NON_FUNGIBLE_FAUCET_ACCOUNT
+#! - regular account with updatable code
+#! - regular account with immutable code
+#! - fungible asset faucet account with immutable code
+#! - non-fungible asset faucet account with immutable code
 #!
-#! Stack: []
+#! Stack: [acct_id]
 #! Output: [acct_type]
 #!
+#! - acct_id is the account id.
 #! - acct_type is the account type.
 proc.type
-    # get the account id
-    exec.layout::get_acct_id
-    # => [acct_id]
-
     # compute the account type
     u32split swap drop u32checked_shr.30
     # => [acct_type]
+end
+
+#! Returns a boolean indicating whether the account is a fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
+export.is_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungible faucet
+    push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a non-fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_non_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
+export.is_non_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a non-fungible faucet
+    push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a regular updatable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_updatable_account]
+#!
+#! - acct_id is the account id.
+#! - is_updatable_account is a boolean indicating whether the account is a regular updatable
+#!   account.
+export.is_updatable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
+    # => [is_updatable_account]
+end
+
+#! Returns a boolean indicating whether the account is a regular immutable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_immutable_account]
+#!
+#! - acct_id is the account id.
+#! - is_immutable_account is a boolean indicating whether the account is a regular immutable
+#!   account.
+export.is_immutable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
+    # => [is_immutable_account]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
@@ -115,12 +182,12 @@ end
 #!
 #! - CODE_ROOT is the hash of the code to set.
 export.set_code
-    # get the account type
-    exec.type
-    # => [acct_type, CODE_ROOT]
+    # get the account id
+    exec.layout::get_acct_id
+    # => [acct_id, CODE_ROOT]
 
-    # check that the account type is a regular account with updatable code
-    push.REGULAR_ACCOUNT_UPDATABLE_CODE assert_eq
+    # assert the account is an updatable regular account
+    exec.is_updatable_account assert
     # => [CODE_ROOT]
 
     # set the code root
