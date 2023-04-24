@@ -45,7 +45,7 @@ pub fn run_within_tx_kernel<A>(
     adv: A,
     dir: Option<&str>,
     file: Option<&str>,
-) -> Process<A>
+) -> Result<Process<A>, ExecutionError>
 where
     A: AdviceProvider,
 {
@@ -64,9 +64,8 @@ where
     let program = assembler.compile(code).unwrap();
 
     let mut process = Process::new(program.kernel().clone(), stack_inputs, adv);
-    process.execute(&program).unwrap();
-
-    process
+    process.execute(&program)?;
+    Ok(process)
 }
 
 // TEST HELPERS

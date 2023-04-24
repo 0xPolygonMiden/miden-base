@@ -86,7 +86,7 @@ pub fn created_notes_data_procedure(notes: &[Note]) -> String {
     )
 }
 
-fn prepare_word(word: &Word) -> String {
+pub fn prepare_word(word: &Word) -> String {
     word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
 }
 

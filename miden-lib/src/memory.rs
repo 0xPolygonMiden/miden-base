@@ -141,3 +141,6 @@ pub const CREATED_NOTE_METADATA_OFFSET: u64 = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: u64 = 2;
 pub const CREATED_NOTE_VAULT_HASH_OFFSET: u64 = 3;
 pub const CREATED_NOTE_ASSETS_OFFSET: u64 = 4;
+
+/// The maximum number of created notes that can be prodcued in a single transaction.
+pub const MAX_NUM_CREATED_NOTES: u64 = 4096;

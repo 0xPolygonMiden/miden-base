@@ -1,0 +1,108 @@
+use.miden::sat::account
+
+# CONSTANTS
+# =================================================================================================
+
+const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
+
+# PROCEDURES
+# =================================================================================================
+
+#! Validates that a fungible asset is well formed. Panics if the asset is not well formed.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! ASSET is the asset to validate.
+export.validate_fungible_asset
+    # assert that ASSET[1] == ZERO
+    dup.1 not assert
+    # => [ASSET]
+
+    # assert that ASSET[2] == ZERO
+    dup.2 not assert
+    # => [ASSET]
+
+    # assert that ASSET[3] is a valid account id
+    dup exec.account::validate_id
+    # => [ASSET]
+
+    # assert that ASSET[3] is a fungible faucet
+    dup exec.account::is_fungible_faucet assert
+    # => [ASSET]
+
+    # assert that the max amount (ASSET[0]) of a fungible asset is not exceeded
+    dup.3 push.FUNGIBLE_ASSET_MAX_AMOUNT lte assert
+    # => [ASSET]
+end
+
+#! Returns a boolean indicating whether the asset is fungible.
+#!
+#! Stack: [ASSET]
+#! Outputs: [is_fungible_asset, ASSET]
+#!
+#! ASSET is the asset to check.
+#! is_fungible_asset is a boolean indicating whether the asset is fungible.
+proc.is_fungible_asset
+    # check the first element, it will be:
+    # - ZERO for a fungible asset
+    # - non-ZERO for a non-fungible asset
+    dup.2 eq.0
+    # => [is_fungible_asset, ASSET]
+end
+
+#! Validates that a non fungible asset is well formed. Panics if the asset is not well formed.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! ASSET is the asset to validate.
+export.validate_non_fungible_asset
+    # assert that ASSET[1] is a valid account id
+    dup.2 exec.account::validate_id
+    # => [ASSET]
+
+    # assert that ASSET[1] is a fungible faucet
+    dup.2 exec.account::is_non_fungible_faucet assert
+    # => [ASSET]
+
+    # assert the most significant bit of the most significant elememnt (ASSET[3]) is 0
+    dup u32split swap drop u32checked_shr.31 not assert
+    # => [ASSET]
+end
+
+#! Returns a boolean indicating whether the asset is non-fungible.
+#!
+#! Stack: [ASSET]
+#! Outputs: [is_non_fungible_asset, ASSET]
+#!
+#! ASSET is the asset to check.
+#! is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
+proc.is_non_fungible_asset
+    # check the first element, it will be:
+    # - ZERO for a fungible asset
+    # - non-ZERO for a non-fungible asset
+    exec.is_fungible_asset not
+    # => [is_non_fungible_asset, ASSET]
+end
+
+#! Validates that an asset is well formed. Panics if the asset is not well formed.
+#!
+#! Stack: [ASSET]
+#! Outputs: []
+#!
+#! ASSET is the asset to validate.
+export.validate_asset
+    # check if the asset is fungible
+    exec.is_fungible_asset
+    # => [is_fungible_asset, ASSET]
+
+    # if the asset is fungible, validate the fungible asset
+    if.true
+        exec.validate_fungible_asset
+    else
+    # if the asset is non fungible, validate the non fungible asset
+        exec.validate_non_fungible_asset
+    end
+    # => [ASSET]
+end

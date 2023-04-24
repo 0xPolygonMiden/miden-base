@@ -25,7 +25,8 @@ fn test_note_setup() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(NOTE_SETUP_FILE),
-    );
+    )
+    .unwrap();
     note_setup_stack_assertions(&process, &inputs);
     note_setup_memory_assertions(&process);
 }
@@ -69,7 +70,8 @@ fn test_get_sender_no_sender() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(NOTE_SETUP_FILE),
-    );
+    )
+    .unwrap();
     assert_eq!(process.stack.get(0), ZERO);
 }
 
@@ -93,7 +95,8 @@ fn test_get_sender() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(NOTE_SETUP_FILE),
-    );
+    )
+    .unwrap();
     let sender = inputs.consumed_notes()[0].metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
