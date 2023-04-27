@@ -27,20 +27,33 @@ end
 export.prepare_note.4
     # convert the index of the consumed note being executed to a pointer and store in memory
     exec.layout::get_consumed_note_ptr 
+    # => [note_ptr]
+
+    # set current consumed note pointer to the note being executed
     exec.layout::set_current_consumed_note_ptr
+    # => []
 
     # load the note inputs from the advice provider
     # TODO: optimize this to load items directly onto the stack.
     locaddr.0 padw padw padw adv_pipe adv_pipe
+    # => [PERM, PERM, PERM, addr']
 
     # extract inputs hash and assert it matches commitment stored in memory
     dropw swapw dropw
-    exec.get_current_note_inputs_hash
-    assert_eqw
+    # => [DIG, addr']
+
+    # assert the inputs hash matches the commitment stored in memory
+    exec.get_current_note_inputs_hash assert_eqw
+    # => [addr']
+
+    # drop the addr
+    drop
+    # => []
 
     # read the note inputs onto the stack
     padw loc_loadw.0
     padw loc_loadw.1
     padw loc_loadw.2
     padw loc_loadw.3
+    # => [i15, i14, ..., i0]
 end
