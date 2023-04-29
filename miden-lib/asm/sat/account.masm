@@ -18,6 +18,9 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
 
+# The depth of the account storage sparse merkle tree
+const.STORAGE_TREE_DEPTH=8
+
 # PROCEDURES
 # =================================================================================================
 
@@ -217,4 +220,48 @@ export.set_code
     # set the code root
     exec.layout::set_new_acct_code_root
     # => []
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_item
+    # get the storage root
+    exec.layout::get_acct_storage_root
+    # => [storage_root, index]
+
+    # get the item from storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_get
+    # => [VALUE, ROOT]
+
+    # drop the root
+    swapw dropw
+    # => [VALUE]
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V']
+#! Output: [R', V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R' is the new storage root.
+export.set_item
+    # get the storage root
+    exec.layout::get_acct_storage_root
+    # => [R, index, V']
+
+    # set the item in storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_set
+    # => [V, R']
+
+    # set the new storage root
+    swapw exec.layout::set_acct_storage_root
+    # => [V]
 end

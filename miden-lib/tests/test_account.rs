@@ -1,8 +1,12 @@
 pub mod common;
 use common::{
-    data::mock_inputs,
+    data::{
+        mock_inputs, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
+        CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
+    },
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
-    run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, ONE, ZERO,
+    procedures::prepare_word,
+    run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
 };
 use vm_core::StackInputs;
 
@@ -160,4 +164,146 @@ fn test_validate_id_fails_on_insuficcient_ones() {
     );
 
     assert!(result.is_err());
+}
+
+#[test]
+fn test_get_item() {
+    for storage_item in [STORAGE_ITEM_0, STORAGE_ITEM_1] {
+        let (merkle_store, inputs) = mock_inputs();
+        let code = format!(
+            "
+        use.miden::sat::account
+        use.miden::sat::prologue
+
+
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
+            
+            # push the account storage item index
+            push.{item_index}
+
+            # get the item
+            exec.account::get_item
+
+            # assert the item value is correct
+            push.{item_value} assert_eqw
+        end
+        ",
+            item_index = storage_item.0,
+            item_value = prepare_word(&storage_item.1)
+        );
+
+        let _process = run_within_tx_kernel(
+            "",
+            &code,
+            StackInputs::from(inputs.stack_inputs()),
+            MemAdviceProvider::from(
+                inputs.advice_provider_inputs().with_merkle_store(merkle_store),
+            ),
+            None,
+            None,
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn test_get_child_tree_item() {
+    let (merkle_store, inputs) = mock_inputs();
+    let code = format!(
+        "
+        use.miden::sat::account
+        use.miden::sat::prologue
+
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
+
+            # push the acount storage index the child root is stored at
+            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
+
+            # get the child root
+            exec.account::get_item
+
+            # get a value from the child tree
+            push.{CHILD_STORAGE_INDEX_0}
+
+            # get the item
+            push.{CHILD_SMT_DEPTH} mtree_get
+
+            # assert the child value is correct
+            push.{child_value} assert_eqw
+        end
+        ",
+        child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
+    );
+
+    let _process = run_within_tx_kernel(
+        "",
+        &code,
+        StackInputs::from(inputs.stack_inputs()),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        None,
+        None,
+    )
+    .unwrap();
+}
+
+#[test]
+fn test_set_item() {
+    let (merkle_store, inputs) = mock_inputs();
+
+    // copy the initial account slots (SMT)
+    let mut account_smt = inputs.account().storage().slots().clone();
+    let init_root = account_smt.root();
+
+    // insert a new leaf value
+    const NEW_ITEM_INDEX: u64 = 12;
+    const NEW_ITEM_VALUE: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
+    account_smt.insert_leaf(NEW_ITEM_INDEX, NEW_ITEM_VALUE).unwrap();
+    assert_ne!(account_smt.root(), init_root);
+
+    let code = format!(
+        "
+    use.miden::sat::account
+    use.miden::sat::layout
+    use.miden::sat::prologue
+
+    begin
+        # prepare the transaction
+        exec.prologue::prepare_transaction
+
+        # push the new storage item onto the stack
+        push.{new_value}
+        
+        # push the account storage item index
+        push.{NEW_ITEM_INDEX}
+
+        # get the item
+        exec.account::set_item
+
+        # assert empty old value
+        padw assert_eqw
+
+        # get the new storage root
+        exec.layout::get_acct_storage_root
+
+        # assert the item value is correct
+        push.{new_root} assert_eqw
+    end
+    ",
+        new_value = prepare_word(&NEW_ITEM_VALUE),
+        new_root = prepare_word(&account_smt.root()),
+    );
+
+    let _process = run_within_tx_kernel(
+        "",
+        &code,
+        StackInputs::from(inputs.stack_inputs()),
+        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        None,
+        None,
+    )
+    .unwrap();
 }

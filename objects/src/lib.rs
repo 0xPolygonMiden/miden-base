@@ -7,14 +7,16 @@ use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::Mmr,
     utils::{
-        collections::Vec,
+        collections::{BTreeSet, Vec},
         string::{String, ToString},
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
 
 mod accounts;
-pub use accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault};
+pub use accounts::{
+    Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageItem,
+};
 
 pub mod assets;
 pub mod notes;

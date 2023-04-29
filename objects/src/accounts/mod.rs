@@ -1,5 +1,6 @@
 use super::{
-    assets::Asset, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word, ZERO,
+    assets::Asset, AccountError, BTreeSet, Digest, Felt, Hasher, StarkField, ToString, Vec, Word,
+    ZERO,
 };
 
 mod account_id;
@@ -10,7 +11,7 @@ pub use code::AccountCode;
 
 mod storage;
 pub use storage::AccountStorage;
-use storage::StorageItem;
+pub use storage::StorageItem;
 
 mod vault;
 pub use vault::AccountVault;
@@ -57,14 +58,14 @@ impl Account {
     /// Returns an error if compilation of the source code fails.
     pub fn new(
         id: AccountId,
-        storage_items: &[StorageItem],
+        storage: AccountStorage,
         code_source: &str,
         nonce: Felt,
     ) -> Result<Self, AccountError> {
         Ok(Self {
             id,
             vault: AccountVault::default(),
-            storage: AccountStorage::new(storage_items),
+            storage,
             code: AccountCode::new(code_source)?,
             nonce,
         })
@@ -82,7 +83,7 @@ impl Account {
         elements[0] = *self.id;
         elements[3] = self.nonce;
         elements[4..8].copy_from_slice(self.vault.root().as_elements());
-        elements[8..12].copy_from_slice(self.storage.root().as_elements());
+        elements[8..12].copy_from_slice(&self.storage.root());
         elements[12..].copy_from_slice(self.code.root().as_elements());
         Hasher::hash_elements(&elements)
     }
@@ -147,7 +148,7 @@ impl From<&Account> for [Felt; 16] {
         elements[0] = *account.id;
         elements[3] = account.nonce;
         elements[4..8].copy_from_slice(account.vault.root().as_elements());
-        elements[8..12].copy_from_slice(account.storage.root().as_elements());
+        elements[8..12].copy_from_slice(&account.storage.root());
         elements[12..].copy_from_slice(account.code.root().as_elements());
         elements
     }
