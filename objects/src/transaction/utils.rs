@@ -62,10 +62,15 @@ pub fn generate_advice_provider_inputs(
     let account: [Felt; 16] = account.into();
     advice_stack.extend(account);
 
-    // insert consumed notes data
+    // insert consumed notes data to advice stack
     advice_stack.push(Felt::new(notes.len() as u64));
     let note_data: Vec<Felt> = notes.iter().flat_map(<Vec<Felt>>::from).collect();
     advice_stack.extend(note_data);
+
+    // insert consumed note assets data to advice map
+    for note in notes.iter() {
+        advice_map.insert(note.vault().hash().into_bytes(), note.vault().to_padded_assets());
+    }
 
     // insert consumed notes inputs
     let note_inputs: Vec<Felt> =

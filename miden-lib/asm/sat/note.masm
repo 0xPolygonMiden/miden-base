@@ -1,6 +1,9 @@
+use.std::crypto::hashes::native
+use.std::mem
+
 use.miden::sat::layout
 
-#! Returns the sender of the note currently being processed. Returns 0 if a note is not being
+#! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.
 #!
 #! Inputs: []
@@ -12,15 +15,85 @@ export.get_sender
     exec.layout::get_current_consumed_note_ptr
     # => [ptr]
 
-    # check if the pointer is zero
-    dup neq.0
-    # => [is_not_zero, ptr]
+    # assert the pointer is not zero - this would suggest the procedure has been called from an 
+    # incorrect context
+    dup neq.0 assert
+    # => [ptr]
 
-    if.true
-        # get the sender from the note pointer
-        exec.layout::get_consumed_note_sender
-        # => [sender]
-    end
-
+    # get the sender from the note pointer
+    exec.layout::get_consumed_note_sender
     # => [sender]
+end
+
+#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
+#! note is not being processed.
+#!
+#! Inputs: []
+#! Outputs: [num_assets, VAULT_HASH]
+#!
+#! - num_assets is the number of assets in the note currently being processed.
+#! - VAULT_HASH is the vault hash of the note currently being processed.
+export.get_vault_data
+    # get the current consumed note pointer
+    exec.layout::get_current_consumed_note_ptr
+    # => [ptr]
+
+    # assert the pointer is not zero - this would suggest the procedure has been called from an 
+    # incorrect context
+    dup neq.0 assert
+    # => [ptr]
+
+    # get the number of assets in the note
+    dup exec.layout::get_consumed_note_num_assets
+    # => [num_assets, ptr]
+
+    # get the vault hash from the note pointer
+    swap exec.layout::get_consumed_note_vault_root
+    # => [VAULT_HASH, num_assets]
+end
+
+#! Writes the assets of the currently executing note into memory starting at the specified address.
+#!
+#! Inputs: [dest_ptr]
+#! Outputs: [num_assets, dest_ptr]
+#!
+#! - dest_ptr is the memory address to write the assets.
+#! - num_assets is the number of assets in the currently executing note.
+export.get_assets
+    # TODO: This needs to be changed to a syscall and moved to user facing api
+    # get the current consumed note vault hash
+    exec.get_vault_data
+    # => [VAULT_HASH, num_assets, dest_ptr]
+
+    # load the vault data from the advice map to the advice stack
+    adv.keyval
+    # => [VAULT_HASH, num_assets, dest_ptr]
+
+    # calculate number of assets rounded up to an even number
+    dup.4 dup is_odd add
+    # => [even_num_assets, VAULT_HASH, num_assets, dest_ptr]
+
+    # calculate the start and end pointer for reading to memory
+    dup.6 add dup.6
+    # => [start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # prepare the stack for reading from the advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+    
+    # read the assets from advice stack to memory
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr', end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # drop pointers fro reading from memory
+    movup.4 drop
+    # => [DIGEST, VAULT_HASH, num_assets, dest_ptr]
+
+    # assert the vault hash is what we expect
+    assert_eqw
+    # => [num_assets, dest_ptr]
 end

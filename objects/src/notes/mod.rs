@@ -216,14 +216,7 @@ impl From<&Note> for Vec<Felt> {
         out.extend_from_slice(note.inputs.hash().as_elements());
         out.extend_from_slice(note.vault.hash().as_elements());
         out.extend_from_slice(&Word::from(note.metadata()));
-        let assets: Vec<Felt> =
-            note.vault.iter().flat_map(|asset| <[Felt; 4]>::from(*asset)).collect();
-        out.extend(assets);
-
-        // pad with an empty word if we have an odd number of assets
-        if note.vault.num_assets() % 2 == 1 {
-            out.extend_from_slice(&Word::default());
-        }
+        out.extend(note.vault.to_padded_assets());
 
         // TODO: this is a temporary solution - replace with TryFrom
         let origin = note.origin().as_ref().unwrap();

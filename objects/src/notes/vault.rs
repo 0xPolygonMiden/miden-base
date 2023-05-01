@@ -1,4 +1,4 @@
-use super::{Asset, Digest, Hasher, NoteError, Vec, Word, WORD_SIZE};
+use super::{Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 
 // NOTE VAULT
 // ================================================================================================
@@ -86,5 +86,25 @@ impl NoteVault {
     /// Returns an iterator over the assets of this vault.
     pub fn iter(&self) -> core::slice::Iter<Asset> {
         self.assets.iter()
+    }
+
+    pub fn to_padded_assets(&self) -> Vec<Felt> {
+        // if we have an odd number of assets with pad with a single word.
+        let padded_len = if self.assets.len() % 2 == 0 {
+            self.assets.len() * WORD_SIZE
+        } else {
+            (self.assets.len() + 1) * WORD_SIZE
+        };
+
+        // allocate a vector to hold the padded assets
+        let mut padded_assets = Vec::with_capacity(padded_len * WORD_SIZE);
+
+        // populate the vector with the assets
+        padded_assets.extend(self.assets.iter().flat_map(|asset| <[Felt; 4]>::from(*asset)));
+
+        // pad with an empty word if we have an odd number of assets
+        padded_assets.resize(padded_len, ZERO);
+
+        padded_assets
     }
 }
