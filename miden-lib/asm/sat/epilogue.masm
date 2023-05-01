@@ -110,7 +110,7 @@ end
 #! Output: [CREATED_NOTES_COMMITMENT]
 #!
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
-proc.process_created_notes
+export.process_created_notes
     # get the number of created notes from memory
     exec.layout::get_num_created_notes
 

@@ -15,6 +15,9 @@ const.FUNGIBLE_FAUCET_ACCOUNT=2
 # An enum that represents a non-fungible faucet with immutable code.
 const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
 
+# Specifies a minimum number of ones for a valid account ID.
+const.MIN_ACCOUNT_ONES=5
+
 # PROCEDURES
 # =================================================================================================
 
@@ -172,6 +175,27 @@ export.is_immutable_account
     # check if the account type is a regular account
     push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
     # => [is_immutable_account]
+end
+
+#! Validates an account id. Panics if the account id is invalid.
+#! Account id must have at least `MIN_ACCOUNT_ONES` ones.
+#!
+#! Stack: [acct_id]
+#! Output: []
+#!
+#! - acct_id is the account id. 
+export.validate_id
+    # split felt into 32 bit limbs
+    u32split
+    # => [l_1, l_0]
+
+    # count the number of 1 bits
+    u32unchecked_popcnt swap u32unchecked_popcnt add
+    # => [ones]
+
+    # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
+    push.MIN_ACCOUNT_ONES u32unchecked_gte assert
+    # => []
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only

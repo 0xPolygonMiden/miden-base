@@ -37,7 +37,8 @@ fn test_epilogue() {
         ),
         Some(TX_KERNEL_DIR),
         Some(EPILOGUE_FILE),
-    );
+    )
+    .unwrap();
 
     // assert created notes commitment is correct
     assert_eq!(
@@ -87,7 +88,8 @@ fn test_compute_created_note_hash() {
             MemAdviceProvider::default(),
             Some(TX_KERNEL_DIR),
             Some(EPILOGUE_FILE),
-        );
+        )
+        .unwrap();
 
         // assert the vault hash is correct
         let expected_vault_hash = note.vault().hash();

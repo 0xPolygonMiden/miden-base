@@ -13,6 +13,7 @@ const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 
 const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0b0001101110 << 54;
 const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1101100110 << 54;
+const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 // TESTS
 // ================================================================================================
@@ -36,7 +37,8 @@ pub fn test_set_code_is_not_immediate() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         None,
         None,
-    );
+    )
+    .unwrap();
 
     // assert the code root is not changed
     assert_eq!(
@@ -73,7 +75,8 @@ pub fn test_set_code_succeeds() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         None,
         None,
-    );
+    )
+    .unwrap();
 
     // assert the code root is changed after the epilogue
     assert_eq!(
@@ -121,7 +124,8 @@ pub fn test_account_type() {
                 MemAdviceProvider::default(),
                 None,
                 None,
-            );
+            )
+            .unwrap();
 
             let expected_result = if account_id.account_type() == expected_type {
                 ONE
@@ -131,4 +135,29 @@ pub fn test_account_type() {
             assert_eq!(process.stack.get(0), expected_result);
         }
     }
+}
+
+#[test]
+fn test_validate_id_fails_on_insuficcient_ones() {
+    let code = format!(
+        "
+        use.miden::sat::account
+    
+        begin
+            push.{ACCOUNT_ID_INSUFFICIENT_ONES}
+            exec.account::validate_id
+        end
+        "
+    );
+
+    let result = run_within_tx_kernel(
+        "",
+        &code,
+        StackInputs::default(),
+        MemAdviceProvider::default(),
+        None,
+        None,
+    );
+
+    assert!(result.is_err());
 }

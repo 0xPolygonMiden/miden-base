@@ -1,5 +1,5 @@
 use super::{AccountError, Digest, Word};
-use assembly::{parse_module, ModuleAst};
+use assembly::ModuleAst;
 use crypto::merkle::MerkleTree;
 use miden_core::Program; // TODO: we should be able to import it from the assembly crate
 
@@ -27,7 +27,7 @@ impl AccountCode {
     /// Creates and returns a new definition of an account's interface compiled from the specified
     /// source code.
     pub fn new(source: &str) -> Result<Self, AccountError> {
-        let _module_ast = parse_module(source)?;
+        let _module_ast = ModuleAst::parse(source)?;
 
         // TODO: compile module AST into a set of program MASTs. To do this we need to expose
         // a new method on the assembler to compile a module rather than a program (something

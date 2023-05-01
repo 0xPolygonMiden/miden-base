@@ -29,7 +29,8 @@ fn test_transaction_prologue() {
         MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
         Some(TX_KERNEL_DIR),
         Some(PROLOGUE_FILE),
-    );
+    )
+    .unwrap();
 
     public_input_memory_assertions(&process, &inputs);
     block_data_memory_assertions(&process, &inputs);

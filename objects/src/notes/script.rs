@@ -1,5 +1,5 @@
 use super::{Digest, NoteError};
-use assembly::{parse_program, ProgramAst};
+use assembly::ProgramAst;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct NoteScript {
@@ -12,7 +12,7 @@ impl NoteScript {
     where
         S: AsRef<str>,
     {
-        let code = parse_program(script_src.as_ref()).unwrap();
+        let code = ProgramAst::parse(script_src.as_ref()).unwrap();
         // TODO: the code needs to be compiled with tx kernel and miden rollup library; we need
         // to do this to get the code hash and initialize the hash filed properly
         Ok(Self {

@@ -3,6 +3,7 @@ use super::{
     FungibleAsset, MerkleStore, Mmr, NodeIndex, Note, NoteOrigin, TransactionInputs, Word,
     NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
+use crypto::merkle::SimpleSmt;
 use test_utils::rand;
 
 // MOCK DATA
@@ -10,7 +11,7 @@ use test_utils::rand;
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 0b0010011011u64 << 54;
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
-const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
 pub const NONCE: Felt = Felt::ZERO;
 
@@ -41,8 +42,9 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
             (tree_index as u64, note.hash().into()),
             ((tree_index + 1) as u64, note.metadata().into()),
         ];
-        let peak = merkle_store.add_sparse_merkle_tree(NOTE_LEAF_DEPTH, smt_entries).unwrap();
-        peaks.push(peak);
+        let smt = SimpleSmt::new(NOTE_LEAF_DEPTH).unwrap().with_leaves(smt_entries).unwrap();
+        merkle_store.extend(smt.inner_nodes());
+        peaks.push(smt.root());
     }
 
     // create a dummy chain of block headers
@@ -79,7 +81,7 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
     }
 
     // add MMR to the store
-    let _peak = merkle_store.add_mmr(block_hashes).unwrap();
+    merkle_store.extend(mmr.inner_nodes());
     mmr
 }
 
