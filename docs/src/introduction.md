@@ -1,8 +1,8 @@
 # Polygon Miden Intro
 
-## Welcome to the Polygon Miden Documentation
-*This documentation is not finished and under development*
+> *This documentation is still Work In Progress. Some topics have been discussed in greater depth, while others require additional clarification. Sections of this documentation might later be reorganized in order to achieve a better flow.*
 
+## Welcome to the Polygon Miden Documentation
 Polygon Miden is a zk-optimized rollup with client-side proving. It is expected to launch a public testnet in Q3. 
 
 Unlike most other rollups, Polygon Miden prioritizes zk-friendliness over EVM compatibility. It also uses a novel, actor-based state model to exploit the full power of a zk-centric design. These design choices allow Polygon Miden to extend Ethereum’s feature set. These features allow developers to create applications currently difficult and impractical on EVM-like systems. 
