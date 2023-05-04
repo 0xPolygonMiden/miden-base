@@ -485,6 +485,26 @@ export.get_new_acct_code_root
     padw push.ACCT_NEW_CODE_ROOT_PTR mem_loadw
 end
 
+#! Returns the account storage root.
+#!
+#! Stack: []
+#! Output: [STORAGE_ROOT]
+#!
+#! - STORAGE_ROOT is the account storage root.
+export.get_acct_storage_root
+    padw push.ACCT_STORAGE_ROOT_PTR mem_loadw
+end
+
+#! Sets the account storage root.
+#!
+#! Stack: [STORAGE_ROOT]
+#! Output: []
+#!
+#! - STORAGE_ROOT is the account storage root.
+export.set_acct_storage_root
+    push.ACCT_STORAGE_ROOT_PTR mem_storew dropw
+end
+
 # CONSUMED NOTES
 # -------------------------------------------------------------------------------------------------
 

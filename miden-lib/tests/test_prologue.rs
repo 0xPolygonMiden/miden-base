@@ -159,7 +159,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR
     assert_eq!(
         process.get_memory_value(0, ACCT_STORAGE_ROOT_PTR).unwrap(),
-        inputs.account().storage().root().as_elements()
+        inputs.account().storage().root()
     );
 
     // The account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)

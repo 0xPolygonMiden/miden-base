@@ -14,6 +14,7 @@ pub enum AccountError {
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
+    DuplicateStorageItems,
 }
 
 impl AccountError {

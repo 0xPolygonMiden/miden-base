@@ -1,7 +1,7 @@
 use super::{
-    Account, AccountId, Asset, BlockHeader, Digest, ExecutedTransaction, Felt, FieldElement,
-    FungibleAsset, MerkleStore, Mmr, NodeIndex, Note, NoteOrigin, TransactionInputs, Word,
-    NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
+    Account, AccountId, AccountStorage, Asset, BlockHeader, Digest, ExecutedTransaction, Felt,
+    FieldElement, FungibleAsset, MerkleStore, Mmr, NodeIndex, Note, NoteOrigin, StorageItem,
+    TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
 use crypto::merkle::SimpleSmt;
 use test_utils::rand;
@@ -14,6 +14,19 @@ pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
 pub const NONCE: Felt = Felt::ZERO;
+
+pub const STORAGE_INDEX_0: u8 = 20;
+pub const STORAGE_VALUE_0: [Felt; 4] = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+pub const STORAGE_INDEX_1: u8 = 30;
+pub const STORAGE_VALUE_1: [Felt; 4] = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
+pub const STORAGE_ITEM_0: StorageItem = (STORAGE_INDEX_0, STORAGE_VALUE_0);
+pub const STORAGE_ITEM_1: StorageItem = (STORAGE_INDEX_1, STORAGE_VALUE_1);
+
+pub const CHILD_ROOT_PARENT_LEAF_INDEX: u8 = 10;
+pub const CHILD_SMT_DEPTH: u8 = 64;
+pub const CHILD_STORAGE_INDEX_0: u64 = 40;
+pub const CHILD_STORAGE_VALUE_0: [Felt; 4] =
+    [Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14)];
 
 pub fn mock_block_header(
     block_num: Felt,
@@ -85,14 +98,49 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
     mmr
 }
 
-pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
-    // Create an account
+fn mock_account(transaction_merkle_store: &mut MerkleStore, nonce: Option<Felt>) -> Account {
+    // Create an account merkle store
+    let mut account_merkle_store = MerkleStore::new();
+    let child_smt = SimpleSmt::new(CHILD_SMT_DEPTH)
+        .unwrap()
+        .with_leaves([(CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0)])
+        .unwrap();
+    account_merkle_store.extend(child_smt.inner_nodes());
+
+    // create account storage
+    let account_storage = AccountStorage::new(
+        vec![STORAGE_ITEM_0, STORAGE_ITEM_1, (CHILD_ROOT_PARENT_LEAF_INDEX, child_smt.root())],
+        account_merkle_store,
+    )
+    .unwrap();
+
+    // Create an account with storage items
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ZERO).unwrap();
+    let account = Account::new(
+        account_id,
+        account_storage,
+        "proc.test_proc push.1 end",
+        nonce.unwrap_or(Felt::ZERO),
+    )
+    .unwrap();
 
+    // TODO: replace with merging of `MerkleStore`s once `.inner_nodes()` is implemented on `MerkleStore`.
+    // extend the merkle store with the child smt
+    transaction_merkle_store.extend(child_smt.inner_nodes());
+
+    // extend the merkle store with account storage slots
+    transaction_merkle_store.extend(account.storage().slots().inner_nodes());
+
+    account
+}
+
+pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
     // Create a Merkle store
     let mut merkle_store = MerkleStore::new();
+
+    // Create an account with storage items
+    let account = mock_account(&mut merkle_store, None);
 
     // Consumed notes
     let mut consumed_notes = mock_consumed_notes();
@@ -112,26 +160,20 @@ pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
 }
 
 pub fn mock_executed_tx() -> (MerkleStore, ExecutedTransaction) {
-    // AccountId
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    // Create a Merkle store
+    let mut merkle_store = MerkleStore::new();
 
     // Initial Account
-    let initial_account =
-        Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ZERO).unwrap();
+    let initial_account = mock_account(&mut merkle_store, Some(Felt::ZERO));
 
     // Finial Account (nonce incremented by 1)
-    let final_account =
-        Account::new(account_id, &[], "proc.test_proc push.1 end", Felt::ONE).unwrap();
+    let final_account = mock_account(&mut merkle_store, Some(Felt::ONE));
 
     // Consumed notes
     let mut consumed_notes = mock_consumed_notes();
 
     // Created notes
     let created_notes = mock_created_notes();
-
-    // Create a Merkle store
-    let mut merkle_store = MerkleStore::new();
 
     // Chain data
     let chain_mmr: Mmr = mock_chain_data(&mut merkle_store, &mut consumed_notes);
