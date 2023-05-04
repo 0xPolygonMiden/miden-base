@@ -37,7 +37,7 @@ mod tests;
 /// Out of the the above components account ID is always immutable (once defined it can never be
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Account {
     id: AccountId,
     vault: AccountVault,
@@ -59,14 +59,14 @@ impl Account {
     pub fn new(
         id: AccountId,
         storage: AccountStorage,
-        code_source: &str,
+        code: AccountCode,
         nonce: Felt,
     ) -> Result<Self, AccountError> {
         Ok(Self {
             id,
             vault: AccountVault::default(),
             storage,
-            code: AccountCode::new(code_source)?,
+            code,
             nonce,
         })
     }
@@ -152,6 +152,14 @@ impl ToAdviceInputs for Account {
 
         // extend the merkle store with the storage items
         target.add_merkle_nodes(self.storage.slots().inner_nodes());
-        target.add_merkle_nodes(self.storage.store().inner_nodes())
+        target.add_merkle_nodes(self.storage.store().inner_nodes());
+
+        // extend the merkle store with account code tree
+        target.add_merkle_nodes(self.code.procedure_tree().inner_nodes());
+
+        // extend advice map with (account proc root -> method tree index)
+        for (idx, leaf) in self.code.procedure_tree().leaves() {
+            target.insert_into_map(*leaf, vec![idx.into()]);
+        }
     }
 }

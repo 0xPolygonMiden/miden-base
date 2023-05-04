@@ -306,3 +306,93 @@ fn test_set_item() {
     )
     .unwrap();
 }
+
+#[test]
+fn test_is_faucet_procedure() {
+    let test_cases = vec![
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+    ];
+
+    for account_id in test_cases.iter() {
+        let account_id = AccountId::try_from(*account_id).unwrap();
+
+        // assembly codes that checks if an account is a fauct
+        let code = format!(
+            "
+        use.miden::sat::account
+
+        begin
+            # push the account id on to the stack
+            push.{account_id}
+
+            # execute is_faucet procedure
+            exec.account::is_faucet
+
+            # assert it matches expected result
+            eq.{expected} assert
+        end
+    ",
+            account_id = *account_id,
+            expected = if account_id.is_faucet() { 1 } else { 0 },
+        );
+
+        let _process = run_within_tx_kernel(
+            "",
+            &code,
+            StackInputs::default(),
+            MemAdviceProvider::default(),
+            None,
+            None,
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn test_authenticate_procedure() {
+    let inputs = mock_inputs();
+
+    let test_cases = vec![
+        (inputs.account().code().procedure_tree().get_leaf(0).unwrap(), true),
+        (inputs.account().code().procedure_tree().get_leaf(1).unwrap(), true),
+        (Word::default(), false),
+    ];
+
+    for (root, valid) in test_cases.into_iter() {
+        let code = format!(
+            "\
+            use.miden::sat::account
+            use.miden::sat::prologue
+
+            begin
+                # prepare the transaction
+                exec.prologue::prepare_transaction
+
+                # push test procedure root onto stack
+                push.{root}
+
+                # authenticate procedure
+                exec.account::authenticate_procedure
+            end
+        ",
+            root = prepare_word(&root)
+        );
+
+        let process = run_within_tx_kernel(
+            "",
+            &code,
+            StackInputs::from(inputs.stack_inputs()),
+            MemAdviceProvider::from(inputs.advice_provider_inputs()),
+            None,
+            None,
+        );
+
+        match valid {
+            true => assert!(process.is_ok()),
+            false => assert!(process.is_err()),
+        }
+    }
+}

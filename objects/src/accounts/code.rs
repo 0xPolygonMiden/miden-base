@@ -1,50 +1,70 @@
-use super::{AccountError, Digest, Word};
-use assembly::ModuleAst;
-use crypto::merkle::MerkleTree;
-use miden_core::Program; // TODO: we should be able to import it from the assembly crate
+use super::{AccountError, AccountId, Digest};
+use assembly::{Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module, ModuleAst};
+use crypto::merkle::SimpleSmt;
+use miden_lib::MidenLib;
+use miden_stdlib::StdLibrary;
 
 // ACCOUNT CODE
 // ================================================================================================
 
-/// Describes public interface of an account.
+// CONSTANTS
+// ------------------------------------------------------------------------------------------------
+
+/// The depth of the Merkle tree that is used to commit to the account's public interface.
+const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
+
+/// Describes the public interface of an account.
 ///
-/// Account's public interface consists of a set of account methods, each method being a Miden VM
-/// program. Thus, MAST root of each method commits to the underlying program. We commit to the
-/// entire account interface by building a simple Merkle tree out of all method MAST roots.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Account's public interface consists of a set of account procedures, each procedure being a Miden
+/// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
+/// the entire account interface by building a simple Merkle tree out of all procedure MAST roots.
+#[derive(Debug, Clone)]
 pub struct AccountCode {
-    method_tree: MerkleTree,
     module: ModuleAst,
-    // methods: Vec<Program>, commented out because Program doesn't currently implement Eq and
-    // PartialEq. Also, there might be a better way of describing a set of programs as they
-    // might share a lot of common code blocks. In a way, we want something like a Program
-    // struct but with many entry points.
+    procedures: Vec<Digest>,
+    procedure_tree: SimpleSmt,
 }
 
 impl AccountCode {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    pub const ACCOUNT_CODE_NAMESPACE_BASE: &'static str = "context::account";
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Creates and returns a new definition of an account's interface compiled from the specified
     /// source code.
-    pub fn new(source: &str) -> Result<Self, AccountError> {
-        let _module_ast = ModuleAst::parse(source)?;
+    pub fn new(source: &str, account_id: AccountId) -> Result<Self, AccountError> {
+        let module_ast = ModuleAst::parse(source)?;
+        let module = Module::new(
+            LibraryPath::new(format!("{}_{}", Self::ACCOUNT_CODE_NAMESPACE_BASE, account_id))
+                .expect("valid path"),
+            module_ast,
+        );
 
-        // TODO: compile module AST into a set of program MASTs. To do this we need to expose
-        // a new method on the assembler to compile a module rather than a program (something
-        // similar to Assembler::compile_module() but without internal parameters).
-        //
-        // Open question: how to initialize the assembler? Specifically, which libraries to
-        // initialize it with. stdlib and midenlib are the two libraries we need for sure - but
-        // how to handle accounts which rely on some user-defined libraries? i.e., should there
-        // be a way to specify an "on-chain" library somehow?
+        let assembler = Assembler::default()
+            .with_library(&MidenLib::default())
+            .expect("failed to load miden-lib")
+            .with_library(&StdLibrary::default())
+            .expect("failed to load std-lib");
 
-        // TODO: build a Merkle tree out of MAST roots of compiled programs. The roots should
-        // be sorted so that the same set of programs always resolves to the same root. If the
-        // number of programs is not a power of two, the remaining leaves should be set to ZEROs.
+        let mut procedure_digests = assembler
+            .compile_module(&module, &mut AssemblyContext::new(AssemblyContextType::Module))
+            .map_err(AccountError::AccountCodeAsselmberError)?;
+        procedure_digests.sort_by_key(|a| a.as_bytes());
 
         Ok(Self {
-            method_tree: MerkleTree::new(vec![Word::default(); 4]).unwrap(),
-            module: _module_ast,
+            procedure_tree: SimpleSmt::with_leaves(
+                ACCOUNT_CODE_TREE_DEPTH,
+                procedure_digests
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, p)| (idx as u64, p.into()))
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap(),
+            module: module.ast,
+            procedures: procedure_digests,
         })
     }
 
@@ -53,30 +73,46 @@ impl AccountCode {
 
     /// Returns a commitment to an account's public interface.
     pub fn root(&self) -> Digest {
-        self.method_tree.root().into()
+        self.procedure_tree.root().into()
     }
 
-    /// Returns the number of public interface methods defined for this account.
-    pub fn num_methods(&self) -> usize {
-        todo!()
+    /// Returns a reference to the [ModuleAst] backing the [AccountCode].
+    pub fn module(&self) -> &ModuleAst {
+        &self.module
     }
 
-    /// Returns true if a method with the specified root is defined for this account.
-    pub fn has_method(&self, _root: Digest) -> bool {
-        todo!()
+    /// Returns a reference to the procedure tree.
+    pub fn procedure_tree(&self) -> &SimpleSmt {
+        &self.procedure_tree
     }
 
-    /// Returns an account interface method at the specified index.
+    /// Returns the number of public interface procedures defined for this account.
+    pub fn num_procedures(&self) -> usize {
+        self.procedures.len()
+    }
+
+    /// Returns true if a procedure with the specified root is defined for this account.
+    pub fn has_procedure(&self, root: Digest) -> bool {
+        let root_bytes = root.as_bytes();
+        self.procedures.binary_search_by(|r| r.as_bytes().cmp(&root_bytes)).is_ok()
+    }
+
+    /// Returns a procedure digest for the procedure with the specified index.
     ///
     /// # Panics
     /// Panics if the provided index is out of bounds.
-    pub fn get_method_by_index(&self, _index: usize) -> &Program {
-        todo!()
+    pub fn get_procedure_by_index(&self, index: usize) -> Digest {
+        // index must be wihtin range
+        assert!(index < self.procedures.len());
+
+        // Return digest for the procedure
+        *self.procedures.get(index).unwrap()
     }
 
-    /// Returns an account interface method with the specified root or None if such method is not
-    /// defined for this account.
-    pub fn get_method_by_root(&self, _root: Digest) -> Option<&Program> {
-        todo!()
+    /// Returns the procedure index for the procedure with the specified root or None if such
+    /// procedure is not defined for this account.
+    pub fn get_procedure_index_by_root(&self, root: Digest) -> Option<usize> {
+        let root_bytes = root.as_bytes();
+        self.procedures.binary_search_by(|x| x.as_bytes().cmp(&root_bytes)).ok()
     }
 }

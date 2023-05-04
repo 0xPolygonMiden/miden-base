@@ -27,7 +27,9 @@ assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMide
 crypto = { package = "miden-crypto", version = "0.5", default-features = false }
 hashbrown = { version = "0.13.2" }
 miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+miden-lib = { path = "../miden-lib", default-features = false }
 miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 
 
