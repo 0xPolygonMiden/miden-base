@@ -1,14 +1,15 @@
-use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Mmr, Note, StackInputs, Vec};
+use super::{utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, Note, StackInputs, Vec};
 
 /// A struct that contains all of the data required to execute a transaction. This includes:
 /// - account: Account that the transaction is being executed against.
-/// - block_ref: The hash of the latest known block.
+/// - block_header: The header of the latest known block.
+/// - block_chain: The chain mmr associated with the latest known blcok.
 /// - consumed_notes: A vector of consumed notes.
 /// - tx_script_root: An optional transaction script root.
 pub struct TransactionInputs {
     account: Account,
     block_header: BlockHeader,
-    block_chain: Mmr,
+    block_chain: ChainMmr,
     consumed_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
 }
@@ -17,7 +18,7 @@ impl TransactionInputs {
     pub fn new(
         account: Account,
         block_header: BlockHeader,
-        block_chain: Mmr,
+        block_chain: ChainMmr,
         consumed_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
     ) -> Self {
@@ -44,7 +45,7 @@ impl TransactionInputs {
     }
 
     /// Returns the block chain.
-    pub fn block_chain(&self) -> &Mmr {
+    pub fn block_chain(&self) -> &ChainMmr {
         &self.block_chain
     }
 

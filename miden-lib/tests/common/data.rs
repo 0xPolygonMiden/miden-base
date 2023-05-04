@@ -1,6 +1,6 @@
 use super::{
-    Account, AccountId, AccountStorage, Asset, BlockHeader, Digest, ExecutedTransaction, Felt,
-    FieldElement, FungibleAsset, MerkleStore, Mmr, NodeIndex, Note, NoteOrigin, StorageItem,
+    Account, AccountId, AccountStorage, Asset, BlockHeader, ChainMmr, Digest, ExecutedTransaction,
+    Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex, Note, NoteOrigin, StorageItem,
     TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
 use crypto::merkle::SimpleSmt;
@@ -45,10 +45,11 @@ pub fn mock_block_header(
     )
 }
 
-pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Note]) -> Mmr {
-    let mut peaks = Vec::new();
+pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
+    let mut note_trees = Vec::new();
 
-    // we use the index for both the block number and the leaf index
+    // TODO: Consider how to better represent note authentication data.
+    // we use the index for both the block number and the leaf index in the note tree
     for (index, note) in consumed_notes.iter().enumerate() {
         let tree_index = 2 * index;
         let smt_entries = vec![
@@ -56,14 +57,13 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
             ((tree_index + 1) as u64, note.metadata().into()),
         ];
         let smt = SimpleSmt::new(NOTE_LEAF_DEPTH).unwrap().with_leaves(smt_entries).unwrap();
-        merkle_store.extend(smt.inner_nodes());
-        peaks.push(smt.root());
+        note_trees.push(smt);
     }
 
     // create a dummy chain of block headers
     let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, Some(peaks[0].into())),
-        mock_block_header(Felt::ONE, None, Some(peaks[1].into())),
+        mock_block_header(Felt::ZERO, None, Some(note_trees[0].root().into())),
+        mock_block_header(Felt::ONE, None, Some(note_trees[1].root().into())),
         mock_block_header(Felt::new(2), None, None),
         mock_block_header(Felt::new(3), None, None),
     ];
@@ -72,9 +72,9 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
     let block_hashes: Vec<Word> = block_chain.iter().map(|h| Word::from(h.hash())).collect();
 
     // instantiate and populate MMR
-    let mut mmr = Mmr::new();
+    let mut chain_mmr = ChainMmr::default();
     for hash in block_hashes.iter() {
-        mmr.add(*hash)
+        chain_mmr.mmr_mut().add(*hash)
     }
 
     // set origin for consumed notes using chain and block data
@@ -87,18 +87,16 @@ pub fn mock_chain_data(merkle_store: &mut MerkleStore, consumed_notes: &mut [Not
                 block_header.sub_hash(),
                 block_header.note_root(),
                 index as u64,
-                merkle_store.get_path(*block_header.note_root(), auth_index).unwrap().path,
+                note_trees[index].get_path(auth_index).unwrap(),
             )
             .unwrap(),
         );
     }
 
-    // add MMR to the store
-    merkle_store.extend(mmr.inner_nodes());
-    mmr
+    chain_mmr
 }
 
-fn mock_account(transaction_merkle_store: &mut MerkleStore, nonce: Option<Felt>) -> Account {
+fn mock_account(nonce: Option<Felt>) -> Account {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
     let child_smt = SimpleSmt::new(CHILD_SMT_DEPTH)
@@ -125,49 +123,36 @@ fn mock_account(transaction_merkle_store: &mut MerkleStore, nonce: Option<Felt>)
     )
     .unwrap();
 
-    // TODO: replace with merging of `MerkleStore`s once `.inner_nodes()` is implemented on `MerkleStore`.
-    // extend the merkle store with the child smt
-    transaction_merkle_store.extend(child_smt.inner_nodes());
-
-    // extend the merkle store with account storage slots
-    transaction_merkle_store.extend(account.storage().slots().inner_nodes());
-
     account
 }
 
-pub fn mock_inputs() -> (MerkleStore, TransactionInputs) {
-    // Create a Merkle store
-    let mut merkle_store = MerkleStore::new();
-
+pub fn mock_inputs() -> TransactionInputs {
     // Create an account with storage items
-    let account = mock_account(&mut merkle_store, None);
+    let account = mock_account(None);
 
     // Consumed notes
     let mut consumed_notes = mock_consumed_notes();
 
     // Chain data
-    let chain_mmr: Mmr = mock_chain_data(&mut merkle_store, &mut consumed_notes);
+    let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
 
     // Block header
-    let block_header: BlockHeader =
-        mock_block_header(Felt::new(4), Some(chain_mmr.accumulator().hash_peaks().into()), None);
+    let block_header: BlockHeader = mock_block_header(
+        Felt::new(4),
+        Some(chain_mmr.mmr().accumulator().hash_peaks().into()),
+        None,
+    );
 
     // Transaction inputs
-    (
-        merkle_store,
-        TransactionInputs::new(account, block_header, chain_mmr, consumed_notes, None),
-    )
+    TransactionInputs::new(account, block_header, chain_mmr, consumed_notes, None)
 }
 
-pub fn mock_executed_tx() -> (MerkleStore, ExecutedTransaction) {
-    // Create a Merkle store
-    let mut merkle_store = MerkleStore::new();
-
+pub fn mock_executed_tx() -> ExecutedTransaction {
     // Initial Account
-    let initial_account = mock_account(&mut merkle_store, Some(Felt::ZERO));
+    let initial_account = mock_account(Some(Felt::ZERO));
 
     // Finial Account (nonce incremented by 1)
-    let final_account = mock_account(&mut merkle_store, Some(Felt::ONE));
+    let final_account = mock_account(Some(Felt::ONE));
 
     // Consumed notes
     let mut consumed_notes = mock_consumed_notes();
@@ -176,24 +161,25 @@ pub fn mock_executed_tx() -> (MerkleStore, ExecutedTransaction) {
     let created_notes = mock_created_notes();
 
     // Chain data
-    let chain_mmr: Mmr = mock_chain_data(&mut merkle_store, &mut consumed_notes);
+    let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
 
     // Block header
-    let block_header: BlockHeader =
-        mock_block_header(Felt::new(4), Some(chain_mmr.accumulator().hash_peaks().into()), None);
+    let block_header: BlockHeader = mock_block_header(
+        Felt::new(4),
+        Some(chain_mmr.mmr().accumulator().hash_peaks().into()),
+        None,
+    );
 
     // Executed Transaction
-    (
-        merkle_store,
-        ExecutedTransaction::new(
-            initial_account,
-            final_account,
-            consumed_notes,
-            created_notes,
-            None,
-            block_header,
-            chain_mmr,
-        ),
+
+    ExecutedTransaction::new(
+        initial_account,
+        final_account,
+        consumed_notes,
+        created_notes,
+        None,
+        block_header,
+        chain_mmr,
     )
 }
 

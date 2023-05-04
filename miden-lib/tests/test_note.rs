@@ -5,7 +5,7 @@ use common::{
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
 
     // calling get_sender should return sender
     let code = "
@@ -22,7 +22,7 @@ fn test_get_sender_no_sender() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     );
@@ -31,7 +31,7 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
 
     // calling get_sender should return sender
     let code = "
@@ -51,7 +51,7 @@ fn test_get_sender() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )
@@ -63,7 +63,7 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
 
     // for (i, note) in inputs.consumed_notes().iter().enumerate() {
     let notes = &inputs.consumed_notes();
@@ -118,9 +118,7 @@ fn test_get_vault_data() {
         "",
         &code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(
-            inputs.advice_provider_inputs().with_merkle_store(merkle_store.clone()),
-        ),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )
@@ -129,7 +127,7 @@ fn test_get_vault_data() {
 
 #[test]
 fn test_get_assets() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
 
     const DEST_POINTER_NOTE_0: u64 = 100000000;
     const DEST_POINTER_NOTE_1: u64 = 200000000;
@@ -194,7 +192,7 @@ fn test_get_assets() {
         "",
         &code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )

@@ -1,6 +1,5 @@
+use super::{utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, Note, StackInputs};
 use miden_core::StackOutputs;
-
-use super::{utils, Account, AdviceInputs, BlockHeader, Digest, Mmr, Note, StackInputs};
 
 pub struct ExecutedTransaction {
     initial_account: Account,
@@ -9,7 +8,7 @@ pub struct ExecutedTransaction {
     created_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
     block_header: BlockHeader,
-    block_chain: Mmr,
+    block_chain: ChainMmr,
 }
 
 impl ExecutedTransaction {
@@ -20,7 +19,7 @@ impl ExecutedTransaction {
         created_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
         block_header: BlockHeader,
-        block_chain: Mmr,
+        block_chain: ChainMmr,
     ) -> Self {
         Self {
             initial_account,

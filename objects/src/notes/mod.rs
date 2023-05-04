@@ -1,6 +1,9 @@
 use crate::AccountId;
 
-use super::{assets::Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
+use super::{
+    assets::Asset, AdviceInputsBuilder, Digest, Felt, Hasher, NoteError, ToAdviceInputs, Vec, Word,
+    WORD_SIZE, ZERO,
+};
 
 mod inputs;
 use inputs::NoteInputs;
@@ -124,11 +127,6 @@ impl Note {
         &self.metadata
     }
 
-    /// Returns the note data as a vector of elements.
-    pub fn to_elements(&self) -> Vec<Felt> {
-        self.into()
-    }
-
     /// Returns the recipient of this note.
     /// Recipient is defined and calculated as:
     ///  hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
@@ -154,6 +152,12 @@ impl Note {
     pub fn hash(&self) -> Digest {
         let recipient = self.recipient();
         Hasher::merge(&[recipient, self.vault.hash()])
+    }
+
+    /// Returns the value used to authenticate a notes existence in the note tree. This is computed
+    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_hash, note_metadata)]
+    pub fn authentication_hash(&self) -> Digest {
+        Hasher::merge(&[self.hash(), Word::from(self.metadata()).into()])
     }
 
     /// Returns the nullifier for this note.
@@ -183,8 +187,8 @@ impl Note {
     }
 }
 
-impl From<&Note> for Vec<Felt> {
-    /// Returns a vector of elements which represents this note.
+impl ToAdviceInputs for &Note {
+    /// Pushes a vector of elements which represents this note onto the advice stack.
     /// The output vector (out) is constructed as follows:
     ///     out[0..4]    = serial num
     ///     out[4..8]    = script root
@@ -200,33 +204,34 @@ impl From<&Note> for Vec<Felt> {
     ///     out[-9..-5]   = origin.SUB_HASH
     ///     out[-5..-1]   = origin.NOTE_ROOT
     ///     out[-1]       = origin.node_index
-    fn from(note: &Note) -> Self {
-        // compute capacity of the output vector.  If we have an odd number of assets, we need to
-        // pad the output with an empty word.
-        let capacity = if note.vault.num_assets() % 2 == 1 {
-            30 + (note.vault.num_assets() + 1) * 4
-        } else {
-            30 + note.vault.num_assets() * 4
-        };
+    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
+        // push core data onto the stack
+        target.push_onto_stack(&self.serial_num);
+        target.push_onto_stack(self.script.hash().as_elements());
+        target.push_onto_stack(self.inputs.hash().as_elements());
+        target.push_onto_stack(self.vault.hash().as_elements());
+        target.push_onto_stack(&Word::from(self.metadata()));
 
-        let mut out = Vec::with_capacity(capacity);
+        // add assets to the stack and advice map
+        target.push_onto_stack(&self.vault.to_padded_assets());
+        target.insert_into_map(self.vault.hash().into(), self.vault.to_padded_assets());
 
-        out.extend_from_slice(&note.serial_num);
-        out.extend_from_slice(note.script.hash().as_elements());
-        out.extend_from_slice(note.inputs.hash().as_elements());
-        out.extend_from_slice(note.vault.hash().as_elements());
-        out.extend_from_slice(&Word::from(note.metadata()));
-        out.extend(note.vault.to_padded_assets());
+        // origin must be populated for created notes
+        let origin = self.origin().as_ref().expect("NoteOrigin must be populated.");
 
-        // TODO: this is a temporary solution - replace with TryFrom
-        let origin = note.origin().as_ref().unwrap();
+        // push origin data onto the stack
+        target.push_onto_stack(&[origin.block_num()]);
+        target.push_onto_stack(&Word::from(origin.sub_hash()));
+        target.push_onto_stack(&Word::from(origin.note_root()));
+        target.push_onto_stack(&[Felt::from(origin.node_index().value())]);
+        target.add_merkle_nodes(
+            origin
+                .note_path()
+                .inner_nodes(origin.node_index().value(), self.authentication_hash().into())
+                .unwrap(),
+        );
 
-        // populate origin data
-        out.push(origin.block_num());
-        out.extend(Word::from(origin.sub_hash()));
-        out.extend(Word::from(origin.note_root()));
-        out.push(Felt::from(origin.node_index().value()));
-
-        out
+        // add inputs to the advice map
+        target.insert_into_map(self.inputs.hash().into(), self.inputs.inputs().to_vec());
     }
 }

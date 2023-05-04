@@ -18,11 +18,17 @@ pub use accounts::{
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageItem,
 };
 
+mod advice;
+use advice::{AdviceInputsBuilder, ToAdviceInputs};
+
 pub mod assets;
 pub mod notes;
 
 pub mod block;
 pub use block::BlockHeader;
+
+pub mod chain;
+pub use chain::ChainMmr;
 
 mod errors;
 pub use errors::{AccountError, AssetError, NoteError};

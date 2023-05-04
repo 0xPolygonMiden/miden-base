@@ -1,6 +1,6 @@
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::{MerkleStore, Mmr, NodeIndex, SimpleSmt},
+    merkle::{MerkleStore, NodeIndex, SimpleSmt},
     FieldElement, StarkField, ONE, ZERO,
 };
 pub use miden_lib::{memory, MidenLib};
@@ -8,7 +8,7 @@ pub use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteOrigin, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
-    Account, AccountId, AccountStorage, AccountType, BlockHeader, StorageItem,
+    Account, AccountId, AccountStorage, AccountType, BlockHeader, ChainMmr, StorageItem,
 };
 use miden_stdlib::StdLibrary;
 pub use processor::{

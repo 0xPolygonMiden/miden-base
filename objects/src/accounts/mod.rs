@@ -1,6 +1,6 @@
 use super::{
-    assets::Asset, AccountError, BTreeSet, Digest, Felt, Hasher, StarkField, ToString, Vec, Word,
-    ZERO,
+    assets::Asset, AccountError, AdviceInputsBuilder, BTreeSet, Digest, Felt, Hasher, StarkField,
+    ToAdviceInputs, ToString, Vec, Word, ZERO,
 };
 
 mod account_id;
@@ -134,8 +134,8 @@ impl Account {
     }
 }
 
-impl From<&Account> for [Felt; 16] {
-    /// Returns an array of field elements representing this account.
+impl ToAdviceInputs for Account {
+    /// Pushes an array of field elements representing this account onto the advice stack.
     /// The array (elements) is in the following format:
     ///    elements[0]       = account id
     ///    elements[2..3]    = padding ([Felt::ZERO; 2])
@@ -143,13 +143,15 @@ impl From<&Account> for [Felt; 16] {
     ///    elements[4..8]    = account vault root
     ///    elements[8..12]   = storage root
     ///    elements[12..16]  = code root
-    fn from(account: &Account) -> Self {
-        let mut elements = [ZERO; 16];
-        elements[0] = *account.id;
-        elements[3] = account.nonce;
-        elements[4..8].copy_from_slice(account.vault.root().as_elements());
-        elements[8..12].copy_from_slice(&account.storage.root());
-        elements[12..].copy_from_slice(account.code.root().as_elements());
-        elements
+    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
+        // push core items onto the stack
+        target.push_onto_stack(&[*self.id, ZERO, ZERO, self.nonce]);
+        target.push_onto_stack(self.vault.root().as_elements());
+        target.push_onto_stack(&self.storage.root());
+        target.push_onto_stack(self.code.root().as_elements());
+
+        // extend the merkle store with the storage items
+        target.add_merkle_nodes(self.storage.slots().inner_nodes());
+        target.add_merkle_nodes(self.storage.store().inner_nodes())
     }
 }

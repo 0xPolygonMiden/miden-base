@@ -20,7 +20,7 @@ assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMide
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev", default-features = false }
 
 [dev-dependencies]
-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "frisitano-mmr-accumulator", default-features = false }
+crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects"}
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev", features = ["internals"] }
