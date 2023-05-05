@@ -1,5 +1,7 @@
 # State
 
+The state of the network describes the current condition of all individual accounts and note states. It describes what is currently the case.
+
 The Miden Node(s) maintain three databases to describe the state:
 1. A database of accounts.
 2. A database of notes.
