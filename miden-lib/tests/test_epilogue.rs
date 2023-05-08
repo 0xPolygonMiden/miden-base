@@ -10,7 +10,7 @@ const EPILOGUE_FILE: &str = "epilogue.masm";
 
 #[test]
 fn test_epilogue() {
-    let (merkle_store, executed_transaction) = mock_executed_tx();
+    let executed_transaction = mock_executed_tx();
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
@@ -32,9 +32,7 @@ fn test_epilogue() {
         imports,
         &code,
         executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(
-            executed_transaction.advice_provider_inputs().with_merkle_store(merkle_store),
-        ),
+        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
         Some(TX_KERNEL_DIR),
         Some(EPILOGUE_FILE),
     )
@@ -61,7 +59,7 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_created_note_hash() {
-    let (_merkle_store, executed_transaction) = mock_executed_tx();
+    let executed_transaction = mock_executed_tx();
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());

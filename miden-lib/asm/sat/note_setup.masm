@@ -3,17 +3,6 @@ use.miden::sat::layout
 # NOTE SETUP SCRIPT
 # =================================================================================================
 
-#! Reads and returns the inputs hash for the consumed note being executed.
-#!
-#! Stack: []
-#! Output: [inputs_hash]
-#!
-#! inputs_hash is the sequential hash of the inputs of the consumed note being executed.
-proc.get_current_note_inputs_hash
-    exec.layout::get_current_consumed_note_ptr
-    exec.layout::get_consumed_note_inputs_hash
-end
-
 #! Prepares the virtual machine for execution of a consumed note.  This involves:
 #! 1. Updating the current consumed note pointer.
 #! 2. Loading the note inputs from the advice provider.
@@ -30,24 +19,24 @@ export.prepare_note.4
     # => [note_ptr]
 
     # set current consumed note pointer to the note being executed
-    exec.layout::set_current_consumed_note_ptr
-    # => []
+    dup exec.layout::set_current_consumed_note_ptr
+    # => [note_ptr]
+
+    # load the note inputs on to the advice stack
+    exec.layout::get_consumed_note_inputs_hash adv.keyval
+    # => [INPUTS_HASH]
 
     # load the note inputs from the advice provider
     # TODO: optimize this to load items directly onto the stack.
     locaddr.0 padw padw padw adv_pipe adv_pipe
-    # => [PERM, PERM, PERM, addr']
+    # => [PERM, PERM, PERM, addr', INPUTS_HASH]
 
     # extract inputs hash and assert it matches commitment stored in memory
-    dropw swapw dropw
-    # => [DIG, addr']
+    dropw swapw dropw movup.4 drop
+    # => [DIG, INPUTS_HASH]
 
     # assert the inputs hash matches the commitment stored in memory
-    exec.get_current_note_inputs_hash assert_eqw
-    # => [addr']
-
-    # drop the addr
-    drop
+    assert_eqw
     # => []
 
     # read the note inputs onto the stack

@@ -24,7 +24,8 @@ const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
+
     let code = "
         use.miden::sat::prologue
         use.miden::sat::account
@@ -38,7 +39,7 @@ pub fn test_set_code_is_not_immediate() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )
@@ -59,7 +60,7 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
     let code = "
         use.miden::sat::account
         use.miden::sat::prologue
@@ -76,7 +77,7 @@ pub fn test_set_code_succeeds() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )
@@ -169,7 +170,7 @@ fn test_validate_id_fails_on_insuficcient_ones() {
 #[test]
 fn test_get_item() {
     for storage_item in [STORAGE_ITEM_0, STORAGE_ITEM_1] {
-        let (merkle_store, inputs) = mock_inputs();
+        let inputs = mock_inputs();
         let code = format!(
             "
         use.miden::sat::account
@@ -198,9 +199,7 @@ fn test_get_item() {
             "",
             &code,
             StackInputs::from(inputs.stack_inputs()),
-            MemAdviceProvider::from(
-                inputs.advice_provider_inputs().with_merkle_store(merkle_store),
-            ),
+            MemAdviceProvider::from(inputs.advice_provider_inputs()),
             None,
             None,
         )
@@ -210,7 +209,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_child_tree_item() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
     let code = format!(
         "
         use.miden::sat::account
@@ -243,7 +242,7 @@ fn test_get_child_tree_item() {
         "",
         &code,
         StackInputs::from(inputs.stack_inputs()),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )
@@ -252,7 +251,7 @@ fn test_get_child_tree_item() {
 
 #[test]
 fn test_set_item() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
 
     // copy the initial account slots (SMT)
     let mut account_smt = inputs.account().storage().slots().clone();
@@ -301,7 +300,7 @@ fn test_set_item() {
         "",
         &code,
         StackInputs::from(inputs.stack_inputs()),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         None,
         None,
     )

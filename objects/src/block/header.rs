@@ -1,4 +1,4 @@
-use super::{Digest, Felt, Hasher, ZERO};
+use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, ZERO};
 
 /// The header of a block. It contains metadata about the block, commitments to the current
 /// state of the chain and the hash of the proof that attests to the integrity of the chain.
@@ -140,17 +140,15 @@ impl BlockHeader {
     }
 }
 
-impl From<&BlockHeader> for Vec<Felt> {
-    fn from(header: &BlockHeader) -> Self {
-        let mut elements: Vec<Felt> = Vec::with_capacity(28);
-        elements.extend_from_slice(header.prev_hash.as_elements());
-        elements.extend_from_slice(header.chain_root.as_elements());
-        elements.extend_from_slice(header.state_root.as_elements());
-        elements.extend_from_slice(header.batch_root.as_elements());
-        elements.extend_from_slice(header.proof_hash.as_elements());
-        elements.push(header.block_num);
-        elements.resize(24, ZERO);
-        elements.extend_from_slice(header.note_root.as_elements());
-        elements
+impl ToAdviceInputs for &BlockHeader {
+    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
+        // push header data onto the stack
+        target.push_onto_stack(self.prev_hash.as_elements());
+        target.push_onto_stack(self.chain_root.as_elements());
+        target.push_onto_stack(self.state_root.as_elements());
+        target.push_onto_stack(self.batch_root.as_elements());
+        target.push_onto_stack(self.proof_hash.as_elements());
+        target.push_onto_stack(&[self.block_num, ZERO, ZERO, ZERO]);
+        target.push_onto_stack(self.note_root.as_elements());
     }
 }

@@ -16,7 +16,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (merkle_store, inputs) = mock_inputs();
+    let inputs = mock_inputs();
     let code = "
         begin
             exec.prepare_transaction
@@ -26,7 +26,7 @@ fn test_transaction_prologue() {
         "",
         code,
         inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs().with_merkle_store(merkle_store)),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         Some(TX_KERNEL_DIR),
         Some(PROLOGUE_FILE),
     )
@@ -128,10 +128,10 @@ fn chain_mmr_memory_assertions<A: AdviceProvider>(
     // The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR
     assert_eq!(
         process.get_memory_value(0, CHAIN_MMR_NUM_LEAVES_PTR).unwrap()[0],
-        Felt::new(inputs.block_chain().forest() as u64)
+        Felt::new(inputs.block_chain().mmr().forest() as u64)
     );
 
-    for (i, peak) in inputs.block_chain().accumulator().peaks.iter().enumerate() {
+    for (i, peak) in inputs.block_chain().mmr().accumulator().peaks.iter().enumerate() {
         // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
         assert_eq!(&process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i as u64).unwrap(), peak);
     }

@@ -1,9 +1,9 @@
+use miden_processor::AdviceInputs;
+
 use super::{
-    Account, AccountId, AdviceInputs, BlockHeader, Digest, Felt, Hasher, Mmr, Note, StackInputs,
-    StackOutputs, Word,
+    Account, AccountId, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, Note,
+    StackInputs, StackOutputs, ToAdviceInputs, Word,
 };
-use assembly::utils::IntoBytes;
-use hashbrown::HashMap;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, the number of consumed notes, the core consumed note data,
@@ -17,11 +17,11 @@ use hashbrown::HashMap;
 ///               CN2_SN,CN2_SR, CN2_IR, CN2_VR,
 ///               cn2_na,
 ///               CN2_A1, CN2_A2, ...
-///               ...
-///               CN1_I3, CN1_I2, CN1_I1, CN1_I0,
-///               CN2_I3, CN2_I2, CN2_I1, CN2_I0,
 ///               ...]
-/// Advice Map: {CHAIN_ROOT, [num_leaves, PEAK_0, ..., PEAK_N]}
+/// Advice Map: {CHAIN_ROOT:  [num_leaves, PEAK_0, ..., PEAK_N],
+///              CN1_IH:      [CN1_I3, CN1_I2, CN1_I1, CN1_I0],
+///              CN2_IH:      [CN2_I3, CN2_I2, CN2_I1, CN2_I0],
+///              ...}
 /// - acct_id is the account id of the account that the transaction is being executed against.
 /// - nonce is the account nonce.
 /// - AVR is the account vault root.
@@ -35,6 +35,8 @@ use hashbrown::HashMap;
 /// - CN1_M is the metadata of consumed note 1.
 /// - CN1_A1 is the first asset of consumed note 1.
 /// - CN1_A2 is the second asset of consumed note 1.
+/// - CN1_IH is the inputs hash of consumed note 1.
+/// - CN2_SN is the serial number of consumed note 2.
 /// - CN1_I3..0 are the script inputs of consumed note 1.
 /// - CN2_I3..0 are the script inputs of consumed note 2.
 /// - CHAIN_ROOT is the root of the block chain MMR from the last known block.
@@ -44,40 +46,27 @@ use hashbrown::HashMap;
 pub fn generate_advice_provider_inputs(
     account: &Account,
     block_header: &BlockHeader,
-    block_chain: &Mmr,
+    block_chain: &ChainMmr,
     notes: &[Note],
 ) -> AdviceInputs {
-    let mut advice_map: HashMap<[u8; 32], Vec<Felt>> = HashMap::new();
-    let mut advice_stack: Vec<Felt> = Vec::new();
+    let mut advice_inputs = AdviceInputs::default();
 
     // insert block data
-    let block_data = Vec::<Felt>::from(block_header);
-    advice_stack.extend(block_data);
+    block_header.to_advice_inputs(&mut advice_inputs);
 
     // insert block chain mmr
-    let chain_accumulator = block_chain.accumulator();
-    advice_map.insert(chain_accumulator.hash_peaks().into_bytes(), (&chain_accumulator).into());
+    block_chain.to_advice_inputs(&mut advice_inputs);
 
     // insert account data
-    let account: [Felt; 16] = account.into();
-    advice_stack.extend(account);
+    account.to_advice_inputs(&mut advice_inputs);
 
     // insert consumed notes data to advice stack
-    advice_stack.push(Felt::new(notes.len() as u64));
-    let note_data: Vec<Felt> = notes.iter().flat_map(<Vec<Felt>>::from).collect();
-    advice_stack.extend(note_data);
-
-    // insert consumed note assets data to advice map
-    for note in notes.iter() {
-        advice_map.insert(note.vault().hash().into_bytes(), note.vault().to_padded_assets());
+    advice_inputs.push_onto_stack(&[Felt::new(notes.len() as u64)]);
+    for note in notes {
+        note.to_advice_inputs(&mut advice_inputs);
     }
 
-    // insert consumed notes inputs
-    let note_inputs: Vec<Felt> =
-        notes.iter().flat_map(|note| note.inputs().inputs().to_vec()).collect();
-    advice_stack.extend(note_inputs);
-
-    AdviceInputs::default().with_stack(advice_stack).with_map(advice_map)
+    advice_inputs
 }
 
 /// Returns the consumed notes commitment.
