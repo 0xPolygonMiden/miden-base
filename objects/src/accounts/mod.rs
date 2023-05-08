@@ -1,5 +1,5 @@
 use super::{
-    assets::Asset, AccountError, AdviceInputsBuilder, BTreeSet, Digest, Felt, Hasher, StarkField,
+    assets::Asset, AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField,
     ToAdviceInputs, ToString, Vec, Word, ZERO,
 };
 

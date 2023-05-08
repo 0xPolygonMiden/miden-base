@@ -260,7 +260,7 @@ fn test_set_item() {
     // insert a new leaf value
     const NEW_ITEM_INDEX: u64 = 12;
     const NEW_ITEM_VALUE: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
-    account_smt.insert_leaf(NEW_ITEM_INDEX, NEW_ITEM_VALUE).unwrap();
+    account_smt.update_leaf(NEW_ITEM_INDEX, NEW_ITEM_VALUE).unwrap();
     assert_ne!(account_smt.root(), init_root);
 
     let code = format!(
