@@ -1,4 +1,4 @@
-use super::{AccountError, BTreeSet, Word};
+use super::{AccountError, Word};
 use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt};
 
 // TYPE ALIASES
@@ -37,18 +37,12 @@ impl AccountStorage {
         items: Vec<StorageItem>,
         store: MerkleStore,
     ) -> Result<AccountStorage, AccountError> {
-        // make sure there are no duplicate items for the same index
-        let mut unique = BTreeSet::new();
-        let unique = items.iter().all(move |item| unique.insert(item.0));
-        if !unique {
-            return Err(AccountError::DuplicateStorageItems);
-        }
-
         // construct storage slots smt
-        let slots = SimpleSmt::new(Self::STORAGE_TREE_DEPTH)
-            .expect("depth is valid")
-            .with_leaves(items.into_iter().map(|x| (x.0 as u64, x.1)))
-            .expect("`StorageItem` index is u8 - index within range");
+        let slots = SimpleSmt::with_leaves(
+            Self::STORAGE_TREE_DEPTH,
+            items.into_iter().map(|x| (x.0 as u64, x.1)),
+        )
+        .map_err(AccountError::DuplicateStorageItems)?;
         Ok(Self { slots, store })
     }
 
@@ -71,11 +65,9 @@ impl AccountStorage {
 
     /// Sets an item from the storage at the specified index.
     pub fn set_item(&mut self, index: u8, value: Word) -> Word {
-        let old_value = self.get_item(index);
         self.slots
-            .insert_leaf(index as u64, value)
-            .expect("index is u8 - index within range");
-        old_value
+            .update_leaf(index as u64, value)
+            .expect("index is u8 - index within range")
     }
 
     /// Returns a reference to the sparse Merkle tree that backs the storage slots.

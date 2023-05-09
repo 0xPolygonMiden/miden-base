@@ -56,7 +56,7 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
             (tree_index as u64, note.hash().into()),
             ((tree_index + 1) as u64, note.metadata().into()),
         ];
-        let smt = SimpleSmt::new(NOTE_LEAF_DEPTH).unwrap().with_leaves(smt_entries).unwrap();
+        let smt = SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, smt_entries).unwrap();
         note_trees.push(smt);
     }
 
@@ -99,10 +99,9 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
 fn mock_account(nonce: Option<Felt>) -> Account {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
-    let child_smt = SimpleSmt::new(CHILD_SMT_DEPTH)
-        .unwrap()
-        .with_leaves([(CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0)])
-        .unwrap();
+    let child_smt =
+        SimpleSmt::with_leaves(CHILD_SMT_DEPTH, [(CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0)])
+            .unwrap();
     account_merkle_store.extend(child_smt.inner_nodes());
 
     // create account storage

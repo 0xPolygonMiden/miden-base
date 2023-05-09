@@ -1,4 +1,4 @@
-use super::{assets::Asset, assets::NonFungibleAsset, AccountId, String, Word};
+use super::{assets::Asset, assets::NonFungibleAsset, AccountId, MerkleError, String, Word};
 use assembly::ParsingError;
 use core::fmt;
 
@@ -14,7 +14,7 @@ pub enum AccountError {
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
-    DuplicateStorageItems,
+    DuplicateStorageItems(MerkleError),
 }
 
 impl AccountError {

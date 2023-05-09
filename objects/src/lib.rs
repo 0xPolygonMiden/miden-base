@@ -5,9 +5,9 @@ extern crate alloc;
 
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::Mmr,
+    merkle::{MerkleError, Mmr},
     utils::{
-        collections::{BTreeSet, Vec},
+        collections::Vec,
         string::{String, ToString},
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
