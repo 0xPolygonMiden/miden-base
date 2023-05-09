@@ -51,3 +51,4 @@ The lifcycle is as follows:
 * A note is consumed when the its nullifier in the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) is set to `1`
 * Eventually the Operator will receive the note's nullifier together with a transaction proof 
 * After successful verification the Operator sets the corresponding entry in the Nullifier DB to `1`
+
