@@ -20,84 +20,84 @@ pub const CURRENT_CONSUMED_NOTE_PTR: u64 = 3;
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the global inputs section begins.
-pub const GLOBAL_INPUTS_SECTION_OFFSET: u64 = 10;
+pub const GLOBAL_INPUTS_SECTION_OFFSET: u64 = 100;
 
 /// The memory address at which the latest known block hash is stored.
-pub const BLK_HASH_PTR: u64 = 10;
+pub const BLK_HASH_PTR: u64 = 100;
 
 /// The memory address at which the account id is stored.
-pub const ACCT_ID_PTR: u64 = 11;
+pub const ACCT_ID_PTR: u64 = 101;
 
 /// The memory address at which the initial account hash is stored.
-pub const INIT_ACCT_HASH_PTR: u64 = 12;
+pub const INIT_ACCT_HASH_PTR: u64 = 102;
 
 /// The memory address at which the global nullifier commitment is stored.
-pub const NULLIFIER_COM_PTR: u64 = 13;
+pub const NULLIFIER_COM_PTR: u64 = 103;
 
 /// The memory address at which the initial nonce is stored.
-pub const INIT_NONCE_PTR: u64 = 14;
+pub const INIT_NONCE_PTR: u64 = 104;
 
 // BLOCK DATA
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the block data section begins
-pub const BLOCK_DATA_SECTION_OFFSET: u64 = 40;
+pub const BLOCK_DATA_SECTION_OFFSET: u64 = 200;
 
 /// The memory address at which the previous block hash is stored
-pub const PREV_BLOCK_HASH_PTR: u64 = 40;
+pub const PREV_BLOCK_HASH_PTR: u64 = 200;
 
 /// The memory address at which the chain root is stored
-pub const CHAIN_ROOT_PTR: u64 = 41;
+pub const CHAIN_ROOT_PTR: u64 = 201;
 
 /// The memory address at which the state root is stored
-pub const STATE_ROOT_PTR: u64 = 42;
+pub const STATE_ROOT_PTR: u64 = 202;
 
 /// The memory address at which the batch root is stored
-pub const BATCH_ROOT_PTR: u64 = 43;
+pub const BATCH_ROOT_PTR: u64 = 203;
 
 /// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: u64 = 44;
+pub const PROOF_HASH_PTR: u64 = 204;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_NUM_PTR: u64 = 45;
+pub const BLOCK_NUM_PTR: u64 = 205;
 
 /// The memory address at which the note root is stored
-pub const NOTE_ROOT_PTR: u64 = 46;
+pub const NOTE_ROOT_PTR: u64 = 206;
 
 // CHAIN DATA
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the chain data section begins
-pub const CHAIN_MMR_PTR: u64 = 60;
+pub const CHAIN_MMR_PTR: u64 = 300;
 
 /// The memory address at which the total number of leaves in the chain MMR is stored
-pub const CHAIN_MMR_NUM_LEAVES_PTR: u64 = 60;
+pub const CHAIN_MMR_NUM_LEAVES_PTR: u64 = 300;
 
 /// The memory address at which the chain mmr peaks are stored
-pub const CHAIN_MMR_PEAKS_PTR: u64 = 61;
+pub const CHAIN_MMR_PEAKS_PTR: u64 = 301;
 
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the account data section begins
-pub const ACCT_DATA_SECTION_OFFSET: u64 = 100;
+pub const ACCT_DATA_SECTION_OFFSET: u64 = 400;
 
 /// The memory address at which the account id and nonce is stored.
 /// The account id is stored in the first element.
 /// The account nonce is stored in the fourth element.
-pub const ACCT_ID_AND_NONCE_PTR: u64 = 100;
+pub const ACCT_ID_AND_NONCE_PTR: u64 = 400;
 
 /// The memory address at which the account vault root is stored.
-pub const ACCT_VAULT_ROOT_PTR: u64 = 101;
+pub const ACCT_VAULT_ROOT_PTR: u64 = 401;
 
 /// The memory address at which the account storage root is stored.
-pub const ACCT_STORAGE_ROOT_PTR: u64 = 102;
+pub const ACCT_STORAGE_ROOT_PTR: u64 = 402;
 
 /// The memory address at which the account code root is stored.
-pub const ACCT_CODE_ROOT_PTR: u64 = 103;
+pub const ACCT_CODE_ROOT_PTR: u64 = 403;
 
 /// The memory address at which the new account code root is stored
-pub const ACCT_NEW_CODE_ROOT_PTR: u64 = 104;
+pub const ACCT_NEW_CODE_ROOT_PTR: u64 = 404;
 
 // NOTES DATA
 // ------------------------------------------------------------------------------------------------

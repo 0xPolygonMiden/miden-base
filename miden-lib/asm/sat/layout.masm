@@ -22,84 +22,84 @@ const.CURRENT_CONSUMED_NOTE_PTR=3
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the global inputs section begins
-const.GLOBAL_INPUTS_SECTION_OFFSET=10
+const.GLOBAL_INPUTS_SECTION_OFFSET=100
 
 # The memory address at which the latest known block hash is stored
-const.BLK_HASH_PTR=10
+const.BLK_HASH_PTR=100
 
 # The memory address at which the account id is stored
-const.ACCT_ID_PTR=11
+const.ACCT_ID_PTR=101
 
 # The memory address at which the initial account hash is stored
-const.INIT_ACCT_HASH_PTR=12
+const.INIT_ACCT_HASH_PTR=102
 
 # The memory address at which the global nullifier commitment is stored
-const.NULLIFIER_COM_PTR=13
+const.NULLIFIER_COM_PTR=103
 
 # The memory address at which the initial nonce is stored
-const.INIT_NONCE_PTR=14
+const.INIT_NONCE_PTR=104
 
 # GLOBAL BLOCK DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the block data section begins
-const.BLOCK_DATA_SECTION_OFFSET=40
+const.BLOCK_DATA_SECTION_OFFSET=200
 
 # The memory address at which the previous block hash is stored
-const.PREV_BLOCK_HASH_PTR=40
+const.PREV_BLOCK_HASH_PTR=200
 
 # The memory address at which the chain root is stored
-const.CHAIN_ROOT_PTR=41
+const.CHAIN_ROOT_PTR=201
 
 # The memory address at which the state root is stored
-const.STATE_ROOT_PTR=42
+const.STATE_ROOT_PTR=202
 
 # The memory address at which the batch root is stored
-const.BATCH_ROOT_PTR=43
+const.BATCH_ROOT_PTR=203
 
 # The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=44
+const.PROOF_HASH_PTR=204
 
 # The memory address at which the block number is stored
-const.BLOCK_NUM_PTR=45
+const.BLOCK_NUM_PTR=205
 
 # The memory address at which the note root is stored
-const.NOTE_ROOT_PTR=46
+const.NOTE_ROOT_PTR=206
 
 # CHAIN MMR
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the chain data section begins
-const.CHAIN_MMR_PTR=60
+const.CHAIN_MMR_PTR=300
 
 # The memory address at which the total number of leaves in the chain MMR is stored
-const.CHAIN_MMR_NUM_LEAVES_PTR=60
+const.CHAIN_MMR_NUM_LEAVES_PTR=300
 
 # The memory address at which the chain mmr peaks are stored
-const.CHAIN_MMR_PEAKS_PTR=61
+const.CHAIN_MMR_PEAKS_PTR=301
 
 # ACCOUNT DATA
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the account data section begins
-const.ACCT_DATA_SECTION_OFFSET=100
+const.ACCT_DATA_SECTION_OFFSET=400
 
 # The memory address at which the account id and nonce is stored.
 # The account id is stored in the first element.
 # The account nonce is stored in the fourth element.
-const.ACCT_ID_AND_NONCE_PTR=100
+const.ACCT_ID_AND_NONCE_PTR=400
 
 # The memory address at which the account vault root is stored
-const.ACCT_VAULT_ROOT_PTR=101
+const.ACCT_VAULT_ROOT_PTR=401
 
 # The memory address at which the account storage root is stored
-const.ACCT_STORAGE_ROOT_PTR=102
+const.ACCT_STORAGE_ROOT_PTR=402
 
 # The memory address at which the account code root is stored
-const.ACCT_CODE_ROOT_PTR=103
+const.ACCT_CODE_ROOT_PTR=403
 
 # The memory address at which the new account code root is stored
-const.ACCT_NEW_CODE_ROOT_PTR=104
+const.ACCT_NEW_CODE_ROOT_PTR=404
 
 # CONSUMED NOTES DATA
 # -------------------------------------------------------------------------------------------------
