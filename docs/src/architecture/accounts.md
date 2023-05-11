@@ -2,7 +2,7 @@
 An account is an entity which holds assets and defines rules of how these assets can be transferred. The diagram below illustrates basic components of an account. In Miden every account is a smart contract.
 
 <p align="center">
-    <img src="../diagrams/architecture/account/Account_Definition.png">
+    <img src="../diagrams/architecture/account/Account.png">
 </p>
 
 In the above:

@@ -8,7 +8,7 @@ The Miden Node(s) maintain three databases to describe the state:
 3. A database of nullifiers for already consumed notes.
 
 <p align="center">
-  <img src="../diagrams/architecture/state/State.svg">
+  <img src="../diagrams/architecture/state/State.png">
 </p>
 
 ## State components
@@ -32,7 +32,7 @@ As described in [accounts](https://0xpolygonmiden.github.io/miden-base/architect
 
 Note: Having many (or even most) of the accounts be private is very beneficial for the network as a private account contributes only 64 bytes to the global state (32 bytes account ID + 32 bytes account hash). Or, said another way, 1 billion private accounts takes up only $60$ GB of state.
 
-### Notes database 
+### Note database 
 
 Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). This is important for two reasons:
 
@@ -50,7 +50,7 @@ As with accounts, there is a strong incentive to use private notes as they resul
 Notes database look as shown on the diagram below. Each leaf is a block header which contains the commitment to all notes created in that block. Note, the size of the Merkle Mountain Range grows logarithmically with the number of items in it.
 
 <p align="center">
-  <img src="../diagrams/architecture/state/Notes_DB.png">
+  <img src="../diagrams/architecture/state/Note_DB.png">
 </p>
 
 Using a Merkle Mountain Range (append-only accumulator) means that we can't remove individual elements from it. This seemingly means that the size of the note database would grow indefinitely. Moreover, at high tps, it would grow very quickly: at 1K TPS we'd be adding about 1TB/year to the database.
