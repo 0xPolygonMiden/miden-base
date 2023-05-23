@@ -8,15 +8,15 @@ The Miden Node(s) maintain three databases to describe the state:
 3. A database of nullifiers for already consumed notes.
 
 <p align="center">
-  <img src="../diagrams/architecture/state/State.svg">
+  <img src="../diagrams/architecture/state/State.png">
 </p>
 
 ## State components
 
-These databases are represented by authenticated data structures (e.g., Merkle trees), such that we can easily prove that items were added to or removed from a database, and a commitment to the database would be very small.
+These databases are represented by authenticated data structures, such that we can easily prove that items were added to or removed from a database, and a commitment to the database would be very small.
 
 ### Account database
-Account states are recorded in a Sparse Merkle tree which maps account IDs to account hashes, where account hash is computed as 
+Current account states are recorded in a Sparse Merkle tree which maps account IDs to account hashes, where the account hash is computed as 
 
 `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
 
@@ -30,16 +30,16 @@ As described in [accounts](https://0xpolygonmiden.github.io/miden-base/architect
 
 > Losing a state of a private account would mean loss of funds (as the user won't be able to execute transactions) in a similar manner as a loss of a private key would. This problem can be easily mitigated by storing encrypted account state in a cloud or backing it up somewhere else. Unlike storing private keys in the cloud, this does not compromise privacy or security of an account.
 
-Note: Having many (or even most) of the accounts be private is very beneficial for the network as a private account contributes only 64 bytes to the global state (32 bytes account ID + 32 bytes account hash). Or, said another way, 1 billion private accounts takes up only $60$ GB of state.
+Note: Having many (or even most) of the accounts be private is very beneficial for the network as a private account contributes only 40 bytes to the global state (8 bytes account ID + 32 bytes account hash). Or, said another way, 1 billion private accounts takes up only $40$ GB of state.
 
-### Notes database 
+### Note database 
 
 Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). This is important for two reasons:
 
 1. Membership witnesses against such an accumulator needs to be updated very infrequently.
 2. Old membership witnesses can be extended to be used with a new accumulator value, but this extension does not need to be done by the original witness holder.
 
-Both of these properties are needed for supporting local transactions and private accounts.
+Both of these properties are needed for supporting local transactions and privacy.
 
 There are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
 * **Public notes** where the entire note content is recorded in the state. 
@@ -47,10 +47,10 @@ There are two types of [notes](https://0xpolygonmiden.github.io/miden-base/archi
 
 As with accounts, there is a strong incentive to use private notes as they result in lower fees. This is also beneficial to the network as a private note adds only 64 bytes to the state (32 bytes when it is produced, and 32 bytes when it is consumed).
 
-Notes database look as shown on the diagram below. Each leaf is a block header which contains the commitment to all notes created in that block. Note, the size of the Merkle Mountain Range grows logarithmically with the number of items in it.
+Note database look as shown on the diagram below. Each leaf is a block header which contains the commitment to all notes created in that block. Note, the size of the Merkle Mountain Range grows logarithmically with the number of items in it.
 
 <p align="center">
-  <img src="../diagrams/architecture/state/Notes_DB.png">
+  <img src="../diagrams/architecture/state/Note_DB.png">
 </p>
 
 Using a Merkle Mountain Range (append-only accumulator) means that we can't remove individual elements from it. This seemingly means that the size of the note database would grow indefinitely. Moreover, at high tps, it would grow very quickly: at 1K TPS we'd be adding about 1TB/year to the database.
@@ -61,14 +61,14 @@ ToDo: Describe and specify life-time restrictions for notes on the database.
 
 ### Nullifier database
 
-Nullifiers provide information on whether a specific note has been consumed yet. Nullifiers are stored in a Sparse Merkle Tree, which maps nullifiers to block heights at which they were created.  Using this, one can check and prove that a given nullifier is not in the database. There will be one tree per epoch (~3 months), and Miden nodes store always at least the last two trees. However, the roots of the old trees are still stored.
+Nullifiers provide information on whether a specific note has been consumed yet. Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html), which maps nullifiers to `0` or `1`. Using this, one can check and prove that a given nullifier is not in the database. 
 
 <p align="center">
   <img src="../diagrams/architecture/state/Nullifier_DB.png">
 </p>
 
-To prove that nullifier `11` is not in the database we need to provide a Merkle path to its node, and then show that the value in that node is $0$. In our case nullifiers are 32 bytes each, and thus, the height of the Sparse Merkle tree need to be 256.
+To prove that nullifier `11` is not in the database the operator needs to provide a Merkle path to its node, and then show that the value in that node is $0$. In our case nullifiers are 32 bytes each, and thus, the height of the Sparse Merkle tree need to be 256.
 
 To be able to add new nullifiers to the database, operators needs to maintain the entire nullifier set - otherwise they would not be able to compute the new root of the tree. 
 
-If a user wants to consume a note that is more than 6 month old, there must be a merkle path provided to the Miden Node for verification.
+There will be one tree per epoch (~3 months), and Miden nodes always store trees for at least two epochs. However, the roots of the old trees are still stored. If a user wants to consume a note that is more than 6 month old, there must be a merkle path provided to the Miden Node for verification.
