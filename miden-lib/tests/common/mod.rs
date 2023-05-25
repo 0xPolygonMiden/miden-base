@@ -5,11 +5,11 @@ pub use crypto::{
 };
 pub use miden_lib::{memory, MidenLib};
 pub use miden_objects::{
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     notes::{Note, NoteOrigin, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
-    Account, AccountCode, AccountId, AccountStorage, AccountType, BlockHeader, ChainMmr,
-    StorageItem,
+    Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
+    ChainMmr, StorageItem,
 };
 use miden_stdlib::StdLibrary;
 pub use processor::{

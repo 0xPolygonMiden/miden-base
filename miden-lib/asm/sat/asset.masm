@@ -43,7 +43,7 @@ end
 #!
 #! ASSET is the asset to check.
 #! is_fungible_asset is a boolean indicating whether the asset is fungible.
-proc.is_fungible_asset
+export.is_fungible_asset
     # check the first element, it will be:
     # - ZERO for a fungible asset
     # - non-ZERO for a non-fungible asset
@@ -66,7 +66,7 @@ export.validate_non_fungible_asset
     dup.2 exec.account::is_non_fungible_faucet assert
     # => [ASSET]
 
-    # assert the most significant bit of the most significant elememnt (ASSET[3]) is 0
+    # assert the most significant bit of the most significant element (ASSET[3]) is 0
     dup u32split swap drop u32checked_shr.31 not assert
     # => [ASSET]
 end
@@ -78,7 +78,7 @@ end
 #!
 #! ASSET is the asset to check.
 #! is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
-proc.is_non_fungible_asset
+export.is_non_fungible_asset
     # check the first element, it will be:
     # - ZERO for a fungible asset
     # - non-ZERO for a non-fungible asset

@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use assembly::{Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
 
 pub mod memory;
 

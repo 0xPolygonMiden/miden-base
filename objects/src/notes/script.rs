@@ -1,5 +1,5 @@
 use super::{Digest, NoteError};
-use assembly::ProgramAst;
+use assembly::ast::ProgramAst;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct NoteScript {

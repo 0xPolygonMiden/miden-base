@@ -5,7 +5,7 @@ extern crate alloc;
 
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::{MerkleError, Mmr},
+    merkle::{MerkleError, Mmr, TieredSmt},
     utils::{
         collections::Vec,
         string::{String, ToString},
