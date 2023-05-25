@@ -71,6 +71,14 @@ impl Asset {
     pub const fn is_fungible(&self) -> bool {
         matches!(self, Self::Fungible(_))
     }
+
+    /// Returns the key which is used to store this asset in the account vault.
+    pub fn key(&self) -> Word {
+        match self {
+            Self::Fungible(asset) => asset.key(),
+            Self::NonFungible(asset) => asset.key(),
+        }
+    }
 }
 
 impl From<Asset> for Word {
@@ -97,7 +105,7 @@ impl TryFrom<Word> for Asset {
     type Error = AssetError;
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
-        let first_bit = value[0].as_int() >> 63;
+        let first_bit = value[3].as_int() >> 63;
         match first_bit {
             0 => NonFungibleAsset::try_from(value).map(Asset::from),
             1 => FungibleAsset::try_from(value).map(Asset::from),
@@ -110,7 +118,7 @@ impl TryFrom<[u8; 32]> for Asset {
     type Error = AssetError;
 
     fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let first_bit = value[0] >> 7;
+        let first_bit = value[3] >> 7;
         match first_bit {
             0 => NonFungibleAsset::try_from(value).map(Asset::from),
             1 => FungibleAsset::try_from(value).map(Asset::from),
@@ -171,6 +179,13 @@ impl FungibleAsset {
     /// Returns true if this and the other assets were issued from the same faucet.
     pub fn is_from_same_faucet(&self, other: &Self) -> bool {
         self.faucet_id == other.faucet_id
+    }
+
+    /// Returns the key which is used to store this asset in the account vault.
+    pub fn key(&self) -> Word {
+        let mut key = Word::default();
+        key[3] = *self.faucet_id;
+        key
     }
 
     // OPERATIONS
@@ -269,7 +284,8 @@ impl TryFrom<Word> for FungibleAsset {
         if (value[1], value[2]) != (ZERO, ZERO) {
             return Err(AssetError::fungible_asset_invalid_word(value));
         }
-        let faucet_id = AccountId::try_from(value[3]).map_err(AssetError::invalid_account_id)?;
+        let faucet_id = AccountId::try_from(value[3])
+            .map_err(|e| AssetError::invalid_account_id(e.to_string()))?;
         let amount = value[0].as_int();
         Self::new(faucet_id, amount)
     }
@@ -342,6 +358,12 @@ impl NonFungibleAsset {
         Ok(asset)
     }
 
+    // ACCESSORS
+    // --------------------------------------------------------------------------------------------
+    pub fn key(&self) -> Word {
+        self.0
+    }
+
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -351,7 +373,8 @@ impl NonFungibleAsset {
     /// - The faucet_id is not a valid non-fungible faucet ID.
     /// - The most significant bit of the asset is not ZERO.
     fn validate(&self) -> Result<(), AssetError> {
-        let faucet_id: AccountId = self.0[1].try_into().map_err(AssetError::InvalidAccountId)?;
+        let faucet_id = AccountId::try_from(self.0[1])
+            .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
 
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
             return Err(AssetError::not_a_fungible_faucet_id(faucet_id));

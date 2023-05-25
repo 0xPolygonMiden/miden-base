@@ -1,9 +1,9 @@
 use super::{
-    Account, AccountId, AccountStorage, Asset, BlockHeader, ChainMmr, Digest, ExecutedTransaction,
-    Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex, Note, NoteOrigin, StorageItem,
+    Account, AccountId, AccountStorage, AccountVault, Asset, BlockHeader, ChainMmr, Digest,
+    ExecutedTransaction, Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex,
+    NonFungibleAsset, NonFungibleAssetDetails, Note, NoteOrigin, SimpleSmt, StorageItem,
     TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
-use crypto::merkle::SimpleSmt;
 use test_utils::rand;
 
 // MOCK DATA
@@ -12,6 +12,9 @@ pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 0b0010011011
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
+pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1110011100 << 54;
+
+pub const NON_FUNGIBLE_ASSET_DATA: [u8; 4] = [1, 2, 3, 4];
 
 pub const NONCE: Felt = Felt::ZERO;
 
@@ -96,6 +99,22 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     chain_mmr
 }
 
+fn mock_account_vault() -> AccountVault {
+    // prepare fungible asset
+    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+    let balance = 100000;
+    let fungible_asset = Asset::Fungible(FungibleAsset::new(faucet_id, balance).unwrap());
+
+    // prepare non fungible asset
+    let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+    let non_fungible_asset_details =
+        NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
+    let non_fungible_asset =
+        Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
+
+    AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
+}
+
 fn mock_account(nonce: Option<Felt>) -> Account {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
@@ -111,11 +130,15 @@ fn mock_account(nonce: Option<Felt>) -> Account {
     )
     .unwrap();
 
+    // Create account vault
+    let account_vault = mock_account_vault();
+
     // Create an account with storage items
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let account = Account::new(
         account_id,
+        account_vault,
         account_storage,
         "proc.test_proc push.1 end",
         nonce.unwrap_or(Felt::ZERO),

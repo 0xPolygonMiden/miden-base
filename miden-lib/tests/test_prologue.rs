@@ -153,7 +153,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR
     assert_eq!(
         process.get_memory_value(0, ACCT_VAULT_ROOT_PTR).unwrap(),
-        inputs.account().vault().root().as_elements()
+        inputs.account().vault().get_commitment().as_elements()
     );
 
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR

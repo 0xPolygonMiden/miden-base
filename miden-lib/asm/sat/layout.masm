@@ -505,6 +505,26 @@ export.set_acct_storage_root
     push.ACCT_STORAGE_ROOT_PTR mem_storew dropw
 end
 
+#! Returns the account vault root.
+#! 
+#! Stack: []
+#! Output: [ACCT_VAULT_ROOT]
+#!
+#! - ACCT_VAULT_ROOT is the account asset vault root.
+export.get_acct_vault_root
+    padw push.ACCT_VAULT_ROOT_PTR mem_loadw
+end
+
+#! Sets the account vault root.
+#!
+#! Stack: [ACCT_VAULT_ROOT]
+#! Output: []
+#!
+#! - ACCT_VAULT_ROOT is the account vault root to be set.
+export.set_acct_vault_root
+    push.ACCT_VAULT_ROOT_PTR mem_storew dropw
+end
+
 # CONSUMED NOTES
 # -------------------------------------------------------------------------------------------------
 
