@@ -1,6 +1,7 @@
 use super::{
-    assets::Asset, AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField, TieredSmt,
-    ToAdviceInputs, ToString, Vec, Word, ZERO,
+    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField, TieredSmt, ToAdviceInputs,
+    ToString, Vec, Word, ZERO,
 };
 
 mod account_id;
@@ -83,7 +84,7 @@ impl Account {
         let mut elements = [ZERO; 16];
         elements[0] = *self.id;
         elements[3] = self.nonce;
-        elements[4..8].copy_from_slice(self.vault.get_commitment().as_elements());
+        elements[4..8].copy_from_slice(self.vault.commitment().as_elements());
         elements[8..12].copy_from_slice(&self.storage.root());
         elements[12..].copy_from_slice(self.code.root().as_elements());
         Hasher::hash_elements(&elements)
@@ -147,7 +148,7 @@ impl ToAdviceInputs for Account {
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // push core items onto the stack
         target.push_onto_stack(&[*self.id, ZERO, ZERO, self.nonce]);
-        target.push_onto_stack(self.vault.get_commitment().as_elements());
+        target.push_onto_stack(self.vault.commitment().as_elements());
         target.push_onto_stack(&self.storage.root());
         target.push_onto_stack(self.code.root().as_elements());
 
@@ -155,15 +156,7 @@ impl ToAdviceInputs for Account {
         target.add_merkle_nodes(self.storage.slots().inner_nodes());
         target.add_merkle_nodes(self.storage.store().inner_nodes());
 
-        // extend the merkle store with account vault data
-        target.add_merkle_nodes(self.vault.asset_tree().inner_nodes());
-
-        // populate advice map with tiered merkle tree leaf nodes
-        self.vault.asset_tree().upper_leaves().for_each(|(node, key, value)| {
-            // TODO: temporary hack - assume the node is interted at depth 16 and compute remaining key accordingly
-            let mut key = Word::from(key);
-            key[3] = ((key[3].as_int() << 16) >> 16).into();
-            target.insert_into_map(*node, key.into_iter().chain(value).collect());
-        })
+        // extend the advice provider with [AccountVault] inputs
+        self.vault.to_advice_inputs(target);
     }
 }

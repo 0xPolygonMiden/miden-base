@@ -118,7 +118,7 @@ impl TryFrom<[u8; 32]> for Asset {
     type Error = AssetError;
 
     fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let first_bit = value[3] >> 7;
+        let first_bit = value[31] >> 7;
         match first_bit {
             0 => NonFungibleAsset::try_from(value).map(Asset::from),
             1 => FungibleAsset::try_from(value).map(Asset::from),

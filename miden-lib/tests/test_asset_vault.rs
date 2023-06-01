@@ -17,12 +17,12 @@ fn test_get_balance() {
     let code = format!(
         "
         use.miden::sat::prologue
-        use.miden::sat::asset_vault
+        use.miden::sat::account_vault
 
         begin
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
-            exec.asset_vault::get_balance
+            exec.account_vault::get_balance
         end
     "
     );
@@ -50,12 +50,12 @@ fn test_get_balance_non_fungible_fails() {
     let code = format!(
         "
         use.miden::sat::prologue
-        use.miden::sat::asset_vault
+        use.miden::sat::account_vault
 
         begin
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN}
-            exec.asset_vault::get_balance
+            exec.account_vault::get_balance
         end
     "
     );
@@ -80,12 +80,12 @@ fn test_has_non_fungible_asset() {
     let code = format!(
         "
         use.miden::sat::prologue
-        use.miden::sat::asset_vault
+        use.miden::sat::account_vault
 
         begin
             exec.prologue::prepare_transaction
             push.{non_fungible_asset_key}
-            exec.asset_vault::has_non_fungible_asset
+            exec.account_vault::has_non_fungible_asset
         end
     ",
         non_fungible_asset_key = prepare_word(&non_fungible_asset.key())

@@ -1,6 +1,7 @@
-use crate::assets::{FungibleAsset, NonFungibleAsset};
-
-use super::{AccountError, AccountId, AccountType, Asset, Digest, TieredSmt, Vec, ZERO};
+use super::{
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
+    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, ZERO,
+};
 use core::default::Default;
 
 // ACCOUNT VAULT
@@ -39,7 +40,7 @@ impl AccountVault {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to this vault.
-    pub fn get_commitment(&self) -> Digest {
+    pub fn commitment(&self) -> Digest {
         self.asset_tree.root()
     }
 
@@ -77,6 +78,7 @@ impl AccountVault {
 
     /// Returns an iterator over the assets stored in the vault.
     pub fn assets(&self) -> impl Iterator<Item = Asset> + '_ {
+        // TODO: We will update [TieredSmt] to expose `.values()` which will simplify this logic.
         self.asset_tree
             .bottom_leaves()
             .flat_map(|(_, values)| {
@@ -88,11 +90,6 @@ impl AccountVault {
             .chain(self.asset_tree.upper_leaves().map(|(_, _, value)| {
                 Asset::try_from(value).expect("tree only contains valid assets")
             }))
-    }
-
-    /// Returns a reference to the asset TSMT.
-    pub fn asset_tree(&self) -> &TieredSmt {
-        &self.asset_tree
     }
 
     // PUBLIC MODIFIERS
@@ -192,6 +189,8 @@ impl AccountVault {
         // if the amount of the asset is zero, remove the asset from the vault.
         let new = match current.amount() {
             0 => {
+                // TODO: This logic will not result in the correct result - we need to update it as
+                // [TieredSmt] doesn't handle deletions correctly at the minute.
                 // return ZERO value to insert into the vault
                 [ZERO, ZERO, ZERO, ZERO]
             }
@@ -214,6 +213,8 @@ impl AccountVault {
         // remove the asset from the vault.
         let old = self.asset_tree.insert(asset.key().into(), [ZERO, ZERO, ZERO, ZERO]);
 
+        // TODO: This logic will not result in the correct result - we need to update it as
+        // [TieredSmt] doesn't handle deletions correctly at the minute.
         // return an error if the asset did not exist in the vault.
         if old == [ZERO, ZERO, ZERO, ZERO] {
             return Err(AccountError::NonFungibleAssetNotFound(asset));
@@ -221,5 +222,20 @@ impl AccountVault {
 
         // return the asset that was removed.
         Ok(asset)
+    }
+}
+
+impl ToAdviceInputs for AccountVault {
+    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
+        // extend the merkle store with account vault data
+        target.add_merkle_nodes(self.asset_tree.inner_nodes());
+
+        // populate advice map with tiered merkle tree leaf nodes
+        self.asset_tree.upper_leaves().for_each(|(node, key, value)| {
+            // TODO: temporary hack - assume the node is interted at depth 16 and compute remaining key accordingly
+            let mut key = Word::from(key);
+            key[3] = ((key[3].as_int() << 16) >> 16).into();
+            target.insert_into_map(*node, key.into_iter().chain(value).collect());
+        })
     }
 }
