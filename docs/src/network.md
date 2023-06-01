@@ -34,6 +34,6 @@ Want to learn more about Miden Nodes? See [here](network/verifier-contract.md).
 ## Bridge Contract
 This contract serves the Miden users on Ethereum as bridge. Users can deposit their tokens and get an equivalent amount minted and sent to the specified address on Polygon Miden.
 
-Want to learn more about Miden Nodes? See [here](network/bridge-contract.md).
+Want to learn more about the bridge? See [here](network/bridge.md).
 
 [This is a dummy text, we need to explain the contract in detail]
