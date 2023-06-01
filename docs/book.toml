@@ -5,9 +5,7 @@ multilingual = false
 src = "src"
 title = "Polygon Miden Documentation"
 
-[output.katex]
-
 [output.html]
 
 [preprocessor.katex]
-renderers = ["html"]
+after = ["links"]
