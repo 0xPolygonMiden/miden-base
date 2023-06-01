@@ -36,7 +36,7 @@ export.get_current_hash
 
     # stream account data and compute sequential hash. We perform two `mem_stream` operations
     # because account data consists of exactly 4 words.
-    mem_stream mem_stream
+    mem_stream hperm mem_stream hperm
 
     # extract account hash
     dropw swapw dropw

@@ -28,7 +28,7 @@ export.prepare_note.4
 
     # load the note inputs from the advice provider
     # TODO: optimize this to load items directly onto the stack.
-    locaddr.0 padw padw padw adv_pipe adv_pipe
+    locaddr.0 padw padw padw adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, addr', INPUTS_HASH]
 
     # extract inputs hash and assert it matches commitment stored in memory

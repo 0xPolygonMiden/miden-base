@@ -60,7 +60,7 @@ proc.process_block_data
     # => [ZERO, ZERO, ZERO, block_data_ptr]
 
     # read the block data
-    adv_pipe adv_pipe adv_pipe
+    adv_pipe hperm adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, block_data_ptr']
 
     # extract digest from hasher rate elements (h_0, ..., h_3)
@@ -147,7 +147,7 @@ proc.process_acct_data
     padw padw padw
 
     # read the account data
-    adv_pipe adv_pipe
+    adv_pipe hperm adv_pipe hperm
 
     # extract digest from hasher rate elements (h_0, ..., h_3)
     dropw swapw dropw
@@ -207,7 +207,7 @@ proc.authenticate_note.2
     # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, AUTH_DIGEST]
 
     # read the core hash and note root from the advice provider
-    adv_pipe
+    adv_pipe hperm
     # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, AUTH_DIGEST]
 
     # extract the digest and assert it matches MMR_LEAF
@@ -272,7 +272,7 @@ proc.process_consumed_note
 
     # read note data from the advice provider
     padw padw padw
-    adv_pipe adv_pipe
+    adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, i]
 
     # extract nullifier (digest)
@@ -324,7 +324,7 @@ proc.process_consumed_note
     # loop and read assets from the advice provider
     while.true
         # read assets from advice provider
-        adv_pipe
+        adv_pipe hperm
         # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
         # check if we should loop again

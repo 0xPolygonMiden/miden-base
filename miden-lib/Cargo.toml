@@ -16,18 +16,18 @@ default = ["std"]
 std = ["assembly/std", "processor/std"]
 
 [dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev", default-features = false }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 
 [dev-dependencies]
-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
+crypto = { package = "miden-crypto", version = "0.5", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects"}
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev", features = ["internals"] }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
-test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", features = ["internals"] }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
 
 
 [build-dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "frisitano-next-dev" }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
