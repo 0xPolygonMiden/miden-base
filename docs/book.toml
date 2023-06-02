@@ -6,6 +6,10 @@ src = "src"
 title = "Polygon Miden Documentation"
 
 [output.html]
+git-repository-url = "https://github.com/0xPolygonMiden/miden-base/"
 
 [preprocessor.katex]
 after = ["links"]
+
+[output.linkcheck]
+warning-policy = "ignore"
