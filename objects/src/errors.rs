@@ -1,5 +1,5 @@
 use super::{assets::Asset, assets::NonFungibleAsset, AccountId, MerkleError, String, Word};
-use assembly::ParsingError;
+use assembly::{AssemblyError, ParsingError};
 use core::fmt;
 
 // ACCOUNT ERROR
@@ -11,6 +11,7 @@ pub enum AccountError {
     AccountIdTooFewOnes,
     SeedDigestTooFewTrailingZeros,
     CodeParsingFailed(ParsingError),
+    AccountCodeAsselmberError(AssemblyError),
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
