@@ -1,7 +1,7 @@
 use super::{
-    Account, AccountId, AccountStorage, Asset, BlockHeader, ChainMmr, Digest, ExecutedTransaction,
-    Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex, Note, NoteOrigin, StorageItem,
-    TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
+    Account, AccountCode, AccountId, AccountStorage, Asset, BlockHeader, ChainMmr, Digest,
+    ExecutedTransaction, Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex, Note,
+    NoteOrigin, StorageItem, TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
 use crypto::merkle::SimpleSmt;
 use test_utils::rand;
@@ -97,6 +97,10 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
 }
 
 fn mock_account(nonce: Option<Felt>) -> Account {
+    // Create account id
+    let account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
     let child_smt =
@@ -111,16 +115,23 @@ fn mock_account(nonce: Option<Felt>) -> Account {
     )
     .unwrap();
 
+    let account_code = "\
+    export.account_procedure_1
+        push.1.2
+        add
+    end
+
+    export.account_procedure_2
+        push.2.1
+        sub
+    end
+    ";
+    let account_code = AccountCode::new(account_code, account_id).unwrap();
+
     // Create an account with storage items
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::new(
-        account_id,
-        account_storage,
-        "proc.test_proc push.1 end",
-        nonce.unwrap_or(Felt::ZERO),
-    )
-    .unwrap();
+    let account =
+        Account::new(account_id, account_storage, account_code, nonce.unwrap_or(Felt::ZERO))
+            .unwrap();
 
     account
 }

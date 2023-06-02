@@ -1,5 +1,5 @@
 [package]
-name = "miden_lib"
+name = "miden-lib"
 version = "0.1.0"
 authors = ["miden contributors"]
 readme = "README.md"

@@ -21,6 +21,9 @@ const.MIN_ACCOUNT_ONES=5
 # The depth of the account storage sparse merkle tree
 const.STORAGE_TREE_DEPTH=8
 
+# The depth of the account code tree
+const.ACCOUNT_CODE_TREE_DEPTH=8
+
 # PROCEDURES
 # =================================================================================================
 
@@ -144,6 +147,31 @@ export.is_non_fungible_faucet
     # => [is_non_fungible_faucet]
 end
 
+#! Returns a boolean indicating whether the account is a faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_faucet is a boolean indicating whether the account is a faucet.
+export.is_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungilbe faucet
+    dup push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fung_faucet, acct_type]
+
+    # check if the account type is a non-fungible faucet
+    swap push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fung_faucet, is_fung_faucet]
+
+    # check if the account is a faucet
+    or
+    # => [is_faucet]
+end
+
 #! Returns a boolean indicating whether the account is a regular updatable account.
 #!
 #! Stack: [acct_id]
@@ -264,4 +292,33 @@ export.set_item
     # set the new storage root
     swapw exec.layout::set_acct_storage_root
     # => [V]
+end
+
+#! Authenticates the proedcure root is part of the account code Merkle treee. Panics if the
+#! procedure root is not part of the account code Merkle tree.
+#!
+#! Stack: [PROC_ROOT]
+#! Output: [PROC_ROOT]
+#!
+#! - PROC_ROOT is the hash of the procedure to authenticate.
+export.authenticate_procedure.1
+    # load the account code root onto the stack
+    exec.layout::get_acct_code_root swapw
+    # => [PROC_ROOT, CODE_ROOT]
+
+    # load the index of the procedure root onto the advice stack
+    adv.keyval adv_push.1 movdn.4
+    # => [PROC_ROOT, index, CODE_ROOT]
+
+    # push the depth of the code Merkle tree onto the stack
+    push.ACCOUNT_CODE_TREE_DEPTH movdn.4
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # verify the procedure exists in the account code Merkle tree
+    mtree_verify
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # drop accessory variables
+    movup.4 drop movup.4 drop swapw dropw
+    # => [PROC_ROOT]
 end
