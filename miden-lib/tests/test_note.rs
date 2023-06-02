@@ -41,7 +41,6 @@ fn test_get_sender() {
 
         begin
             exec.prologue::prepare_transaction
-            push.0
             exec.note_setup::prepare_note
             dropw dropw dropw dropw
             exec.note::get_sender
@@ -79,7 +78,6 @@ fn test_get_vault_data() {
             exec.prologue::prepare_transaction
 
             # prepare note 0
-            push.0
             exec.note_setup::prepare_note
             
             # drop the note inputs
@@ -93,7 +91,6 @@ fn test_get_vault_data() {
             push.{note_0_num_assets} assert_eq
 
             # prepare note 1
-            push.1
             exec.note_setup::prepare_note
 
             # drop the note inputs
@@ -146,7 +143,6 @@ fn test_get_assets() {
             exec.prologue::prepare_transaction
 
             # prepare note 0
-            push.0
             exec.note_setup::prepare_note
 
             # drop the note inputs
@@ -165,7 +161,6 @@ fn test_get_assets() {
             eq.{DEST_POINTER_NOTE_0} assert
 
             # prepare note 1
-            push.1
             exec.note_setup::prepare_note
 
             # drop the note inputs

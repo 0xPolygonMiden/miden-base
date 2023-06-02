@@ -1,24 +1,28 @@
-use super::{Digest, NoteError};
-use assembly::ast::ProgramAst;
+use super::{
+    Assembler, AssemblyContext, AssemblyContextType, CodeBlock, Digest, NoteError, ProgramAst,
+};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct NoteScript {
     hash: Digest,
     code: ProgramAst,
 }
 
 impl NoteScript {
-    pub fn new<S>(script_src: S) -> Result<Self, NoteError>
-    where
-        S: AsRef<str>,
-    {
-        let code = ProgramAst::parse(script_src.as_ref()).unwrap();
-        // TODO: the code needs to be compiled with tx kernel and miden rollup library; we need
-        // to do this to get the code hash and initialize the hash filed properly
-        Ok(Self {
-            hash: Digest::default(),
-            code,
-        })
+    pub fn new(
+        code: ProgramAst,
+        assembler: &mut Assembler,
+    ) -> Result<(Self, CodeBlock), NoteError> {
+        let code_block = assembler
+            .compile_in_context(&code, &mut AssemblyContext::new(AssemblyContextType::Program))
+            .map_err(NoteError::ScriptCompilationError)?;
+        Ok((
+            Self {
+                hash: code_block.hash(),
+                code,
+            },
+            code_block,
+        ))
     }
 
     pub fn hash(&self) -> Digest {

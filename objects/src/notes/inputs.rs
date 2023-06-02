@@ -4,7 +4,7 @@ use super::{Digest, Felt, Hasher, NoteError, ZERO};
 /// - inputs are stored in reverse stack order such that when they are pushed onto stack they are
 ///   in the correct order
 /// - hash is computed from inputs in the order they are stored (reverse stack order)
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NoteInputs {
     inputs: [Felt; 16],
     hash: Digest,

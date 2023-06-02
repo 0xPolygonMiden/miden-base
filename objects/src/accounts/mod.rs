@@ -1,7 +1,8 @@
 use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField, TieredSmt, ToAdviceInputs,
-    ToString, Vec, Word, ZERO,
+    AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType, Digest,
+    Felt, Hasher, LibraryPath, Module, ModuleAst, StarkField, TieredSmt, ToAdviceInputs, ToString,
+    Vec, Word, ZERO,
 };
 
 mod account_id;

@@ -35,6 +35,68 @@ impl Library for MidenLib {
     }
 }
 
+// SINGLE ACCOUNT TRANSACTION (SAT) KERNEL
+// ================================================================================================
+
+pub struct SatKernel;
+
+impl SatKernel {
+    // SAT KERNEL METHODS
+    // --------------------------------------------------------------------------------------------
+    /// Returns masm source code which encodes the transaction kernel system procedures.
+    pub fn kernel() -> &'static str {
+        include_str!("../asm/sat/kernel.masm")
+    }
+
+    // SAT KERNEL SECTIONS
+    // --------------------------------------------------------------------------------------------
+    /// Returns masm source code which encodes the transaction kernel prologue.
+    pub fn prologue() -> &'static str {
+        "\
+        use.miden::sat::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+        end
+        "
+    }
+
+    /// Returns masm source code which encodes the transaction kernel epilogue.
+    pub fn epilogue() -> &'static str {
+        "\
+        use.miden::sat::epilogue
+
+        begin
+            exec.epilogue::finalize_transaction
+        end"
+    }
+
+    /// Returns masm source code which encodes the transaction kernel note setup script.
+    pub fn note_setup() -> &'static str {
+        "\
+        use.miden::sat::note_setup
+
+        begin
+            exec.note_setup::prepare_note
+        end
+        "
+    }
+
+    /// Returns masm source code which encodes the transaction kernel note teardown script.
+    pub fn note_processing_teardown() -> &'static str {
+        "\
+        use.miden::sat::note
+
+        begin
+            exec.note::reset_current_consumed_note_ptr
+        end
+        "
+    }
+}
+
+// TEST
+// ================================================================================================
+
 #[test]
 fn test_compile() {
     let path = "miden::sat::layout::get_consumed_note_ptr";
