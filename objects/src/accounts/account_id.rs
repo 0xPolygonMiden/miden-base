@@ -1,5 +1,5 @@
 use super::{AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
-use core::{fmt, ops::Deref};
+use core::{fmt, hash::Hash, ops::Deref};
 
 // ACCOUNT ID
 // ================================================================================================
@@ -247,6 +247,12 @@ impl TryFrom<u64> for AccountId {
 impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "0x{:02x}", self.as_int())
+    }
+}
+
+impl Hash for AccountId {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.0.as_int().hash(state)
     }
 }
 

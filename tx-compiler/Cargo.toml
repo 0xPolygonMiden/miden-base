@@ -1,0 +1,17 @@
+[package]
+name = "tx-compiler"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = ["assembly/std", "crypto/std", "miden-core/std"]
+
+[dependencies]
+assembly = { package = "miden-assembly", git = "https://github.com/frisitano-polygon/miden-vm.git", branch = "frisitano-tx-compiler", default-features = false }
+crypto = { package = "miden-crypto", version = "0.5", default-features = false }
+hashbrown = { version = "0.13.2" }
+miden-core = { package = "miden-core", git = "https://github.com/frisitano-polygon/miden-vm.git", branch = "frisitano-tx-compiler", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects"}
+miden-lib = { package = "miden-lib", path = "../miden-lib" }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/frisitano-polygon/miden-vm.git", branch = "frisitano-tx-compiler" }

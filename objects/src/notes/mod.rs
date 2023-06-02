@@ -1,8 +1,6 @@
-use crate::AccountId;
-
 use super::{
-    assets::Asset, AdviceInputsBuilder, Digest, Felt, Hasher, NoteError, ToAdviceInputs, Vec, Word,
-    WORD_SIZE, ZERO,
+    assets::Asset, AccountId, AdviceInputsBuilder, Assembler, AssemblyContext, CodeBlock, Digest,
+    Felt, Hasher, NoteError, ProgramAst, ToAdviceInputs, Vec, Word, WORD_SIZE, ZERO,
 };
 
 mod inputs;
@@ -70,22 +68,19 @@ impl Note {
     /// - The number of inputs exceeds 16.
     /// - The number of provided assets exceeds 1000.
     /// - The list of assets contains duplicates.
-    pub fn new<S>(
-        script_src: S,
+    pub fn new(
+        script: NoteScript,
         inputs: &[Felt],
         assets: &[Asset],
         serial_num: Word,
         sender: AccountId,
         tag: Felt,
         origin: Option<NoteOrigin>,
-    ) -> Result<Self, NoteError>
-    where
-        S: AsRef<str>,
-    {
+    ) -> Result<Self, NoteError> {
         let vault = NoteVault::new(assets)?;
         let num_assets = vault.num_assets();
         Ok(Self {
-            script: NoteScript::new(script_src)?,
+            script,
             inputs: NoteInputs::new(inputs),
             vault,
             serial_num,

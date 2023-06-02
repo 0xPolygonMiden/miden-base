@@ -2,6 +2,7 @@
 members = [
   "objects",
   "miden-lib",
+  "tx-compiler",
 ]
 
 [profile.release]

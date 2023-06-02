@@ -151,6 +151,7 @@ pub enum NoteError {
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
     InvalidOriginIndex(String),
+    ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
 }

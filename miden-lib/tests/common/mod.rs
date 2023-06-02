@@ -6,7 +6,7 @@ pub use crypto::{
 pub use miden_lib::{memory, MidenLib};
 pub use miden_objects::{
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteOrigin, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    notes::{Note, NoteOrigin, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
     Account, AccountCode, AccountId, AccountStorage, AccountType, BlockHeader, ChainMmr,
     StorageItem,

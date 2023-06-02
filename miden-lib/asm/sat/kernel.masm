@@ -1,0 +1,11 @@
+use.miden::sat::account
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_hash
+    exec.account::get_current_hash
+end

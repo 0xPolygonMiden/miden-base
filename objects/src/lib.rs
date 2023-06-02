@@ -3,6 +3,9 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+use assembly::{
+    Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module, ModuleAst, ProgramAst,
+};
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::{MerkleError, Mmr},
@@ -12,6 +15,7 @@ use crypto::{
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
+use miden_core::code_blocks::CodeBlock;
 
 mod accounts;
 pub use accounts::{
