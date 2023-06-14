@@ -1,4 +1,7 @@
-use super::{assets::Asset, assets::NonFungibleAsset, AccountId, MerkleError, String, Word};
+use super::{
+    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    AccountId, MerkleError, String, Word,
+};
 use assembly::{AssemblyError, ParsingError};
 use core::fmt;
 
@@ -9,6 +12,11 @@ use core::fmt;
 pub enum AccountError {
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
+    AddFungibleAssetBalanceError(AssetError),
+    SubtractFungibleAssetBalanceError(AssetError),
+    DuplicateNonFungibleAsset(NonFungibleAsset),
+    NonFungibleAssetNotFound(NonFungibleAsset),
+    FungibleAssetNotFound(FungibleAsset),
     SeedDigestTooFewTrailingZeros,
     CodeParsingFailed(ParsingError),
     AccountCodeAsselmberError(AssemblyError),
@@ -16,6 +24,7 @@ pub enum AccountError {
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
     DuplicateStorageItems(MerkleError),
+    DuplicateAsset(MerkleError),
 }
 
 impl AccountError {
@@ -70,7 +79,7 @@ pub enum AssetError {
     FungibleAssetInvalidTag(u32),
     FungibleAssetInvalidWord(Word),
     InconsistentFaucetIds(AccountId, AccountId),
-    InvalidAccountId(AccountError),
+    InvalidAccountId(String),
     InvalidFieldElement(String),
     NonFungibleAssetInvalidFirstBit,
     NonFungibleAssetInvalidTag(u32),
@@ -104,7 +113,7 @@ impl AssetError {
         Self::InconsistentFaucetIds(id1, id2)
     }
 
-    pub fn invalid_account_id(err: AccountError) -> Self {
+    pub fn invalid_account_id(err: String) -> Self {
         Self::InvalidAccountId(err)
     }
 

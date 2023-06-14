@@ -1,6 +1,7 @@
 use super::{
-    assets::Asset, AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField,
-    ToAdviceInputs, ToString, Vec, Word, ZERO,
+    assets::{Asset, FungibleAsset, NonFungibleAsset},
+    AccountError, AdviceInputsBuilder, Digest, Felt, Hasher, StarkField, TieredSmt, ToAdviceInputs,
+    ToString, Vec, Word, ZERO,
 };
 
 mod account_id;
@@ -58,13 +59,14 @@ impl Account {
     /// Returns an error if compilation of the source code fails.
     pub fn new(
         id: AccountId,
+        vault: AccountVault,
         storage: AccountStorage,
         code: AccountCode,
         nonce: Felt,
     ) -> Result<Self, AccountError> {
         Ok(Self {
             id,
-            vault: AccountVault::default(),
+            vault,
             storage,
             code,
             nonce,
@@ -82,7 +84,7 @@ impl Account {
         let mut elements = [ZERO; 16];
         elements[0] = *self.id;
         elements[3] = self.nonce;
-        elements[4..8].copy_from_slice(self.vault.root().as_elements());
+        elements[4..8].copy_from_slice(self.vault.commitment().as_elements());
         elements[8..12].copy_from_slice(&self.storage.root());
         elements[12..].copy_from_slice(self.code.root().as_elements());
         Hasher::hash_elements(&elements)
@@ -146,7 +148,7 @@ impl ToAdviceInputs for Account {
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // push core items onto the stack
         target.push_onto_stack(&[*self.id, ZERO, ZERO, self.nonce]);
-        target.push_onto_stack(self.vault.root().as_elements());
+        target.push_onto_stack(self.vault.commitment().as_elements());
         target.push_onto_stack(&self.storage.root());
         target.push_onto_stack(self.code.root().as_elements());
 
@@ -161,5 +163,8 @@ impl ToAdviceInputs for Account {
         for (idx, leaf) in self.code.procedure_tree().leaves() {
             target.insert_into_map(*leaf, vec![idx.into()]);
         }
+
+        // extend the advice provider with [AccountVault] inputs
+        self.vault.to_advice_inputs(target);
     }
 }

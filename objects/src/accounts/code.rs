@@ -1,5 +1,7 @@
 use super::{AccountError, AccountId, Digest};
-use assembly::{Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module, ModuleAst};
+use assembly::{
+    ast::ModuleAst, Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module,
+};
 use crypto::merkle::SimpleSmt;
 use miden_lib::MidenLib;
 use miden_stdlib::StdLibrary;

@@ -40,7 +40,7 @@ fn test_epilogue() {
 
     // assert created notes commitment is correct
     assert_eq!(
-        process.stack.get_top_word(),
+        process.stack.get_word(0),
         executed_transaction.created_notes_commitment().as_elements()
     );
 
@@ -98,7 +98,7 @@ fn test_compute_created_note_hash() {
 
         // assert the note hash is correct
         let expected_hash = note.hash();
-        let actual_hash = process.stack.get_top_word();
+        let actual_hash = process.stack.get_word(0);
         assert_eq!(&actual_hash, expected_hash.as_elements());
     }
 }
