@@ -66,26 +66,26 @@ fn test_compile_valid_note_script() {
         (
             format!(
                 "begin
-                call.{ACCT_PROC_1}
-                call.{ACCT_PROC_2} 
-            end"
+                    call.{ACCT_PROC_1}
+                    call.{ACCT_PROC_2} 
+                end"
             ),
             true,
         ),
         (
             format!(
                 "begin
-                if.true
-                    call.{ACCT_PROC_1}
                     if.true
-                        call.{ACCT_PROC_2}
+                        call.{ACCT_PROC_1}
+                        if.true
+                            call.{ACCT_PROC_2}
+                        else
+                            call.{ADD_PROC_1}
+                        end
                     else
-                        call.{ADD_PROC_1}
+                        call.{ADD_PROC_2}
                     end
-                else
-                    call.{ADD_PROC_2}
-                end
-            end"
+                end"
             ),
             true,
         ),
@@ -97,8 +97,8 @@ fn test_compile_valid_note_script() {
                         call.{ADD_PROC_1}
                     else
                         call.{ADD_PROC_2}
-                end
-            end"
+                    end
+                end"
             ),
             false,
         ),
@@ -192,13 +192,7 @@ fn test_transaction_compilation() {
 
     let notes = mock_consumed_notes(&mut tx_compiler, account_id);
 
-    let tx_script_src = format!(
-        "
-    begin
-        call.{ACCT_PROC_2}
-    end
-    "
-    );
+    let tx_script_src = format!("begin call.{ACCT_PROC_2} end");
     let tx_script_ast = ProgramAst::parse(tx_script_src.as_str()).unwrap();
 
     let tx = tx_compiler
@@ -212,6 +206,9 @@ fn test_transaction_compilation() {
         expected_mast_tree(&mut tx_compiler, &notes, &tx_script_ast).hash()
     );
 }
+
+// HELPERS
+// ================================================================================================
 
 fn expected_mast_tree(
     tx_compiler: &mut TransactionComplier,
@@ -262,8 +259,6 @@ fn create_note_leafs(tx_compiler: &mut TransactionComplier, note: &Note) -> Code
     ])
 }
 
-// HELPERS
-// ================================================================================================
 fn hex_to_bytes(hex: &str) -> Vec<u8> {
     (2..hex.len())
         .step_by(2)

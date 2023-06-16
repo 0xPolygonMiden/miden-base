@@ -10,8 +10,14 @@ mod tests;
 // TRANSACTION COMPILER
 // ================================================================================================
 
-/// The [TransactionCompiler] is responsible for transaction compilation in the context of the
-/// Miden rollup.
+/// The transaction compiler is responsible for building executable programs for Miden rollup
+/// transactions.
+///
+/// The generated programs can then be executed on the Miden VM to update the states of accounts
+/// involved in these transactions.
+///
+/// In addition to transaction compilation, transaction compiler provides methods which can be
+/// used to compile Miden account code and note scripts.
 #[cfg(not(test))]
 pub struct TransactionComplier {
     assembler: Assembler,
@@ -25,7 +31,7 @@ pub struct TransactionComplier {
 impl TransactionComplier {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of the `TransactionComplier`.
+    /// Returns a new instance of the [TransactionComplier].
     pub fn new() -> TransactionComplier {
         let assembler = Assembler::default()
             .with_library(&MidenLib::default())
@@ -85,7 +91,7 @@ impl TransactionComplier {
         }
     }
 
-    // CODE COMPILERS
+    // ACCOUNT CODE AND NOTE SCRIPT COMPILERS
     // --------------------------------------------------------------------------------------------
 
     /// Compiles the provided module into [AccountCode] and associates the resulting procedures
@@ -101,7 +107,7 @@ impl TransactionComplier {
         Ok(account_code)
     }
 
-    /// Loads the provided account interface (vector of procedure digests) into the `account_procedures` map.
+    /// Loads the provided account interface (vector of procedure digests) into the this compiler.
     /// Returns the old account interface if it previously existed.
     pub fn load_account_interface(
         &mut self,
@@ -133,7 +139,10 @@ impl TransactionComplier {
         Ok(note_script)
     }
 
-    /// Compiles a transaction which executes the provided notes against the specified account.
+    // TRANSACTION PROGRAM BUILDER
+    // --------------------------------------------------------------------------------------------
+    /// Compiles a transaction which executes the provided notes and an optional tx script against
+    /// the specified account.
     ///
     /// The account is assumed to have been previously loaded into this compiler.
     pub fn compile_transaction(
@@ -202,33 +211,8 @@ impl TransactionComplier {
         Ok(CompiledTransaction::new(account_id, notes, tx_script_hash, program))
     }
 
-    /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
-    /// transaction program and the second element is the hash of the transaction program. If no
-    /// transaction script is provided, the first element is a [CodeBlock] containing a single
-    /// [Operation::Noop] and the second element is `None`.
-    fn create_tx_program(
-        &mut self,
-        tx_script: Option<ProgramAst>,
-        assembly_context: &mut AssemblyContext,
-        target_account_interface: Vec<Digest>,
-    ) -> Result<(CodeBlock, Option<Digest>), TransactionError> {
-        let tx_script_is_some = tx_script.is_some();
-        let tx_script_code_block = match tx_script {
-            Some(tx_script) => self
-                .assembler
-                .compile_in_context(&tx_script, assembly_context)
-                .map_err(TransactionError::CompileTxScriptFailed)?,
-            None => CodeBlock::new_span(vec![Operation::Noop]),
-        };
-        verify_program_account_compatibility(&tx_script_code_block, &target_account_interface)
-            .map_err(|_| {
-                TransactionError::TxScriptIncompatibleWithAccountInterface(
-                    tx_script_code_block.hash(),
-                )
-            })?;
-        let tx_script_hash = tx_script_is_some.then_some(tx_script_code_block.hash());
-        Ok((tx_script_code_block, tx_script_hash))
-    }
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
 
     /// Returns a [CodeBlock] which contains the note program tree root and a [Vec<CodeBlock>] which
     /// contains the [CodeBlock]s associated with the notes.
@@ -292,8 +276,34 @@ impl TransactionComplier {
         ))
     }
 
-    // HELPERS
-    // --------------------------------------------------------------------------------------------
+    /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
+    /// transaction script program and the second element is the hash of the transaction script.
+    /// If no transaction script is provided, the first element is a [CodeBlock] containing a
+    /// single [Operation::Noop] and the second element is `None`.
+    fn create_tx_program(
+        &mut self,
+        tx_script: Option<ProgramAst>,
+        assembly_context: &mut AssemblyContext,
+        target_account_interface: Vec<Digest>,
+    ) -> Result<(CodeBlock, Option<Digest>), TransactionError> {
+        let tx_script_is_some = tx_script.is_some();
+        let tx_script_code_block = match tx_script {
+            Some(tx_script) => self
+                .assembler
+                .compile_in_context(&tx_script, assembly_context)
+                .map_err(TransactionError::CompileTxScriptFailed)?,
+            None => CodeBlock::new_span(vec![Operation::Noop]),
+        };
+        verify_program_account_compatibility(&tx_script_code_block, &target_account_interface)
+            .map_err(|_| {
+                TransactionError::TxScriptIncompatibleWithAccountInterface(
+                    tx_script_code_block.hash(),
+                )
+            })?;
+        let tx_script_hash = tx_script_is_some.then_some(tx_script_code_block.hash());
+        Ok((tx_script_code_block, tx_script_hash))
+    }
+
     /// Returns the account interface associated with the provided [NoteTarget].
     ///
     /// # Errors
