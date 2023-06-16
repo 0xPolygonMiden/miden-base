@@ -250,6 +250,18 @@ impl fmt::Display for AccountId {
     }
 }
 
+impl PartialOrd for AccountId {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for AccountId {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.as_int().cmp(&other.0.as_int())
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 

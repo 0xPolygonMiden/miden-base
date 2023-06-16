@@ -9,7 +9,7 @@ use crypto::merkle::{MerklePath, NodeIndex};
 ///              in.
 /// note_path  - the Merkle path to the note in the note Merkle tree of the block the note was
 ///              created in.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NoteOrigin {
     block_num: Felt,
     sub_hash: Digest,

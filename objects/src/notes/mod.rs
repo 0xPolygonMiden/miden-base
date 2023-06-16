@@ -1,8 +1,7 @@
-use crate::AccountId;
-
 use super::{
-    assets::Asset, AdviceInputsBuilder, Digest, Felt, Hasher, NoteError, ToAdviceInputs, Vec, Word,
-    WORD_SIZE, ZERO,
+    assets::Asset, AccountId, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType,
+    CodeBlock, Digest, Felt, Hasher, NoteError, ProgramAst, ToAdviceInputs, Vec, Word, WORD_SIZE,
+    ZERO,
 };
 
 mod inputs;
@@ -49,7 +48,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
 /// - An origin which provides information about the origin of the note.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Note {
     script: NoteScript,
     inputs: NoteInputs,
@@ -66,26 +65,22 @@ impl Note {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - Compilation of note script fails.
     /// - The number of inputs exceeds 16.
     /// - The number of provided assets exceeds 1000.
     /// - The list of assets contains duplicates.
-    pub fn new<S>(
-        script_src: S,
+    pub fn new(
+        script: NoteScript,
         inputs: &[Felt],
         assets: &[Asset],
         serial_num: Word,
         sender: AccountId,
         tag: Felt,
         origin: Option<NoteOrigin>,
-    ) -> Result<Self, NoteError>
-    where
-        S: AsRef<str>,
-    {
+    ) -> Result<Self, NoteError> {
         let vault = NoteVault::new(assets)?;
         let num_assets = vault.num_assets();
         Ok(Self {
-            script: NoteScript::new(script_src)?,
+            script,
             inputs: NoteInputs::new(inputs),
             vault,
             serial_num,

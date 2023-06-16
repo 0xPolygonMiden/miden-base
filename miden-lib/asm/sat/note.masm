@@ -97,3 +97,27 @@ export.get_assets
     assert_eqw
     # => [num_assets, dest_ptr]
 end
+
+#! Increments the number of consumed notes by one. Returns the index of the next note to be consumed.
+#!
+#! Inputs: []
+#! Outputs: [note_idx]
+export.increment_current_consumed_note_idx
+    # get the current consumed note index
+    exec.layout::get_current_consumed_note_idx
+    # => [note_idx]
+    
+    # increment the index of the current consumed note and save back to memory
+    dup add.1 exec.layout::set_current_consumed_note_idx
+    # => [note_idx]
+end
+
+#! Sets the current consumed note pointer to 0. This should be called after all consumed notes have
+#! been processed.
+#!
+#! Inputs: []
+#! Outputs: []
+export.reset_current_consumed_note_ptr
+    # set the current consumed note pointer to 0
+    push.0 exec.layout::set_current_consumed_note_ptr
+end
