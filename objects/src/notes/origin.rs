@@ -1,7 +1,15 @@
 use super::{Digest, Felt, NoteError, NOTE_TREE_DEPTH};
 use crypto::merkle::{MerklePath, NodeIndex};
 
-/// Represents the origin of a note.  This includes:
+/// Contains information about the origin of a note.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NoteOrigin {
+    pub block_num: Felt,
+    pub node_index: NodeIndex,
+}
+
+/// Contains the data required to prove inclusion of a note in the canonical chain.
+///
 /// block_num  - the block number the note was created in.
 /// sub_hash   - the sub hash of the block the note was created in.
 /// note_root  - the note root of the block the note was created in.
@@ -10,15 +18,14 @@ use crypto::merkle::{MerklePath, NodeIndex};
 /// note_path  - the Merkle path to the note in the note Merkle tree of the block the note was
 ///              created in.
 #[derive(Clone, Debug)]
-pub struct NoteOrigin {
-    block_num: Felt,
+pub struct NoteInclusionProof {
+    origin: NoteOrigin,
     sub_hash: Digest,
     note_root: Digest,
-    node_index: NodeIndex,
     note_path: MerklePath,
 }
 
-impl NoteOrigin {
+impl NoteInclusionProof {
     /// Creates a new note origin.
     pub fn new(
         block_num: Felt,
@@ -27,23 +34,21 @@ impl NoteOrigin {
         index: u64,
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
+        let node_index = NodeIndex::new(NOTE_TREE_DEPTH, index)
+            .map_err(|e| NoteError::invalid_origin_index(e.to_string()))?;
         Ok(Self {
-            block_num,
+            origin: NoteOrigin {
+                block_num,
+                node_index,
+            },
             sub_hash,
             note_root,
-            node_index: NodeIndex::new(NOTE_TREE_DEPTH, index)
-                .map_err(|e| NoteError::invalid_origin_index(e.to_string()))?,
             note_path,
         })
     }
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Returns the block number the note was created in.
-    pub fn block_num(&self) -> Felt {
-        self.block_num
-    }
 
     /// Returns the sub hash of the block header the note was created in.
     pub fn sub_hash(&self) -> Digest {
@@ -55,9 +60,9 @@ impl NoteOrigin {
         self.note_root
     }
 
-    /// Returns the node index of the note in the note Merkle tree.
-    pub fn node_index(&self) -> NodeIndex {
-        self.node_index
+    /// Returns the origin of the note.
+    pub fn origin(&self) -> &NoteOrigin {
+        &self.origin
     }
 
     /// Returns the Merkle path to the note in the note Merkle tree of the block the note was

@@ -16,6 +16,13 @@ use.miden::sat::note
 export.prepare_note.4
     # load the note index onto the stack
     exec.note::increment_current_consumed_note_idx
+    # => [idx, ...]
+
+    # if the note index is not zero we must clear the previous notes outputs from the stack
+    dup eq.0 not
+    if.true
+        dropw dropw dropw dropw
+    end
     # => [idx]
 
     # convert the index of the consumed note being executed to a pointer and store in memory

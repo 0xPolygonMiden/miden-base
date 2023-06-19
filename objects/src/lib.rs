@@ -36,6 +36,6 @@ pub mod chain;
 pub use chain::ChainMmr;
 
 mod errors;
-pub use errors::{AccountError, AssetError, NoteError};
+pub use errors::{AccountError, AssetError, NoteError, TransactionWitnessError};
 
 pub mod transaction;

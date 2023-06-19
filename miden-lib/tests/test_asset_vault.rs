@@ -3,7 +3,7 @@ use common::{
     data::{
         mock_inputs, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
-    run_within_tx_kernel, AccountId, MemAdviceProvider, ONE,
+    prepare_transaction, run_tx, AccountId, MemAdviceProvider, ONE,
 };
 use crypto::StarkField;
 
@@ -11,9 +11,9 @@ use crate::common::procedures::prepare_word;
 
 #[test]
 fn test_get_balance() {
-    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
+    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
         "
         use.miden::sat::prologue
@@ -27,25 +27,25 @@ fn test_get_balance() {
     "
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
-        inputs.account().vault().get_balance(faucet_id).unwrap()
+        transaction.account().vault().get_balance(faucet_id).unwrap()
     );
 }
 
 #[test]
 fn test_get_balance_non_fungible_fails() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
     let code = format!(
         "
@@ -60,13 +60,13 @@ fn test_get_balance_non_fungible_fails() {
     "
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
 
     assert!(process.is_err());
@@ -74,8 +74,8 @@ fn test_get_balance_non_fungible_fails() {
 
 #[test]
 fn test_has_non_fungible_asset() {
-    let inputs = mock_inputs();
-    let non_fungible_asset = inputs.account().vault().assets().next().unwrap();
+    let (account, block_header, chain, notes) = mock_inputs();
+    let non_fungible_asset = account.vault().assets().next().unwrap();
 
     let code = format!(
         "
@@ -91,13 +91,12 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
+    let inputs = prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        inputs.tx_program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
     )
     .unwrap();
 

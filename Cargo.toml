@@ -3,6 +3,7 @@ members = [
   "objects",
   "miden-lib",
   "miden-tx",
+  "test-utils",
 ]
 
 [profile.release]
