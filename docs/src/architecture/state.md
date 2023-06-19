@@ -15,7 +15,7 @@ The state of the network describes the current condition of all individual accou
 These databases are represented by authenticated data structures, which allows us to quickly show that objects were added to or withdrawn from a database, and a commitment to the database is minimal.
 
 ### Account DB
-Current account states are recorded in a Sparse Merkle tree which maps account IDs to account hashes, where the account hash is computed as:
+Current account states are recorded in a Tiered Sparse Merkle Tree which maps account IDs to account hashes, where the account hash is computed as:
 
 `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
 
@@ -31,7 +31,7 @@ As described in [this document](https://0xpolygonmiden.github.io/miden-base/arch
 
 Note: Having many (or even most) of the accounts be private is very beneficial for the network as a private account contributes only 40 bytes to the global state (8 bytes account ID + 32 bytes account hash). Simply put, 1 billion private accounts takes up only $40$ GB of state.
 
-### Notes DB
+### Note DB
 
 Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). This is important for two reasons:
 

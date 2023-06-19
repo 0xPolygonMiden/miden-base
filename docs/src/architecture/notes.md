@@ -1,5 +1,5 @@
 # Notes
-A note is a way of transferring assets between accounts. It consists of a vault and ascript as shown in the diagram below.
+A note is a way of transferring assets between accounts. It consists of a vault and a script as shown in the diagram below.
 
 <p align="center">
     <img src="../diagrams/architecture/note/Note.png">

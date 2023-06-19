@@ -39,7 +39,7 @@ There are various steps involved in transaction execution. These stages are deta
 
 ### Example: Transaction that sends assets out of a wallet (creating a note):
 
-This transaction does not consume any notes but has transaction script which calls the send function. Send function then creates an output note (not pictured).
+This transaction does not consume any notes but has a transaction script that calls the send function. Send function then creates an output note (not pictured).
 
 <p align="center">
     <img src="../diagrams/architecture/transaction/Transaction_Example_Send_Asset.png">

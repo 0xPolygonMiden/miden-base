@@ -21,7 +21,7 @@ Several batch proofs are being aggregated together into one block. This can not 
 ## State progress 
 At the beginning, Miden will have a centralized Operator running a Miden Node.
 
-Miden Node will collect the user proofs or transactions to be proved. It will next use recursive verification to aggregate the collected transaction proofs into batches.
+Users will send either transaction proofs (using local execution) or transaction data (for network execution) to the Miden Node. Later on, the Miden Node will use recursive verification to aggregate transaction proofs into batches.
 
 Batch proofs are aggregated into blocks by the Miden Node. The blocks are then sent to Ethereum, and once a block is added to the L1 chain, the rollup chain is believed to have progressed to the next state.
 
