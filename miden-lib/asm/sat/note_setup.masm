@@ -1,19 +1,23 @@
 use.miden::sat::layout
+use.miden::sat::note
 
 # NOTE SETUP SCRIPT
 # =================================================================================================
 
 #! Prepares the virtual machine for execution of a consumed note.  This involves:
-#! 1. Updating the current consumed note pointer.
+#! 1. Updating the current consumed note index and pointer.
 #! 2. Loading the note inputs from the advice provider.
 #! 3. Authenticating the note inputs against the inputs hash stored in memory.
 #!
-#! Stack: [idx]
+#! Stack: []
 #! Output: [i15, i14, ..., i0]
 #!
-#! idx is the index of the consumed note.
 #! i15, i14, ..., i0 are the inputs of the consumed note.
 export.prepare_note.4
+    # load the note index onto the stack
+    exec.note::increment_current_consumed_note_idx
+    # => [idx]
+
     # convert the index of the consumed note being executed to a pointer and store in memory
     exec.layout::get_consumed_note_ptr 
     # => [note_ptr]

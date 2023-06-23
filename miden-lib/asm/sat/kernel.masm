@@ -1,0 +1,196 @@
+use.miden::sat::account
+use.miden::sat::account_vault
+use.miden::sat::note
+use.miden::sat::tx
+
+# TODO: change to re-export once supported.
+#! Returns the account id.
+#!
+#! Stack: []
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.get_account_id
+    exec.account::get_id
+end
+
+# TODO: change to re-export once supported.
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.get_account_nonce
+    exec.account::get_nonce
+end
+
+# TODO: change to re-export once supported.
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.get_initial_account_hash
+    exec.account::get_initial_hash
+end
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_account_hash
+    exec.account::get_current_hash
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_account_nonce
+    exec.account::incr_nonce
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_account_item
+    exec.account::get_item
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V']
+#! Output: [R', V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R' is the new storage root.
+export.set_account_item
+    exec.account::set_item
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_account_code
+    exec.account::set_code
+end
+
+# TODO: Add vault based procedures (add_asset, remove_asset, mint, burn)
+
+#! Returns the balance of a fungible asset associated with a faucet_id. 
+#! Panics if the asset is not a fungible asset.
+#!
+#! Stack: [faucet_id]
+#! Output: [balance]
+#!
+#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - balance is the vault balance of the fungible asset.
+export.account_vault_get_balance
+    exec.account_vault::get_balance
+end
+
+#! Returns a boolean indicating whether the non-fungible asset is present in the vault.
+#! Panics if the ASSET is a fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [has_asset]
+#!
+#! - ASSET is the non-fungible asset of interest
+#! - has_asset is a boolean indicating whether the account vault has the asset of interest
+export.account_vault_has_non_fungible_asset
+    exec.account_vault::has_non_fungible_asset
+end
+
+#! Writes the assets of the currently executing note into memory starting at the specified address.
+#!
+#! Inputs: [dest_ptr]
+#! Outputs: [num_assets, dest_ptr]
+#!
+#! - dest_ptr is the memory address to write the assets.
+#! - num_assets is the number of assets in the currently executing note.
+export.get_note_assets
+    exec.note::get_assets
+end
+
+#! Returns the sender of the note currently being processed. Panics if a note is not being
+#! processed.
+#!
+#! Inputs: []
+#! Outputs: [sender]
+#!
+#! - sender is the sender of the note currently being processed.
+export.get_note_sender
+    exec.note::get_sender
+end
+
+#! Returns the block number of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [num]
+#!
+#! num is the last known block number.
+export.get_block_number
+    exec.tx::get_block_number
+end
+
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [H]
+#!
+#! H is the last known block hash.
+export.get_block_hash
+    exec.tx::get_block_hash
+end
+
+#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
+#! tuples over all input notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the input notes hash.
+export.get_input_notes_hash
+    exec.tx::get_input_notes_hash
+end
+
+#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! tuples over all output notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the output notes hash.
+export.get_output_notes_hash
+    exec.tx::get_output_notes_hash
+end
+
+#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#!
+#! Inputs: [ASSET, tag, RECIPIENT]
+#! Outputs: [ptr]
+#!
+#! ASSET is the asset to be included in the note.
+#! tag is the tag to be included in the note.
+#! RECIPIENT is the recipient of the note.
+#! ptr is the pointer to the memory address at which the note is stored.
+export.create_note
+    exec.tx::create_note
+end

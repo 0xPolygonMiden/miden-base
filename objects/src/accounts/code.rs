@@ -1,10 +1,8 @@
-use super::{AccountError, AccountId, Digest};
-use assembly::{
-    ast::ModuleAst, Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module,
+use super::{
+    AccountError, AccountId, Assembler, AssemblyContext, AssemblyContextType, Digest, LibraryPath,
+    Module, ModuleAst,
 };
 use crypto::merkle::SimpleSmt;
-use miden_lib::MidenLib;
-use miden_stdlib::StdLibrary;
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -36,19 +34,16 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
     /// Creates and returns a new definition of an account's interface compiled from the specified
     /// source code.
-    pub fn new(source: &str, account_id: AccountId) -> Result<Self, AccountError> {
-        let module_ast = ModuleAst::parse(source)?;
+    pub fn new(
+        account_id: AccountId,
+        account_module: ModuleAst,
+        assembler: &mut Assembler,
+    ) -> Result<Self, AccountError> {
         let module = Module::new(
             LibraryPath::new(format!("{}_{}", Self::ACCOUNT_CODE_NAMESPACE_BASE, account_id))
                 .expect("valid path"),
-            module_ast,
+            account_module,
         );
-
-        let assembler = Assembler::default()
-            .with_library(&MidenLib::default())
-            .expect("failed to load miden-lib")
-            .with_library(&StdLibrary::default())
-            .expect("failed to load std-lib");
 
         let mut procedure_digests = assembler
             .compile_module(&module, &mut AssemblyContext::new(AssemblyContextType::Module))
@@ -81,6 +76,11 @@ impl AccountCode {
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].
     pub fn module(&self) -> &ModuleAst {
         &self.module
+    }
+
+    /// Returns a reference to the account procedure digests.
+    pub fn procedures(&self) -> &[Digest] {
+        &self.procedures
     }
 
     /// Returns a reference to the procedure tree.
