@@ -45,7 +45,7 @@ Account data which is stored in a Miden Node can be either `public` or `private`
 ## Storage
 Storage refers to `AccountStorage`, the user-defined data that can be stored in an account. Account storage is made up of two components. The first component is an index addressable basic Sparse Merkle Tree of depth 8. This gives the user 256-word slots.
 
-Users that require additional storage can use the second component which is a `MerkleStore`. This will allow the user to store any Merkle structures they need. This is achieved by storing the Merkle structure's root as a leaf in the simple sparse merkle tree. When `AccountStorage` is serialized, it will examine the leaves of the simple sparse Merkle tree to see whether any of them are Merkle roots of other Merkle structures. If any Merkle roots are found, the Merkle structures will be saved in the `AccountStorage` `MerkleStore`.
+Users that require additional storage can use the second component which is a `MerkleStore`. This will allow the user to store any Merkle structures they need. This is achieved by storing the Merkle structure's root as a leaf in the simple Sparse Merkle Tree. When `AccountStorage` is serialized, it will examine the leaves of the simple Sparse Merkle Tree to see whether any of them are Merkle roots of other Merkle structures. If any Merkle roots are found, the Merkle structures will be saved in the `AccountStorage` `MerkleStore`.
 
 - TODO ADD STORAGE DIAGRAM
 
