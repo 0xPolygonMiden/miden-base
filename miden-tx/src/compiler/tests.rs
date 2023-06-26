@@ -67,7 +67,7 @@ fn test_compile_valid_note_script() {
             format!(
                 "begin
                     call.{ACCT_PROC_1}
-                    call.{ACCT_PROC_2} 
+                    call.{ACCT_PROC_2}
                 end"
             ),
             true,

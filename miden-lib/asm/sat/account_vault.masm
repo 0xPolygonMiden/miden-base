@@ -4,7 +4,7 @@ use.miden::sat::account
 use.miden::sat::asset
 use.miden::sat::layout
 
-#! Returns the balance of a fungible asset associated with a faucet_id. 
+#! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.
 #!
 #! Stack: [faucet_id]

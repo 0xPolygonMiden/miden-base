@@ -1,8 +1,8 @@
 # Execution Model
 
-The Execution Model describes how the state progresses - on an individual level via transactions and at the global level expressed as aggregated state updates in blocks. 
+The Execution Model describes how the state progresses - on an individual level via transactions and at the global level expressed as aggregated state updates in blocks.
 
-Polygon Miden is a Rollup. It batches transactions - or more precisely, proofs thereof - that happen together in the same time period into a block. 
+Polygon Miden is a Rollup. It batches transactions - or more precisely, proofs thereof - that happen together in the same time period into a block.
 
 <p align="center">
   <img src="../diagrams/architecture/execution/Execution.png">
@@ -12,7 +12,7 @@ Polygon Miden is a Rollup. It batches transactions - or more precisely, proofs t
 
 Every transaction will result in a ZK proof that attests to its correctness.
 
-As mentioned in [transactions](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html#local-vs-network-transactions), there are two types of transactions: local transactions and network transactions. For every transaction there is a proof - either created by the user in the Miden Client or by the operator using the Miden Node. 
+As mentioned in [transactions](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html#local-vs-network-transactions), there are two types of transactions: local transactions and network transactions. For every transaction there is a proof - either created by the user in the Miden Client or by the operator using the Miden Node.
 
 
 ## Transaction Batching
@@ -22,7 +22,7 @@ To reduce the required space on the Ethereum blockchain, transaction proofs are 
 Several batch proofs are being aggregated together into one block. This can not happen in parallel and must be done by the Miden Operator running the Miden Node. The idea is the same, using recursive verification.
 
 
-# State progress 
+# State progress
 At the beginning Miden will have a centralized operator running a Miden Node.
 
 * The Miden Node collects proofs or transactions to be proven from the users.

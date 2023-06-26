@@ -7,13 +7,13 @@ An account is an entity which holds assets and defines rules of how these assets
 
 In the above:
 
-* **Account ID** is a unique identifier of an account which does not change throughout its lifetime. 
+* **Account ID** is a unique identifier of an account which does not change throughout its lifetime.
 * **Storage** is user-defined data which can be stored in an account.
-* **Nonce** is a counter which must be incremented whenever account state changes. 
-* **Vault** is collection of assets stored in an account. 
+* **Nonce** is a counter which must be incremented whenever account state changes.
+* **Vault** is collection of assets stored in an account.
 * **Code** is a collection of functions which define an external interface for an account.
 
-## Account ID 
+## Account ID
 8 bytes (60 bit) long identifier for the account. The first three significant bits specify its type and the storage mode. There are four types of accounts in Miden that can be stored in two differnt ways:
 
 ### Regular account with updatable code
@@ -23,7 +23,7 @@ This account type will be used by most users. They can specify and change their 
 This account type will be used by most regular smart contracts. Once deployed the code should not change and no one should be able to change it. The Account ID will start with `01`.
 
 ### Fungible asset faucet with immutable code
-Assets need to be created by accounts in Miden. The Account ID will start with `10`. 
+Assets need to be created by accounts in Miden. The Account ID will start with `10`.
 
 ### Non-fungible asset faucet with immutable code
 Assets need to be created by accounts in Miden. The Account ID will start with `11`.

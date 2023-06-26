@@ -147,7 +147,7 @@ fn test_validate_id_fails_on_insuficcient_ones() {
     let code = format!(
         "
         use.miden::sat::account
-    
+
         begin
             push.{ACCOUNT_ID_INSUFFICIENT_ONES}
             exec.account::validate_id
@@ -180,7 +180,7 @@ fn test_get_item() {
         begin
             # prepare the transaction
             exec.prologue::prepare_transaction
-            
+
             # push the account storage item index
             push.{item_index}
 
@@ -275,7 +275,7 @@ fn test_set_item() {
 
         # push the new storage item onto the stack
         push.{new_value}
-        
+
         # push the account storage item index
         push.{NEW_ITEM_INDEX}
 
