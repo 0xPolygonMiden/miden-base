@@ -214,7 +214,7 @@ end
 #! Stack: [acct_id]
 #! Output: []
 #!
-#! - acct_id is the account id. 
+#! - acct_id is the account id.
 export.validate_id
     # split felt into 32 bit limbs
     u32split
@@ -307,7 +307,7 @@ export.authenticate_procedure.1
     # => [PROC_ROOT, CODE_ROOT]
 
     # load the index of the procedure root onto the advice stack
-    adv.keyval adv_push.1 movdn.4
+    adv.push_mapval adv_push.1 movdn.4
     # => [PROC_ROOT, index, CODE_ROOT]
 
     # push the depth of the code Merkle tree onto the stack

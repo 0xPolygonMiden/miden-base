@@ -19,7 +19,7 @@ export.prepare_note.4
     # => [idx]
 
     # convert the index of the consumed note being executed to a pointer and store in memory
-    exec.layout::get_consumed_note_ptr 
+    exec.layout::get_consumed_note_ptr
     # => [note_ptr]
 
     # set current consumed note pointer to the note being executed
@@ -27,7 +27,7 @@ export.prepare_note.4
     # => [note_ptr]
 
     # load the note inputs on to the advice stack
-    exec.layout::get_consumed_note_inputs_hash adv.keyval
+    exec.layout::get_consumed_note_inputs_hash adv.push_mapval
     # => [INPUTS_HASH]
 
     # load the note inputs from the advice provider
