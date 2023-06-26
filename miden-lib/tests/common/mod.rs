@@ -71,6 +71,6 @@ where
 
 // TEST HELPERS
 // ================================================================================================
-pub fn consumed_note_data_ptr(note_idx: u64) -> u64 {
+pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
     memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
 }

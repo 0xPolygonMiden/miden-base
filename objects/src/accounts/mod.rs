@@ -86,7 +86,7 @@ impl Account {
         elements[0] = *self.id;
         elements[3] = self.nonce;
         elements[4..8].copy_from_slice(self.vault.commitment().as_elements());
-        elements[8..12].copy_from_slice(&self.storage.root());
+        elements[8..12].copy_from_slice(&*self.storage.root());
         elements[12..].copy_from_slice(self.code.root().as_elements());
         Hasher::hash_elements(&elements)
     }
@@ -150,7 +150,7 @@ impl ToAdviceInputs for Account {
         // push core items onto the stack
         target.push_onto_stack(&[*self.id, ZERO, ZERO, self.nonce]);
         target.push_onto_stack(self.vault.commitment().as_elements());
-        target.push_onto_stack(&self.storage.root());
+        target.push_onto_stack(&*self.storage.root());
         target.push_onto_stack(self.code.root().as_elements());
 
         // extend the merkle store with the storage items

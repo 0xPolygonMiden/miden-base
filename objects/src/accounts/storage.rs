@@ -1,5 +1,6 @@
 use super::{AccountError, Word};
 use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt};
+use miden_processor::crypto::RpoDigest;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -50,14 +51,14 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to this storage.
-    pub fn root(&self) -> Word {
+    pub fn root(&self) -> RpoDigest {
         self.slots.root()
     }
 
     /// Returns an item from the storage at the specified index.
     ///
     /// If the item is not present in the storage, [ZERO; 4] is returned.
-    pub fn get_item(&self, index: u8) -> Word {
+    pub fn get_item(&self, index: u8) -> RpoDigest {
         let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index as u64)
             .expect("index is u8 - index within range");
         self.slots.get_node(item_index).expect("index is u8 - index within range")

@@ -19,8 +19,8 @@ pub fn created_notes_data_procedure(notes: &[Note]) -> String {
     let note_2_recipient = prepare_word(&notes[2].recipient());
     let note_2_assets = prepare_assets(notes[2].vault());
 
-    const NOTE_1_OFFSET: u64 = NOTE_MEM_SIZE;
-    const NOTE_2_OFFSET: u64 = NOTE_MEM_SIZE * 2;
+    const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
+    const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
 
     format!(
         "

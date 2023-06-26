@@ -133,7 +133,10 @@ fn chain_mmr_memory_assertions<A: AdviceProvider>(
 
     for (i, peak) in inputs.block_chain().mmr().accumulator().peaks.iter().enumerate() {
         // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
-        assert_eq!(&process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i as u64).unwrap(), peak);
+        let i: u32 = i.try_into().expect(
+            "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
+        );
+        assert_eq!(process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i).unwrap(), Word::from(peak));
     }
 }
 
@@ -159,7 +162,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR
     assert_eq!(
         process.get_memory_value(0, ACCT_STORAGE_ROOT_PTR).unwrap(),
-        inputs.account().storage().root()
+        Word::from(inputs.account().storage().root())
     );
 
     // The account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)
@@ -179,7 +182,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
         Felt::new(inputs.consumed_notes().len() as u64)
     );
 
-    for (note, note_idx) in inputs.consumed_notes().iter().zip(0u64..) {
+    for (note, note_idx) in inputs.consumed_notes().iter().zip(0u32..) {
         // The note nullifier should be computer and stored at (CONSUMED_NOTES_OFFSET + 1 + note_idx)
         assert_eq!(
             process
@@ -225,7 +228,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
         );
 
         // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)
-        for (asset, asset_idx) in note.vault().iter().cloned().zip(0u64..) {
+        for (asset, asset_idx) in note.vault().iter().cloned().zip(0u32..) {
             let word: Word = asset.into();
             assert_eq!(
                 process

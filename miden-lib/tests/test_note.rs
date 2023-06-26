@@ -79,7 +79,7 @@ fn test_get_vault_data() {
 
             # prepare note 0
             exec.note_setup::prepare_note
-            
+
             # drop the note inputs
             dropw dropw dropw dropw
 
@@ -126,8 +126,8 @@ fn test_get_vault_data() {
 fn test_get_assets() {
     let inputs = mock_inputs();
 
-    const DEST_POINTER_NOTE_0: u64 = 100000000;
-    const DEST_POINTER_NOTE_1: u64 = 200000000;
+    const DEST_POINTER_NOTE_0: u32 = 100000000;
+    const DEST_POINTER_NOTE_1: u32 = 200000000;
 
     let notes = inputs.consumed_notes();
 
@@ -194,7 +194,7 @@ fn test_get_assets() {
     .unwrap();
 
     // check the assets saved to memory for note 0 are correct
-    for (asset, idx) in notes[0].vault().iter().zip(0u64..) {
+    for (asset, idx) in notes[0].vault().iter().zip(0u32..) {
         assert_eq!(
             process.get_memory_value(0, DEST_POINTER_NOTE_0 + idx).unwrap(),
             <[Felt; 4]>::from(*asset)
@@ -202,7 +202,7 @@ fn test_get_assets() {
     }
 
     // check the assets saved to memory for note 1 are correct
-    for (asset, idx) in notes[1].vault().iter().zip(0u64..) {
+    for (asset, idx) in notes[1].vault().iter().zip(0u32..) {
         assert_eq!(
             process.get_memory_value(0, DEST_POINTER_NOTE_1 + idx).unwrap(),
             <[Felt; 4]>::from(*asset)

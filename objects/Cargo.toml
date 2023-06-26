@@ -24,7 +24,7 @@ std = ["assembly/std", "crypto/std", "miden-core/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-crypto = { package = "miden-crypto", version = "0.5", default-features = false }
+crypto = { package = "miden-crypto", version = "0.6", default-features = false }
 hashbrown = { version = "0.13.2" }
 miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 miden-lib = { path = "../miden-lib", default-features = false }
