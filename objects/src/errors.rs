@@ -19,7 +19,7 @@ pub enum AccountError {
     FungibleAssetNotFound(FungibleAsset),
     SeedDigestTooFewTrailingZeros,
     CodeParsingFailed(ParsingError),
-    AccountCodeAsselmberError(AssemblyError),
+    AccountCodeAssemblerError(AssemblyError),
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
