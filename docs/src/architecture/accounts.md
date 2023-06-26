@@ -62,7 +62,7 @@ Merkle tree as follows:
 * For non-fungible assets, the index is defined by the asset itself, and the asset is also
   the value of the node.
 
-An account vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
+An account vault can be reduced to a single hash which is the root of the sparse Merkle tree.
 
 ## Code
 Every account in Miden is a smart contract with an interface that exposes functions that note scripts can call.  The interface for accounts is referred to as Code.
