@@ -525,7 +525,7 @@ export.set_acct_storage_root
 end
 
 #! Returns the account vault root.
-#! 
+#!
 #! Stack: []
 #! Output: [ACCT_VAULT_ROOT]
 #!

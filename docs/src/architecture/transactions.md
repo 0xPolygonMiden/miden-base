@@ -1,20 +1,20 @@
 # Transactions
 Asset transfers between accounts are done by executing transactions. A transaction is always executed against a single account and causes a provable state-change. It can consume zero or more notes, and it may produce zero or more notes as shown in the diagram below.
 
-It can be expressed as a state-transition function that takes an account and `0 to n` notes to map it to another version of that account and produces `0 to n` notes   
+It can be expressed as a state-transition function that takes an account and `0 to n` notes to map it to another version of that account and produces `0 to n` notes
 
 $
 T(A, \sum_{\substack{
    0<i<n
-  }} 
+  }}
  N(i))) \to (A', \sum_{\substack{
    0<j<m
-  }} 
- N(j)) 
+  }}
+ N(j))
 $
 , where  $ A \in { Accounts }$, $N \in { Notes } $
 
-It looks like 
+It looks like
 
 <p align="center">
     <img src="../diagrams/architecture/transaction/Transaction.png">
@@ -89,4 +89,3 @@ For **network transactions**, the operator will execute the transaction and gene
 
 1. Clients may not have sufficient resources to generate ZK proofs.
 2. Executing many transactions against the same public account by different clients would be challenging as the account state would change after every transaction. In this case, the Miden Node / Operator acts as a "synchronizer" as they can execute transactions sequentially and feed the output of the previous transaction into the subsequent one.
-

@@ -1,7 +1,7 @@
 # Miden Clients
 Users use Miden Clients to interact in the network. The backend of any wallet that is used in Miden will be a Miden Client. Miden Clients consist of several components.
 
-* Transaction Prover 
+* Transaction Prover
 * Signature module
 * Wallet interface
 * Wallet database
@@ -9,7 +9,7 @@ Users use Miden Clients to interact in the network. The backend of any wallet th
 [We need a diagram to show the Miden Client]
 
 ## Transaction Prover
-The Transaction Prover is able to execute transactions and create transaction execution proofs. It runs a Transaction Kernel at its heart. 
+The Transaction Prover is able to execute transactions and create transaction execution proofs. It runs a Transaction Kernel at its heart.
 
 ## Signature module
 [Unclear if this is a separate module]

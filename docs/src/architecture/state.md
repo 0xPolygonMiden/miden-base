@@ -16,7 +16,7 @@ The Miden Node(s) maintain three databases to describe the state:
 These databases are represented by authenticated data structures, such that we can easily prove that items were added to or removed from a database, and a commitment to the database would be very small.
 
 ### Account database
-Current account states are recorded in a Sparse Merkle tree which maps account IDs to account hashes, where the account hash is computed as 
+Current account states are recorded in a Sparse Merkle tree which maps account IDs to account hashes, where the account hash is computed as
 
 `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
 
@@ -32,7 +32,7 @@ As described in [accounts](https://0xpolygonmiden.github.io/miden-base/architect
 
 Note: Having many (or even most) of the accounts be private is very beneficial for the network as a private account contributes only 40 bytes to the global state (8 bytes account ID + 32 bytes account hash). Or, said another way, 1 billion private accounts takes up only $40$ GB of state.
 
-### Note database 
+### Note database
 
 Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). This is important for two reasons:
 
@@ -42,8 +42,8 @@ Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](http
 Both of these properties are needed for supporting local transactions and privacy.
 
 There are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
-* **Public notes** where the entire note content is recorded in the state. 
-* **Private notes** where only a note's hash is recorded in the state. 
+* **Public notes** where the entire note content is recorded in the state.
+* **Private notes** where only a note's hash is recorded in the state.
 
 As with accounts, there is a strong incentive to use private notes as they result in lower fees. This is also beneficial to the network as a private note adds only 64 bytes to the state (32 bytes when it is produced, and 32 bytes when it is consumed).
 
@@ -57,11 +57,11 @@ Using a Merkle Mountain Range (append-only accumulator) means that we can't remo
 
 However, we need to explicitly store only the unconsumed public notes and enough info to construct membership proofs against them. Private notes, as well as public notes which have already been consumed, can be safely discarded. Such notes would still remain in the accumulator, but there is no need to store them explicitly as the append-only accumulator can be updated without knowing all items stored in it. This reduces actual storage requirements to a fraction of the database's nominal size.
 
-ToDo: Describe and specify life-time restrictions for notes on the database. 
+ToDo: Describe and specify life-time restrictions for notes on the database.
 
 ### Nullifier database
 
-Nullifiers provide information on whether a specific note has been consumed yet. Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html), which maps nullifiers to `0` or `1`. Using this, one can check and prove that a given nullifier is not in the database. 
+Nullifiers provide information on whether a specific note has been consumed yet. Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html), which maps nullifiers to `0` or `1`. Using this, one can check and prove that a given nullifier is not in the database.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Nullifier_DB.png">
@@ -69,6 +69,6 @@ Nullifiers provide information on whether a specific note has been consumed yet.
 
 To prove that nullifier `11` is not in the database the operator needs to provide a Merkle path to its node, and then show that the value in that node is $0$. In our case nullifiers are 32 bytes each, and thus, the height of the Sparse Merkle tree need to be 256.
 
-To be able to add new nullifiers to the database, operators needs to maintain the entire nullifier set - otherwise they would not be able to compute the new root of the tree. 
+To be able to add new nullifiers to the database, operators needs to maintain the entire nullifier set - otherwise they would not be able to compute the new root of the tree.
 
 There will be one tree per epoch (~3 months), and Miden nodes always store trees for at least two epochs. However, the roots of the old trees are still stored. If a user wants to consume a note that is more than 6 month old, there must be a merkle path provided to the Miden Node for verification.

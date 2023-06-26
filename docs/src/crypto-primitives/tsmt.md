@@ -1,7 +1,7 @@
 # Tiered Sparse Merkle Tree (TSMT)
 A sparse Merkle tree (SMT) is a cryptographic data structure that allows authenticated manipulations of a key-value store, i.e. a dictionary. It is a Merkle tree because it is
 a binary tree in which each leaf node represents a key-value pair, and each non-leaf node represents the hash of the concatenation of its two child nodes. The index of the
-leaf node in the tree corresponds to the key and the data stored in this node corresponds to the value. This implies that the depth of such a tree is logarithmic in the size of the key space, which implies that, for most key spaces used in practice, such a tree is impractical if done naively. However, the tree is sparse, i.e. it is going to be made up of mostly empty leaves, which in turn implies that most sub-trees are empty with roots that can be pre-computed. 
+leaf node in the tree corresponds to the key and the data stored in this node corresponds to the value. This implies that the depth of such a tree is logarithmic in the size of the key space, which implies that, for most key spaces used in practice, such a tree is impractical if done naively. However, the tree is sparse, i.e. it is going to be made up of mostly empty leaves, which in turn implies that most sub-trees are empty with roots that can be pre-computed.
 A major issue with SMTs is the fact that operations scale with the size of the key space, meaning, for example, that if our key space has size $~ 2^{256}$, then performing any operation on the key-value store, for example, an update, will require performing $256$ hashing operations. This is undesirable both inside as well as outside the STARK.
 
 
