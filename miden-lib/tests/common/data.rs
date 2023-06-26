@@ -154,7 +154,7 @@ fn mock_account(
                 push.1.2
                 add
             end
-        
+
             export.account_procedure_2
                 push.2.1
                 sub
