@@ -70,7 +70,7 @@ impl AccountCode {
 
     /// Returns a commitment to an account's public interface.
     pub fn root(&self) -> Digest {
-        self.procedure_tree.root().into()
+        self.procedure_tree.root()
     }
 
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].

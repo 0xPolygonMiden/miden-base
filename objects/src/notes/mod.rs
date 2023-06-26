@@ -222,7 +222,7 @@ impl ToAdviceInputs for &Note {
         target.add_merkle_nodes(
             origin
                 .note_path()
-                .inner_nodes(origin.node_index().value(), self.authentication_hash().into())
+                .inner_nodes(origin.node_index().value(), self.authentication_hash())
                 .unwrap(),
         );
 
