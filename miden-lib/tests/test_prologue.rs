@@ -133,7 +133,7 @@ fn chain_mmr_memory_assertions<A: AdviceProvider>(
 
     for (i, peak) in inputs.block_chain().mmr().accumulator().peaks.iter().enumerate() {
         // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
-        assert_eq!(&process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i as u64).unwrap(), peak);
+        assert_eq!(process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i).unwrap(), Word::from(peak));
     }
 }
 
@@ -159,7 +159,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR
     assert_eq!(
         process.get_memory_value(0, ACCT_STORAGE_ROOT_PTR).unwrap(),
-        inputs.account().storage().root()
+        Word::from(inputs.account().storage().root())
     );
 
     // The account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)

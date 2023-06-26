@@ -22,7 +22,7 @@ vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/mid
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
 
 [dev-dependencies]
-crypto = { package = "miden-crypto", version = "0.5", default-features = false }
+crypto = { package = "miden-crypto", version = "0.6", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects"}
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", features = ["internals"] }

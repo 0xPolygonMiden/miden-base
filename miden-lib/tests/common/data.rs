@@ -76,7 +76,7 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     ];
 
     // convert block hashes into words
-    let block_hashes: Vec<Word> = block_chain.iter().map(|h| Word::from(h.hash())).collect();
+    let block_hashes: Vec<Digest> = block_chain.iter().map(|h| h.hash()).collect();
 
     // instantiate and populate MMR
     let mut chain_mmr = ChainMmr::default();
@@ -137,7 +137,11 @@ fn mock_account(
 
     // create account storage
     let account_storage = AccountStorage::new(
-        vec![STORAGE_ITEM_0, STORAGE_ITEM_1, (CHILD_ROOT_PARENT_LEAF_INDEX, child_smt.root())],
+        vec![
+            STORAGE_ITEM_0,
+            STORAGE_ITEM_1,
+            (CHILD_ROOT_PARENT_LEAF_INDEX, *child_smt.root()),
+        ],
         account_merkle_store,
     )
     .unwrap();
