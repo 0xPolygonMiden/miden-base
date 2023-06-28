@@ -4,17 +4,19 @@ use super::{
     TransactionExecutorError, TransactionWitness,
 };
 
-/// The [TransactionExecutor] has the following responsibilities:
+/// The transaction executor is responsible for executing Miden rollup transactions.
+///
+/// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a [Program] using the [TransactionComplier].
-/// - Execute the transaction [Program] and create a [TransactionWitness] using the [RecAdviceProvider].
+/// - Compile the transaction into a program using the [TransactionComplier].
+/// - Execute the transaction program and create a [TransactionWitness].
 ///
-/// The [TransactionExecutor] is generic over the [DataStore] which allows it to be used
-/// with different data backend implementations.
+/// The [TransactionExecutor] is generic over the [DataStore] which allows it to be used with
+/// different data backend implementations.
 ///
-/// The [TransactionExecutor] `execute_transaction` method is the main entry point for the executor
-/// and produces a [TransactionWitness] for the transaction. The [TransactionWitness] is then used to by the prover
-/// to generate a proof for the transaction.
+/// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
+/// executor and produces a [TransactionWitness] for the transaction. The TransactionWitness can
+/// then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
     compiler: TransactionComplier,
     data_store: D,
@@ -34,10 +36,14 @@ impl<D: DataStore> TransactionExecutor<D> {
 
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
-    /// Fetches the account code [ModuleAst] from the [DataStore] and loads it into the compiler.
-    /// Returns the account code [AccountCode] that is compiled.
+
+    /// Fetches the account code from the [DataStore], compiles it, and loads the compiled code
+    /// into the internal cache.
     ///
-    /// Errors:
+    /// This also returns the [AccountCode] object built from the loaded account code.
+    ///
+    /// # Errors:
+    /// Returns an error if:
     /// - If the account code cannot be fetched from the [DataStore].
     /// - If the account code fails to be loaded into the compiler.
     pub fn load_account(
@@ -54,6 +60,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 
     /// Loads the provided account interface (vector of procedure digests) into the the compiler.
+    ///
     /// Returns the old account interface if it previously existed.
     pub fn load_account_interface(
         &mut self,
@@ -75,48 +82,15 @@ impl<D: DataStore> TransactionExecutor<D> {
             .map_err(TransactionExecutorError::CompileNoteScriptFailed)
     }
 
-    /// Fetches the data required to execute the transaction from the [DataStore], compiles the
-    /// transaction into a [Program] using the [TransactionComplier], and returns a
-    /// [PreparedTransaction].
-    ///
-    /// Errors:
-    /// - If required data can not be fetched from the [DataStore].
-    /// - If the transaction can not be compiled.
-    fn prepare_transaction(
-        &mut self,
-        account_id: AccountId,
-        block_ref: u32,
-        note_origins: &[NoteOrigin],
-        tx_script: Option<ProgramAst>,
-    ) -> Result<PreparedTransaction, TransactionExecutorError> {
-        let (account, block_header, block_chain, notes) = self
-            .data_store
-            .get_transaction_data(account_id, block_ref, note_origins)
-            .map_err(TransactionExecutorError::FetchTransactionDataFailed)?;
-
-        let (tx_program, tx_script_root) = self
-            .compiler
-            .compile_transaction(account_id, &notes, tx_script)
-            .map_err(TransactionExecutorError::CompileTransactionError)?;
-
-        Ok(PreparedTransaction::new(
-            account,
-            block_header,
-            block_chain,
-            notes,
-            tx_script_root,
-            tx_program,
-        ))
-    }
-
     /// Prepares and executes a transaction specified by the provided arguments and returns a
     /// [TransactionWitness].
     ///
     /// The method first fetches the data required to execute the transaction from the [DataStore]
-    /// and compile the transaction into a [Program]. Then it executes the transaction [Program]
-    /// and creates a [TransactionWitness] using the [RecAdviceProvider].
+    /// and compile the transaction into an executable program. Then it executes the transaction
+    /// program and creates a [TransactionWitness].
     ///
-    /// Errors:
+    /// # Errors:
+    /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
@@ -147,6 +121,44 @@ impl<D: DataStore> TransactionExecutor<D> {
             transaction.tx_script_root(),
             transaction.tx_program().clone(),
             advice_proof,
+        ))
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Fetches the data required to execute the transaction from the [DataStore], compiles the
+    /// transaction into an executable program using the [TransactionComplier], and returns a
+    /// [PreparedTransaction].
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction can not be compiled.
+    fn prepare_transaction(
+        &mut self,
+        account_id: AccountId,
+        block_ref: u32,
+        note_origins: &[NoteOrigin],
+        tx_script: Option<ProgramAst>,
+    ) -> Result<PreparedTransaction, TransactionExecutorError> {
+        let (account, block_header, block_chain, notes) = self
+            .data_store
+            .get_transaction_data(account_id, block_ref, note_origins)
+            .map_err(TransactionExecutorError::FetchTransactionDataFailed)?;
+
+        let (tx_program, tx_script_root) = self
+            .compiler
+            .compile_transaction(account_id, &notes, tx_script)
+            .map_err(TransactionExecutorError::CompileTransactionError)?;
+
+        Ok(PreparedTransaction::new(
+            account,
+            block_header,
+            block_chain,
+            notes,
+            tx_script_root,
+            tx_program,
         ))
     }
 }
