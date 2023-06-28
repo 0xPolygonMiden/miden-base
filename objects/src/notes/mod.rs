@@ -1,7 +1,6 @@
 use super::{
-    assets::Asset, AccountId, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType,
-    CodeBlock, Digest, Felt, Hasher, NoteError, ProgramAst, ToAdviceInputs, Vec, Word, WORD_SIZE,
-    ZERO,
+    assets::Asset, AccountId, Assembler, AssemblyContext, AssemblyContextType, CodeBlock, Digest,
+    Felt, Hasher, NoteError, ProgramAst, Vec, Word, WORD_SIZE, ZERO,
 };
 
 mod inputs;
@@ -11,7 +10,7 @@ mod metadata;
 pub use metadata::NoteMetadata;
 
 mod origin;
-pub use origin::NoteOrigin;
+pub use origin::{NoteInclusionProof, NoteOrigin};
 
 mod script;
 pub use script::NoteScript;
@@ -47,7 +46,8 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// Auxiliary data which is used to verify authenticity and signal additional information:
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
-/// - An origin which provides information about the origin of the note.
+/// - A proof which provides the data required to authenticate the note against the note root of
+///   the block in which the note was produced.
 #[derive(Clone, Debug)]
 pub struct Note {
     script: NoteScript,
@@ -55,7 +55,7 @@ pub struct Note {
     vault: NoteVault,
     serial_num: Word,
     metadata: NoteMetadata,
-    origin: Option<NoteOrigin>,
+    proof: Option<NoteInclusionProof>,
 }
 
 impl Note {
@@ -75,7 +75,7 @@ impl Note {
         serial_num: Word,
         sender: AccountId,
         tag: Felt,
-        origin: Option<NoteOrigin>,
+        proof: Option<NoteInclusionProof>,
     ) -> Result<Self, NoteError> {
         let vault = NoteVault::new(assets)?;
         let num_assets = vault.num_assets();
@@ -85,7 +85,7 @@ impl Note {
             vault,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
-            origin,
+            proof,
         })
     }
 
@@ -113,8 +113,13 @@ impl Note {
     }
 
     /// Returns the origin of the note.
-    pub fn origin(&self) -> &Option<NoteOrigin> {
-        &self.origin
+    pub fn origin(&self) -> Option<&NoteOrigin> {
+        self.proof.as_ref().map(|x| x.origin())
+    }
+
+    /// Returns the note inclusion proof.
+    pub fn proof(&self) -> &Option<NoteInclusionProof> {
+        &self.proof
     }
 
     /// Returns the metadata associated with this note.
@@ -177,56 +182,7 @@ impl Note {
 
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
-    pub fn set_origin(&mut self, origin: NoteOrigin) {
-        self.origin = Some(origin);
-    }
-}
-
-impl ToAdviceInputs for &Note {
-    /// Pushes a vector of elements which represents this note onto the advice stack.
-    /// The output vector (out) is constructed as follows:
-    ///     out[0..4]    = serial num
-    ///     out[4..8]    = script root
-    ///     out[8..12]   = input root
-    ///     out[12..16]  = vault_hash
-    ///     out[16]      = num_assets
-    ///     out[17..21]  = asset_1
-    ///     out[21..25]  = asset_2
-    ///     ...
-    ///     out[16 + num_assets * 4..] = Word::default() (this is conditional padding only applied
-    ///                                                   if the number of assets is odd)
-    ///     out[-10]      = origin.block_number
-    ///     out[-9..-5]   = origin.SUB_HASH
-    ///     out[-5..-1]   = origin.NOTE_ROOT
-    ///     out[-1]       = origin.node_index
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // push core data onto the stack
-        target.push_onto_stack(&self.serial_num);
-        target.push_onto_stack(self.script.hash().as_elements());
-        target.push_onto_stack(self.inputs.hash().as_elements());
-        target.push_onto_stack(self.vault.hash().as_elements());
-        target.push_onto_stack(&Word::from(self.metadata()));
-
-        // add assets to the stack and advice map
-        target.push_onto_stack(&self.vault.to_padded_assets());
-        target.insert_into_map(self.vault.hash().into(), self.vault.to_padded_assets());
-
-        // origin must be populated for created notes
-        let origin = self.origin().as_ref().expect("NoteOrigin must be populated.");
-
-        // push origin data onto the stack
-        target.push_onto_stack(&[origin.block_num()]);
-        target.push_onto_stack(&Word::from(origin.sub_hash()));
-        target.push_onto_stack(&Word::from(origin.note_root()));
-        target.push_onto_stack(&[Felt::from(origin.node_index().value())]);
-        target.add_merkle_nodes(
-            origin
-                .note_path()
-                .inner_nodes(origin.node_index().value(), self.authentication_hash())
-                .unwrap(),
-        );
-
-        // add inputs to the advice map
-        target.insert_into_map(self.inputs.hash().into(), self.inputs.inputs().to_vec());
+    pub fn set_proof(&mut self, proof: NoteInclusionProof) {
+        self.proof = Some(proof);
     }
 }

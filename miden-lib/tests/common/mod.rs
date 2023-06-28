@@ -1,3 +1,4 @@
+use assembly::Assembler;
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::{MerkleStore, NodeIndex, SimpleSmt},
@@ -6,19 +7,19 @@ pub use crypto::{
 pub use miden_lib::{memory, MidenLib};
 pub use miden_objects::{
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    notes::{Note, NoteOrigin, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-    transaction::{ExecutedTransaction, ProvenTransaction, TransactionInputs},
+    notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    transaction::{ExecutedTransaction, PreparedTransaction, ProvenTransaction},
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
     ChainMmr, StorageItem,
 };
 use miden_stdlib::StdLibrary;
 pub use processor::{
-    math::Felt, AdviceInputs, AdviceProvider, ExecutionError, MemAdviceProvider, Process,
+    math::Felt, AdviceInputs, AdviceProvider, ExecutionError, MemAdviceProvider, Process, Program,
     StackInputs, Word,
 };
 use std::{env, fs::File, io::Read, path::Path};
+pub use test_utils::data;
 
-pub mod data;
 pub mod procedures;
 
 pub const TX_KERNEL_DIR: &str = "sat";
@@ -39,6 +40,20 @@ pub fn load_file_with_code(imports: &str, code: &str, dir: &str, file: &str) -> 
 }
 
 /// Inject `code` along side the specified file and run it
+pub fn run_tx<A>(
+    program: Program,
+    stack_inputs: StackInputs,
+    adv: A,
+) -> Result<Process<A>, ExecutionError>
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, adv);
+    process.execute(&program)?;
+    Ok(process)
+}
+
+/// Inject `code` along side the specified file and run it
 pub fn run_within_tx_kernel<A>(
     imports: &str,
     code: &str,
@@ -50,11 +65,7 @@ pub fn run_within_tx_kernel<A>(
 where
     A: AdviceProvider,
 {
-    let assembler = assembly::Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("failed to load miden-lib")
-        .with_library(&StdLibrary::default())
-        .expect("failed to load std-lib");
+    let assembler = assembler();
 
     let code = match (dir, file) {
         (Some(dir), Some(file)) => load_file_with_code(imports, code, dir, file),
@@ -73,4 +84,35 @@ where
 // ================================================================================================
 pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
     memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
+}
+
+pub fn assembler() -> Assembler {
+    assembly::Assembler::default()
+        .with_library(&MidenLib::default())
+        .expect("failed to load miden-lib")
+        .with_library(&StdLibrary::default())
+        .expect("failed to load std-lib")
+}
+
+pub fn prepare_transaction(
+    account: Account,
+    block_header: BlockHeader,
+    chain: ChainMmr,
+    notes: Vec<Note>,
+    code: &str,
+    imports: &str,
+    dir: Option<&str>,
+    file: Option<&str>,
+) -> PreparedTransaction {
+    let assembler = assembler();
+
+    let code = match (dir, file) {
+        (Some(dir), Some(file)) => load_file_with_code(imports, code, dir, file),
+        (None, None) => format!("{imports}{code}"),
+        _ => panic!("both dir and file must be specified"),
+    };
+
+    let program = assembler.compile(code).unwrap();
+
+    PreparedTransaction::new(account, block_header, chain, notes, None, program)
 }

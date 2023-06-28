@@ -1,7 +1,7 @@
 use miden_processor::AdviceInputs;
 
 use super::{
-    Account, AccountId, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, Note,
+    Account, AccountId, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher, Note,
     StackInputs, StackOutputs, ToAdviceInputs, Word,
 };
 
@@ -47,7 +47,7 @@ pub fn generate_advice_provider_inputs(
     account: &Account,
     block_header: &BlockHeader,
     block_chain: &ChainMmr,
-    notes: &[Note],
+    notes: &ConsumedNotes,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
 
@@ -61,10 +61,7 @@ pub fn generate_advice_provider_inputs(
     account.to_advice_inputs(&mut advice_inputs);
 
     // insert consumed notes data to advice stack
-    advice_inputs.push_onto_stack(&[Felt::new(notes.len() as u64)]);
-    for note in notes {
-        note.to_advice_inputs(&mut advice_inputs);
-    }
+    notes.to_advice_inputs(&mut advice_inputs);
 
     advice_inputs
 }
@@ -95,11 +92,11 @@ pub fn generate_consumed_notes_commitment(notes: &[Note]) -> Digest {
 pub fn generate_stack_inputs(
     account_id: &AccountId,
     account_hash: &Digest,
-    notes: &[Note],
+    consumed_notes_commitment: Digest,
     block_header: &BlockHeader,
 ) -> StackInputs {
     let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-    inputs.extend_from_slice(generate_consumed_notes_commitment(notes).as_elements());
+    inputs.extend(*consumed_notes_commitment);
     inputs.extend_from_slice(account_hash.as_elements());
     inputs.push(**account_id);
     inputs.extend_from_slice(block_header.hash().as_elements());

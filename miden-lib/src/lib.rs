@@ -33,6 +33,10 @@ impl Library for MidenLib {
     fn modules(&self) -> Self::ModuleIterator<'_> {
         self.contents.modules()
     }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        self.contents.dependencies()
+    }
 }
 
 // SINGLE ACCOUNT TRANSACTION (SAT) KERNEL

@@ -194,7 +194,7 @@ export.finalize_transaction
     exec.account::get_current_hash
 
     # check if the account has changed
-    eqw
+    eqw not
 
     # if the account has changed then apply nonce checks
     if.true

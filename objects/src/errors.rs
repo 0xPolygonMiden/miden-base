@@ -199,3 +199,11 @@ impl fmt::Display for NoteError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
+
+// TRANSACTION WITNESS ERROR
+// ================================================================================================
+#[derive(Debug)]
+pub enum TransactionWitnessError {
+    ConsumedNoteDataNotFound,
+    InvalidConsumedNoteDataLength,
+}
