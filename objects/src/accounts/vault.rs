@@ -1,18 +1,12 @@
 use super::{
-    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
-    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, ZERO,
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, ApplyDiff, Asset, Digest,
+    FungibleAsset, NonFungibleAsset, StarkField, StoreNode, TieredSmt, ToAdviceInputs, Vec, Word,
+    EMPTY_WORD, ZERO,
 };
-use core::default::Default;
+use crypto::merkle::MerkleTreeDelta;
 
 // ACCOUNT VAULT
 // ================================================================================================
-
-/// CONSTANTS
-/// -----------------------------------------------------------------------------------------------
-// TODO: Replace usage of `EMPTY_WORD` with associated constant from [TieredSmt] once it is added.
-/// A constant that represents an empty word. This is used to indicate that a value in the
-/// [TieredSmt] is not set.
-const EMPTY_WORD: Word = [ZERO, ZERO, ZERO, ZERO];
 
 /// An asset container for an account.
 ///
@@ -245,4 +239,13 @@ impl ToAdviceInputs for AccountVault {
             target.insert_into_map(*node, key.into_iter().chain(value).collect());
         })
     }
+}
+
+// DIFF
+// ================================================================================================
+impl ApplyDiff<Digest, StoreNode> for AccountVault {
+    type DiffType = MerkleTreeDelta;
+
+    // TODO: Must find a way to apply this diff
+    fn apply(&mut self, _diff: MerkleTreeDelta) {}
 }

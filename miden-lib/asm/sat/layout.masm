@@ -104,6 +104,9 @@ const.ACCT_CODE_ROOT_PTR=403
 # The memory address at which the new account code root is stored
 const.ACCT_NEW_CODE_ROOT_PTR=404
 
+# The memory offset at which the account data section ends (exclusive)
+const.ACCT_DATA_SECTION_END_OFFSET=404
+
 # CONSUMED NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -432,6 +435,16 @@ export.get_acct_data_ptr
     push.ACCT_DATA_SECTION_OFFSET
 end
 
+#! Returns a pointer to the end of the account data section.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! - ptr is the memory address at which the account data ends.
+export.get_acct_data_end_ptr
+    push.ACCT_DATA_SECTION_END_OFFSET
+end
+
 #! Returns the account id.
 #!
 #! Stack: []
@@ -735,6 +748,16 @@ end
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
+
+#! Returns the offset of the created note data segment.
+#!
+#! Stack: []
+#! Output: [offset]
+#!
+#! - offset is the offset of the created note data segment.
+export.get_created_note_data_offset
+    push.CREATED_NOTE_SECTION_OFFSET
+end
 
 #! Computes a pointer to the memory address at which the data associated with a created note with
 #! index i is stored.

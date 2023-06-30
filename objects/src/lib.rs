@@ -10,18 +10,20 @@ use assembly::{
 };
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::{MerkleError, Mmr, TieredSmt},
+    merkle::{MerkleError, MerkleStore, Mmr, TieredSmt},
     utils::{
-        collections::Vec,
+        collections::{BTreeMap, Vec},
         string::{String, ToString},
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
 use miden_core::code_blocks::CodeBlock;
+use miden_processor::{AdviceInputs, StackOutputs};
 
 mod accounts;
 pub use accounts::{
-    Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageItem,
+    Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStub, AccountType,
+    AccountVault, StorageItem,
 };
 
 mod advice;
@@ -37,6 +39,20 @@ pub mod chain;
 pub use chain::ChainMmr;
 
 mod errors;
-pub use errors::{AccountError, AssetError, NoteError, TransactionWitnessError};
+pub use errors::{
+    AccountError, AssetError, NoteError, TransactionResultError, TransactionWitnessError,
+};
+
+mod result;
+pub use result::TryFromVmResult;
 
 pub mod transaction;
+
+#[cfg(any(test, feature = "testing"))]
+pub mod mock;
+
+// CONSTANTS
+// -----------------------------------------------------------------------------------------------
+
+/// An empty word.
+const EMPTY_WORD: Word = [ZERO, ZERO, ZERO, ZERO];

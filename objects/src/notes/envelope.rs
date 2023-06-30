@@ -1,6 +1,10 @@
-use super::{Digest, Felt, NoteMetadata, StarkField, Vec, Word};
+use super::{Digest, Felt, NoteMetadata, Vec, Word};
+use miden_core::StarkField;
 
-/// Holds information about a note that was created by a transaction.
+// NOTE ENVELOPE
+// ================================================================================================
+
+/// Holds information that is relevant to the recipient of a note.
 /// Contains:
 /// - note_hash: hash of the note that was created
 /// - note_metadata: metadata of the note that was created. Metadata is padded with ZERO such that
@@ -9,13 +13,14 @@ use super::{Digest, Felt, NoteMetadata, StarkField, Vec, Word};
 ///     - tag
 ///     - ZERO
 ///     - ZERO
-pub struct CreatedNoteInfo {
+#[derive(Debug, Clone, PartialEq)]
+pub struct NoteEnvelope {
     note_hash: Digest,
     note_metadata: NoteMetadata,
 }
 
-impl CreatedNoteInfo {
-    /// Creates a new CreatedNoteInfo object.
+impl NoteEnvelope {
+    /// Creates a new [NoteEnvelope] object.
     pub fn new(note_hash: Digest, note_metadata: NoteMetadata) -> Self {
         Self {
             note_hash,
@@ -34,8 +39,8 @@ impl CreatedNoteInfo {
     }
 }
 
-impl From<CreatedNoteInfo> for [Felt; 8] {
-    fn from(cni: CreatedNoteInfo) -> Self {
+impl From<NoteEnvelope> for [Felt; 8] {
+    fn from(cni: NoteEnvelope) -> Self {
         let mut elements: [Felt; 8] = Default::default();
         elements[..4].copy_from_slice(cni.note_hash.as_elements());
         elements[4..].copy_from_slice(&Word::from(cni.metadata()));
@@ -43,8 +48,8 @@ impl From<CreatedNoteInfo> for [Felt; 8] {
     }
 }
 
-impl From<CreatedNoteInfo> for [Word; 2] {
-    fn from(cni: CreatedNoteInfo) -> Self {
+impl From<NoteEnvelope> for [Word; 2] {
+    fn from(cni: NoteEnvelope) -> Self {
         let mut elements: [Word; 2] = Default::default();
         elements[0].copy_from_slice(cni.note_hash.as_elements());
         elements[1].copy_from_slice(&Word::from(cni.metadata()));
@@ -52,8 +57,8 @@ impl From<CreatedNoteInfo> for [Word; 2] {
     }
 }
 
-impl From<CreatedNoteInfo> for [u8; 64] {
-    fn from(cni: CreatedNoteInfo) -> Self {
+impl From<NoteEnvelope> for [u8; 64] {
+    fn from(cni: NoteEnvelope) -> Self {
         let mut elements: [u8; 64] = [0; 64];
         let note_metadata_bytes = Word::from(cni.metadata())
             .iter()

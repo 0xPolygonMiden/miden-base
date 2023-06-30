@@ -101,7 +101,7 @@ impl TransactionComplier {
         account_id: AccountId,
         account_code: ModuleAst,
     ) -> Result<AccountCode, TransactionCompilerError> {
-        let account_code = AccountCode::new(account_id, account_code, &mut self.assembler)
+        let account_code = AccountCode::new(account_id, account_code, &self.assembler)
             .map_err(TransactionCompilerError::LoadAccountFailed)?;
         self.account_procedures.insert(account_id, account_code.procedures().to_vec());
         Ok(account_code)
@@ -124,7 +124,7 @@ impl TransactionComplier {
         note_script_ast: ProgramAst,
         target_account_proc: Vec<NoteTarget>,
     ) -> Result<NoteScript, TransactionCompilerError> {
-        let (note_script, code_block) = NoteScript::new(note_script_ast, &mut self.assembler)
+        let (note_script, code_block) = NoteScript::new(note_script_ast, &self.assembler)
             .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
         for note_target in target_account_proc.into_iter() {
             verify_program_account_compatibility(
@@ -390,6 +390,10 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
             recursively_collect_call_branches(block.body(), branches);
         }
         CodeBlock::Call(block) => {
+            if block.is_syscall() {
+                return;
+            }
+
             branches
                 .last_mut()
                 .expect("at least one execution branch")

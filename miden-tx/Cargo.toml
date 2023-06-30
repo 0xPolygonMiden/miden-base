@@ -16,13 +16,16 @@ default = ["std"]
 std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std", "miden-lib/std"]
 
 [dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-crypto = { package = "miden-crypto", version = "0.6", default-features = false }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+miden-lib = { package = "miden-lib", path = "../miden-lib" }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 [dev-dependencies]
-test-utils = { path = "../test-utils" }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false}
+
