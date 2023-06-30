@@ -1,8 +1,8 @@
 use super::{
     AccountError, AccountId, Assembler, AssemblyContext, AssemblyContextType, Digest, LibraryPath,
-    Module, ModuleAst, Vec,
+    Module, ModuleAst, TryApplyDiff, Vec,
 };
-use crypto::merkle::SimpleSmt;
+use crypto::merkle::{SimpleSmt, StoreNode};
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -116,5 +116,23 @@ impl AccountCode {
     pub fn get_procedure_index_by_root(&self, root: Digest) -> Option<usize> {
         let root_bytes = root.as_bytes();
         self.procedures.binary_search_by(|x| x.as_bytes().cmp(&root_bytes)).ok()
+    }
+}
+
+// DIFF
+// ================================================================================================
+impl TryApplyDiff<Digest, StoreNode> for AccountCode {
+    type DiffType = Option<ModuleAst>;
+    type Error = AccountError;
+
+    fn try_apply(&mut self, diff: Option<ModuleAst>) -> Result<(), Self::Error> {
+        if let Some(module) = diff {
+            // TODO: Consider introducing a TryApplyDiff variant that returns Result<(), Error>
+            let code = AccountCode::new(AccountId::default(), module, &Assembler::default())?;
+            self.module = code.module;
+            self.procedures = code.procedures;
+            self.procedure_tree = code.procedure_tree;
+        }
+        Ok(())
     }
 }
