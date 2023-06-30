@@ -409,6 +409,9 @@ end
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
 proc.process_consumed_notes_data
+    # load the consumed notes data onto the advice stack
+    exec.layout::get_nullifier_com adv.push_mapval dropw
+
     # read the number of consumed notes from the advice provider
     adv_push.1
 

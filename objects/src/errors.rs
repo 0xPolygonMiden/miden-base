@@ -19,7 +19,7 @@ pub enum AccountError {
     FungibleAssetNotFound(FungibleAsset),
     SeedDigestTooFewTrailingZeros,
     CodeParsingFailed(ParsingError),
-    AccountCodeAsselmberError(AssemblyError),
+    AccountCodeAssemblerError(AssemblyError),
     FungibleFaucetIdInvalidFirstBit,
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
@@ -199,3 +199,11 @@ impl fmt::Display for NoteError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
+
+// TRANSACTION WITNESS ERROR
+// ================================================================================================
+#[derive(Debug)]
+pub enum TransactionWitnessError {
+    ConsumedNoteDataNotFound,
+    InvalidConsumedNoteDataLength,
+}

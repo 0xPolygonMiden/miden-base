@@ -1,10 +1,12 @@
-use super::{utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, Note, StackInputs};
+use super::{
+    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note, StackInputs,
+};
 use miden_core::StackOutputs;
 
 pub struct ExecutedTransaction {
     initial_account: Account,
     final_account: Account,
-    consumed_notes: Vec<Note>,
+    consumed_notes: ConsumedNotes,
     created_notes: Vec<Note>,
     tx_script_root: Option<Digest>,
     block_header: BlockHeader,
@@ -24,7 +26,7 @@ impl ExecutedTransaction {
         Self {
             initial_account,
             final_account,
-            consumed_notes,
+            consumed_notes: ConsumedNotes::new(consumed_notes),
             created_notes,
             tx_script_root,
             block_header,
@@ -43,7 +45,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns the consumed notes.
-    pub fn consumed_notes(&self) -> &[Note] {
+    pub fn consumed_notes(&self) -> &ConsumedNotes {
         &self.consumed_notes
     }
 
@@ -67,14 +69,14 @@ impl ExecutedTransaction {
         utils::generate_stack_inputs(
             &self.initial_account.id(),
             &self.initial_account.hash(),
-            &self.consumed_notes,
+            self.consumed_notes.commitment(),
             &self.block_header,
         )
     }
 
     /// Returns the consumed notes commitment.
     pub fn consumed_notes_commitment(&self) -> Digest {
-        utils::generate_consumed_notes_commitment(&self.consumed_notes)
+        self.consumed_notes.commitment()
     }
 
     /// Returns the advice inputs required when executing the transaction.

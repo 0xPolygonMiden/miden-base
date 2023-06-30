@@ -1,7 +1,7 @@
 use super::{
     AccountCode, AccountId, Assembler, AssemblyContext, AssemblyContextType, BTreeMap, CodeBlock,
-    CompiledTransaction, Digest, MidenLib, ModuleAst, Note, NoteScript, Operation, Program,
-    ProgramAst, SatKernel, StdLibrary, TransactionError,
+    Digest, MidenLib, ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel,
+    StdLibrary, TransactionCompilerError,
 };
 
 #[cfg(test)]
@@ -100,9 +100,9 @@ impl TransactionComplier {
         &mut self,
         account_id: AccountId,
         account_code: ModuleAst,
-    ) -> Result<AccountCode, TransactionError> {
+    ) -> Result<AccountCode, TransactionCompilerError> {
         let account_code = AccountCode::new(account_id, account_code, &mut self.assembler)
-            .map_err(TransactionError::LoadAccountFailed)?;
+            .map_err(TransactionCompilerError::LoadAccountFailed)?;
         self.account_procedures.insert(account_id, account_code.procedures().to_vec());
         Ok(account_code)
     }
@@ -123,16 +123,16 @@ impl TransactionComplier {
         &mut self,
         note_script_ast: ProgramAst,
         target_account_proc: Vec<NoteTarget>,
-    ) -> Result<NoteScript, TransactionError> {
+    ) -> Result<NoteScript, TransactionCompilerError> {
         let (note_script, code_block) = NoteScript::new(note_script_ast, &mut self.assembler)
-            .map_err(|_| TransactionError::CompileNoteScriptFailed)?;
+            .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
         for note_target in target_account_proc.into_iter() {
             verify_program_account_compatibility(
                 &code_block,
                 &self.get_target_interface(note_target)?,
             )
             .map_err(|_| {
-                TransactionError::NoteIncompatibleWithAccountInterface(code_block.hash())
+                TransactionCompilerError::NoteIncompatibleWithAccountInterface(code_block.hash())
             })?;
         }
 
@@ -142,37 +142,35 @@ impl TransactionComplier {
     // TRANSACTION PROGRAM BUILDER
     // --------------------------------------------------------------------------------------------
     /// Compiles a transaction which executes the provided notes and an optional tx script against
-    /// the specified account.
+    /// the specified account. Returns the a tuple containing the compiled program and the root
+    /// hash of the transaction script if it was provided.
     ///
     /// The account is assumed to have been previously loaded into this compiler.
     pub fn compile_transaction(
         &mut self,
         account_id: AccountId,
-        notes: Vec<Note>,
+        notes: &[Note],
         tx_script: Option<ProgramAst>,
-    ) -> Result<CompiledTransaction, TransactionError> {
+    ) -> Result<(Program, Option<Digest>), TransactionCompilerError> {
         // Fetch the account interface from the `account_procedures` map. Return an error if the
         // interface is not found.
         let target_account_interface = self
             .account_procedures
             .get(&account_id)
             .cloned()
-            .ok_or(TransactionError::AccountInterfaceNotFound(account_id))?;
+            .ok_or(TransactionCompilerError::AccountInterfaceNotFound(account_id))?;
 
         // Transaction must contain at least one input note or a transaction script
         if notes.is_empty() && tx_script.is_none() {
-            return Err(TransactionError::InvalidTransactionInputs);
+            return Err(TransactionCompilerError::InvalidTransactionInputs);
         }
 
         // Create the [AssemblyContext] for compilation of the transaction program
         let mut assembly_context = AssemblyContext::new(AssemblyContextType::Program);
 
         // Create note tree and note [CodeBlock]s
-        let (note_tree_root, note_roots) = self.create_note_program_tree(
-            &target_account_interface,
-            &notes,
-            &mut assembly_context,
-        )?;
+        let (note_tree_root, note_roots) =
+            self.create_note_program_tree(&target_account_interface, notes, &mut assembly_context)?;
 
         // Create the transaction program
         let (tx_script_code_block, tx_script_hash) =
@@ -194,7 +192,7 @@ impl TransactionComplier {
         let mut cb_table = self
             .assembler
             .build_cb_table(assembly_context)
-            .map_err(TransactionError::BuildCodeBlockTableFailed)?;
+            .map_err(TransactionCompilerError::BuildCodeBlockTableFailed)?;
 
         // insert note roots into [CodeBlockTable]
         note_roots.into_iter().for_each(|note_root| {
@@ -208,7 +206,7 @@ impl TransactionComplier {
         let program = Program::with_kernel(program_root, self.assembler.kernel().clone(), cb_table);
 
         // Create compiled transaction
-        Ok(CompiledTransaction::new(account_id, notes, tx_script_hash, program))
+        Ok((program, tx_script_hash))
     }
 
     // HELPER METHODS
@@ -221,7 +219,7 @@ impl TransactionComplier {
         target_account_interface: &[Digest],
         notes: &[Note],
         assembly_context: &mut AssemblyContext,
-    ) -> Result<(CodeBlock, Vec<CodeBlock>), TransactionError> {
+    ) -> Result<(CodeBlock, Vec<CodeBlock>), TransactionCompilerError> {
         // Create vectors to store note programs and note roots
         let mut note_programs = Vec::new();
         let mut note_roots = Vec::new();
@@ -231,9 +229,11 @@ impl TransactionComplier {
             let note_root = self
                 .assembler
                 .compile_in_context(note.script().code(), assembly_context)
-                .map_err(|_| TransactionError::CompileNoteScriptFailed)?;
+                .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
             verify_program_account_compatibility(&note_root, target_account_interface).map_err(
-                |_| TransactionError::NoteIncompatibleWithAccountInterface(note_root.hash()),
+                |_| {
+                    TransactionCompilerError::NoteIncompatibleWithAccountInterface(note_root.hash())
+                },
             )?;
             note_programs.push(CodeBlock::new_join([
                 self.note_setup.clone(),
@@ -277,26 +277,26 @@ impl TransactionComplier {
     }
 
     /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
-    /// transaction script program and the second element is the hash of the transaction script.
-    /// If no transaction script is provided, the first element is a [CodeBlock] containing a
-    /// single [Operation::Noop] and the second element is `None`.
+    /// transaction script program and the second element is the hash of the transaction script
+    /// program. If no transaction script is provided, the first element is a [CodeBlock] containing
+    /// a single [Operation::Noop] and the second element is `None`.
     fn create_tx_program(
         &mut self,
         tx_script: Option<ProgramAst>,
         assembly_context: &mut AssemblyContext,
         target_account_interface: Vec<Digest>,
-    ) -> Result<(CodeBlock, Option<Digest>), TransactionError> {
+    ) -> Result<(CodeBlock, Option<Digest>), TransactionCompilerError> {
         let tx_script_is_some = tx_script.is_some();
         let tx_script_code_block = match tx_script {
             Some(tx_script) => self
                 .assembler
                 .compile_in_context(&tx_script, assembly_context)
-                .map_err(TransactionError::CompileTxScriptFailed)?,
+                .map_err(TransactionCompilerError::CompileTxScriptFailed)?,
             None => CodeBlock::new_span(vec![Operation::Noop]),
         };
         verify_program_account_compatibility(&tx_script_code_block, &target_account_interface)
             .map_err(|_| {
-                TransactionError::TxScriptIncompatibleWithAccountInterface(
+                TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(
                     tx_script_code_block.hash(),
                 )
             })?;
@@ -309,13 +309,16 @@ impl TransactionComplier {
     /// # Errors
     /// - If the account interface associated with the [AccountId] provided as a target can not be
     ///   found in the `account_procedures` map.
-    fn get_target_interface(&self, target: NoteTarget) -> Result<Vec<Digest>, TransactionError> {
+    fn get_target_interface(
+        &self,
+        target: NoteTarget,
+    ) -> Result<Vec<Digest>, TransactionCompilerError> {
         match target {
             NoteTarget::AccountId(id) => self
                 .account_procedures
                 .get(&id)
                 .cloned()
-                .ok_or(TransactionError::AccountInterfaceNotFound(id)),
+                .ok_or(TransactionCompilerError::AccountInterfaceNotFound(id)),
             NoteTarget::Procedures(procs) => Ok(procs),
         }
     }
@@ -339,7 +342,7 @@ impl Default for TransactionComplier {
 fn verify_program_account_compatibility(
     program: &CodeBlock,
     target_account_interface: &[Digest],
-) -> Result<(), TransactionError> {
+) -> Result<(), TransactionCompilerError> {
     // collect call branches
     let branches = collect_call_branches(program);
 
@@ -347,7 +350,9 @@ fn verify_program_account_compatibility(
     if !branches.iter().any(|call_targets| {
         call_targets.iter().all(|target| target_account_interface.contains(target))
     }) {
-        return Err(TransactionError::ProgramIncompatibleWithAccountInterface(program.hash()));
+        return Err(TransactionCompilerError::ProgramIncompatibleWithAccountInterface(
+            program.hash(),
+        ));
     }
 
     Ok(())

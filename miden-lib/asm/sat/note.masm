@@ -15,7 +15,7 @@ export.get_sender
     exec.layout::get_current_consumed_note_ptr
     # => [ptr]
 
-    # assert the pointer is not zero - this would suggest the procedure has been called from an 
+    # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
     dup neq.0 assert
     # => [ptr]
@@ -38,7 +38,7 @@ export.get_vault_data
     exec.layout::get_current_consumed_note_ptr
     # => [ptr]
 
-    # assert the pointer is not zero - this would suggest the procedure has been called from an 
+    # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
     dup neq.0 assert
     # => [ptr]
@@ -66,7 +66,7 @@ export.get_assets
     # => [VAULT_HASH, num_assets, dest_ptr]
 
     # load the vault data from the advice map to the advice stack
-    adv.keyval
+    adv.push_mapval
     # => [VAULT_HASH, num_assets, dest_ptr]
 
     # calculate number of assets rounded up to an even number
@@ -80,7 +80,7 @@ export.get_assets
     # prepare the stack for reading from the advice stack
     padw padw padw
     # => [PAD, PAD, PAD, start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
-    
+
     # read the assets from advice stack to memory
     exec.mem::pipe_double_words_to_memory
     # => [PERM, PERM, PERM, end_ptr', end_ptr, VAULT_HASH, num_assets, dest_ptr]
@@ -106,7 +106,7 @@ export.increment_current_consumed_note_idx
     # get the current consumed note index
     exec.layout::get_current_consumed_note_idx
     # => [note_idx]
-    
+
     # increment the index of the current consumed note and save back to memory
     dup add.1 exec.layout::set_current_consumed_note_idx
     # => [note_idx]
@@ -118,6 +118,20 @@ end
 #! Inputs: []
 #! Outputs: []
 export.reset_current_consumed_note_ptr
+    # get the current consumed note index
+    exec.layout::get_current_consumed_note_idx
+    # => [note_idx, ...]
+
+    # if at least one note has been consumed we need to clear the note outputs from the stack
+    eq.0 not
+    # => [has_processed_notes, ...]
+
+    if.true
+        dropw dropw dropw dropw
+    end
+    drop
+    # => []
+
     # set the current consumed note pointer to 0
     push.0 exec.layout::set_current_consumed_note_ptr
 end

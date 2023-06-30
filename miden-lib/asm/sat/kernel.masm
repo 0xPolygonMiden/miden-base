@@ -94,7 +94,7 @@ end
 
 # TODO: Add vault based procedures (add_asset, remove_asset, mint, burn)
 
-#! Returns the balance of a fungible asset associated with a faucet_id. 
+#! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.
 #!
 #! Stack: [faucet_id]

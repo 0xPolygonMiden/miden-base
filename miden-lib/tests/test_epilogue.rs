@@ -66,7 +66,7 @@ fn test_compute_created_note_hash() {
 
     executed_transaction.created_notes_commitment();
 
-    for (note, i) in executed_transaction.created_notes().iter().zip(0u64..) {
+    for (note, i) in executed_transaction.created_notes().iter().zip(0u32..) {
         let test = format!(
             "
         {created_notes_data_procedure}

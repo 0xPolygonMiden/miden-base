@@ -8,40 +8,49 @@ use common::{
         CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR,
         NOTE_ROOT_PTR, NULLIFIER_COM_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, STATE_ROOT_PTR,
     },
-    run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
-    TransactionInputs, Word, TX_KERNEL_DIR,
+    prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider,
+    PreparedTransaction, Process, Word, TX_KERNEL_DIR,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
+
     let code = "
         begin
             exec.prepare_transaction
         end
         ";
-    let process = run_within_tx_kernel(
+
+    let transaction = prepare_transaction(
+        account,
+        block_header,
+        chain,
+        notes,
+        &code,
         "",
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         Some(TX_KERNEL_DIR),
         Some(PROLOGUE_FILE),
+    );
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
-    public_input_memory_assertions(&process, &inputs);
-    block_data_memory_assertions(&process, &inputs);
-    chain_mmr_memory_assertions(&process, &inputs);
-    account_data_memory_assertions(&process, &inputs);
-    consumed_notes_memory_assertions(&process, &inputs);
+    public_input_memory_assertions(&process, &transaction);
+    block_data_memory_assertions(&process, &transaction);
+    chain_mmr_memory_assertions(&process, &transaction);
+    account_data_memory_assertions(&process, &transaction);
+    consumed_notes_memory_assertions(&process, &transaction);
 }
 
 fn public_input_memory_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     // The block hash should be stored at the BLK_HASH_PTR
     assert_eq!(
@@ -70,7 +79,7 @@ fn public_input_memory_assertions<A: AdviceProvider>(
 
 fn block_data_memory_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     // The block hash should be stored at the BLK_HASH_PTR
     assert_eq!(
@@ -123,7 +132,7 @@ fn block_data_memory_assertions<A: AdviceProvider>(
 
 fn chain_mmr_memory_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     // The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR
     assert_eq!(
@@ -133,13 +142,16 @@ fn chain_mmr_memory_assertions<A: AdviceProvider>(
 
     for (i, peak) in inputs.block_chain().mmr().accumulator().peaks.iter().enumerate() {
         // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
-        assert_eq!(&process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i as u64).unwrap(), peak);
+        let i: u32 = i.try_into().expect(
+            "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
+        );
+        assert_eq!(process.get_memory_value(0, CHAIN_MMR_PEAKS_PTR + i).unwrap(), Word::from(peak));
     }
 }
 
 fn account_data_memory_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     // The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]
     assert_eq!(
@@ -159,7 +171,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR
     assert_eq!(
         process.get_memory_value(0, ACCT_STORAGE_ROOT_PTR).unwrap(),
-        inputs.account().storage().root()
+        Word::from(inputs.account().storage().root())
     );
 
     // The account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)
@@ -171,15 +183,15 @@ fn account_data_memory_assertions<A: AdviceProvider>(
 
 fn consumed_notes_memory_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
         process.get_memory_value(0, CONSUMED_NOTE_SECTION_OFFSET).unwrap()[0],
-        Felt::new(inputs.consumed_notes().len() as u64)
+        Felt::new(inputs.consumed_notes().notes().len() as u64)
     );
 
-    for (note, note_idx) in inputs.consumed_notes().iter().zip(0u64..) {
+    for (note, note_idx) in inputs.consumed_notes().notes().iter().zip(0u32..) {
         // The note nullifier should be computer and stored at (CONSUMED_NOTES_OFFSET + 1 + note_idx)
         assert_eq!(
             process
@@ -225,7 +237,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
         );
 
         // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)
-        for (asset, asset_idx) in note.vault().iter().cloned().zip(0u64..) {
+        for (asset, asset_idx) in note.vault().iter().cloned().zip(0u32..) {
             let word: Word = asset.into();
             assert_eq!(
                 process

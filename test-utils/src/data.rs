@@ -1,14 +1,14 @@
 use super::{
     Account, AccountCode, AccountId, AccountStorage, AccountVault, Asset, BlockHeader, ChainMmr,
     Digest, ExecutedTransaction, Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex,
-    NonFungibleAsset, NonFungibleAssetDetails, Note, NoteOrigin, NoteScript, SimpleSmt,
-    StorageItem, TransactionInputs, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
+    NonFungibleAsset, NonFungibleAssetDetails, Note, NoteInclusionProof, NoteScript, SimpleSmt,
+    StorageItem, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use test_utils::rand;
+use miden_test_utils::rand;
 
 // MOCK DATA
 // ================================================================================================
@@ -69,14 +69,14 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
 
     // create a dummy chain of block headers
     let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, Some(note_trees[0].root().into())),
-        mock_block_header(Felt::ONE, None, Some(note_trees[1].root().into())),
+        mock_block_header(Felt::ZERO, None, Some(note_trees[0].root())),
+        mock_block_header(Felt::ONE, None, Some(note_trees[1].root())),
         mock_block_header(Felt::new(2), None, None),
         mock_block_header(Felt::new(3), None, None),
     ];
 
     // convert block hashes into words
-    let block_hashes: Vec<Word> = block_chain.iter().map(|h| Word::from(h.hash())).collect();
+    let block_hashes: Vec<Digest> = block_chain.iter().map(|h| h.hash()).collect();
 
     // instantiate and populate MMR
     let mut chain_mmr = ChainMmr::default();
@@ -88,8 +88,8 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     for (index, note) in consumed_notes.iter_mut().enumerate() {
         let block_header = &block_chain[index];
         let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
-        note.set_origin(
-            NoteOrigin::new(
+        note.set_proof(
+            NoteInclusionProof::new(
                 block_header.block_num(),
                 block_header.sub_hash(),
                 block_header.note_root(),
@@ -137,7 +137,11 @@ fn mock_account(
 
     // create account storage
     let account_storage = AccountStorage::new(
-        vec![STORAGE_ITEM_0, STORAGE_ITEM_1, (CHILD_ROOT_PARENT_LEAF_INDEX, child_smt.root())],
+        vec![
+            STORAGE_ITEM_0,
+            STORAGE_ITEM_1,
+            (CHILD_ROOT_PARENT_LEAF_INDEX, *child_smt.root()),
+        ],
         account_merkle_store,
     )
     .unwrap();
@@ -150,7 +154,7 @@ fn mock_account(
                 push.1.2
                 add
             end
-        
+
             export.account_procedure_2
                 push.2.1
                 sub
@@ -167,19 +171,17 @@ fn mock_account(
     // Create an account with storage items
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account = Account::new(
+    Account::new(
         account_id,
         account_vault,
         account_storage,
         account_code,
         nonce.unwrap_or(Felt::ZERO),
     )
-    .unwrap();
-
-    account
+    .unwrap()
 }
 
-pub fn mock_inputs() -> TransactionInputs {
+pub fn mock_inputs() -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
     let mut assembler = Assembler::default();
 
@@ -200,7 +202,7 @@ pub fn mock_inputs() -> TransactionInputs {
     );
 
     // Transaction inputs
-    TransactionInputs::new(account, block_header, chain_mmr, consumed_notes, None)
+    (account, block_header, chain_mmr, consumed_notes)
 }
 
 pub fn mock_executed_tx() -> ExecutedTransaction {
@@ -243,7 +245,7 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     )
 }
 
-fn mock_consumed_notes(assembler: &mut Assembler) -> Vec<Note> {
+pub fn mock_consumed_notes(assembler: &mut Assembler) -> Vec<Note> {
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
@@ -300,7 +302,7 @@ fn mock_created_notes(assembler: &mut Assembler) -> Vec<Note> {
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     // create note script
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast = ProgramAst::parse("begin push.1 add drop end").unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
 
     // Created Notes

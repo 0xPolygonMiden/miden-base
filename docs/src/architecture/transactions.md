@@ -13,8 +13,8 @@ T(A, \sum_{\substack{
   }} 
  N(i)) \to (A', \sum_{\substack{
    0<j<m
-  }} 
- N(j)) 
+  }}
+ N(j))
 $
 , where  $ A \in { Accounts }$, $N \in { Notes } $
 

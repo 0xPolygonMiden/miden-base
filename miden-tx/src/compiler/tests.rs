@@ -67,7 +67,7 @@ fn test_compile_valid_note_script() {
             format!(
                 "begin
                     call.{ACCT_PROC_1}
-                    call.{ACCT_PROC_2} 
+                    call.{ACCT_PROC_2}
                 end"
             ),
             true,
@@ -195,11 +195,9 @@ fn test_transaction_compilation() {
     let tx_script_src = format!("begin call.{ACCT_PROC_2} end");
     let tx_script_ast = ProgramAst::parse(tx_script_src.as_str()).unwrap();
 
-    let tx = tx_compiler
-        .compile_transaction(account_id, notes.clone(), Some(tx_script_ast.clone()))
+    let (tx_program, _) = tx_compiler
+        .compile_transaction(account_id, &notes, Some(tx_script_ast.clone()))
         .unwrap();
-
-    let tx_program = tx.tx_program();
 
     assert_eq!(
         tx_program.root().hash(),

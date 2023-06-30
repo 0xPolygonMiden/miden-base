@@ -47,7 +47,7 @@ impl AccountCode {
 
         let mut procedure_digests = assembler
             .compile_module(&module, &mut AssemblyContext::new(AssemblyContextType::Module))
-            .map_err(AccountError::AccountCodeAsselmberError)?;
+            .map_err(AccountError::AccountCodeAssemblerError)?;
         procedure_digests.sort_by_key(|a| a.as_bytes());
 
         Ok(Self {
@@ -70,7 +70,7 @@ impl AccountCode {
 
     /// Returns a commitment to an account's public interface.
     pub fn root(&self) -> Digest {
-        self.procedure_tree.root().into()
+        self.procedure_tree.root()
     }
 
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].

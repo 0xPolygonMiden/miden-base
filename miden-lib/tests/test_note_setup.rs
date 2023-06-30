@@ -1,16 +1,17 @@
 pub mod common;
 use common::{
     consumed_note_data_ptr, data::mock_inputs, memory::CURRENT_CONSUMED_NOTE_PTR,
-    run_within_tx_kernel, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
+    prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
     TX_KERNEL_DIR,
 };
-use miden_objects::transaction::TransactionInputs;
+use miden_objects::transaction::PreparedTransaction;
 
 const NOTE_SETUP_FILE: &str = "note_setup.masm";
 
 #[test]
 fn test_note_setup() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
+
     let imports = "use.miden::sat::prologue\n";
     let code = "
         begin
@@ -18,13 +19,22 @@ fn test_note_setup() {
             exec.prepare_note
         end
         ";
-    let process = run_within_tx_kernel(
+
+    let inputs = prepare_transaction(
+        account,
+        block_header,
+        chain,
+        notes,
+        &code,
         imports,
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
         Some(TX_KERNEL_DIR),
         Some(NOTE_SETUP_FILE),
+    );
+
+    let process = run_tx(
+        inputs.tx_program().clone(),
+        inputs.stack_inputs(),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )
     .unwrap();
     note_setup_stack_assertions(&process, &inputs);
@@ -33,10 +43,10 @@ fn test_note_setup() {
 
 fn note_setup_stack_assertions<A: AdviceProvider>(
     process: &Process<A>,
-    inputs: &TransactionInputs,
+    inputs: &PreparedTransaction,
 ) {
     let mut note_inputs = [Felt::ZERO; 16];
-    note_inputs.copy_from_slice(inputs.consumed_notes()[0].inputs().inputs());
+    note_inputs.copy_from_slice(inputs.consumed_notes().notes()[0].inputs().inputs());
     note_inputs.reverse();
 
     // assert that the stack contains the note inputs at the end of execution

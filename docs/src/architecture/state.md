@@ -41,8 +41,8 @@ Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](http
 Both of these properties are needed for supporting local transactions and privacy.
 
 There are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
-* **Public notes** where the entire note content is recorded in the state. 
-* **Private notes** where only a note's hash is recorded in the state. 
+* **Public notes** where the entire note content is recorded in the state.
+* **Private notes** where only a note's hash is recorded in the state.
 
 As with accounts, there is a strong incentive to use private notes as they result in lower fees. This is also beneficial to the network as a private note adds only 64 bytes to the state (32 bytes when it is produced, and 32 bytes when it is consumed).
 
@@ -56,7 +56,7 @@ Using a Merkle Mountain Range (append-only accumulator) means that we can't remo
 
 However, we need to explicitly store only the unconsumed public notes and enough info to construct membership proofs against them. Private notes, as well as public notes which have already been consumed, can be safely discarded. Such notes would still remain in the accumulator, but there is no need to store them explicitly as the append-only accumulator can be updated without knowing all items stored in it. This reduces actual storage requirements to a fraction of the database's nominal size.
 
-ToDo: Describe and specify life-time restrictions for notes on the database. 
+ToDo: Describe and specify life-time restrictions for notes on the database.
 
 ### Nullifier DB
 

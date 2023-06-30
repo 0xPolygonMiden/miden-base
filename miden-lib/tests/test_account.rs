@@ -5,8 +5,9 @@ use common::{
         CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
     },
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
+    prepare_transaction,
     procedures::prepare_word,
-    run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
+    run_tx, run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
 };
 use vm_core::StackInputs;
 
@@ -24,7 +25,7 @@ const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
     let code = "
         use.miden::sat::prologue
@@ -35,20 +36,21 @@ pub fn test_set_code_is_not_immediate() {
             exec.account::set_code
         end
         ";
-    let process = run_within_tx_kernel(
-        "",
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
     // assert the code root is not changed
     assert_eq!(
         process.get_memory_value(0, ACCT_CODE_ROOT_PTR).unwrap(),
-        inputs.account().code().root().as_elements()
+        transaction.account().code().root().as_elements()
     );
 
     // assert the new code root is cached
@@ -60,7 +62,8 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
+
     let code = "
         use.miden::sat::account
         use.miden::sat::prologue
@@ -70,16 +73,21 @@ pub fn test_set_code_succeeds() {
             exec.prologue::prepare_transaction
             push.0.1.2.3
             exec.account::set_code
+            
+            push.1
+            exec.account::incr_nonce
+
             exec.epilogue::finalize_transaction
         end
         ";
-    let process = run_within_tx_kernel(
-        "",
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
@@ -147,7 +155,7 @@ fn test_validate_id_fails_on_insuficcient_ones() {
     let code = format!(
         "
         use.miden::sat::account
-    
+
         begin
             push.{ACCOUNT_ID_INSUFFICIENT_ONES}
             exec.account::validate_id
@@ -170,7 +178,8 @@ fn test_validate_id_fails_on_insuficcient_ones() {
 #[test]
 fn test_get_item() {
     for storage_item in [STORAGE_ITEM_0, STORAGE_ITEM_1] {
-        let inputs = mock_inputs();
+        let (account, block_header, chain, notes) = mock_inputs();
+
         let code = format!(
             "
         use.miden::sat::account
@@ -180,7 +189,7 @@ fn test_get_item() {
         begin
             # prepare the transaction
             exec.prologue::prepare_transaction
-            
+
             # push the account storage item index
             push.{item_index}
 
@@ -195,13 +204,13 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.1)
         );
 
-        let _process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::from(inputs.stack_inputs()),
-            MemAdviceProvider::from(inputs.advice_provider_inputs()),
-            None,
-            None,
+        let transaction =
+            prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+        let _process = run_tx(
+            transaction.tx_program().clone(),
+            StackInputs::from(transaction.stack_inputs()),
+            MemAdviceProvider::from(transaction.advice_provider_inputs()),
         )
         .unwrap();
     }
@@ -209,7 +218,8 @@ fn test_get_item() {
 
 #[test]
 fn test_get_child_tree_item() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
+
     let code = format!(
         "
         use.miden::sat::account
@@ -238,23 +248,23 @@ fn test_get_child_tree_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let _process = run_within_tx_kernel(
-        "",
-        &code,
-        StackInputs::from(inputs.stack_inputs()),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, code.as_str(), "", None, None);
+
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        StackInputs::from(transaction.stack_inputs()),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 }
 
 #[test]
 fn test_set_item() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
     // copy the initial account slots (SMT)
-    let mut account_smt = inputs.account().storage().slots().clone();
+    let mut account_smt = account.storage().slots().clone();
     let init_root = account_smt.root();
 
     // insert a new leaf value
@@ -275,7 +285,7 @@ fn test_set_item() {
 
         # push the new storage item onto the stack
         push.{new_value}
-        
+
         # push the account storage item index
         push.{NEW_ITEM_INDEX}
 
@@ -296,13 +306,13 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let _process = run_within_tx_kernel(
-        "",
-        &code,
-        StackInputs::from(inputs.stack_inputs()),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        StackInputs::from(transaction.stack_inputs()),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 }
@@ -353,15 +363,17 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let inputs = mock_inputs();
+    let (account, _, _, _) = mock_inputs();
 
     let test_cases = vec![
-        (inputs.account().code().procedure_tree().get_leaf(0).unwrap(), true),
-        (inputs.account().code().procedure_tree().get_leaf(1).unwrap(), true),
+        (account.code().procedure_tree().get_leaf(0).unwrap(), true),
+        (account.code().procedure_tree().get_leaf(1).unwrap(), true),
         (Word::default(), false),
     ];
 
     for (root, valid) in test_cases.into_iter() {
+        let (account, block_header, chain, notes) = mock_inputs();
+
         let code = format!(
             "\
             use.miden::sat::account
@@ -381,13 +393,13 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::from(inputs.stack_inputs()),
-            MemAdviceProvider::from(inputs.advice_provider_inputs()),
-            None,
-            None,
+        let transaction =
+            prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+        let process = run_tx(
+            transaction.tx_program().clone(),
+            StackInputs::from(transaction.stack_inputs()),
+            MemAdviceProvider::from(transaction.advice_provider_inputs()),
         );
 
         match valid {

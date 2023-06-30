@@ -58,7 +58,7 @@ proc.increment_num_created_notes
     # assert that there is space for a new note
     dup exec.constants::get_max_num_created_notes lt assert
     # => [note_idx]
-    
+
     # increment the number of created notes
     dup add.1 exec.layout::set_num_created_notes
     # => [note_idx]

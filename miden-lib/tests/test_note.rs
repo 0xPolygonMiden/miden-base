@@ -1,11 +1,12 @@
 pub mod common;
 use common::{
-    data::mock_inputs, procedures::prepare_word, run_within_tx_kernel, Felt, MemAdviceProvider,
+    data::mock_inputs, prepare_transaction, procedures::prepare_word, run_tx, Felt,
+    MemAdviceProvider,
 };
 
 #[test]
 fn test_get_sender_no_sender() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
     // calling get_sender should return sender
     let code = "
@@ -18,20 +19,21 @@ fn test_get_sender_no_sender() {
             exec.note::get_sender
         end
         ";
-    let process = run_within_tx_kernel(
-        "",
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
     assert!(process.is_err());
 }
 
 #[test]
 fn test_get_sender() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
     // calling get_sender should return sender
     let code = "
@@ -46,26 +48,25 @@ fn test_get_sender() {
             exec.note::get_sender
         end
         ";
-    let process = run_within_tx_kernel(
-        "",
-        code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
-    let sender = inputs.consumed_notes()[0].metadata().sender().into();
+    let sender = transaction.consumed_notes().notes()[0].metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
 
 #[test]
 fn test_get_vault_data() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
-    // for (i, note) in inputs.consumed_notes().iter().enumerate() {
-    let notes = &inputs.consumed_notes();
     // calling get_vault_data should return vault data
     let code = format!(
         "
@@ -79,7 +80,7 @@ fn test_get_vault_data() {
 
             # prepare note 0
             exec.note_setup::prepare_note
-            
+
             # drop the note inputs
             dropw dropw dropw dropw
 
@@ -110,26 +111,24 @@ fn test_get_vault_data() {
         note_1_num_assets = notes[1].vault().num_assets(),
     );
 
+    let transaction =
+        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+
     // run to ensure success
-    let _process = run_within_tx_kernel(
-        "",
-        &code,
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 }
 
 #[test]
 fn test_get_assets() {
-    let inputs = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs();
 
-    const DEST_POINTER_NOTE_0: u64 = 100000000;
-    const DEST_POINTER_NOTE_1: u64 = 200000000;
-
-    let notes = inputs.consumed_notes();
+    const DEST_POINTER_NOTE_0: u32 = 100000000;
+    const DEST_POINTER_NOTE_1: u32 = 200000000;
 
     // calling get_assets should return assets at the specified address
     let code = format!(
@@ -183,18 +182,18 @@ fn test_get_assets() {
         note_1_num_assets = notes[1].vault().num_assets(),
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
+    let inputs =
+        prepare_transaction(account, block_header, chain, notes.clone(), &code, "", None, None);
+
+    let process = run_tx(
+        inputs.tx_program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
-        None,
-        None,
     )
     .unwrap();
 
     // check the assets saved to memory for note 0 are correct
-    for (asset, idx) in notes[0].vault().iter().zip(0u64..) {
+    for (asset, idx) in notes[0].vault().iter().zip(0u32..) {
         assert_eq!(
             process.get_memory_value(0, DEST_POINTER_NOTE_0 + idx).unwrap(),
             <[Felt; 4]>::from(*asset)
@@ -202,7 +201,7 @@ fn test_get_assets() {
     }
 
     // check the assets saved to memory for note 1 are correct
-    for (asset, idx) in notes[1].vault().iter().zip(0u64..) {
+    for (asset, idx) in notes[1].vault().iter().zip(0u32..) {
         assert_eq!(
             process.get_memory_value(0, DEST_POINTER_NOTE_1 + idx).unwrap(),
             <[Felt; 4]>::from(*asset)
