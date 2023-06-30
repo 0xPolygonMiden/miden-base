@@ -1,14 +1,33 @@
 use super::{
-    Account, AccountCode, AccountId, AccountStorage, AccountVault, Asset, BlockHeader, ChainMmr,
-    Digest, ExecutedTransaction, Felt, FieldElement, FungibleAsset, MerkleStore, NodeIndex,
-    NonFungibleAsset, NonFungibleAssetDetails, Note, NoteInclusionProof, NoteScript, SimpleSmt,
-    StorageItem, Word, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH,
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    transaction::ExecutedTransaction,
+    Account, AccountCode, AccountId, AccountStorage, AccountVault, BlockHeader, ChainMmr, Digest,
+    Felt, StarkField, StorageItem, Word,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
+use miden_core::{
+    crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt},
+    FieldElement,
+};
+use miden_lib::{MidenLib, SatKernel};
+use miden_stdlib::StdLibrary;
 use miden_test_utils::rand;
+
+// ASSEMBLER
+// ================================================================================================
+pub fn assembler() -> Assembler {
+    assembly::Assembler::default()
+        .with_library(&MidenLib::default())
+        .expect("failed to load miden-lib")
+        .with_library(&StdLibrary::default())
+        .expect("failed to load std-lib")
+        .with_kernel(SatKernel::kernel())
+        .expect("kernel is well formed")
+}
 
 // MOCK DATA
 // ================================================================================================
@@ -119,7 +138,7 @@ fn mock_account_vault() -> AccountVault {
     AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
 }
 
-fn mock_account(
+pub fn mock_account(
     nonce: Option<Felt>,
     code: Option<AccountCode>,
     assembler: &mut Assembler,
@@ -178,18 +197,20 @@ fn mock_account(
         account_code,
         nonce.unwrap_or(Felt::ZERO),
     )
-    .unwrap()
 }
 
 pub fn mock_inputs() -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
-    let mut assembler = Assembler::default();
+    let mut assembler = assembler();
 
     // Create an account with storage items
     let account = mock_account(None, None, &mut assembler);
 
+    // Created notes
+    let created_notes = mock_created_notes(&mut assembler);
+
     // Consumed notes
-    let mut consumed_notes = mock_consumed_notes(&mut assembler);
+    let mut consumed_notes = mock_consumed_notes(&mut assembler, &created_notes);
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
@@ -207,7 +228,7 @@ pub fn mock_inputs() -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
 
 pub fn mock_executed_tx() -> ExecutedTransaction {
     // Create assembler and assembler context
-    let mut assembler = Assembler::default();
+    let mut assembler = assembler();
 
     // Initial Account
     let initial_account = mock_account(Some(Felt::ZERO), None, &mut assembler);
@@ -216,11 +237,11 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     let final_account =
         mock_account(Some(Felt::ONE), Some(initial_account.code().clone()), &mut assembler);
 
-    // Consumed notes
-    let mut consumed_notes = mock_consumed_notes(&mut assembler);
-
     // Created notes
     let created_notes = mock_created_notes(&mut assembler);
+
+    // Consumed notes
+    let mut consumed_notes = mock_consumed_notes(&mut assembler, &created_notes);
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
@@ -245,7 +266,7 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     )
 }
 
-pub fn mock_consumed_notes(assembler: &mut Assembler) -> Vec<Note> {
+pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) -> Vec<Note> {
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
@@ -257,14 +278,69 @@ pub fn mock_consumed_notes(assembler: &mut Assembler) -> Vec<Note> {
     // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    // create note script
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
-    let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
+    // create note 1 script
+    let note_1_script_src = format!(
+        "\
+        begin
+            # create note 0
+            push.{created_note_0_recipient}
+            push.{created_note_0_tag}
+            push.{created_note_0_asset}
+            syscall.create_note
+
+            # drop the returned pointer (TODO: Investigate why stack overflow is happening 
+            # without dropw dropw - maybe something to do with syscall)
+            drop dropw dropw
+
+            # create note 1
+            push.{created_note_1_recipient}
+            push.{created_note_1_tag}
+            push.{created_note_1_asset}
+            syscall.create_note
+
+            # drop the returned pointer
+            drop dropw dropw
+        end
+    ",
+        created_note_0_recipient = prepare_word(&created_notes[0].recipient()),
+        created_note_0_tag = created_notes[0].metadata().tag(),
+        created_note_0_asset = prepare_assets(created_notes[0].vault())[0],
+        created_note_1_recipient = prepare_word(&created_notes[1].recipient()),
+        created_note_1_tag = created_notes[1].metadata().tag(),
+        created_note_1_asset = prepare_assets(created_notes[1].vault())[0],
+    );
+    let note_1_script_ast = ProgramAst::parse(&note_1_script_src).unwrap();
+    let (note_1_script, _) = NoteScript::new(note_1_script_ast, assembler).unwrap();
+
+    // create note 2 script
+    let note_2_script_src = format!(
+        "\
+        use.miden::sat::kernel
+
+
+        begin
+            # create note 2
+            push.{created_note_2_recipient}
+            push.{created_note_2_tag}
+            push.{created_note_2_asset}
+            syscall.create_note
+
+
+            # drop the returned pointer
+            drop dropw dropw
+        end
+        ",
+        created_note_2_recipient = prepare_word(&created_notes[2].recipient()),
+        created_note_2_tag = created_notes[2].metadata().tag(),
+        created_note_2_asset = prepare_assets(created_notes[2].vault())[0],
+    );
+    let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
+    let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let note_1 = Note::new(
-        note_script.clone(),
+        note_1_script,
         &[Felt::new(1)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_1,
@@ -276,7 +352,7 @@ pub fn mock_consumed_notes(assembler: &mut Assembler) -> Vec<Note> {
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
     let note_2 = Note::new(
-        note_script,
+        note_2_script,
         &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
@@ -298,11 +374,11 @@ fn mock_created_notes(assembler: &mut Assembler) -> Vec<Note> {
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 100).unwrap().into();
 
-    // sender account
-    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    // sender account (account transaction is executed against)
+    let sender = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
 
     // create note script
-    let note_program_ast = ProgramAst::parse("begin push.1 add drop end").unwrap();
+    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
 
     // Created Notes
@@ -343,4 +419,21 @@ fn mock_created_notes(assembler: &mut Assembler) -> Vec<Note> {
     .unwrap();
 
     vec![note_1, note_2, note_3]
+}
+
+// HELPERS
+// ================================================================================================
+// TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
+pub fn prepare_word(word: &Word) -> String {
+    word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
+}
+
+fn prepare_assets(vault: &NoteVault) -> Vec<String> {
+    let mut assets = Vec::new();
+    for &asset in vault.iter() {
+        let asset_word: Word = asset.into();
+        let asset_str = prepare_word(&asset_word);
+        assets.push(asset_str);
+    }
+    assets
 }

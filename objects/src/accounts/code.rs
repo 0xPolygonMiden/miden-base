@@ -1,8 +1,8 @@
 use super::{
-    AccountError, AccountId, Assembler, AssemblyContext, AssemblyContextType, Digest, LibraryPath,
-    Module, ModuleAst, Vec,
+    AccountError, AccountId, ApplyDiff, Assembler, AssemblyContext, AssemblyContextType, Diff,
+    Digest, LibraryPath, Module, ModuleAst, Vec,
 };
-use crypto::merkle::SimpleSmt;
+use crypto::merkle::{SimpleSmt, StoreNode};
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -18,7 +18,7 @@ const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
 /// Account's public interface consists of a set of account procedures, each procedure being a Miden
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
 /// the entire account interface by building a simple Merkle tree out of all procedure MAST roots.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountCode {
     module: ModuleAst,
     procedures: Vec<Digest>,
@@ -116,5 +116,34 @@ impl AccountCode {
     pub fn get_procedure_index_by_root(&self, root: Digest) -> Option<usize> {
         let root_bytes = root.as_bytes();
         self.procedures.binary_search_by(|x| x.as_bytes().cmp(&root_bytes)).ok()
+    }
+}
+
+// DIFF
+// ================================================================================================
+impl Diff<Digest, StoreNode> for AccountCode {
+    type DiffType = Option<ModuleAst>;
+
+    fn diff(&self, other: &Self) -> Option<ModuleAst> {
+        if self.module != other.module {
+            Some(other.module.clone())
+        } else {
+            None
+        }
+    }
+}
+
+impl ApplyDiff<Digest, StoreNode> for AccountCode {
+    type DiffType = Option<ModuleAst>;
+
+    fn apply(&mut self, diff: Option<ModuleAst>) {
+        if let Some(module) = diff {
+            // TODO: Consider introducing a TryApplyDiff variant that returns Result<(), Error>
+            let code = AccountCode::new(AccountId::default(), module, &mut Assembler::default())
+                .expect("failed to compile account code");
+            self.module = code.module;
+            self.procedures = code.procedures;
+            self.procedure_tree = code.procedure_tree;
+        }
     }
 }

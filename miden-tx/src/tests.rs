@@ -2,9 +2,9 @@ use super::{
     Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor,
 };
-use crypto::{hash::rpo::Rpo256 as Hasher, Felt, StarkField};
+use crypto::StarkField;
+use miden_objects::{mock::mock_inputs, transaction::TransactionOutputs, TryFromVmResult};
 use processor::MemAdviceProvider;
-use test_utils::data::mock_inputs;
 
 #[derive(Clone)]
 pub struct MockDataStore {
@@ -81,31 +81,24 @@ fn test_transaction_executor_witness() {
         .collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_witness = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
+    let transaction_result = executor
+        .execute_transaction(account_id, block_ref, &note_origins, None, None)
         .unwrap();
-
-    // assert the transaction witness has calculates the correct consumed notes commitment
-    let consumed_notes_commitment = Hasher::hash_elements(
-        &transaction_witness
-            .consumed_notes_info()
-            .unwrap()
-            .into_iter()
-            .flat_map(|info| <[Felt; 8]>::from(info))
-            .collect::<Vec<Felt>>(),
-    );
-
-    assert_eq!(transaction_witness.consumed_notes_info().unwrap().len(), note_origins.len());
-    assert_eq!(consumed_notes_commitment, *transaction_witness.consumed_notes_hash());
+    let witness = transaction_result.clone().into_witness();
 
     // use the witness to execute the transaction again
-    let mem_advice_provider: MemAdviceProvider = transaction_witness.advice_inputs().clone().into();
-    let mut _result = processor::execute(
-        transaction_witness.program(),
-        transaction_witness.get_stack_inputs(),
-        mem_advice_provider,
-    )
-    .unwrap();
+    let mut mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let result =
+        processor::execute(witness.program(), witness.get_stack_inputs(), &mut mem_advice_provider)
+            .unwrap();
 
-    // TODO: assert the results of the two transaction executions are consistent.
+    let reexecution_result =
+        TransactionOutputs::try_from_vm_result(result.stack_outputs(), &mem_advice_provider)
+            .unwrap();
+
+    assert_eq!(
+        transaction_result.final_account_hash(),
+        reexecution_result.final_account_stub.0.hash()
+    );
+    assert_eq!(transaction_result.created_notes(), &reexecution_result.created_notes);
 }

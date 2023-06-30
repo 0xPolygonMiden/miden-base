@@ -390,6 +390,10 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
             recursively_collect_call_branches(block.body(), branches);
         }
         CodeBlock::Call(block) => {
+            if block.is_syscall() {
+                return;
+            }
+
             branches
                 .last_mut()
                 .expect("at least one execution branch")

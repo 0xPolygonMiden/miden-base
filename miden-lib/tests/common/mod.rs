@@ -4,9 +4,10 @@ pub use crypto::{
     merkle::{MerkleStore, NodeIndex, SimpleSmt},
     FieldElement, StarkField, ONE, ZERO,
 };
-pub use miden_lib::{memory, MidenLib};
+pub use miden_lib::{memory, MidenLib, SatKernel};
 pub use miden_objects::{
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    mock as data,
     notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, PreparedTransaction, ProvenTransaction},
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
@@ -14,11 +15,10 @@ pub use miden_objects::{
 };
 use miden_stdlib::StdLibrary;
 pub use processor::{
-    math::Felt, AdviceInputs, AdviceProvider, ExecutionError, MemAdviceProvider, Process, Program,
-    StackInputs, Word,
+    math::Felt, AdviceProvider, ExecutionError, MemAdviceProvider, Process, Program, StackInputs,
+    Word,
 };
 use std::{env, fs::File, io::Read, path::Path};
-pub use test_utils::data;
 
 pub mod procedures;
 

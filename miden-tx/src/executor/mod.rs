@@ -1,7 +1,9 @@
+use assembly::ast::ModuleAst;
+
 use super::{
     AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
     PreparedTransaction, ProgramAst, RecAdviceProvider, TransactionComplier,
-    TransactionExecutorError, TransactionWitness,
+    TransactionExecutorError, TransactionResult,
 };
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
@@ -100,28 +102,33 @@ impl<D: DataStore> TransactionExecutor<D> {
         block_ref: u32,
         note_origins: &[NoteOrigin],
         tx_script: Option<ProgramAst>,
-    ) -> Result<TransactionWitness, TransactionExecutorError> {
+        acct_code_update: Option<ModuleAst>,
+    ) -> Result<TransactionResult, TransactionExecutorError> {
         let transaction =
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
         let mut advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
-        let _result = processor::execute(
+        let result = processor::execute(
             transaction.tx_program(),
             transaction.stack_inputs(),
             &mut advice_recorder,
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
-        let advice_proof = advice_recorder.into_proof();
 
-        Ok(TransactionWitness::new(
-            transaction.account().id(),
-            transaction.account().hash(),
-            transaction.block_header().hash(),
-            transaction.consumed_notes().commitment(),
-            transaction.tx_script_root(),
-            transaction.tx_program().clone(),
-            advice_proof,
-        ))
+        let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script_root) =
+            transaction.into_parts();
+
+        TransactionResult::new(
+            account,
+            consumed_notes,
+            block_header.hash(),
+            tx_program,
+            tx_script_root,
+            advice_recorder,
+            result.stack_outputs().clone(),
+            acct_code_update,
+        )
+        .map_err(TransactionExecutorError::TransactionResultError)
     }
 
     // HELPER METHODS

@@ -3,10 +3,14 @@ use super::{
     ToAdviceInputs, Vec, Word,
 };
 
+// CONSUMED NOTES
+// ================================================================================================
+
 /// An object that holds a list of notes that were consumed by a transaction.
 ///
 /// This objects primary use case is to enable all consumed notes to be populated into the advice
 /// provider at once via the [ToAdviceInputs] trait.
+#[derive(Debug, Clone)]
 pub struct ConsumedNotes {
     notes: Vec<Note>,
     commitment: Digest,
@@ -86,6 +90,9 @@ impl ToAdviceInputs for ConsumedNotes {
         target.insert_into_map(*self.commitment, note_data);
     }
 }
+
+// CONSUMED NOTE INFO
+// ================================================================================================
 
 /// Holds information about a note that was consumed by a transaction.
 /// Contains:

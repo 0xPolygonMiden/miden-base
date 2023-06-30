@@ -1,18 +1,14 @@
+use crypto::merkle::{MerkleStore, StoreNode};
+use miden_test_utils::collections::{ApplyDiff, KvMapDiff};
+
 use super::{
-    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
-    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, ZERO,
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Diff, Digest, FungibleAsset,
+    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, EMPTY_WORD, ZERO,
 };
 use core::default::Default;
 
 // ACCOUNT VAULT
 // ================================================================================================
-
-/// CONSTANTS
-/// -----------------------------------------------------------------------------------------------
-// TODO: Replace usage of `EMPTY_WORD` with associated constant from [TieredSmt] once it is added.
-/// A constant that represents an empty word. This is used to indicate that a value in the
-/// [TieredSmt] is not set.
-const EMPTY_WORD: Word = [ZERO, ZERO, ZERO, ZERO];
 
 /// An asset container for an account.
 ///
@@ -97,6 +93,11 @@ impl AccountVault {
             .chain(self.asset_tree.upper_leaves().map(|(_, _, value)| {
                 Asset::try_from(value).expect("tree only contains valid assets")
             }))
+    }
+
+    /// Returns a reference to the underlying asset tree.
+    pub fn asset_tree(&self) -> &TieredSmt {
+        &self.asset_tree
     }
 
     // PUBLIC MODIFIERS
@@ -245,4 +246,27 @@ impl ToAdviceInputs for AccountVault {
             target.insert_into_map(*node, key.into_iter().chain(value).collect());
         })
     }
+}
+
+// DIFF
+// ================================================================================================
+impl Diff<Digest, StoreNode> for AccountVault {
+    type DiffType = (Digest, KvMapDiff<Digest, StoreNode>);
+
+    fn diff(&self, other: &Self) -> (Digest, KvMapDiff<Digest, StoreNode>) {
+        if self.commitment() == other.commitment() {
+            return (self.commitment(), KvMapDiff::default());
+        }
+
+        let self_merkle_data: MerkleStore = self.asset_tree.inner_nodes().collect();
+        let other_merkle_data: MerkleStore = other.asset_tree.inner_nodes().collect();
+        (other.commitment(), self_merkle_data.diff(&other_merkle_data))
+    }
+}
+
+impl ApplyDiff<Digest, StoreNode> for AccountVault {
+    type DiffType = (Digest, KvMapDiff<Digest, StoreNode>);
+
+    // TODO: Must find a way to apply this diff
+    fn apply(&mut self, _diff: (Digest, KvMapDiff<Digest, StoreNode>)) {}
 }
