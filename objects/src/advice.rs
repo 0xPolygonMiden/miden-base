@@ -1,7 +1,6 @@
-use super::{Felt, Vec, Word};
+use super::{AdviceInputs, Felt, Vec, Word};
 use assembly::utils::IntoBytes;
 use crypto::merkle::InnerNodeInfo;
-use miden_processor::AdviceInputs;
 
 /// [AdviceInputsBuilder] trait specifies the interface for building advice inputs.
 /// The trait provides three methods for building advice inputs:

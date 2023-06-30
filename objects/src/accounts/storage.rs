@@ -1,6 +1,5 @@
-use super::{AccountError, Vec, Word};
+use super::{AccountError, Digest, Vec, Word};
 use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt};
-use miden_processor::crypto::RpoDigest;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -51,24 +50,17 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to this storage.
-    pub fn root(&self) -> RpoDigest {
+    pub fn root(&self) -> Digest {
         self.slots.root()
     }
 
     /// Returns an item from the storage at the specified index.
     ///
     /// If the item is not present in the storage, [ZERO; 4] is returned.
-    pub fn get_item(&self, index: u8) -> RpoDigest {
+    pub fn get_item(&self, index: u8) -> Digest {
         let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index as u64)
             .expect("index is u8 - index within range");
         self.slots.get_node(item_index).expect("index is u8 - index within range")
-    }
-
-    /// Sets an item from the storage at the specified index.
-    pub fn set_item(&mut self, index: u8, value: Word) -> Word {
-        self.slots
-            .update_leaf(index as u64, value)
-            .expect("index is u8 - index within range")
     }
 
     /// Returns a reference to the sparse Merkle tree that backs the storage slots.
@@ -84,5 +76,30 @@ impl AccountStorage {
     /// Returns a list of items contained in this storage.
     pub fn items(&self) -> &[Word] {
         todo!()
+    }
+
+    // PUBLIC MODIFIERS
+    // --------------------------------------------------------------------------------------------
+    /// Sets an item from the storage at the specified index.
+    pub fn set_item(&mut self, index: u8, value: Word) -> Word {
+        self.slots
+            .update_leaf(index as u64, value)
+            .expect("index is u8 - index within range")
+    }
+
+    /// Sets the node, specified by the slot index and node index, to the specified value.
+    pub fn set_store_node(
+        &mut self,
+        slot_index: u8,
+        index: NodeIndex,
+        value: Digest,
+    ) -> Result<Digest, AccountError> {
+        let root = self.get_item(slot_index);
+        let root = self
+            .store
+            .set_node(root, index, value)
+            .map_err(AccountError::SetStoreNodeFailed)?;
+        self.set_item(slot_index, *root.root);
+        Ok(root.root)
     }
 }

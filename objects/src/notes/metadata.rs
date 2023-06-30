@@ -1,4 +1,4 @@
-use super::{AccountId, Felt, Word};
+use super::{AccountId, Felt, NoteError, Word};
 
 /// Represents metadata associated with a note. This includes the sender, tag, and number of assets.
 /// - sender is the account which created the note.
@@ -44,5 +44,17 @@ impl From<&NoteMetadata> for Word {
         elements[1] = metadata.tag;
         elements[2] = metadata.sender.into();
         elements
+    }
+}
+
+impl TryFrom<Word> for NoteMetadata {
+    type Error = NoteError;
+
+    fn try_from(elements: Word) -> Result<Self, Self::Error> {
+        Ok(Self {
+            sender: elements[2].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?,
+            tag: elements[1],
+            num_assets: elements[0],
+        })
     }
 }

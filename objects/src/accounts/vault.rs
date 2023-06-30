@@ -1,18 +1,11 @@
 use super::{
     AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
-    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, ZERO,
+    NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, EMPTY_WORD, ZERO,
 };
 use core::default::Default;
 
 // ACCOUNT VAULT
 // ================================================================================================
-
-/// CONSTANTS
-/// -----------------------------------------------------------------------------------------------
-// TODO: Replace usage of `EMPTY_WORD` with associated constant from [TieredSmt] once it is added.
-/// A constant that represents an empty word. This is used to indicate that a value in the
-/// [TieredSmt] is not set.
-const EMPTY_WORD: Word = [ZERO, ZERO, ZERO, ZERO];
 
 /// An asset container for an account.
 ///
@@ -97,6 +90,11 @@ impl AccountVault {
             .chain(self.asset_tree.upper_leaves().map(|(_, _, value)| {
                 Asset::try_from(value).expect("tree only contains valid assets")
             }))
+    }
+
+    /// Returns a reference to the underlying asset tree.
+    pub fn asset_tree(&self) -> &TieredSmt {
+        &self.asset_tree
     }
 
     // PUBLIC MODIFIERS

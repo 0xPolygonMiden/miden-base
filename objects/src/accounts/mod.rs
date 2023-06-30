@@ -1,8 +1,9 @@
 use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType, Digest,
-    Felt, Hasher, LibraryPath, Module, ModuleAst, StarkField, TieredSmt, ToAdviceInputs, ToString,
-    Vec, Word, ZERO,
+    AccountError, AdviceInputsBuilder, AdviceProvider, Assembler, AssemblyContext,
+    AssemblyContextType, Digest, Felt, Hasher, LibraryPath, Module, ModuleAst, StarkField,
+    TieredSmt, ToAdviceInputs, ToString, TransactionResultError, TryFromVmResult, Vec, Word,
+    EMPTY_WORD, WORD_SIZE, ZERO,
 };
 
 mod account_id;
@@ -11,9 +12,15 @@ pub use account_id::{AccountId, AccountType};
 mod code;
 pub use code::AccountCode;
 
+pub mod delta;
+pub use delta::AccountDelta;
+
 mod storage;
 pub use storage::AccountStorage;
 pub use storage::StorageItem;
+
+mod stub;
+pub use stub::AccountStub;
 
 mod vault;
 pub use vault::AccountVault;
@@ -82,13 +89,13 @@ impl Account {
     /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
     /// Computing the account hash requires 2 permutations of the hash function.
     pub fn hash(&self) -> Digest {
-        let mut elements = [ZERO; 16];
-        elements[0] = *self.id;
-        elements[3] = self.nonce;
-        elements[4..8].copy_from_slice(self.vault.commitment().as_elements());
-        elements[8..12].copy_from_slice(&*self.storage.root());
-        elements[12..].copy_from_slice(self.code.root().as_elements());
-        Hasher::hash_elements(&elements)
+        hash_account(
+            self.id,
+            self.nonce,
+            self.vault.commitment(),
+            self.storage.root(),
+            self.code.root(),
+        )
     }
 
     /// Returns unique identifier of this account.
@@ -135,6 +142,38 @@ impl Account {
     pub fn is_on_chain(&self) -> bool {
         self.id.is_on_chain()
     }
+
+    // PUBLIC MODIFIERS
+    // --------------------------------------------------------------------------------------------
+    /// Sets the nonce to the provided value.
+    pub fn set_nonce(&mut self, nonce: Felt) -> Result<(), AccountError> {
+        if nonce.as_int() <= self.nonce.as_int() {
+            return Err(AccountError::NonceMustBeMonotonicallyIncreasing(
+                nonce.as_int(),
+                self.nonce.as_int(),
+            ));
+        }
+        self.nonce = nonce;
+        Ok(())
+    }
+
+    /// Returns a mutable reference to the vault of this account.
+    pub fn vault_mut(&mut self) -> &mut AccountVault {
+        &mut self.vault
+    }
+
+    /// Returns a mutable reference to the storage of this account.
+    pub fn storage_mut(&mut self) -> &mut AccountStorage {
+        &mut self.storage
+    }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates an [AccountStub] from this account.
+    pub fn to_stub(&self) -> AccountStub {
+        self.into()
+    }
 }
 
 impl ToAdviceInputs for Account {
@@ -168,4 +207,26 @@ impl ToAdviceInputs for Account {
         // extend the advice provider with [AccountVault] inputs
         self.vault.to_advice_inputs(target);
     }
+}
+
+// HELPERS
+// ================================================================================================
+/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code root.
+///
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+/// Computing the account hash requires 2 permutations of the hash function.
+pub fn hash_account(
+    id: AccountId,
+    nonce: Felt,
+    vault_root: Digest,
+    storage_root: Digest,
+    code_root: Digest,
+) -> Digest {
+    let mut elements = [ZERO; 16];
+    elements[0] = *id;
+    elements[3] = nonce;
+    elements[4..8].copy_from_slice(&*vault_root);
+    elements[8..12].copy_from_slice(&*storage_root);
+    elements[12..].copy_from_slice(&*code_root);
+    Hasher::hash_elements(&elements)
 }

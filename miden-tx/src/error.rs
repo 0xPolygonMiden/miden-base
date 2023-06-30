@@ -1,4 +1,7 @@
-use super::{AccountError, AccountId, AssemblyError, Digest, ExecutionError, NodeIndex};
+use super::{
+    AccountError, AccountId, AssemblyError, Digest, ExecutionError, NodeIndex,
+    TransactionResultError,
+};
 
 #[derive(Debug)]
 pub enum TransactionError {
@@ -28,6 +31,7 @@ pub enum TransactionExecutorError {
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionDataFailed(DataStoreError),
     LoadAccountFailed(TransactionCompilerError),
+    TransactionResultError(TransactionResultError),
 }
 
 #[derive(Debug)]

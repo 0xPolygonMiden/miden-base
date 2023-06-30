@@ -7,8 +7,8 @@ use miden_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation
 use miden_lib::{MidenLib, SatKernel};
 use miden_objects::{
     notes::{Note, NoteOrigin, NoteScript},
-    transaction::{PreparedTransaction, TransactionWitness},
-    Account, AccountCode, AccountError, AccountId, BlockHeader, ChainMmr,
+    transaction::{PreparedTransaction, TransactionResult},
+    Account, AccountCode, AccountError, AccountId, BlockHeader, ChainMmr, TransactionResultError,
 };
 use miden_stdlib::StdLibrary;
 use processor::{ExecutionError, RecAdviceProvider};

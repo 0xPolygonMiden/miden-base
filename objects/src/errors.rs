@@ -1,6 +1,6 @@
 use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountId, MerkleError, String, Word,
+    AccountId, Digest, MerkleError, String, Word,
 };
 use assembly::{AssemblyError, ParsingError};
 use core::fmt;
@@ -18,6 +18,8 @@ pub enum AccountError {
     NonFungibleAssetNotFound(NonFungibleAsset),
     FungibleAssetNotFound(FungibleAsset),
     SeedDigestTooFewTrailingZeros,
+    StubDataIncorrectLength(usize, usize),
+    SetStoreNodeFailed(MerkleError),
     CodeParsingFailed(ParsingError),
     AccountCodeAssemblerError(AssemblyError),
     FungibleFaucetIdInvalidFirstBit,
@@ -25,6 +27,7 @@ pub enum AccountError {
     NotANonFungibleAsset(Asset),
     DuplicateStorageItems(MerkleError),
     DuplicateAsset(MerkleError),
+    NonceMustBeMonotonicallyIncreasing(u64, u64),
 }
 
 impl AccountError {
@@ -159,7 +162,14 @@ pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
+    InconsistentStubHash(Digest, Digest),
+    InconsistentStubNumAssets(u64, u64),
+    InconsistentStubVaultHash(Digest, Digest),
+    InvalidStubDataLen(usize),
     InvalidOriginIndex(String),
+    InvalidVaultDataLen(usize),
+    InvalidVaultAssetData(AssetError),
+    NoteMetadataSenderInvalid(AccountError),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
@@ -199,6 +209,17 @@ impl fmt::Display for NoteError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
+
+// TRANSACTION RESULT ERROR
+// ================================================================================================
+#[derive(Debug)]
+pub enum TransactionResultError {
+    CreatedNoteDataNotFound,
+    CreatedNoteDataInvalid(NoteError),
+    CreatedNotesCommitmentInconsistent(Digest, Digest),
+    FinalAccountDataNotFound,
+    FinalAccountStubDataInvalid(AccountError),
+}
 
 // TRANSACTION WITNESS ERROR
 // ================================================================================================

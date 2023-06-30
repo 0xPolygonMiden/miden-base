@@ -190,8 +190,20 @@ export.finalize_transaction
     # get the initial account hash
     exec.layout::get_init_acct_hash
 
+    # get the offset for the end of the account data section
+    exec.layout::get_acct_data_end_ptr
+
+    # get the offset for the start of the account data section
+    exec.layout::get_acct_data_ptr
+
     # compute the final account hash
     exec.account::get_current_hash
+
+    # insert final account data into the advice map
+    adv.insert_mem
+
+    # drop account data section pointers
+    movup.4 drop movup.4 drop
 
     # check if the account has changed
     eqw not
@@ -213,6 +225,18 @@ export.finalize_transaction
 
     # compute created note hash
     exec.process_created_notes
+
+    # compute the end boundary of the created notes section
+    exec.layout::get_num_created_notes exec.layout::get_created_note_ptr movdn.4
+
+    # compute the start boundary of the created notes section
+    exec.layout::get_created_note_data_offset movdn.4
+
+    # insert created data into the advice map
+    adv.insert_mem
+    
+    # drop created note pointers
+    movup.4 drop movup.4 drop
 
     # truncate stack
     swapw.2 dropw swapw.2 dropw
