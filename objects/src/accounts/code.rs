@@ -1,6 +1,6 @@
 use super::{
     AccountError, AccountId, Assembler, AssemblyContext, AssemblyContextType, Digest, LibraryPath,
-    Module, ModuleAst,
+    Module, ModuleAst, Vec,
 };
 use crypto::merkle::SimpleSmt;
 

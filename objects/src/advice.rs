@@ -1,4 +1,4 @@
-use super::{Felt, Word};
+use super::{Felt, Vec, Word};
 use assembly::utils::IntoBytes;
 use crypto::merkle::InnerNodeInfo;
 use miden_processor::AdviceInputs;
