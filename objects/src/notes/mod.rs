@@ -1,6 +1,6 @@
 use super::{
     assets::Asset, AccountId, Assembler, AssemblyContext, AssemblyContextType, CodeBlock, Digest,
-    Felt, Hasher, NoteError, ProgramAst, Vec, Word, WORD_SIZE, ZERO,
+    Felt, Hasher, NoteError, ProgramAst, ToString, Vec, Word, WORD_SIZE, ZERO,
 };
 
 mod inputs;

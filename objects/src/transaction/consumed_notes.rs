@@ -1,6 +1,6 @@
 use super::{
     utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, Note,
-    ToAdviceInputs, Word,
+    ToAdviceInputs, Vec, Word,
 };
 
 /// An object that holds a list of notes that were consumed by a transaction.

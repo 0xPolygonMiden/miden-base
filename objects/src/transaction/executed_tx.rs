@@ -1,5 +1,6 @@
 use super::{
     utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note, StackInputs,
+    Vec,
 };
 use miden_core::StackOutputs;
 

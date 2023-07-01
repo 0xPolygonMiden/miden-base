@@ -1,4 +1,4 @@
-use super::{AccountError, Word};
+use super::{AccountError, Vec, Word};
 use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt};
 use miden_processor::crypto::RpoDigest;
 

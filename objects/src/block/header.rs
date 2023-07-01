@@ -1,4 +1,4 @@
-use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, ZERO};
+use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO};
 
 /// The header of a block. It contains metadata about the block, commitments to the current
 /// state of the chain and the hash of the proof that attests to the integrity of the chain.

@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
 
 pub mod memory;

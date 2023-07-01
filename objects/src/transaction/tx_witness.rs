@@ -1,6 +1,6 @@
 use super::{
     AccountId, AdviceInputs, ConsumedNoteInfo, Digest, Felt, Hasher, Program, StackInputs,
-    StarkField, TransactionWitnessError, Word, WORD_SIZE,
+    StarkField, TransactionWitnessError, Vec, Word, WORD_SIZE,
 };
 
 /// A [TransactionWitness] is the minimum required data required to execute and prove a Miden rollup
