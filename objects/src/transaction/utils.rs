@@ -1,9 +1,8 @@
-use miden_processor::AdviceInputs;
-
 use super::{
     Account, AccountId, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher, Note,
-    StackInputs, StackOutputs, ToAdviceInputs, Word,
+    StackInputs, StackOutputs, ToAdviceInputs, Vec, Word,
 };
+use miden_processor::AdviceInputs;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, the number of consumed notes, the core consumed note data,

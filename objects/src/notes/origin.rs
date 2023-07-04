@@ -1,4 +1,4 @@
-use super::{Digest, Felt, NoteError, NOTE_TREE_DEPTH};
+use super::{Digest, Felt, NoteError, ToString, NOTE_TREE_DEPTH};
 use crypto::merkle::{MerklePath, NodeIndex};
 
 /// Contains information about the origin of a note.
