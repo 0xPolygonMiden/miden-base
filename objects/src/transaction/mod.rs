@@ -12,7 +12,7 @@ mod executed_tx;
 mod prepared_tx;
 mod proven_tx;
 mod tx_witness;
-pub(self) mod utils;
+mod utils;
 
 pub use consumed_notes::{ConsumedNoteInfo, ConsumedNotes};
 pub use created_note::CreatedNoteInfo;
