@@ -6,6 +6,7 @@
 - [Architecture](./architecture.md)
     - [Accounts](architecture/accounts.md)
     - [Notes](architecture/notes.md)
+    - [Assets](architecture/assets.md)
     - [Transactions](architecture/transactions.md)
     - [State](architecture/state.md)
     - [Execution](architecture/execution.md)
