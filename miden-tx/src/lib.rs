@@ -7,11 +7,11 @@ use miden_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation
 use miden_lib::{MidenLib, SatKernel};
 use miden_objects::{
     notes::{Note, NoteOrigin, NoteScript},
-    transaction::{PreparedTransaction, TransactionResult},
+    transaction::{PreparedTransaction, ProvenTransaction, TransactionResult, TransactionWitness},
     Account, AccountCode, AccountError, AccountId, BlockHeader, ChainMmr, TransactionResultError,
 };
 use miden_stdlib::StdLibrary;
-use processor::{ExecutionError, RecAdviceProvider};
+use processor::{ExecutionError, MemAdviceProvider, RecAdviceProvider};
 
 mod compiler;
 pub use compiler::{NoteTarget, TransactionComplier};
@@ -19,9 +19,12 @@ mod data;
 use data::DataStore;
 mod error;
 mod executor;
-pub use error::TransactionError;
-use error::{DataStoreError, TransactionCompilerError, TransactionExecutorError};
+pub use error::{
+    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
+};
 pub use executor::TransactionExecutor;
+mod prover;
+pub use prover::TransactionProver;
 
 #[cfg(test)]
 mod tests;

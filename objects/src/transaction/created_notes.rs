@@ -153,3 +153,9 @@ impl From<CreatedNoteInfo> for [u8; 64] {
         elements
     }
 }
+
+impl From<&NoteStub> for CreatedNoteInfo {
+    fn from(note_stub: &NoteStub) -> Self {
+        Self::new(*note_stub.hash(), *note_stub.metadata())
+    }
+}

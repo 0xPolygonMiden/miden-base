@@ -1,6 +1,6 @@
 use super::{
-    AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, StackInputs, StackOutputs,
-    Vec, Word,
+    AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, Program, StackInputs,
+    StackOutputs, Vec, Word,
 };
 use miden_core::ProgramInfo;
 use miden_verifier::{verify, ExecutionProof, VerificationError};
@@ -14,6 +14,7 @@ use miden_verifier::{verify, ExecutionProof, VerificationError};
 /// - consumed_notes: a list of consumed notes.
 /// - created_notes: a list of created notes.
 /// - tx_script_root: the script root of the transaction.
+/// - tx_program: the program of the transaction.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
 /// - proof: the proof of the transaction.
 pub struct ProvenTransaction {
@@ -23,6 +24,7 @@ pub struct ProvenTransaction {
     consumed_notes: Vec<ConsumedNoteInfo>,
     created_notes: Vec<CreatedNoteInfo>,
     tx_script_root: Option<Digest>,
+    tx_program: Program,
     block_ref: Digest,
     proof: ExecutionProof,
 }
@@ -37,6 +39,7 @@ impl ProvenTransaction {
         consumed_notes: Vec<ConsumedNoteInfo>,
         created_notes: Vec<CreatedNoteInfo>,
         tx_script_root: Option<Digest>,
+        tx_program: Program,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
@@ -47,6 +50,7 @@ impl ProvenTransaction {
             consumed_notes,
             created_notes,
             tx_script_root,
+            tx_program,
             block_ref,
             proof,
         }
@@ -87,7 +91,7 @@ impl ProvenTransaction {
 
     /// Returns the transaction program info.
     pub fn tx_program(&self) -> ProgramInfo {
-        todo!()
+        ProgramInfo::new(self.tx_program.root().hash(), self.tx_program.kernel().clone())
     }
 
     /// Returns the stack inputs for the transaction.
