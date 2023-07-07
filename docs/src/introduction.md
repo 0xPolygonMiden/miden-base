@@ -26,7 +26,7 @@ Unlike most other rollups, Polygon Miden prioritizes ZK-friendliness over EVM co
 
 * Ethereum security
 * Developers can build applications infeasible on other systems, e.g.
-  * **on-chain order book exchange** due to parallel tx exectuion and updatable transactions
+  * **onchain order book exchange** due to parallel tx exectuion and updatable transactions
   * **complex, incomplete information games** due to client-side proving and cheap complex computations
   * **safe wallets** due to assets being stored in the accounts and account state can be (partially) hidden
 * Better privacy properties than on Ethereum - first web2 privacy, later even stronger privacy guarantees

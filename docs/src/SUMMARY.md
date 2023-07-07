@@ -10,7 +10,6 @@
     - [Transactions](architecture/transactions.md)
     - [State](architecture/state.md)
     - [Execution](architecture/execution.md)
-    - [Assets](architecture/assets.md)
 - [Network](./network.md)
     - [Miden Clients](network/miden-clients.md)
     - [Miden Node](network/miden-node.md)
