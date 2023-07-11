@@ -98,6 +98,7 @@ impl<T: AdviceProvider> TryFromVmResult<T> for CreatedNotes {
 ///     - tag
 ///     - ZERO
 ///     - ZERO
+#[derive(Debug)]
 pub struct CreatedNoteInfo {
     note_hash: Digest,
     note_metadata: NoteMetadata,
@@ -151,5 +152,11 @@ impl From<CreatedNoteInfo> for [u8; 64] {
         elements[..32].copy_from_slice(&cni.note_hash.as_bytes());
         elements[32..].copy_from_slice(&note_metadata_bytes);
         elements
+    }
+}
+
+impl From<&NoteStub> for CreatedNoteInfo {
+    fn from(note_stub: &NoteStub) -> Self {
+        Self::new(*note_stub.hash(), *note_stub.metadata())
     }
 }

@@ -1,6 +1,6 @@
 use super::{
     AccountError, AccountId, AssemblyError, Digest, ExecutionError, NodeIndex,
-    TransactionResultError,
+    TransactionResultError, TransactionWitnessError,
 };
 
 #[derive(Debug)]
@@ -21,6 +21,14 @@ pub enum TransactionCompilerError {
     CompileNoteScriptFailed,
     CompileTxScriptFailed(AssemblyError),
     BuildCodeBlockTableFailed(AssemblyError),
+    TransactionResultError(TransactionResultError),
+}
+
+#[derive(Debug)]
+pub enum TransactionProverError {
+    ProveTransactionProgramFailed(ExecutionError),
+    TransactionResultError(TransactionResultError),
+    CorruptTransactionWitnessConsumedNoteData(TransactionWitnessError),
 }
 
 #[derive(Debug)]

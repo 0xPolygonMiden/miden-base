@@ -142,7 +142,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    fn prepare_transaction(
+    pub fn prepare_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,

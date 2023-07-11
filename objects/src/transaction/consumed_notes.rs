@@ -150,3 +150,9 @@ impl From<ConsumedNoteInfo> for [u8; 64] {
         elements
     }
 }
+
+impl From<&Note> for ConsumedNoteInfo {
+    fn from(note: &Note) -> Self {
+        Self::new(note.nullifier(), note.script().hash())
+    }
+}

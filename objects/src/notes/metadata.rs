@@ -4,7 +4,7 @@ use super::{AccountId, Felt, NoteError, Word};
 /// - sender is the account which created the note.
 /// - tag is a tag which can be used to identify the target account for the note.
 /// - num_assets is the number of assets in the note.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct NoteMetadata {
     sender: AccountId,
     tag: Felt,
