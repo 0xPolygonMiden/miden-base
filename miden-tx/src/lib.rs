@@ -3,9 +3,7 @@ use assembly::{
     Assembler, AssemblyContext, AssemblyContextType, AssemblyError,
 };
 use crypto::{hash::rpo::RpoDigest as Digest, merkle::NodeIndex};
-use miden_core::{
-    code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program, StarkField,
-};
+use miden_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program};
 use miden_lib::{MidenLib, SatKernel};
 use miden_objects::{
     notes::{Note, NoteOrigin, NoteScript},
@@ -17,17 +15,17 @@ use miden_stdlib::StdLibrary;
 use processor::{ExecutionError, MemAdviceProvider, RecAdviceProvider};
 
 mod compiler;
-pub use compiler::{NoteTarget, TransactionComplier};
 mod data;
-use data::DataStore;
 mod error;
 mod executor;
-pub use error::TransactionError;
-use error::{
-    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
-};
-pub use executor::TransactionExecutor;
 mod prover;
+
+use data::DataStore;
+use error::DataStoreError;
+
+pub use compiler::{NoteTarget, TransactionComplier};
+pub use error::{TransactionCompilerError, TransactionExecutorError, TransactionProverError};
+pub use executor::TransactionExecutor;
 pub use prover::TransactionProver;
 
 #[cfg(test)]

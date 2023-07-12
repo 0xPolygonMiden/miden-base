@@ -4,13 +4,6 @@ use super::{
 };
 
 #[derive(Debug)]
-pub enum TransactionError {
-    TransactionCompilerError(TransactionCompilerError),
-    TransactionExecutorError(TransactionExecutorError),
-    DataStoreError(DataStoreError),
-}
-
-#[derive(Debug)]
 pub enum TransactionCompilerError {
     InvalidTransactionInputs,
     LoadAccountFailed(AccountError),

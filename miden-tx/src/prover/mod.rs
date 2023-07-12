@@ -1,9 +1,7 @@
-use super::{
-    DataStore, MemAdviceProvider, ProgramAst, ProvenTransaction, TransactionExecutor,
-    TransactionProverError, TransactionWitness,
-};
+use super::{MemAdviceProvider, ProvenTransaction, TransactionProverError, TransactionWitness};
 use miden_objects::{
-    notes::NoteOrigin, transaction::TransactionOutputs, AccountId, TryFromVmResult,
+    transaction::{PreparedTransaction, TransactionOutputs},
+    TryFromVmResult,
 };
 use miden_prover::{prove, ProofOptions};
 
@@ -23,21 +21,17 @@ impl TransactionProver {
         Self { proof_options }
     }
 
-    pub fn prove_with_transaction_executor<D: DataStore>(
+    /// Proves the provided [PreparedTransaction] and returns a [ProvenTransaction].
+    ///
+    /// # Errors
+    /// - If the transaction program cannot be proven.
+    /// - If the transaction result is corrupt.
+    pub fn prove_prepared_transaction(
         &self,
-        account_id: AccountId,
-        block_ref: u32,
-        note_origins: &[NoteOrigin],
-        tx_script: Option<ProgramAst>,
-        tx_executor: &mut TransactionExecutor<D>,
+        transaction: PreparedTransaction,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        // prepare transaction
-        let transaction = tx_executor
-            .prepare_transaction(account_id, block_ref, note_origins, tx_script)
-            .unwrap();
-        let mut advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
-
         // prove transaction program
+        let mut advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
         let (outputs, proof) = prove(
             transaction.tx_program(),
             transaction.stack_inputs(),
@@ -65,7 +59,7 @@ impl TransactionProver {
             .collect::<Vec<_>>();
 
         Ok(ProvenTransaction::new(
-            account_id,
+            transaction.account().id(),
             transaction.account().hash(),
             transaction_outputs.final_account_stub.0.hash(),
             consumed_notes_info,
@@ -76,7 +70,13 @@ impl TransactionProver {
         ))
     }
 
-    pub fn prove_transaction(
+    /// Proves the provided [TransactionWitness] and returns a [ProvenTransaction].
+    ///
+    /// # Errors
+    /// - If the consumed note data in the transaction witness is corrupt.
+    /// - If the transaction program cannot be proven.
+    /// - If the transaction result is corrupt.
+    pub fn prove_transaction_witness(
         &self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {

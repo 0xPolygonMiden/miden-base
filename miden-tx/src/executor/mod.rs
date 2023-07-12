@@ -131,9 +131,6 @@ impl<D: DataStore> TransactionExecutor<D> {
         .map_err(TransactionExecutorError::TransactionResultError)
     }
 
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
     /// Fetches the data required to execute the transaction from the [DataStore], compiles the
     /// transaction into an executable program using the [TransactionComplier], and returns a
     /// [PreparedTransaction].

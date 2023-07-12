@@ -130,7 +130,7 @@ fn prove_witness() {
     // prove the transaction with the witness
     let proof_options = ProofOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(witness).unwrap();
+    let proven_transaction = prover.prove_transaction_witness(witness).unwrap();
 
     println!("proven transaction: {:?}", proven_transaction);
 }
@@ -151,11 +151,12 @@ fn test_prove_with_tx_executor() {
         .collect::<Vec<_>>();
 
     // prove the transaction with the executor
+    let prepared_transaction = executor
+        .prepare_transaction(account_id, block_ref, &note_origins, None)
+        .unwrap();
     let proof_options = ProofOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover
-        .prove_with_transaction_executor(account_id, block_ref, &note_origins, None, &mut executor)
-        .unwrap();
+    let proven_transaction = prover.prove_prepared_transaction(prepared_transaction).unwrap();
 
     println!("proven transaction: {:?}", proven_transaction);
 }
