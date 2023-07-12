@@ -14,6 +14,7 @@ rust-version = "1.67"
 [features]
 default = ["std"]
 std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std", "miden-lib/std"]
+testing = ["miden-objects/testing"]
 
 [dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
