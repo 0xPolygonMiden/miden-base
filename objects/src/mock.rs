@@ -3,7 +3,7 @@ use super::{
     notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::ExecutedTransaction,
     Account, AccountCode, AccountId, AccountStorage, AccountVault, BlockHeader, ChainMmr, Digest,
-    Felt, StarkField, StorageItem, Word,
+    Felt, StarkField, StorageItem, String, ToString, Vec, Word,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
