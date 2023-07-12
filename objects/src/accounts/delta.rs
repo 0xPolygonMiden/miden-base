@@ -1,4 +1,4 @@
-use super::{Digest, Felt, Word};
+use super::{Digest, Felt, Vec, Word};
 use assembly::ast::ModuleAst;
 use crypto::{merkle::StoreNode, utils::collections::KvMapDiff};
 

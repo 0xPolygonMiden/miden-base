@@ -1,11 +1,12 @@
-use crypto::merkle::{MerkleStore, StoreNode};
-use miden_test_utils::collections::{ApplyDiff, KvMapDiff};
-
 use super::{
     AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Diff, Digest, FungibleAsset,
     NonFungibleAsset, StarkField, TieredSmt, ToAdviceInputs, Vec, Word, EMPTY_WORD, ZERO,
 };
 use core::default::Default;
+use crypto::{
+    merkle::{MerkleStore, StoreNode},
+    utils::collections::{ApplyDiff, KvMapDiff},
+};
 
 // ACCOUNT VAULT
 // ================================================================================================

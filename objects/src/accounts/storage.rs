@@ -1,9 +1,8 @@
 use super::{AccountError, AccountStorageDelta, Digest, Vec, Word, EMPTY_WORD};
 use crypto::{
     merkle::{MerkleStore, NodeIndex, SimpleSmt, StoreNode},
-    utils::collections::Diff,
+    utils::collections::{ApplyDiff, Diff},
 };
-use miden_test_utils::collections::ApplyDiff;
 
 // TYPE ALIASES
 // ================================================================================================

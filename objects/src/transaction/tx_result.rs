@@ -1,17 +1,19 @@
 use super::{
     Account, AccountDelta, AccountError, AccountId, AccountStub, AdviceProvider, ConsumedNotes,
     CreatedNotes, Digest, Felt, Program, StackOutputs, TransactionResultError, TransactionWitness,
-    TryFromVmResult, Word, WORD_SIZE,
+    TryFromVmResult, Vec, Word, WORD_SIZE,
 };
 use crate::{AccountCode, AccountStorage};
 use assembly::{ast::ModuleAst, Assembler};
-use crypto::merkle::{SimpleSmt, SimpleSmtConfig, TryFromMerkleStore};
+use crypto::{
+    merkle::{SimpleSmt, SimpleSmtConfig, TryFromMerkleStore},
+    utils::collections::Diff,
+};
 use miden_lib::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_IDX, ACCT_NONCE_IDX,
     ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
 use miden_processor::{AdviceInputs, RecAdviceProvider};
-use miden_test_utils::collections::Diff;
 
 /// [TransactionResult] represents the result of the execution of the transaction kernel.
 ///
