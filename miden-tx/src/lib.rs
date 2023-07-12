@@ -29,6 +29,6 @@ pub use executor::TransactionExecutor;
 pub use prover::TransactionProver;
 
 #[cfg(any(test, feature = "testing"))]
-mod mock;
+pub mod mock;
 #[cfg(test)]
 mod tests;
