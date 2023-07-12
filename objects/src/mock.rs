@@ -9,13 +9,15 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
+use core::fmt::Debug;
 use miden_core::{
     crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt},
     FieldElement,
 };
 use miden_lib::{MidenLib, SatKernel};
 use miden_stdlib::StdLibrary;
-use miden_test_utils::rand;
+use rand::{rngs::StdRng, Rng, SeedableRng};
+use winter_utils::Randomizable;
 
 // ASSEMBLER
 // ================================================================================================
@@ -59,12 +61,26 @@ pub fn mock_block_header(
     chain_root: Option<Digest>,
     note_root: Option<Digest>,
 ) -> BlockHeader {
-    let prev_hash: Digest = rand::rand_array().into();
-    let chain_root: Digest = chain_root.unwrap_or(rand::rand_array().into());
-    let state_root: Digest = rand::rand_array().into();
-    let note_root: Digest = note_root.unwrap_or(rand::rand_array().into());
-    let batch_root: Digest = rand::rand_array().into();
-    let proof_hash: Digest = rand::rand_array().into();
+    let seed = |x: u64| -> [u8; 32] {
+        [
+            1233243985843544235u64,
+            2379412302965434536u64,
+            2147892822305893223u64,
+            1283490823952803235u64 + x,
+        ]
+        .into_iter()
+        .flat_map(|x| x.to_le_bytes().to_vec())
+        .collect::<Vec<u8>>()
+        .try_into()
+        .unwrap()
+    };
+
+    let prev_hash: Digest = rand_array(seed(0)).into();
+    let chain_root: Digest = chain_root.unwrap_or(rand_array(seed(1)).into());
+    let state_root: Digest = rand_array(seed(2)).into();
+    let note_root: Digest = note_root.unwrap_or(rand_array(seed(3)).into());
+    let batch_root: Digest = rand_array(seed(4)).into();
+    let proof_hash: Digest = rand_array(seed(5)).into();
 
     BlockHeader::new(
         prev_hash, block_num, chain_root, state_root, note_root, batch_root, proof_hash,
@@ -436,4 +452,37 @@ fn prepare_assets(vault: &NoteVault) -> Vec<String> {
         assets.push(asset_str);
     }
     assets
+}
+
+/// Returns a vector of random value of the specified type and the specified length.
+///
+/// # Panics
+/// Panics if:
+/// * A valid value requires at over 32 bytes.
+/// * A valid value could not be generated after 1000 tries.
+pub fn rand_vector<R: Randomizable>(n: usize, seed: [u8; 32]) -> Vec<R> {
+    let mut result = Vec::with_capacity(n);
+    let mut g = StdRng::from_seed(seed);
+    for _ in 0..1000 * n {
+        let bytes = g.gen::<[u8; 32]>();
+        if let Some(element) = R::from_random_bytes(&bytes[..R::VALUE_SIZE]) {
+            result.push(element);
+            if result.len() == n {
+                return result;
+            }
+        }
+    }
+
+    panic!("failed to generate enough random field elements");
+}
+
+/// Returns an array of random value of the specified type and the specified length.
+///
+/// # Panics
+/// Panics if:
+/// * A valid value requires at over 32 bytes.
+/// * A valid value could not be generated after 1000 tries.
+pub fn rand_array<R: Randomizable + Debug, const N: usize>(seed: [u8; 32]) -> [R; N] {
+    let elements = rand_vector(N, seed);
+    elements.try_into().expect("failed to convert vector to array")
 }
