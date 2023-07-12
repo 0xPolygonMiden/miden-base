@@ -28,5 +28,7 @@ pub use error::{TransactionCompilerError, TransactionExecutorError, TransactionP
 pub use executor::TransactionExecutor;
 pub use prover::TransactionProver;
 
+#[cfg(any(test, feature = "testing"))]
+mod mock;
 #[cfg(test)]
 mod tests;
