@@ -11,22 +11,15 @@ rust-version = "1.67"
 
 [lib]
 
-[features]
-default = ["std"]
-std = ["assembly/std", "processor/std", "vm-core/std"]
-
 [dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 
 [dev-dependencies]
 crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "frisitano-from-merkle-store-trait", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", features = ["testing"], default-features = false }
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", features = ["internals"], default-features = false }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 
 [build-dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result" }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result" }
