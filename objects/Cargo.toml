@@ -21,7 +21,7 @@ bench = false
 [features]
 default = ["std"]
 std = ["assembly/std", "crypto/std", "miden-core/std", "miden-lib/std", "miden-processor/std", "miden-verifier/std"]
-testing = ["rand",  "winter-utils"]
+testing = []
 
 [dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
@@ -31,11 +31,7 @@ miden-lib = { path = "../miden-lib", default-features = false }
 miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
-winter-utils = { package = "winter-utils", optional = true, version = "0.6" }
-rand = {version = "0.8.5", optional = true, features = ["std_rng"], default-features = false}
 
 [dev-dependencies]
-criterion = { version = "0.4", features = ["html_reports"] }
-winter-utils = { package = "winter-utils", version = "0.6" }
-miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", features = ["internals"]}
-rand = {version = "0.8.5", features = ["std_rng"], default-features = false}
+criterion = { version = "0.4", features = ["html_reports"], default-features = false }
+miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", features = ["internals"], default-features = false }
