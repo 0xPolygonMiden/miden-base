@@ -65,6 +65,10 @@ impl ProvenTransaction {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+    /// Returns the consumed notes.
+    pub fn consumed_notes(&self) -> &[ConsumedNoteInfo] {
+        &self.consumed_notes
+    }
 
     /// Returns the consumed notes commitment.
     pub fn consumed_notes_hash(&self) -> Digest {
@@ -74,6 +78,11 @@ impl ProvenTransaction {
             elements.extend_from_slice(note.script_root().as_elements());
         }
         Hasher::hash_elements(&elements)
+    }
+
+    /// Returns the created notes.
+    pub fn created_notes(&self) -> &[CreatedNoteInfo] {
+        &self.created_notes
     }
 
     /// Returns the created notes commitment.
