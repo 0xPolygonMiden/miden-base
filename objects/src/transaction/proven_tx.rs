@@ -65,6 +65,21 @@ impl ProvenTransaction {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+    /// Returns the account ID.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns the initial account hash.
+    pub fn initial_account_hash(&self) -> Digest {
+        self.initial_account_hash
+    }
+
+    /// Returns the final account hash.
+    pub fn final_account_hash(&self) -> Digest {
+        self.final_account_hash
+    }
+
     /// Returns the consumed notes.
     pub fn consumed_notes(&self) -> &[ConsumedNoteInfo] {
         &self.consumed_notes
@@ -122,5 +137,10 @@ impl ProvenTransaction {
     /// Returns the script root of the transaction.
     pub fn tx_script_root(&self) -> Option<Digest> {
         self.tx_script_root
+    }
+
+    /// Returns the transaction proof.
+    pub fn proof(&self) -> &ExecutionProof {
+        &self.proof
     }
 }
