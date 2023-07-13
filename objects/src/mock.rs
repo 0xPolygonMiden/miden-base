@@ -303,7 +303,7 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
             push.{created_note_0_recipient}
             push.{created_note_0_tag}
             push.{created_note_0_asset}
-            syscall.create_note
+            #syscall.create_note
 
             # drop the returned pointer (TODO: Investigate why stack overflow is happening 
             # without dropw dropw - maybe something to do with syscall)
@@ -313,7 +313,7 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
             push.{created_note_1_recipient}
             push.{created_note_1_tag}
             push.{created_note_1_asset}
-            syscall.create_note
+            #syscall.create_note
 
             # drop the returned pointer
             drop dropw dropw
@@ -340,7 +340,7 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
             push.{created_note_2_recipient}
             push.{created_note_2_tag}
             push.{created_note_2_asset}
-            syscall.create_note
+            #syscall.create_note
 
 
             # drop the returned pointer

@@ -98,7 +98,7 @@ impl<T: AdviceProvider> TryFromVmResult<T> for CreatedNotes {
 ///     - tag
 ///     - ZERO
 ///     - ZERO
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct CreatedNoteInfo {
     note_hash: Digest,
     note_metadata: NoteMetadata,
