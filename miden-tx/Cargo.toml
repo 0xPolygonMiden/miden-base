@@ -13,7 +13,7 @@ rust-version = "1.67"
 
 [features]
 default = ["std"]
-std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std", "miden-lib/std"]
+std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std" ]
 testing = ["miden-objects/testing"]
 
 [dependencies]
@@ -23,7 +23,7 @@ processor = { package = "miden-processor", git = "https://github.com/0xPolygonMi
 miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
+miden-lib = { package = "miden-lib", path = "../miden-lib" }
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false }
 
 [dev-dependencies]
