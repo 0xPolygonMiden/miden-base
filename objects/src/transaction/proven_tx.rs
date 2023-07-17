@@ -1,8 +1,9 @@
 use super::{
     AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, StackInputs, StackOutputs,
-    Vec, Word,
+    Vec, Word, ZERO,
 };
-use miden_core::ProgramInfo;
+use crypto::WORD_SIZE;
+use miden_core::{stack::STACK_TOP_SIZE, ProgramInfo};
 use miden_verifier::{verify, ExecutionProof, VerificationError};
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
@@ -60,7 +61,12 @@ impl ProvenTransaction {
     /// # Errors
     /// Returns an error if the provided proof does not prove a correct execution of the program.
     pub fn verify(&self) -> Result<u32, VerificationError> {
-        verify(self.tx_program(), self.stack_inputs(), self.stack_outputs(), self.proof.clone())
+        verify(
+            self.tx_program_info(),
+            self.stack_inputs(),
+            self.stack_outputs(),
+            self.proof.clone(),
+        )
     }
 
     // ACCESSORS
@@ -111,7 +117,7 @@ impl ProvenTransaction {
     }
 
     /// Returns the transaction program info.
-    pub fn tx_program(&self) -> ProgramInfo {
+    pub fn tx_program_info(&self) -> ProgramInfo {
         todo!()
     }
 
@@ -127,9 +133,11 @@ impl ProvenTransaction {
 
     /// Returns the stack outputs for the transaction.
     pub fn stack_outputs(&self) -> StackOutputs {
-        let mut stack_outputs: Vec<Felt> = Vec::with_capacity(8);
-        stack_outputs.extend_from_slice(self.created_notes_commitment().as_elements());
-        stack_outputs.extend_from_slice(self.final_account_hash.as_elements());
+        let mut stack_outputs: Vec<Felt> = vec![ZERO; STACK_TOP_SIZE];
+        stack_outputs[STACK_TOP_SIZE - WORD_SIZE..]
+            .copy_from_slice(self.created_notes_commitment().as_elements());
+        stack_outputs[STACK_TOP_SIZE - (2 * WORD_SIZE)..STACK_TOP_SIZE - WORD_SIZE]
+            .copy_from_slice(self.final_account_hash.as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())
     }

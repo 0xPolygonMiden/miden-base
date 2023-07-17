@@ -28,4 +28,5 @@ miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMi
 
 [dev-dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "frisitano-tx-result", default-features = false}
 

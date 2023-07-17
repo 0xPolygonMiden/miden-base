@@ -9,7 +9,6 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use core::fmt::Debug;
 use miden_core::{
     crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt},
     FieldElement,
@@ -18,6 +17,8 @@ use miden_lib::{MidenLib, SatKernel};
 use miden_stdlib::StdLibrary;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 // use winter_utils::Randomizable;
+
+// TODO: Implement randomness using `rand` no_std seeded PRNG
 
 // ASSEMBLER
 // ================================================================================================
@@ -61,19 +62,19 @@ pub fn mock_block_header(
     chain_root: Option<Digest>,
     note_root: Option<Digest>,
 ) -> BlockHeader {
-    let seed = |x: u64| -> [u8; 32] {
-        [
-            1233243985843544235u64,
-            2379412302965434536u64,
-            2147892822305893223u64,
-            1283490823952803235u64 + x,
-        ]
-        .into_iter()
-        .flat_map(|x| x.to_le_bytes().to_vec())
-        .collect::<Vec<u8>>()
-        .try_into()
-        .unwrap()
-    };
+    // let seed = |x: u64| -> [u8; 32] {
+    //     [
+    //         1233243985843544235u64,
+    //         2379412302965434536u64,
+    //         2147892822305893223u64,
+    //         1283490823952803235u64 + x,
+    //     ]
+    //     .into_iter()
+    //     .flat_map(|x| x.to_le_bytes().to_vec())
+    //     .collect::<Vec<u8>>()
+    //     .try_into()
+    //     .unwrap()
+    // };
 
     let word: Digest = [Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)].into();
     let prev_hash: Digest = word;

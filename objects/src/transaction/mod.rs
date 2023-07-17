@@ -2,7 +2,7 @@ use super::{
     notes::{Note, NoteMetadata, NoteStub},
     Account, AccountDelta, AccountError, AccountId, AccountStub, AdviceInputs, AdviceInputsBuilder,
     BlockHeader, ChainMmr, Digest, Felt, Hasher, StarkField, ToAdviceInputs,
-    TransactionResultError, TransactionWitnessError, TryFromVmResult, Vec, Word, WORD_SIZE,
+    TransactionResultError, TransactionWitnessError, TryFromVmResult, Vec, Word, WORD_SIZE, ZERO,
 };
 use miden_core::{Program, StackInputs, StackOutputs};
 use miden_processor::AdviceProvider;

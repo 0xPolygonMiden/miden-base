@@ -3,6 +3,8 @@ use super::{
     Digest, MidenLib, ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel,
     StdLibrary, TransactionCompilerError,
 };
+use miden_core::ProgramInfo;
+use miden_objects::transaction::ConsumedNoteInfo;
 
 #[cfg(test)]
 mod tests;
@@ -173,8 +175,11 @@ impl TransactionComplier {
             self.create_note_program_tree(&target_account_interface, notes, &mut assembly_context)?;
 
         // Create the transaction program
-        let (tx_script_code_block, tx_script_hash) =
-            self.create_tx_program(tx_script, &mut assembly_context, target_account_interface)?;
+        let (tx_script_code_block, tx_script_hash) = self.create_tx_script_block(
+            tx_script,
+            &mut assembly_context,
+            target_account_interface,
+        )?;
 
         // Merge transaction script code block and epilogue code block
         let tx_script_and_epilogue = CodeBlock::new_join([
@@ -209,8 +214,67 @@ impl TransactionComplier {
         Ok((program, tx_script_hash))
     }
 
+    // TRANSACTION PROGRAM INFO BUILDER
+    // --------------------------------------------------------------------------------------------
+    /// Constructs a [ProgramInfo] struct associated with the notes ([ConsumedNoteInfo]) and transaction
+    /// script root ([Digest]) provided.
+    pub fn construct_transaction_program_info(
+        &self,
+        notes: &[ConsumedNoteInfo],
+        tx_script_root: Option<Digest>,
+    ) -> Result<(ProgramInfo, Option<Digest>), TransactionCompilerError> {
+        // Transaction must contain at least one input note or a transaction script
+        if notes.is_empty() && tx_script_root.is_none() {
+            return Err(TransactionCompilerError::InvalidTransactionInputs);
+        }
+
+        // build the note tree from the provide notes info
+        let note_tree_root = self.create_note_info_tree(notes);
+
+        // default to empty noop span block if no transaction script provided
+        let tx_script_root_or_default =
+            tx_script_root.unwrap_or_else(|| CodeBlock::new_span(vec![Operation::Noop]).hash());
+
+        // Merge transaction script code block and epilogue code block
+        let tx_script_and_epilogue = CodeBlock::new_join([
+            CodeBlock::new_call(tx_script_root_or_default),
+            self.epilogue.clone(),
+        ]);
+
+        // Merge prologue and note script tree
+        let prologue_and_notes = CodeBlock::new_join([self.prologue.clone(), note_tree_root]);
+
+        // Merge prologue, note tree, tx script and epilogue
+        let program_root = CodeBlock::new_join([prologue_and_notes, tx_script_and_epilogue]);
+
+        Ok((
+            ProgramInfo::new(program_root.hash(), self.assembler.kernel().clone()),
+            tx_script_root,
+        ))
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns a [CodeBlock] which contains the root of the note tree. The tree is constructed from
+    /// the note roots provided via the [ConsumedNoteInfo] struct.
+    fn create_note_info_tree(&self, notes: &[ConsumedNoteInfo]) -> CodeBlock {
+        // create a vector to hold note programs
+        let mut note_programs = Vec::new();
+
+        // iterate over notes and push combined code block into vec
+        for note in notes.iter() {
+            note_programs.push(CodeBlock::new_join([
+                self.note_setup.clone(),
+                CodeBlock::new_call(note.script_root()),
+            ]));
+        }
+
+        // push note processing teardown script into the vec
+        note_programs.push(self.note_processing_teardown.clone());
+
+        build_note_tree(note_programs)
+    }
 
     /// Returns a [CodeBlock] which contains the note program tree root and a [Vec<CodeBlock>] which
     /// contains the [CodeBlock]s associated with the notes.
@@ -245,42 +309,15 @@ impl TransactionComplier {
         // Push note processing teardown onto the note programs vector
         note_programs.push(self.note_processing_teardown.clone());
 
-        // Merge the note programs into a tree using join blocks
-        while note_programs.len() != 1 {
-            // TODO: We should optimize this in the future - however maybe not required as this
-            // part will be handled by a pcall-like operation in the future.
-            // Pad note programs to an even number using a [Operation::Noop] span block
-            if note_programs.len() % 2 != 0 {
-                note_programs.push(CodeBlock::new_span(vec![Operation::Noop]));
-            }
-
-            // convert vector into an iterator
-            let mut note_programs_iter = note_programs.into_iter();
-
-            // create a temporary vector to hold the merged CodeBlocks
-            let mut note_programs_temp = Vec::new();
-
-            // Consume two code blocks at a time and merge them into a single code block
-            while let (Some(left_code_block), Some(right_code_block)) =
-                (note_programs_iter.next(), note_programs_iter.next())
-            {
-                note_programs_temp.push(CodeBlock::new_join([left_code_block, right_code_block]));
-            }
-
-            note_programs = note_programs_temp;
-        }
-
-        Ok((
-            note_programs.into_iter().next().expect("a single root code block exists"),
-            note_roots,
-        ))
+        let note_tree_root = build_note_tree(note_programs);
+        Ok((note_tree_root, note_roots))
     }
 
     /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
     /// transaction script program and the second element is the hash of the transaction script
     /// program. If no transaction script is provided, the first element is a [CodeBlock] containing
     /// a single [Operation::Noop] and the second element is `None`.
-    fn create_tx_program(
+    fn create_tx_script_block(
         &mut self,
         tx_script: Option<ProgramAst>,
         assembly_context: &mut AssemblyContext,
@@ -402,6 +439,35 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
         CodeBlock::Span(_) => {}
         CodeBlock::Proxy(_) => {}
     }
+}
+
+fn build_note_tree(mut note_programs: Vec<CodeBlock>) -> CodeBlock {
+    // Merge the note programs into a tree using join blocks
+    while note_programs.len() != 1 {
+        // TODO: We should optimize this in the future - however maybe not required as this
+        // part will be handled by a pcall-like operation in the future.
+        // Pad note programs to an even number using a [Operation::Noop] span block
+        if note_programs.len() % 2 != 0 {
+            note_programs.push(CodeBlock::new_span(vec![Operation::Noop]));
+        }
+
+        // convert vector into an iterator
+        let mut note_programs_iter = note_programs.into_iter();
+
+        // create a temporary vector to hold the merged CodeBlocks
+        let mut note_programs_temp = Vec::new();
+
+        // Consume two code blocks at a time and merge them into a single code block
+        while let (Some(left_code_block), Some(right_code_block)) =
+            (note_programs_iter.next(), note_programs_iter.next())
+        {
+            note_programs_temp.push(CodeBlock::new_join([left_code_block, right_code_block]));
+        }
+
+        note_programs = note_programs_temp;
+    }
+
+    note_programs.into_iter().next().expect("a single root code block exists")
 }
 
 // NOTE TARGET

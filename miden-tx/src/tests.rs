@@ -1,5 +1,6 @@
 use super::{mock::MockDataStore, TransactionExecutor, TransactionProver};
 use crypto::StarkField;
+use miden_core::ProgramInfo;
 use miden_objects::{transaction::TransactionOutputs, TryFromVmResult};
 use miden_prover::ProofOptions;
 use processor::MemAdviceProvider;
@@ -72,7 +73,7 @@ fn prove_witness() {
 }
 
 #[test]
-fn test_prove_with_tx_executor() {
+fn test_prove_and_verify_with_tx_executor() {
     let data_store = MockDataStore::new();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
@@ -90,9 +91,24 @@ fn test_prove_with_tx_executor() {
     let prepared_transaction = executor
         .prepare_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
+
+    // extract transaction data for later consumption
+    let program_hash = prepared_transaction.tx_program().hash();
+    let kernel = prepared_transaction.tx_program().kernel().clone();
+
+    // prove transaction
     let proof_options = ProofOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_prepared_transaction(prepared_transaction).unwrap();
 
-    println!("proven transaction: {:?}", proven_transaction);
+    let stack_inputs = proven_transaction.stack_inputs();
+    let stack_outputs = proven_transaction.stack_outputs();
+    let program_info = ProgramInfo::new(program_hash, kernel);
+    let _result: u32 = miden_verifier::verify(
+        program_info,
+        stack_inputs,
+        stack_outputs,
+        proven_transaction.proof().clone(),
+    )
+    .unwrap();
 }
