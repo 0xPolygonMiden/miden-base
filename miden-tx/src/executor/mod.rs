@@ -1,10 +1,9 @@
-use assembly::ast::ModuleAst;
-
 use super::{
     AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
     PreparedTransaction, ProgramAst, RecAdviceProvider, TransactionComplier,
     TransactionExecutorError, TransactionResult,
 };
+use assembly::ast::ModuleAst;
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
