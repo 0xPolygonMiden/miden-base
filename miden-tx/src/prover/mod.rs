@@ -65,6 +65,7 @@ impl TransactionProver {
             consumed_notes_info,
             created_notes_info,
             transaction.tx_script_root(),
+            transaction.tx_program().hash(),
             transaction.block_header().hash(),
             proof,
         ))
@@ -118,6 +119,7 @@ impl TransactionProver {
             consumed_notes_info,
             created_notes_info,
             tx_script_root,
+            tx_program.hash(),
             block_hash,
             proof,
         ))

@@ -15,6 +15,7 @@ use miden_verifier::{verify, ExecutionProof, VerificationError};
 /// - consumed_notes: a list of consumed notes.
 /// - created_notes: a list of created notes.
 /// - tx_script_root: the script root of the transaction.
+/// - program_hash: the hash of the transaction program.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
 /// - proof: the proof of the transaction.
 #[derive(Debug)]
@@ -25,6 +26,7 @@ pub struct ProvenTransaction {
     consumed_notes: Vec<ConsumedNoteInfo>,
     created_notes: Vec<CreatedNoteInfo>,
     tx_script_root: Option<Digest>,
+    program_hash: Digest,
     block_ref: Digest,
     proof: ExecutionProof,
 }
@@ -39,6 +41,7 @@ impl ProvenTransaction {
         consumed_notes: Vec<ConsumedNoteInfo>,
         created_notes: Vec<CreatedNoteInfo>,
         tx_script_root: Option<Digest>,
+        program_hash: Digest,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
@@ -49,6 +52,7 @@ impl ProvenTransaction {
             consumed_notes,
             created_notes,
             tx_script_root,
+            program_hash,
             block_ref,
             proof,
         }
@@ -61,12 +65,13 @@ impl ProvenTransaction {
     /// # Errors
     /// Returns an error if the provided proof does not prove a correct execution of the program.
     pub fn verify(&self) -> Result<u32, VerificationError> {
-        verify(
-            self.tx_program_info(),
-            self.stack_inputs(),
-            self.stack_outputs(),
-            self.proof.clone(),
-        )
+        todo!()
+        // verify(
+        //     self.tx_program_info(),
+        //     self.stack_inputs(),
+        //     self.stack_outputs(),
+        //     self.proof.clone(),
+        // )
     }
 
     // ACCESSORS
@@ -117,8 +122,8 @@ impl ProvenTransaction {
     }
 
     /// Returns the transaction program info.
-    pub fn tx_program_info(&self) -> ProgramInfo {
-        todo!()
+    pub fn program_hash(&self) -> Digest {
+        self.program_hash
     }
 
     /// Returns the stack inputs for the transaction.
