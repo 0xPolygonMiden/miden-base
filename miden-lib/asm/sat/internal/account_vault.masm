@@ -1,8 +1,8 @@
 use.std::collections::smt
 
-use.miden::sat::account
-use.miden::sat::asset
-use.miden::sat::layout
+use.miden::sat::internal::account
+use.miden::sat::internal::asset
+use.miden::sat::internal::layout
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.

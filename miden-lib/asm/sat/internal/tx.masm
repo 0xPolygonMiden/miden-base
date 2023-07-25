@@ -1,0 +1,102 @@
+use.miden::sat::internal::account
+use.miden::sat::internal::asset
+use.miden::sat::internal::constants
+use.miden::sat::internal::epilogue
+use.miden::sat::internal::layout
+
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [H]
+#!
+#! H is the last known block hash.
+export.layout::get_blk_hash->get_block_hash
+
+#! Returns the block number of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [num]
+#!
+#! num is the last known block number.
+export.layout::get_blk_num->get_block_number
+
+#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
+#! tuples over all input notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the input notes hash.
+export.layout::get_nullifier_com->get_input_notes_hash
+
+#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! tuples over all output notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the output notes hash.
+export.epilogue::compute_output_notes_hash->get_output_notes_hash
+
+#! Increments the number of created notes by one. Returns the index of the next note to be created.
+#!
+#! Inputs: []
+#! Outputs: [note_idx]
+proc.increment_num_created_notes
+    # get the current number of created notes
+    exec.layout::get_num_created_notes
+    # => [note_idx]
+
+    # assert that there is space for a new note
+    dup exec.constants::get_max_num_created_notes lt assert
+    # => [note_idx]
+
+    # increment the number of created notes
+    dup add.1 exec.layout::set_num_created_notes
+    # => [note_idx]
+end
+
+#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#!
+#! Inputs: [ASSET, tag, RECIPIENT]
+#! Outputs: [ptr]
+#!
+#! ASSET is the asset to be included in the note.
+#! tag is the tag to be included in the note.
+#! RECIPIENT is the recipient of the note.
+#! ptr is the pointer to the memory address at which the note is stored.
+export.create_note
+    # validate the asset
+    exec.asset::validate_asset
+    # => [ASSET, tag, RECIPIENT]
+
+    # get the index for the next note to be created and increment counter
+    exec.increment_num_created_notes
+    # => [note_idx, ASSET, tag, RECIPIENT]
+
+    # get a pointer to the memory address at which the note will be stored
+    exec.layout::get_created_note_ptr
+    # => [note_ptr, ASSET, tag, RECIPIENT]
+
+    # populate the metadata
+    push.1 movup.6 exec.account::get_id push.0
+    # => [1, acct_id, tag, 0, note_ptr, ASSET,  RECIPIENT]
+
+    # set the metadata for the new created note
+    dup.4 exec.layout::set_created_note_metadata
+    # => [note_ptr, ASSET, RECIPIENT]
+
+    movdn.4 padw swapw movup.8
+    # => [note_ptr, ASSET, 0, 0, 0, 0, RECIPIENT]
+
+    # add the asset to the note
+    dup movdn.5 exec.layout::get_created_note_asset_data_ptr mem_storew dropw
+    # => [note_ptr, 0, 0, 0, 0, RECIPIENT]
+
+    movdn.8 swapw padw swapw movup.12
+    # => [note_ptr, RECIPIENT, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    # set the recipient
+    dup movdn.5 exec.layout::set_created_note_recipient
+    # => [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+end

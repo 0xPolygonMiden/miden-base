@@ -1,4 +1,3 @@
-use assembly::Assembler;
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::{MerkleStore, NodeIndex, SimpleSmt},
@@ -8,12 +7,12 @@ pub use miden_lib::{memory, MidenLib, SatKernel};
 pub use miden_objects::{
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     mock as data,
+    mock::assembler,
     notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, PreparedTransaction, ProvenTransaction},
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
     ChainMmr, StorageItem,
 };
-use miden_stdlib::StdLibrary;
 pub use processor::{
     math::Felt, AdviceProvider, ExecutionError, ExecutionOptions, MemAdviceProvider, Process,
     Program, StackInputs, Word,
@@ -22,7 +21,7 @@ use std::{env, fs::File, io::Read, path::Path};
 
 pub mod procedures;
 
-pub const TX_KERNEL_DIR: &str = "sat";
+pub const TX_KERNEL_DIR: &str = "sat/internal";
 
 // TEST BRACE
 // ================================================================================================
@@ -43,11 +42,14 @@ pub fn load_file_with_code(imports: &str, code: &str, dir: &str, file: &str) -> 
 pub fn run_tx<A>(
     program: Program,
     stack_inputs: StackInputs,
-    adv: A,
+    mut adv: A,
 ) -> Result<Process<A>, ExecutionError>
 where
     A: AdviceProvider,
 {
+    // mock account method for testing from root context
+    adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
+
     let mut process =
         Process::new(program.kernel().clone(), stack_inputs, adv, ExecutionOptions::default());
     process.execute(&program)?;
@@ -86,14 +88,6 @@ where
 // ================================================================================================
 pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
     memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
-}
-
-pub fn assembler() -> Assembler {
-    assembly::Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("failed to load miden-lib")
-        .with_library(&StdLibrary::default())
-        .expect("failed to load std-lib")
 }
 
 pub fn prepare_transaction(

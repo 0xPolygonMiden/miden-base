@@ -10,8 +10,8 @@ fn test_get_sender_no_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::sat::prologue
-        use.miden::sat::note_setup
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note_setup
         use.miden::sat::note
 
         begin
@@ -37,8 +37,8 @@ fn test_get_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::sat::prologue
-        use.miden::sat::note_setup
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note_setup
         use.miden::sat::note
 
         begin
@@ -70,10 +70,10 @@ fn test_get_vault_data() {
     // calling get_vault_data should return vault data
     let code = format!(
         "
-        use.miden::sat::prologue
-        use.miden::sat::note_setup
-        use.miden::sat::note
-        use.miden::sat::layout
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note_setup
+        use.miden::sat::internal::note
+        use.miden::sat::internal::layout
 
         begin
             exec.prologue::prepare_transaction
@@ -133,8 +133,8 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::sat::prologue
-        use.miden::sat::note_setup
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note_setup
         use.miden::sat::note
 
         begin

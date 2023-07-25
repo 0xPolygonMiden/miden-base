@@ -60,7 +60,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel prologue.
     pub fn prologue() -> &'static str {
         "\
-        use.miden::sat::prologue
+        use.miden::sat::internal::prologue
 
         begin
             exec.prologue::prepare_transaction
@@ -71,7 +71,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel epilogue.
     pub fn epilogue() -> &'static str {
         "\
-        use.miden::sat::epilogue
+        use.miden::sat::internal::epilogue
 
         begin
             exec.epilogue::finalize_transaction
@@ -81,7 +81,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel note setup script.
     pub fn note_setup() -> &'static str {
         "\
-        use.miden::sat::note_setup
+        use.miden::sat::internal::note_setup
 
         begin
             exec.note_setup::prepare_note
@@ -92,7 +92,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel note teardown script.
     pub fn note_processing_teardown() -> &'static str {
         "\
-        use.miden::sat::note
+        use.miden::sat::internal::note
 
         begin
             exec.note::reset_current_consumed_note_ptr
@@ -106,7 +106,7 @@ impl SatKernel {
 
 #[test]
 fn test_compile() {
-    let path = "miden::sat::layout::get_consumed_note_ptr";
+    let path = "miden::sat::internal::layout::get_consumed_note_ptr";
     let miden = MidenLib::default();
     let exists = miden.modules().any(|module| {
         module

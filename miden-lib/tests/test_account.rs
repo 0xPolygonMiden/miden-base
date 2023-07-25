@@ -28,7 +28,7 @@ pub fn test_set_code_is_not_immediate() {
     let (account, block_header, chain, notes) = mock_inputs();
 
     let code = "
-        use.miden::sat::prologue
+        use.miden::sat::internal::prologue
         use.miden::sat::account
         begin
             exec.prologue::prepare_transaction
@@ -66,8 +66,8 @@ pub fn test_set_code_succeeds() {
 
     let code = "
         use.miden::sat::account
-        use.miden::sat::prologue
-        use.miden::sat::epilogue
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::epilogue
 
         begin
             exec.prologue::prepare_transaction
@@ -120,8 +120,8 @@ pub fn test_account_type() {
 
             let code = format!(
                 "
-                use.miden::sat::layout
-                use.miden::sat::account
+                use.miden::sat::internal::layout
+                use.miden::sat::internal::account
 
                 begin
                     exec.account::{}
@@ -154,7 +154,7 @@ pub fn test_account_type() {
 fn test_validate_id_fails_on_insuficcient_ones() {
     let code = format!(
         "
-        use.miden::sat::account
+        use.miden::sat::internal::account
 
         begin
             push.{ACCOUNT_ID_INSUFFICIENT_ONES}
@@ -183,7 +183,7 @@ fn test_get_item() {
         let code = format!(
             "
         use.miden::sat::account
-        use.miden::sat::prologue
+        use.miden::sat::internal::prologue
 
 
         begin
@@ -223,7 +223,7 @@ fn test_get_child_tree_item() {
     let code = format!(
         "
         use.miden::sat::account
-        use.miden::sat::prologue
+        use.miden::sat::internal::prologue
 
         begin
             # prepare the transaction
@@ -276,8 +276,8 @@ fn test_set_item() {
     let code = format!(
         "
     use.miden::sat::account
-    use.miden::sat::layout
-    use.miden::sat::prologue
+    use.miden::sat::internal::layout
+    use.miden::sat::internal::prologue
 
     begin
         # prepare the transaction
@@ -332,7 +332,7 @@ fn test_is_faucet_procedure() {
         // assembly codes that checks if an account is a fauct
         let code = format!(
             "
-        use.miden::sat::account
+        use.miden::sat::internal::account
 
         begin
             # push the account id on to the stack
@@ -368,7 +368,7 @@ fn test_authenticate_procedure() {
     let test_cases = vec![
         (account.code().procedure_tree().get_leaf(0).unwrap(), true),
         (account.code().procedure_tree().get_leaf(1).unwrap(), true),
-        (Word::default(), false),
+        ([ONE, ZERO, ONE, ZERO], false),
     ];
 
     for (root, valid) in test_cases.into_iter() {
@@ -376,8 +376,8 @@ fn test_authenticate_procedure() {
 
         let code = format!(
             "\
-            use.miden::sat::account
-            use.miden::sat::prologue
+            use.miden::sat::internal::account
+            use.miden::sat::internal::prologue
 
             begin
                 # prepare the transaction

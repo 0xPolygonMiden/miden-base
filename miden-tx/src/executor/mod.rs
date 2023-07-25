@@ -1,5 +1,5 @@
 use super::{
-    AccountCode, AccountId, DataStore, Digest, ModuleAst, NoteOrigin, NoteScript, NoteTarget,
+    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
     PreparedTransaction, ProgramAst, RecAdviceProvider, TransactionComplier,
     TransactionExecutorError, TransactionResult,
 };

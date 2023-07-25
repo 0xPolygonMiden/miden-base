@@ -26,7 +26,7 @@ pub enum AccountType {
 ///  - 0 - full account data is stored on-chain.
 ///  - 1 - only the account hash is stored on-chain which serves as a commitment to the account state.
 /// As such the three most significant bits fully describes the type of the account.
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AccountId(Felt);
 
 impl AccountId {

@@ -6,7 +6,7 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use crypto::StarkField;
+use crypto::{StarkField, ONE};
 use miden_objects::{
     mock::{
         mock_inputs, prepare_word, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
@@ -135,45 +135,77 @@ fn test_transaction_result_account_delta() {
     // TODO: This currently has some problems due to stack management when context switching: https://github.com/0xPolygonMiden/miden-base/issues/173
     let tx_script = format!(
         "\
+        use.context::account_{account_id}
+        use.miden::sat::account
+
+        ## ACCOUNT PROCEDURE WRAPPERS
+        ## ========================================================================================
+        #TODO: Move this into an account library
+        proc.set_item
+            push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
+            # => [index, V', 0, 0, 0]
+
+            call.account_{account_id}::set_item
+            # => [R', V]
+        end
+
+        proc.set_code
+            call.account_{account_id}::set_code
+            # => [0, 0, 0, 0]
+
+            dropw
+            # => []
+        end
+
+        proc.incr_nonce
+            call.account_{account_id}::incr_nonce
+            # => [0]
+            
+            drop
+            # => []
+        end
+
+        ## TRANSACTION SCRIPT
+        ## ========================================================================================
         begin
             ## Update account storage child tree
             ## ------------------------------------------------------------------------------------
             # get the current child tree root from account storage slot
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX} drop
+            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
             # => [idx]
 
             # get the child root
-            #syscall.get_account_item dropw dropw dropw
+            exec.account::get_item
             # => [CHILD_ROOT]
 
-            # prepare the stack to add a new value to the child tree
-            #padw swapw push.0 push.{CHILD_SMT_DEPTH}
+            # prepare the stack to remove in the child tree
+            padw swapw push.0 push.{CHILD_SMT_DEPTH}
             # => [depth, idx(push.0), CHILD_ROOT, NEW_VALUE (padw)]
 
             # set new value and drop old value
-            #mtree_set dropw 
+            mtree_set dropw
             # => [NEW_CHILD_ROOT]
 
             # prepare stack to delete existing child tree value (replace with empty word)
-            #padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH} 
+            padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH} 
             # => [depth, idx, NEW_CHILD_ROOT, EMPTY_WORD]
 
             # set existing value to empty word
-            #mtree_set dropw
+            mtree_set dropw
             # => [NEW_CHILD_ROOT]
 
             # store the new child root in account storage slot
-            #push.{CHILD_ROOT_PARENT_LEAF_INDEX} syscall.set_account_item dropw dropw
+            push.{CHILD_ROOT_PARENT_LEAF_INDEX} exec.set_item dropw dropw
             # => []
 
             ## Update account code
             ## ------------------------------------------------------------------------------------
-            push.{NEW_ACCOUNT_ROOT} syscall.set_account_code dropw
+            push.{NEW_ACCOUNT_ROOT} exec.set_code
             # => []
 
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
-            push.1 syscall.incr_account_nonce drop
+            push.1 exec.incr_nonce
         end
     ",
         NEW_ACCOUNT_ROOT = prepare_word(&*new_acct_code.root())
@@ -191,9 +223,25 @@ fn test_transaction_result_account_delta() {
         .map(|note| note.proof().as_ref().unwrap().origin().clone())
         .collect::<Vec<_>>();
 
+    // expected delta
+
     // execute the transaction and get the witness
     let transaction_result = executor
         .execute_transaction(account_id, block_ref, &note_origins, Some(tx_script))
         .unwrap();
-    println!("account delta {:?}", transaction_result.account_delta());
+
+    // nonce delta
+    assert!(transaction_result.account_delta().nonce == Some(ONE));
+
+    // storage delta
+    assert_eq!(transaction_result.account_delta().storage.slots_delta.updated_slots().len(), 1);
+    assert_eq!(
+        transaction_result.account_delta().storage.slots_delta.updated_slots()[0].0,
+        CHILD_ROOT_PARENT_LEAF_INDEX as u64
+    );
+    assert_eq!(transaction_result.account_delta().storage.store_delta.0.len(), 1);
+    assert_eq!(
+        transaction_result.account_delta().storage.store_delta.0[0].1.cleared_slots()[0],
+        CHILD_STORAGE_INDEX_0
+    );
 }

@@ -1,5 +1,5 @@
-use.miden::sat::layout
-use.miden::sat::account
+use.miden::sat::internal::layout
+use.miden::sat::internal::account
 
 # CONSTANTS
 # =================================================================================================
@@ -110,7 +110,7 @@ end
 #! Output: [CREATED_NOTES_COMMITMENT]
 #!
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
-export.process_created_notes
+export.compute_output_notes_hash
     # get the number of created notes from memory
     exec.layout::get_num_created_notes
 
@@ -224,7 +224,7 @@ export.finalize_transaction
     swapw dropw
 
     # compute created note hash
-    exec.process_created_notes
+    exec.compute_output_notes_hash
 
     # compute the end boundary of the created notes section
     exec.layout::get_num_created_notes exec.layout::get_created_note_ptr movdn.4
