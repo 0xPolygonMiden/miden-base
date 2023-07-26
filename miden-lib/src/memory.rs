@@ -3,6 +3,8 @@
 
 pub type MemoryAddress = u32;
 pub type MemoryOffset = u32;
+pub type DataIndex = usize;
+pub type MemSize = usize;
 
 // BOOKKEEPING
 // ------------------------------------------------------------------------------------------------
@@ -82,25 +84,57 @@ pub const CHAIN_MMR_PEAKS_PTR: MemoryAddress = 301;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
+/// The size of the memory segment allocated to core account data (excluding new code root)
+pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
+
 /// The memory address at which the account data section begins
-pub const ACCT_DATA_SECTION_OFFSET: MemoryAddress = 400;
+pub const ACCT_DATA_SECTION_OFFSET: MemoryOffset = 400;
+
+/// The offset at which the account id and nonce is stored relative to the start of the account
+/// data segment.
+pub const ACCT_ID_AND_NONCE_OFFSET: MemoryOffset = 0;
+
+/// The index of the account id within the account id and nonce data.
+pub const ACCT_ID_IDX: DataIndex = 0;
+
+/// The index of the account nonce within the account id and nonce data.
+pub const ACCT_NONCE_IDX: DataIndex = 3;
 
 /// The memory address at which the account id and nonce is stored.
 /// The account id is stored in the first element.
 /// The account nonce is stored in the fourth element.
-pub const ACCT_ID_AND_NONCE_PTR: MemoryAddress = 400;
+pub const ACCT_ID_AND_NONCE_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_ID_AND_NONCE_OFFSET;
+
+/// The offset at which the account vault root is stored relative to the start of the account
+/// data segment.
+pub const ACCT_VAULT_ROOT_OFFSET: MemoryOffset = 1;
 
 /// The memory address at which the account vault root is stored.
-pub const ACCT_VAULT_ROOT_PTR: MemoryAddress = 401;
+pub const ACCT_VAULT_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_VAULT_ROOT_OFFSET;
+
+/// The offset at which the account storage root is stored relative to the start of the account
+/// data segment.
+pub const ACCT_STORAGE_ROOT_OFFSET: MemoryOffset = 2;
 
 /// The memory address at which the account storage root is stored.
-pub const ACCT_STORAGE_ROOT_PTR: MemoryAddress = 402;
+pub const ACCT_STORAGE_ROOT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_STORAGE_ROOT_OFFSET;
+
+/// The offset at which the account code root is stored relative to the start of the account
+/// data segment.
+pub const ACCT_CODE_ROOT_OFFSET: MemoryOffset = 3;
 
 /// The memory address at which the account code root is stored.
-pub const ACCT_CODE_ROOT_PTR: MemoryAddress = 403;
+pub const ACCT_CODE_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_CODE_ROOT_OFFSET;
+
+/// The offset at which the accounts new code root is stored relative to the start of the account
+/// data segment.
+pub const ACCT_NEW_CODE_ROOT_OFFSET: MemoryOffset = 4;
 
 /// The memory address at which the new account code root is stored
-pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress = 404;
+pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_ROOT_OFFSET;
 
 // NOTES DATA
 // ------------------------------------------------------------------------------------------------
@@ -135,11 +169,14 @@ pub const MAX_NUM_CONSUMED_NOTES: u32 = 1023;
 // CREATED NOTES DATA
 // ------------------------------------------------------------------------------------------------
 
+/// The size of the core created note data segment.
+pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
+
 /// The memory address at which the created notes section begins.
 pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 10000;
 
 /// The offsets at which data of a created note is stored relative to the start of its data segment.
-pub const CREATED_NOTE_HASH_OFFET: MemoryOffset = 0;
+pub const CREATED_NOTE_HASH_OFFSET: MemoryOffset = 0;
 pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
 pub const CREATED_NOTE_VAULT_HASH_OFFSET: MemoryOffset = 3;

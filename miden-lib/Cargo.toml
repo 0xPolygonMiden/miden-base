@@ -16,19 +16,14 @@ default = ["std"]
 std = ["assembly/std", "processor/std", "vm-core/std"]
 
 [dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 [dev-dependencies]
-crypto = { package = "miden-crypto", version = "0.6", default-features = false }
-miden-objects = { package = "miden-objects", path = "../objects"}
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
-test-utils = { path = "../test-utils" }
+crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", features = ["testing"], default-features = false }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", features = ["internals"], default-features = false }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 [build-dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next" }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next" }

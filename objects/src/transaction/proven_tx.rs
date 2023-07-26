@@ -1,9 +1,8 @@
 use super::{
-    AccountId, ConsumedNoteInfo, CreatedNoteInfo, Digest, Felt, Hasher, StackInputs, StackOutputs,
+    AccountId, ConsumedNoteInfo, Digest, Felt, Hasher, NoteEnvelope, StackInputs, StackOutputs,
     Vec, Word,
 };
-use miden_core::ProgramInfo;
-use miden_verifier::{verify, ExecutionProof, VerificationError};
+use miden_verifier::{verify, ExecutionProof, ProgramInfo, VerificationError};
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
 /// amount of data needed to verify that the transaction was executed correctly.
@@ -21,7 +20,7 @@ pub struct ProvenTransaction {
     initial_account_hash: Digest,
     final_account_hash: Digest,
     consumed_notes: Vec<ConsumedNoteInfo>,
-    created_notes: Vec<CreatedNoteInfo>,
+    created_notes: Vec<NoteEnvelope>,
     tx_script_root: Option<Digest>,
     block_ref: Digest,
     proof: ExecutionProof,
@@ -35,7 +34,7 @@ impl ProvenTransaction {
         initial_account_hash: Digest,
         final_account_hash: Digest,
         consumed_notes: Vec<ConsumedNoteInfo>,
-        created_notes: Vec<CreatedNoteInfo>,
+        created_notes: Vec<NoteEnvelope>,
         tx_script_root: Option<Digest>,
         block_ref: Digest,
         proof: ExecutionProof,
@@ -107,6 +106,7 @@ impl ProvenTransaction {
         stack_outputs.extend_from_slice(self.final_account_hash.as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())
+            .expect("StackOutputs are valid")
     }
 
     /// Returns the script root of the transaction.

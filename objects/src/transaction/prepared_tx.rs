@@ -6,7 +6,7 @@ use super::{
 /// A struct that contains all of the data required to execute a transaction. This includes:
 /// - account: Account that the transaction is being executed against.
 /// - block_header: The header of the latest known block.
-/// - block_chain: The chain mmr associated with the latest known blcok.
+/// - block_chain: The chain mmr associated with the latest known block.
 /// - consumed_notes: A vector of consumed notes.
 /// - tx_script_root: An optional transaction script root.
 /// - tx_program: The transaction program.
@@ -94,5 +94,21 @@ impl PreparedTransaction {
     /// Returns the consumed notes commitment.
     pub fn consumed_notes_commitment(&self) -> Digest {
         self.consumed_notes.commitment()
+    }
+
+    // CONSUMERS
+    // --------------------------------------------------------------------------------------------
+    /// Consumes the prepared transaction and returns its parts.
+    pub fn into_parts(
+        self,
+    ) -> (Account, BlockHeader, ChainMmr, ConsumedNotes, Program, Option<Digest>) {
+        (
+            self.account,
+            self.block_header,
+            self.block_chain,
+            self.consumed_notes,
+            self.tx_program,
+            self.tx_script_root,
+        )
     }
 }

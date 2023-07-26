@@ -1,8 +1,7 @@
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher, Note,
-    StackInputs, StackOutputs, ToAdviceInputs, Vec, Word,
+    Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
+    Note, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word,
 };
-use miden_processor::AdviceInputs;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, the number of consumed notes, the core consumed note data,
@@ -114,7 +113,7 @@ pub fn generate_stack_outputs(created_notes: &[Note], final_account_hash: &Diges
     outputs.extend_from_slice(generate_created_notes_commitment(created_notes).as_elements());
     outputs.extend_from_slice(final_account_hash.as_elements());
     outputs.reverse();
-    StackOutputs::from_elements(outputs, Default::default())
+    StackOutputs::from_elements(outputs, Default::default()).expect("stack outputs are valid")
 }
 
 /// Returns the created notes commitment.

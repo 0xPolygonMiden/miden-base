@@ -1,4 +1,4 @@
-use super::{AccountId, Felt, Word};
+use super::{AccountId, Felt, NoteError, Word};
 
 /// Represents metadata associated with a note. This includes the sender, tag, and number of assets.
 /// - sender is the account which created the note.
@@ -14,6 +14,7 @@ pub struct NoteMetadata {
 impl NoteMetadata {
     /// Returns a new note metadata object created with the specified parameters.
     pub fn new(sender: AccountId, tag: Felt, num_assets: Felt) -> Self {
+        // TODO: Assert num assets is valid
         Self {
             sender,
             tag,
@@ -44,5 +45,18 @@ impl From<&NoteMetadata> for Word {
         elements[1] = metadata.tag;
         elements[2] = metadata.sender.into();
         elements
+    }
+}
+
+impl TryFrom<Word> for NoteMetadata {
+    type Error = NoteError;
+
+    fn try_from(elements: Word) -> Result<Self, Self::Error> {
+        // TODO: Assert num assets is valid
+        Ok(Self {
+            sender: elements[2].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?,
+            tag: elements[1],
+            num_assets: elements[0],
+        })
     }
 }

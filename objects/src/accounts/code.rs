@@ -18,7 +18,7 @@ const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
 /// Account's public interface consists of a set of account procedures, each procedure being a Miden
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
 /// the entire account interface by building a simple Merkle tree out of all procedure MAST roots.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountCode {
     module: ModuleAst,
     procedures: Vec<Digest>,
@@ -37,7 +37,7 @@ impl AccountCode {
     pub fn new(
         account_id: AccountId,
         account_module: ModuleAst,
-        assembler: &mut Assembler,
+        assembler: &Assembler,
     ) -> Result<Self, AccountError> {
         let module = Module::new(
             LibraryPath::new(format!("{}_{}", Self::ACCOUNT_CODE_NAMESPACE_BASE, account_id))

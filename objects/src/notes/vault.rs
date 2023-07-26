@@ -108,3 +108,23 @@ impl NoteVault {
         padded_assets
     }
 }
+
+impl TryFrom<&[Word]> for NoteVault {
+    type Error = NoteError;
+
+    fn try_from(value: &[Word]) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Err(NoteError::EmptyAssetList);
+        } else if value.len() > Self::MAX_NUM_ASSETS {
+            return Err(NoteError::too_many_assets(value.len()));
+        }
+
+        let assets = value
+            .iter()
+            .map(|word| (*word).try_into())
+            .collect::<Result<Vec<Asset>, _>>()
+            .map_err(NoteError::InvalidVaultAssetData)?;
+
+        Self::new(&assets)
+    }
+}

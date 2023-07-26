@@ -1,22 +1,30 @@
 use super::{
-    notes::{Note, NoteMetadata},
-    Account, AccountId, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher,
-    StarkField, ToAdviceInputs, TransactionWitnessError, Vec, Word, WORD_SIZE,
+    notes::{Note, NoteEnvelope, NoteStub},
+    Account, AccountDelta, AccountError, AccountId, AccountStorage, AccountStub, AdviceInputs,
+    AdviceInputsBuilder, BTreeMap, BlockHeader, ChainMmr, Digest, Felt, Hasher, MerkleStore,
+    StarkField, ToAdviceInputs, TransactionResultError, TransactionWitnessError, TryFromVmResult,
+    Vec, Word, WORD_SIZE,
 };
 use miden_core::{Program, StackInputs, StackOutputs};
-use miden_processor::AdviceInputs;
 
 mod consumed_notes;
-mod created_note;
+mod created_notes;
 mod executed_tx;
 mod prepared_tx;
 mod proven_tx;
+mod tx_result;
 mod tx_witness;
 mod utils;
 
 pub use consumed_notes::{ConsumedNoteInfo, ConsumedNotes};
-pub use created_note::CreatedNoteInfo;
+pub use created_notes::CreatedNotes;
 pub use executed_tx::ExecutedTransaction;
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
+pub use tx_result::TransactionResult;
 pub use tx_witness::TransactionWitness;
+
+#[cfg(feature = "testing")]
+pub mod testing {
+    pub use super::tx_result::FinalAccountStub;
+}

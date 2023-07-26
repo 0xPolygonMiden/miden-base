@@ -9,10 +9,7 @@ pub struct NoteScript {
 }
 
 impl NoteScript {
-    pub fn new(
-        code: ProgramAst,
-        assembler: &mut Assembler,
-    ) -> Result<(Self, CodeBlock), NoteError> {
+    pub fn new(code: ProgramAst, assembler: &Assembler) -> Result<(Self, CodeBlock), NoteError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::new(AssemblyContextType::Program))
             .map_err(NoteError::ScriptCompilationError)?;

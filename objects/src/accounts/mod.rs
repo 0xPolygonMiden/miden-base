@@ -2,7 +2,11 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType, Digest,
     Felt, Hasher, LibraryPath, Module, ModuleAst, StarkField, TieredSmt, ToAdviceInputs, ToString,
-    Vec, Word, ZERO,
+    Vec, Word, EMPTY_WORD, ZERO,
+};
+use crypto::{
+    merkle::StoreNode,
+    utils::collections::{ApplyDiff, TryApplyDiff},
 };
 
 mod account_id;
@@ -11,9 +15,14 @@ pub use account_id::{AccountId, AccountType};
 mod code;
 pub use code::AccountCode;
 
+pub mod delta;
+pub use delta::{AccountDelta, AccountStorageDelta};
+
 mod storage;
-pub use storage::AccountStorage;
-pub use storage::StorageItem;
+pub use storage::{AccountStorage, StorageItem};
+
+mod stub;
+pub use stub::AccountStub;
 
 mod vault;
 pub use vault::AccountVault;
@@ -39,7 +48,7 @@ mod tests;
 /// Out of the the above components account ID is always immutable (once defined it can never be
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
     id: AccountId,
     vault: AccountVault,
@@ -51,27 +60,22 @@ pub struct Account {
 impl Account {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Creates and returns a new account initialized with the specified ID, storage items, and
-    /// code.
-    ///
-    /// The vault of the account is initially empty and nonce is set to ZERO.
-    ///
-    /// # Errors
-    /// Returns an error if compilation of the source code fails.
+    /// Creates and returns a new account initialized with the specified ID, vault, storage, code,
+    /// and nonce.
     pub fn new(
         id: AccountId,
         vault: AccountVault,
         storage: AccountStorage,
         code: AccountCode,
         nonce: Felt,
-    ) -> Result<Self, AccountError> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             id,
             vault,
             storage,
             code,
             nonce,
-        })
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -82,13 +86,13 @@ impl Account {
     /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
     /// Computing the account hash requires 2 permutations of the hash function.
     pub fn hash(&self) -> Digest {
-        let mut elements = [ZERO; 16];
-        elements[0] = *self.id;
-        elements[3] = self.nonce;
-        elements[4..8].copy_from_slice(self.vault.commitment().as_elements());
-        elements[8..12].copy_from_slice(&*self.storage.root());
-        elements[12..].copy_from_slice(self.code.root().as_elements());
-        Hasher::hash_elements(&elements)
+        hash_account(
+            self.id,
+            self.nonce,
+            self.vault.commitment(),
+            self.storage.root(),
+            self.code.root(),
+        )
     }
 
     /// Returns unique identifier of this account.
@@ -167,5 +171,58 @@ impl ToAdviceInputs for Account {
 
         // extend the advice provider with [AccountVault] inputs
         self.vault.to_advice_inputs(target);
+    }
+}
+
+// HELPERS
+// ================================================================================================
+/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code root.
+///
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+/// Computing the account hash requires 2 permutations of the hash function.
+pub fn hash_account(
+    id: AccountId,
+    nonce: Felt,
+    vault_root: Digest,
+    storage_root: Digest,
+    code_root: Digest,
+) -> Digest {
+    let mut elements = [ZERO; 16];
+    elements[0] = *id;
+    elements[3] = nonce;
+    elements[4..8].copy_from_slice(&*vault_root);
+    elements[8..12].copy_from_slice(&*storage_root);
+    elements[12..].copy_from_slice(&*code_root);
+    Hasher::hash_elements(&elements)
+}
+
+// DIFF IMPLEMENTATION
+// ================================================================================================
+impl TryApplyDiff<Digest, StoreNode> for Account {
+    type DiffType = AccountDelta;
+    type Error = AccountError;
+
+    fn try_apply(&mut self, diff: Self::DiffType) -> Result<(), Self::Error> {
+        let AccountDelta {
+            code: _code,
+            nonce,
+            storage,
+            vault,
+        } = diff;
+
+        self.storage.try_apply(storage)?;
+        self.vault.apply(vault);
+
+        if let Some(nonce) = nonce {
+            if nonce.as_int() <= self.nonce.as_int() {
+                return Err(AccountError::NonceMustBeMonotonicallyIncreasing(
+                    nonce.as_int(),
+                    self.nonce.as_int(),
+                ));
+            }
+            self.nonce = nonce;
+        }
+
+        Ok(())
     }
 }
