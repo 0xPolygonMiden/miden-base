@@ -1,76 +1,114 @@
-use.miden::sat::account
-use.miden::sat::account_vault
-use.miden::sat::note
-use.miden::sat::tx
+use.miden::sat::internal::account
+use.miden::sat::internal::account_vault
+use.miden::sat::internal::note
+use.miden::sat::internal::tx
 
-# TODO: change to re-export once supported.
 #! Returns the account id.
 #!
-#! Stack: []
+#! Stack: [0]
 #! Output: [acct_id]
 #!
 #! - acct_id is the account id.
 export.get_account_id
     exec.account::get_id
+    # => [acct_id, 0]
+
+    swap drop
+    # => [acct_id]
 end
 
-# TODO: change to re-export once supported.
 #! Returns the account nonce.
 #!
-#! Stack: []
+#! Stack: [0]
 #! Output: [nonce]
 #!
 #! - nonce is the account nonce.
 export.get_account_nonce
     exec.account::get_nonce
+    # => [0, nonce]
+
+    swap drop
+    # => [nonce]
 end
 
-# TODO: change to re-export once supported.
 #! Returns the initial account hash.
 #!
-#! Stack: []
+#! Stack: [0, 0, 0, 0]
 #! Output: [H]
 #!
 #! - H is the initial account hash.
 export.get_initial_account_hash
     exec.account::get_initial_hash
+    # => [H, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [H]
 end
 
 #! Computes and returns the account hash from account data stored in memory.
 #!
-#! Stack: []
+#! Stack: [0, 0, 0, 0]
 #! Output: [ACCT_HASH]
 #!
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_account_hash
     exec.account::get_current_hash
+    # => [ACCT_HASH, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [ACCT_HASH]
 end
 
 #! Increments the account nonce by the provided value.
 #!
 #! Stack: [value]
-#! Output: []
+#! Output: [0]
 #!
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_account_nonce
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, value]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, value]
+
+    # drop the caller
+    dropw
+    # => [value]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+
+    push.0 swap
+    # => [value, 0]
+
     exec.account::incr_nonce
+    # => [0]
 end
 
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index]
+#! Stack: [index, 0, 0, 0]
 #! Output: [VALUE]
 #!
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_account_item
     exec.account::get_item
+    # => [VALUE, 0, 0, 0]
+
+    movup.4 drop movup.4 drop movup.4 drop
+    # => [VALUE]
 end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index, V']
+#! Stack: [index, V', 0, 0, 0]
 #! Output: [R', V]
 #!
 #! - index is the index of the item to set.
@@ -78,18 +116,58 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_account_item
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, index, V', 0, 0, 0]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, index, V', 0, 0, 0]
+
+    # drop the caller
+    dropw
+    # => [index, V', 0, 0, 0]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
     exec.account::set_item
+    # => [R', V, 0, 0, 0]
+
+    movup.8 drop movup.8 drop movup.8 drop
+    # => [R', V]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
 #! Stack: [CODE_ROOT]
-#! Output: []
+#! Output: [0, 0, 0, 0]
 #!
 #! - CODE_ROOT is the hash of the code to set.
 export.set_account_code
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, value]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, value]
+
+    # drop the caller
+    dropw
+    # => [value]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+    padw swapw
+    # => [CODE_ROOT, 0, 0, 0, 0]
+
     exec.account::set_code
+    # => [0, 0, 0, 0]
 end
 
 # TODO: Add vault based procedures (add_asset, remove_asset, mint, burn)
@@ -110,82 +188,113 @@ end
 #! Panics if the ASSET is a fungible asset.
 #!
 #! Stack: [ASSET]
-#! Output: [has_asset]
+#! Output: [has_asset, 0, 0, 0]
 #!
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.account_vault_has_non_fungible_asset
+    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4
+    # => [ASSET, 0, 0, 0]
+
     exec.account_vault::has_non_fungible_asset
+    # => [has_asset, 0, 0, 0]
 end
 
+# TODO: Refactor `get_note_assets` pattern as described here: 
+#       https://github.com/0xPolygonMiden/miden-base/pull/174#discussion_r1277218200
 #! Writes the assets of the currently executing note into memory starting at the specified address.
 #!
-#! Inputs: [dest_ptr]
+#! Inputs: [dest_ptr, 0]
 #! Outputs: [num_assets, dest_ptr]
 #!
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
 export.get_note_assets
     exec.note::get_assets
+    # => [num_assets, dest_ptr, 0]
+
+    movup.2 drop
+    # => [num_assets, dest_ptr]
 end
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.
 #!
-#! Inputs: []
+#! Inputs: [0]
 #! Outputs: [sender]
 #!
 #! - sender is the sender of the note currently being processed.
 export.get_note_sender
     exec.note::get_sender
+    # => [sender, 0]
+
+    swap drop
+    # => [sender]
+
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
-#! Inputs: []
+#! Inputs: [0]
 #! Outputs: [num]
 #!
 #! num is the last known block number.
 export.get_block_number
     exec.tx::get_block_number
+    # => [num, 0]
+
+    swap drop
+    # => [num]
 end
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
-#! Inputs: []
+#! Inputs: [0, 0, 0, 0]
 #! Outputs: [H]
 #!
 #! H is the last known block hash.
 export.get_block_hash
     exec.tx::get_block_hash
+    # => [H, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [H]
 end
 
 #! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
 #! tuples over all input notes.
 #!
-#! Inputs: []
+#! Inputs: [0, 0, 0, 0]
 #! Outputs: [COM]
 #!
 #! COM is the input notes hash.
 export.get_input_notes_hash
     exec.tx::get_input_notes_hash
+    # => [COM, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [COM]
 end
 
 #! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
 #! tuples over all output notes.
 #!
-#! Inputs: []
+#! Inputs: [0, 0, 0, 0]
 #! Outputs: [COM]
 #!
 #! COM is the output notes hash.
 export.get_output_notes_hash
     exec.tx::get_output_notes_hash
+    # => [COM, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [COM]
 end
 
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
 #! Inputs: [ASSET, tag, RECIPIENT]
-#! Outputs: [ptr]
+#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
 #!
 #! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.

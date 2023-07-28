@@ -15,7 +15,7 @@ fn test_epilogue() {
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
 
-    let imports = "use.miden::sat::prologue\n";
+    let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
         {created_notes_data_procedure}

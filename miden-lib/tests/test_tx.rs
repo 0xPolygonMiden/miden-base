@@ -84,8 +84,8 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-    use.miden::sat::constants
-    use.miden::sat::layout
+    use.miden::sat::internal::constants
+    use.miden::sat::internal::layout
     use.miden::sat::tx
 
     begin

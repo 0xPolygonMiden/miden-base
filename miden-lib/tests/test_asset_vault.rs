@@ -16,13 +16,13 @@ fn test_get_balance() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
         "
-        use.miden::sat::prologue
-        use.miden::sat::account_vault
+        use.miden::sat::internal::prologue
+        use.miden::sat::account
 
         begin
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
-            exec.account_vault::get_balance
+            exec.account::get_balance
         end
     "
     );
@@ -49,13 +49,13 @@ fn test_get_balance_non_fungible_fails() {
 
     let code = format!(
         "
-        use.miden::sat::prologue
-        use.miden::sat::account_vault
+        use.miden::sat::internal::prologue
+        use.miden::sat::account
 
         begin
             exec.prologue::prepare_transaction
             push.{ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN}
-            exec.account_vault::get_balance
+            exec.account::get_balance
         end
     "
     );
@@ -79,13 +79,13 @@ fn test_has_non_fungible_asset() {
 
     let code = format!(
         "
-        use.miden::sat::prologue
-        use.miden::sat::account_vault
+        use.miden::sat::internal::prologue
+        use.miden::sat::account
 
         begin
             exec.prologue::prepare_transaction
             push.{non_fungible_asset_key}
-            exec.account_vault::has_non_fungible_asset
+            exec.account::has_non_fungible_asset
         end
     ",
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())

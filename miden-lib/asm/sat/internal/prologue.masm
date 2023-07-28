@@ -1,7 +1,7 @@
 use.std::collections::mmr
 
-use.miden::sat::constants
-use.miden::sat::layout
+use.miden::sat::internal::constants
+use.miden::sat::internal::layout
 
 # PUBLIC INPUTS
 # =================================================================================================

@@ -1,0 +1,315 @@
+use.miden::sat::internal::layout
+
+# CONSTANTS
+# =================================================================================================
+
+# An enum that represents a regular account with updatable code.
+const.REGULAR_ACCOUNT_UPDATABLE_CODE=0
+
+# An enum that represents a regular account with immutable code.
+const.REGULAR_ACCOUNT_IMMUTABLE_CODE=1
+
+# An enum that represents a fungible faucet with immutable code.
+const.FUNGIBLE_FAUCET_ACCOUNT=2
+
+# An enum that represents a non-fungible faucet with immutable code.
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
+
+# Specifies a minimum number of ones for a valid account ID.
+const.MIN_ACCOUNT_ONES=5
+
+# The depth of the account storage sparse merkle tree
+const.STORAGE_TREE_DEPTH=8
+
+# The depth of the account code tree
+const.ACCOUNT_CODE_TREE_DEPTH=8
+
+# PROCEDURES
+# =================================================================================================
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_hash
+    # prepare the stack for computing the account hash
+    exec.layout::get_acct_data_ptr padw padw padw
+
+    # stream account data and compute sequential hash. We perform two `mem_stream` operations
+    # because account data consists of exactly 4 words.
+    mem_stream hperm mem_stream hperm
+
+    # extract account hash
+    dropw swapw dropw
+
+    # drop memory pointer
+    movup.4 drop
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_nonce
+    u32assert.1
+    exec.layout::get_acct_nonce add
+    exec.layout::set_acct_nonce
+end
+
+#! Returns the account id.
+#!
+#! Stack: []
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.layout::get_acct_id->get_id
+
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.layout::get_acct_nonce->get_nonce
+
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.layout::get_init_acct_hash->get_initial_hash
+
+#! Returns the account type of the account id provided via the stack.
+#!
+#! The account type can be of the following forms:
+#! - regular account with updatable code
+#! - regular account with immutable code
+#! - fungible asset faucet account with immutable code
+#! - non-fungible asset faucet account with immutable code
+#!
+#! Stack: [acct_id]
+#! Output: [acct_type]
+#!
+#! - acct_id is the account id.
+#! - acct_type is the account type.
+proc.type
+    # compute the account type
+    u32split swap drop u32checked_shr.30
+    # => [acct_type]
+end
+
+#! Returns a boolean indicating whether the account is a fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
+export.is_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungible faucet
+    push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a non-fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_non_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
+export.is_non_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a non-fungible faucet
+    push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_faucet is a boolean indicating whether the account is a faucet.
+export.is_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungilbe faucet
+    dup push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fung_faucet, acct_type]
+
+    # check if the account type is a non-fungible faucet
+    swap push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fung_faucet, is_fung_faucet]
+
+    # check if the account is a faucet
+    or
+    # => [is_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a regular updatable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_updatable_account]
+#!
+#! - acct_id is the account id.
+#! - is_updatable_account is a boolean indicating whether the account is a regular updatable
+#!   account.
+export.is_updatable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
+    # => [is_updatable_account]
+end
+
+#! Returns a boolean indicating whether the account is a regular immutable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_immutable_account]
+#!
+#! - acct_id is the account id.
+#! - is_immutable_account is a boolean indicating whether the account is a regular immutable
+#!   account.
+export.is_immutable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
+    # => [is_immutable_account]
+end
+
+#! Validates an account id. Panics if the account id is invalid.
+#! Account id must have at least `MIN_ACCOUNT_ONES` ones.
+#!
+#! Stack: [acct_id]
+#! Output: []
+#!
+#! - acct_id is the account id.
+export.validate_id
+    # split felt into 32 bit limbs
+    u32split
+    # => [l_1, l_0]
+
+    # count the number of 1 bits
+    u32unchecked_popcnt swap u32unchecked_popcnt add
+    # => [ones]
+
+    # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
+    push.MIN_ACCOUNT_ONES u32unchecked_gte assert
+    # => []
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_code
+    # get the account id
+    exec.layout::get_acct_id
+    # => [acct_id, CODE_ROOT]
+
+    # assert the account is an updatable regular account
+    exec.is_updatable_account assert
+    # => [CODE_ROOT]
+
+    # set the code root
+    exec.layout::set_new_acct_code_root
+    # => []
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_item
+    # get the storage root
+    exec.layout::get_acct_storage_root
+    # => [storage_root, index]
+
+    # get the item from storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_get
+    # => [VALUE, ROOT]
+
+    # drop the root
+    swapw dropw
+    # => [VALUE]
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V']
+#! Output: [R', V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R' is the new storage root.
+export.set_item
+    # get the storage root
+    exec.layout::get_acct_storage_root
+    # => [R, index, V']
+
+    # set the item in storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_set
+    # => [V, R']
+
+    # set the new storage root
+    swapw exec.layout::set_acct_storage_root
+    # => [V]
+end
+
+#! Authenticates the proedcure root is part of the account code Merkle treee. Panics if the
+#! procedure root is not part of the account code Merkle tree.
+#!
+#! Stack: [PROC_ROOT]
+#! Output: [PROC_ROOT]
+#!
+#! - PROC_ROOT is the hash of the procedure to authenticate.
+export.authenticate_procedure.1
+    # load the account code root onto the stack
+    exec.layout::get_acct_code_root swapw
+    # => [PROC_ROOT, CODE_ROOT]
+
+    # load the index of the procedure root onto the advice stack
+    adv.push_mapval adv_push.1 movdn.4
+    # => [PROC_ROOT, index, CODE_ROOT]
+
+    # push the depth of the code Merkle tree onto the stack
+    push.ACCOUNT_CODE_TREE_DEPTH movdn.4
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # verify the procedure exists in the account code Merkle tree
+    mtree_verify
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # drop accessory variables
+    movup.4 drop movup.4 drop swapw dropw
+    # => [PROC_ROOT]
+end

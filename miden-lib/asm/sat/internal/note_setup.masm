@@ -1,5 +1,5 @@
-use.miden::sat::layout
-use.miden::sat::note
+use.miden::sat::internal::layout
+use.miden::sat::internal::note
 
 # NOTE SETUP SCRIPT
 # =================================================================================================
