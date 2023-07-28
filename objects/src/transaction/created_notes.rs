@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, Digest, Felt, Hasher, MerkleStore, NoteStub, StackOutputs, TransactionResultError,
-    TryFromVmResult, Vec, Word, WORD_SIZE,
+    BTreeMap, Digest, Felt, Hasher, MerkleStore, NoteEnvelope, NoteStub, StackOutputs,
+    TransactionResultError, TryFromVmResult, Vec, Word, WORD_SIZE,
 };
 use miden_core::utils::group_slice_elements;
 use miden_lib::memory::NOTE_MEM_SIZE;
@@ -100,4 +100,10 @@ pub fn generate_created_notes_stub_commitment(notes: &[NoteStub]) -> Digest {
     }
 
     Hasher::hash_elements(&elements)
+}
+
+impl From<CreatedNotes> for Vec<NoteEnvelope> {
+    fn from(created_notes: CreatedNotes) -> Self {
+        created_notes.notes.into_iter().map(|note| note.into()).collect::<Vec<_>>()
+    }
 }

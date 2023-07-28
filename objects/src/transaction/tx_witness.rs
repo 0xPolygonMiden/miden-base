@@ -142,6 +142,23 @@ impl TransactionWitness {
     pub fn advice_inputs(&self) -> &AdviceInputs {
         &self.advice_witness
     }
+
+    // CONSUMERS
+    // --------------------------------------------------------------------------------------------
+    /// Consumes the witness and returns its parts.
+    pub fn into_parts(
+        self,
+    ) -> (AccountId, Digest, Digest, Digest, Option<Digest>, Program, AdviceInputs) {
+        (
+            self.account_id,
+            self.initial_account_hash,
+            self.block_hash,
+            self.consumed_notes_hash,
+            self.tx_script_root,
+            self.program,
+            self.advice_witness,
+        )
+    }
 }
 
 // HELPERS

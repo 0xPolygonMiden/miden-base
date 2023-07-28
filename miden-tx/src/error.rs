@@ -2,6 +2,7 @@ use super::{
     AccountError, AccountId, AssemblyError, Digest, ExecutionError, NodeIndex,
     TransactionResultError,
 };
+use miden_objects::TransactionWitnessError;
 
 #[derive(Debug)]
 pub enum TransactionError {
@@ -32,6 +33,13 @@ pub enum TransactionExecutorError {
     FetchTransactionDataFailed(DataStoreError),
     LoadAccountFailed(TransactionCompilerError),
     TransactionResultError(TransactionResultError),
+}
+
+#[derive(Debug)]
+pub enum TransactionProverError {
+    ProveTransactionProgramFailed(ExecutionError),
+    TransactionResultError(TransactionResultError),
+    CorruptTransactionWitnessConsumedNoteData(TransactionWitnessError),
 }
 
 #[derive(Debug)]

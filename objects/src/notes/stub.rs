@@ -99,3 +99,9 @@ impl TryFrom<&[Word]> for NoteStub {
         Ok(stub)
     }
 }
+
+impl From<NoteStub> for NoteEnvelope {
+    fn from(note_stub: NoteStub) -> Self {
+        note_stub.envelope
+    }
+}

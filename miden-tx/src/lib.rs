@@ -20,8 +20,12 @@ use data::DataStore;
 mod error;
 mod executor;
 pub use error::TransactionError;
-use error::{DataStoreError, TransactionCompilerError, TransactionExecutorError};
+use error::{
+    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
+};
 pub use executor::TransactionExecutor;
+mod prover;
+pub use prover::TransactionProver;
 
 #[cfg(test)]
 mod tests;
