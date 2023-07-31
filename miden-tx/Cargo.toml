@@ -24,6 +24,7 @@ miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-lib = { package = "miden-lib", path = "../miden-lib" }
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 [dev-dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
