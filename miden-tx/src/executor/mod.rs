@@ -128,9 +128,6 @@ impl<D: DataStore> TransactionExecutor<D> {
         .map_err(TransactionExecutorError::TransactionResultError)
     }
 
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
     /// Fetches the data required to execute the transaction from the [DataStore], compiles the
     /// transaction into an executable program using the [TransactionComplier], and returns a
     /// [PreparedTransaction].
@@ -139,7 +136,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    fn prepare_transaction(
+    pub fn prepare_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,

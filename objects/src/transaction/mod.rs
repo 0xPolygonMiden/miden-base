@@ -21,10 +21,5 @@ pub use created_notes::CreatedNotes;
 pub use executed_tx::ExecutedTransaction;
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
-pub use tx_result::TransactionResult;
+pub use tx_result::{FinalAccountStub, TransactionResult};
 pub use tx_witness::TransactionWitness;
-
-#[cfg(feature = "testing")]
-pub mod testing {
-    pub use super::tx_result::FinalAccountStub;
-}

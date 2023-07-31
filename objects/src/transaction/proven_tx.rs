@@ -2,7 +2,9 @@ use super::{
     AccountId, ConsumedNoteInfo, Digest, Felt, Hasher, NoteEnvelope, StackInputs, StackOutputs,
     Vec, Word,
 };
-use miden_verifier::{verify, ExecutionProof, ProgramInfo, VerificationError};
+use crypto::{WORD_SIZE, ZERO};
+use miden_core::stack::STACK_TOP_SIZE;
+use miden_verifier::ExecutionProof;
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
 /// amount of data needed to verify that the transaction was executed correctly.
@@ -22,6 +24,7 @@ pub struct ProvenTransaction {
     consumed_notes: Vec<ConsumedNoteInfo>,
     created_notes: Vec<NoteEnvelope>,
     tx_script_root: Option<Digest>,
+    program_hash: Digest,
     block_ref: Digest,
     proof: ExecutionProof,
 }
@@ -36,6 +39,7 @@ impl ProvenTransaction {
         consumed_notes: Vec<ConsumedNoteInfo>,
         created_notes: Vec<NoteEnvelope>,
         tx_script_root: Option<Digest>,
+        program_hash: Digest,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
@@ -46,26 +50,60 @@ impl ProvenTransaction {
             consumed_notes,
             created_notes,
             tx_script_root,
+            program_hash,
             block_ref,
             proof,
         }
     }
 
-    /// Verify the transaction using the provided data and proof.
-    /// Returns the security level of the proof if the specified program was executed correctly against
-    /// the specified inputs and outputs.
-    ///
-    /// # Errors
-    /// Returns an error if the provided proof does not prove a correct execution of the program.
-    pub fn verify(&self) -> Result<u32, VerificationError> {
-        verify(self.tx_program(), self.stack_inputs(), self.stack_outputs(), self.proof.clone())
-    }
-
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+    /// Returns the account ID.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns the initial account hash.
+    pub fn initial_account_hash(&self) -> Digest {
+        self.initial_account_hash
+    }
+
+    /// Returns the final account hash.
+    pub fn final_account_hash(&self) -> Digest {
+        self.final_account_hash
+    }
+
+    /// Returns the consumed notes.
+    pub fn consumed_notes(&self) -> &[ConsumedNoteInfo] {
+        &self.consumed_notes
+    }
+
+    /// Returns the created notes.
+    pub fn created_notes(&self) -> &[NoteEnvelope] {
+        &self.created_notes
+    }
+    /// Returns the script root of the transaction.
+    pub fn tx_script_root(&self) -> Option<Digest> {
+        self.tx_script_root
+    }
+
+    /// Returns the transaction program info.
+    pub fn program_hash(&self) -> Digest {
+        self.program_hash
+    }
+
+    /// Returns the proof of the transaction.
+    pub fn proof(&self) -> &ExecutionProof {
+        &self.proof
+    }
+
+    /// Returns the block reference the transaction was executed against.
+    pub fn block_ref(&self) -> Digest {
+        self.block_ref
+    }
 
     /// Returns the consumed notes commitment.
-    pub fn consumed_notes_hash(&self) -> Digest {
+    pub fn compute_consumed_notes_hash(&self) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(self.consumed_notes.len() * 8);
         for note in self.consumed_notes.iter() {
             elements.extend_from_slice(note.nullifier().as_elements());
@@ -75,7 +113,7 @@ impl ProvenTransaction {
     }
 
     /// Returns the created notes commitment.
-    pub fn created_notes_commitment(&self) -> Digest {
+    pub fn compute_created_notes_commitment(&self) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(self.created_notes.len() * 8);
         for note in self.created_notes.iter() {
             elements.extend_from_slice(note.note_hash().as_elements());
@@ -84,15 +122,10 @@ impl ProvenTransaction {
         Hasher::hash_elements(&elements)
     }
 
-    /// Returns the transaction program info.
-    pub fn tx_program(&self) -> ProgramInfo {
-        todo!()
-    }
-
     /// Returns the stack inputs for the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
+    pub fn build_stack_inputs(&self) -> StackInputs {
         let mut stack_inputs: Vec<Felt> = Vec::with_capacity(13);
-        stack_inputs.extend_from_slice(self.consumed_notes_hash().as_elements());
+        stack_inputs.extend_from_slice(self.compute_consumed_notes_hash().as_elements());
         stack_inputs.extend_from_slice(self.initial_account_hash.as_elements());
         stack_inputs.push(*self.account_id);
         stack_inputs.extend_from_slice(self.block_ref.as_elements());
@@ -100,17 +133,14 @@ impl ProvenTransaction {
     }
 
     /// Returns the stack outputs for the transaction.
-    pub fn stack_outputs(&self) -> StackOutputs {
-        let mut stack_outputs: Vec<Felt> = Vec::with_capacity(8);
-        stack_outputs.extend_from_slice(self.created_notes_commitment().as_elements());
-        stack_outputs.extend_from_slice(self.final_account_hash.as_elements());
+    pub fn build_stack_outputs(&self) -> StackOutputs {
+        let mut stack_outputs: Vec<Felt> = vec![ZERO; STACK_TOP_SIZE];
+        stack_outputs[STACK_TOP_SIZE - WORD_SIZE..]
+            .copy_from_slice(self.compute_created_notes_commitment().as_elements());
+        stack_outputs[STACK_TOP_SIZE - (2 * WORD_SIZE)..STACK_TOP_SIZE - WORD_SIZE]
+            .copy_from_slice(self.final_account_hash.as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())
             .expect("StackOutputs are valid")
-    }
-
-    /// Returns the script root of the transaction.
-    pub fn tx_script_root(&self) -> Option<Digest> {
-        self.tx_script_root
     }
 }

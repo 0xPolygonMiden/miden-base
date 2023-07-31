@@ -91,6 +91,12 @@ impl ToAdviceInputs for ConsumedNotes {
     }
 }
 
+impl From<ConsumedNotes> for Vec<ConsumedNoteInfo> {
+    fn from(consumed_notes: ConsumedNotes) -> Self {
+        consumed_notes.notes.into_iter().map(|note| note.into()).collect::<Vec<_>>()
+    }
+}
+
 // CONSUMED NOTE INFO
 // ================================================================================================
 
@@ -148,5 +154,11 @@ impl From<ConsumedNoteInfo> for [u8; 64] {
         elements[..32].copy_from_slice(&cni.nullifier.as_bytes());
         elements[32..].copy_from_slice(&cni.script_root.as_bytes());
         elements
+    }
+}
+
+impl From<Note> for ConsumedNoteInfo {
+    fn from(note: Note) -> Self {
+        Self::new(note.nullifier(), note.script().hash())
     }
 }
