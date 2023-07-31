@@ -200,21 +200,20 @@ export.account_vault_has_non_fungible_asset
     # => [has_asset, 0, 0, 0]
 end
 
-# TODO: Refactor `get_note_assets` pattern as described here: 
-#       https://github.com/0xPolygonMiden/miden-base/pull/174#discussion_r1277218200
-#! Writes the assets of the currently executing note into memory starting at the specified address.
+#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
+#! note is not being processed.
 #!
-#! Inputs: [dest_ptr, 0]
-#! Outputs: [num_assets, dest_ptr]
+#! Inputs: [0, 0, 0, 0, 0]
+#! Outputs: [VAULT_HASH, num_assets]
 #!
-#! - dest_ptr is the memory address to write the assets.
-#! - num_assets is the number of assets in the currently executing note.
-export.get_note_assets
-    exec.note::get_assets
-    # => [num_assets, dest_ptr, 0]
+#! - num_assets is the number of assets in the note currently being processed.
+#! - VAULT_HASH is the vault hash of the note currently being processed.
+export.get_note_vault_info
+    exec.note::get_vault_info
+    # => [VAULT_HASH, num_assets, 0, 0, 0, 0, 0]
 
-    movup.2 drop
-    # => [num_assets, dest_ptr]
+    movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
+    # => [VAULT_HASH, num_assets]
 end
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
