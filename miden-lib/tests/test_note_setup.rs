@@ -1,6 +1,8 @@
 pub mod common;
 use common::{
-    consumed_note_data_ptr, data::mock_inputs, memory::CURRENT_CONSUMED_NOTE_PTR,
+    consumed_note_data_ptr,
+    data::{mock_inputs, AccountStatus},
+    memory::CURRENT_CONSUMED_NOTE_PTR,
     prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
     TX_KERNEL_DIR,
 };
@@ -22,6 +24,7 @@ fn test_note_setup() {
 
     let inputs = prepare_transaction(
         account,
+        None,
         block_header,
         chain,
         notes,

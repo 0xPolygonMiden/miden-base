@@ -92,6 +92,7 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 
 pub fn prepare_transaction(
     account: Account,
+    account_seed: Option<Word>,
     block_header: BlockHeader,
     chain: ChainMmr,
     notes: Vec<Note>,
@@ -110,5 +111,6 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    PreparedTransaction::new(account, block_header, chain, notes, None, program)
+    PreparedTransaction::new(account, account_seed, block_header, chain, notes, None, program)
+        .unwrap()
 }

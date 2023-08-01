@@ -9,9 +9,10 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
+use crypto::merkle::SimpleSmt;
 use miden_core::utils::string::{String, ToString};
 use miden_core::{
-    crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt},
+    crypto::merkle::{MerkleStore, NodeIndex},
     FieldElement,
 };
 use miden_lib::{MidenLib, SatKernel};
@@ -32,7 +33,13 @@ pub fn assembler() -> Assembler {
 
 // MOCK DATA
 // ================================================================================================
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 0b0010011011u64 << 54;
+pub const ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: [u64; 4] = [
+    5950491586293629690,
+    3173174058297886549,
+    16553747801483039178,
+    11841717777847436894,
+];
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3972335011818762557;
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
@@ -59,16 +66,40 @@ pub fn mock_block_header(
     block_num: Felt,
     chain_root: Option<Digest>,
     note_root: Option<Digest>,
+    accts: &[Account],
 ) -> BlockHeader {
+    let acct_db = SimpleSmt::with_leaves(
+        64,
+        accts
+            .iter()
+            .flat_map(|acct| {
+                if acct.is_new() {
+                    None
+                } else {
+                    Some(((*acct.id()).as_int(), *acct.hash()))
+                }
+            })
+            .collect::<Vec<_>>(),
+    )
+    .expect("failed to create account db");
+
     let prev_hash: Digest = rand::rand_array().into();
     let chain_root: Digest = chain_root.unwrap_or(rand::rand_array().into());
-    let state_root: Digest = rand::rand_array().into();
+    let acct_root: Digest = acct_db.root();
+    let nullifier_root: Digest = rand::rand_array().into();
     let note_root: Digest = note_root.unwrap_or(rand::rand_array().into());
     let batch_root: Digest = rand::rand_array().into();
     let proof_hash: Digest = rand::rand_array().into();
 
     BlockHeader::new(
-        prev_hash, block_num, chain_root, state_root, note_root, batch_root, proof_hash,
+        prev_hash,
+        block_num,
+        chain_root,
+        acct_root,
+        nullifier_root,
+        note_root,
+        batch_root,
+        proof_hash,
     )
 }
 
@@ -90,19 +121,16 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     // create a dummy chain of block headers
     let mut note_iter = note_trees.iter();
     let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, note_iter.next().map(|x| x.root())),
-        mock_block_header(Felt::ONE, None, note_iter.next().map(|x| x.root())),
-        mock_block_header(Felt::new(2), None, note_iter.next().map(|x| x.root())),
-        mock_block_header(Felt::new(3), None, note_iter.next().map(|x| x.root())),
+        mock_block_header(Felt::ZERO, None, Some(note_trees[0].root())),
+        mock_block_header(Felt::ONE, None, Some(note_trees[1].root())),
+        mock_block_header(Felt::new(2), None, None),
+        mock_block_header(Felt::new(3), None, None),
     ];
-
-    // convert block hashes into words
-    let block_hashes: Vec<Digest> = block_chain.iter().map(|h| h.hash()).collect();
 
     // instantiate and populate MMR
     let mut chain_mmr = ChainMmr::default();
-    for hash in block_hashes.iter() {
-        chain_mmr.mmr_mut().add(*hash)
+    for block_header in block_chain.iter() {
+        chain_mmr.mmr_mut().add(block_header.hash())
     }
 
     // set origin for consumed notes using chain and block data
@@ -140,15 +168,7 @@ fn mock_account_vault() -> AccountVault {
     AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
 }
 
-pub fn mock_account(
-    nonce: Option<Felt>,
-    code: Option<AccountCode>,
-    assembler: &mut Assembler,
-) -> Account {
-    // Create account id
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-
+fn mock_account_storage() -> AccountStorage {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
     let child_smt =
@@ -157,7 +177,7 @@ pub fn mock_account(
     account_merkle_store.extend(child_smt.inner_nodes());
 
     // create account storage
-    let account_storage = AccountStorage::new(
+    AccountStorage::new(
         vec![
             STORAGE_ITEM_0,
             STORAGE_ITEM_1,
@@ -165,12 +185,11 @@ pub fn mock_account(
         ],
         account_merkle_store,
     )
-    .unwrap();
+    .unwrap()
+}
 
-    let account_code = match code {
-        Some(code) => code,
-        None => {
-            let account_code = "\
+fn mock_account_code(account_id: &AccountId, assembler: &mut Assembler) -> AccountCode {
+    let account_code = "\
             use.miden::sat::account
 
             export.incr_nonce
@@ -207,9 +226,38 @@ pub fn mock_account(
                 sub
             end
             ";
-            let account_module_ast = ModuleAst::parse(account_code).unwrap();
-            AccountCode::new(account_id, account_module_ast, assembler).unwrap()
-        }
+    let account_module_ast = ModuleAst::parse(account_code).unwrap();
+    AccountCode::new(*account_id, account_module_ast, assembler).unwrap()
+}
+
+fn mock_new_account(assembler: &mut Assembler) -> Account {
+    let account_storage = mock_account_storage();
+    let account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let account_code = mock_account_code(&account_id, assembler);
+    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let account_id =
+        AccountId::new(account_seed, account_code.root(), account_storage.root()).unwrap();
+    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
+}
+
+pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &mut Assembler) -> Account {
+    // Create account id
+    let account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+
+    // mock account storage
+    let account_storage = mock_account_storage();
+
+    // mock account code
+    let account_code = match code {
+        Some(code) => code,
+        None => mock_account_code(&account_id, assembler),
     };
 
     // Create account vault
@@ -218,24 +266,32 @@ pub fn mock_account(
     // Create an account with storage items
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    Account::new(
-        account_id,
-        account_vault,
-        account_storage,
-        account_code,
-        nonce.unwrap_or(Felt::ZERO),
-    )
+    Account::new(account_id, account_vault, account_storage, account_code, nonce)
+}
+
+#[derive(Debug, PartialEq)]
+pub enum AccountStatus {
+    New,
+    Existing,
 }
 
 pub fn mock_inputs(
     account: Option<Account>,
     consumed_notes: Option<Vec<Note>>,
 ) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
+pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
     let mut assembler = assembler();
 
     // Create an account with storage items
-    let account = account.unwrap_or(mock_account(None, None, &mut assembler));
+    let account = if account_status == AccountStatus::New {
+        mock_new_account(&mut assembler)
+    } else {
+        mock_account(Felt::ONE, None, &mut assembler)
+    };
+
+    // Created notes
+    let created_notes = mock_created_notes(&mut assembler);
 
     // Consumed notes
     let mut consumed_notes = consumed_notes.unwrap_or_else(|| {
@@ -247,10 +303,11 @@ pub fn mock_inputs(
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
 
     // Block header
-    let block_header: BlockHeader = mock_block_header(
+    let block_header = mock_block_header(
         Felt::new(4),
         Some(chain_mmr.mmr().accumulator().hash_peaks().into()),
         None,
+        &[account.clone()],
     );
 
     // Transaction inputs
@@ -262,11 +319,11 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     let mut assembler = assembler();
 
     // Initial Account
-    let initial_account = mock_account(Some(Felt::ZERO), None, &mut assembler);
+    let initial_account = mock_account(Felt::ONE, None, &mut assembler);
 
     // Finial Account (nonce incremented by 1)
     let final_account =
-        mock_account(Some(Felt::ONE), Some(initial_account.code().clone()), &mut assembler);
+        mock_account(Felt::new(2), Some(initial_account.code().clone()), &mut assembler);
 
     // Created notes
     let created_notes = mock_created_notes(&mut assembler);
@@ -278,16 +335,17 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
 
     // Block header
-    let block_header: BlockHeader = mock_block_header(
+    let block_header = mock_block_header(
         Felt::new(4),
         Some(chain_mmr.mmr().accumulator().hash_peaks().into()),
         None,
+        &[initial_account.clone()],
     );
 
     // Executed Transaction
-
     ExecutedTransaction::new(
         initial_account,
+        None,
         final_account,
         consumed_notes,
         created_notes,
@@ -295,6 +353,7 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
         block_header,
         chain_mmr,
     )
+    .unwrap()
 }
 
 pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) -> Vec<Note> {

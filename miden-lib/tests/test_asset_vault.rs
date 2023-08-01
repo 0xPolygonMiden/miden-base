@@ -1,7 +1,8 @@
 pub mod common;
 use common::{
     data::{
-        mock_inputs, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        mock_inputs, AccountStatus, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     prepare_transaction, run_tx, AccountId, MemAdviceProvider, ONE,
 };
@@ -28,7 +29,7 @@ fn test_get_balance() {
     );
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -61,7 +62,7 @@ fn test_get_balance_non_fungible_fails() {
     );
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -91,7 +92,8 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let inputs = prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+    let inputs =
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let process = run_tx(
         inputs.tx_program().clone(),

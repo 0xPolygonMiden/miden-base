@@ -61,6 +61,7 @@ impl TransactionResult {
             FinalAccountStub::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
         let created_notes = CreatedNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
 
+        // TODO: Fix delta extraction for new account creation
         // extract the account storage delta
         let storage_delta =
             extract_account_storage_delta(&store, &initial_account, &final_account_stub)?;

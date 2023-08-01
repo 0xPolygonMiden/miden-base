@@ -1,8 +1,8 @@
 pub mod common;
 use common::{
     data::{
-        mock_inputs, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
-        CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
+        mock_inputs, AccountStatus, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
+        CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
     },
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
     prepare_transaction,
@@ -38,7 +38,7 @@ pub fn test_set_code_is_not_immediate() {
         ";
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -82,7 +82,7 @@ pub fn test_set_code_succeeds() {
         ";
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -205,7 +205,7 @@ fn test_get_item() {
         );
 
         let transaction =
-            prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+            prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
         let _process = run_tx(
             transaction.tx_program().clone(),
@@ -248,8 +248,17 @@ fn test_get_child_tree_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let transaction =
-        prepare_transaction(account, block_header, chain, notes, code.as_str(), "", None, None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        code.as_str(),
+        "",
+        None,
+        None,
+    );
 
     let _process = run_tx(
         transaction.tx_program().clone(),
@@ -307,7 +316,7 @@ fn test_set_item() {
     );
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let _process = run_tx(
         transaction.tx_program().clone(),
@@ -394,7 +403,7 @@ fn test_authenticate_procedure() {
         );
 
         let transaction =
-            prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+            prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
         let process = run_tx(
             transaction.tx_program().clone(),

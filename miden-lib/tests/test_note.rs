@@ -1,7 +1,9 @@
 pub mod common;
 use common::{
-    data::mock_inputs, prepare_transaction, procedures::prepare_word, run_tx, Felt,
-    MemAdviceProvider, Note,
+    data::{mock_inputs, AccountStatus},
+    prepare_transaction,
+    procedures::prepare_word,
+    run_tx, Felt, MemAdviceProvider, Note,
 };
 
 #[test]
@@ -21,7 +23,7 @@ fn test_get_sender_no_sender() {
         ";
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -50,7 +52,7 @@ fn test_get_sender() {
         ";
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -112,7 +114,7 @@ fn test_get_vault_info() {
     );
 
     let transaction =
-        prepare_transaction(account, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
 
     // run to ensure success
     let _process = run_tx(
@@ -220,8 +222,17 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1]),
     );
 
-    let inputs =
-        prepare_transaction(account, block_header, chain, notes.clone(), &code, "", None, None);
+    let inputs = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes.clone(),
+        &code,
+        "",
+        None,
+        None,
+    );
 
     let _process = run_tx(
         inputs.tx_program().clone(),

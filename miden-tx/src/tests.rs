@@ -1,5 +1,5 @@
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
+    AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
@@ -235,7 +235,7 @@ fn test_transaction_result_account_delta() {
         .unwrap();
 
     // nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(ONE));
+    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // storage delta
     assert_eq!(transaction_result.account_delta().storage.slots_delta.updated_slots().len(), 1);
