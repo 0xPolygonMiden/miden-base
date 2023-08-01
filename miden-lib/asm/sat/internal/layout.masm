@@ -54,20 +54,23 @@ const.PREV_BLOCK_HASH_PTR=200
 # The memory address at which the chain root is stored
 const.CHAIN_ROOT_PTR=201
 
-# The memory address at which the state root is stored
-const.STATE_ROOT_PTR=202
+# The memory address at which the account root is stored
+const.ACCT_DB_ROOT_PTR=202
+
+# The memory address at which the nullifier root is stored
+const.NULLIFIER_ROOT_PTR=203
 
 # The memory address at which the batch root is stored
-const.BATCH_ROOT_PTR=203
+const.BATCH_ROOT_PTR=204
 
 # The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=204
+const.PROOF_HASH_PTR=205
 
 # The memory address at which the block number is stored
-const.BLOCK_NUM_PTR=205
+const.BLOCK_NUM_PTR=206
 
 # The memory address at which the note root is stored
-const.NOTE_ROOT_PTR=206
+const.NOTE_ROOT_PTR=207
 
 # CHAIN MMR
 # -------------------------------------------------------------------------------------------------
@@ -339,14 +342,24 @@ export.get_chain_root
     padw push.CHAIN_ROOT_PTR mem_loadw
 end
 
-#! Returns the state root of the last known block.
+#! Returns the account db root of the last known block.
 #!
 #! Stack: []
-#! Output: [STATE_ROOT]
+#! Output: [ACCT_ROOT]
 #!
-#! - STATE_ROOT is the state root of the last known block.
-export.get_state_root
-    padw push.STATE_ROOT_PTR mem_loadw
+#! - ACCT_ROOT is the account root of the last known block.
+export.get_account_db_root
+    padw push.ACCT_DB_ROOT_PTR mem_loadw
+end
+
+#! Returns the nullifier db root of the last known block.
+#!
+#! Stack: []
+#! Output: [NULLIFIER_ROOT]
+#!
+#! - NULLIFIER_ROOT is the nullifier root of the last known block.
+export.get_nullifier_db_root
+    padw push.NULLIFIER_ROOT_PTR mem_loadw
 end
 
 #! Returns the batch root of the last known block.

@@ -30,6 +30,10 @@ pub enum AccountError {
     DuplicateStorageItems(MerkleError),
     DuplicateAsset(MerkleError),
     NonceMustBeMonotonicallyIncreasing(u64, u64),
+    InconsistentAccountIdSeed {
+        expected: AccountId,
+        actual: AccountId,
+    },
 }
 
 impl AccountError {
@@ -212,6 +216,40 @@ impl fmt::Display for NoteError {
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
 
+// PREPARED TRANSACTION ERROR
+// ===============================================================================================
+#[derive(Debug)]
+pub enum PreparedTransactionError {
+    InvalidAccountIdSeedError(AccountError),
+    AccountIdSeedNoteProvided,
+}
+
+impl fmt::Display for PreparedTransactionError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for PreparedTransactionError {}
+
+// EXECUTED TRANSACTION ERROR
+// ===============================================================================================
+#[derive(Debug)]
+pub enum ExecutedTransactionError {
+    InvalidAccountIdSeedError(AccountError),
+    AccountIdSeedNoteProvided,
+}
+
+impl fmt::Display for ExecutedTransactionError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ExecutedTransactionError {}
+
 // TRANSACTION RESULT ERROR
 // ================================================================================================
 #[derive(Debug)]
@@ -227,6 +265,15 @@ pub enum TransactionResultError {
     UpdatedAccountCodeInvalid(AccountError),
 }
 
+impl fmt::Display for TransactionResultError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionResultError {}
+
 // TRANSACTION WITNESS ERROR
 // ================================================================================================
 #[derive(Debug)]
@@ -234,3 +281,12 @@ pub enum TransactionWitnessError {
     ConsumedNoteDataNotFound,
     InvalidConsumedNoteDataLength,
 }
+
+impl fmt::Display for TransactionWitnessError {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionWitnessError {}

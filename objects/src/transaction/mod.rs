@@ -2,8 +2,8 @@ use super::{
     notes::{Note, NoteEnvelope, NoteStub},
     Account, AccountDelta, AccountError, AccountId, AccountStorage, AccountStub, AdviceInputs,
     AdviceInputsBuilder, BTreeMap, BlockHeader, ChainMmr, Digest, Felt, Hasher, MerkleStore,
-    StarkField, ToAdviceInputs, TransactionResultError, TransactionWitnessError, TryFromVmResult,
-    Vec, Word, WORD_SIZE,
+    PreparedTransactionError, StarkField, ToAdviceInputs, TransactionResultError,
+    TransactionWitnessError, TryFromVmResult, Vec, Word, WORD_SIZE, ZERO,
 };
 use miden_core::{Program, StackInputs, StackOutputs};
 

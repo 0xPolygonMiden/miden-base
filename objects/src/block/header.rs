@@ -8,7 +8,8 @@ use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO
 /// - prev_hash is the hash of the previous blocks header.
 /// - block_num is a unique sequential number of the current block.
 /// - chain_root is a commitment to an MMR of the entire chain where each block is a leaf.
-/// - state_root is a combined commitment to account, and nullifier databases.
+/// - account_root is a commitment to account database.
+/// - nullifier_root is a commitment to the nullifier database.
 /// - note_root is a commitment to all notes created in the current block.
 /// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
 /// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
@@ -19,7 +20,8 @@ pub struct BlockHeader {
     prev_hash: Digest,
     block_num: Felt,
     chain_root: Digest,
-    state_root: Digest,
+    account_root: Digest,
+    nullifier_root: Digest,
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
@@ -29,18 +31,26 @@ pub struct BlockHeader {
 
 impl BlockHeader {
     /// Creates a new block header.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         prev_hash: Digest,
         block_num: Felt,
         chain_root: Digest,
-        state_root: Digest,
+        account_root: Digest,
+        nullifier_root: Digest,
         note_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
     ) -> Self {
         // compute block sub hash
         let sub_hash = Self::compute_sub_hash(
-            prev_hash, chain_root, state_root, batch_root, proof_hash, block_num,
+            prev_hash,
+            chain_root,
+            account_root,
+            nullifier_root,
+            batch_root,
+            proof_hash,
+            block_num,
         );
 
         // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the final
@@ -52,7 +62,8 @@ impl BlockHeader {
             prev_hash,
             block_num,
             chain_root,
-            state_root,
+            account_root,
+            nullifier_root,
             note_root,
             batch_root,
             proof_hash,
@@ -92,9 +103,14 @@ impl BlockHeader {
         self.chain_root
     }
 
-    /// Returns the state root.
-    pub fn state_root(&self) -> Digest {
-        self.state_root
+    /// Returns the account database root.
+    pub fn account_root(&self) -> Digest {
+        self.account_root
+    }
+
+    /// Returns the nullifier database root.
+    pub fn nullifier_root(&self) -> Digest {
+        self.nullifier_root
     }
 
     /// Returns the note root.
@@ -118,24 +134,26 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// prev_hash, chain_root, state_root, note_root, batch_root, proof_hash, block_num (all fields
-    /// except the note_root).
+    /// prev_hash, chain_root, account_root, nullifier_root, note_root, batch_root, proof_hash,
+    /// block_num (all fields except the note_root).
     fn compute_sub_hash(
         prev_hash: Digest,
         chain_root: Digest,
-        state_root: Digest,
+        account_root: Digest,
+        nullifier_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
         block_num: Felt,
     ) -> Digest {
-        let mut elements: Vec<Felt> = Vec::with_capacity(24);
+        let mut elements: Vec<Felt> = Vec::with_capacity(32);
         elements.extend_from_slice(prev_hash.as_elements());
         elements.extend_from_slice(chain_root.as_elements());
-        elements.extend_from_slice(state_root.as_elements());
+        elements.extend_from_slice(account_root.as_elements());
+        elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(batch_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.push(block_num);
-        elements.resize(24, ZERO);
+        elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
 }
@@ -145,10 +163,12 @@ impl ToAdviceInputs for &BlockHeader {
         // push header data onto the stack
         target.push_onto_stack(self.prev_hash.as_elements());
         target.push_onto_stack(self.chain_root.as_elements());
-        target.push_onto_stack(self.state_root.as_elements());
+        target.push_onto_stack(self.account_root.as_elements());
+        target.push_onto_stack(self.nullifier_root.as_elements());
         target.push_onto_stack(self.batch_root.as_elements());
         target.push_onto_stack(self.proof_hash.as_elements());
         target.push_onto_stack(&[self.block_num, ZERO, ZERO, ZERO]);
+        target.push_onto_stack(&[ZERO; 4]);
         target.push_onto_stack(self.note_root.as_elements());
     }
 }

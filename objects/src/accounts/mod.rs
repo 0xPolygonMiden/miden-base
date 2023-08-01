@@ -10,7 +10,7 @@ use crypto::{
 };
 
 mod account_id;
-pub use account_id::{AccountId, AccountType};
+pub use account_id::{validate_account_seed, AccountId, AccountType};
 
 mod code;
 pub use code::AccountCode;
@@ -138,6 +138,11 @@ impl Account {
     /// Returns true if this account is on-chain.
     pub fn is_on_chain(&self) -> bool {
         self.id.is_on_chain()
+    }
+
+    /// Returns true if the account is new (i.e. it has not been initialized yet).
+    pub fn is_new(&self) -> bool {
+        self.nonce == ZERO
     }
 }
 

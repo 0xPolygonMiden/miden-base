@@ -1,11 +1,12 @@
 use super::{
     Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
-    Note, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word,
+    Note, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word, ZERO,
 };
+use miden_core::utils::IntoBytes;
 
 /// Returns the advice inputs required when executing a transaction.
-/// This includes the initial account, the number of consumed notes, the core consumed note data,
-/// and the consumed note inputs.
+/// This includes the initial account, an optional account seed (required for new accounts), the
+/// number of consumed notes, the core consumed note data, and the consumed note inputs.
 ///
 /// Advice Tape: [acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
 ///               num_cn,
@@ -16,9 +17,10 @@ use super::{
 ///               cn2_na,
 ///               CN2_A1, CN2_A2, ...
 ///               ...]
-/// Advice Map: {CHAIN_ROOT:  [num_leaves, PEAK_0, ..., PEAK_N],
-///              CN1_IH:      [CN1_I3, CN1_I2, CN1_I1, CN1_I0],
-///              CN2_IH:      [CN2_I3, CN2_I2, CN2_I1, CN2_I0],
+/// Advice Map: {CHAIN_ROOT:             [num_leaves, PEAK_0, ..., PEAK_N],
+///              CN1_IH:                 [CN1_I3, CN1_I2, CN1_I1, CN1_I0],
+///              CN2_IH:                 [CN2_I3, CN2_I2, CN2_I1, CN2_I0],
+///              [acct_id, 0, 0, 0]?:    [ACT_ID_SEED3, ACT_ID_SEED2, ACT_ID_SEED1, ACT_ID_SEED0],
 ///              ...}
 /// - acct_id is the account id of the account that the transaction is being executed against.
 /// - nonce is the account nonce.
@@ -41,8 +43,10 @@ use super::{
 /// - num_leaves is the number of leaves in the block chain MMR from the last known block.
 /// - PEAK_0 is the first peak in the block chain MMR from the last known block.
 /// - PEAK_N is the n'th peak in the block chain MMR from the last known block.
+/// - ACT_ID_SEED3..0 is the account id seed.
 pub fn generate_advice_provider_inputs(
     account: &Account,
+    account_id_seed: Option<Word>,
     block_header: &BlockHeader,
     block_chain: &ChainMmr,
     notes: &ConsumedNotes,
@@ -60,6 +64,12 @@ pub fn generate_advice_provider_inputs(
 
     // insert consumed notes data to advice stack
     notes.to_advice_inputs(&mut advice_inputs);
+
+    // insert account id seed into advice map
+    if let Some(seed) = account_id_seed {
+        advice_inputs
+            .extend_map(vec![([*account.id(), ZERO, ZERO, ZERO].into_bytes(), seed.to_vec())]);
+    }
 
     advice_inputs
 }
@@ -89,7 +99,7 @@ pub fn generate_consumed_notes_commitment(notes: &[Note]) -> Digest {
 ///   (nullifier, script_root) pairs for the notes consumed in the transaction.
 pub fn generate_stack_inputs(
     account_id: &AccountId,
-    account_hash: &Digest,
+    account_hash: Digest,
     consumed_notes_commitment: Digest,
     block_header: &BlockHeader,
 ) -> StackInputs {

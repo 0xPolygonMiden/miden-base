@@ -1,4 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
+use crypto::hash::rpo::RpoDigest as Digest;
 use miden_objects::{AccountId, AccountType};
 
 fn grind_account_seed(c: &mut Criterion) {
@@ -9,12 +10,26 @@ fn grind_account_seed(c: &mut Criterion) {
 
     c.bench_function("Grind regular on-chain account seed", |bench| {
         bench.iter(|| {
-            AccountId::get_account_seed(init_seed, AccountType::RegularAccountImmutableCode, true)
+            AccountId::get_account_seed(
+                init_seed,
+                AccountType::RegularAccountImmutableCode,
+                true,
+                Digest::default(),
+                Digest::default(),
+            )
         })
     });
 
     c.bench_function("Grind fungible faucet on-chain account seed", |bench| {
-        bench.iter(|| AccountId::get_account_seed(init_seed, AccountType::FungibleFaucet, true))
+        bench.iter(|| {
+            AccountId::get_account_seed(
+                init_seed,
+                AccountType::FungibleFaucet,
+                true,
+                Digest::default(),
+                Digest::default(),
+            )
+        })
     });
 }
 
