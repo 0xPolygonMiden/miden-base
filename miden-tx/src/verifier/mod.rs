@@ -29,6 +29,10 @@ impl TransactionVerifier {
     }
 
     /// Verifies the provided [ProvenTransaction] against the kernel.
+    ///
+    /// # Errors
+    /// - if transaction verification fails.
+    /// - if the proof security level is insufficient.
     pub fn verify(&self, transaction: ProvenTransaction) -> Result<(), TransactionVerifierError> {
         let consumed_notes_hashes =
             transaction.consumed_notes().iter().map(|x| x.script_root()).collect();
