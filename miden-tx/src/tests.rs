@@ -1,13 +1,12 @@
 use super::{
     Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
-    TransactionExecutor, TransactionProver,
+    TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
 use crypto::{StarkField, ONE};
-use miden_core::ProgramInfo;
 use miden_objects::{
     mock::{
         mock_inputs, prepare_word, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
@@ -249,7 +248,7 @@ fn test_transaction_result_account_delta() {
 }
 
 #[test]
-fn test_prove_witness() {
+fn test_prove_witness_and_verify() {
     let data_store = MockDataStore::new();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
@@ -272,9 +271,10 @@ fn test_prove_witness() {
     // prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction_witness(witness);
+    let proven_transaction = prover.prove_transaction_witness(witness).unwrap();
 
-    assert!(proven_transaction.is_ok());
+    let verifier = TransactionVerifier::new(96);
+    assert!(verifier.verify(proven_transaction).is_ok());
 }
 
 #[test]
@@ -297,23 +297,11 @@ fn test_prove_and_verify_with_tx_executor() {
         .prepare_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
 
-    // extract transaction data for later consumption
-    let program_hash = prepared_transaction.tx_program().hash();
-    let kernel = prepared_transaction.tx_program().kernel().clone();
-
     // prove transaction
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_prepared_transaction(prepared_transaction).unwrap();
 
-    let stack_inputs = proven_transaction.build_stack_inputs();
-    let stack_outputs = proven_transaction.build_stack_outputs();
-    let program_info = ProgramInfo::new(program_hash, kernel);
-    let result = miden_verifier::verify(
-        program_info,
-        stack_inputs,
-        stack_outputs,
-        proven_transaction.proof().clone(),
-    );
-    assert!(result.is_ok());
+    let verifier = TransactionVerifier::new(96);
+    assert!(verifier.verify(proven_transaction).is_ok());
 }
