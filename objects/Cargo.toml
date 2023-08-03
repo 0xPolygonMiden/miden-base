@@ -24,15 +24,15 @@ std = ["assembly/std", "crypto/std", "miden-core/std", "miden-lib/std", "miden-p
 testing = ["miden-test-utils"]
 
 [dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", default-features = false }
 crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
-miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", default-features = false }
 miden-lib = { path = "../miden-lib" }
-miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", optional = true, default-features = false }
+miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", default-features = false }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", default-features = false }
+miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", default-features = false }
+miden-test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", optional = true, default-features = false }
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"], default-features = false }
-miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", features = ["internals"], default-features = false }
+miden-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "bobbin-tsmt-get", features = ["internals"], default-features = false }

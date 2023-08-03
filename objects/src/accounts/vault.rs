@@ -1,7 +1,6 @@
 use super::{
     AccountError, AccountId, AccountType, AdviceInputsBuilder, ApplyDiff, Asset, Digest,
-    FungibleAsset, NonFungibleAsset, StarkField, StoreNode, TieredSmt, ToAdviceInputs, Vec, Word,
-    EMPTY_WORD, ZERO,
+    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, Vec, EMPTY_WORD, ZERO,
 };
 use crypto::merkle::MerkleTreeDelta;
 
@@ -233,10 +232,7 @@ impl ToAdviceInputs for AccountVault {
 
         // populate advice map with tiered merkle tree leaf nodes
         self.asset_tree.upper_leaves().for_each(|(node, key, value)| {
-            // TODO: temporary hack - assume the node is interted at depth 16 and compute remaining key accordingly
-            let mut key = Word::from(key);
-            key[3] = ((key[3].as_int() << 16) >> 16).into();
-            target.insert_into_map(*node, key.into_iter().chain(value).collect());
+            target.insert_into_map(*node, (*key).into_iter().chain(value).collect());
         })
     }
 }
