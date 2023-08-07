@@ -16,7 +16,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     let code = "
         begin

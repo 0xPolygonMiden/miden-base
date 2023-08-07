@@ -6,14 +6,17 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use crypto::{StarkField, ONE};
+use crypto::{Felt, StarkField, Word, ONE};
 use miden_objects::{
+    assets::{Asset, FungibleAsset},
     mock::{
-        mock_inputs, prepare_word, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0,
+        assembler, mock_inputs, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
     },
+    notes::NoteScript,
     transaction::{CreatedNotes, FinalAccountStub},
-    AccountCode, TryFromVmResult,
+    AccountCode, AccountStorage, AccountVault, TryFromVmResult,
 };
 use miden_prover::ProvingOptions;
 use processor::MemAdviceProvider;
@@ -27,8 +30,8 @@ pub struct MockDataStore {
 }
 
 impl MockDataStore {
-    pub fn new() -> Self {
-        let (account, block_header, block_chain, notes) = mock_inputs();
+    pub fn new(account: Option<Account>, consumed_notes: Option<Vec<Note>>) -> Self {
+        let (account, block_header, block_chain, notes) = mock_inputs(account, consumed_notes);
         Self {
             account,
             block_header,
@@ -40,7 +43,7 @@ impl MockDataStore {
 
 impl Default for MockDataStore {
     fn default() -> Self {
-        Self::new()
+        Self::new(None, None)
     }
 }
 
@@ -79,7 +82,7 @@ impl DataStore for MockDataStore {
 
 #[test]
 fn test_transaction_executor_witness() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -120,7 +123,7 @@ fn test_transaction_executor_witness() {
 
 #[test]
 fn test_transaction_result_account_delta() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let account_id = data_store.account.id();
 
     let new_acct_code_src = "\
@@ -249,7 +252,7 @@ fn test_transaction_result_account_delta() {
 
 #[test]
 fn test_prove_witness_and_verify() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -279,7 +282,7 @@ fn test_prove_witness_and_verify() {
 
 #[test]
 fn test_prove_and_verify_with_tx_executor() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -304,4 +307,84 @@ fn test_prove_and_verify_with_tx_executor() {
 
     let verifier = TransactionVerifier::new(96);
     assert!(verifier.verify(proven_transaction).is_ok());
+}
+
+#[test]
+fn test_p2id_script() {
+    // MOCK DATA
+    // --------------------------------------------------------------------------------------------
+    let mut assembler = assembler();
+
+    // Create account id
+    let account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    const ACCOUNT_CODE_MASM: &'static str = "\
+        export.add_asset
+            push.99
+            drop
+        end
+        ";
+    let target_account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
+    let account_code =
+        AccountCode::new(account_id, target_account_code_ast, &mut assembler).unwrap();
+    let account = Account::new(
+        account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        account_code,
+        ONE,
+    );
+
+    // create note script
+    let note_program_ast =
+        ProgramAst::parse(
+            format!(
+                "use.context::account_{account_id} begin call.account_{account_id}::add_asset end",
+            )
+            .as_str(),
+        )
+        .unwrap();
+    let (note_script, _) = NoteScript::new(note_program_ast, &mut assembler).unwrap();
+
+    // Create Note and all assets
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // create a note
+    let note = Note::new(
+        note_script.clone(),
+        &[Felt::new(1)],
+        &vec![fungible_asset_1],
+        SERIAL_NUM_1,
+        sender,
+        ONE,
+        None,
+    )
+    .unwrap();
+
+    // CONSTRUCT AND EXECUTE TX
+    // --------------------------------------------------------------------------------------------
+    let data_store = MockDataStore::new(Some(account), Some(vec![note]));
+    let mut executor = TransactionExecutor::new(data_store.clone());
+
+    let account_id = data_store.account.id();
+    executor.load_account(account_id).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result = executor
+        .execute_transaction(account_id, block_ref, &note_origins, None)
+        .unwrap();
+
+    // Now I want that target_account consumes the note
+
+    // Then I want to play around with the note script and finally create my Pay 2 ID script
 }

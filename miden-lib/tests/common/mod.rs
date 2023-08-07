@@ -13,7 +13,6 @@ pub use miden_objects::{
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
     ChainMmr, StorageItem,
 };
-pub use miden_tx::{NoteTarget, TransactionComplier};
 pub use processor::{
     math::Felt, AdviceProvider, ExecutionError, ExecutionOptions, MemAdviceProvider, Process,
     Program, StackInputs, Word,

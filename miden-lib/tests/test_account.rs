@@ -25,7 +25,7 @@ const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     let code = "
         use.miden::sat::internal::prologue
@@ -62,7 +62,7 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     let code = "
         use.miden::sat::account
@@ -178,7 +178,7 @@ fn test_validate_id_fails_on_insuficcient_ones() {
 #[test]
 fn test_get_item() {
     for storage_item in [STORAGE_ITEM_0, STORAGE_ITEM_1] {
-        let (account, block_header, chain, notes) = mock_inputs();
+        let (account, block_header, chain, notes) = mock_inputs(None, None);
 
         let code = format!(
             "
@@ -218,7 +218,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_child_tree_item() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     let code = format!(
         "
@@ -261,7 +261,7 @@ fn test_get_child_tree_item() {
 
 #[test]
 fn test_set_item() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     // copy the initial account slots (SMT)
     let mut account_smt = account.storage().slots().clone();
@@ -363,7 +363,7 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let (account, _, _, _) = mock_inputs();
+    let (account, _, _, _) = mock_inputs(None, None);
 
     let test_cases = vec![
         (account.code().procedure_tree().get_leaf(0).unwrap(), true),
@@ -372,7 +372,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let (account, block_header, chain, notes) = mock_inputs();
+        let (account, block_header, chain, notes) = mock_inputs(None, None);
 
         let code = format!(
             "\

@@ -118,3 +118,12 @@ impl TryApplyDiff<Digest, StoreNode> for AccountStorage {
         Ok(())
     }
 }
+
+impl Default for AccountStorage {
+    fn default() -> Self {
+        Self {
+            slots: SimpleSmt::new(Self::STORAGE_TREE_DEPTH).expect("depth is valid"),
+            store: MerkleStore::default(),
+        }
+    }
+}

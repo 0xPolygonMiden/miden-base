@@ -10,7 +10,7 @@ const NOTE_SETUP_FILE: &str = "note_setup.masm";
 
 #[test]
 fn test_note_setup() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(None, None);
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = "
