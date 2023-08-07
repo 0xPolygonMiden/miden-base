@@ -1,6 +1,6 @@
 use super::{
     Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
-    TransactionExecutor, TransactionProver, TransactionVerifier,
+    TransactionExecutor, TransactionExecutorError, TransactionProver, TransactionVerifier,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
@@ -315,62 +315,62 @@ fn test_p2id_script() {
     // --------------------------------------------------------------------------------------------
     let mut assembler = assembler();
 
-    // Create account id
-    let account_id =
+    // Create assets and sender account ID
+    // Create Note and all assets
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // Create the target account that receives the note
+    let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    const ACCOUNT_CODE_MASM: &'static str = "\
+    const TARGET_ACCOUNT_CODE_MASM: &'static str = "\
         export.add_asset
             push.99
             drop
         end
         ";
-    let target_account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
-    let account_code =
-        AccountCode::new(account_id, target_account_code_ast, &mut assembler).unwrap();
+    let target_account_code_ast = ModuleAst::parse(TARGET_ACCOUNT_CODE_MASM).unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_id, target_account_code_ast, &mut assembler).unwrap();
     let account = Account::new(
-        account_id,
+        target_account_id,
         AccountVault::default(),
         AccountStorage::default(),
-        account_code,
+        target_account_code.clone(),
         ONE,
     );
 
-    // create note script
+    // Create the note that the target account receives
     let note_program_ast =
         ProgramAst::parse(
             format!(
-                "use.context::account_{account_id} begin call.account_{account_id}::add_asset end",
+                "use.context::account_{target_account_id} begin call.account_{target_account_id}::add_asset end",
             )
             .as_str(),
         )
         .unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &mut assembler).unwrap();
 
-    // Create Note and all assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    // create a note
     let note = Note::new(
         note_script.clone(),
         &[Felt::new(1)],
         &vec![fungible_asset_1],
         SERIAL_NUM_1,
-        sender,
+        sender_account_id,
         ONE,
         None,
     )
     .unwrap();
 
-    // CONSTRUCT AND EXECUTE TX
+    // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::new(Some(account), Some(vec![note]));
+    let data_store = MockDataStore::new(Some(account), Some(vec![note.clone()]));
     let mut executor = TransactionExecutor::new(data_store.clone());
 
-    let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
     let note_origins = data_store
@@ -380,11 +380,51 @@ fn test_p2id_script() {
         .collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_result = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
-        .unwrap();
+    let transaction_result =
+        executor.execute_transaction(target_account_id, block_ref, &note_origins, None);
 
-    // Now I want that target_account consumes the note
+    // check that we got the expected result - TransactionResult and not TransactionExecutorError
+    match transaction_result {
+        Ok(_) => {} // expected result, we do nothing
+        Err(_) => {
+            panic!("transaction_result should not be of type TransactionExecutorError");
+        }
+    }
 
-    // Then I want to play around with the note script and finally create my Pay 2 ID script
+    // CONSTRUCT AND EXECUTE TX (Failure)
+    // --------------------------------------------------------------------------------------------
+    // Create a different account (different account id) and try to execute the transaction, we expect an error
+    // The account can have the same code, but it must have a different account id
+    let wrong_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+    let wrong_account = Account::new(
+        wrong_account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        target_account_code,
+        ONE,
+    );
+    let data_store_wrong_account = MockDataStore::new(Some(wrong_account), Some(vec![note]));
+    let mut executor_2 = TransactionExecutor::new(data_store_wrong_account.clone());
+
+    executor_2.load_account(wrong_account_id).unwrap();
+
+    let block_ref = data_store_wrong_account.block_header.block_num().as_int() as u32;
+    let note_origins = data_store_wrong_account
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_2 =
+        executor_2.execute_transaction(wrong_account_id, block_ref, &note_origins, None);
+
+    // check that we got the expected result - TransactionResult and not TransactionExecutorError
+    match transaction_result_2 {
+        Ok(_) => {
+            panic!("transaction_result should not be of type TransactionResult");
+        } // expected result, we do nothing
+        Err(_) => {} // expected result, we do nothing
+    }
 }
