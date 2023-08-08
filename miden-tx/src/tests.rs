@@ -1,6 +1,6 @@
 use super::{
     Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
-    TransactionExecutor, TransactionExecutorError, TransactionProver, TransactionVerifier,
+    TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
@@ -324,6 +324,9 @@ fn test_p2id_script() {
     // Create the target account that receives the note
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+
+    // Note: we don't have add_asset instruction yet, so we need to create the account with it.
+    // That will change in the future.
     const TARGET_ACCOUNT_CODE_MASM: &'static str = "\
         export.add_asset
             push.99
@@ -341,11 +344,33 @@ fn test_p2id_script() {
         ONE,
     );
 
-    // Create the note that the target account receives
+    // Create the note with the P2ID script w/ one asset
     let note_program_ast =
         ProgramAst::parse(
             format!(
-                "use.context::account_{target_account_id} begin call.account_{target_account_id}::add_asset end",
+                "
+                use.context::account_{target_account_id}
+                use.miden::sat::account
+                use.miden::sat::note
+                
+                begin                                                   # [note_inputs = target_account_id, ...]                                            
+                    exec.account::get_id                                # [account_id, target_account_id, ...]
+                    eq                                                  # [account_id == target_account_id, ...]
+                    assert                                              # [] if account_id == target_account_id, fails if not
+
+                    push.1000000000                                     # [1000000000, ...] memory pointer to store assets
+                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]    
+                    
+                    dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
+                    while.true                                          # [num_of_assets, 1000000000, ...]
+                        call.account_{target_account_id}::add_asset     # Calls artificial add_asset instruction
+                        sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
+                        push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
+                    end
+
+                    drop drop                                           # []        
+                end
+                ",
             )
             .as_str(),
         )
@@ -356,7 +381,7 @@ fn test_p2id_script() {
 
     let note = Note::new(
         note_script.clone(),
-        &[Felt::new(1)],
+        &[*target_account_id],
         &vec![fungible_asset_1],
         SERIAL_NUM_1,
         sender_account_id,
@@ -386,8 +411,8 @@ fn test_p2id_script() {
     // check that we got the expected result - TransactionResult and not TransactionExecutorError
     match transaction_result {
         Ok(_) => {} // expected result, we do nothing
-        Err(_) => {
-            panic!("transaction_result should not be of type TransactionExecutorError");
+        Err(err) => {
+            panic!("The transaction should work, something is wrong: {:?}", err);
         }
     }
 
@@ -423,7 +448,7 @@ fn test_p2id_script() {
     // check that we got the expected result - TransactionResult and not TransactionExecutorError
     match transaction_result_2 {
         Ok(_) => {
-            panic!("transaction_result should not be of type TransactionResult");
+            panic!("Second transaction should not work, we expect an error");
         } // expected result, we do nothing
         Err(_) => {} // expected result, we do nothing
     }
