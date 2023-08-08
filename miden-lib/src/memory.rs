@@ -67,7 +67,16 @@ pub const BATCH_ROOT_PTR: MemoryAddress = 204;
 pub const PROOF_HASH_PTR: MemoryAddress = 205;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_NUM_PTR: MemoryAddress = 206;
+pub const BLOCK_METADATA_PTR: MemoryAddress = 206;
+
+/// The index of the block number within the block metadata
+pub const BLOCK_NUMBER_IDX: DataIndex = 0;
+
+/// The index of the protocol version within the block metadata
+pub const PROTOCOL_VERSION_IDX: DataIndex = 1;
+
+/// The index of the timestamp within the block metadata
+pub const TIMESTAMP_IDX: DataIndex = 2;
 
 /// The memory address at which the note root is stored
 pub const NOTE_ROOT_PTR: MemoryAddress = 207;

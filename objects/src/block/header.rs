@@ -13,6 +13,8 @@ use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO
 /// - note_root is a commitment to all notes created in the current block.
 /// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
 /// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
+/// - version specifies the version of the protocol.
+/// - timestamp is the time when the block was created.
 /// - sub_hash is a sequential hash of all fields except the note_root.
 /// - hash is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -25,6 +27,8 @@ pub struct BlockHeader {
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
+    version: Felt,
+    timestamp: Felt,
     sub_hash: Digest,
     hash: Digest,
 }
@@ -41,6 +45,8 @@ impl BlockHeader {
         note_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
+        version: Felt,
+        timestamp: Felt,
     ) -> Self {
         // compute block sub hash
         let sub_hash = Self::compute_sub_hash(
@@ -50,6 +56,8 @@ impl BlockHeader {
             nullifier_root,
             batch_root,
             proof_hash,
+            version,
+            timestamp,
             block_num,
         );
 
@@ -67,6 +75,8 @@ impl BlockHeader {
             note_root,
             batch_root,
             proof_hash,
+            version,
+            timestamp,
             sub_hash,
             hash,
         }
@@ -128,6 +138,16 @@ impl BlockHeader {
         self.proof_hash
     }
 
+    /// Returns the protocol version.
+    pub fn version(&self) -> Felt {
+        self.version
+    }
+
+    /// Returns the timestamp at which the block was created.
+    pub fn timestamp(&self) -> Felt {
+        self.timestamp
+    }
+
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
@@ -135,7 +155,8 @@ impl BlockHeader {
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
     /// prev_hash, chain_root, account_root, nullifier_root, note_root, batch_root, proof_hash,
-    /// block_num (all fields except the note_root).
+    /// version, timestamp, block_num (all fields except the note_root).
+    #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         prev_hash: Digest,
         chain_root: Digest,
@@ -143,6 +164,8 @@ impl BlockHeader {
         nullifier_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
+        version: Felt,
+        timestamp: Felt,
         block_num: Felt,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
@@ -152,7 +175,7 @@ impl BlockHeader {
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(batch_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
-        elements.push(block_num);
+        elements.extend([block_num, version, timestamp, ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
@@ -167,7 +190,7 @@ impl ToAdviceInputs for &BlockHeader {
         target.push_onto_stack(self.nullifier_root.as_elements());
         target.push_onto_stack(self.batch_root.as_elements());
         target.push_onto_stack(self.proof_hash.as_elements());
-        target.push_onto_stack(&[self.block_num, ZERO, ZERO, ZERO]);
+        target.push_onto_stack(&[self.block_num, self.version, self.timestamp, ZERO]);
         target.push_onto_stack(&[ZERO; 4]);
         target.push_onto_stack(self.note_root.as_elements());
     }
