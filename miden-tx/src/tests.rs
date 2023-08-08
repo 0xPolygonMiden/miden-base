@@ -1,19 +1,20 @@
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
+    AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use crypto::{StarkField, ONE};
+use crypto::StarkField;
+use miden_core::Felt;
 use miden_objects::{
     mock::{
-        mock_inputs, prepare_word, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
+        mock_inputs, prepare_word, AccountStatus, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
         CHILD_STORAGE_INDEX_0,
     },
     transaction::{CreatedNotes, FinalAccountStub},
-    AccountCode, TryFromVmResult,
+    Account, AccountCode, TryFromVmResult,
 };
 use miden_prover::ProvingOptions;
 use processor::MemAdviceProvider;
@@ -28,7 +29,7 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, notes) = mock_inputs();
+        let (account, block_header, block_chain, notes) = mock_inputs(AccountStatus::Existing);
         Self {
             account,
             block_header,
@@ -232,7 +233,7 @@ fn test_transaction_result_account_delta() {
         .unwrap();
 
     // nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(ONE));
+    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // storage delta
     assert_eq!(transaction_result.account_delta().storage.slots_delta.updated_slots().len(), 1);

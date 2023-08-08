@@ -1,22 +1,24 @@
 pub mod common;
 use common::{
     consumed_note_data_ptr,
-    data::{mock_inputs, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, NONCE},
+    data::{mock_inputs, AccountStatus, ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN},
     memory::{
-        ACCT_CODE_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR, ACCT_STORAGE_ROOT_PTR,
-        ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR, CHAIN_MMR_NUM_LEAVES_PTR,
-        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR,
-        NOTE_ROOT_PTR, NULLIFIER_COM_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, STATE_ROOT_PTR,
+        ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
+        ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR,
+        CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+        CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR,
+        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
     },
     prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider,
-    PreparedTransaction, Process, Word, TX_KERNEL_DIR,
+    PreparedTransaction, Process, Word, TX_KERNEL_DIR, ZERO,
 };
+use miden_lib::memory::NULLIFIER_DB_ROOT_PTR;
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (account, block_header, chain, notes) = mock_inputs();
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
 
     let code = "
         begin
@@ -26,6 +28,7 @@ fn test_transaction_prologue() {
 
     let transaction = prepare_transaction(
         account,
+        None,
         block_header,
         chain,
         notes,
@@ -60,8 +63,8 @@ fn public_input_memory_assertions<A: AdviceProvider>(
 
     // The account ID should be stored at the ACCT_ID_PTR
     assert_eq!(
-        process.get_memory_value(0, ACCT_ID_PTR).unwrap(),
-        [inputs.account().id().into(), Felt::ZERO, Felt::ZERO, inputs.account().nonce()]
+        process.get_memory_value(0, ACCT_ID_PTR).unwrap()[0],
+        inputs.account().id().into()
     );
 
     // The account commitment should be stored at the ACCT_HASH_PTR
@@ -99,10 +102,16 @@ fn block_data_memory_assertions<A: AdviceProvider>(
         inputs.block_header().chain_root().as_elements()
     );
 
-    // The state root should be stored at the STATE_ROOT_PTR
+    // The account db root should be stored at the ACCT_DB_ROOT_PRT
     assert_eq!(
-        process.get_memory_value(0, STATE_ROOT_PTR).unwrap(),
-        inputs.block_header().state_root().as_elements()
+        process.get_memory_value(0, ACCT_DB_ROOT_PTR).unwrap(),
+        inputs.block_header().account_root().as_elements()
+    );
+
+    // The nullifier db root should be stored at the NULLIFIER_DB_ROOT_PTR
+    assert_eq!(
+        process.get_memory_value(0, NULLIFIER_DB_ROOT_PTR).unwrap(),
+        inputs.block_header().nullifier_root().as_elements()
     );
 
     // The batch root should be stored at the BATCH_ROOT_PTR
@@ -155,12 +164,9 @@ fn account_data_memory_assertions<A: AdviceProvider>(
 ) {
     // The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]
     assert_eq!(
-        process.get_memory_value(0, ACCT_ID_AND_NONCE_PTR).unwrap()[0],
-        Felt::new(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN)
+        process.get_memory_value(0, ACCT_ID_AND_NONCE_PTR).unwrap(),
+        [inputs.account().id().into(), Felt::ZERO, Felt::ZERO, inputs.account().nonce()]
     );
-
-    // The account nonce should be stored at ACCT_ID_AND_NONCE_PTR[3]
-    assert_eq!(process.get_memory_value(0, ACCT_ID_AND_NONCE_PTR).unwrap()[3], NONCE);
 
     // The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR
     assert_eq!(
@@ -247,4 +253,84 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             );
         }
     }
+}
+
+#[test]
+pub fn test_prologue_create_account() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+        None,
+    );
+
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    )
+    .unwrap();
+}
+
+#[test]
+pub fn test_prologue_create_account_invalid_seed() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let account_seed_key = [*account.id(), ZERO, ZERO, ZERO];
+
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    // we must provide a valid seed to `prepare_transaction` otherwise it will error
+    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+        None,
+    );
+
+    // lets override the seed with an invalid seed to ensure the kernel fails
+    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
+    advice_provider
+        .insert_into_map(account_seed_key, vec![ZERO, ZERO, ZERO, ZERO])
+        .unwrap();
+
+    let process =
+        run_tx(transaction.tx_program().clone(), transaction.stack_inputs(), advice_provider);
+    assert!(process.is_err());
 }

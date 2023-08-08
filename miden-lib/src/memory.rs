@@ -55,19 +55,22 @@ pub const PREV_BLOCK_HASH_PTR: MemoryAddress = 200;
 pub const CHAIN_ROOT_PTR: MemoryAddress = 201;
 
 /// The memory address at which the state root is stored
-pub const STATE_ROOT_PTR: MemoryAddress = 202;
+pub const ACCT_DB_ROOT_PTR: MemoryAddress = 202;
+
+/// The memory address at which the nullifier db root is store
+pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 
 /// The memory address at which the batch root is stored
-pub const BATCH_ROOT_PTR: MemoryAddress = 203;
+pub const BATCH_ROOT_PTR: MemoryAddress = 204;
 
 /// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 204;
+pub const PROOF_HASH_PTR: MemoryAddress = 205;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_NUM_PTR: MemoryAddress = 205;
+pub const BLOCK_NUM_PTR: MemoryAddress = 206;
 
 /// The memory address at which the note root is stored
-pub const NOTE_ROOT_PTR: MemoryAddress = 206;
+pub const NOTE_ROOT_PTR: MemoryAddress = 207;
 
 // CHAIN DATA
 // ------------------------------------------------------------------------------------------------

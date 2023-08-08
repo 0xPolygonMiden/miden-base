@@ -22,8 +22,8 @@ use miden_processor::{AdviceInputs, StackOutputs};
 
 mod accounts;
 pub use accounts::{
-    Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStub, AccountType,
-    AccountVault, StorageItem,
+    validate_account_seed, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
+    AccountStub, AccountType, AccountVault, StorageItem,
 };
 
 mod advice;
@@ -40,7 +40,8 @@ pub use chain::ChainMmr;
 
 mod errors;
 pub use errors::{
-    AccountError, AssetError, NoteError, TransactionResultError, TransactionWitnessError,
+    AccountError, AssetError, ExecutedTransactionError, NoteError, PreparedTransactionError,
+    TransactionResultError, TransactionWitnessError,
 };
 
 mod result;

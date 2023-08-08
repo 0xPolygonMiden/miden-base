@@ -153,13 +153,15 @@ impl<D: DataStore> TransactionExecutor<D> {
             .compile_transaction(account_id, &notes, tx_script)
             .map_err(TransactionExecutorError::CompileTransactionError)?;
 
-        Ok(PreparedTransaction::new(
+        PreparedTransaction::new(
             account,
+            None,
             block_header,
             block_chain,
             notes,
             tx_script_root,
             tx_program,
-        ))
+        )
+        .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
     }
 }

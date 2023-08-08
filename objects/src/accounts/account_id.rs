@@ -1,5 +1,6 @@
-use super::{AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
+use super::{Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
 use core::{fmt, ops::Deref};
+use crypto::FieldElement;
 
 // ACCOUNT ID
 // ================================================================================================
@@ -39,28 +40,31 @@ impl AccountId {
     pub const ON_CHAIN_ACCOUNT_SELECTOR: u64 = 0b001;
 
     /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
-    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 24;
-    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 32;
+    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
+    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
 
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new account ID derived from the specified seed.
+    /// Returns a new account ID derived from the specified seed, code root and storage root.
     ///
-    /// The account ID is computed by hashing the seed and using 1 element of the result to form
-    /// the ID. Specifically we take element 0. We also require that the last element of the seed
-    /// digest has at least `24` trailing zeros if it is a regular account, or `32` trailing zeros
-    /// if it is a faucet account.
+    /// The account ID is computed by hashing the seed, code root and storage root and using 1
+    /// element of the resulting digest to form the ID. Specifically we take element 0. We also
+    /// require that the last element of the seed digest has at least `23` trailing zeros if it
+    /// is a regular account, or `31` trailing zeros if it is a faucet account.
+    ///
+    /// The seed digest is computed using a sequential hash over
+    /// hash(SEED, CODE_ROOT, STORAGE_ROOT, ZERO).  This takes two permutations.
     ///
     /// # Errors
     /// Returns an error if the resulting account ID does not comply with account ID rules:
     /// - the ID has at least `5` ones.
-    /// - the ID has at least `24` trailing zeros if it is a regular account.
-    /// - the ID has at least `32` trailing zeros if it is a faucet account.
-    pub fn new(seed: Word) -> Result<Self, AccountError> {
-        let seed_digest = Hasher::hash_elements(&seed);
+    /// - the ID has at least `23` trailing zeros if it is a regular account.
+    /// - the ID has at least `31` trailing zeros if it is a faucet account.
+    pub fn new(seed: Word, code_root: Digest, storage_root: Digest) -> Result<Self, AccountError> {
+        let seed_digest = Self::compute_digest(seed, code_root, storage_root);
 
         // verify the seed digest satisfies all rules
         Self::validate_seed_digest(&seed_digest)?;
@@ -110,11 +114,13 @@ impl AccountId {
     // --------------------------------------------------------------------------------------------
 
     /// Finds and returns a seed suitable for creating an account ID for the specified account type
-    /// using the provided seed as a starting point.
+    /// using the provided initial seed as a starting point.
     pub fn get_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
         on_chain: bool,
+        code_root: Digest,
+        storage_root: Digest,
     ) -> Result<Word, AccountError> {
         let init_seed: Vec<[u8; 8]> =
             init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
@@ -124,7 +130,7 @@ impl AccountId {
             Felt::from(init_seed[2]),
             Felt::from(init_seed[3]),
         ];
-        let mut current_digest = Hasher::hash_elements(&current_seed);
+        let mut current_digest = Self::compute_digest(current_seed, code_root, storage_root);
 
         // loop until we have a seed that satisfies the specified account type.
         loop {
@@ -139,12 +145,23 @@ impl AccountId {
                 }
             }
             current_seed = current_digest.into();
-            current_digest = Hasher::hash_elements(&current_seed);
+            current_digest = Self::compute_digest(current_seed, code_root, storage_root);
         }
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the digest of two hashing permutations over the seed, code root, storage root and
+    /// padding.
+    fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Digest {
+        let mut elements = Vec::with_capacity(16);
+        elements.extend(seed);
+        elements.extend(*code_root);
+        elements.extend(*storage_root);
+        elements.resize(16, Felt::ZERO);
+        Hasher::hash_elements(&elements)
+    }
 
     /// Returns an error if:
     /// - There are fewer then:
@@ -267,4 +284,19 @@ impl Ord for AccountId {
 
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
     Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
+}
+
+// HELPERS
+// --------------------------------------------------------------------------------------------
+/// Validates that the provided seed is valid for the provided account.
+pub fn validate_account_seed(account: &Account, seed: Word) -> Result<(), AccountError> {
+    let account_id = AccountId::new(seed, account.code().root(), account.storage().root())?;
+    if account_id != account.id() {
+        return Err(AccountError::InconsistentAccountIdSeed {
+            expected: account.id(),
+            actual: account_id,
+        });
+    }
+
+    Ok(())
 }

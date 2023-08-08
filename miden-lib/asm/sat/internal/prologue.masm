@@ -1,7 +1,10 @@
+use.std::collections::smt
 use.std::collections::mmr
 
+use.miden::sat::internal::account
 use.miden::sat::internal::constants
 use.miden::sat::internal::layout
+use.miden::sat::internal::utils
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -20,15 +23,19 @@ use.miden::sat::internal::layout
 proc.process_global_inputs
     # store the block hash
     exec.layout::set_blk_hash
+    # => [acct_id, IAH, NC]
 
     # store the account id
     exec.layout::set_global_acct_id
+    # => [IAH, NC]
 
     # store the initial account hash
     exec.layout::set_init_acct_hash
+    # => [NC]
 
     # store the nullifier commitment
     exec.layout::set_nullifier_com
+    # => []
 end
 
 # BLOCK DATA
@@ -40,16 +47,17 @@ end
 #! block hash matches the block hash stored in the global inputs.
 #!
 #! Stack: []
-#! Advice stack: [NR, PH, CR, SR, BR, PH, BN]
+#! Advice stack: [NR, PH, CR, AR, NUL_R, BR, PH, block_number, 0, 0, 0, 0, 0, 0, 0]
 #! Output: []
 #!
 #! - NR is the note root of the last known block.
 #! - PH is the previous hash of the last known block.
 #! - CR is the chain root of the last known block.
-#! - SR is the state root of the last known block.
+#! - AR is the account root of the last known block.
+#! - NUL_R is the nullifier root of the last known block.
 #! - BR is the batch root of the last known block.
 #! - PH is the proof hash of the last known block.
-#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
+#! - block_number is the block number of the last known block.
 proc.process_block_data
     # address to store the block data
     exec.layout::get_block_data_ptr
@@ -60,7 +68,7 @@ proc.process_block_data
     # => [ZERO, ZERO, ZERO, block_data_ptr]
 
     # read the block data
-    adv_pipe hperm adv_pipe hperm adv_pipe hperm
+    adv_pipe hperm adv_pipe hperm adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, block_data_ptr']
 
     # extract digest from hasher rate elements (h_0, ..., h_3)
@@ -124,11 +132,53 @@ end
 # ACCOUNT DATA
 # =================================================================================================
 
+#! Validates that the account the transaction is being executed against satisfies the criteria
+#! for a new account. 
+#!
+#! Stack: []
+#! Output: []
+#!
+#!
+#! Apply the following validation to the new account:
+#!   * assert that the account id is valid.
+#!   * assert that the account vault is empty.
+#!   * assert that the account nonce is set to 0.
+#!   * read the account seed from the advice provider and assert it satisfies seed requirements.
+proc.validate_new_account
+    # Assert the account id of the account is valid
+    exec.layout::get_acct_id exec.account::validate_id
+    # => []
+
+    # Assert the account nonce is 0
+    exec.layout::get_acct_nonce eq.0 assert
+    # => []
+
+    # Assert the initial vault is empty
+    # -----------------------------------------------------------------------------------------
+    # get the account vault root
+    exec.layout::get_acct_vault_root
+    # => [ACCT_VAULT_ROOT]
+
+    # push empty vault root onto stack 
+    exec.constants::get_empty_smt_root
+    # => [EMPTY_VAULT_ROOT, ACCT_VAULT_ROOT]
+
+    assert_eqw
+    # => []
+
+    # Assert the provided account seed satisfies the seed requirements
+    # -----------------------------------------------------------------------------------------
+    exec.account::validate_seed
+    # => []
+end
+
 #! Process the account data provided via the advice provider. This involves reading the data from
 #! the advice provider and storing it at the appropriate memory addresses. As the account data is
-#! read from the advice provider, the account hash is computed. It is asserted that the computed
-#! account hash matches the account hash stored in the global inputs. It is also asserted that the
-#! account id matches the account id provided via the stack public inputs.
+#! read from the advice provider, the account hash is computed.  If the account is new then the 
+#! global initial account hash is updated and the new account is validated.  If the account
+#! already exists then it is asserted that the computed account hash matches the account hash 
+#! provided via global inputs. It is also asserted that the account id matches the account id 
+#! provided via the stack public inputs.
 #!
 #! Stack: []
 #! Advice stack: [acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR]
@@ -142,35 +192,55 @@ end
 proc.process_acct_data
     # address to store the account data
     exec.layout::get_acct_data_ptr
+    # => [acct_data_ptr]
 
     # prepare the stack for reading account data
     padw padw padw
+    # => [ZERO, ZERO, ZERO, acct_data_ptr]
 
-    # read the account data
+    # read the account data  
     adv_pipe hperm adv_pipe hperm
+    # => [ACT_DATA', ACCT_HASH, CAP', act_data_ptr']
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest from hasher rate elements (h_0, ..., h_3) and drop pointer
+    dropw swapw dropw movup.4 drop 
+    # => [ACCT_HASH]
 
-    # assert that the account hash matches the hash in global inputs
-    exec.layout::get_init_acct_hash assert_eqw
+    # check if the account is new
+    padw exec.layout::get_init_acct_hash eqw movdn.8 dropw dropw
+    # => [is_new, ACCT_HASH]
+
+    # process conditional logic depending on whether the account is new or existing
+    if.true
+        # set the initial account hash
+        exec.layout::set_init_acct_hash
+        # => []
+
+        # validate the new account
+        exec.validate_new_account
+        # => []
+    else
+        # assert that the existing account hash matches the hash in global inputs
+        exec.layout::get_init_acct_hash assert_eqw
+        # => []
+    end
 
     # assert the account id matches the account id in global inputs
     exec.layout::get_global_acct_id
     exec.layout::get_acct_id
     assert_eq
-
-    # clear the stack
-    drop
+    # => []
 
     # store a copy of the initial nonce in global inputs
     exec.layout::get_acct_nonce
     exec.layout::set_init_nonce
+    # => []
 
     # set the new account code root to the initial account code root
     # this is used for managing code root updates
     exec.layout::get_acct_code_root
     exec.layout::set_new_acct_code_root
+    # => []
 end
 
 # CONSUMED NOTES DATA
