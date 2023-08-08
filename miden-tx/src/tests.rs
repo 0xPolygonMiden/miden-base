@@ -1,5 +1,5 @@
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
+    AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
@@ -7,6 +7,7 @@ use assembly::{
     Assembler,
 };
 use crypto::{Felt, StarkField, Word, ONE};
+
 use miden_objects::{
     assets::{Asset, FungibleAsset},
     mock::{
