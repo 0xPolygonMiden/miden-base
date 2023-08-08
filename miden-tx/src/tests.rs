@@ -327,14 +327,13 @@ fn test_p2id_script() {
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
 
-    // Note: we don't have add_asset instruction yet, so we need to create the account with it.
-    // That will change in the future.
+    // TODO: We don't have the add_asset procedure in the assembler yet, we don't need custom code
     const TARGET_ACCOUNT_CODE_MASM: &'static str = "\
-        export.add_asset
-            push.99
-            drop
-        end
-        ";
+    export.account_proc_1
+        push.9.9.9.9
+        dropw
+    end
+    ";
     let target_account_code_ast = ModuleAst::parse(TARGET_ACCOUNT_CODE_MASM).unwrap();
     let target_account_code =
         AccountCode::new(target_account_id, target_account_code_ast, &mut assembler).unwrap();
@@ -351,7 +350,6 @@ fn test_p2id_script() {
         ProgramAst::parse(
             format!(
                 "
-                use.context::account_{target_account_id}
                 use.miden::sat::account
                 use.miden::sat::note
                 
@@ -365,7 +363,7 @@ fn test_p2id_script() {
                     
                     dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
                     while.true                                          # [num_of_assets, 1000000000, ...]
-                        call.account_{target_account_id}::add_asset     # Calls artificial add_asset instruction
+                        exec.account::get_nonce drop                    # TODO: Should call add_asset but we don't have it yet
                         sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
                         push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
                     end
