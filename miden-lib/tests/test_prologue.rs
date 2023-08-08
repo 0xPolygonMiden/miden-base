@@ -18,7 +18,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     let code = "
         begin
@@ -257,7 +257,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
 
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New, None, None);
     let code = "
     use.miden::sat::internal::prologue
 
@@ -294,7 +294,7 @@ pub fn test_prologue_create_account() {
 
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New, None, None);
     let account_seed_key = [*account.id(), ZERO, ZERO, ZERO];
 
     let code = "

@@ -121,10 +121,10 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     // create a dummy chain of block headers
     let mut note_iter = note_trees.iter();
     let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, Some(note_trees[0].root())),
-        mock_block_header(Felt::ONE, None, Some(note_trees[1].root())),
-        mock_block_header(Felt::new(2), None, None),
-        mock_block_header(Felt::new(3), None, None),
+        mock_block_header(Felt::ZERO, None, note_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(Felt::ONE, None, note_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(Felt::new(2), None, note_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(Felt::new(3), None, note_iter.next().map(|x| x.root()), &[]),
     ];
 
     // instantiate and populate MMR
@@ -276,10 +276,10 @@ pub enum AccountStatus {
 }
 
 pub fn mock_inputs(
+    account_status: AccountStatus,
     account: Option<Account>,
     consumed_notes: Option<Vec<Note>>,
 ) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
-pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
     let mut assembler = assembler();
 
@@ -287,11 +287,8 @@ pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, Chai
     let account = if account_status == AccountStatus::New {
         mock_new_account(&mut assembler)
     } else {
-        mock_account(Felt::ONE, None, &mut assembler)
+        account.unwrap_or(mock_account(Felt::ONE, None, &mut assembler))
     };
-
-    // Created notes
-    let created_notes = mock_created_notes(&mut assembler);
 
     // Consumed notes
     let mut consumed_notes = consumed_notes.unwrap_or_else(|| {

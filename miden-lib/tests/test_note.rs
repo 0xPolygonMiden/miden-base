@@ -8,7 +8,7 @@ use common::{
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     // calling get_sender should return sender
     let code = "
@@ -35,7 +35,7 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     // calling get_sender should return sender
     let code = "
@@ -66,8 +66,8 @@ fn test_get_sender() {
 }
 
 #[test]
-fn test_get_vault_info() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+fn test_get_vault_data() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     // calling get_vault_info should return vault info
     let code = format!(
@@ -127,7 +127,7 @@ fn test_get_vault_info() {
 
 #[test]
 fn test_get_assets() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
     const DEST_POINTER_NOTE_1: u32 = 200000000;

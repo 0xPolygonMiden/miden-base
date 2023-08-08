@@ -12,7 +12,7 @@ use crate::common::procedures::prepare_word;
 
 #[test]
 fn test_get_balance() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
@@ -46,7 +46,7 @@ fn test_get_balance() {
 
 #[test]
 fn test_get_balance_non_fungible_fails() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
 
     let code = format!(
         "
@@ -75,7 +75,7 @@ fn test_get_balance_non_fungible_fails() {
 
 #[test]
 fn test_has_non_fungible_asset() {
-    let (account, block_header, chain, notes) = mock_inputs(None, None);
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
     let non_fungible_asset = account.vault().assets().next().unwrap();
 
     let code = format!(
