@@ -12,7 +12,7 @@ use miden_objects::{
     mock::{
         assembler, mock_inputs, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
-        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, AccountStatus,
     },
     notes::NoteScript,
     transaction::{CreatedNotes, FinalAccountStub},
@@ -31,7 +31,7 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(account: Option<Account>, consumed_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, notes) = mock_inputs(account, consumed_notes);
+        let (account, block_header, block_chain, notes) = mock_inputs(AccountStatus::Existing, account, consumed_notes);
         Self {
             account,
             block_header,
