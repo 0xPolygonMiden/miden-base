@@ -1,5 +1,5 @@
 use super::{
-    AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
+    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier,
 };
 use assembly::{
