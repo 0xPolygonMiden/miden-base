@@ -3,7 +3,7 @@ use super::{
     notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::ExecutedTransaction,
     Account, AccountCode, AccountId, AccountStorage, AccountVault, BlockHeader, ChainMmr, Digest,
-    Felt, StarkField, StorageItem, Vec, Word,
+    Felt, StarkField, StorageItem, Vec, Word, ZERO,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
@@ -100,6 +100,8 @@ pub fn mock_block_header(
         note_root,
         batch_root,
         proof_hash,
+        ZERO,
+        rand::rand_value(),
     )
 }
 

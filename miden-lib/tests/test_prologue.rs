@@ -4,10 +4,11 @@ use common::{
     data::{mock_inputs, AccountStatus, ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN},
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
-        ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_NUM_PTR,
-        CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
-        CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR,
-        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
+        ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR,
+        BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
+        CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR,
+        NULLIFIER_COM_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+        TIMESTAMP_IDX,
     },
     prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider,
     PreparedTransaction, Process, Word, TX_KERNEL_DIR, ZERO,
@@ -132,10 +133,22 @@ fn block_data_memory_assertions<A: AdviceProvider>(
         inputs.block_header().proof_hash().as_elements()
     );
 
-    // The block number should be stored at the BLOCK_NUM_PTR
+    // The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]
     assert_eq!(
-        process.get_memory_value(0, BLOCK_NUM_PTR).unwrap()[0],
+        process.get_memory_value(0, BLOCK_METADATA_PTR).unwrap()[BLOCK_NUMBER_IDX],
         inputs.block_header().block_num()
+    );
+
+    // The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]
+    assert_eq!(
+        process.get_memory_value(0, BLOCK_METADATA_PTR).unwrap()[PROTOCOL_VERSION_IDX],
+        inputs.block_header().version()
+    );
+
+    // The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]
+    assert_eq!(
+        process.get_memory_value(0, BLOCK_METADATA_PTR).unwrap()[TIMESTAMP_IDX],
+        inputs.block_header().timestamp()
     );
 }
 
@@ -333,4 +346,56 @@ pub fn test_prologue_create_account_invalid_seed() {
     let process =
         run_tx(transaction.tx_program().clone(), transaction.stack_inputs(), advice_provider);
     assert!(process.is_err());
+}
+
+#[test]
+fn test_get_blk_version() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let code = "
+    use.miden::sat::internal::layout
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+        exec.layout::get_blk_version
+    end
+    ";
+
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    )
+    .unwrap();
+
+    assert_eq!(process.stack.get(0), block_header.version());
+}
+
+#[test]
+fn test_get_blk_timestamp() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let code = "
+    use.miden::sat::internal::layout
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+        exec.layout::get_blk_timestamp
+    end
+    ";
+
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    )
+    .unwrap();
+
+    assert_eq!(process.stack.get(0), block_header.timestamp());
 }

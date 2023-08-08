@@ -66,8 +66,8 @@ const.BATCH_ROOT_PTR=204
 # The memory address at which the proof hash is stored
 const.PROOF_HASH_PTR=205
 
-# The memory address at which the block number is stored
-const.BLOCK_NUM_PTR=206
+# The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
+const.BLOCK_METADATA_PTR=206
 
 # The memory address at which the note root is stored
 const.NOTE_ROOT_PTR=207
@@ -329,8 +329,29 @@ end
 #!
 #! - blk_num is the block number of the last known block.
 export.get_blk_num
-    push.BLOCK_NUM_PTR mem_load
+    push.BLOCK_METADATA_PTR mem_load
 end
+
+#! Returns the protocol version of the last known block.
+#!
+#! Stack: []
+#! Output: [version]
+#!
+#! - version is the protocol version of the last known block.
+export.get_blk_version
+    padw push.BLOCK_METADATA_PTR mem_loadw drop drop swap drop
+end
+
+#! Returns the block timestamp of the last known block.
+#!
+#! Stack: []
+#! Output: [timestamp]
+#!
+#! - timestamp is the block timestamp of the last known block.
+export.get_blk_timestamp
+    padw push.BLOCK_METADATA_PTR mem_loadw drop movdn.2 drop drop
+end
+
 
 #! Returns the chain root of the last known block.
 #!
