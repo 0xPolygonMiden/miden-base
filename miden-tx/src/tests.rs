@@ -381,7 +381,7 @@ fn test_p2id_script() {
                         dup neq.1000000000                              # [1 || 0, num_of_assets + 1000000000 - (i), ...], if end of memory reached, break
                     end
 
-                    drop                                           # []        
+                    drop                                                # []        
                 end
                 ",
             )
@@ -545,26 +545,24 @@ fn test_p2idr_script() {
                     if.true                                             # current_block_height >= reclaim_block_height, [target_account_id, sender_account_id, ...]
                         drop                                            # [sender_account_id, ...]
                         exec.account::get_id                            # [account_id, sender_account_id, ...]
-                        eq                                              # [account_id == sender_account_id, ...]
-                        assert                                          # [] if account_id == sender_account_id, fails if not
+                        assert_eq                                          # [] if account_id == sender_account_id, fails if not
                                                                           
                     else                                                # current_block_height < reclaim_block_height, [target_account_id, sender_account_id, ...]
                         exec.account::get_id                            # [account_id, target_account_id, sender_account_id, ...]
-                        eq                                              # [account_id == target_account_id, sender_account_id, ...]
-                        assert                                          # [] if account_id == target_account_id, fails if not
+                        assert_eq                                          # [] if account_id == target_account_id, fails if not
                     end
-
+ 
                     push.1000000000                                     # [1000000000, ...] memory pointer to store assets
-                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]    
+                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]   
                     
-                    dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
+                    dup neq.0                                           # [1 || 0, num_of_assets, 1000000000, ...]
                     while.true                                          # [num_of_assets, 1000000000, ...]
-                        exec.account::get_nonce drop                    # Should call add_asset, but this is not implemented yet
-                        sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
-                        push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
+                        add sub.1                                       # [num_of_assets + 1000000000 - (i), ...] -> points to last asset in memory
+                        exec.account::get_nonce drop                    # TODO: Should call add_asset but we don't have it yet
+                        dup neq.1000000000                              # [1 || 0, num_of_assets + 1000000000 - (i), ...], if end of memory reached, break
                     end
 
-                    drop drop                                           # []        
+                    drop                                                # []              
                 end
                 ",
             )
