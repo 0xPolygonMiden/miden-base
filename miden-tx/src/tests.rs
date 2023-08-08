@@ -17,7 +17,7 @@ use miden_objects::{
     },
     notes::NoteScript,
     transaction::{CreatedNotes, FinalAccountStub},
-    AccountCode, AccountStorage, AccountVault, TryFromVmResult,
+    Account, AccountCode, AccountStorage, AccountVault, TryFromVmResult,
 };
 use miden_prover::ProvingOptions;
 use processor::MemAdviceProvider;
