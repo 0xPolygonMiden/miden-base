@@ -76,7 +76,7 @@ fn test_get_balance_non_fungible_fails() {
 #[test]
 fn test_has_non_fungible_asset() {
     let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing, None, None);
-
+    
     let non_fungible_asset = account.vault().assets().next().unwrap();
 
     let code = format!(

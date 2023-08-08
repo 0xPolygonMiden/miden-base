@@ -327,14 +327,13 @@ fn test_p2id_script() {
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
 
-    // Note: we don't have add_asset instruction yet, so we need to create the account with it.
-    // That will change in the future.
+    // TODO: We don't have the add_asset procedure in the assembler yet, we don't need custom code
     const TARGET_ACCOUNT_CODE_MASM: &'static str = "\
-        export.add_asset
-            push.99
-            drop
-        end
-        ";
+    export.account_proc_1
+        push.9.9.9.9
+        dropw
+    end
+    ";
     let target_account_code_ast = ModuleAst::parse(TARGET_ACCOUNT_CODE_MASM).unwrap();
     let target_account_code =
         AccountCode::new(target_account_id, target_account_code_ast, &mut assembler).unwrap();
@@ -351,7 +350,6 @@ fn test_p2id_script() {
         ProgramAst::parse(
             format!(
                 "
-                use.context::account_{target_account_id}
                 use.miden::sat::account
                 use.miden::sat::note
                 
@@ -365,7 +363,7 @@ fn test_p2id_script() {
                     
                     dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
                     while.true                                          # [num_of_assets, 1000000000, ...]
-                        call.account_{target_account_id}::add_asset     # Calls artificial add_asset instruction
+                        exec.account::get_nonce drop                    # TODO: Should call add_asset but we don't have it yet
                         sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
                         push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
                     end
@@ -451,6 +449,329 @@ fn test_p2id_script() {
     match transaction_result_2 {
         Ok(_) => {
             panic!("Second transaction should not work, we expect an error");
+        } // expected result, we do nothing
+        Err(_) => {} // expected result, we do nothing
+    }
+}
+
+#[test]
+fn test_p2idr_script() {
+    // We want to test the P2IDR script, which is a script that allows the user to create a note that can only be consumed by the target account
+    // if the current block height is smaller than the block height specified in the note. Otherwise, the note can only be consumed by the sender.
+
+    // MOCK DATA
+    // --------------------------------------------------------------------------------------------
+    let mut assembler = assembler();
+
+    // --------------------------------------------------------------------------------------------
+    // Create assets
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+
+    // --------------------------------------------------------------------------------------------
+    // Create the account code
+    // TODO: We don't have the add_asset procedure in the assembler yet, we don't need custom code
+    const ACCOUNT_CODE_MASM: &'static str = "\
+    export.account_proc_1
+        push.9.9.9.9
+        dropw
+    end
+    ";
+    let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
+
+    // Create the sender, receiver and "malicious" account
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let sender_account_code =
+        AccountCode::new(sender_account_id, account_code_ast.clone(), &mut assembler).unwrap();
+
+    let target_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_id, account_code_ast.clone(), &mut assembler).unwrap();
+
+    let malicious_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+    let malicious_account_code =
+        AccountCode::new(malicious_account_id, account_code_ast.clone(), &mut assembler).unwrap();
+
+    let sender_account = Account::new(
+        sender_account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        sender_account_code.clone(),
+        ONE,
+    );
+
+    let target_account = Account::new(
+        target_account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        target_account_code.clone(),
+        ONE,
+    );
+
+    let malicious_account = Account::new(
+        malicious_account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        malicious_account_code.clone(),
+        ONE,
+    );
+
+    // --------------------------------------------------------------------------------------------
+    // Create notes
+    // Create the reclaim block height (Note: Current block height is 4)
+    let reclaim_block_height_in_time = Felt::new(5);
+    let reclaim_block_height_too_late = Felt::new(3);
+
+    // Create the note with the P2IDR script
+    let note_program_ast =
+        ProgramAst::parse(
+            format!(
+                "
+                use.miden::sat::account
+                use.miden::sat::note
+                use.miden::sat::tx
+                
+                begin                                                   # [reclaim_block_height, target_account_id, sender_account_id, ...]                                            
+                    exec.tx::get_block_number                           # [current_block_height, reclaim_block_height, target_account_id, sender_account_id, ...]    
+                    lte                                                 # [1 || 0, target_account_id, sender_account_id, ...], 1 if current_block_height >= reclaim_block_height, 0 otherwise
+                                                                        # TODO: check why u32checked_lt doesn't work!
+                    if.true                                             # current_block_height >= reclaim_block_height, [target_account_id, sender_account_id, ...]
+                        drop                                            # [sender_account_id, ...]
+                        exec.account::get_id                            # [account_id, sender_account_id, ...]
+                        eq                                              # [account_id == sender_account_id, ...]
+                        assert                                          # [] if account_id == sender_account_id, fails if not
+                                                                          
+                    else                                                # current_block_height < reclaim_block_height, [target_account_id, sender_account_id, ...]
+                        exec.account::get_id                            # [account_id, target_account_id, sender_account_id, ...]
+                        eq                                              # [account_id == target_account_id, sender_account_id, ...]
+                        assert                                          # [] if account_id == target_account_id, fails if not
+                    end
+
+                    push.1000000000                                     # [1000000000, ...] memory pointer to store assets
+                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]    
+                    
+                    dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
+                    while.true                                          # [num_of_assets, 1000000000, ...]
+                        exec.account::get_nonce drop                    # Should call add_asset, but this is not implemented yet
+                        sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
+                        push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
+                    end
+
+                    drop drop                                           # []        
+                end
+                ",
+            )
+            .as_str(),
+        )
+        .unwrap();
+    let (note_script, _) = NoteScript::new(note_program_ast, &mut assembler).unwrap();
+
+    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
+    let note_in_time = Note::new(
+        note_script.clone(),
+        &[*sender_account_id, *target_account_id, reclaim_block_height_in_time],
+        &vec![fungible_asset_1],
+        SERIAL_NUM,
+        sender_account_id,
+        ONE,
+        None,
+    )
+    .unwrap();
+
+    let note_too_late = Note::new(
+        note_script.clone(),
+        &[*sender_account_id, *target_account_id, reclaim_block_height_too_late],
+        &vec![fungible_asset_1],
+        SERIAL_NUM,
+        sender_account_id,
+        ONE,
+        None,
+    )
+    .unwrap();
+
+    // --------------------------------------------------------------------------------------------
+    // We have two cases:
+    //  Case "in time": block height is 4, reclaim block height is 5. Target account can consume the note. Sender account can't consume the note.
+    //  Case "too late": block height is 4, reclaim block height is 3. Target account can't consume the note. Sender account can consume the note.
+    //  A third account should never be able to consume the note.
+    // --------------------------------------------------------------------------------------------
+    // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
+    // --------------------------------------------------------------------------------------------
+    let data_store =
+        MockDataStore::new(Some(target_account.clone()), Some(vec![note_in_time.clone()]));
+    let mut executor = TransactionExecutor::new(data_store.clone());
+
+    executor.load_account(target_account_id).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result =
+        executor.execute_transaction(target_account_id, block_ref, &note_origins, None);
+
+    // check that we got the expected result - TransactionResult and not TransactionExecutorError
+    match transaction_result {
+        Ok(_) => {} // expected result, we do nothing
+        Err(err) => {
+            panic!("The transaction should work, something is wrong: {:?}", err);
+        }
+    }
+
+    // CONSTRUCT AND EXECUTE TX (Case "in time" - Sender Account Execution Failure)
+    // --------------------------------------------------------------------------------------------
+    let data_store =
+        MockDataStore::new(Some(sender_account.clone()), Some(vec![note_in_time.clone()]));
+    let mut executor = TransactionExecutor::new(data_store.clone());
+
+    executor.load_account(sender_account_id).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_2 =
+        executor.execute_transaction(sender_account_id, block_ref, &note_origins, None);
+
+    // check that we got the expected result - TransactionExecutorError and not TransactionResult
+    match transaction_result_2 {
+        Ok(_) => {
+            panic!("Second transaction should not work (sender consumes too early), we expect an error");
+        } // expected result, we do nothing
+        Err(_) => {} // expected result, we do nothing
+    }
+
+    // CONSTRUCT AND EXECUTE TX (Case "in time" - Malicious Target Account Failure)
+    // --------------------------------------------------------------------------------------------
+    let data_store_failure =
+        MockDataStore::new(Some(malicious_account.clone()), Some(vec![note_in_time.clone()]));
+    let mut executor_failure = TransactionExecutor::new(data_store_failure.clone());
+
+    executor_failure.load_account(malicious_account_id).unwrap();
+
+    let block_ref = data_store_failure.block_header.block_num().as_int() as u32;
+    let note_origins_failure = data_store_failure
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_6 = executor_failure.execute_transaction(
+        malicious_account_id,
+        block_ref,
+        &note_origins_failure,
+        None,
+    );
+
+    // check that we got the expected result - TransactionExecutorError and not TransactionResult
+    match transaction_result_6 {
+        Ok(_) => {
+            panic!("Sixth transaction should not work (malicious account can never consume), we expect an error");
+        } // expected result, we do nothing
+        Err(_) => {} // expected result, we do nothing
+    }
+
+    // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Target Account Failure)
+    // --------------------------------------------------------------------------------------------
+    let data_store_failure =
+        MockDataStore::new(Some(target_account.clone()), Some(vec![note_too_late.clone()]));
+    let mut executor_failure = TransactionExecutor::new(data_store_failure.clone());
+
+    executor_failure.load_account(target_account_id).unwrap();
+
+    let block_ref = data_store_failure.block_header.block_num().as_int() as u32;
+    let note_origins_failure = data_store_failure
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_3 = executor_failure.execute_transaction(
+        target_account_id,
+        block_ref,
+        &note_origins_failure,
+        None,
+    );
+
+    // check that we got the expected result - TransactionExecutorError and not TransactionResult
+    match transaction_result_3 {
+        Ok(_) => {
+            panic!("Third transaction should not work (target account consumes too late), we expect an error");
+        } // expected result, we do nothing
+        Err(_) => {} // expected result, we do nothing
+    }
+
+    // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
+    // --------------------------------------------------------------------------------------------
+    let data_store_failure =
+        MockDataStore::new(Some(sender_account.clone()), Some(vec![note_too_late.clone()]));
+    let mut executor_failure = TransactionExecutor::new(data_store_failure.clone());
+
+    executor_failure.load_account(sender_account_id).unwrap();
+
+    let block_ref = data_store_failure.block_header.block_num().as_int() as u32;
+    let note_origins_failure = data_store_failure
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_4 = executor_failure.execute_transaction(
+        sender_account_id,
+        block_ref,
+        &note_origins_failure,
+        None,
+    );
+
+    // check that we got the expected result - TransactionResult and not TransactionExecutorError
+    match transaction_result_4 {
+        Ok(_) => {} // expected result, we do nothing
+        Err(err) => {
+            panic!("The transaction should work, something is wrong: {:?}", err);
+        }
+    }
+
+    // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Target Account Failure)
+    // --------------------------------------------------------------------------------------------
+    let data_store_failure =
+        MockDataStore::new(Some(malicious_account.clone()), Some(vec![note_too_late.clone()]));
+    let mut executor_failure = TransactionExecutor::new(data_store_failure.clone());
+
+    executor_failure.load_account(malicious_account_id).unwrap();
+
+    let block_ref = data_store_failure.block_header.block_num().as_int() as u32;
+    let note_origins_failure = data_store_failure
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // execute the transaction and get the witness
+    let transaction_result_6 = executor_failure.execute_transaction(
+        malicious_account_id,
+        block_ref,
+        &note_origins_failure,
+        None,
+    );
+
+    // check that we got the expected result - TransactionExecutorError and not TransactionResult
+    match transaction_result_6 {
+        Ok(_) => {
+            panic!("Sixth transaction should not work (malicious account can never consume), we expect an error");
         } // expected result, we do nothing
         Err(_) => {} // expected result, we do nothing
     }

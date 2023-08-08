@@ -258,7 +258,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New, None, None);
-
+    
     let code = "
     use.miden::sat::internal::prologue
 
