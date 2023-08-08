@@ -53,6 +53,16 @@ pub enum Asset {
 }
 
 impl Asset {
+    /// Creates a new [Asset] without checking its validity.
+    pub(crate) fn new_unchecked(value: Word) -> Asset {
+        let first_bit = value[3].as_int() >> 63;
+        match first_bit {
+            0 => Asset::NonFungible(NonFungibleAsset::new_unchecked(value)),
+            1 => Asset::Fungible(FungibleAsset::new_unchecked(value)),
+            _ => unreachable!(),
+        }
+    }
+
     /// Returns true if this asset is the same as the specified asset.
     ///
     /// Two assets are defined to be the same if:
@@ -161,6 +171,14 @@ impl FungibleAsset {
         asset.validate()?;
 
         Ok(asset)
+    }
+
+    /// Creates a new [FungibleAsset] without checking its validity.
+    pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
+        FungibleAsset {
+            faucet_id: AccountId::new_unchecked(value[3]),
+            amount: value[0].as_int(),
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -356,6 +374,11 @@ impl NonFungibleAsset {
         let asset = Self(data_hash);
 
         Ok(asset)
+    }
+
+    /// Creates a new [NonFungibleAsset] without checking its validity.
+    pub(crate) fn new_unchecked(value: Word) -> NonFungibleAsset {
+        NonFungibleAsset(value)
     }
 
     // ACCESSORS

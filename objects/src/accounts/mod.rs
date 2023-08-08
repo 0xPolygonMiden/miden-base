@@ -2,7 +2,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, AssemblyContextType, Digest,
     Felt, Hasher, LibraryPath, Module, ModuleAst, StarkField, TieredSmt, ToAdviceInputs, ToString,
-    Vec, Word, EMPTY_WORD, ZERO,
+    Vec, Word, ZERO,
 };
 use crypto::{
     merkle::StoreNode,
