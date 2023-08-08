@@ -317,31 +317,45 @@ fn test_p2id_script() {
     // --------------------------------------------------------------------------------------------
     let mut assembler = assembler();
 
-    // Create assets and sender account ID
-    // Create Note and all assets
+    // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+
+    // Create the sender, target and malicious accounts
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    // Create the target account that receives the note
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
 
+    let malicious_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+
     // TODO: We don't have the add_asset procedure in the assembler yet, we don't need custom code
-    const TARGET_ACCOUNT_CODE_MASM: &'static str = "\
+    const ACCOUNT_CODE_MASM: &'static str = "\
     export.account_proc_1
         push.9.9.9.9
         dropw
     end
     ";
-    let target_account_code_ast = ModuleAst::parse(TARGET_ACCOUNT_CODE_MASM).unwrap();
+    let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
+
     let target_account_code =
-        AccountCode::new(target_account_id, target_account_code_ast, &mut assembler).unwrap();
-    let account = Account::new(
+        AccountCode::new(target_account_id, account_code_ast.clone(), &mut assembler).unwrap();
+    let target_account = Account::new(
         target_account_id,
         AccountVault::default(),
         AccountStorage::default(),
         target_account_code.clone(),
+        ONE,
+    );
+
+    let malicious_account_code =
+        AccountCode::new(malicious_account_id, account_code_ast.clone(), &mut assembler).unwrap();
+    let malicious_account = Account::new(
+        malicious_account_id,
+        AccountVault::default(),
+        AccountStorage::default(),
+        malicious_account_code,
         ONE,
     );
 
@@ -355,20 +369,19 @@ fn test_p2id_script() {
                 
                 begin                                                   # [note_inputs = target_account_id, ...]                                            
                     exec.account::get_id                                # [account_id, target_account_id, ...]
-                    eq                                                  # [account_id == target_account_id, ...]
-                    assert                                              # [] if account_id == target_account_id, fails if not
+                    assert_eq                                           # [] if account_id == target_account_id, fails if not
 
                     push.1000000000                                     # [1000000000, ...] memory pointer to store assets
-                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]    
+                    exec.note::get_assets                               # [num_of_assets, 1000000000, ...]   
                     
-                    dup push.0 gt                                       # [1 || 0, num_of_assets, 1000000000, ...]
+                    dup neq.0                                           # [1 || 0, num_of_assets, 1000000000, ...]
                     while.true                                          # [num_of_assets, 1000000000, ...]
+                        add sub.1                                       # [num_of_assets + 1000000000 - (i), ...] -> points to last asset in memory
                         exec.account::get_nonce drop                    # TODO: Should call add_asset but we don't have it yet
-                        sub.1                                           # [num_of_assets - 1, 1000000000, ...] u32checked_sub not needed
-                        push.0 gt                                       # [1, ...], if num_of_assets - 1 > 0, [0, ...] otherwise
+                        dup neq.1000000000                              # [1 || 0, num_of_assets + 1000000000 - (i), ...], if end of memory reached, break
                     end
 
-                    drop drop                                           # []        
+                    drop                                           # []        
                 end
                 ",
             )
@@ -377,13 +390,13 @@ fn test_p2id_script() {
         .unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &mut assembler).unwrap();
 
-    const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
 
     let note = Note::new(
         note_script.clone(),
         &[*target_account_id],
         &vec![fungible_asset_1],
-        SERIAL_NUM_1,
+        SERIAL_NUM,
         sender_account_id,
         ONE,
         None,
@@ -392,7 +405,7 @@ fn test_p2id_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::new(Some(account), Some(vec![note.clone()]));
+    let data_store = MockDataStore::new(Some(target_account), Some(vec![note.clone()]));
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     executor.load_account(target_account_id).unwrap();
@@ -418,24 +431,16 @@ fn test_p2id_script() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    // Create a different account (different account id) and try to execute the transaction, we expect an error
-    // The account can have the same code, but it must have a different account id
-    let wrong_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let wrong_account = Account::new(
-        wrong_account_id,
-        AccountVault::default(),
-        AccountStorage::default(),
-        target_account_code,
-        ONE,
-    );
-    let data_store_wrong_account = MockDataStore::new(Some(wrong_account), Some(vec![note]));
-    let mut executor_2 = TransactionExecutor::new(data_store_wrong_account.clone());
+    // A "malicious" account tries to consume the note, we expect an error
 
-    executor_2.load_account(wrong_account_id).unwrap();
+    let data_store_malicious_account =
+        MockDataStore::new(Some(malicious_account), Some(vec![note]));
+    let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
 
-    let block_ref = data_store_wrong_account.block_header.block_num().as_int() as u32;
-    let note_origins = data_store_wrong_account
+    executor_2.load_account(malicious_account_id).unwrap();
+
+    let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
+    let note_origins = data_store_malicious_account
         .notes
         .iter()
         .map(|note| note.proof().as_ref().unwrap().origin().clone())
@@ -443,7 +448,7 @@ fn test_p2id_script() {
 
     // execute the transaction and get the witness
     let transaction_result_2 =
-        executor_2.execute_transaction(wrong_account_id, block_ref, &note_origins, None);
+        executor_2.execute_transaction(malicious_account_id, block_ref, &note_origins, None);
 
     // check that we got the expected result - TransactionResult and not TransactionExecutorError
     match transaction_result_2 {
