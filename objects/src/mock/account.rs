@@ -6,8 +6,8 @@ use super::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
-    CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, NON_FUNGIBLE_ASSET_DATA,
-    STORAGE_ITEM_0, STORAGE_ITEM_1,
+    CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
+    NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
 use assembly::{ast::ModuleAst, Assembler};
 use crypto::merkle::SimpleSmt;
@@ -16,8 +16,8 @@ use miden_core::{crypto::merkle::MerkleStore, FieldElement};
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let balance = 100000;
-    let fungible_asset = Asset::Fungible(FungibleAsset::new(faucet_id, balance).unwrap());
+    let fungible_asset =
+        Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
     // prepare non fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();

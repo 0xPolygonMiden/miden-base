@@ -144,3 +144,36 @@ export.has_non_fungible_asset
     swap drop swap drop swap drop
     # => [has_asset]
 end
+
+#! Add the specified asset to the vault.
+#!
+#! Panics:
+#! - If the asset is not valid.
+#! - If the total value of two fungible assets is greater than or equal to 2^63.
+#! - If the vault already contains the same non-fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET']
+#!
+#! - ASSET' final asset in the account vault defined as follows:
+#!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
+#!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
+#!     after ASSET was added to it.
+export.add_asset
+    syscall.account_vault_add_asset
+end
+
+#! Remove the specified asset from the vault.
+#!
+#! Panics:
+#! - The fungible asset is not found in the vault.
+#! - The amount of the fungible asset in the vault is less than the amount to be removed.
+#! - The non-fungible asset is not found in the vault.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET]
+#!
+#! - ASSET is the asset to remove from the vault.
+export.remove_asset
+    syscall.account_vault_remove_asset
+end
