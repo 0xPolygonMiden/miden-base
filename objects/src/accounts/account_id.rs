@@ -75,6 +75,11 @@ impl AccountId {
         Ok(id)
     }
 
+    /// Creates a new [AccountId] without checking its validity.
+    pub(crate) fn new_unchecked(value: Felt) -> AccountId {
+        AccountId(value)
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

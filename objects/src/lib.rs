@@ -51,9 +51,3 @@ pub mod transaction;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod mock;
-
-// CONSTANTS
-// -----------------------------------------------------------------------------------------------
-
-/// An empty word.
-const EMPTY_WORD: Word = [ZERO, ZERO, ZERO, ZERO];

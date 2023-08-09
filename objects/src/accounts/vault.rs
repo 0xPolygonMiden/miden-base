@@ -1,6 +1,6 @@
 use super::{
     AccountError, AccountId, AccountType, AdviceInputsBuilder, ApplyDiff, Asset, Digest,
-    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, Vec, EMPTY_WORD, ZERO,
+    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, ZERO,
 };
 use crypto::merkle::MerkleTreeDelta;
 
@@ -52,7 +52,7 @@ impl AccountVault {
 
         // check if the asset is stored in the vault
         match self.asset_tree.get_value(asset.vault_key().into()) {
-            asset if asset == EMPTY_WORD => Ok(false),
+            asset if asset == TieredSmt::EMPTY_VALUE => Ok(false),
             _ => Ok(true),
         }
     }
@@ -69,27 +69,14 @@ impl AccountVault {
 
         // if the tree value is [0, 0, 0, 0], the asset is not stored in the vault
         match self.asset_tree.get_value([ZERO, ZERO, ZERO, faucet_id.into()].into()) {
-            asset if asset == EMPTY_WORD => Ok(0),
-            asset => Ok(FungibleAsset::try_from(asset)
-                .expect("tree only contains valid assets")
-                .amount()),
+            asset if asset == TieredSmt::EMPTY_VALUE => Ok(0),
+            asset => Ok(FungibleAsset::new_unchecked(asset).amount()),
         }
     }
 
     /// Returns an iterator over the assets stored in the vault.
     pub fn assets(&self) -> impl Iterator<Item = Asset> + '_ {
-        // TODO: We will update [TieredSmt] to expose `.values()` which will simplify this logic.
-        self.asset_tree
-            .bottom_leaves()
-            .flat_map(|(_, values)| {
-                values
-                    .iter()
-                    .map(|value| Asset::try_from(value.1).expect("tree only contains valid assets"))
-                    .collect::<Vec<_>>()
-            })
-            .chain(self.asset_tree.upper_leaves().map(|(_, _, value)| {
-                Asset::try_from(value).expect("tree only contains valid assets")
-            }))
+        self.asset_tree.iter().map(|x| Asset::new_unchecked(x.1))
     }
 
     // PUBLIC MODIFIERS
@@ -117,10 +104,9 @@ impl AccountVault {
     fn add_fungible_asset(&mut self, asset: FungibleAsset) -> Result<FungibleAsset, AccountError> {
         // fetch current asset value from the tree and add the new asset to it.
         let new: FungibleAsset = match self.asset_tree.get_value(asset.vault_key().into()) {
-            current if current == EMPTY_WORD => asset,
+            current if current == TieredSmt::EMPTY_VALUE => asset,
             current => {
-                let current: FungibleAsset =
-                    current.try_into().expect("tree only contains valid assets");
+                let current = FungibleAsset::new_unchecked(current);
                 current.add(asset).map_err(AccountError::AddFungibleAssetBalanceError)?
             }
         };
@@ -142,7 +128,7 @@ impl AccountVault {
         let old = self.asset_tree.insert(asset.vault_key().into(), asset.into());
 
         // if the asset already exists, return an error
-        if old != EMPTY_WORD {
+        if old != TieredSmt::EMPTY_VALUE {
             return Err(AccountError::DuplicateNonFungibleAsset(asset));
         }
 
@@ -174,11 +160,11 @@ impl AccountVault {
         asset: FungibleAsset,
     ) -> Result<FungibleAsset, AccountError> {
         // fetch the asset from the vault.
-        let mut current: FungibleAsset = match self.asset_tree.get_value(asset.vault_key().into()) {
-            current if current == EMPTY_WORD => {
+        let mut current = match self.asset_tree.get_value(asset.vault_key().into()) {
+            current if current == TieredSmt::EMPTY_VALUE => {
                 return Err(AccountError::FungibleAssetNotFound(asset))
             }
-            current => current.try_into().expect("tree only contains valid assets"),
+            current => FungibleAsset::new_unchecked(current),
         };
 
         // subtract the amount of the asset to be removed from the current amount.
@@ -188,12 +174,7 @@ impl AccountVault {
 
         // if the amount of the asset is zero, remove the asset from the vault.
         let new = match current.amount() {
-            0 => {
-                // TODO: This logic will not result in the correct result - we need to update it as
-                // [TieredSmt] doesn't handle deletions correctly at the minute.
-                // return ZERO value to insert into the vault
-                EMPTY_WORD
-            }
+            0 => TieredSmt::EMPTY_VALUE,
             _ => current.into(),
         };
         self.asset_tree.insert(asset.vault_key().into(), new);
@@ -211,12 +192,10 @@ impl AccountVault {
         asset: NonFungibleAsset,
     ) -> Result<NonFungibleAsset, AccountError> {
         // remove the asset from the vault.
-        let old = self.asset_tree.insert(asset.vault_key().into(), EMPTY_WORD);
+        let old = self.asset_tree.insert(asset.vault_key().into(), TieredSmt::EMPTY_VALUE);
 
-        // TODO: This logic will not result in the correct result - we need to update it as
-        // [TieredSmt] doesn't handle deletions correctly at the minute.
         // return an error if the asset did not exist in the vault.
-        if old == EMPTY_WORD {
+        if old == TieredSmt::EMPTY_VALUE {
             return Err(AccountError::NonFungibleAssetNotFound(asset));
         }
 
