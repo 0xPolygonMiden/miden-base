@@ -2,6 +2,7 @@ use.std::collections::smt
 use.std::collections::mmr
 
 use.miden::sat::internal::account
+use.miden::sat::internal::asset_vault
 use.miden::sat::internal::constants
 use.miden::sat::internal::layout
 use.miden::sat::internal::utils
@@ -241,6 +242,11 @@ proc.process_acct_data
     exec.layout::get_acct_code_root
     exec.layout::set_new_acct_code_root
     # => []
+
+    # copy the initial account vault hash to the input vault hash to support transaction asset
+    # invariant checking
+    exec.layout::get_acct_vault_root exec.layout::set_input_vault_root
+    # => []
 end
 
 # CONSUMED NOTES DATA
@@ -418,6 +424,43 @@ proc.process_consumed_note
     # assert that the computed hash matches the expected hash
     assert_eqw
     # => [note_ptr]
+
+    # insert note assets into the input vault
+    # ---------------------------------------------------------------------------------------------
+    # prepare stack for iteration over note assets
+    exec.layout::get_input_vault_root_ptr dup.1 exec.layout::get_consumed_note_assets_ptr
+    # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
+
+    # calculate assets end ptr
+    dup dup.3 exec.layout::get_consumed_note_num_assets add swap
+    # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+
+    # loop over assets and insert them into input vault
+
+    # assess if we should loop
+    dup.1 dup.1 neq
+    # => [should_loop, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+
+    while.true
+        # duplicate input_vault_root_ptr
+        dup.2
+        # => [input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+
+        # read the asset from memory
+        padw dup.5 mem_loadw
+        # => [ASSET, input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+
+        # insert asset into input vault
+        exec.asset_vault::add_asset dropw
+        # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+
+        # increment assets_start_ptr and asses if we should loop again
+        add.1 dup.1 dup.1 neq
+        # => [should_loop, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
+    end
+
+    # clean stack
+    drop drop drop
 
     # compute note hash
     # ---------------------------------------------------------------------------------------------
@@ -616,4 +659,7 @@ export.prepare_transaction
 
     # process consumed notes data
     exec.process_consumed_notes_data
+
+    # pad stack for first invocation of prepare_note procedure
+    padw padw padw padw
 end

@@ -21,6 +21,12 @@ pub const NUM_CREATED_NOTES_PTR: MemoryAddress = 2;
 /// The memory address at which a pointer to the consumed note being executed is stored.
 pub const CURRENT_CONSUMED_NOTE_PTR: MemoryAddress = 3;
 
+/// The memory address at which the input vault root is stored
+pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 5;
+
+/// The memory address at which the output vault root is stored
+pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 6;
+
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------
 

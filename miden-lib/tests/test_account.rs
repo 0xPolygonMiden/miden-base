@@ -1,14 +1,17 @@
 pub mod common;
 use common::{
     data::{
-        mock_inputs, AccountStatus, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
+        mock_inputs, AccountStatus, AssetPreservationStatus, CHILD_ROOT_PARENT_LEAF_INDEX,
+        CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0,
+        STORAGE_ITEM_1,
     },
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
     prepare_transaction,
+    procedures::created_notes_data_procedure,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
 };
+use miden_objects::mock::mock_executed_tx;
 use vm_core::StackInputs;
 
 // MOCK DATA
@@ -62,32 +65,41 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let code = "
+    let created_notes_data_procedure =
+        created_notes_data_procedure(executed_transaction.created_notes());
+
+    let code = format!(
+        "
         use.miden::sat::account
         use.miden::sat::internal::prologue
         use.miden::sat::internal::epilogue
 
+        {created_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
+
             push.0.1.2.3
             exec.account::set_code
+
+            exec.create_mock_notes
             
             push.1
             exec.account::incr_nonce
 
             exec.epilogue::finalize_transaction
         end
-        ";
+        "
+    );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
-
-    let process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    let process = run_within_tx_kernel(
+        "",
+        &code,
+        executed_transaction.stack_inputs(),
+        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        None,
+        None,
     )
     .unwrap();
 

@@ -61,13 +61,16 @@ pub fn run_within_tx_kernel<A>(
     imports: &str,
     code: &str,
     stack_inputs: StackInputs,
-    adv: A,
+    mut adv: A,
     dir: Option<&str>,
     file: Option<&str>,
 ) -> Result<Process<A>, ExecutionError>
 where
     A: AdviceProvider,
 {
+    // mock account method for testing from root context
+    adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
+
     let assembler = assembler();
 
     let code = match (dir, file) {

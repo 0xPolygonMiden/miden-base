@@ -29,12 +29,13 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, notes) = mock_inputs(AccountStatus::Existing);
+        let (account, block_header, block_chain, consumed_notes) =
+            mock_inputs(AccountStatus::Existing);
         Self {
             account,
             block_header,
             block_chain,
-            notes,
+            notes: consumed_notes,
         }
     }
 }

@@ -14,6 +14,7 @@ mod prepared_tx;
 mod proven_tx;
 mod tx_result;
 mod tx_witness;
+#[cfg(not(feature = "testing"))]
 mod utils;
 
 pub use consumed_notes::{ConsumedNoteInfo, ConsumedNotes};
@@ -23,3 +24,6 @@ pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
 pub use tx_result::{FinalAccountStub, TransactionResult};
 pub use tx_witness::TransactionWitness;
+
+#[cfg(feature = "testing")]
+pub mod utils;

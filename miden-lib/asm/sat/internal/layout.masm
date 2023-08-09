@@ -21,6 +21,12 @@ const.CURRENT_CONSUMED_NOTE_PTR=3
 # The memory address at which the index of the current consumed note is stored.
 const.CURRENT_CONSUMED_NOTE_IDX=4
 
+# The memory address at which the input vault root is stored
+const.INPUT_VAULT_ROOT_PTR=5
+
+# The memory address at which the output vault root is stored
+const.OUTPUT_VAULT_ROOT_PTR=6
+
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
@@ -195,6 +201,67 @@ end
 export.set_current_consumed_note_idx
     push.CURRENT_CONSUMED_NOTE_IDX mem_store
 end
+
+#! Returns a pointer to the memory address at which the input vault root is stored
+#!
+#! Stack: []
+#! Output: [input_vault_root_ptr]
+#!
+#! - input_vault_root_ptr is a pointer to the memory address at which the input vault root is stored
+export.get_input_vault_root_ptr
+    push.INPUT_VAULT_ROOT_PTR
+end
+
+#! Returns the input vault root.
+#!
+#! Stack: []
+#! Output: [INPUT_VAULT_ROOT]
+#!
+#! - INPUT_VAULT_ROOT is the input vault root.
+export.get_input_vault_root
+    padw push.INPUT_VAULT_ROOT_PTR mem_loadw
+end
+
+#! Sets the input vault root.
+#!
+#! Stack: [INPUT_VAULT_ROOT]
+#! Output: []
+#!
+#! - INPUT_VAULT_ROOT is the input vault root.
+export.set_input_vault_root
+    push.INPUT_VAULT_ROOT_PTR mem_storew dropw
+end
+
+#! Returns a pointer to the memory address at which the output vault root is stored.
+#!
+#! Stack: []
+#! Output: [output_vault_root_ptr]
+#!
+#! - output_vault_root_ptr is a pointer to the memory address at which the output vault root is stored.
+export.get_output_vault_root_ptr
+    push.OUTPUT_VAULT_ROOT_PTR
+end
+
+#! Returns the output vault root.
+#!
+#! Stack: []
+#! Output: [OUTPUT_VAULT_ROOT]
+#!
+#! - OUTPUT_VAULT_ROOT is the output vault root.
+export.get_output_vault_root
+    padw push.OUTPUT_VAULT_ROOT_PTR mem_loadw
+end
+
+#! Sets the output vault root.
+#!
+#! Stack: [OUTPUT_VAULT_ROOT]
+#! Output: []
+#!
+#! - OUTPUT_VAULT_ROOT is the output vault root.
+export.set_output_vault_root
+    push.OUTPUT_VAULT_ROOT_PTR mem_storew dropw
+end
+
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
@@ -569,6 +636,16 @@ end
 #! - STORAGE_ROOT is the account storage root.
 export.set_acct_storage_root
     push.ACCT_STORAGE_ROOT_PTR mem_storew dropw
+end
+
+#! Returns a pointer to the memory address at which the account vault root is stored.
+#!
+#! Stack: []
+#! Output: [output_vault_root_ptr]
+#!
+#! - output_vault_root_ptr is a pointer to the memory address at which the account vault root is stored.
+export.get_acct_vault_root_ptr
+    push.ACCT_VAULT_ROOT_PTR
 end
 
 #! Returns the account vault root.

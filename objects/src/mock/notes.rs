@@ -1,6 +1,7 @@
 use crate::mock::{
-    prepare_assets, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+    prepare_assets, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+    ACCOUNT_ID_SENDER,
 };
 
 use super::super::{
@@ -11,17 +12,74 @@ use super::super::{
 use assembly::{ast::ProgramAst, Assembler};
 use miden_core::FieldElement;
 
-pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) -> Vec<Note> {
+pub enum AssetPreservationStatus {
+    TooFewInput,
+    Preserved,
+    TooManyInput,
+}
+
+pub fn mock_notes(
+    assembler: &mut Assembler,
+    asset_preservation: AssetPreservationStatus,
+) -> (Vec<Note>, Vec<Note>) {
     // Note Assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
-    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 20).unwrap();
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 200).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 300).unwrap().into();
 
     // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    // CREATED NOTES
+    // --------------------------------------------------------------------------------------------
+    // create note script
+    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
+
+    // Created Notes
+    const SERIAL_NUM_4: Word = [Felt::new(13), Felt::new(14), Felt::new(15), Felt::new(16)];
+    let created_note_1 = Note::new(
+        note_script.clone(),
+        &[Felt::new(1)],
+        &[fungible_asset_1],
+        SERIAL_NUM_4,
+        sender,
+        Felt::ZERO,
+        None,
+    )
+    .unwrap();
+
+    const SERIAL_NUM_5: Word = [Felt::new(17), Felt::new(18), Felt::new(19), Felt::new(20)];
+    let created_note_2 = Note::new(
+        note_script.clone(),
+        &[Felt::new(2)],
+        &[fungible_asset_2],
+        SERIAL_NUM_5,
+        sender,
+        Felt::ZERO,
+        None,
+    )
+    .unwrap();
+
+    const SERIAL_NUM_6: Word = [Felt::new(21), Felt::new(22), Felt::new(23), Felt::new(24)];
+    let created_note_3 = Note::new(
+        note_script,
+        &[Felt::new(2)],
+        &[fungible_asset_3],
+        SERIAL_NUM_6,
+        sender,
+        Felt::ZERO,
+        None,
+    )
+    .unwrap();
+
+    let created_notes = vec![created_note_1, created_note_2, created_note_3];
+
+    // CONSUMED NOTES
+    // --------------------------------------------------------------------------------------------
 
     // create note 1 script
     let note_1_script_src = format!(
@@ -34,7 +92,7 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
             push.{created_note_0_tag}
             push.{created_note_0_asset}
             exec.tx::create_note
-            drop
+            drop 
 
             # create note 1
             push.{created_note_1_recipient}
@@ -78,10 +136,10 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let note_1 = Note::new(
+    let consumed_note_1 = Note::new(
         note_1_script,
         &[Felt::new(1)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
+        &[fungible_asset_1],
         SERIAL_NUM_1,
         sender,
         Felt::ZERO,
@@ -90,10 +148,10 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
     .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-    let note_2 = Note::new(
+    let consumed_note_2 = Note::new(
         note_2_script,
         &[Felt::new(2)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
+        &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
         sender,
         Felt::ZERO,
@@ -101,55 +159,14 @@ pub fn mock_consumed_notes(assembler: &mut Assembler, created_notes: &[Note]) ->
     )
     .unwrap();
 
-    vec![note_1, note_2]
-}
+    let note_3_script_ast = ProgramAst::parse(&"begin push.1 drop end").unwrap();
+    let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
 
-pub fn mock_created_notes(assembler: &mut Assembler) -> Vec<Note> {
-    // Note assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
-    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 20).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
-    let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
-    let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 100).unwrap().into();
-
-    // sender account (account transaction is executed against)
-    let sender = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-
-    // create note script
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
-    let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
-
-    // Created Notes
-    const SERIAL_NUM_1: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
-    let note_1 = Note::new(
-        note_script.clone(),
-        &[Felt::new(1)],
-        &[fungible_asset_1, fungible_asset_2],
-        SERIAL_NUM_1,
-        sender,
-        Felt::ZERO,
-        None,
-    )
-    .unwrap();
-
-    const SERIAL_NUM_2: Word = [Felt::new(13), Felt::new(14), Felt::new(15), Felt::new(16)];
-    let note_2 = Note::new(
-        note_script.clone(),
+    const SERIAL_NUM_3: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
+    let consumed_note_3 = Note::new(
+        note_3_script,
         &[Felt::new(2)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
-        SERIAL_NUM_2,
-        sender,
-        Felt::ZERO,
-        None,
-    )
-    .unwrap();
-
-    const SERIAL_NUM_3: Word = [Felt::new(17), Felt::new(18), Felt::new(19), Felt::new(20)];
-    let note_3 = Note::new(
-        note_script,
-        &[Felt::new(2)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
+        &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_3,
         sender,
         Felt::ZERO,
@@ -157,5 +174,13 @@ pub fn mock_created_notes(assembler: &mut Assembler) -> Vec<Note> {
     )
     .unwrap();
 
-    vec![note_1, note_2, note_3]
+    let mut consumed_notes = vec![consumed_note_1, consumed_note_2, consumed_note_3];
+
+    match asset_preservation {
+        AssetPreservationStatus::TooFewInput => consumed_notes.truncate(1),
+        AssetPreservationStatus::Preserved => consumed_notes.truncate(2),
+        AssetPreservationStatus::TooManyInput => (),
+    };
+
+    (consumed_notes, created_notes)
 }
