@@ -18,6 +18,7 @@ pub type StorageItem = (u8, Word);
 /// Merkle roots of other Merkle structures.  If any Merkle roots are found then the Merkle
 /// structures will be persisted in the `AccountStorage` `MerkleStore`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStorage {
     slots: SimpleSmt,
     store: MerkleStore,

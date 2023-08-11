@@ -19,10 +19,37 @@ const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
 /// the entire account interface by building a simple Merkle tree out of all procedure MAST roots.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountCode {
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     module: ModuleAst,
     procedures: Vec<Digest>,
     procedure_tree: SimpleSmt,
+}
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use assembly::ast::{AstSerdeOptions, ModuleAst};
+
+    pub fn serialize<S>(module: &super::ModuleAst, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = module.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
+
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ModuleAst, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        ModuleAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
 }
 
 impl AccountCode {
