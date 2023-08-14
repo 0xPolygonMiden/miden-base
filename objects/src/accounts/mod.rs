@@ -49,6 +49,7 @@ mod tests;
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Account {
     id: AccountId,
     vault: AccountVault,

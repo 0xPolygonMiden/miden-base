@@ -19,6 +19,7 @@ use crypto::merkle::MerkleTreeDelta;
 ///
 /// An account vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountVault {
     asset_tree: TieredSmt,
 }

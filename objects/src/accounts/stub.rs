@@ -13,6 +13,7 @@ use super::{hash_account, Account, AccountId, Digest, Felt};
 /// - storage_root: accounts storage root ([AccountStorage]).
 /// - code_root: a commitment to the account's code ([AccountCode]).
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStub {
     id: AccountId,
     nonce: Felt,
