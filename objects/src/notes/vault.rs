@@ -7,6 +7,7 @@ use super::{Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 /// A note vault can contain up to 255 assets. The entire vault can be reduced to a single hash
 /// which is computed by sequentially hashing the list of the vault's assets.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteVault {
     assets: Vec<Asset>,
     hash: Digest,

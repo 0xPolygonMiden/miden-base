@@ -3,9 +3,36 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteScript {
     hash: Digest,
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     code: ProgramAst,
+}
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use assembly::ast::AstSerdeOptions;
+
+    pub fn serialize<S>(module: &super::ProgramAst, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = module.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
+
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ProgramAst, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        super::ProgramAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
 }
 
 impl NoteScript {

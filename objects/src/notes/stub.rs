@@ -12,6 +12,7 @@ use miden_lib::memory::{
 /// be the case that only the recipient, vault and metadata are known. In this case, the note
 /// stub can be used to represent the note.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteStub {
     envelope: NoteEnvelope,
     recipient: Digest,

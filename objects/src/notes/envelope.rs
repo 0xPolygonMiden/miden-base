@@ -14,6 +14,7 @@ use miden_core::StarkField;
 ///     - ZERO
 ///     - ZERO
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
     note_hash: Digest,
     note_metadata: NoteMetadata,
