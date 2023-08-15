@@ -47,6 +47,7 @@ use core::{fmt, ops::Deref};
 /// to be different as per the faucet creation logic. Collision resistance for non-fungible assets
 /// issued by the same faucet is ~2^95.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Asset {
     Fungible(FungibleAsset),
     NonFungible(NonFungibleAsset),
@@ -144,6 +145,7 @@ impl TryFrom<[u8; 32]> for Asset {
 /// A fungible asset consists of a faucet ID of the faucet which issued the asset as well as the
 /// asset amount. Asset amount is guaranteed to be 2^63 - 1 or smaller.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct FungibleAsset {
     faucet_id: AccountId,
     amount: u64,
@@ -336,6 +338,8 @@ impl fmt::Display for FungibleAsset {
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NonFungibleAsset(Word);
 
 impl NonFungibleAsset {
@@ -474,6 +478,7 @@ impl fmt::Display for NonFungibleAsset {
 ///
 /// Unlike [NonFungibleAsset] struct, this struct contains full details of a non-fungible asset.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetDetails {
     faucet_id: AccountId,
     asset_data: Vec<u8>,
