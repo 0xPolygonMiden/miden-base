@@ -55,6 +55,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// - A proof which provides the data required to authenticate the note against the note root of
 ///   the block in which the note was produced.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
     script: NoteScript,
     inputs: NoteInputs,

@@ -10,8 +10,9 @@ use super::{AdviceInputsBuilder, Felt, Mmr, ToAdviceInputs, ZERO};
 /// The Mmr allows for efficient authentication of consumed notes during transaction execution.
 /// Authenticaiton is achieved by providing an inclusion proof for the consumed notes in the
 /// transaction against the chain Mmr root associated with the latest block known at the time
-/// of transaction exectuion.  
+/// of transaction exectuion.
 #[derive(Clone, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ChainMmr(Mmr);
 
 impl ChainMmr {

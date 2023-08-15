@@ -3,6 +3,7 @@ use crypto::merkle::{MerklePath, NodeIndex};
 
 /// Contains information about the origin of a note.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteOrigin {
     pub block_num: Felt,
     pub node_index: NodeIndex,
@@ -18,6 +19,7 @@ pub struct NoteOrigin {
 /// note_path  - the Merkle path to the note in the note Merkle tree of the block the note was
 ///              created in.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInclusionProof {
     origin: NoteOrigin,
     sub_hash: Digest,

@@ -5,6 +5,7 @@ use super::{AccountId, Felt, NoteError, Word};
 /// - tag is a tag which can be used to identify the target account for the note.
 /// - num_assets is the number of assets in the note.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
     sender: AccountId,
     tag: Felt,

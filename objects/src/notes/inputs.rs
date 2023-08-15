@@ -5,6 +5,7 @@ use super::{Digest, Felt, Hasher, NoteError, ZERO};
 ///   in the correct order
 /// - hash is computed from inputs in the order they are stored (reverse stack order)
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInputs {
     inputs: [Felt; 16],
     hash: Digest,
