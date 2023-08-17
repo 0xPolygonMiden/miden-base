@@ -170,7 +170,7 @@ export.set_account_code
     # => [0, 0, 0, 0]
 end
 
-# TODO: Add vault based procedures (add_asset, remove_asset, mint, burn)
+# TODO: Add vault based procedures (mint, burn)
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.
@@ -198,6 +198,74 @@ export.account_vault_has_non_fungible_asset
 
     exec.account_vault::has_non_fungible_asset
     # => [has_asset, 0, 0, 0]
+end
+
+#! Add the specified asset to the vault.
+#!
+#! Panics:
+#! - If the asset is not valid.
+#! - If the total value of two fungible assets is greater than or equal to 2^63.
+#! - If the vault already contains the same non-fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET']
+#!
+#! - ASSET is the asset to add to the vault.
+#! - ASSET' final asset in the account vault defined as follows:
+#!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
+#!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
+#!     after ASSET was added to it.
+export.account_vault_add_asset
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ASSET]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, ASSET]
+
+    # drop the caller
+    dropw
+    # => [ASSET]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+    exec.account_vault::add_asset
+    # => [ASSET']
+end
+
+#! Remove the specified asset from the vault.
+#!
+#! Panics:
+#! - The fungible asset is not found in the vault.
+#! - The amount of the fungible asset in the vault is less than the amount to be removed.
+#! - The non-fungible asset is not found in the vault.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET]
+#!
+#! - ASSET is the asset to remove from the vault.
+export.account_vault_remove_asset
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ASSET]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, ASSET]
+
+    # drop the caller
+    dropw
+    # => [ASSET]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+    exec.account_vault::remove_asset
+    # => [ASSET]
 end
 
 #! Returns the number of assets and vault hash of the note currently being processed. Panics if a

@@ -5,6 +5,17 @@ use.miden::sat::internal::account
 
 const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 
+#! Returns the maximum amount of a fungible asset.
+#!
+#! Stack: []
+#! Outputs: [fungible_asset_max_amount]
+#!
+#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+export.get_fungible_asset_max_amount
+    push.FUNGIBLE_ASSET_MAX_AMOUNT
+    # => [fungible_asset_max_amount]
+end
+
 # PROCEDURES
 # =================================================================================================
 
@@ -89,7 +100,7 @@ end
 #! Validates that an asset is well formed. Panics if the asset is not well formed.
 #!
 #! Stack: [ASSET]
-#! Outputs: []
+#! Outputs: [ASSET]
 #!
 #! ASSET is the asset to validate.
 export.validate_asset
