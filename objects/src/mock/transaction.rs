@@ -4,8 +4,8 @@ use super::{
     super::{
         notes::Note, transaction::ExecutedTransaction, Account, BlockHeader, ChainMmr, Felt, Vec,
     },
-    assembler, mock_account, mock_block_header, mock_chain_data, mock_consumed_notes,
-    mock_created_notes, mock_new_account, AccountStatus,
+    assembler, mock_account, mock_block_header, mock_chain_data, mock_new_account, mock_notes,
+    AccountStatus, AssetPreservationStatus,
 };
 
 pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
@@ -19,11 +19,9 @@ pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, Chai
         mock_account(Felt::ONE, None, &mut assembler)
     };
 
-    // Created notes
-    let created_notes = mock_created_notes(&mut assembler);
-
-    // Consumed notes
-    let mut consumed_notes = mock_consumed_notes(&mut assembler, &created_notes);
+    // mock notes
+    let (mut consumed_notes, _created_notes) =
+        mock_notes(&mut assembler, AssetPreservationStatus::Preserved);
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
@@ -40,7 +38,7 @@ pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, Chai
     (account, block_header, chain_mmr, consumed_notes)
 }
 
-pub fn mock_executed_tx() -> ExecutedTransaction {
+pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
     // Create assembler and assembler context
     let mut assembler = assembler();
 
@@ -51,11 +49,8 @@ pub fn mock_executed_tx() -> ExecutedTransaction {
     let final_account =
         mock_account(Felt::new(2), Some(initial_account.code().clone()), &mut assembler);
 
-    // Created notes
-    let created_notes = mock_created_notes(&mut assembler);
-
-    // Consumed notes
-    let mut consumed_notes = mock_consumed_notes(&mut assembler, &created_notes);
+    // mock notes
+    let (mut consumed_notes, created_notes) = mock_notes(&mut assembler, asset_preservation);
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);

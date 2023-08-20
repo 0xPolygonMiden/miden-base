@@ -1,16 +1,17 @@
 pub mod common;
 use common::{
-    data::mock_executed_tx,
+    data::{mock_executed_tx, AssetPreservationStatus},
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
     procedures::created_notes_data_procedure,
-    run_within_tx_kernel, Felt, FieldElement, MemAdviceProvider, StackInputs, TX_KERNEL_DIR,
+    run_within_tx_kernel, Felt, FieldElement, MemAdviceProvider, TX_KERNEL_DIR,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
 #[test]
 fn test_epilogue() {
-    let executed_transaction = mock_executed_tx();
+    let executed_transaction =
+        mock_executed_tx(miden_objects::mock::AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
@@ -59,31 +60,30 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_created_note_hash() {
-    let executed_transaction = mock_executed_tx();
+    let executed_transaction =
+        mock_executed_tx(miden_objects::mock::AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
 
-    executed_transaction.created_notes_commitment();
-
     for (note, i) in executed_transaction.created_notes().iter().zip(0u32..) {
+        let imports = "use.miden::sat::internal::prologue\n";
         let test = format!(
             "
         {created_notes_data_procedure}
         begin
+            exec.prologue::prepare_transaction
             exec.create_mock_notes
-            push.{i}
-            exec.layout::get_created_note_ptr
-            exec.compute_created_note_hash
+            exec.finalize_transaction
         end
         "
         );
 
         let process = run_within_tx_kernel(
-            "",
+            imports,
             &test,
-            StackInputs::default(),
-            MemAdviceProvider::default(),
+            executed_transaction.stack_inputs(),
+            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
             Some(TX_KERNEL_DIR),
             Some(EPILOGUE_FILE),
         )
@@ -98,7 +98,45 @@ fn test_compute_created_note_hash() {
 
         // assert the note hash is correct
         let expected_hash = note.hash();
-        let actual_hash = process.stack.get_word(0);
-        assert_eq!(&actual_hash, expected_hash.as_elements());
+        let note_hash_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
+        let actual_note_hash = process.get_memory_value(0, note_hash_memory_address).unwrap();
+        assert_eq!(&actual_note_hash, expected_hash.as_elements());
+    }
+}
+
+#[test]
+fn test_epilogue_asset_preservation_violation() {
+    for asset_preservation in
+        [AssetPreservationStatus::TooFewInput, AssetPreservationStatus::TooManyInput]
+    {
+        let executed_transaction = mock_executed_tx(asset_preservation);
+
+        let created_notes_data_procedure =
+            created_notes_data_procedure(executed_transaction.created_notes());
+
+        let imports = "use.miden::sat::internal::prologue\n";
+        let code = format!(
+            "
+        {created_notes_data_procedure}
+        begin
+            exec.prologue::prepare_transaction
+            exec.create_mock_notes
+            push.1 exec.account::incr_nonce
+            exec.finalize_transaction
+        end
+        "
+        );
+
+        let process = run_within_tx_kernel(
+            imports,
+            &code,
+            executed_transaction.stack_inputs(),
+            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+            Some(TX_KERNEL_DIR),
+            Some(EPILOGUE_FILE),
+        );
+
+        // assert the process results in error
+        assert!(process.is_err());
     }
 }

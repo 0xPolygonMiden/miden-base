@@ -1,5 +1,6 @@
 use.miden::sat::internal::layout
 use.miden::sat::internal::account
+use.miden::sat::internal::asset_vault
 
 # CONSTANTS
 # =================================================================================================
@@ -21,13 +22,60 @@ const.CREATED_NOTE_HASHING_MEM_DIFF=1022
 #! - note_data_ptr is a pointer to the data section of the created note.
 #! - VAULT_HASH is the vault hash of the created note with index i.
 proc.compute_created_note_vault_hash
+    # TODO: Consider moving output vault asset insertion into the loop for note vault hash creation.
+    #       Similarly we should consider doing the same in the prologue.
+
+    # insert note assets into the output vault
+    # ---------------------------------------------------------------------------------------------
     # duplicate note pointer - we will use this to save vault hash to memory
-    dup
-    # => [note_data_ptr, note_data_ptr]
+    dup dup exec.layout::get_created_note_num_assets
+    # => [num_assets, note_data_ptr, note_data_ptr]
 
     # get the number of assets from memory
-    dup exec.layout::get_created_note_num_assets
+    exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup 
+    # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr, 
+    #     note_data_ptr]
+    
+    # compute end pointer 
+    dup.3 add swap
+    # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr, 
+    #     note_data_ptr]
+
+    # loop over assets and insert them into input vault
+
+    # assess if we should loop
+    dup.1 dup.1 neq
+    # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+    #     note_data_ptr, note_data_ptr]
+
+    while.true
+        # duplicate output_vault_root_ptr
+        dup.2
+        # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, 
+        #     num_assets, note_data_ptr, note_data_ptr]
+
+        # read the asset from memory
+        padw dup.5 mem_loadw
+        # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
+        #     num_assets, note_data_ptr, note_data_ptr]
+
+        # insert asset into input vault
+        exec.asset_vault::add_asset dropw
+        # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
+        #     note_data_ptr]
+
+        # increment assets_start_ptr and asses if we should loop again
+        add.1 dup.1 dup.1 neq
+        # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+        #     note_data_ptr, note_data_ptr]
+    end
+
+    # clean stack
+    drop drop drop
     # => [num_assets, note_data_ptr, note_data_ptr]
+
+    # construct output note vault hash
+    # ---------------------------------------------------------------------------------------------
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
     add.1 u32checked_div.2
@@ -55,9 +103,8 @@ proc.compute_created_note_vault_hash
 
         # check if we should loop again
         movup.13 add.1 dup movdn.14 dup.15 neq
-        # => [should_loop, PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
-
-        # TODO: construct final transaction vault here.
+        # => [should_loop, PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs, 
+        #     note_data_ptr]
     end
 
     # extract digest from hasher rate elements (h_0, ..., h_3)
@@ -223,6 +270,9 @@ export.finalize_transaction
     # drop initial account hash
     swapw dropw
 
+    # copy final account vault root to output account vault root
+    exec.layout::get_acct_vault_root exec.layout::set_output_vault_root
+
     # compute created note hash
     exec.compute_output_notes_hash
 
@@ -241,6 +291,6 @@ export.finalize_transaction
     # truncate stack
     swapw.2 dropw swapw.2 dropw
 
-    # TODO: assert final vault matches initial vault (no assets were created or destroyed). The
-    # logic may need to be a bit more sophisticated to account for faucets which can create assets.
+    # assert no net creation or destruction of assets over the transaction
+    exec.layout::get_input_vault_root exec.layout::get_output_vault_root assert_eqw
 end

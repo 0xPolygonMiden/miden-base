@@ -10,18 +10,19 @@ use.miden::sat::internal::layout
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.
 #!
-#! Stack: [faucet_id]
+#! Stack: [faucet_id, vault_root_ptr]
 #! Output: [balance]
 #!
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 export.get_balance
     # assert that the faucet id is a fungible faucet
     dup exec.account::is_fungible_faucet assert
-    # => [faucet_id]
+    # => [faucet_id, vault_root_ptr]
 
     # get the asset vault root
-    exec.layout::get_acct_vault_root
+    padw movup.5 mem_loadw
     # => [ASSET_VAULT_ROOT, faucet_id]
 
     # prepare the key for fungible asset lookup (pad least significant elements with ZERO)
@@ -40,18 +41,19 @@ end
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
 #! Panics if the ASSET is a fungible asset.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [has_asset]
 #!
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.has_non_fungible_asset
     # check if the asset is a non-fungible asset
     exec.asset::is_non_fungible_asset assert
-    # => [ASSET]
+    # => [ASSET, vault_root_ptr]
 
     # prepare the stack to read non-fungible asset from vault
-    exec.layout::get_acct_vault_root swapw
+    padw movup.8 mem_loadw swapw
     # => [ASSET, ACCT_VAULT_ROOT]
 
     # lookup asset
@@ -80,45 +82,46 @@ end
 #! Panics:
 #! - If the total value of assets is greater than or equal to 2^63.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET']
 #!
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET is the fungible asset to add to the vault.
 #! - ASSET' is the total fungible asset in the account vault after ASSET was added to it.
 proc.add_fungible_asset
-    push.0 movdn.3
-    # => [ASSET_KEY, amount]
+    dup.4 movdn.5 push.0 movdn.3
+    # => [ASSET_KEY, amount, vault_root_ptr, vault_root_ptr]
 
     # get the asset vault root and read asset
-    exec.layout::get_acct_vault_root swapw exec.smt::get
-    # => [CUR_ASSET, VAULT_ROOT, amount]
+    padw movup.9 mem_loadw swapw exec.smt::get
+    # => [CUR_ASSET, VAULT_ROOT, amount, vault_root_ptr]
 
     # arrange elements
     movup.3 movup.8 dup
-    # => [amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT]
+    # => [amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
 
     # compute max_amount - cur_amount
     exec.asset::get_fungible_asset_max_amount dup.3 sub
-    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT]
+    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
 
     # asset amount + cur_amount < max_amount
     lte assert
-    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT]
+    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
 
     # add asset amounts
     add movdn.3 
-    # => [ASSET', VAULT_ROOT]
+    # => [ASSET', VAULT_ROOT, vault_root_ptr]
 
     # prepare the stack to insert the asset into the vault
     dupw movdnw.2 dupw movup.3 drop push.0 movdn.3 swapw
-    # => [KEY, ASSET', VAULT_ROOT, ASSET']
+    # => [KEY, ASSET', VAULT_ROOT, ASSET', vault_root_ptr]
 
     # update asset in vault
     exec.smt::insert dropw
-    # => [VAULT_ROOT', ASSET']
+    # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root
-    exec.layout::set_acct_vault_root
+    movup.8 mem_storew dropw
     # => [ASSET']
 end
 
@@ -127,25 +130,26 @@ end
 #! Panics:
 #! - If the vault already contains the same non-fungible asset.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET]
 #!
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET is the non-fungible asset that is added to the vault.
 proc.add_non_fungible_asset
     # prepare the stack to insert the asset into the vault
-    dupw exec.layout::get_acct_vault_root swapw dupw
-    # => [ASSET, ASSET, VAULT_ROOT, ASSET]
+    dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw dupw
+    # => [ASSET, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # insert asset into vault
     exec.smt::insert
-    # => [OLD_VAL, VAULT_ROOT', ASSET]
+    # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was empty
     padw assert_eqw
-    # => [VAULT_ROOT', ASSET]
+    # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
-    exec.layout::set_acct_vault_root
+    movup.8 mem_storew dropw
     # => [ASSET]
 end
 
@@ -156,9 +160,11 @@ end
 #! - If the total value of two fungible assets is greater than or equal to 2^63.
 #! - If the vault already contains the same non-fungible asset.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET']
 #!
+#! - ASSET is the asset that is added to the vault.
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET' final asset in the account vault defined as follows:
 #!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
@@ -166,7 +172,7 @@ end
 export.add_asset
     # check if the asset is a fungible asset
     exec.asset::is_fungible_asset
-    # => [is_fungible_asset, ASSET]
+    # => [is_fungible_asset, ASSET, vault_root_ptr]
 
     # add the asset to the asset vault
     if.true
@@ -182,7 +188,7 @@ export.add_asset
         # => [ASSET]
 
         exec.add_non_fungible_asset
-        # => [ASSET]
+        # => [ASSET']
     end
 end
 
@@ -194,50 +200,51 @@ end
 #! Panics:
 #! - The amount of the asset in the vault is less than the amount to be removed.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET]
 #!
 #! - ASSET is the fungible asset to remove from the vault.
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 proc.remove_fungible_asset
-    dupw push.0 movdn.3
-    # => [ASSET_KEY, amount, ASSET]
+    dup.4 movdn.5 dupw push.0 movdn.3
+    # => [ASSET_KEY, amount, ASSET, vault_root_ptr, vault_root_ptr]
 
     # get the asset vault root and read asset
-    exec.layout::get_acct_vault_root swapw exec.smt::get
-    # => [CUR_ASSET, VAULT_ROOT, amount, ASSET]
+    padw movup.13 mem_loadw swapw exec.smt::get
+    # => [CUR_ASSET, VAULT_ROOT, amount, ASSET, vault_root_ptr]
 
     # arrange elements
     movup.3 movup.8 dup dup.3
-    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET]
+    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
     lte assert
-    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET]
+    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # asset amount + cur_amount < max_amount
     sub
-    # => [new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET]
+    # => [new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # => check if the asset amount is zero
     dup eq.0
-    # => [is_zero, new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET]
+    # => [is_zero, new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
 
     if.true
         # fungible asset empty - insert EMPTY_WORD in vault
         movdn.3 padw
-        # => [EMPTY_WORD, ASSET_KEY, VAULT_ROOT, ASSET]
+        # => [EMPTY_WORD, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
     else
         # fungible asset not empty - update asset in vault
         movdn.3 dupw movup.3 drop push.0 movdn.3 swapw
-        # => [NEW_ASSET, ASSET_KEY, VAULT_ROOT, ASSET]
+        # => [NEW_ASSET, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
     end
 
     # update asset in vault
     exec.smt::insert dropw
-    # => [VAULT_ROOT', ASSET]
+    # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
-    exec.layout::set_acct_vault_root
+    movup.8 mem_storew dropw
     # => [ASSET]
 end
 
@@ -246,26 +253,27 @@ end
 #! Panics:
 #! - The non-fungible asset is not found in the vault.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET]
 #!
 #! - ASSET is the non-fungible asset to remove from the vault.
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 proc.remove_non_fungible_asset
     # prepare the stack to insert an EMPTY_WORD into the vault at key associated with the 
     # non-fungible asset
-    dupw exec.layout::get_acct_vault_root swapw padw
-    # => [EMPTY_WORD, ASSET, VAULT_ROOT, ASSET]
+    dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw padw
+    # => [EMPTY_WORD, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # update asset in vault
     exec.smt::insert
-    # => [OLD_VAL, VAULT_ROOT', ASSET]
+    # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was not empty (we only need to check ASSET[1] which is the faucet id)
     drop drop eq.0 assertz drop
-    # => [VAULT_ROOT', ASSET]
+    # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
-    exec.layout::set_acct_vault_root
+    movup.8 mem_storew dropw
     # => [ASSET]
 end
 
@@ -276,14 +284,15 @@ end
 #! - The amount of the fungible asset in the vault is less than the amount to be removed.
 #! - The non-fungible asset is not found in the vault.
 #!
-#! Stack: [ASSET]
+#! Stack: [ASSET, vault_root_ptr]
 #! Output: [ASSET]
 #!
 #! - ASSET is the asset to remove from the vault.
+#! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 export.remove_asset
     # check if the asset is a fungible asset
     exec.asset::is_fungible_asset
-    # => [is_fungible_asset, ASSET]
+    # => [is_fungible_asset, ASSET, vault_root_ptr]
 
     # add the asset to the asset vault
     if.true

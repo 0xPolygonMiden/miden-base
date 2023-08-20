@@ -75,16 +75,12 @@ fn test_get_vault_data() {
         use.miden::sat::internal::prologue
         use.miden::sat::internal::note_setup
         use.miden::sat::internal::note
-        use.miden::sat::internal::layout
 
         begin
             exec.prologue::prepare_transaction
 
             # prepare note 0
             exec.note_setup::prepare_note
-
-            # drop the note inputs
-            dropw dropw dropw dropw
 
             # get the vault data
             exec.note::get_vault_info
@@ -95,9 +91,6 @@ fn test_get_vault_data() {
 
             # prepare note 1
             exec.note_setup::prepare_note
-
-            # drop the note inputs
-            dropw dropw dropw dropw
 
             # get the vault data
             exec.note::get_vault_info

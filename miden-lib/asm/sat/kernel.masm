@@ -1,5 +1,6 @@
 use.miden::sat::internal::account
-use.miden::sat::internal::account_vault
+use.miden::sat::internal::asset_vault
+use.miden::sat::internal::layout
 use.miden::sat::internal::note
 use.miden::sat::internal::tx
 
@@ -181,7 +182,11 @@ end
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 export.account_vault_get_balance
-    exec.account_vault::get_balance
+    exec.layout::get_acct_vault_root_ptr swap
+    # => [faucet_id, acct_vault_root_ptr]
+
+    exec.asset_vault::get_balance
+    # => [balance]
 end
 
 #! Returns a boolean indicating whether the non-fungible asset is present in the vault.
@@ -193,10 +198,10 @@ end
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.account_vault_has_non_fungible_asset
-    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4
+    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.layout::get_acct_vault_root_ptr movdn.4
     # => [ASSET, 0, 0, 0]
 
-    exec.account_vault::has_non_fungible_asset
+    exec.asset_vault::has_non_fungible_asset
     # => [has_asset, 0, 0, 0]
 end
 
@@ -232,7 +237,10 @@ export.account_vault_add_asset
 
     # KERNEL LOGIC
     # ---------------------------------------------------------------------------------------------
-    exec.account_vault::add_asset
+    exec.layout::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, acct_vault_root_ptr]
+
+    exec.asset_vault::add_asset
     # => [ASSET']
 end
 
@@ -264,7 +272,10 @@ export.account_vault_remove_asset
 
     # KERNEL LOGIC
     # ---------------------------------------------------------------------------------------------
-    exec.account_vault::remove_asset
+    exec.layout::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, acct_vault_root_ptr]
+
+    exec.asset_vault::remove_asset
     # => [ASSET]
 end
 
