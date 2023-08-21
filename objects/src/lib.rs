@@ -37,6 +37,9 @@ pub mod notes;
 pub mod block;
 pub use block::BlockHeader;
 
+#[cfg(feature = "mock")]
+pub mod builder;
+
 pub mod chain;
 pub use chain::ChainMmr;
 
