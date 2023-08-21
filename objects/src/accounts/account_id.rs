@@ -6,7 +6,7 @@ use crypto::FieldElement;
 // ================================================================================================
 
 /// Specifies the account type.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum AccountType {
     FungibleFaucet,
     NonFungibleFaucet,
