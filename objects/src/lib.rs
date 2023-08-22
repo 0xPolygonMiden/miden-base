@@ -30,6 +30,8 @@ mod advice;
 use advice::{AdviceInputsBuilder, ToAdviceInputs};
 
 pub mod assets;
+pub use assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
+
 pub mod notes;
 
 pub mod block;
