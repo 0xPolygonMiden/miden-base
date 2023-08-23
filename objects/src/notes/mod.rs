@@ -7,7 +7,7 @@ mod envelope;
 pub use envelope::NoteEnvelope;
 
 mod inputs;
-use inputs::NoteInputs;
+pub use inputs::NoteInputs;
 
 mod metadata;
 pub use metadata::NoteMetadata;
@@ -88,7 +88,7 @@ impl Note {
         let num_assets = vault.num_assets();
         Ok(Self {
             script,
-            inputs: NoteInputs::new(inputs),
+            inputs: NoteInputs::new(inputs)?,
             vault,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),

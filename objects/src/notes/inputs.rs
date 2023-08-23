@@ -24,9 +24,9 @@ impl NoteInputs {
     ///
     /// # Errors
     /// Returns an error if the number of provided inputs is greater than 16.
-    pub fn new(inputs: &[Felt]) -> Self {
+    pub fn new(inputs: &[Felt]) -> Result<Self, NoteError> {
         if inputs.len() > Self::NOTE_NUM_INPUTS {
-            NoteError::too_many_inputs(inputs.len());
+            return Err(NoteError::too_many_inputs(inputs.len()));
         }
 
         // pad inputs with ZERO to be constant size (16 elements)
@@ -39,10 +39,10 @@ impl NoteInputs {
         // compute hash from padded inputs.
         let hash = Hasher::hash_elements(&padded_inputs);
 
-        Self {
+        Ok(Self {
             inputs: padded_inputs,
             hash,
-        }
+        })
     }
 
     // PUBLIC ACCESSORS
@@ -85,6 +85,6 @@ fn test_input_ordering() {
         Felt::new(3),
     ]);
 
-    let note_inputs = NoteInputs::new(&inputs);
+    let note_inputs = NoteInputs::new(&inputs).expect("note created should succeed");
     assert_eq!(&expected_ordering, note_inputs.inputs());
 }
