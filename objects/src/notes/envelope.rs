@@ -13,7 +13,7 @@ use miden_core::StarkField;
 ///     - tag
 ///     - ZERO
 ///     - ZERO
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
     note_hash: Digest,
