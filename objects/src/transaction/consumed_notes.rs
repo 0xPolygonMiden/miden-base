@@ -97,6 +97,18 @@ impl From<ConsumedNotes> for Vec<ConsumedNoteInfo> {
     }
 }
 
+impl From<Vec<Note>> for ConsumedNotes {
+    fn from(notes: Vec<Note>) -> Self {
+        Self::new(notes)
+    }
+}
+
+impl FromIterator<Note> for ConsumedNotes {
+    fn from_iter<T: IntoIterator<Item = Note>>(iter: T) -> Self {
+        Self::new(iter.into_iter().collect())
+    }
+}
+
 // CONSUMED NOTE INFO
 // ================================================================================================
 
