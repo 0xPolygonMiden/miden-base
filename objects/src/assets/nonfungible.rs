@@ -4,6 +4,9 @@ use super::{
 };
 use core::fmt;
 
+/// Position of the faucet_id inside the [NonFungibleAsset] word.
+const FAUCET_ID_POS: usize = 1;
+
 // NON-FUNGIBLE ASSET
 // ================================================================================================
 /// A commitment to a non-fungible asset.
@@ -46,7 +49,7 @@ impl NonFungibleAsset {
             return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
         }
         // set the element 1 to the faucet_id
-        data_hash[1] = faucet_id.into();
+        data_hash[FAUCET_ID_POS] = faucet_id.into();
 
         // set the first bit of the asset to 0; we can do this because setting the first bit to 0
         // will always result in a valid field element.
@@ -69,6 +72,11 @@ impl NonFungibleAsset {
         self.0
     }
 
+    /// Return ID of the faucet which issued this asset.
+    pub fn faucet_id(&self) -> AccountId {
+        AccountId::new_unchecked(self.0[FAUCET_ID_POS])
+    }
+
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -78,7 +86,7 @@ impl NonFungibleAsset {
     /// - The faucet_id is not a valid non-fungible faucet ID.
     /// - The most significant bit of the asset is not ZERO.
     fn validate(&self) -> Result<(), AssetError> {
-        let faucet_id = AccountId::try_from(self.0[1])
+        let faucet_id = AccountId::try_from(self.0[FAUCET_ID_POS])
             .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
 
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
@@ -103,7 +111,7 @@ impl From<NonFungibleAsset> for [u8; 32] {
     fn from(asset: NonFungibleAsset) -> Self {
         let mut result = [0_u8; 32];
         result[..8].copy_from_slice(&asset.0[0].as_int().to_le_bytes());
-        result[8..16].copy_from_slice(&asset.0[1].as_int().to_le_bytes());
+        result[8..16].copy_from_slice(&asset.0[FAUCET_ID_POS].as_int().to_le_bytes());
         result[16..24].copy_from_slice(&asset.0[2].as_int().to_le_bytes());
         result[24..].copy_from_slice(&asset.0[3].as_int().to_le_bytes());
         result
