@@ -252,23 +252,18 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn code_root(&mut self, code_root: Digest) -> &mut Self {
-        self.account_id_builder.code_root(code_root);
-        self
-    }
-
-    pub fn storage_root(&mut self, storage_root: Digest) -> &mut Self {
-        self.account_id_builder.storage_root(storage_root);
-        self
-    }
-
     pub fn build(mut self) -> Result<Account, AccountError> {
-        let account_id = self.account_id_builder.build()?;
         let vault = AccountVault::new(&self.assets)?;
         let storage = self.storage_builder.build();
         let assembler = assembler();
+
         let account_module_ast = ModuleAst::parse(&self.code).unwrap();
-        let account_code = AccountCode::new(account_id, account_module_ast, &assembler)?;
+        let invalid_id = AccountId::new_unchecked(ZERO);
+        let account_code = AccountCode::new(invalid_id, account_module_ast, &assembler)?;
+        self.account_id_builder.code_root(account_code.root());
+        self.account_id_builder.storage_root(storage.root());
+        let account_id = self.account_id_builder.build()?;
+
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 }
