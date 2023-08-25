@@ -1,7 +1,10 @@
 use crate::{
-    mock::assembler, Account, AccountCode, AccountError, AccountId, AccountStorage, AccountType,
-    AccountVault, Asset, AssetError, Digest, Felt, FungibleAsset, MerkleStore, NonFungibleAsset,
-    NonFungibleAssetDetails, StorageItem, String, ToString, Vec, ZERO,
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    mock::assembler,
+    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
+    Account, AccountCode, AccountError, AccountId, AccountStorage, AccountType, AccountVault,
+    AssetError, Digest, Felt, MerkleStore, NoteError, ProgramAst, StorageItem, String, ToString,
+    Vec, Word, ZERO,
 };
 use assembly::ast::ModuleAst;
 use rand::{distributions::Standard, Rng};
@@ -265,5 +268,82 @@ impl<T: Rng> AccountBuilder<T> {
         let account_id = self.account_id_builder.build()?;
 
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+    }
+}
+
+pub struct NoteBuilder {
+    sender: AccountId,
+    inputs: Vec<Felt>,
+    assets: Vec<Asset>,
+    serial_num: Word,
+    tag: Felt,
+    code: String,
+    proof: Option<NoteInclusionProof>,
+}
+
+const DEFAULT_NOTE_CODE: &str = "\
+begin
+end
+";
+
+impl NoteBuilder {
+    pub fn new<T: Rng>(sender: AccountId, mut rng: T) -> Self {
+        let serial_num = [
+            Felt::new(rng.gen()),
+            Felt::new(rng.gen()),
+            Felt::new(rng.gen()),
+            Felt::new(rng.gen()),
+        ];
+
+        Self {
+            sender,
+            inputs: vec![],
+            assets: vec![],
+            serial_num,
+            tag: Felt::default(),
+            code: DEFAULT_NOTE_CODE.to_string(),
+            proof: None,
+        }
+    }
+
+    pub fn note_inputs(mut self, inputs: Vec<Felt>) -> Result<Self, NoteError> {
+        NoteInputs::new(&inputs)?;
+        self.inputs = inputs;
+        Ok(self)
+    }
+
+    pub fn add_asset(mut self, asset: Asset) -> Self {
+        self.assets.push(asset);
+        self
+    }
+
+    pub fn tag(mut self, tag: Felt) -> Self {
+        self.tag = tag;
+        self
+    }
+
+    pub fn code<S: AsRef<str>>(mut self, code: S) -> Self {
+        self.code = code.as_ref().to_string();
+        self
+    }
+
+    pub fn proof(mut self, proof: NoteInclusionProof) -> Self {
+        self.proof = Some(proof);
+        self
+    }
+
+    pub fn build(self) -> Result<Note, NoteError> {
+        let assembler = assembler();
+        let note_ast = ProgramAst::parse(&self.code).unwrap();
+        let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
+        Note::new(
+            note_script,
+            &self.inputs,
+            &self.assets,
+            self.serial_num,
+            self.sender,
+            self.tag,
+            self.proof,
+        )
     }
 }
