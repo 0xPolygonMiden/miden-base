@@ -1,14 +1,15 @@
 use super::{
-    BTreeMap, Digest, Felt, Hasher, MerkleStore, NoteEnvelope, NoteStub, StackOutputs,
+    BTreeMap, Digest, Felt, Hasher, MerkleStore, Note, NoteEnvelope, NoteStub, StackOutputs,
     TransactionResultError, TryFromVmResult, Vec, Word, WORD_SIZE,
 };
+use core::iter::FromIterator;
 use miden_core::utils::group_slice_elements;
 use miden_lib::memory::NOTE_MEM_SIZE;
 
 // CREATED NOTES
 // ================================================================================================
 /// [CreatedNotes] represents the notes created by a transaction.
-///     
+///
 /// [CreatedNotes] is composed of:
 /// - notes: a vector of [NoteStub] objects representing the notes created by the transaction.
 /// - commitment: a commitment to the created notes.
@@ -104,6 +105,30 @@ pub fn generate_created_notes_stub_commitment(notes: &[NoteStub]) -> Digest {
 
 impl From<CreatedNotes> for Vec<NoteEnvelope> {
     fn from(created_notes: CreatedNotes) -> Self {
-        created_notes.notes.into_iter().map(|note| note.into()).collect::<Vec<_>>()
+        (&created_notes).into()
+    }
+}
+
+impl From<&CreatedNotes> for Vec<NoteEnvelope> {
+    fn from(created_notes: &CreatedNotes) -> Self {
+        created_notes.notes.iter().map(|note| note.into()).collect::<Vec<_>>()
+    }
+}
+
+impl From<Vec<Note>> for CreatedNotes {
+    fn from(notes: Vec<Note>) -> Self {
+        Self::new(notes.into_iter().map(|note| note.into()).collect())
+    }
+}
+
+impl From<Vec<&Note>> for CreatedNotes {
+    fn from(notes: Vec<&Note>) -> Self {
+        Self::new(notes.iter().map(|note| (*note).into()).collect())
+    }
+}
+
+impl FromIterator<Note> for CreatedNotes {
+    fn from_iter<T: IntoIterator<Item = Note>>(iter: T) -> Self {
+        Self::new(iter.into_iter().map(|v| v.into()).collect())
     }
 }

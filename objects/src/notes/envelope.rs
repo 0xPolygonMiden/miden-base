@@ -13,7 +13,7 @@ use miden_core::StarkField;
 ///     - tag
 ///     - ZERO
 ///     - ZERO
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
     note_hash: Digest,
@@ -41,31 +41,49 @@ impl NoteEnvelope {
 }
 
 impl From<NoteEnvelope> for [Felt; 8] {
-    fn from(cni: NoteEnvelope) -> Self {
-        let mut elements: [Felt; 8] = Default::default();
-        elements[..4].copy_from_slice(cni.note_hash.as_elements());
-        elements[4..].copy_from_slice(&Word::from(cni.metadata()));
-        elements
+    fn from(note_envelope: NoteEnvelope) -> Self {
+        (&note_envelope).into()
     }
 }
 
 impl From<NoteEnvelope> for [Word; 2] {
-    fn from(cni: NoteEnvelope) -> Self {
-        let mut elements: [Word; 2] = Default::default();
-        elements[0].copy_from_slice(cni.note_hash.as_elements());
-        elements[1].copy_from_slice(&Word::from(cni.metadata()));
-        elements
+    fn from(note_envelope: NoteEnvelope) -> Self {
+        (&note_envelope).into()
     }
 }
 
 impl From<NoteEnvelope> for [u8; 64] {
-    fn from(cni: NoteEnvelope) -> Self {
+    fn from(note_envelope: NoteEnvelope) -> Self {
+        (&note_envelope).into()
+    }
+}
+
+impl From<&NoteEnvelope> for [Felt; 8] {
+    fn from(note_envelope: &NoteEnvelope) -> Self {
+        let mut elements: [Felt; 8] = Default::default();
+        elements[..4].copy_from_slice(note_envelope.note_hash.as_elements());
+        elements[4..].copy_from_slice(&Word::from(note_envelope.metadata()));
+        elements
+    }
+}
+
+impl From<&NoteEnvelope> for [Word; 2] {
+    fn from(note_envelope: &NoteEnvelope) -> Self {
+        let mut elements: [Word; 2] = Default::default();
+        elements[0].copy_from_slice(note_envelope.note_hash.as_elements());
+        elements[1].copy_from_slice(&Word::from(note_envelope.metadata()));
+        elements
+    }
+}
+
+impl From<&NoteEnvelope> for [u8; 64] {
+    fn from(note_envelope: &NoteEnvelope) -> Self {
         let mut elements: [u8; 64] = [0; 64];
-        let note_metadata_bytes = Word::from(cni.metadata())
+        let note_metadata_bytes = Word::from(note_envelope.metadata())
             .iter()
             .flat_map(|x| x.as_int().to_le_bytes())
             .collect::<Vec<u8>>();
-        elements[..32].copy_from_slice(&cni.note_hash.as_bytes());
+        elements[..32].copy_from_slice(&note_envelope.note_hash.as_bytes());
         elements[32..].copy_from_slice(&note_metadata_bytes);
         elements
     }

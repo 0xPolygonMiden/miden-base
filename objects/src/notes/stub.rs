@@ -1,4 +1,6 @@
-use super::{Digest, Hasher, NoteEnvelope, NoteError, NoteMetadata, NoteVault, Word, WORD_SIZE};
+use super::{
+    Digest, Hasher, Note, NoteEnvelope, NoteError, NoteMetadata, NoteVault, Word, WORD_SIZE,
+};
 use crypto::StarkField;
 use miden_lib::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
@@ -104,5 +106,25 @@ impl TryFrom<&[Word]> for NoteStub {
 impl From<NoteStub> for NoteEnvelope {
     fn from(note_stub: NoteStub) -> Self {
         note_stub.envelope
+    }
+}
+
+impl From<&NoteStub> for NoteEnvelope {
+    fn from(note_stub: &NoteStub) -> Self {
+        note_stub.envelope
+    }
+}
+
+impl From<Note> for NoteStub {
+    fn from(note: Note) -> Self {
+        (&note).into()
+    }
+}
+
+impl From<&Note> for NoteStub {
+    fn from(note: &Note) -> Self {
+        let recipient = note.recipient();
+        Self::new(recipient, note.vault.clone(), note.metadata)
+            .expect("Note vault and metadate weren't consistent")
     }
 }

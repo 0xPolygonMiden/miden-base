@@ -39,6 +39,12 @@ impl NoteMetadata {
     }
 }
 
+impl From<NoteMetadata> for Word {
+    fn from(metadata: NoteMetadata) -> Self {
+        (&metadata).into()
+    }
+}
+
 impl From<&NoteMetadata> for Word {
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();

@@ -97,6 +97,18 @@ impl From<ConsumedNotes> for Vec<ConsumedNoteInfo> {
     }
 }
 
+impl From<Vec<Note>> for ConsumedNotes {
+    fn from(notes: Vec<Note>) -> Self {
+        Self::new(notes)
+    }
+}
+
+impl FromIterator<Note> for ConsumedNotes {
+    fn from_iter<T: IntoIterator<Item = Note>>(iter: T) -> Self {
+        Self::new(iter.into_iter().collect())
+    }
+}
+
 // CONSUMED NOTE INFO
 // ================================================================================================
 
@@ -131,34 +143,58 @@ impl ConsumedNoteInfo {
 }
 
 impl From<ConsumedNoteInfo> for [Felt; 8] {
-    fn from(cni: ConsumedNoteInfo) -> Self {
-        let mut elements: [Felt; 8] = Default::default();
-        elements[..4].copy_from_slice(cni.nullifier.as_elements());
-        elements[4..].copy_from_slice(cni.script_root.as_elements());
-        elements
+    fn from(note_info: ConsumedNoteInfo) -> Self {
+        (&note_info).into()
     }
 }
 
 impl From<ConsumedNoteInfo> for [Word; 2] {
-    fn from(cni: ConsumedNoteInfo) -> Self {
-        let mut elements: [Word; 2] = Default::default();
-        elements[0].copy_from_slice(cni.nullifier.as_elements());
-        elements[1].copy_from_slice(cni.script_root.as_elements());
-        elements
+    fn from(note_info: ConsumedNoteInfo) -> Self {
+        (&note_info).into()
     }
 }
 
 impl From<ConsumedNoteInfo> for [u8; 64] {
-    fn from(cni: ConsumedNoteInfo) -> Self {
-        let mut elements: [u8; 64] = [0; 64];
-        elements[..32].copy_from_slice(&cni.nullifier.as_bytes());
-        elements[32..].copy_from_slice(&cni.script_root.as_bytes());
-        elements
+    fn from(note_info: ConsumedNoteInfo) -> Self {
+        (&note_info).into()
     }
 }
 
 impl From<Note> for ConsumedNoteInfo {
     fn from(note: Note) -> Self {
+        (&note).into()
+    }
+}
+
+impl From<&ConsumedNoteInfo> for [Felt; 8] {
+    fn from(note_info: &ConsumedNoteInfo) -> Self {
+        let mut elements: [Felt; 8] = Default::default();
+        elements[..4].copy_from_slice(note_info.nullifier.as_elements());
+        elements[4..].copy_from_slice(note_info.script_root.as_elements());
+        elements
+    }
+}
+
+impl From<&ConsumedNoteInfo> for [Word; 2] {
+    fn from(note_info: &ConsumedNoteInfo) -> Self {
+        let mut elements: [Word; 2] = Default::default();
+        elements[0].copy_from_slice(note_info.nullifier.as_elements());
+        elements[1].copy_from_slice(note_info.script_root.as_elements());
+        elements
+    }
+}
+
+impl From<&ConsumedNoteInfo> for [u8; 64] {
+    fn from(note_info: &ConsumedNoteInfo) -> Self {
+        let mut elements: [u8; 64] = [0; 64];
+        elements[..32].copy_from_slice(&note_info.nullifier.as_bytes());
+        elements[32..].copy_from_slice(&note_info.script_root.as_bytes());
+        elements
+    }
+}
+
+impl From<&Note> for ConsumedNoteInfo {
+    fn from(note: &Note) -> Self {
         Self::new(note.nullifier(), note.script().hash())
     }
 }
