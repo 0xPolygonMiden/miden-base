@@ -1,0 +1,56 @@
+use.miden::sat::account
+use.miden::sat::tx
+
+#! Add a single asset to an account's vault 
+#! TODO: Function only calls a dummy function in account.masm
+#!
+#! Stack: [ASSET]
+#! Output: []
+#!
+#! - ASSET is the non-fungible asset of interest.
+export.receive_asset
+    exec.account::add_asset
+end
+
+#! Creates a note which sends a single asset to the specified recipient.
+#!
+#! Stack: [ASSET, tag, RECIPIENT]
+#! Output: []
+#!
+#! - ASSET is the non-fungible asset of interest.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT is the recipient of the note.
+export.send_asset
+    exec.account::remove_asset
+    exec.tx::create_note
+end
+
+#! Authenticate a transaction. 
+#!
+#! Stack: [ASSET, tag, RECIPIENT]
+#! Output: []
+#!
+#! - ASSET is the non-fungible asset of interest.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT is the recipient of the note.
+export.auth_tx
+    #! update the nonce
+    exec.account::incr_nonce
+
+    #! get commitments to consumed and created notes, new nonce, and ID
+    exec.tx::get_output_notes_hash
+    exec.tx::get_input_notes_hash
+    exec.account::get_nonce push.0.0.0
+    exec.account::get_id push.0.0.0
+
+    #! compute the message to be signed
+    #! M = h(output_notes_hash, h(input_notes_hash, h(0, 0, 0, id, 0, 0, 0, nonce)))
+    hmerge hmerge hmerge
+
+    #! get public key from account storage (assume index 0) and verify signature
+    push.0
+    exec.account::get_item
+    #! [PUB_KEY, M]
+    #! TODO: sign the message 
+    
+end
