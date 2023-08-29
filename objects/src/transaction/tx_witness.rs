@@ -134,7 +134,7 @@ impl TransactionWitness {
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(*self.consumed_notes_hash);
         inputs.extend(*self.initial_account_hash);
-        inputs.push(*self.account_id);
+        inputs.push(self.account_id.into());
         inputs.extend(*self.block_hash);
         StackInputs::new(inputs)
     }

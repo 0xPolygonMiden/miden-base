@@ -67,8 +67,10 @@ pub fn generate_advice_provider_inputs(
 
     // insert account id seed into advice map
     if let Some(seed) = account_id_seed {
-        advice_inputs
-            .extend_map(vec![([*account.id(), ZERO, ZERO, ZERO].into_bytes(), seed.to_vec())]);
+        advice_inputs.extend_map(vec![(
+            [account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
+            seed.to_vec(),
+        )]);
     }
 
     advice_inputs
@@ -106,7 +108,7 @@ pub fn generate_stack_inputs(
     let mut inputs: Vec<Felt> = Vec::with_capacity(13);
     inputs.extend(*consumed_notes_commitment);
     inputs.extend_from_slice(account_hash.as_elements());
-    inputs.push(**account_id);
+    inputs.push((*account_id).into());
     inputs.extend_from_slice(block_header.hash().as_elements());
     StackInputs::new(inputs)
 }

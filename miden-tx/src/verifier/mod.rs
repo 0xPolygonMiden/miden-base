@@ -87,7 +87,7 @@ impl TransactionVerifier {
             Self::compute_consumed_notes_hash(transaction.consumed_notes()).as_elements(),
         );
         stack_inputs.extend_from_slice(transaction.initial_account_hash().as_elements());
-        stack_inputs.push(*transaction.account_id());
+        stack_inputs.push(transaction.account_id().into());
         stack_inputs.extend_from_slice(transaction.block_ref().as_elements());
         StackInputs::new(stack_inputs)
     }

@@ -84,7 +84,7 @@ pub fn test_set_code_succeeds() {
             exec.account::set_code
 
             exec.create_mock_notes
-            
+
             push.1
             exec.account::incr_nonce
 
@@ -366,7 +366,7 @@ fn test_is_faucet_procedure() {
             eq.{expected} assert
         end
     ",
-            account_id = *account_id,
+            account_id = account_id,
             expected = if account_id.is_faucet() { 1 } else { 0 },
         );
 

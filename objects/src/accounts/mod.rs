@@ -158,7 +158,7 @@ impl ToAdviceInputs for Account {
     ///    elements[12..16]  = code root
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // push core items onto the stack
-        target.push_onto_stack(&[*self.id, ZERO, ZERO, self.nonce]);
+        target.push_onto_stack(&[self.id.into(), ZERO, ZERO, self.nonce]);
         target.push_onto_stack(self.vault.commitment().as_elements());
         target.push_onto_stack(&*self.storage.root());
         target.push_onto_stack(self.code.root().as_elements());
@@ -194,7 +194,7 @@ pub fn hash_account(
     code_root: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
-    elements[0] = *id;
+    elements[0] = id.into();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_root);

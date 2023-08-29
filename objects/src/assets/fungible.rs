@@ -69,7 +69,7 @@ impl FungibleAsset {
     /// Returns the key which is used to store this asset in the account vault.
     pub fn vault_key(&self) -> Word {
         let mut key = Word::default();
-        key[3] = *self.faucet_id;
+        key[3] = self.faucet_id.into();
         key
     }
 
@@ -140,7 +140,7 @@ impl From<FungibleAsset> for Word {
     fn from(asset: FungibleAsset) -> Self {
         let mut result = Word::default();
         result[0] = Felt::new(asset.amount);
-        result[3] = *asset.faucet_id;
+        result[3] = asset.faucet_id.into();
         result
     }
 }
