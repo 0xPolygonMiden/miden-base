@@ -2,7 +2,7 @@ use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, StarkField, ToString, Vec,
     Word,
 };
-use core::{fmt, ops::Deref};
+use core::fmt;
 
 // NON-FUNGIBLE ASSET
 // ================================================================================================
@@ -46,7 +46,7 @@ impl NonFungibleAsset {
             return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
         }
         // set the element 1 to the faucet_id
-        data_hash[1] = *faucet_id;
+        data_hash[1] = faucet_id.into();
 
         // set the first bit of the asset to 0; we can do this because setting the first bit to 0
         // will always result in a valid field element.
@@ -90,14 +90,6 @@ impl NonFungibleAsset {
         }
 
         Ok(())
-    }
-}
-
-impl Deref for NonFungibleAsset {
-    type Target = Word;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 

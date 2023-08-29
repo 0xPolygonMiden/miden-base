@@ -1,5 +1,5 @@
 use super::{Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
-use core::{fmt, ops::Deref};
+use core::fmt;
 use crypto::FieldElement;
 
 // ACCOUNT ID
@@ -212,14 +212,6 @@ impl AccountId {
     }
 }
 
-impl Deref for AccountId {
-    type Target = Felt;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl From<AccountId> for Felt {
     fn from(id: AccountId) -> Self {
         id.0
@@ -270,7 +262,7 @@ impl TryFrom<u64> for AccountId {
 
 impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:02x}", self.as_int())
+        write!(f, "0x{:02x}", self.0.as_int())
     }
 }
 

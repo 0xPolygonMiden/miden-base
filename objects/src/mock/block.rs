@@ -16,7 +16,8 @@ pub fn mock_block_header(
                 if acct.is_new() {
                     None
                 } else {
-                    Some(((*acct.id()).as_int(), *acct.hash()))
+                    let felt_id: Felt = acct.id().into();
+                    Some((felt_id.as_int(), *acct.hash()))
                 }
             })
             .collect::<Vec<_>>(),
