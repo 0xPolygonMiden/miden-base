@@ -1,4 +1,4 @@
-use super::{Digest, Felt, NoteMetadata, Vec, Word};
+use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
 use miden_core::StarkField;
 
 // NOTE ENVELOPE
@@ -86,5 +86,20 @@ impl From<&NoteEnvelope> for [u8; 64] {
         elements[..32].copy_from_slice(&note_envelope.note_hash.as_bytes());
         elements[32..].copy_from_slice(&note_metadata_bytes);
         elements
+    }
+}
+
+impl From<Note> for NoteEnvelope {
+    fn from(note: Note) -> Self {
+        (&note).into()
+    }
+}
+
+impl From<&Note> for NoteEnvelope {
+    fn from(note: &Note) -> Self {
+        Self {
+            note_hash: note.hash(),
+            note_metadata: *note.metadata(),
+        }
     }
 }
