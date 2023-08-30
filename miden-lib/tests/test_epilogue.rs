@@ -106,9 +106,10 @@ fn test_compute_created_note_hash() {
 
 #[test]
 fn test_epilogue_asset_preservation_violation() {
-    for asset_preservation in
-        [AssetPreservationStatus::TooFewInput, AssetPreservationStatus::TooManyInput]
-    {
+    for asset_preservation in [
+        AssetPreservationStatus::TooFewInput,
+        AssetPreservationStatus::TooManyFungibleInput,
+    ] {
         let executed_transaction = mock_executed_tx(asset_preservation);
 
         let created_notes_data_procedure =

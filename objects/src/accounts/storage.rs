@@ -4,6 +4,8 @@ use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt, StoreNode};
 // TYPE ALIASES
 // ================================================================================================
 
+/// A type that represents a single storage item. The tuple contains the slot index of the item and
+/// the value of the item.
 pub type StorageItem = (u8, Word);
 
 // ACCOUNT STORAGE

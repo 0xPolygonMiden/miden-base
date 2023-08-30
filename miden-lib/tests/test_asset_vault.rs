@@ -1,7 +1,7 @@
 pub mod common;
 use common::{
     data::{
-        mock_inputs, AccountStatus, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        mock_inputs, AssetPreservationStatus, MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
     },
     prepare_transaction,
@@ -15,7 +15,8 @@ use miden_objects::assets::FungibleAsset;
 
 #[test]
 fn test_get_balance() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
@@ -49,7 +50,8 @@ fn test_get_balance() {
 
 #[test]
 fn test_get_balance_non_fungible_fails() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
         "
@@ -78,7 +80,8 @@ fn test_get_balance_non_fungible_fails() {
 
 #[test]
 fn test_has_non_fungible_asset() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let non_fungible_asset = account.vault().assets().next().unwrap();
 
     let code = format!(
@@ -110,7 +113,8 @@ fn test_has_non_fungible_asset() {
 
 #[test]
 fn test_add_fungible_asset_success() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let mut account_vault: miden_objects::AccountVault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -155,7 +159,8 @@ fn test_add_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_overflow() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let mut account_vault: miden_objects::AccountVault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -192,7 +197,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
 #[test]
 fn test_add_non_fungible_asset_success() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = account.vault().clone();
@@ -240,7 +246,8 @@ fn test_add_non_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_duplicate() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = account.vault().clone();
@@ -278,7 +285,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
 #[test]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let mut account_vault: miden_objects::AccountVault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -322,8 +330,44 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 }
 
 #[test]
+fn test_remove_fungible_asset_fail_remove_too_much() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+    let amount = FUNGIBLE_ASSET_AMOUNT + 1;
+    let remove_fungible_asset =
+        Asset::try_from([Felt::new(amount), ZERO, ZERO, faucet_id.into()]).unwrap();
+
+    let code = format!(
+        "
+        use.miden::sat::internal::prologue
+        use.miden::sat::account
+
+        begin
+            exec.prologue::prepare_transaction
+            push.{FUNGIBLE_ASSET}
+            exec.account::remove_asset
+        end
+    ",
+        FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
+    );
+
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    );
+    assert!(process.is_err());
+}
+
+#[test]
 fn test_remove_fungible_asset_success_balance_remaining() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let mut account_vault: miden_objects::AccountVault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -368,7 +412,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
 #[test]
 fn test_remove_non_fungible_asset_fail_doesnt_exist() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN + 1).try_into().unwrap();
     let mut account_vault = account.vault().clone();
@@ -406,7 +451,8 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
 
 #[test]
 fn test_remove_non_fungible_asset_success() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = account.vault().clone();

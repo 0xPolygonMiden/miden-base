@@ -1,5 +1,6 @@
 use.miden::sat::internal::account
 use.miden::sat::internal::asset_vault
+use.miden::sat::internal::faucet
 use.miden::sat::internal::layout
 use.miden::sat::internal::note
 use.miden::sat::internal::tx
@@ -119,6 +120,13 @@ end
 export.set_account_item
     # AUTHENTICATION
     # ---------------------------------------------------------------------------------------------
+    # if the transaction is being executed against a faucet account then assert 
+    # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
+    dup exec.account::get_faucet_storage_data_slot eq
+    exec.account::get_id exec.account::is_faucet
+    and assertz
+    # => [index, V', 0, 0, 0]
+
     # get the hash of the caller
     padw caller
     # => [CALLER, index, V', 0, 0, 0]
@@ -396,4 +404,75 @@ export.get_account_vault_commitment
     # prepare the stack for return
     swapw dropw
     # => [COM]
+end
+
+#! Mint an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the total issuance after minting is greater than the maximum amount 
+#!   allowed.
+#! - For non-fungible faucets if the non-fungible asset being minted already exists.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was minted.
+export.mint_asset
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ASSET]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, ASSET]
+
+    # drop the caller
+    dropw
+    # => [ASSET]
+
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+    exec.faucet::mint
+end
+
+#! Burn an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being burned is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the amount being burned is greater than the total input to the 
+#!   transaction.
+#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not 
+#!   provided as input to the transaction via a note or the accounts vault.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was burned.
+export.burn_asset
+    # AUTHENTICATION
+    # ---------------------------------------------------------------------------------------------
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ASSET]
+
+    # make sure the caller is a part of the account interface
+    exec.account::authenticate_procedure
+    # => [CALLER, ASSET]
+
+    # drop the caller
+    dropw
+    # => [ASSET]
+    
+    # KERNEL LOGIC
+    # ---------------------------------------------------------------------------------------------
+    exec.faucet::burn
 end

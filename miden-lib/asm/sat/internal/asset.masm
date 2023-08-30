@@ -117,3 +117,37 @@ export.validate_asset
     end
     # => [ASSET]
 end
+
+#! Validates that a fungible asset is associated with the provided faucet_id.
+#!
+#! Stack: [faucet_id, ASSET]
+#! Output: [ASSET]
+#!
+#! - faucet_id is the account id of the faucet.
+#! - ASSET is the asset to validate.
+export.validate_fungible_asset_origin
+    # assert the origin of the asset is the faucet_id provided via the stack
+    dup.1 assert_eq
+    # => [ASSET]
+
+    # assert the fungible asset is valid
+    exec.validate_fungible_asset
+    # => [ASSET]
+end
+
+#! Validates that a non-fungible asset is associated with the provided faucet_id.
+#!
+#! Stack: [faucet_id, ASSET]
+#! Output: [ASSET]
+#!
+#! - faucet_id is the account id of the faucet.
+#! - ASSET is the asset to validate.
+export.validate_non_fungible_asset_origin
+    # assert the origin of the asset is the faucet_id provided via the stack
+    dup.3 assert_eq
+    # => [ASSET]
+
+    # assert the non-fungible asset is valid
+    exec.validate_non_fungible_asset
+    # => [ASSET]
+end
