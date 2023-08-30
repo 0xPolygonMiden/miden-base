@@ -240,7 +240,7 @@ proc.remove_fungible_asset
     end
 
     # update asset in vault
-    exec.smt::insert dropw
+    exec.smt::set dropw
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -265,7 +265,7 @@ proc.remove_non_fungible_asset
     # => [EMPTY_WORD, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # update asset in vault
-    exec.smt::insert
+    exec.smt::set
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was not empty (we only need to check ASSET[1] which is the faucet id)

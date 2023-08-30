@@ -276,8 +276,6 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
 }
 
-// we will ignore this test for now as we do not have a way to remove assets from the vault
-#[ignore]
 #[test]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
     let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
@@ -368,8 +366,6 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 }
 
-// we ignore this test for now as we can not remove (insert EMPTY_WORD) an asset yet
-#[ignore]
 #[test]
 fn test_remove_non_fungible_asset_fail_doesnt_exist() {
     let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
@@ -408,8 +404,6 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
     assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
 }
 
-// we ignore this test for now as we can not remove (insert EMPTY_WORD) an asset yet
-#[ignore]
 #[test]
 fn test_remove_non_fungible_asset_success() {
     let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
