@@ -1,7 +1,10 @@
 pub mod common;
 use common::{
     consumed_note_data_ptr,
-    data::{mock_inputs, AccountStatus, ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN},
+    data::{
+        mock_inputs, AssetPreservationStatus, MockAccountType,
+        ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    },
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR,
@@ -19,7 +22,8 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
         begin
@@ -270,7 +274,8 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
 
 #[test]
 pub fn test_prologue_create_account() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::prologue
 
@@ -307,7 +312,8 @@ pub fn test_prologue_create_account() {
 
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::New);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let account_seed_key = [account.id().into(), ZERO, ZERO, ZERO];
 
     let code = "
@@ -350,7 +356,8 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::layout
     use.miden::sat::internal::prologue
@@ -376,7 +383,8 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::layout
     use.miden::sat::internal::prologue

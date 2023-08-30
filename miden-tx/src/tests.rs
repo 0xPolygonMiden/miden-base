@@ -10,8 +10,8 @@ use crypto::StarkField;
 use miden_core::Felt;
 use miden_objects::{
     mock::{
-        mock_inputs, prepare_word, AccountStatus, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0,
+        mock_inputs, prepare_word, AssetPreservationStatus, MockAccountType,
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
     },
     transaction::{CreatedNotes, FinalAccountStub},
     Account, AccountCode, TryFromVmResult,
@@ -30,7 +30,7 @@ pub struct MockDataStore {
 impl MockDataStore {
     pub fn new() -> Self {
         let (account, block_header, block_chain, consumed_notes) =
-            mock_inputs(AccountStatus::Existing);
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
         Self {
             account,
             block_header,

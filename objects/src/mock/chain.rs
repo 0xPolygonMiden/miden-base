@@ -27,8 +27,8 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     let block_chain = vec![
         mock_block_header(Felt::ZERO, None, note_tree_iter.next().map(|x| x.root()), &[]),
         mock_block_header(Felt::ONE, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::new(2), None, None, &[]),
-        mock_block_header(Felt::new(3), None, None, &[]),
+        mock_block_header(Felt::new(2), None, note_tree_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(Felt::new(3), None, note_tree_iter.next().map(|x| x.root()), &[]),
     ];
 
     // instantiate and populate MMR

@@ -1,4 +1,3 @@
-use super::{Felt, StorageItem};
 use assembly::Assembler;
 use miden_lib::{MidenLib, SatKernel};
 use miden_stdlib::StdLibrary;

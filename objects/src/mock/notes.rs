@@ -1,7 +1,8 @@
 use crate::mock::{
-    prepare_assets, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    non_fungible_asset_2, prepare_assets, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-    ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_NOTE_1_AMOUNT,
+    CONSUMED_NOTE_2_AMOUNT, CONSUMED_NOTE_3_AMOUNT,
 };
 
 use super::super::{
@@ -15,7 +16,8 @@ use miden_core::FieldElement;
 pub enum AssetPreservationStatus {
     TooFewInput,
     Preserved,
-    TooManyInput,
+    TooManyFungibleInput,
+    TooManyNonFungibleInput,
 }
 
 pub fn mock_notes(
@@ -26,9 +28,12 @@ pub fn mock_notes(
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
     let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
-    let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 200).unwrap().into();
-    let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 300).unwrap().into();
+    let fungible_asset_1: Asset =
+        FungibleAsset::new(faucet_id_1, CONSUMED_NOTE_1_AMOUNT).unwrap().into();
+    let fungible_asset_2: Asset =
+        FungibleAsset::new(faucet_id_2, CONSUMED_NOTE_2_AMOUNT).unwrap().into();
+    let fungible_asset_3: Asset =
+        FungibleAsset::new(faucet_id_3, CONSUMED_NOTE_3_AMOUNT).unwrap().into();
 
     // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -164,7 +169,7 @@ pub fn mock_notes(
 
     const SERIAL_NUM_3: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
     let consumed_note_3 = Note::new(
-        note_3_script,
+        note_3_script.clone(),
         &[Felt::new(2)],
         &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_3,
@@ -174,12 +179,30 @@ pub fn mock_notes(
     )
     .unwrap();
 
-    let mut consumed_notes = vec![consumed_note_1, consumed_note_2, consumed_note_3];
+    let note_4_script_ast = ProgramAst::parse(&"begin push.1 drop end").unwrap();
+    let (note_4_script, _) = NoteScript::new(note_4_script_ast, &assembler).unwrap();
 
-    match asset_preservation {
-        AssetPreservationStatus::TooFewInput => consumed_notes.truncate(1),
-        AssetPreservationStatus::Preserved => consumed_notes.truncate(2),
-        AssetPreservationStatus::TooManyInput => (),
+    const SERIAL_NUM_7: Word = [Felt::new(25), Felt::new(26), Felt::new(27), Felt::new(28)];
+    let consumed_note_4 = Note::new(
+        note_4_script,
+        &[Felt::new(1)],
+        &[non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)],
+        SERIAL_NUM_7,
+        sender,
+        Felt::ZERO,
+        None,
+    )
+    .unwrap();
+
+    let consumed_notes = match asset_preservation {
+        AssetPreservationStatus::TooFewInput => vec![consumed_note_1],
+        AssetPreservationStatus::Preserved => vec![consumed_note_1, consumed_note_2],
+        AssetPreservationStatus::TooManyFungibleInput => {
+            vec![consumed_note_1, consumed_note_2, consumed_note_3]
+        }
+        AssetPreservationStatus::TooManyNonFungibleInput => {
+            vec![consumed_note_1, consumed_note_2, consumed_note_4]
+        }
     };
 
     (consumed_notes, created_notes)

@@ -25,6 +25,18 @@ const.STORAGE_TREE_DEPTH=8
 # The depth of the account code tree
 const.ACCOUNT_CODE_TREE_DEPTH=8
 
+# The account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+const.FAUCET_STORAGE_DATA_SLOT=255
+
+# Returns the account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+export.get_faucet_storage_data_slot
+    push.FAUCET_STORAGE_DATA_SLOT
+end
+
 # PROCEDURES
 # =================================================================================================
 
@@ -265,12 +277,11 @@ end
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
 #! Stack: [index, V']
-#! Output: [R', V]
+#! Output: [V]
 #!
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
-#! - R' is the new storage root.
 export.set_item
     # get the storage root
     exec.layout::get_acct_storage_root
