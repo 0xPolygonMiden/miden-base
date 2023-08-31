@@ -381,3 +381,19 @@ end
 export.create_note
     exec.tx::create_note
 end
+
+#! Returns a commitment to the account vault the transaction is being executed against.
+#!
+#! Stack: [0, 0, 0, 0]
+#! Outputs: [COM]
+#!
+#! - COM is the commitment to the account vault.
+export.get_account_vault_commitment
+    # fetch the account vault root from memory
+    exec.layout::get_acct_vault_root
+    # => [COM, 0, 0, 0, 0]
+
+    # prepare the stack for return
+    swapw dropw
+    # => [COM]
+end
