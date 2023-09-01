@@ -24,6 +24,8 @@ miden-objects = { package = "miden-objects", path = "../objects", features = ["t
 miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", features = ["internals"], default-features = false }
 vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+rand = { version = "0.8" }
+rand_chacha = { version = "0.3.1" }
 
 [build-dependencies]
 assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next" }
