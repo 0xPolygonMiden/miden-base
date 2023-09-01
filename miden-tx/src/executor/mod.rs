@@ -87,14 +87,14 @@ impl<D: DataStore> TransactionExecutor<D> {
     ///
     /// The method first fetches the data required to execute the transaction from the [DataStore]
     /// and compile the transaction into an executable program. Then it executes the transaction
-    /// program and creates a [TransactionWitness].
+    /// program and execute_transactioncreates a [TransactionWitness].
     ///
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
-    pub fn execute_transaction(
+    pub fn (
         &mut self,
         account_id: AccountId,
         block_ref: u32,
