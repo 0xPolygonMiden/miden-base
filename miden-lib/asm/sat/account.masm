@@ -177,3 +177,19 @@ end
 export.remove_asset
     syscall.account_vault_remove_asset
 end
+
+#! Returns a commitment to the account vault.
+#!
+#! Stack: []
+#! Output: [COM]
+#!
+#! - COM is a commitment to the account vault.
+export.get_vault_commitment
+    # pad the stack for syscall invocation
+    padw
+    # => [0, 0, 0, 0]
+
+    # invoke the syscall
+    syscall.get_account_vault_commitment
+    # => [COM]
+end

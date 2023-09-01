@@ -429,3 +429,36 @@ fn test_authenticate_procedure() {
         }
     }
 }
+
+#[test]
+fn test_get_vault_commitment() {
+    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+
+    let code = format!(
+        "
+    use.miden::sat::account
+    use.miden::sat::internal::prologue
+
+    begin
+        # prepare the transaction
+        exec.prologue::prepare_transaction
+
+        # push the new storage item onto the stack
+        exec.account::get_vault_commitment
+        push.{expected_vault_commitment}
+        assert_eqw
+    end
+    ",
+        expected_vault_commitment = prepare_word(&account.vault().commitment()),
+    );
+
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        StackInputs::from(transaction.stack_inputs()),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    )
+    .unwrap();
+}
