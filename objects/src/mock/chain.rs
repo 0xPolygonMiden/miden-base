@@ -68,6 +68,7 @@ mod mock {
         Account, AccountError, AccountId, AccountType, AssetError, BlockHeader, ChainMmr, Felt,
         StorageItem, Vec,
     };
+    use core::fmt;
     use crypto::{
         hash::rpo::RpoDigest as Digest,
         merkle::{MerkleError, NodeIndex, SimpleSmt, TieredSmt},
@@ -221,10 +222,20 @@ mod mock {
         Yes,
     }
 
-    pub enum Error {
+    #[derive(Debug)]
+    pub enum MockError {
         DuplicatedNullifier,
         DuplicatedNote,
     }
+
+    impl fmt::Display for MockError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{:?}", self)
+        }
+    }
+
+    #[cfg(feature = "std")]
+    impl std::error::Error for MockError {}
 
     impl<R: Rng + SeedableRng> MockChain<R> {
         // CONSTRUCTORS
@@ -415,29 +426,29 @@ mod mock {
             self.objects.nonfungible_faucets[faucet_pos].1.build().map(|v| v.into())
         }
 
-        fn check_nullifier_unknown(&self, nullifier: Digest) -> Result<(), Error> {
+        fn check_nullifier_unknown(&self, nullifier: Digest) -> Result<(), MockError> {
             if self.pending_objects.nullifiers.iter().find(|e| **e == nullifier).is_some() {
-                return Err(Error::DuplicatedNullifier);
+                return Err(MockError::DuplicatedNullifier);
             }
 
             if self.nullifiers.get_value(nullifier) != TieredSmt::EMPTY_VALUE {
-                return Err(Error::DuplicatedNullifier);
+                return Err(MockError::DuplicatedNullifier);
             }
 
             Ok(())
         }
 
         /// Mark a [Note] as produced by inserting into the block.
-        pub fn add_note(&mut self, note: Note) -> Result<(), Error> {
+        pub fn add_note(&mut self, note: Note) -> Result<(), MockError> {
             if self.pending_objects.notes.iter().find(|e| e.hash() == note.hash()).is_some() {
-                return Err(Error::DuplicatedNote);
+                return Err(MockError::DuplicatedNote);
             }
 
             // The check below works because the notes can not be added directly to the
             // [BlockHeader], so we don't have to iterate over the known headers and check for
             // inclusion proofs.
             if self.objects.notes.iter().find(|e| e.hash() == note.hash()).is_some() {
-                return Err(Error::DuplicatedNote);
+                return Err(MockError::DuplicatedNote);
             }
 
             self.check_nullifier_unknown(note.nullifier())?;
@@ -446,7 +457,7 @@ mod mock {
         }
 
         /// Mark a [Note] as consumed by inserting its nullifier into the block.
-        pub fn add_nullifier(&mut self, nullifier: Digest) -> Result<(), Error> {
+        pub fn add_nullifier(&mut self, nullifier: Digest) -> Result<(), MockError> {
             self.check_nullifier_unknown(nullifier)?;
             self.pending_objects.nullifiers.push(nullifier);
             Ok(())
