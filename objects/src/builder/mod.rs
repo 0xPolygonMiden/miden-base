@@ -47,7 +47,7 @@ export.account_procedure_2
 end
 ";
 
-pub const DEFAULT_NOTE_CODE: &str = "\
+const DEFAULT_NOTE_CODE: &str = "\
 begin
 end
 ";

@@ -1,5 +1,7 @@
 pub mod common;
-use common::{prepare_transaction, run_tx, MemAdviceProvider};
+use common::{
+    data::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, prepare_transaction, run_tx, MemAdviceProvider,
+};
 use crypto::hash::rpo::RpoDigest as Digest;
 use rand::{self, SeedableRng};
 use rand_chacha::ChaCha8Rng;
@@ -9,6 +11,7 @@ use miden_objects::{
     assets::FungibleAsset,
     builder::{NoteBuilder, DEFAULT_ACCOUNT_CODE},
     mock::{Immutable, MockChain, OnChain},
+    AccountId,
 };
 
 #[test]
@@ -51,6 +54,7 @@ fn test_add_asset_via_wallet() {
         mem_loadw
         exec.wallet::receive_asset
         exec.authentication::auth_tx
+        push.1
     end
     "
     );
