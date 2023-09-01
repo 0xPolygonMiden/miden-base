@@ -186,7 +186,7 @@ impl TryFrom<[u8; 32]> for FungibleAsset {
 }
 
 impl fmt::Display for FungibleAsset {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
