@@ -10,13 +10,16 @@ use crypto::{
 };
 
 mod account_id;
-pub use account_id::{validate_account_seed, AccountId, AccountType};
+pub use account_id::{compute_digest, digest_pow, validate_account_seed, AccountId, AccountType};
 
 mod code;
 pub use code::AccountCode;
 
 pub mod delta;
 pub use delta::{AccountDelta, AccountStorageDelta};
+
+mod seed;
+pub use seed::get_account_seed;
 
 mod storage;
 pub use storage::{AccountStorage, StorageItem};
