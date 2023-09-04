@@ -24,6 +24,7 @@ std = ["assembly/std", "crypto/std", "miden-core/std", "miden-lib/std", "miden-p
 testing = ["miden-test-utils", "mock"]
 serde = ["dep:serde", "crypto/serde"]
 mock = ["dep:rand", "testing"]
+concurrent = ["std"]
 
 [dependencies]
 assembly = { workspace = true }
