@@ -16,17 +16,15 @@ default = ["std"]
 std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std", "miden-lib/std"]
 
 [dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+assembly = { workspace = true }
+crypto = { workspace = true }
+miden-core = { workspace = true }
 miden-lib = { package = "miden-lib", path = "../miden-lib" }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-prover = { workspace = true }
+miden-stdlib = { workspace = true }
+miden-verifier = { workspace = true }
+processor = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false}
-
+miden-verifier = { workspace = true }
