@@ -140,14 +140,23 @@ impl AccountId {
         ];
         let mut current_digest = Self::compute_digest(current_seed, code_root, storage_root);
 
+        #[cfg(feature = "log")]
+        let mut log = log::Log::start(current_digest, current_seed, account_type, on_chain);
+
         // loop until we have a seed that satisfies the specified account type.
         loop {
+            #[cfg(feature = "log")]
+            log.iteration(current_digest, current_seed);
+
             // check if the seed satisfies the specified account type
             if AccountId::validate_seed_digest(&current_digest).is_ok() {
                 if let Ok(account_id) = AccountId::try_from(current_digest[0]) {
                     if account_id.account_type() == account_type
                         && account_id.is_on_chain() == on_chain
                     {
+                        #[cfg(feature = "log")]
+                        log.done(current_digest, current_seed, account_id);
+
                         return Ok(current_seed);
                     };
                 }
@@ -186,7 +195,7 @@ impl AccountId {
 
         // we require that accounts have at least some number of trailing zeros in the last element,
         let is_regular_account = elements[0].as_int() >> 63 == 0;
-        let pow_trailing_zeros = elements[3].as_int().trailing_zeros();
+        let pow_trailing_zeros = digest_pow(*digest);
 
         // check if there is there enough trailing zeros in the last element of the seed hash for
         // the account type.
@@ -299,4 +308,91 @@ pub fn validate_account_seed(account: &Account, seed: Word) -> Result<(), Accoun
     }
 
     Ok(())
+}
+
+/// Given a [Digest] returns its proof-of-work.
+fn digest_pow(digest: Digest) -> u32 {
+    digest.as_elements()[3].as_int().trailing_zeros()
+}
+
+#[cfg(feature = "log")]
+mod log {
+    use super::{digest_pow, AccountId, AccountType, Digest, FieldElement, Word};
+    use assembly::utils::to_hex;
+    use crypto::utils::string::String;
+
+    /// Keeps track of the best digest found so far and count how many iterations have been done.
+    pub struct Log {
+        digest: Digest,
+        seed: Word,
+        count: usize,
+        pow: u32,
+    }
+
+    /// Given a [Digest] returns its hex representaiton.
+    fn digest_hex(digest: Digest) -> String {
+        to_hex(&digest.as_bytes()).expect("hex formatting failed")
+    }
+
+    /// Given a [Word] returns its hex representation.
+    fn word_hex(word: Word) -> String {
+        to_hex(FieldElement::elements_as_bytes(&word)).expect("hex formatting failed")
+    }
+
+    impl Log {
+        pub fn start(
+            digest: Digest,
+            seed: Word,
+            account_type: AccountType,
+            on_chain: bool,
+        ) -> Self {
+            log::info!(
+                "Generating new account seed [pow={}, digest={}, seed={} type={:?} onchain={}]",
+                digest_pow(digest),
+                digest_hex(digest),
+                word_hex(seed),
+                account_type,
+                on_chain,
+            );
+
+            Self {
+                digest,
+                seed,
+                count: 0,
+                pow: 0,
+            }
+        }
+
+        pub fn iteration(&mut self, digest: Digest, seed: Word) {
+            self.count += 1;
+
+            let pow = digest_pow(digest);
+            if pow >= self.pow {
+                self.digest = digest;
+                self.seed = seed;
+                self.pow = pow;
+            }
+
+            if self.count % 500_000 == 0 {
+                log::debug!(
+                    "Account seed loop [count={}, pow={}, digest={}, seed={}]",
+                    self.count,
+                    self.pow,
+                    digest_hex(self.digest),
+                    word_hex(self.seed),
+                );
+            }
+        }
+
+        pub fn done(self, digest: Digest, seed: Word, account_id: AccountId) {
+            log::info!(
+                "Found account seed [pow={}, current_digest={}, current_seed={} type={:?} onchain={}]]",
+                digest_pow(digest),
+                digest_hex(digest),
+                word_hex(seed),
+                account_id.account_type(),
+                account_id.is_on_chain(),
+            );
+        }
+    }
 }
