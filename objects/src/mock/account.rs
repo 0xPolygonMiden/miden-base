@@ -53,7 +53,7 @@ pub fn mock_account_storage() -> AccountStorage {
     .unwrap()
 }
 
-fn mock_account_code(account_id: &AccountId, assembler: &mut Assembler) -> AccountCode {
+fn mock_account_code(account_id: &AccountId, assembler: &Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
             use.miden::sat::tx
@@ -107,7 +107,7 @@ fn mock_account_code(account_id: &AccountId, assembler: &mut Assembler) -> Accou
     AccountCode::new(*account_id, account_module_ast, assembler).unwrap()
 }
 
-pub fn mock_new_account(assembler: &mut Assembler) -> Account {
+pub fn mock_new_account(assembler: &Assembler) -> Account {
     let account_storage = mock_account_storage();
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
@@ -123,7 +123,7 @@ pub fn mock_new_account(assembler: &mut Assembler) -> Account {
     Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
-pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &mut Assembler) -> Account {
+pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assembler) -> Account {
     // Create account id
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
@@ -146,7 +146,7 @@ pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &mut Asse
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
 
-pub fn mock_fungible_faucet(account_id: u64, assembler: &mut Assembler) -> Account {
+pub fn mock_fungible_faucet(account_id: u64, assembler: &Assembler) -> Account {
     let account_storage = AccountStorage::new(
         vec![(
             FAUCET_STORAGE_DATA_SLOT,
@@ -160,7 +160,7 @@ pub fn mock_fungible_faucet(account_id: u64, assembler: &mut Assembler) -> Accou
     Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
 }
 
-pub fn mock_non_fungible_faucet(assembler: &mut Assembler) -> Account {
+pub fn mock_non_fungible_faucet(assembler: &Assembler) -> Account {
     let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let nft_tree = TieredSmt::with_leaves(vec![(
         Word::from(non_fungible_asset).into(),

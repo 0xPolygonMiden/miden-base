@@ -21,7 +21,7 @@ pub enum AssetPreservationStatus {
 }
 
 pub fn mock_notes(
-    assembler: &mut Assembler,
+    assembler: &Assembler,
     asset_preservation: AssetPreservationStatus,
 ) -> (Vec<Note>, Vec<Note>) {
     // Note Assets
@@ -95,7 +95,7 @@ pub fn mock_notes(
             push.{created_note_0_tag}
             push.{created_note_0_asset}
             call.0x33e6e544bce56ad3bd235d9806e23910a4f03371e7e0a8549d730d0ee61266d8
-            drop dropw dropw 
+            drop dropw dropw
 
             # create note 1
             push.{created_note_1_recipient}
@@ -159,7 +159,7 @@ pub fn mock_notes(
     )
     .unwrap();
 
-    let note_3_script_ast = ProgramAst::parse(&"begin push.1 drop end").unwrap();
+    let note_3_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
 
     const SERIAL_NUM_3: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
@@ -174,8 +174,8 @@ pub fn mock_notes(
     )
     .unwrap();
 
-    let note_4_script_ast = ProgramAst::parse(&"begin push.1 drop end").unwrap();
-    let (note_4_script, _) = NoteScript::new(note_4_script_ast, &assembler).unwrap();
+    let note_4_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
 
     const SERIAL_NUM_7: Word = [Felt::new(25), Felt::new(26), Felt::new(27), Felt::new(28)];
     let consumed_note_4 = Note::new(
