@@ -375,7 +375,7 @@ mod mock {
         ) -> Result<AccountId, AccountError> {
             let faucet_id = self
                 .account_id_builder
-                .account_type(AccountType::NonFungibleFaucet)
+                .account_type(AccountType::FungibleFaucet)
                 .on_chain(on_chain == OnChain::Yes)
                 .code(code)
                 .storage_root(storage_root)
