@@ -4,24 +4,29 @@ use super::{
     super::{
         notes::Note, transaction::ExecutedTransaction, Account, BlockHeader, ChainMmr, Felt, Vec,
     },
-    assembler, mock_account, mock_block_header, mock_chain_data, mock_new_account, mock_notes,
-    AccountStatus, AssetPreservationStatus,
+    assembler, mock_account, mock_block_header, mock_chain_data, mock_fungible_faucet,
+    mock_new_account, mock_non_fungible_faucet, mock_notes, AssetPreservationStatus,
+    MockAccountType,
 };
 
-pub fn mock_inputs(account_status: AccountStatus) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
+pub fn mock_inputs(
+    account_type: MockAccountType,
+    asset_preservation: AssetPreservationStatus,
+) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
     let mut assembler = assembler();
 
     // Create an account with storage items
-    let account = if account_status == AccountStatus::New {
-        mock_new_account(&mut assembler)
-    } else {
-        mock_account(Felt::ONE, None, &mut assembler)
+
+    let account = match account_type {
+        MockAccountType::StandardNew => mock_new_account(&mut assembler),
+        MockAccountType::StandardExisting => mock_account(Felt::ONE, None, &mut assembler),
+        MockAccountType::FungibleFaucet(acct_id) => mock_fungible_faucet(acct_id, &mut assembler),
+        MockAccountType::NonFungibleFaucet => mock_non_fungible_faucet(&mut assembler),
     };
 
     // mock notes
-    let (mut consumed_notes, _created_notes) =
-        mock_notes(&mut assembler, AssetPreservationStatus::Preserved);
+    let (mut consumed_notes, _created_notes) = mock_notes(&mut assembler, asset_preservation);
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);

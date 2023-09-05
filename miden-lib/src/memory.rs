@@ -1,10 +1,22 @@
-// PUBLIC CONSTANTS
+// TYPE ALIASES
 // ================================================================================================
 
 pub type MemoryAddress = u32;
 pub type MemoryOffset = u32;
 pub type DataIndex = usize;
 pub type MemSize = usize;
+pub type StorageSlot = u8;
+
+// PUBLIC CONSTANTS
+// ================================================================================================
+
+// RESERVED ACCOUNT STORAGE SLOTS
+// ------------------------------------------------------------------------------------------------
+
+/// The account storage slot at which faucet data is stored.
+/// Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+/// Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 255;
 
 // BOOKKEEPING
 // ------------------------------------------------------------------------------------------------

@@ -88,12 +88,12 @@ end
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET is the fungible asset to add to the vault.
 #! - ASSET' is the total fungible asset in the account vault after ASSET was added to it.
-proc.add_fungible_asset
-    dup.4 movdn.5 push.0 movdn.3
-    # => [ASSET_KEY, amount, vault_root_ptr, vault_root_ptr]
+export.add_fungible_asset
+    dup.4 movdn.5 push.0 movdn.3 dup movdn.4
+    # => [ASSET_KEY, faucet_id, amount, vault_root_ptr, vault_root_ptr]
 
     # get the asset vault root and read asset
-    padw movup.9 mem_loadw swapw exec.smt::get
+    padw movup.10 mem_loadw swapw exec.smt::get drop movup.7
     # => [CUR_ASSET, VAULT_ROOT, amount, vault_root_ptr]
 
     # arrange elements
@@ -114,7 +114,7 @@ proc.add_fungible_asset
 
     # prepare the stack to insert the asset into the vault
     dupw movdnw.2 dupw movup.3 drop push.0 movdn.3 swapw
-    # => [KEY, ASSET', VAULT_ROOT, ASSET', vault_root_ptr]
+    # => [ASSET', KEY, VAULT_ROOT, ASSET', vault_root_ptr]
 
     # update asset in vault
     exec.smt::insert dropw
@@ -135,7 +135,7 @@ end
 #!
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 #! - ASSET is the non-fungible asset that is added to the vault.
-proc.add_non_fungible_asset
+export.add_non_fungible_asset
     # prepare the stack to insert the asset into the vault
     dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw dupw
     # => [ASSET, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
@@ -172,7 +172,7 @@ end
 export.add_asset
     # check if the asset is a fungible asset
     exec.asset::is_fungible_asset
-    # => [is_fungible_asset, ASSET, vault_root_ptr]
+    # => [is_fungible_asset, ASSET]
 
     # add the asset to the asset vault
     if.true
@@ -205,16 +205,16 @@ end
 #!
 #! - ASSET is the fungible asset to remove from the vault.
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
-proc.remove_fungible_asset
-    dup.4 movdn.5 dupw push.0 movdn.3
-    # => [ASSET_KEY, amount, ASSET, vault_root_ptr, vault_root_ptr]
+export.remove_fungible_asset
+    dup.4 movdn.5 dupw push.0 movdn.3 dup movdn.4
+    # => [ASSET_KEY, faucet_id, amount, ASSET, vault_root_ptr, vault_root_ptr]
 
     # get the asset vault root and read asset
-    padw movup.13 mem_loadw swapw exec.smt::get
+    padw movup.14 mem_loadw swapw exec.smt::get drop movup.7
     # => [CUR_ASSET, VAULT_ROOT, amount, ASSET, vault_root_ptr]
 
     # arrange elements
-    movup.3 movup.8 dup dup.3
+    movup.3 movup.8 dup dup.2
     # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
@@ -258,7 +258,7 @@ end
 #!
 #! - ASSET is the non-fungible asset to remove from the vault.
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
-proc.remove_non_fungible_asset
+export.remove_non_fungible_asset
     # prepare the stack to insert an EMPTY_WORD into the vault at key associated with the 
     # non-fungible asset
     dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw padw

@@ -1,7 +1,7 @@
 pub mod common;
 use common::{
     consumed_note_data_ptr,
-    data::{mock_inputs, AccountStatus},
+    data::{mock_inputs, AssetPreservationStatus, MockAccountType},
     memory::CURRENT_CONSUMED_NOTE_PTR,
     prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
     TX_KERNEL_DIR,
@@ -12,7 +12,8 @@ const NOTE_SETUP_FILE: &str = "note_setup.masm";
 
 #[test]
 fn test_note_setup() {
-    let (account, block_header, chain, notes) = mock_inputs(AccountStatus::Existing);
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = "

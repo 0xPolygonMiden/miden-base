@@ -1,19 +1,24 @@
+use crate::{
+    assets::Asset,
+    assets::{NonFungibleAsset, NonFungibleAssetDetails},
+    AccountId, Felt, StorageItem,
+};
 use miden_core::FieldElement;
 
-use super::{Felt, StorageItem};
-
 pub const ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: [u64; 4] = [
-    5950491586293629690,
-    3173174058297886549,
-    16553747801483039178,
-    11841717777847436894,
+    17703295116126138860,
+    4543943952737162398,
+    12131811259770615661,
+    8392414916091377456,
 ];
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3972335011818762557;
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 4537530468170077009;
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
 
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010111100 << 54;
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1110011100 << 54;
-pub const FUNGIBLE_ASSET_AMOUNT: u64 = 1000;
+pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 = 0b1110011101 << 54;
+pub const FUNGIBLE_ASSET_AMOUNT: u64 = 100;
+pub const FUNGIBLE_FAUCET_INITIAL_BALANCE: u64 = 50000;
 
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
     0b1010010001111111010110100011011110101011010001101111110110111100u64;
@@ -22,7 +27,12 @@ pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
     0b1010011001011010101101000110111101010110100011011101000110111100u64;
 
+pub const CONSUMED_NOTE_1_AMOUNT: u64 = 100;
+pub const CONSUMED_NOTE_2_AMOUNT: u64 = 200;
+pub const CONSUMED_NOTE_3_AMOUNT: u64 = 300;
+
 pub const NON_FUNGIBLE_ASSET_DATA: [u8; 4] = [1, 2, 3, 4];
+pub const NON_FUNGIBLE_ASSET_DATA_2: [u8; 4] = [5, 6, 7, 8];
 
 pub const NONCE: Felt = Felt::ZERO;
 
@@ -38,3 +48,24 @@ pub const CHILD_SMT_DEPTH: u8 = 64;
 pub const CHILD_STORAGE_INDEX_0: u64 = 40;
 pub const CHILD_STORAGE_VALUE_0: [Felt; 4] =
     [Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14)];
+
+pub fn non_fungible_asset(account_id: u64) -> Asset {
+    let non_fungible_asset_details = NonFungibleAssetDetails::new(
+        AccountId::try_from(account_id).unwrap(),
+        NON_FUNGIBLE_ASSET_DATA.to_vec(),
+    )
+    .unwrap();
+    let non_fungible_asset = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
+    Asset::NonFungible(non_fungible_asset)
+}
+
+pub fn non_fungible_asset_2(account_id: u64) -> Asset {
+    let non_fungible_asset_2_details: NonFungibleAssetDetails = NonFungibleAssetDetails::new(
+        AccountId::try_from(account_id).unwrap(),
+        NON_FUNGIBLE_ASSET_DATA_2.to_vec(),
+    )
+    .unwrap();
+    let non_fungible_asset_2: NonFungibleAsset =
+        NonFungibleAsset::new(&non_fungible_asset_2_details).unwrap();
+    Asset::NonFungible(non_fungible_asset_2)
+}

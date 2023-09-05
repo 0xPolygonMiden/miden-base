@@ -1,17 +1,21 @@
-use super::super::{
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    Account, AccountCode, AccountId, AccountStorage, AccountVault, Felt, Vec, Word,
+use super::{
+    super::{
+        assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        Account, AccountCode, AccountId, AccountStorage, AccountVault, Felt, Vec, Word, ZERO,
+    },
+    non_fungible_asset_2,
 };
 use super::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
     CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
-    NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
+    FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
 use assembly::{ast::ModuleAst, Assembler};
-use crypto::merkle::SimpleSmt;
+use crypto::merkle::{SimpleSmt, TieredSmt};
 use miden_core::{crypto::merkle::MerkleStore, FieldElement};
+use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
 
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset
@@ -130,8 +134,42 @@ pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &mut Asse
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
 
+pub fn mock_fungible_faucet(account_id: u64, assembler: &mut Assembler) -> Account {
+    let account_storage = AccountStorage::new(
+        vec![(
+            FAUCET_STORAGE_DATA_SLOT,
+            [ZERO, ZERO, ZERO, Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)],
+        )],
+        Default::default(),
+    )
+    .unwrap();
+    let account_id = AccountId::try_from(account_id).unwrap();
+    let account_code = mock_account_code(&account_id, assembler);
+    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
+}
+
+pub fn mock_non_fungible_faucet(assembler: &mut Assembler) -> Account {
+    let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let nft_tree = TieredSmt::with_leaves(vec![(
+        Word::from(non_fungible_asset).into(),
+        non_fungible_asset.into(),
+    )])
+    .unwrap();
+
+    let account_storage = AccountStorage::new(
+        vec![(FAUCET_STORAGE_DATA_SLOT, nft_tree.root().into())],
+        (&nft_tree).into(),
+    )
+    .unwrap();
+    let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let account_code = mock_account_code(&account_id, assembler);
+    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
+}
+
 #[derive(Debug, PartialEq)]
-pub enum AccountStatus {
-    New,
-    Existing,
+pub enum MockAccountType {
+    StandardNew,
+    StandardExisting,
+    FungibleFaucet(u64),
+    NonFungibleFaucet,
 }
