@@ -9,48 +9,9 @@ use crate::{
 use assembly::ast::ModuleAst;
 use rand::{distributions::Standard, Rng};
 
-pub const DEFAULT_ACCOUNT_CODE: &str = "\
-use.miden::sat::account
+pub const DEFAULT_ACCOUNT_CODE: &str = include_str!("../../../miden-lib/asm/sat/account.masm");
 
-export.incr_nonce
-    push.0 swap
-    # => [value, 0]
-
-    exec.account::incr_nonce
-    # => [0]
-end
-
-export.set_item
-    exec.account::set_item
-    # => [R', V, 0, 0, 0]
-
-    movup.8 drop movup.8 drop movup.8 drop
-    # => [R', V]
-end
-
-export.set_code
-    padw swapw
-    # => [CODE_ROOT, 0, 0, 0, 0]
-
-    exec.account::set_code
-    # => [0, 0, 0, 0]
-end
-
-export.account_procedure_1
-    push.1.2
-    add
-end
-
-export.account_procedure_2
-    push.2.1
-    sub
-end
-";
-
-pub const DEFAULT_NOTE_CODE: &str = "\
-begin
-end
-";
+const DEFAULT_NOTE_CODE: &str = include_str!("../../../miden-lib/asm/sat/note.masm");
 
 fn str_to_accountcode(source: &str) -> Result<AccountCode, AccountError> {
     let assembler = assembler();

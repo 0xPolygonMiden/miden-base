@@ -1,4 +1,5 @@
 pub mod common;
+
 use common::{ 
     prepare_transaction, run_tx, MemAdviceProvider, data::prepare_word
 };
@@ -16,9 +17,9 @@ use miden_objects::{
 #[test]
 // Testing the basic Miden wallet - receiving an asset
 fn test_receive_asset_via_wallet() {
+    // Create the account that owns the assets
     // Mock data
     // We need an account and a note carrying an asset.
-
     let mut mock_chain = MockChain::new(ChaCha8Rng::seed_from_u64(0)).unwrap();
 
     // Create the faucet
@@ -66,7 +67,11 @@ fn test_receive_asset_via_wallet() {
         .code(note_script)
         .build()
         .unwrap();
+    
     mock_chain.add_note(note.clone()).unwrap();
+
+    let account = mock_chain.account_mut(0);
+    account.nonce()
 
     // Seal the block
     let block_header = mock_chain.seal_block().unwrap();
@@ -78,7 +83,7 @@ fn test_receive_asset_via_wallet() {
         block_header,
         mock_chain.chain().clone(),
         vec![note],
-        &"",
+        &"begin end",
         "",
         None,
         None,

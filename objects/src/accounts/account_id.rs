@@ -45,8 +45,8 @@ impl AccountId {
     pub const ON_CHAIN_ACCOUNT_SELECTOR: u64 = 0b001;
 
     /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
-    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
-    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
+    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 8;
+    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 12;
 
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
