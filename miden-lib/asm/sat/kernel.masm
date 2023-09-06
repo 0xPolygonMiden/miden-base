@@ -5,6 +5,33 @@ use.miden::sat::internal::layout
 use.miden::sat::internal::note
 use.miden::sat::internal::tx
 
+# AUTHENTICATION
+# =================================================================================================
+
+#! Authenticates that the invocation of a kernel procedure originates from the account context.
+#!
+#! Panics:
+#!   - if the invocation of the kernel procedure does not originate from the account context.
+#!
+#! Stack: [...]
+#! Output: [...]
+proc.authenticate_account_origin
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ...]
+
+    # assert that the caller is from the user context
+    exec.account::authenticate_procedure
+    # => [CALLER, ...]
+
+    # drop the caller
+    dropw
+    # => [...]
+end
+
+# KERNEL PROCEDURES
+# =================================================================================================
+
 #! Returns the account id.
 #!
 #! Stack: [0]
@@ -12,6 +39,7 @@ use.miden::sat::internal::tx
 #!
 #! - acct_id is the account id.
 export.get_account_id
+    # get the account id
     exec.account::get_id
     # => [acct_id, 0]
 
@@ -26,6 +54,7 @@ end
 #!
 #! - nonce is the account nonce.
 export.get_account_nonce
+    # get the account nonce
     exec.account::get_nonce
     # => [0, nonce]
 
@@ -39,7 +68,8 @@ end
 #! Output: [H]
 #!
 #! - H is the initial account hash.
-export.get_initial_account_hash
+export.get_initial_account_hash 
+    # get the initial account hash
     exec.account::get_initial_hash
     # => [H, 0, 0, 0, 0]
 
@@ -54,6 +84,7 @@ end
 #!
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_account_hash
+    # get the current account hash
     exec.account::get_current_hash
     # => [ACCT_HASH, 0, 0, 0, 0]
 
@@ -69,26 +100,15 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_account_nonce
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, value]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, value]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [value]
 
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
-
+    # arrange stack
     push.0 swap
     # => [value, 0]
 
+    # increment the account nonce
     exec.account::incr_nonce
     # => [0]
 end
@@ -101,9 +121,11 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_account_item
+    # fetch the account storage item
     exec.account::get_item
     # => [VALUE, 0, 0, 0]
 
+    # organize the stack for return
     movup.4 drop movup.4 drop movup.4 drop
     # => [VALUE]
 end
@@ -118,8 +140,6 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_account_item
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
     # if the transaction is being executed against a faucet account then assert 
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
     dup exec.account::get_faucet_storage_data_slot eq
@@ -127,23 +147,15 @@ export.set_account_item
     and assertz
     # => [index, V', 0, 0, 0]
 
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, index, V', 0, 0, 0]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, index, V', 0, 0, 0]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [index, V', 0, 0, 0]
 
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # set the account storage item
     exec.account::set_item
     # => [R', V, 0, 0, 0]
 
+    # organize the stack for return
     movup.8 drop movup.8 drop movup.8 drop
     # => [R', V]
 end
@@ -156,30 +168,18 @@ end
 #!
 #! - CODE_ROOT is the hash of the code to set.
 export.set_account_code
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, value]
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [CODE_ROOT]
 
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, value]
-
-    # drop the caller
-    dropw
-    # => [value]
-
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # arrange stack
     padw swapw
     # => [CODE_ROOT, 0, 0, 0, 0]
 
+    # set the account code
     exec.account::set_code
     # => [0, 0, 0, 0]
 end
-
-# TODO: Add vault based procedures (mint, burn)
 
 #! Returns the balance of a fungible asset associated with a faucet_id.
 #! Panics if the asset is not a fungible asset.
@@ -190,9 +190,11 @@ end
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 export.account_vault_get_balance
+    # get the vault root
     exec.layout::get_acct_vault_root_ptr swap
     # => [faucet_id, acct_vault_root_ptr]
 
+    # get the asset balance
     exec.asset_vault::get_balance
     # => [balance]
 end
@@ -206,9 +208,11 @@ end
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.account_vault_has_non_fungible_asset
+    # arrange stack and get the vault root
     push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.layout::get_acct_vault_root_ptr movdn.4
     # => [ASSET, 0, 0, 0]
 
+    # check if the account vault has the non-fungible asset
     exec.asset_vault::has_non_fungible_asset
     # => [has_asset, 0, 0, 0]
 end
@@ -229,25 +233,15 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.account_vault_add_asset
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, ASSET]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, ASSET]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [ASSET]
 
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # fetch the vault root
     exec.layout::get_acct_vault_root_ptr movdn.4
     # => [ASSET, acct_vault_root_ptr]
 
+    # add the asset to the account vault
     exec.asset_vault::add_asset
     # => [ASSET']
 end
@@ -264,25 +258,15 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, ASSET]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, ASSET]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [ASSET]
 
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # fetch the vault root
     exec.layout::get_acct_vault_root_ptr movdn.4
     # => [ASSET, acct_vault_root_ptr]
 
+    # remove the asset from the account vault
     exec.asset_vault::remove_asset
     # => [ASSET]
 end
@@ -296,9 +280,11 @@ end
 #! - num_assets is the number of assets in the note currently being processed.
 #! - VAULT_HASH is the vault hash of the note currently being processed.
 export.get_note_vault_info
+    # get the vault info
     exec.note::get_vault_info
     # => [VAULT_HASH, num_assets, 0, 0, 0, 0, 0]
 
+    # organize the stack for return
     movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
     # => [VAULT_HASH, num_assets]
 end
@@ -311,9 +297,11 @@ end
 #!
 #! - sender is the sender of the note currently being processed.
 export.get_note_sender
+    # get the note sender
     exec.note::get_sender
     # => [sender, 0]
 
+    # organize the stack for return
     swap drop
     # => [sender]
 
@@ -326,9 +314,11 @@ end
 #!
 #! num is the last known block number.
 export.get_block_number
+    # get the block number
     exec.tx::get_block_number
     # => [num, 0]
 
+    # organize the stack for return
     swap drop
     # => [num]
 end
@@ -340,9 +330,11 @@ end
 #!
 #! H is the last known block hash.
 export.get_block_hash
+    # get the block hash
     exec.tx::get_block_hash
     # => [H, 0, 0, 0, 0]
 
+    # organize the stack for return
     swapw dropw
     # => [H]
 end
@@ -355,9 +347,11 @@ end
 #!
 #! COM is the input notes hash.
 export.get_input_notes_hash
+    # get the input notes hash
     exec.tx::get_input_notes_hash
     # => [COM, 0, 0, 0, 0]
 
+    # organize the stack for return
     swapw dropw
     # => [COM]
 end
@@ -370,9 +364,11 @@ end
 #!
 #! COM is the output notes hash.
 export.get_output_notes_hash
+    # get the output notes hash
     exec.tx::get_output_notes_hash
     # => [COM, 0, 0, 0, 0]
 
+    # organize the stack for return
     swapw dropw
     # => [COM]
 end
@@ -397,11 +393,11 @@ end
 #!
 #! - COM is the commitment to the account vault.
 export.get_account_vault_commitment
-    # fetch the account vault root from memory
+    # fetch the account vault root
     exec.layout::get_acct_vault_root
     # => [COM, 0, 0, 0, 0]
 
-    # prepare the stack for return
+    # organize the stack for return
     swapw dropw
     # => [COM]
 end
@@ -422,23 +418,13 @@ end
 #!
 #! - ASSET is the asset that was minted.
 export.mint_asset
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, ASSET]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, ASSET]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [ASSET]
 
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # mint the asset
     exec.faucet::mint
+    # => [ASSET]
 end
 
 #! Burn an asset from the faucet the transaction is being executed against.
@@ -458,21 +444,11 @@ end
 #!
 #! - ASSET is the asset that was burned.
 export.burn_asset
-    # AUTHENTICATION
-    # ---------------------------------------------------------------------------------------------
-    # get the hash of the caller
-    padw caller
-    # => [CALLER, ASSET]
-
-    # make sure the caller is a part of the account interface
-    exec.account::authenticate_procedure
-    # => [CALLER, ASSET]
-
-    # drop the caller
-    dropw
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
     # => [ASSET]
     
-    # KERNEL LOGIC
-    # ---------------------------------------------------------------------------------------------
+    # burn the asset
     exec.faucet::burn
+    # => [ASSET]
 end
