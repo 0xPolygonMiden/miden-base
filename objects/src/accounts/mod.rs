@@ -129,6 +129,11 @@ impl Account {
         self.nonce
     }
 
+    /// Returns nonce for this account.
+    pub fn set_nonce(&mut self, nonce: Felt) {
+        self.nonce = nonce;
+    }
+
     /// Returns true if this account can issue assets.
     pub fn is_faucet(&self) -> bool {
         self.id.is_faucet()
