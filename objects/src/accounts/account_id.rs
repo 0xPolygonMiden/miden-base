@@ -1,4 +1,6 @@
-use super::{Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word};
+use super::{
+    get_account_seed, Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word,
+};
 use core::fmt;
 use crypto::FieldElement;
 
@@ -67,7 +69,7 @@ impl AccountId {
     /// - the ID has at least `23` trailing zeros if it is a regular account.
     /// - the ID has at least `31` trailing zeros if it is a faucet account.
     pub fn new(seed: Word, code_root: Digest, storage_root: Digest) -> Result<Self, AccountError> {
-        let seed_digest = Self::compute_digest(seed, code_root, storage_root);
+        let seed_digest = compute_digest(seed, code_root, storage_root);
 
         // verify the seed digest satisfies all rules
         Self::validate_seed_digest(&seed_digest)?;
@@ -118,9 +120,6 @@ impl AccountId {
         self.0.as_int() >> 61 & Self::ON_CHAIN_ACCOUNT_SELECTOR == 1
     }
 
-    // SEED GENERATORS
-    // --------------------------------------------------------------------------------------------
-
     /// Finds and returns a seed suitable for creating an account ID for the specified account type
     /// using the provided initial seed as a starting point.
     pub fn get_account_seed(
@@ -130,54 +129,7 @@ impl AccountId {
         code_root: Digest,
         storage_root: Digest,
     ) -> Result<Word, AccountError> {
-        let init_seed: Vec<[u8; 8]> =
-            init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
-        let mut current_seed: Word = [
-            Felt::from(init_seed[0]),
-            Felt::from(init_seed[1]),
-            Felt::from(init_seed[2]),
-            Felt::from(init_seed[3]),
-        ];
-        let mut current_digest = Self::compute_digest(current_seed, code_root, storage_root);
-
-        #[cfg(feature = "log")]
-        let mut log = log::Log::start(current_digest, current_seed, account_type, on_chain);
-
-        // loop until we have a seed that satisfies the specified account type.
-        loop {
-            #[cfg(feature = "log")]
-            log.iteration(current_digest, current_seed);
-
-            // check if the seed satisfies the specified account type
-            if AccountId::validate_seed_digest(&current_digest).is_ok() {
-                if let Ok(account_id) = AccountId::try_from(current_digest[0]) {
-                    if account_id.account_type() == account_type
-                        && account_id.is_on_chain() == on_chain
-                    {
-                        #[cfg(feature = "log")]
-                        log.done(current_digest, current_seed, account_id);
-
-                        return Ok(current_seed);
-                    };
-                }
-            }
-            current_seed = current_digest.into();
-            current_digest = Self::compute_digest(current_seed, code_root, storage_root);
-        }
-    }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the digest of two hashing permutations over the seed, code root, storage root and
-    /// padding.
-    fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Digest {
-        let mut elements = Vec::with_capacity(16);
-        elements.extend(seed);
-        elements.extend(*code_root);
-        elements.extend(*storage_root);
-        elements.resize(16, Felt::ZERO);
-        Hasher::hash_elements(&elements)
+        get_account_seed(init_seed, account_type, on_chain, code_root, storage_root)
     }
 
     /// Returns an error if:
@@ -290,13 +242,10 @@ impl Ord for AccountId {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
     Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
 }
 
-// HELPERS
-// --------------------------------------------------------------------------------------------
 /// Validates that the provided seed is valid for the provided account.
 pub fn validate_account_seed(account: &Account, seed: Word) -> Result<(), AccountError> {
     let account_id = AccountId::new(seed, account.code().root(), account.storage().root())?;
@@ -310,89 +259,18 @@ pub fn validate_account_seed(account: &Account, seed: Word) -> Result<(), Accoun
     Ok(())
 }
 
-/// Given a [Digest] returns its proof-of-work.
-fn digest_pow(digest: Digest) -> u32 {
-    digest.as_elements()[3].as_int().trailing_zeros()
+/// Returns the digest of two hashing permutations over the seed, code root, storage root and
+/// padding.
+pub fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Digest {
+    let mut elements = Vec::with_capacity(16);
+    elements.extend(seed);
+    elements.extend(*code_root);
+    elements.extend(*storage_root);
+    elements.resize(16, Felt::ZERO);
+    Hasher::hash_elements(&elements)
 }
 
-#[cfg(feature = "log")]
-mod log {
-    use super::{digest_pow, AccountId, AccountType, Digest, FieldElement, Word};
-    use assembly::utils::to_hex;
-    use crypto::utils::string::String;
-
-    /// Keeps track of the best digest found so far and count how many iterations have been done.
-    pub struct Log {
-        digest: Digest,
-        seed: Word,
-        count: usize,
-        pow: u32,
-    }
-
-    /// Given a [Digest] returns its hex representaiton.
-    fn digest_hex(digest: Digest) -> String {
-        to_hex(&digest.as_bytes()).expect("hex formatting failed")
-    }
-
-    /// Given a [Word] returns its hex representation.
-    fn word_hex(word: Word) -> String {
-        to_hex(FieldElement::elements_as_bytes(&word)).expect("hex formatting failed")
-    }
-
-    impl Log {
-        pub fn start(
-            digest: Digest,
-            seed: Word,
-            account_type: AccountType,
-            on_chain: bool,
-        ) -> Self {
-            log::info!(
-                "Generating new account seed [pow={}, digest={}, seed={} type={:?} onchain={}]",
-                digest_pow(digest),
-                digest_hex(digest),
-                word_hex(seed),
-                account_type,
-                on_chain,
-            );
-
-            Self {
-                digest,
-                seed,
-                count: 0,
-                pow: 0,
-            }
-        }
-
-        pub fn iteration(&mut self, digest: Digest, seed: Word) {
-            self.count += 1;
-
-            let pow = digest_pow(digest);
-            if pow >= self.pow {
-                self.digest = digest;
-                self.seed = seed;
-                self.pow = pow;
-            }
-
-            if self.count % 500_000 == 0 {
-                log::debug!(
-                    "Account seed loop [count={}, pow={}, digest={}, seed={}]",
-                    self.count,
-                    self.pow,
-                    digest_hex(self.digest),
-                    word_hex(self.seed),
-                );
-            }
-        }
-
-        pub fn done(self, digest: Digest, seed: Word, account_id: AccountId) {
-            log::info!(
-                "Found account seed [pow={}, current_digest={}, current_seed={} type={:?} onchain={}]]",
-                digest_pow(digest),
-                digest_hex(digest),
-                word_hex(seed),
-                account_id.account_type(),
-                account_id.is_on_chain(),
-            );
-        }
-    }
+/// Given a [Digest] returns its proof-of-work.
+pub fn digest_pow(digest: Digest) -> u32 {
+    digest.as_elements()[3].as_int().trailing_zeros()
 }
