@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use crate::{
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     mock::assembler,
@@ -7,6 +9,7 @@ use crate::{
     Vec, Word, ZERO,
 };
 use assembly::ast::ModuleAst;
+use crypto::merkle::MerkleError;
 use rand::{distributions::Standard, Rng};
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "\
@@ -82,6 +85,13 @@ impl AccountStorageBuider {
         self
     }
 
+    pub fn add_items<I: IntoIterator<Item = StorageItem>>(&mut self, items: I) -> &mut Self {
+        for item in items.into_iter() {
+            self.add_item(item);
+        }
+        self
+    }
+
     pub fn build(&self) -> AccountStorage {
         AccountStorage::new(self.items.clone(), MerkleStore::new()).unwrap()
     }
@@ -96,6 +106,47 @@ pub struct AccountIdBuilder<T: Rng> {
     code: String,
     storage_root: Digest,
     rng: T,
+}
+
+#[derive(Debug)]
+pub enum AccountBuilderError {
+    AccountError(AccountError),
+    MerkleError(MerkleError),
+
+    /// When the created [AccountId] doesn't match the builder's configured [AccountType].
+    SeedAndAccountTypeMismatch,
+
+    /// When the created [AccountId] doesn't match the builder's `on_chain` config.
+    SeedAndOnChainMismatch,
+}
+
+impl Display for AccountBuilderError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AccountBuilderError {}
+
+/// Returns the account's seed and code root.
+///
+/// This compiles `code` and performs the proof-of-work to find a valid seed.
+pub fn accountid_build_details<T: Rng>(
+    rng: &mut T,
+    code: &str,
+    account_type: AccountType,
+    on_chain: bool,
+    storage_root: Digest,
+) -> Result<(Word, Digest), AccountBuilderError> {
+    let init_seed: [u8; 32] = rng.gen();
+    let code = str_to_accountcode(code).map_err(AccountBuilderError::AccountError)?;
+    let code_root = code.root();
+    let seed =
+        AccountId::get_account_seed(init_seed, account_type, on_chain, code_root, storage_root)
+            .map_err(AccountBuilderError::AccountError)?;
+
+    Ok((seed, code_root))
 }
 
 impl<T: Rng> AccountIdBuilder<T> {
@@ -129,19 +180,35 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn build(&mut self) -> Result<AccountId, AccountError> {
-        let init_seed: [u8; 32] = self.rng.gen();
-        let code = str_to_accountcode(&self.code)?;
-        let code_root = code.root();
-        let seed = AccountId::get_account_seed(
-            init_seed,
+    pub fn build(&mut self) -> Result<AccountId, AccountBuilderError> {
+        let (seed, code_root) = accountid_build_details(
+            &mut self.rng,
+            &self.code,
             self.account_type,
             self.on_chain,
-            code_root,
             self.storage_root,
         )?;
 
         AccountId::new(seed, code_root, self.storage_root)
+            .map_err(AccountBuilderError::AccountError)
+    }
+
+    pub fn with_seed(&mut self, seed: Word) -> Result<AccountId, AccountBuilderError> {
+        let code = str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+        let code_root = code.root();
+
+        let account_id = AccountId::new(seed, code_root, self.storage_root)
+            .map_err(AccountBuilderError::AccountError)?;
+
+        if account_id.account_type() != self.account_type {
+            return Err(AccountBuilderError::SeedAndAccountTypeMismatch);
+        }
+
+        if account_id.is_on_chain() != self.on_chain {
+            return Err(AccountBuilderError::SeedAndOnChainMismatch);
+        }
+
+        return Ok(account_id);
     }
 }
 
@@ -268,9 +335,7 @@ impl<T: Rng> AccountBuilder<T> {
     }
 
     pub fn add_storage_items<I: IntoIterator<Item = StorageItem>>(mut self, items: I) -> Self {
-        for item in items.into_iter() {
-            self.storage_builder.add_item(item);
-        }
+        self.storage_builder.add_items(items);
         self
     }
 
@@ -294,13 +359,51 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn build(mut self) -> Result<Account, AccountError> {
-        let vault = AccountVault::new(&self.assets)?;
+    pub fn build(mut self) -> Result<Account, AccountBuilderError> {
+        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.build()?;
-        let account_code = str_to_accountcode(&self.code)?;
+        let account_code =
+            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+        Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+    }
+
+    /// Build an account using the provided `seed`.
+    pub fn with_seed(mut self, seed: Word) -> Result<Account, AccountBuilderError> {
+        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
+        let storage = self.storage_builder.build();
+        self.account_id_builder.code(&self.code);
+        self.account_id_builder.storage_root(storage.root());
+        let account_id = self.account_id_builder.with_seed(seed)?;
+        let account_code =
+            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+        Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+    }
+
+    /// Build an account using the provided `seed` and `storage`.
+    ///
+    /// The storage items added to this builder will added on top of `storage`.
+    pub fn with_seed_and_storage(
+        mut self,
+        seed: Word,
+        mut storage: AccountStorage,
+    ) -> Result<Account, AccountBuilderError> {
+        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
+        let inner_storage = self.storage_builder.build();
+
+        let slots = storage.slots_mut();
+        for (key, value) in inner_storage.slots().leaves() {
+            slots.update_leaf(key, *value).map_err(AccountBuilderError::MerkleError)?;
+        }
+        storage.store_mut().extend(inner_storage.store().inner_nodes());
+
+        self.account_id_builder.code(&self.code);
+        self.account_id_builder.storage_root(storage.root());
+        let account_id = self.account_id_builder.with_seed(seed)?;
+        let account_code =
+            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 }

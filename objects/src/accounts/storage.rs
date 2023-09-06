@@ -71,9 +71,19 @@ impl AccountStorage {
         &self.slots
     }
 
+    /// Returns a mutable reference to the sparse Merkle tree that backs the storage slots.
+    pub fn slots_mut(&mut self) -> &mut SimpleSmt {
+        &mut self.slots
+    }
+
     /// Returns a reference to the Merkle store that backs the storage.
     pub fn store(&self) -> &MerkleStore {
         &self.store
+    }
+
+    /// Returns a mutable reference to the Merkle store that backs the storage.
+    pub fn store_mut(&mut self) -> &mut MerkleStore {
+        &mut self.store
     }
 
     /// Returns a list of items contained in this storage.
