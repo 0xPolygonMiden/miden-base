@@ -17,7 +17,7 @@ use crypto::merkle::{SimpleSmt, TieredSmt};
 use miden_core::{crypto::merkle::MerkleStore, FieldElement};
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
 
-fn mock_account_vault() -> AccountVault {
+pub fn mock_account_vault() -> AccountVault {
     // prepare fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let fungible_asset =
@@ -33,7 +33,7 @@ fn mock_account_vault() -> AccountVault {
     AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
 }
 
-fn mock_account_storage() -> AccountStorage {
+pub fn mock_account_storage() -> AccountStorage {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
     let child_smt =

@@ -495,6 +495,11 @@ mod mock {
         pub fn account_mut(&mut self, pos: usize) -> &mut Account {
             &mut self.objects.accounts[pos]
         }
+
+        // Get the nth Note
+        pub fn note(&self, pos: usize) -> &Note {
+            &self.objects.notes[pos]
+        }
     }
 }
 

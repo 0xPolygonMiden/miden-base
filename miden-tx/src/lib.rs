@@ -15,12 +15,12 @@ use processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;
 pub use compiler::{NoteTarget, TransactionComplier};
-mod data;
-use data::DataStore;
+pub mod data;
+pub use data::DataStore;
 mod error;
 mod executor;
 pub use error::TransactionError;
-use error::{
+pub use error::{
     DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
     TransactionVerifierError,
 };

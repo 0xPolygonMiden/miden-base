@@ -124,6 +124,11 @@ impl Account {
         &self.code
     }
 
+    /// Sets code of the account.
+    pub fn set_code(&mut self, code: AccountCode) {
+        self.code = code;
+    }
+
     /// Returns nonce for this account.
     pub fn nonce(&self) -> Felt {
         self.nonce

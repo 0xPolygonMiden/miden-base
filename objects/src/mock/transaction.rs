@@ -12,6 +12,8 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
+    account: Option<Account>,
+    consumed_notes_from: Option<Vec<Note>>,
 ) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
     // Create assembler and assembler context
     let mut assembler = assembler();
@@ -20,13 +22,17 @@ pub fn mock_inputs(
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&mut assembler),
-        MockAccountType::StandardExisting => mock_account(Felt::ONE, None, &mut assembler),
+        MockAccountType::StandardExisting => {
+            account.unwrap_or(mock_account(Felt::ONE, None, &mut assembler))
+        }
         MockAccountType::FungibleFaucet(acct_id) => mock_fungible_faucet(acct_id, &mut assembler),
         MockAccountType::NonFungibleFaucet => mock_non_fungible_faucet(&mut assembler),
     };
 
-    // mock notes
     let (mut consumed_notes, _created_notes) = mock_notes(&mut assembler, asset_preservation);
+    if consumed_notes_from.is_some() {
+        consumed_notes = consumed_notes_from.unwrap();
+    }
 
     // Chain data
     let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
