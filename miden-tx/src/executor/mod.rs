@@ -94,7 +94,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
-    pub fn (
+    pub fn execute_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,

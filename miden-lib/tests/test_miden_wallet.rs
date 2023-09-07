@@ -142,16 +142,6 @@ fn test_receive_asset_via_wallet() {
         exec.note::get_assets drop
         mem_loadw
         exec.wallet::receive_asset
-        exec.authentication::auth_tx
-<<<<<<< HEAD
-        push.1
-=======
->>>>>>> 3dd1d0f (rebase on MockChain PR)
-        exec.note::get_assets 
-        drop drop
-        mem_loadw.1
-        #exec.wallet::receive_asset
-        #dropw
     end
     "
         )
