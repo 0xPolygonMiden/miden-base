@@ -61,12 +61,11 @@ mod mock {
     use crate::{
         assets::Asset,
         builder::{
-            AccountBuilder, AccountIdBuilder, FungibleAssetBuilder, NonFungibleAssetBuilder,
-            DEFAULT_ACCOUNT_CODE,
+            accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuider,
+            FungibleAssetBuilder, NonFungibleAssetBuilder, DEFAULT_ACCOUNT_CODE,
         },
         notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-        Account, AccountError, AccountId, AccountType, AssetError, BlockHeader, ChainMmr, Felt,
-        StorageItem, Vec,
+        Account, AccountId, AccountType, BlockHeader, ChainMmr, Felt, StorageItem, Vec, Word,
     };
     use core::fmt;
     use crypto::{
@@ -84,7 +83,8 @@ mod mock {
     #[derive(Default, Debug, Clone)]
     #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
     pub struct Objects<R: Rng> {
-        accounts: Vec<Account>,
+        /// Holds the account and its corresponding seed.
+        accounts: Vec<(Account, Word)>,
         fungible_faucets: Vec<(AccountId, FungibleAssetBuilder)>,
         nonfungible_faucets: Vec<(AccountId, NonFungibleAssetBuilder<R>)>,
         notes: Vec<Note>,
@@ -129,7 +129,7 @@ mod mock {
         /// The root of the tree is a commitment to all notes created in the block. The commitment
         /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
         /// a note (i.e., vault, inputs, script, and serial number).
-        pub fn build_notes_tree(&self) -> Result<SimpleSmt, MerkleError> {
+        pub fn build_notes_tree(&self) -> SimpleSmt {
             let mut entries = Vec::with_capacity(self.notes.len() * 2);
 
             entries.extend(self.notes.iter().enumerate().map(|(index, note)| {
@@ -141,7 +141,7 @@ mod mock {
                 (tree_index, note.metadata().into())
             }));
 
-            SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, entries)
+            SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, entries).unwrap()
         }
 
         /// Given the [BlockHeader] and its notedb's [SimpleSmt], set all the [Note]'s proof.
@@ -241,10 +241,10 @@ mod mock {
         // CONSTRUCTORS
         // ----------------------------------------------------------------------------------------
 
-        pub fn new(mut rng: R) -> Result<Self, rand::Error> {
+        pub fn new(mut rng: R) -> Self {
             let account_rng = R::from_rng(&mut rng).expect("rng seeding failed");
             let account_id_builder = AccountIdBuilder::new(account_rng);
-            Ok(Self {
+            Self {
                 chain: ChainMmr::default(),
                 blocks: vec![],
                 nullifiers: TieredSmt::default(),
@@ -253,7 +253,186 @@ mod mock {
                 account_id_builder,
                 objects: Objects::new(),
                 pending_objects: Objects::new(),
-            })
+            }
+        }
+
+        // BUILDERS
+        // ----------------------------------------------------------------------------------------
+
+        /// Creates an [Account] and add to the list of pending objects.
+        pub fn build_account<C, S, A>(
+            &mut self,
+            code: C,
+            storage: S,
+            assets: A,
+            immutable: Immutable,
+            on_chain: OnChain,
+        ) -> AccountId
+        where
+            C: AsRef<str>,
+            S: IntoIterator<Item = StorageItem>,
+            A: IntoIterator<Item = Asset>,
+        {
+            let account_type = match immutable {
+                Immutable::Yes => AccountType::RegularAccountImmutableCode,
+                Immutable::No => AccountType::RegularAccountUpdatableCode,
+            };
+
+            let on_chain_bool = match on_chain {
+                OnChain::Yes => true,
+                OnChain::No => false,
+            };
+
+            let storage = AccountStorageBuider::new().add_items(storage).build();
+
+            let (seed, _) = accountid_build_details(
+                &mut self.rng,
+                code.as_ref(),
+                account_type,
+                on_chain_bool,
+                storage.root(),
+            )
+            .unwrap();
+
+            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
+            let account = AccountBuilder::new(rng)
+                .add_assets(assets)
+                .account_type(account_type)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .with_seed_and_storage(seed, storage)
+                .unwrap();
+            let account_id = account.id();
+            self.pending_objects.accounts.push((account, seed));
+            account_id
+        }
+
+        /// Creates an [Account] using `seed` and add to the list of pending objects.
+        pub fn build_account_with_seed<C, S, A>(
+            &mut self,
+            seed: Word,
+            code: C,
+            storage: S,
+            assets: A,
+            immutable: Immutable,
+            on_chain: OnChain,
+        ) -> AccountId
+        where
+            C: AsRef<str>,
+            S: IntoIterator<Item = StorageItem>,
+            A: IntoIterator<Item = Asset>,
+        {
+            let account_type = match immutable {
+                Immutable::Yes => AccountType::RegularAccountImmutableCode,
+                Immutable::No => AccountType::RegularAccountUpdatableCode,
+            };
+
+            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
+            let account = AccountBuilder::new(rng)
+                .add_storage_items(storage)
+                .add_assets(assets)
+                .account_type(account_type)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .with_seed(seed)
+                .unwrap();
+            let account_id = account.id();
+            self.pending_objects.accounts.push((account, seed));
+            account_id
+        }
+
+        pub fn build_basic_wallet(&mut self) -> AccountId {
+            let account_type = AccountType::RegularAccountUpdatableCode;
+            let on_chain = true;
+            let storage = AccountStorageBuider::new().build();
+            let (seed, _) = accountid_build_details(
+                &mut self.rng,
+                DEFAULT_ACCOUNT_CODE,
+                account_type,
+                on_chain,
+                storage.root(),
+            )
+            .unwrap();
+            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
+            let account = AccountBuilder::new(rng)
+                .account_type(account_type)
+                .on_chain(on_chain)
+                .code(DEFAULT_ACCOUNT_CODE)
+                .build()
+                .unwrap();
+            let account_id = account.id();
+            self.pending_objects.accounts.push((account, seed));
+            account_id
+        }
+
+        /// Creates a [AccountId] with type [AccountType::FungibleFaucet] and add to the list of
+        /// pending objects.
+        pub fn build_fungible_faucet<C: AsRef<str>>(
+            &mut self,
+            on_chain: OnChain,
+            code: C,
+            storage_root: Digest,
+        ) -> AccountId {
+            let faucet_id = self
+                .account_id_builder
+                .account_type(AccountType::FungibleFaucet)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .storage_root(storage_root)
+                .build()
+                .unwrap();
+            let builder = FungibleAssetBuilder::new(faucet_id)
+                .expect("builder was not configured to create fungible faucets");
+            self.pending_objects.fungible_faucets.push((faucet_id, builder));
+            faucet_id
+        }
+
+        /// Creates a [AccountId] with type [AccountType::NonFungibleFaucet] and add to the list of
+        /// pending objects.
+        pub fn build_nonfungible_faucet<C: AsRef<str>>(
+            &mut self,
+            on_chain: OnChain,
+            code: C,
+            storage_root: Digest,
+        ) -> AccountId {
+            let faucet_id = self
+                .account_id_builder
+                .account_type(AccountType::NonFungibleFaucet)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .storage_root(storage_root)
+                .build()
+                .unwrap();
+            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
+            let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
+                .expect("builder was not configured to build nonfungible faucets");
+            self.pending_objects.nonfungible_faucets.push((faucet_id, builder));
+            faucet_id
+        }
+
+        /// Creates [FungibleAsset] from the fungible faucet at position `faucet_pos`.
+        pub fn build_fungible_asset(&mut self, faucet_pos: usize, amount: u64) -> Asset {
+            self.objects.fungible_faucets[faucet_pos]
+                .1
+                .amount(amount)
+                .unwrap()
+                .build()
+                .map(|v| v.into())
+                .unwrap()
+        }
+
+        /// Creates [NonFungibleAsset] from the nonfungible faucet at position `faucet_pos`.
+        pub fn build_nonfungible_asset(&mut self, faucet_pos: usize) -> Asset {
+            self.objects.nonfungible_faucets[faucet_pos]
+                .1
+                .build()
+                .map(|v| v.into())
+                .unwrap()
+        }
+
+        fn check_nullifier_unknown(&self, nullifier: Digest) {
+            assert!(self.pending_objects.nullifiers.iter().find(|e| **e == nullifier).is_some());
+            assert!(self.nullifiers.get_value(nullifier) != TieredSmt::EMPTY_VALUE)
         }
 
         // MODIFIERS
@@ -262,17 +441,17 @@ mod mock {
         /// Creates the next block.
         ///
         /// This will also make all the objects currently pending available for use.
-        pub fn seal_block(&mut self) -> Result<BlockHeader, MerkleError> {
+        pub fn seal_block(&mut self) -> BlockHeader {
             let block_num: u64 = self.blocks.len().try_into().expect("usize to u64 failed");
             let block_num: Felt = block_num.into();
 
-            for account in self.pending_objects.accounts.iter() {
+            for (account, _seed) in self.pending_objects.accounts.iter() {
                 let id: Felt = account.id().into();
-                self.accounts.update_leaf(id.as_int(), account.hash().into())?;
+                self.accounts.update_leaf(id.as_int(), account.hash().into()).unwrap();
             }
-            for account in self.objects.accounts.iter() {
+            for (account, _seed) in self.objects.accounts.iter() {
                 let id: Felt = account.id().into();
-                self.accounts.update_leaf(id.as_int(), account.hash().into())?;
+                self.accounts.update_leaf(id.as_int(), account.hash().into()).unwrap();
             }
 
             // TODO:
@@ -283,7 +462,7 @@ mod mock {
                 self.nullifiers
                     .insert(*nullifier, [block_num, Felt::ZERO, Felt::ZERO, Felt::ZERO]);
             }
-            let notes = self.pending_objects.build_notes_tree()?;
+            let notes = self.pending_objects.build_notes_tree();
 
             let previous = self.blocks.last();
             let peaks = self.chain.mmr().accumulator();
@@ -318,124 +497,7 @@ mod mock {
             self.chain.mmr_mut().add(header.hash());
             self.objects.update_with(&mut self.pending_objects, header, &notes);
 
-            Ok(header)
-        }
-
-        /// Creates a [Account] and add to the list of pending objects.
-        pub fn new_account<C, S, A>(
-            &mut self,
-            code: C,
-            storage: S,
-            assets: A,
-            immutable: Immutable,
-            on_chain: OnChain,
-        ) -> Result<AccountId, AccountError>
-        where
-            C: AsRef<str>,
-            S: IntoIterator<Item = StorageItem>,
-            A: IntoIterator<Item = Asset>,
-        {
-            let account_type = match immutable {
-                Immutable::Yes => AccountType::RegularAccountImmutableCode,
-                Immutable::No => AccountType::RegularAccountUpdatableCode,
-            };
-
-            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
-            let account = AccountBuilder::new(rng)
-                .add_storage_items(storage)
-                .add_assets(assets)
-                .account_type(account_type)
-                .on_chain(on_chain == OnChain::Yes)
-                .code(code)
-                .build()?;
-            let account_id = account.id();
-            self.pending_objects.accounts.push(account);
-            Ok(account_id)
-        }
-
-        pub fn new_basic_wallet(&mut self) -> Result<AccountId, AccountError> {
-            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
-            let account = AccountBuilder::new(rng)
-                .account_type(AccountType::RegularAccountUpdatableCode)
-                .on_chain(true)
-                .code(DEFAULT_ACCOUNT_CODE)
-                .build()?;
-            let account_id = account.id();
-            self.pending_objects.accounts.push(account);
-            Ok(account_id)
-        }
-
-        /// Creates a [AccountId] with type [AccountType::FungibleFaucet] and add to the list of
-        /// pending objects.
-        pub fn new_fungible_faucet<C: AsRef<str>>(
-            &mut self,
-            on_chain: OnChain,
-            code: C,
-            storage_root: Digest,
-        ) -> Result<AccountId, AccountError> {
-            let faucet_id = self
-                .account_id_builder
-                .account_type(AccountType::FungibleFaucet)
-                .on_chain(on_chain == OnChain::Yes)
-                .code(code)
-                .storage_root(storage_root)
-                .build()?;
-            let builder = FungibleAssetBuilder::new(faucet_id)
-                .expect("builder was not configured to create fungible faucets");
-            self.pending_objects.fungible_faucets.push((faucet_id, builder));
-            Ok(faucet_id)
-        }
-
-        /// Creates a [AccountId] with type [AccountType::NonFungibleFaucet] and add to the list of
-        /// pending objects.
-        pub fn new_nonfungible_faucet<C: AsRef<str>>(
-            &mut self,
-            on_chain: OnChain,
-            code: C,
-            storage_root: Digest,
-        ) -> Result<AccountId, AccountError> {
-            let faucet_id = self
-                .account_id_builder
-                .account_type(AccountType::NonFungibleFaucet)
-                .on_chain(on_chain == OnChain::Yes)
-                .code(code)
-                .storage_root(storage_root)
-                .build()?;
-            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
-            let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
-                .expect("builder was not configured to build nonfungible faucets");
-            self.pending_objects.nonfungible_faucets.push((faucet_id, builder));
-            Ok(faucet_id)
-        }
-
-        /// Creates [FungibleAsset] from the fungible faucet at position `faucet_pos`.
-        pub fn new_fungible_asset(
-            &mut self,
-            faucet_pos: usize,
-            amount: u64,
-        ) -> Result<Asset, AssetError> {
-            self.objects.fungible_faucets[faucet_pos]
-                .1
-                .amount(amount)?
-                .build()
-                .map(|v| v.into())
-        }
-
-        /// Creates [NonFungibleAsset] from the nonfungible faucet at position `faucet_pos`.
-        pub fn new_nonfungible_asset(&mut self, faucet_pos: usize) -> Result<Asset, AssetError> {
-            self.objects.nonfungible_faucets[faucet_pos].1.build().map(|v| v.into())
-        }
-
-        fn check_nullifier_unknown(&self, nullifier: Digest) -> Result<(), MockError> {
-            if self.pending_objects.nullifiers.iter().find(|e| **e == nullifier).is_some() {
-                return Err(MockError::DuplicatedNullifier);
-            }
-
-            if self.nullifiers.get_value(nullifier) != TieredSmt::EMPTY_VALUE {
-                return Err(MockError::DuplicatedNullifier);
-            }
-
-            Ok(())
+            header
         }
 
         /// Mark a [Note] as produced by inserting into the block.
@@ -451,16 +513,29 @@ mod mock {
                 return Err(MockError::DuplicatedNote);
             }
 
-            self.check_nullifier_unknown(note.nullifier())?;
+            self.check_nullifier_unknown(note.nullifier());
             self.pending_objects.notes.push(note);
             Ok(())
         }
 
         /// Mark a [Note] as consumed by inserting its nullifier into the block.
         pub fn add_nullifier(&mut self, nullifier: Digest) -> Result<(), MockError> {
-            self.check_nullifier_unknown(nullifier)?;
+            self.check_nullifier_unknown(nullifier);
             self.pending_objects.nullifiers.push(nullifier);
             Ok(())
+        }
+
+        /// Add a known [Account] to the mock chain.
+        pub fn add_account(&mut self, account: Account, seed: Word) {
+            assert!(
+                self.pending_objects
+                    .accounts
+                    .iter()
+                    .find(|(a, _)| a.id() == account.id())
+                    .is_none(),
+                "Found duplicated AccountId"
+            );
+            self.pending_objects.accounts.push((account, seed));
         }
 
         // ACESSORS
@@ -493,7 +568,12 @@ mod mock {
 
         /// Get a mutable reference to nth [Account].
         pub fn account_mut(&mut self, pos: usize) -> &mut Account {
-            &mut self.objects.accounts[pos]
+            &mut self.objects.accounts[pos].0
+        }
+
+        /// Get the [Account]'s corresponding seed.
+        pub fn account_seed(&mut self, pos: usize) -> Word {
+            self.objects.accounts[pos].1
         }
     }
 }
