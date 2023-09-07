@@ -440,6 +440,7 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
         }
         CodeBlock::Span(_) => {}
         CodeBlock::Proxy(_) => {}
+        CodeBlock::Dyn(_) => {}
     }
 }
 

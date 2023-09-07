@@ -4,14 +4,17 @@ use super::{
 };
 use crypto::merkle::SimpleSmt;
 
-// ACCOUNT CODE
-// ================================================================================================
-
 // CONSTANTS
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
 /// The depth of the Merkle tree that is used to commit to the account's public interface.
 const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
+
+/// The maximum number of account interface procedures.
+const MAX_ACCOUNT_PROCEDURES: usize = 2_usize.pow(ACCOUNT_CODE_TREE_DEPTH as u32);
+
+// ACCOUNT CODE
+// ================================================================================================
 
 /// Describes the public interface of an account.
 ///
@@ -27,31 +30,6 @@ pub struct AccountCode {
     procedure_tree: SimpleSmt,
 }
 
-#[cfg(feature = "serde")]
-mod serialization {
-    use assembly::ast::{AstSerdeOptions, ModuleAst};
-
-    pub fn serialize<S>(module: &super::ModuleAst, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = module.to_bytes(AstSerdeOptions {
-            serialize_imports: true,
-        });
-
-        serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ModuleAst, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-
-        ModuleAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
-}
-
 impl AccountCode {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
@@ -59,37 +37,64 @@ impl AccountCode {
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Creates and returns a new definition of an account's interface compiled from the specified
-    /// source code.
+    /// Returns a new definition of an account's interface compiled from the specified source code.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Compilation of the provided module fails.
+    /// - The number of procedures exported from the provided module is greater than 256.
     pub fn new(
         account_id: AccountId,
         account_module: ModuleAst,
         assembler: &Assembler,
     ) -> Result<Self, AccountError> {
+        // create a module with an account-specific path
+        // TODO: this should be eliminated as it results in a circular logic: we need an account ID
+        // to compile code, but we also need code root to build an account ID.
         let module = Module::new(
             LibraryPath::new(format!("{}_{}", Self::ACCOUNT_CODE_NAMESPACE_BASE, account_id))
                 .expect("valid path"),
             account_module,
         );
 
+        // compile the module and make sure the number of exported procedures is within the limit
         let mut procedure_digests = assembler
             .compile_module(&module, &mut AssemblyContext::new(AssemblyContextType::Module))
             .map_err(AccountError::AccountCodeAssemblerError)?;
+
+        if procedure_digests.len() > MAX_ACCOUNT_PROCEDURES {
+            return Err(AccountError::AccountCodeTooManyProcedures {
+                max: MAX_ACCOUNT_PROCEDURES,
+                actual: procedure_digests.len(),
+            });
+        }
+
+        // sort the procedure digests so that their order is stable
         procedure_digests.sort_by_key(|a| a.as_bytes());
 
         Ok(Self {
-            procedure_tree: SimpleSmt::with_leaves(
-                ACCOUNT_CODE_TREE_DEPTH,
-                procedure_digests
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, p)| (idx as u64, p.into()))
-                    .collect::<Vec<_>>(),
-            )
-            .unwrap(),
+            procedure_tree: build_procedure_tree(&procedure_digests),
             module: module.ast,
             procedures: procedure_digests,
         })
+    }
+
+    /// Returns a new definition of an account's interface instantiated from the provided
+    /// module and list of procedure digests.
+    ///
+    /// # Safety
+    /// This function assumes that the list of provided procedure digests resulted from the
+    /// compilation of the provided module, but this is not checked.
+    ///
+    /// # Panics
+    /// Panics if the number of procedures is greater than 256.
+    pub unsafe fn from_parts(module: ModuleAst, procedures: Vec<Digest>) -> Self {
+        assert!(procedures.len() <= MAX_ACCOUNT_PROCEDURES, "too many account procedures");
+        Self {
+            procedure_tree: build_procedure_tree(&procedures),
+            module,
+            procedures,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -97,7 +102,7 @@ impl AccountCode {
 
     /// Returns a commitment to an account's public interface.
     pub fn root(&self) -> Digest {
-        self.procedure_tree.root()
+        self.procedure_tree().root()
     }
 
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].
@@ -131,11 +136,7 @@ impl AccountCode {
     /// # Panics
     /// Panics if the provided index is out of bounds.
     pub fn get_procedure_by_index(&self, index: usize) -> Digest {
-        // index must be wihtin range
-        assert!(index < self.procedures.len());
-
-        // Return digest for the procedure
-        *self.procedures.get(index).unwrap()
+        self.procedures[index]
     }
 
     /// Returns the procedure index for the procedure with the specified root or None if such
@@ -144,4 +145,47 @@ impl AccountCode {
         let root_bytes = root.as_bytes();
         self.procedures.binary_search_by(|x| x.as_bytes().cmp(&root_bytes)).ok()
     }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use assembly::ast::{AstSerdeOptions, ModuleAst};
+
+    pub fn serialize<S>(module: &super::ModuleAst, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = module.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
+
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ModuleAst, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        ModuleAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt {
+    SimpleSmt::with_leaves(
+        ACCOUNT_CODE_TREE_DEPTH,
+        procedures
+            .iter()
+            .enumerate()
+            .map(|(idx, p)| (idx as u64, p.into()))
+            .collect::<Vec<_>>(),
+    )
+    .expect("failed to build procedure tree")
 }

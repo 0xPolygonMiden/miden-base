@@ -2,7 +2,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     AccountId, Digest, MerkleError, String, Word,
 };
-use assembly::{AssemblyError, ParsingError};
+use assembly::AssemblyError;
 use core::fmt;
 
 // ACCOUNT ERROR
@@ -10,30 +10,33 @@ use core::fmt;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AccountError {
+    AccountCodeAssemblerError(AssemblyError),
+    AccountCodeTooManyProcedures {
+        max: usize,
+        actual: usize,
+    },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
     AddFungibleAssetBalanceError(AssetError),
     ApplyStorageSlotsDiffFailed(MerkleError),
     ApplyStorageStoreDiffFailed(MerkleError),
-    SubtractFungibleAssetBalanceError(AssetError),
-    DuplicateNonFungibleAsset(NonFungibleAsset),
-    NonFungibleAssetNotFound(NonFungibleAsset),
-    FungibleAssetNotFound(FungibleAsset),
-    SeedDigestTooFewTrailingZeros,
-    StubDataIncorrectLength(usize, usize),
-    SetStoreNodeFailed(MerkleError),
-    CodeParsingFailed(ParsingError),
-    AccountCodeAssemblerError(AssemblyError),
-    FungibleFaucetIdInvalidFirstBit,
-    NotAFungibleFaucetId(AccountId),
-    NotANonFungibleAsset(Asset),
-    DuplicateStorageItems(MerkleError),
     DuplicateAsset(MerkleError),
-    NonceMustBeMonotonicallyIncreasing(u64, u64),
+    DuplicateNonFungibleAsset(NonFungibleAsset),
+    DuplicateStorageItems(MerkleError),
+    FungibleAssetNotFound(FungibleAsset),
+    FungibleFaucetIdInvalidFirstBit,
     InconsistentAccountIdSeed {
         expected: AccountId,
         actual: AccountId,
     },
+    NonceMustBeMonotonicallyIncreasing(u64, u64),
+    NonFungibleAssetNotFound(NonFungibleAsset),
+    NotAFungibleFaucetId(AccountId),
+    NotANonFungibleAsset(Asset),
+    SeedDigestTooFewTrailingZeros,
+    SetStoreNodeFailed(MerkleError),
+    StubDataIncorrectLength(usize, usize),
+    SubtractFungibleAssetBalanceError(AssetError),
 }
 
 impl AccountError {
@@ -59,12 +62,6 @@ impl AccountError {
 
     pub fn not_a_non_fungible_asset(asset: Asset) -> Self {
         Self::NotANonFungibleAsset(asset)
-    }
-}
-
-impl From<ParsingError> for AccountError {
-    fn from(err: ParsingError) -> Self {
-        Self::CodeParsingFailed(err)
     }
 }
 
