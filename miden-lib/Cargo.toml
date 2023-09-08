@@ -22,6 +22,7 @@ assembly = { workspace = true }
 crypto = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", features = ["testing"], default-features = false }
 miden-stdlib = { workspace = true }
+miden-tx = { package = "miden-tx", path = "../miden-tx", default-features = false }
 processor = { workspace = true, features = ["internals"] }
 vm-core = { workspace = true }
 
