@@ -9,7 +9,14 @@ use crate::{
 use assembly::ast::ModuleAst;
 use rand::{distributions::Standard, Rng};
 
-pub const DEFAULT_ACCOUNT_CODE: &str = include_str!("../../../miden-lib/asm/sat/account.masm");
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::wallets::basic->basic_wallet
+    use.miden::eoa::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx
+";
 
 const DEFAULT_NOTE_CODE: &str = include_str!("../../../miden-lib/asm/sat/note.masm");
 

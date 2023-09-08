@@ -9,7 +9,7 @@ use.miden::sat::tx
 #! - ASSET is the asset to be received, can be fungible or non-fungible
 export.receive_asset
     exec.account::add_asset
-    dropw push.0.0.0.0
+    dropw
 end
 
 #! Creates a note which sends a single asset to the specified recipient.
