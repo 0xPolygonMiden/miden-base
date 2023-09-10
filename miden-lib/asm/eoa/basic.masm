@@ -9,7 +9,7 @@ use.miden::sat::tx
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
 #! - RECIPIENT is the recipient of the note.
-export.auth_tx
+export.auth_tx_rpo_falcon512
     # update the nonce
     push.1
     exec.account::incr_nonce
@@ -24,7 +24,7 @@ export.auth_tx
     # M = h(output_notes_hash, h(input_notes_hash, h(0, 0, 0, id, 0, 0, 0, nonce)))
     #hmerge hmerge hmerge
 
-    # get public key from account storage (assume index 0) and verify signature
+    # get public key from account storage (assuming it is stored at index 0) and verify signature
     #push.0
     #exec.account::get_item
     # [PUB_KEY, M]

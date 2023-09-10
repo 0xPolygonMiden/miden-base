@@ -189,7 +189,7 @@ fn test_receive_asset_via_wallet() {
         use.miden::eoa::basic->auth_tx
 
         begin
-            call.auth_tx::auth_tx
+            call.auth_tx::auth_tx_rpo_falcon512
         end
         "
         )
@@ -280,7 +280,7 @@ fn test_send_asset_via_wallet() {
             push.{tag}
             push.{asset}
             call.wallet::send_asset drop
-            call.auth_tx::auth_tx
+            call.auth_tx::auth_tx_rpo_falcon512
             dropw dropw 
         end
         ",

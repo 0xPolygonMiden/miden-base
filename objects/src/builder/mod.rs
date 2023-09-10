@@ -18,7 +18,7 @@ pub const DEFAULT_ACCOUNT_CODE: &str = "
 
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx
+    export.basic_eoa::auth_tx_rpo_falcon512
 ";
 
 const DEFAULT_NOTE_CODE: &str = "\

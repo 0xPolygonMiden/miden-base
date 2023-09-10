@@ -9,7 +9,7 @@ use.miden::sat::tx
 #! - ASSET is the asset to be received, can be fungible or non-fungible
 export.receive_asset
     exec.account::add_asset
-    dropw
+    padw swapw dropw
 end
 
 #! Creates a note which sends a single asset to the specified recipient.
@@ -25,4 +25,5 @@ end
 export.send_asset
     exec.account::remove_asset
     exec.tx::create_note
+    swapdw movup.8
 end
