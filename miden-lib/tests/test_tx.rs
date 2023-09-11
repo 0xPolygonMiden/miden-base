@@ -1,25 +1,35 @@
 pub mod common;
 use common::{
-    data::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    data::{
+        mock_inputs, AssetPreservationStatus, MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    },
     memory::{
         CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
         CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
     },
+    prepare_transaction,
     procedures::prepare_word,
-    run_within_tx_kernel, Felt, MemAdviceProvider, StackInputs, ONE, ZERO,
+    run_tx, run_within_tx_kernel, Felt, MemAdviceProvider, StackInputs, ONE, ZERO,
 };
 
 #[test]
 fn test_create_note() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let account_id = account.id();
+
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
         "
+    use.miden::sat::internal::prologue
     use.miden::sat::tx
 
     begin
+        exec.prologue::prepare_transaction
+
         push.{recipient}
         push.{tag}
         push.{asset}
@@ -32,13 +42,13 @@ fn test_create_note() {
         asset = prepare_word(&asset)
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        StackInputs::default(),
-        MemAdviceProvider::default(),
-        None,
-        None,
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
 
@@ -61,7 +71,7 @@ fn test_create_note() {
         process
             .get_memory_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET)
             .unwrap(),
-        [ONE, tag, ZERO, ZERO]
+        [ONE, tag, Felt::from(account_id), ZERO]
     );
 
     // assert the asset is stored at the correct memory location.

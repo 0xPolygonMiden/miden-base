@@ -254,7 +254,7 @@ fn test_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account), None);
+    let data_store = MockDataStore::with_existing(Some(sender_account), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(sender_account_id).unwrap();
