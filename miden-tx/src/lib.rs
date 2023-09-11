@@ -1,6 +1,6 @@
 use assembly::{
     ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext, AssemblyContextType, AssemblyError,
+    Assembler, AssemblyContext, AssemblyError,
 };
 use crypto::{hash::rpo::Rpo256 as Hasher, hash::rpo::RpoDigest as Digest, merkle::NodeIndex};
 use miden_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program};
