@@ -45,6 +45,11 @@ impl AccountId {
     pub const ON_CHAIN_ACCOUNT_SELECTOR: u64 = 0b001;
 
     /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
+    ///
+    /// Note: The account id includes 3 bits of metadata, these bits determine the account type
+    /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
+    /// for the normal accounts if the code is updatable or not. These metadata bits are also
+    /// checked by the PoW and add to the total work defined below.
     pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
     pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
 
