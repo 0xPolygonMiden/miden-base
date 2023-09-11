@@ -56,6 +56,7 @@ fn mock_account_storage() -> AccountStorage {
 fn mock_account_code(account_id: &AccountId, assembler: &mut Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
+            use.miden::sat::tx
 
             export.incr_nonce
                 push.0 swap
@@ -79,6 +80,17 @@ fn mock_account_code(account_id: &AccountId, assembler: &mut Assembler) -> Accou
 
                 exec.account::set_code
                 # => [0, 0, 0, 0]
+            end
+
+            export.create_note
+                # apply padding
+                repeat.8
+                    push.0 movdn.9
+                end
+
+                # create note
+                exec.tx::create_note
+                # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
             end
 
             export.account_procedure_1
