@@ -1,13 +1,11 @@
-use super::{
-    Assembler, AssemblyContext, AssemblyContextType, CodeBlock, Digest, NoteError, ProgramAst,
-};
+use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteScript {
-    hash: Digest,
+    pub hash: Digest,
     #[cfg_attr(feature = "serde", serde(with = "serialization"))]
-    code: ProgramAst,
+    pub code: ProgramAst,
 }
 
 #[cfg(feature = "serde")]
@@ -38,7 +36,7 @@ mod serialization {
 impl NoteScript {
     pub fn new(code: ProgramAst, assembler: &Assembler) -> Result<(Self, CodeBlock), NoteError> {
         let code_block = assembler
-            .compile_in_context(&code, &mut AssemblyContext::new(AssemblyContextType::Program))
+            .compile_in_context(&code, &mut AssemblyContext::for_program(&code))
             .map_err(NoteError::ScriptCompilationError)?;
         Ok((
             Self {
