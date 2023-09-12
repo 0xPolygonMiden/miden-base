@@ -6,7 +6,7 @@ extern crate alloc;
 
 use assembly::{
     ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext, AssemblyContextType, LibraryPath, Module,
+    Assembler, AssemblyContext, LibraryPath, Module,
 };
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},

@@ -1,6 +1,6 @@
 use super::{
-    AccountError, AccountId, Assembler, AssemblyContext, AssemblyContextType, Digest, LibraryPath,
-    Module, ModuleAst, Vec,
+    AccountError, AccountId, Assembler, AssemblyContext, Digest, LibraryPath, Module, ModuleAst,
+    Vec,
 };
 use crypto::merkle::SimpleSmt;
 
@@ -59,7 +59,7 @@ impl AccountCode {
 
         // compile the module and make sure the number of exported procedures is within the limit
         let mut procedure_digests = assembler
-            .compile_module(&module, &mut AssemblyContext::new(AssemblyContextType::Module))
+            .compile_module(&module, &mut AssemblyContext::for_module(false))
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
         if procedure_digests.len() > MAX_ACCOUNT_PROCEDURES {

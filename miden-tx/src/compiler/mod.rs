@@ -1,7 +1,7 @@
 use super::{
-    AccountCode, AccountId, Assembler, AssemblyContext, AssemblyContextType, BTreeMap, CodeBlock,
-    Digest, MidenLib, ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel,
-    StdLibrary, TransactionCompilerError,
+    AccountCode, AccountId, Assembler, AssemblyContext, BTreeMap, CodeBlock, Digest, MidenLib,
+    ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel, StdLibrary,
+    TransactionCompilerError,
 };
 use miden_core::ProgramInfo;
 
@@ -48,7 +48,7 @@ impl TransactionComplier {
         let prologue = assembler
             .compile_in_context(
                 &prologue_ast,
-                &mut AssemblyContext::new(AssemblyContextType::Program),
+                &mut AssemblyContext::for_program(Some(&prologue_ast)),
             )
             .expect("prologue is well formed");
 
@@ -58,7 +58,7 @@ impl TransactionComplier {
         let epilogue = assembler
             .compile_in_context(
                 &epilogue_ast,
-                &mut AssemblyContext::new(AssemblyContextType::Program),
+                &mut AssemblyContext::for_program(Some(&epilogue_ast)),
             )
             .expect("epilogue is well formed");
 
@@ -68,7 +68,7 @@ impl TransactionComplier {
         let note_setup = assembler
             .compile_in_context(
                 &note_setup_ast,
-                &mut AssemblyContext::new(AssemblyContextType::Program),
+                &mut AssemblyContext::for_program(Some(&note_setup_ast)),
             )
             .expect("note setup is well formed");
 
@@ -78,7 +78,7 @@ impl TransactionComplier {
         let note_processing_teardown = assembler
             .compile_in_context(
                 &note_processing_teardown_ast,
-                &mut AssemblyContext::new(AssemblyContextType::Program),
+                &mut AssemblyContext::for_program(Some(&note_processing_teardown_ast)),
             )
             .expect("note processing teardown is well formed");
 
@@ -167,7 +167,7 @@ impl TransactionComplier {
         }
 
         // Create the [AssemblyContext] for compilation of the transaction program
-        let mut assembly_context = AssemblyContext::new(AssemblyContextType::Program);
+        let mut assembly_context = AssemblyContext::for_program(None);
 
         // Create note tree and note [CodeBlock]s
         let (note_tree_root, note_roots) = self.compile_and_build_note_program_tree(
