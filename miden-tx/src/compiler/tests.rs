@@ -222,7 +222,7 @@ fn expected_mast_tree(
 
     let tx_script_program = tx_compiler
         .assembler
-        .compile_in_context(tx_script, &mut AssemblyContext::for_program(tx_script))
+        .compile_in_context(tx_script, &mut AssemblyContext::for_program(Some(tx_script)))
         .unwrap();
     let tx_script_epilogue_leafs = CodeBlock::new_join([
         CodeBlock::new_call(tx_script_program.hash()),
@@ -245,7 +245,7 @@ fn create_note_leafs(tx_compiler: &mut TransactionComplier, note: &Note) -> Code
         .assembler
         .compile_in_context(
             note.script().code(),
-            &mut AssemblyContext::for_program(&note.script().code),
+            &mut AssemblyContext::for_program(Some(&note.script().code())),
         )
         .unwrap();
     CodeBlock::new_join([
