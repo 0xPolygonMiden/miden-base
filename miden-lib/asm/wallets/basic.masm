@@ -22,8 +22,16 @@ end
 #! - RECIPIENT is the recipient of the note.
 #! - note_ptr is the pointer to the memory address in the kernel.
 #!   This cannot directly be accessed from another context. 
-export.send_asset
+export.send_asset.1
     exec.account::remove_asset
+    # => [ASSET, tag, RECIPIENT, ...]
+
+    # insert 8 ZEROs into the stack right after recipient; we temporarily store one of the
+    # elements of ASSET in memory to make stack manipulation easier
+    push.0 swap loc_store.0 padw push.0.0.0 swapdw loc_load.0
+    # => [ASSET, tag, RECIPIENT, ZERO, ZERO, ...]
+
+    
     exec.tx::create_note
-    swapdw movup.8
+    # => [note_ptr, ZERO, ZERO, ...]
 end

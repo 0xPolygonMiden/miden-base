@@ -21,7 +21,7 @@ use miden_objects::{
     Account, AccountCode, AccountId, AccountVault, BlockHeader, ChainMmr,
 };
 
-use miden_tx::{data::DataStore, TransactionExecutor};
+use miden_tx::{DataStore, TransactionExecutor};
 
 #[derive(Clone)]
 pub enum DataStoreError {
