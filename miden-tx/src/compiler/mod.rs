@@ -46,21 +46,30 @@ impl TransactionComplier {
         let prologue_ast =
             ProgramAst::parse(SatKernel::prologue()).expect("prologue is well formed");
         let prologue = assembler
-            .compile_in_context(&prologue_ast, &mut AssemblyContext::for_program(&prologue_ast))
+            .compile_in_context(
+                &prologue_ast,
+                &mut AssemblyContext::for_program(Some(&prologue_ast)),
+            )
             .expect("prologue is well formed");
 
         // compile epilogue
         let epilogue_ast =
             ProgramAst::parse(SatKernel::epilogue()).expect("epilogue is well formed");
         let epilogue = assembler
-            .compile_in_context(&epilogue_ast, &mut AssemblyContext::for_program(&epilogue_ast))
+            .compile_in_context(
+                &epilogue_ast,
+                &mut AssemblyContext::for_program(Some(&epilogue_ast)),
+            )
             .expect("epilogue is well formed");
 
         // compile note setup
         let note_setup_ast =
             ProgramAst::parse(SatKernel::note_setup()).expect("note setup is well formed");
         let note_setup = assembler
-            .compile_in_context(&note_setup_ast, &mut AssemblyContext::for_program(&note_setup_ast))
+            .compile_in_context(
+                &note_setup_ast,
+                &mut AssemblyContext::for_program(Some(&note_setup_ast)),
+            )
             .expect("note setup is well formed");
 
         // compile note processing teardown
@@ -69,7 +78,7 @@ impl TransactionComplier {
         let note_processing_teardown = assembler
             .compile_in_context(
                 &note_processing_teardown_ast,
-                &mut AssemblyContext::for_program(&note_processing_teardown_ast),
+                &mut AssemblyContext::for_program(Some(&note_processing_teardown_ast)),
             )
             .expect("note processing teardown is well formed");
 
@@ -158,8 +167,7 @@ impl TransactionComplier {
         }
 
         // Create the [AssemblyContext] for compilation of the transaction program
-        let mut assembly_context =
-            AssemblyContext::for_program(&ProgramAst::parse("begin end").unwrap());
+        let mut assembly_context = AssemblyContext::for_program(None);
 
         // Create note tree and note [CodeBlock]s
         let (note_tree_root, note_roots) = self.compile_and_build_note_program_tree(

@@ -3,9 +3,9 @@ use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteScript {
-    pub hash: Digest,
+    hash: Digest,
     #[cfg_attr(feature = "serde", serde(with = "serialization"))]
-    pub code: ProgramAst,
+    code: ProgramAst,
 }
 
 #[cfg(feature = "serde")]
@@ -36,7 +36,7 @@ mod serialization {
 impl NoteScript {
     pub fn new(code: ProgramAst, assembler: &Assembler) -> Result<(Self, CodeBlock), NoteError> {
         let code_block = assembler
-            .compile_in_context(&code, &mut AssemblyContext::for_program(&code))
+            .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
             .map_err(NoteError::ScriptCompilationError)?;
         Ok((
             Self {

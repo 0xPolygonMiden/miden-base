@@ -70,7 +70,7 @@ mod mock {
     use core::fmt;
     use crypto::{
         hash::rpo::RpoDigest as Digest,
-        merkle::{MerkleError, NodeIndex, SimpleSmt, TieredSmt},
+        merkle::{NodeIndex, SimpleSmt, TieredSmt},
     };
     use miden_core::{FieldElement, StarkField};
     use rand::{Rng, SeedableRng};
