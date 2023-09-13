@@ -156,13 +156,17 @@ impl AccountId {
 
         // check if there is there enough trailing zeros in the last element of the seed hash for
         // the account type.
-        let sufficient_pow = match is_regular_account {
-            true => pow_trailing_zeros >= Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS,
-            false => pow_trailing_zeros >= Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS,
+        let expected = match is_regular_account {
+            true => Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS,
+            false => Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS,
         };
+        let sufficient_pow = pow_trailing_zeros >= expected;
 
         if !sufficient_pow {
-            return Err(AccountError::seed_digest_too_few_trailing_zeros());
+            return Err(AccountError::seed_digest_too_few_trailing_zeros(
+                expected,
+                pow_trailing_zeros,
+            ));
         }
 
         Ok(())

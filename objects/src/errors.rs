@@ -33,7 +33,10 @@ pub enum AccountError {
     NonFungibleAssetNotFound(NonFungibleAsset),
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
-    SeedDigestTooFewTrailingZeros,
+    SeedDigestTooFewTrailingZeros {
+        expected: u32,
+        actual: u32,
+    },
     SetStoreNodeFailed(MerkleError),
     StubDataIncorrectLength(usize, usize),
     SubtractFungibleAssetBalanceError(AssetError),
@@ -48,8 +51,8 @@ impl AccountError {
         Self::AccountIdTooFewOnes
     }
 
-    pub fn seed_digest_too_few_trailing_zeros() -> Self {
-        Self::SeedDigestTooFewTrailingZeros
+    pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
+        Self::SeedDigestTooFewTrailingZeros { expected, actual }
     }
 
     pub fn fungible_faucet_id_invalid_first_bit() -> Self {
