@@ -233,64 +233,84 @@ end
 export.finalize_transaction
     # update account code
     exec.update_account_code
+    # => []
 
     # get the initial account hash
     exec.layout::get_init_acct_hash
+    # => [INIT_ACCT_HASH]
 
     # get the offset for the end of the account data section
     exec.layout::get_acct_data_end_ptr
+    # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
     exec.layout::get_acct_data_ptr
+    # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash
     exec.account::get_current_hash
+    # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # insert final account data into the advice map
     adv.insert_mem
+    # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # drop account data section pointers
     movup.4 drop movup.4 drop
+    # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
     # check if the account has changed
     eqw not
+    # => [has_acct_changed, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
     # if the account has changed then apply nonce checks
     if.true
         # get initial nonce from memory
         exec.layout::get_init_nonce
+        # => [init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
         # get current nonce from memory
         exec.layout::get_acct_nonce
+        # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
         # assert that initial nonce is less than current nonce
         lt assert
+        # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
     end
 
     # drop initial account hash
     swapw dropw
+    # => [FINAL_ACCOUNT_HASH]
 
     # copy final account vault root to output account vault root
     exec.layout::get_acct_vault_root exec.layout::set_output_vault_root
+    # => [FINAL_ACCOUNT_HASH]
 
     # compute created note hash
     exec.compute_output_notes_hash
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # compute the end boundary of the created notes section
     exec.layout::get_num_created_notes exec.layout::get_created_note_ptr movdn.4
+    # => [CREATED_NOTES_COMMITMENT, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
 
     # compute the start boundary of the created notes section
     exec.layout::get_created_note_data_offset movdn.4
+    # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
 
     # insert created data into the advice map
     adv.insert_mem
+    # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
     
     # drop created note pointers
     movup.4 drop movup.4 drop
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # truncate stack
     swapw.2 dropw swapw.2 dropw
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
     exec.layout::get_input_vault_root exec.layout::get_output_vault_root assert_eqw
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

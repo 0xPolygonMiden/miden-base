@@ -60,8 +60,7 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_created_note_hash() {
-    let executed_transaction =
-        mock_executed_tx(miden_objects::mock::AssetPreservationStatus::Preserved);
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
@@ -140,4 +139,68 @@ fn test_epilogue_asset_preservation_violation() {
         // assert the process results in error
         assert!(process.is_err());
     }
+}
+
+#[test]
+fn test_epilogue_increment_nonce_success() {
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+
+    let created_notes_data_procedure =
+        created_notes_data_procedure(executed_transaction.created_notes());
+
+    let imports = "use.miden::sat::internal::prologue\n";
+    let code = format!(
+        "
+        {created_notes_data_procedure}
+        begin
+            exec.prologue::prepare_transaction
+            exec.create_mock_notes
+            push.1.2.3.4 push.0 exec.account::set_item dropw
+            push.1 exec.account::incr_nonce
+            exec.finalize_transaction
+        end
+        "
+    );
+
+    let _process = run_within_tx_kernel(
+        imports,
+        &code,
+        executed_transaction.stack_inputs(),
+        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        Some(TX_KERNEL_DIR),
+        Some(EPILOGUE_FILE),
+    )
+    .unwrap();
+}
+
+#[test]
+fn test_epilogue_increment_nonce_violation() {
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+
+    let created_notes_data_procedure =
+        created_notes_data_procedure(executed_transaction.created_notes());
+
+    let imports = "use.miden::sat::internal::prologue\n";
+    let code = format!(
+        "
+        {created_notes_data_procedure}
+        begin
+            exec.prologue::prepare_transaction
+            exec.create_mock_notes
+            push.1.2.3.4 push.0 exec.account::set_item dropw
+            exec.finalize_transaction
+        end
+        "
+    );
+
+    let process = run_within_tx_kernel(
+        imports,
+        &code,
+        executed_transaction.stack_inputs(),
+        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        Some(TX_KERNEL_DIR),
+        Some(EPILOGUE_FILE),
+    );
+
+    assert!(process.is_err());
 }

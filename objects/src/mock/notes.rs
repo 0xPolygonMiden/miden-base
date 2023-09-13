@@ -89,22 +89,20 @@ pub fn mock_notes(
     // create note 1 script
     let note_1_script_src = format!(
         "\
-        use.miden::sat::tx
-
         begin
             # create note 0
             push.{created_note_0_recipient}
             push.{created_note_0_tag}
             push.{created_note_0_asset}
-            exec.tx::create_note
-            drop 
+            call.0x33e6e544bce56ad3bd235d9806e23910a4f03371e7e0a8549d730d0ee61266d8
+            drop dropw dropw 
 
             # create note 1
             push.{created_note_1_recipient}
             push.{created_note_1_tag}
             push.{created_note_1_asset}
-            exec.tx::create_note
-            drop
+            call.0x33e6e544bce56ad3bd235d9806e23910a4f03371e7e0a8549d730d0ee61266d8
+            drop dropw dropw
         end
     ",
         created_note_0_recipient = prepare_word(&created_notes[0].recipient()),
@@ -120,16 +118,13 @@ pub fn mock_notes(
     // create note 2 script
     let note_2_script_src = format!(
         "\
-        use.miden::sat::tx
-
-
         begin
             # create note 2
             push.{created_note_2_recipient}
             push.{created_note_2_tag}
             push.{created_note_2_asset}
-            exec.tx::create_note
-            drop
+            call.0x33e6e544bce56ad3bd235d9806e23910a4f03371e7e0a8549d730d0ee61266d8
+            drop dropw dropw
         end
         ",
         created_note_2_recipient = prepare_word(&created_notes[2].recipient()),

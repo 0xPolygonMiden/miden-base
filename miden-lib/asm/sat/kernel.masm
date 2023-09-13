@@ -383,7 +383,13 @@ end
 #! RECIPIENT is the recipient of the note.
 #! ptr is the pointer to the memory address at which the note is stored.
 export.create_note
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET, tag, RECIPIENT]
+
+    # create the note
     exec.tx::create_note
+    # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.

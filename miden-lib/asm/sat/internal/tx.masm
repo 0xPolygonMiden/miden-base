@@ -59,7 +59,7 @@ end
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
 #! Inputs: [ASSET, tag, RECIPIENT]
-#! Outputs: [ptr]
+#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
 #!
 #! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.
