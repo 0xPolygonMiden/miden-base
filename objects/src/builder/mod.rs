@@ -12,42 +12,13 @@ use assembly::ast::ModuleAst;
 use crypto::merkle::MerkleError;
 use rand::{distributions::Standard, Rng};
 
-pub const DEFAULT_ACCOUNT_CODE: &str = "\
-use.miden::sat::account
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::wallets::basic->basic_wallet
+    use.miden::eoa::basic->basic_eoa
 
-export.incr_nonce
-    push.0 swap
-    # => [value, 0]
-
-    exec.account::incr_nonce
-    # => [0]
-end
-
-export.set_item
-    exec.account::set_item
-    # => [R', V, 0, 0, 0]
-
-    movup.8 drop movup.8 drop movup.8 drop
-    # => [R', V]
-end
-
-export.set_code
-    padw swapw
-    # => [CODE_ROOT, 0, 0, 0, 0]
-
-    exec.account::set_code
-    # => [0, 0, 0, 0]
-end
-
-export.account_procedure_1
-    push.1.2
-    add
-end
-
-export.account_procedure_2
-    push.2.1
-    sub
-end
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
 ";
 
 const DEFAULT_NOTE_CODE: &str = "\

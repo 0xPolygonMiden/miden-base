@@ -33,7 +33,7 @@ fn mock_account_vault() -> AccountVault {
     AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
 }
 
-fn mock_account_storage() -> AccountStorage {
+pub fn mock_account_storage() -> AccountStorage {
     // Create an account merkle store
     let mut account_merkle_store = MerkleStore::new();
     let child_smt =

@@ -15,20 +15,24 @@ use processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;
 pub use compiler::{NoteTarget, TransactionComplier};
-mod data;
-use data::DataStore;
-mod error;
+
 mod executor;
-pub use error::TransactionError;
-use error::{
-    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
-    TransactionVerifierError,
-};
 pub use executor::TransactionExecutor;
+
 mod prover;
 pub use prover::TransactionProver;
+
 mod verifier;
 pub use verifier::TransactionVerifier;
+
+mod data;
+pub use data::DataStore;
+
+mod error;
+pub use error::{
+    DataStoreError, TransactionCompilerError, TransactionError, TransactionExecutorError,
+    TransactionProverError, TransactionVerifierError,
+};
 
 #[cfg(test)]
 mod tests;
