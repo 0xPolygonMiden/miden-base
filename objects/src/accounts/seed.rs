@@ -4,7 +4,7 @@ use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, 
 use std::{
     sync::{
         mpsc::{self, Sender},
-        OnceLock,
+        Arc, RwLock,
     },
     thread::{self, spawn},
 };
@@ -25,11 +25,11 @@ pub fn get_account_seed(
     let thread_count = thread::available_parallelism().map_or(1, |v| v.get());
 
     let (send, recv) = mpsc::channel();
-    let stop = OnceLock::new();
+    let stop = Arc::new(RwLock::new(false));
 
     for count in 0..thread_count {
         let send = send.clone();
-        let stop = stop.clone();
+        let stop = Arc::clone(&stop);
         let mut init_seed = init_seed;
         init_seed[0] += count as u8;
         spawn(move || {
@@ -47,7 +47,9 @@ pub fn get_account_seed(
 
     #[allow(unused_variables)]
     let (digest, seed) = recv.recv().unwrap();
-    let _ = stop.set(true);
+
+    // Safety: this is the only writer for this lock, it should never be poisoned
+    *stop.write().unwrap() = true;
 
     #[cfg(feature = "log")]
     ::log::info!(
@@ -63,7 +65,7 @@ pub fn get_account_seed(
 #[cfg(feature = "concurrent")]
 pub fn get_account_seed_inner(
     send: Sender<(Digest, Word)>,
-    stop: OnceLock<bool>,
+    stop: Arc<RwLock<bool>>,
     init_seed: [u8; 32],
     account_type: AccountType,
     on_chain: bool,
@@ -91,7 +93,7 @@ pub fn get_account_seed_inner(
 
         // regularly check if another thread found a digest
         count += 1;
-        if count % 500_000 == 0 && stop.get().is_some() {
+        if count % 500_000 == 0 && *stop.read().unwrap() {
             return;
         }
 
