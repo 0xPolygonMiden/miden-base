@@ -1,8 +1,9 @@
 [workspace]
 members = [
-  "objects",
   "miden-lib",
   "miden-tx",
+  "mock",
+  "objects",
 ]
 resolver = "2"
 

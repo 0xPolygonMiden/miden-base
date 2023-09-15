@@ -21,23 +21,25 @@ bench = false
 [features]
 default = ["std"]
 std = ["assembly/std", "crypto/std", "miden-core/std", "miden-lib/std", "miden-processor/std", "miden-verifier/std"]
-testing = ["miden-test-utils", "mock"]
+testing = ["miden-test-utils"]
 serde = ["dep:serde", "crypto/serde"]
-mock = ["dep:rand", "testing"]
+mock = ["dep:rand", "dep:rand_pcg", "dep:postcard", "testing"]
 concurrent = ["std"]
 
 [dependencies]
 assembly = { workspace = true }
 crypto = { workspace = true }
+log = { version = "0.4", optional = true }
 miden-core = { workspace = true }
 miden-lib = { path = "../miden-lib" }
 miden-processor = { workspace = true }
 miden-stdlib = { workspace = true }
 miden-test-utils = { workspace = true, optional = true }
 miden-verifier = { workspace = true }
+postcard = { version = "1.0", optional = true, features = [ "alloc" ] }
 rand = { version = "0.8", optional = true }
+rand_pcg = { version = "0.3", optional = true, features = ["serde1"] }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
-log = { version = "0.4", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"], default-features = false }

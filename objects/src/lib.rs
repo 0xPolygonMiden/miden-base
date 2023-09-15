@@ -52,5 +52,5 @@ pub use result::TryFromVmResult;
 
 pub mod transaction;
 
-#[cfg(any(test, feature = "testing"))]
+#[cfg(feature = "mock")]
 pub mod mock;

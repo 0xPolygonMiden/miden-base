@@ -1,60 +1,68 @@
-use crate::{
-    mock::mock_block_header,
-    notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-    ChainMmr, Felt, Vec,
-};
-use crypto::merkle::SimpleSmt;
-use miden_core::{crypto::merkle::NodeIndex, FieldElement};
+#[cfg(not(target_family = "wasm"))]
+mod internal {
+    use crate::{
+        mock::mock_block_header,
+        notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+        ChainMmr, Felt, Vec,
+    };
+    use crypto::merkle::SimpleSmt;
+    use miden_core::{crypto::merkle::NodeIndex, FieldElement};
 
-pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
-    let mut note_trees = Vec::new();
+    pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
+        let mut note_trees = Vec::new();
 
-    // TODO: Consider how to better represent note authentication data.
-    // we use the index for both the block number and the leaf index in the note tree
-    for (index, note) in consumed_notes.iter().enumerate() {
-        let tree_index = 2 * index;
-        let smt_entries = vec![
-            (tree_index as u64, note.hash().into()),
-            ((tree_index + 1) as u64, note.metadata().into()),
+        // TODO: Consider how to better represent note authentication data.
+        // we use the index for both the block number and the leaf index in the note tree
+        for (index, note) in consumed_notes.iter().enumerate() {
+            let tree_index = 2 * index;
+            let smt_entries = vec![
+                (tree_index as u64, note.hash().into()),
+                ((tree_index + 1) as u64, note.metadata().into()),
+            ];
+            let smt = SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, smt_entries).unwrap();
+            note_trees.push(smt);
+        }
+
+        let mut note_tree_iter = note_trees.iter();
+
+        // create a dummy chain of block headers
+        let block_chain = vec![
+            mock_block_header(Felt::ZERO, None, note_tree_iter.next().map(|x| x.root()), &[]),
+            mock_block_header(Felt::ONE, None, note_tree_iter.next().map(|x| x.root()), &[]),
+            mock_block_header(Felt::new(2), None, note_tree_iter.next().map(|x| x.root()), &[]),
+            mock_block_header(Felt::new(3), None, note_tree_iter.next().map(|x| x.root()), &[]),
         ];
-        let smt = SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, smt_entries).unwrap();
-        note_trees.push(smt);
+
+        // instantiate and populate MMR
+        let mut chain_mmr = ChainMmr::default();
+        for block_header in block_chain.iter() {
+            chain_mmr.mmr_mut().add(block_header.hash())
+        }
+
+        // set origin for consumed notes using chain and block data
+        for (index, note) in consumed_notes.iter_mut().enumerate() {
+            let block_header = &block_chain[index];
+            let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
+            note.set_proof(
+                NoteInclusionProof::new(
+                    block_header.block_num(),
+                    block_header.sub_hash(),
+                    block_header.note_root(),
+                    index as u64,
+                    note_trees[index].get_path(auth_index).unwrap(),
+                )
+                .unwrap(),
+            );
+        }
+
+        chain_mmr
     }
-
-    let mut note_tree_iter = note_trees.iter();
-
-    // create a dummy chain of block headers
-    let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::ONE, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::new(2), None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::new(3), None, note_tree_iter.next().map(|x| x.root()), &[]),
-    ];
-
-    // instantiate and populate MMR
-    let mut chain_mmr = ChainMmr::default();
-    for block_header in block_chain.iter() {
-        chain_mmr.mmr_mut().add(block_header.hash())
-    }
-
-    // set origin for consumed notes using chain and block data
-    for (index, note) in consumed_notes.iter_mut().enumerate() {
-        let block_header = &block_chain[index];
-        let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
-        note.set_proof(
-            NoteInclusionProof::new(
-                block_header.block_num(),
-                block_header.sub_hash(),
-                block_header.note_root(),
-                index as u64,
-                note_trees[index].get_path(auth_index).unwrap(),
-            )
-            .unwrap(),
-        );
-    }
-
-    chain_mmr
 }
+
+#[cfg(target_family = "wasm")]
+mod internal {}
+
+pub use internal::*;
 
 #[cfg(feature = "mock")]
 mod mock {
@@ -74,6 +82,11 @@ mod mock {
     };
     use miden_core::{FieldElement, StarkField};
     use rand::{Rng, SeedableRng};
+    use std::{
+        fs::File,
+        io::{self, Read, Write},
+        path::Path,
+    };
 
     /// Initial timestamp value
     const TIMESTAMP_START: Felt = Felt::new(1693348223);
@@ -82,7 +95,7 @@ mod mock {
 
     #[derive(Default, Debug, Clone)]
     #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-    pub struct Objects<R: Rng> {
+    pub struct Objects<R> {
         /// Holds the account and its corresponding seed.
         accounts: Vec<(Account, Word)>,
         fungible_faucets: Vec<(AccountId, FungibleAssetBuilder)>,
@@ -115,12 +128,12 @@ mod mock {
             header: BlockHeader,
             notes: &SimpleSmt,
         ) {
-            self.accounts.extend(pending.accounts.drain(..));
-            self.fungible_faucets.extend(pending.fungible_faucets.drain(..));
-            self.nonfungible_faucets.extend(pending.nonfungible_faucets.drain(..));
+            self.accounts.append(&mut pending.accounts);
+            self.fungible_faucets.append(&mut pending.fungible_faucets);
+            self.nonfungible_faucets.append(&mut pending.nonfungible_faucets);
 
-            pending.set_notes_proofs(header, &notes);
-            self.notes.extend(pending.notes.drain(..));
+            pending.set_notes_proofs(header, notes);
+            self.notes.append(&mut pending.notes);
             pending.nullifiers.clear(); // nullifiers are saved in the nullifier TSTM
         }
 
@@ -168,9 +181,8 @@ mod mock {
     }
 
     /// Structure chain data, used to build necessary openings and to construct [BlockHeader]s.
-    #[derive(Debug, Clone)]
-    #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-    pub struct MockChain<R: Rng + SeedableRng> {
+    #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+    pub struct MockChain<R> {
         /// An append-only structure used to represent the history of blocks produced for this chain.
         chain: ChainMmr,
 
@@ -206,7 +218,6 @@ mod mock {
         ///
         /// Note:
         /// - The [Note]s in this container do not have the `proof` set.
-        #[cfg_attr(feature = "serde", serde(skip))]
         pending_objects: Objects<R>,
     }
 
@@ -387,6 +398,29 @@ mod mock {
             faucet_id
         }
 
+        /// Creates a [AccountId] with type [AccountType::FungibleFaucet] and add to the list of
+        /// pending objects.
+        pub fn build_fungible_faucet_with_seed<C: AsRef<str>>(
+            &mut self,
+            seed: Word,
+            on_chain: OnChain,
+            code: C,
+            storage_root: Digest,
+        ) -> AccountId {
+            let faucet_id = self
+                .account_id_builder
+                .account_type(AccountType::FungibleFaucet)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .storage_root(storage_root)
+                .with_seed(seed)
+                .unwrap();
+            let builder = FungibleAssetBuilder::new(faucet_id)
+                .expect("builder was not configured to create fungible faucets");
+            self.pending_objects.fungible_faucets.push((faucet_id, builder));
+            faucet_id
+        }
+
         /// Creates a [AccountId] with type [AccountType::NonFungibleFaucet] and add to the list of
         /// pending objects.
         pub fn build_nonfungible_faucet<C: AsRef<str>>(
@@ -402,6 +436,30 @@ mod mock {
                 .code(code)
                 .storage_root(storage_root)
                 .build()
+                .unwrap();
+            let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
+            let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
+                .expect("builder was not configured to build nonfungible faucets");
+            self.pending_objects.nonfungible_faucets.push((faucet_id, builder));
+            faucet_id
+        }
+
+        /// Creates a [AccountId] with type [AccountType::NonFungibleFaucet] and add to the list of
+        /// pending objects.
+        pub fn build_nonfungible_faucet_with_seed<C: AsRef<str>>(
+            &mut self,
+            seed: Word,
+            on_chain: OnChain,
+            code: C,
+            storage_root: Digest,
+        ) -> AccountId {
+            let faucet_id = self
+                .account_id_builder
+                .account_type(AccountType::NonFungibleFaucet)
+                .on_chain(on_chain == OnChain::Yes)
+                .code(code)
+                .storage_root(storage_root)
+                .with_seed(seed)
                 .unwrap();
             let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
             let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
@@ -431,7 +489,7 @@ mod mock {
         }
 
         fn check_nullifier_unknown(&self, nullifier: Digest) {
-            assert!(self.pending_objects.nullifiers.iter().find(|e| **e == nullifier).is_some());
+            assert!(self.pending_objects.nullifiers.iter().any(|e| *e == nullifier));
             assert!(self.nullifiers.get_value(nullifier) != TieredSmt::EMPTY_VALUE)
         }
 
@@ -502,14 +560,14 @@ mod mock {
 
         /// Mark a [Note] as produced by inserting into the block.
         pub fn add_note(&mut self, note: Note) -> Result<(), MockError> {
-            if self.pending_objects.notes.iter().find(|e| e.hash() == note.hash()).is_some() {
+            if self.pending_objects.notes.iter().any(|e| e.hash() == note.hash()) {
                 return Err(MockError::DuplicatedNote);
             }
 
             // The check below works because the notes can not be added directly to the
             // [BlockHeader], so we don't have to iterate over the known headers and check for
             // inclusion proofs.
-            if self.objects.notes.iter().find(|e| e.hash() == note.hash()).is_some() {
+            if self.objects.notes.iter().any(|e| e.hash() == note.hash()) {
                 return Err(MockError::DuplicatedNote);
             }
 
@@ -528,11 +586,7 @@ mod mock {
         /// Add a known [Account] to the mock chain.
         pub fn add_account(&mut self, account: Account, seed: Word) {
             assert!(
-                self.pending_objects
-                    .accounts
-                    .iter()
-                    .find(|(a, _)| a.id() == account.id())
-                    .is_none(),
+                !self.pending_objects.accounts.iter().any(|(a, _)| a.id() == account.id()),
                 "Found duplicated AccountId"
             );
             self.pending_objects.accounts.push((account, seed));
@@ -575,6 +629,28 @@ mod mock {
         pub fn account_seed(&mut self, pos: usize) -> Word {
             self.objects.accounts[pos].1
         }
+    }
+
+    // SERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    impl<R: serde::Serialize> MockChain<R> {
+        pub fn to_file<T: AsRef<Path>>(self, path: T) -> io::Result<()> {
+            let encoded = postcard::to_allocvec(&self).unwrap();
+            File::create(path)?.write_all(&encoded)?;
+            Ok(())
+        }
+    }
+
+    pub fn from_file<T, P>(path: P) -> io::Result<MockChain<T>>
+    where
+        P: AsRef<Path>,
+        MockChain<T>: serde::de::DeserializeOwned,
+    {
+        let mut data = Vec::new();
+        File::open(path)?.read_to_end(&mut data)?;
+        let data: MockChain<T> = postcard::from_bytes(&data).unwrap();
+        Ok(data)
     }
 }
 

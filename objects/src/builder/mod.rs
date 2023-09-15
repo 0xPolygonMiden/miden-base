@@ -71,7 +71,7 @@ impl AccountStorageBuider {
 /// Builder for an `AccountId`, the builder can be configured and used multipled times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct AccountIdBuilder<T: Rng> {
+pub struct AccountIdBuilder<T> {
     account_type: AccountType,
     on_chain: bool,
     code: String,
@@ -179,7 +179,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             return Err(AccountBuilderError::SeedAndOnChainMismatch);
         }
 
-        return Ok(account_id);
+        Ok(account_id)
     }
 }
 
@@ -226,7 +226,7 @@ impl FungibleAssetBuilder {
 /// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multipled times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct NonFungibleAssetDetailsBuilder<T: Rng> {
+pub struct NonFungibleAssetDetailsBuilder<T> {
     faucet_id: AccountId,
     rng: T,
 }
@@ -249,7 +249,7 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
 /// Builder for an `NonFungibleAsset`, the builder can be configured and used multipled times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct NonFungibleAssetBuilder<T: Rng> {
+pub struct NonFungibleAssetBuilder<T> {
     details_builder: NonFungibleAssetDetailsBuilder<T>,
 }
 
@@ -269,7 +269,7 @@ impl<T: Rng> NonFungibleAssetBuilder<T> {
 /// account needs a unique builder.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct AccountBuilder<T: Rng> {
+pub struct AccountBuilder<T> {
     assets: Vec<Asset>,
     storage_builder: AccountStorageBuider,
     code: String,
