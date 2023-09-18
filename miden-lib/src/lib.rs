@@ -16,7 +16,7 @@ pub struct MidenLib {
 
 impl Default for MidenLib {
     fn default() -> Self {
-        let bytes = include_bytes!("../assets/miden.masl");
+        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
         let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read std masl!");
         Self { contents }
     }

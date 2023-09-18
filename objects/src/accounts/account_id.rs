@@ -50,8 +50,14 @@ impl AccountId {
     /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
     /// for the normal accounts if the code is updatable or not. These metadata bits are also
     /// checked by the PoW and add to the total work defined below.
+    #[cfg(not(feature = "testing"))]
     pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
+    #[cfg(not(feature = "testing"))]
     pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
+    #[cfg(feature = "testing")]
+    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 10;
+    #[cfg(feature = "testing")]
+    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 11;
 
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
