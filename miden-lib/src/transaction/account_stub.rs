@@ -3,11 +3,17 @@ use crate::memory::{
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
+    accounts::{
+        Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub, AccountVaultDelta,
+    },
+    assets::Asset,
     crypto::merkle::{merkle_tree_delta, MerkleStore, MerkleStoreDelta, NodeIndex},
     transaction::FinalAccountStub,
-    utils::vec,
-    AccountError, TransactionResultError, Word,
+    utils::{
+        collections::{BTreeMap, Diff, Vec},
+        vec,
+    },
+    AccountError, Digest, Felt, TransactionResultError, Word,
 };
 
 /// Parses the stub account data returned by the VM into individual account component commitments.
@@ -69,4 +75,76 @@ pub fn extract_account_storage_delta(
     };
 
     Ok(storage_delta)
+}
+
+// ACCOUNT VAULT DELTA
+// ================================================================================================
+// TODO: update when TMST depth 64 leaves are supported
+/// Extracts the account vault delta between the `initial_account` and `final_account_stub` from
+/// the provided `MerkleStore` and `BTreeMap`.
+pub fn extract_account_vault_delta(
+    store: &MerkleStore,
+    value_map: &BTreeMap<[u8; 32], Vec<Felt>>,
+    initial_account: &Account,
+    final_account_stub: &FinalAccountStub,
+) -> Result<AccountVaultDelta, TransactionResultError> {
+    // extract original assets from the vault
+    let mut orig_assets = initial_account
+        .vault()
+        .assets()
+        .map(|asset| (Digest::from(asset.vault_key()), asset))
+        .collect::<BTreeMap<_, _>>();
+
+    // extract final assets in the vault from the merkle store and advice map
+    let final_leaves = store
+        .non_empty_leaves(final_account_stub.0.vault_root(), 64)
+        .map(|(_, leaf)| leaf)
+        .collect::<Vec<_>>();
+    let final_assets = final_leaves
+        .into_iter()
+        .map(|leaf| {
+            let data =
+                value_map.get(&leaf.as_bytes()).expect("asset node must exist in the value map");
+            let asset = Asset::try_from(Word::try_from(&data[4..]).expect("data contains word"))
+                .expect("asset is well formed");
+            (Digest::from(asset.vault_key()), asset)
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    // compute the difference in assets
+    let asset_delta = orig_assets.diff(&final_assets);
+
+    // extract net assets delta
+    let mut net_added_assets = vec![];
+    let mut net_removed_assets =
+        asset_delta.removed.into_iter().map(|x| orig_assets[&x]).collect::<Vec<_>>();
+
+    for (asset_key, updated_asset) in asset_delta.updated.into_iter() {
+        match (orig_assets.remove(&asset_key), updated_asset) {
+            // new asset has been added
+            (None, asset) => {
+                net_added_assets.push(asset);
+            }
+            // net increase in fungible asset amount
+            (Some(Asset::Fungible(orig)), Asset::Fungible(mut updated))
+                if updated.amount() > orig.amount() =>
+            {
+                updated.sub(orig.amount()).expect("sub amount is valid");
+                net_added_assets.push(Asset::Fungible(updated));
+            }
+            // net decrease in fungible asset amount
+            (Some(Asset::Fungible(mut orig)), Asset::Fungible(updated))
+                if updated.amount() < orig.amount() =>
+            {
+                orig.sub(updated.amount()).expect("sub amount is valid");
+                net_removed_assets.push(Asset::Fungible(orig));
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(AccountVaultDelta {
+        added_assets: net_added_assets,
+        removed_assets: net_removed_assets,
+    })
 }

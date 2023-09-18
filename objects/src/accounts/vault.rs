@@ -1,8 +1,7 @@
 use super::{
-    AccountError, AccountId, AccountType, AdviceInputsBuilder, ApplyDiff, Asset, Digest,
-    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, ZERO,
+    AccountError, AccountId, AccountType, AccountVaultDelta, AdviceInputsBuilder, Asset, Digest,
+    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, TryApplyDiff, ZERO,
 };
-use crate::crypto::merkle::MerkleTreeDelta;
 
 // ACCOUNT VAULT
 // ================================================================================================
@@ -219,9 +218,19 @@ impl ToAdviceInputs for AccountVault {
 
 // DIFF
 // ================================================================================================
-impl ApplyDiff<Digest, StoreNode> for AccountVault {
-    type DiffType = MerkleTreeDelta;
+impl TryApplyDiff<Digest, StoreNode> for AccountVault {
+    type DiffType = AccountVaultDelta;
+    type Error = AccountError;
 
-    // TODO: Must find a way to apply this diff
-    fn apply(&mut self, _diff: MerkleTreeDelta) {}
+    fn try_apply(&mut self, diff: AccountVaultDelta) -> Result<(), Self::Error> {
+        for asset in diff.added_assets {
+            self.add_asset(asset)?;
+        }
+
+        for asset in diff.removed_assets {
+            self.remove_asset(asset)?;
+        }
+
+        Ok(())
+    }
 }

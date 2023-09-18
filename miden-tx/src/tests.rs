@@ -2,16 +2,22 @@ use super::{
     Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier, TryFromVmResult,
 };
-
 use miden_objects::{
     accounts::AccountCode,
     assembly::{Assembler, ModuleAst, ProgramAst},
+    assets::{Asset, FungibleAsset},
     transaction::{CreatedNotes, FinalAccountStub},
-    Felt, StarkField,
+    Felt, StarkField, Word,
 };
 use miden_prover::ProvingOptions;
 use mock::{
-    constants::{CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0},
+    constants::{
+        non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_PROCEDURE_INCR_NONCE_MAST_ROOT, ACCOUNT_PROCEDURE_SET_CODE_MAST_ROOT,
+        ACCOUNT_PROCEDURE_SET_ITEM_MAST_ROOT, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
+        CHILD_STORAGE_INDEX_0, FUNGIBLE_ASSET_AMOUNT,
+    },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
@@ -22,7 +28,7 @@ use vm_processor::{DefaultHost, MemAdviceProvider};
 
 #[test]
 fn test_transaction_executor_witness() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -63,10 +69,8 @@ fn test_transaction_executor_witness() {
 }
 
 #[test]
-#[ignore]
 fn test_transaction_result_account_delta() {
-    let data_store = MockDataStore::new();
-    let account_id = data_store.account.id();
+    let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
 
     let new_acct_code_src = "\
     export.account_proc_1
@@ -78,11 +82,28 @@ fn test_transaction_result_account_delta() {
     let new_acct_code =
         AccountCode::new(new_acct_code_ast.clone(), &mut Assembler::default()).unwrap();
 
-    // TODO: This currently has some problems due to stack management when context switching: https://github.com/0xPolygonMiden/miden-base/issues/173
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let removed_assets = vec![removed_asset_1, removed_asset_2, removed_asset_3];
+
     let tx_script = format!(
         "\
-        use.context::account_{account_id}
         use.miden::sat::account
+        use.miden::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
@@ -91,12 +112,12 @@ fn test_transaction_result_account_delta() {
             push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
             # => [index, V', 0, 0, 0]
 
-            call.account_{account_id}::set_item
+            call.{ACCOUNT_PROCEDURE_SET_ITEM_MAST_ROOT}
             # => [R', V]
         end
 
         proc.set_code
-            call.account_{account_id}::set_code
+            call.{ACCOUNT_PROCEDURE_SET_CODE_MAST_ROOT}
             # => [0, 0, 0, 0]
 
             dropw
@@ -104,7 +125,7 @@ fn test_transaction_result_account_delta() {
         end
 
         proc.incr_nonce
-            call.account_{account_id}::incr_nonce
+            call.{ACCOUNT_PROCEDURE_INCR_NONCE_MAST_ROOT}
             # => [0]
 
             drop
@@ -144,6 +165,26 @@ fn test_transaction_result_account_delta() {
             push.{CHILD_ROOT_PARENT_LEAF_INDEX} exec.set_item dropw dropw
             # => []
 
+            ## Send some assets from the account vault
+            ## ------------------------------------------------------------------------------------
+            # partially deplete fungible asset balance
+            push.0.1.2.3
+            push.999
+            push.{REMOVED_ASSET_1}
+            call.wallet::send_asset drop dropw dropw
+
+            # totally deplete fungible asset balance
+            push.0.1.2.3
+            push.999
+            push.{REMOVED_ASSET_2}
+            call.wallet::send_asset drop dropw dropw
+
+            # send non-fungible asset
+            push.0.1.2.3
+            push.999
+            push.{REMOVED_ASSET_3}
+            call.wallet::send_asset drop dropw dropw
+
             ## Update account code
             ## ------------------------------------------------------------------------------------
             push.{NEW_ACCOUNT_ROOT} exec.set_code
@@ -154,7 +195,10 @@ fn test_transaction_result_account_delta() {
             push.1 exec.incr_nonce
         end
     ",
-        NEW_ACCOUNT_ROOT = prepare_word(&*new_acct_code.root())
+        NEW_ACCOUNT_ROOT = prepare_word(&*new_acct_code.root()),
+        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
     );
     let tx_script = ProgramAst::parse(&tx_script).unwrap();
 
@@ -170,16 +214,18 @@ fn test_transaction_result_account_delta() {
         .collect::<Vec<_>>();
 
     // expected delta
-
+    // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
     let transaction_result = executor
         .execute_transaction(account_id, block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
     // nonce delta
+    // --------------------------------------------------------------------------------------------
     assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // storage delta
+    // --------------------------------------------------------------------------------------------
     assert_eq!(transaction_result.account_delta().storage.slots_delta.updated_slots().len(), 1);
     assert_eq!(
         transaction_result.account_delta().storage.slots_delta.updated_slots()[0].0,
@@ -190,11 +236,35 @@ fn test_transaction_result_account_delta() {
         transaction_result.account_delta().storage.store_delta.0[0].1.cleared_slots()[0],
         CHILD_STORAGE_INDEX_0
     );
+
+    // vault delta
+    // --------------------------------------------------------------------------------------------
+    // assert that added assets are tracked
+    let added_assets = data_store.notes.last().unwrap().vault().iter().cloned().collect::<Vec<_>>();
+    assert!(transaction_result
+        .account_delta()
+        .vault
+        .added_assets
+        .iter()
+        .all(|x| added_assets.contains(x)));
+    assert_eq!(added_assets.len(), transaction_result.account_delta().vault.added_assets.len());
+
+    // assert that removed assets are tracked
+    assert!(transaction_result
+        .account_delta()
+        .vault
+        .removed_assets
+        .iter()
+        .all(|x| removed_assets.contains(x)));
+    assert_eq!(
+        removed_assets.len(),
+        transaction_result.account_delta().vault.removed_assets.len()
+    );
 }
 
 #[test]
 fn test_prove_witness_and_verify() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -224,7 +294,7 @@ fn test_prove_witness_and_verify() {
 
 #[test]
 fn test_prove_and_verify_with_tx_executor() {
-    let data_store = MockDataStore::new();
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -263,9 +333,9 @@ struct MockDataStore {
 }
 
 impl MockDataStore {
-    pub fn new() -> Self {
+    pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
         let (account, block_header, block_chain, consumed_notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
         Self {
             account,
             block_header,
@@ -277,7 +347,7 @@ impl MockDataStore {
 
 impl Default for MockDataStore {
     fn default() -> Self {
-        Self::new()
+        Self::new(AssetPreservationStatus::Preserved)
     }
 }
 

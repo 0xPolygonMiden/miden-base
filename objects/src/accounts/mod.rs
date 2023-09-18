@@ -3,7 +3,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::{
         merkle::{StoreNode, TieredSmt},
-        utils::collections::{ApplyDiff, TryApplyDiff},
+        utils::collections::TryApplyDiff,
     },
     utils::{collections::Vec, string::ToString},
     AccountError, AdviceInputsBuilder, Digest, Felt, FieldElement, Hasher, StarkField,
@@ -17,7 +17,7 @@ mod code;
 pub use code::AccountCode;
 
 pub mod delta;
-pub use delta::{AccountDelta, AccountStorageDelta};
+pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
 
 mod seed;
 pub use seed::get_account_seed;
@@ -128,6 +128,12 @@ impl Account {
     /// Returns a reference to the vault of this account.
     pub fn vault(&self) -> &AccountVault {
         &self.vault
+    }
+
+    #[cfg(test)]
+    /// Returns a mutable reference to the vault of this account.
+    pub fn vault_mut(&mut self) -> &mut AccountVault {
+        &mut self.vault
     }
 
     /// Returns a reference to the storage of this account.
@@ -241,7 +247,7 @@ impl TryApplyDiff<Digest, StoreNode> for Account {
         } = diff;
 
         self.storage.try_apply(storage)?;
-        self.vault.apply(vault);
+        self.vault.try_apply(vault)?;
 
         if let Some(nonce) = nonce {
             if nonce.as_int() <= self.nonce.as_int() {
