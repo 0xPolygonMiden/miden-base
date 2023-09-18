@@ -14,8 +14,8 @@ use super::{
 };
 use assembly::{ast::ModuleAst, Assembler};
 use crypto::merkle::{SimpleSmt, TieredSmt};
-use miden_core::{crypto::merkle::MerkleStore, FieldElement};
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
+use vm_core::{crypto::merkle::MerkleStore, FieldElement};
 
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset

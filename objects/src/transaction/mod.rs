@@ -5,7 +5,7 @@ use super::{
     PreparedTransactionError, StarkField, ToAdviceInputs, TransactionResultError,
     TransactionWitnessError, TryFromVmResult, Vec, Word, WORD_SIZE, ZERO,
 };
-use miden_core::{Program, StackInputs, StackOutputs};
+use vm_core::{Program, StackInputs, StackOutputs};
 
 mod consumed_notes;
 mod created_notes;

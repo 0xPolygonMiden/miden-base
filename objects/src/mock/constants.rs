@@ -3,7 +3,7 @@ use crate::{
     assets::{NonFungibleAsset, NonFungibleAssetDetails},
     AccountId, Felt, StorageItem,
 };
-use miden_core::FieldElement;
+use vm_core::FieldElement;
 
 pub const ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: [u64; 4] = [
     6131122028735692579,

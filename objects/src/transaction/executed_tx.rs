@@ -3,7 +3,7 @@ use super::{
     Vec, Word,
 };
 use crate::{validate_account_seed, ExecutedTransactionError};
-use miden_core::StackOutputs;
+use vm_core::StackOutputs;
 
 #[derive(Debug)]
 pub struct ExecutedTransaction {

@@ -1,5 +1,5 @@
 use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
-use miden_core::StarkField;
+use vm_core::StarkField;
 
 // NOTE ENVELOPE
 // ================================================================================================

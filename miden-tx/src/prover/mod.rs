@@ -6,7 +6,7 @@ use miden_objects::{
     TryFromVmResult,
 };
 use miden_prover::{prove, ProvingOptions};
-use processor::MemAdviceProvider;
+use vm_processor::MemAdviceProvider;
 
 /// The [TransactionProver] is a stateless component which is responsible for proving transactions.
 ///

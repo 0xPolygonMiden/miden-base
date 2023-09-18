@@ -2,7 +2,7 @@ use super::{
     Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
     Note, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word, ZERO,
 };
-use miden_core::utils::IntoBytes;
+use vm_core::utils::IntoBytes;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, an optional account seed (required for new accounts), the

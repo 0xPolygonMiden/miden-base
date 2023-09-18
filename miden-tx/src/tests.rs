@@ -7,7 +7,6 @@ use assembly::{
     Assembler,
 };
 use crypto::StarkField;
-use miden_core::Felt;
 use miden_objects::{
     mock::{
         mock_inputs, prepare_word, AssetPreservationStatus, MockAccountType,
@@ -17,7 +16,8 @@ use miden_objects::{
     Account, AccountCode, TryFromVmResult,
 };
 use miden_prover::ProvingOptions;
-use processor::MemAdviceProvider;
+use vm_core::Felt;
+use vm_processor::MemAdviceProvider;
 
 #[derive(Clone)]
 pub struct MockDataStore {
@@ -102,7 +102,7 @@ fn test_transaction_executor_witness() {
 
     // use the witness to execute the transaction again
     let mut mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
-    let result = processor::execute(
+    let result = vm_processor::execute(
         witness.program(),
         witness.get_stack_inputs(),
         &mut mem_advice_provider,
@@ -163,7 +163,7 @@ fn test_transaction_result_account_delta() {
         proc.incr_nonce
             call.account_{account_id}::incr_nonce
             # => [0]
-            
+
             drop
             # => []
         end
@@ -190,7 +190,7 @@ fn test_transaction_result_account_delta() {
             # => [NEW_CHILD_ROOT]
 
             # prepare stack to delete existing child tree value (replace with empty word)
-            padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH} 
+            padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH}
             # => [depth, idx, NEW_CHILD_ROOT, EMPTY_WORD]
 
             # set existing value to empty word

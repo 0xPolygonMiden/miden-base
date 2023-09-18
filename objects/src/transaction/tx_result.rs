@@ -5,12 +5,12 @@ use super::{
 };
 use crate::accounts::AccountStorageDelta;
 use crypto::merkle::{merkle_tree_delta, MerkleStoreDelta, MerkleTreeDelta, NodeIndex};
-use miden_core::utils::group_slice_elements;
 use miden_lib::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
-use miden_processor::{AdviceInputs, RecAdviceProvider};
+use vm_core::utils::group_slice_elements;
+use vm_processor::{AdviceInputs, RecAdviceProvider};
 
 /// [TransactionResult] represents the result of the execution of the transaction kernel.
 ///
