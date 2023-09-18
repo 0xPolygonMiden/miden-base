@@ -13,11 +13,11 @@ pub use miden_objects::{
     Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
     ChainMmr, StorageItem,
 };
-pub use processor::{
+use std::{env, fs::File, io::Read, path::Path};
+pub use vm_processor::{
     math::Felt, AdviceProvider, ExecutionError, ExecutionOptions, MemAdviceProvider, Process,
     Program, StackInputs, Word,
 };
-use std::{env, fs::File, io::Read, path::Path};
 
 pub mod procedures;
 

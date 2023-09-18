@@ -1,8 +1,8 @@
 use super::{AccountId, ModuleAst, Note, NoteTarget, Operation, ProgramAst, TransactionComplier};
 use assembly::AssemblyContext;
 use crypto::{Felt, FieldElement, Word};
-use miden_core::code_blocks::CodeBlock;
 use miden_objects::assets::{Asset, FungibleAsset};
+use vm_core::code_blocks::CodeBlock;
 
 // CONSTANTS
 // ================================================================================================

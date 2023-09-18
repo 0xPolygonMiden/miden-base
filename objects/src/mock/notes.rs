@@ -11,7 +11,7 @@ use super::super::{
     AccountId, Felt, Vec, Word,
 };
 use assembly::{ast::ProgramAst, Assembler};
-use miden_core::FieldElement;
+use vm_core::FieldElement;
 
 pub enum AssetPreservationStatus {
     TooFewInput,

@@ -13,18 +13,18 @@ rust-version = "1.67"
 
 [features]
 default = ["std"]
-std = ["assembly/std", "crypto/std", "processor/std", "miden-core/std", "miden-objects/std", "miden-lib/std"]
+std = ["assembly/std", "crypto/std", "vm-processor/std", "vm-core/std", "miden-objects/std", "miden-lib/std"]
 
 [dependencies]
 assembly = { workspace = true }
 crypto = { workspace = true }
-miden-core = { workspace = true }
 miden-lib = { package = "miden-lib", path = "../miden-lib" }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-prover = { workspace = true }
 miden-stdlib = { workspace = true }
 miden-verifier = { workspace = true }
-processor = { workspace = true }
+vm-core = { workspace = true }
+vm-processor = { workspace = true }
 
 [dev-dependencies]
 miden-verifier = { workspace = true }

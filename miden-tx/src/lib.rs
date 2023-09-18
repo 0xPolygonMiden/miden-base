@@ -3,7 +3,6 @@ use assembly::{
     Assembler, AssemblyContext, AssemblyError,
 };
 use crypto::{hash::rpo::Rpo256 as Hasher, hash::rpo::RpoDigest as Digest, merkle::NodeIndex};
-use miden_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program};
 use miden_lib::{MidenLib, SatKernel};
 use miden_objects::{
     notes::{Note, NoteOrigin, NoteScript},
@@ -11,7 +10,8 @@ use miden_objects::{
     Account, AccountCode, AccountError, AccountId, BlockHeader, ChainMmr, TransactionResultError,
 };
 use miden_stdlib::StdLibrary;
-use processor::{ExecutionError, RecAdviceProvider};
+use vm_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program};
+use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;
 pub use compiler::{NoteTarget, TransactionComplier};

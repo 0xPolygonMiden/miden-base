@@ -6,7 +6,7 @@ mod internal {
         ChainMmr, Felt, Vec,
     };
     use crypto::merkle::SimpleSmt;
-    use miden_core::{crypto::merkle::NodeIndex, FieldElement};
+    use vm_core::{crypto::merkle::NodeIndex, FieldElement};
 
     pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
         let mut note_trees = Vec::new();
@@ -80,13 +80,13 @@ mod mock {
         hash::rpo::RpoDigest as Digest,
         merkle::{NodeIndex, SimpleSmt, TieredSmt},
     };
-    use miden_core::{FieldElement, StarkField};
     use rand::{Rng, SeedableRng};
     use std::{
         fs::File,
         io::{self, Read, Write},
         path::Path,
     };
+    use vm_core::{FieldElement, StarkField};
 
     /// Initial timestamp value
     const TIMESTAMP_START: Felt = Felt::new(1693348223);

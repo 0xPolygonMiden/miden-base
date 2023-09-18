@@ -105,7 +105,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
         let mut advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
-        let result = processor::execute(
+        let result = vm_processor::execute(
             transaction.tx_program(),
             transaction.stack_inputs(),
             &mut advice_recorder,

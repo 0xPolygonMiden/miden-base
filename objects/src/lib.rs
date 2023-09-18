@@ -17,8 +17,8 @@ use crypto::{
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
-use miden_core::code_blocks::CodeBlock;
-use miden_processor::{AdviceInputs, StackOutputs};
+use vm_core::code_blocks::CodeBlock;
+use vm_processor::{AdviceInputs, StackOutputs};
 
 mod accounts;
 pub use accounts::{

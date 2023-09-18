@@ -3,8 +3,8 @@ use super::{
     TransactionResultError, TryFromVmResult, Vec, Word, WORD_SIZE,
 };
 use core::iter::FromIterator;
-use miden_core::utils::group_slice_elements;
 use miden_lib::memory::NOTE_MEM_SIZE;
+use vm_core::utils::group_slice_elements;
 
 // CREATED NOTES
 // ================================================================================================

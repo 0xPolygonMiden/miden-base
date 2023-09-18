@@ -3,7 +3,7 @@ use super::{
     ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel, StdLibrary,
     TransactionCompilerError,
 };
-use miden_core::ProgramInfo;
+use vm_core::ProgramInfo;
 
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,5 @@
 use super::super::{notes::NoteVault, StarkField, Vec, Word};
-use miden_core::utils::string::{String, ToString};
+use vm_core::utils::string::{String, ToString};
 
 // TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
 pub fn prepare_word(word: &Word) -> String {

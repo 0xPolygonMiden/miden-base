@@ -1,6 +1,6 @@
 #[cfg(not(target_family = "wasm"))]
 mod internal {
-    use miden_core::FieldElement;
+    use vm_core::FieldElement;
 
     use super::super::{
         super::{
