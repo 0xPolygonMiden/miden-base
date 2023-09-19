@@ -2,10 +2,8 @@ use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use crypto::{hash::rpo::RpoDigest as Digest, FieldElement, Word};
-use miden_objects::{
-    builder::DEFAULT_ACCOUNT_CODE,
-    mock::{Immutable, MockChain, OnChain},
-};
+use miden_mock::chain::{Immutable, MockChain, OnChain};
+use miden_objects::DEFAULT_ACCOUNT_CODE;
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 
@@ -142,7 +140,7 @@ fn seed_to_word(seed: &str) -> Word {
 
 #[cfg(test)]
 mod test {
-    use miden_objects::mock::{from_file, MockChain};
+    use miden_mock::chain::{from_file, MockChain};
     use rand_pcg::Pcg64;
 
     #[test]
