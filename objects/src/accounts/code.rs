@@ -13,6 +13,18 @@ const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
 /// The maximum number of account interface procedures.
 const MAX_ACCOUNT_PROCEDURES: usize = 2_usize.pow(ACCOUNT_CODE_TREE_DEPTH as u32);
 
+// Default account code
+// TODO: move this code out of this crate (issue #250)
+#[cfg(feature = "testing")]
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::wallets::basic->basic_wallet
+    use.miden::eoa::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
+";
+
 // ACCOUNT CODE
 // ================================================================================================
 

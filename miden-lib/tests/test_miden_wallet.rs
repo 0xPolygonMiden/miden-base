@@ -11,14 +11,13 @@ use miden_stdlib::StdLibrary;
 
 use miden_objects::{
     assets::{Asset, FungibleAsset},
-    builder::DEFAULT_ACCOUNT_CODE,
     mock::{
         mock_account_storage, mock_inputs_with_existing, AssetPreservationStatus, MockAccountType,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_SENDER,
     },
     notes::{Note, NoteOrigin, NoteScript},
-    Account, AccountCode, AccountId, AccountVault, BlockHeader, ChainMmr,
+    Account, AccountCode, AccountId, AccountVault, BlockHeader, ChainMmr, DEFAULT_ACCOUNT_CODE,
 };
 
 use miden_tx::{DataStore, TransactionExecutor};
@@ -281,7 +280,7 @@ fn test_send_asset_via_wallet() {
             push.{asset}
             call.wallet::send_asset drop
             call.auth_tx::auth_tx_rpo_falcon512
-            dropw dropw 
+            dropw dropw
         end
         ",
             recipient = prepare_word(&recipient),

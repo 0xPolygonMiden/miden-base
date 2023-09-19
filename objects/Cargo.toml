@@ -23,7 +23,7 @@ default = ["std"]
 std = ["assembly/std", "crypto/std", "vm-core/std", "miden-lib/std", "vm-processor/std", "miden-verifier/std"]
 testing = ["miden-test-utils"]
 serde = ["dep:serde", "crypto/serde"]
-mock = ["dep:rand", "dep:rand_pcg", "dep:postcard", "testing"]
+mock = ["dep:rand", "testing"]
 concurrent = ["std"]
 
 [dependencies]
@@ -34,9 +34,7 @@ miden-lib = { path = "../miden-lib" }
 miden-stdlib = { workspace = true }
 miden-test-utils = { workspace = true, optional = true }
 miden-verifier = { workspace = true }
-postcard = { version = "1.0", optional = true, features = [ "alloc" ] }
 rand = { version = "0.8", optional = true }
-rand_pcg = { version = "0.3", optional = true, features = ["serde1"] }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }

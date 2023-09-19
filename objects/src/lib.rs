@@ -23,7 +23,7 @@ use vm_processor::{AdviceInputs, StackOutputs};
 mod accounts;
 pub use accounts::{
     validate_account_seed, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-    AccountStub, AccountType, AccountVault, StorageItem,
+    AccountStub, AccountType, AccountVault, StorageItem, DEFAULT_ACCOUNT_CODE,
 };
 
 mod advice;
@@ -34,9 +34,6 @@ pub mod notes;
 
 pub mod block;
 pub use block::BlockHeader;
-
-#[cfg(feature = "mock")]
-pub mod builder;
 
 pub mod chain;
 pub use chain::ChainMmr;
