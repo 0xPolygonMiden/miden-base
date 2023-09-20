@@ -1,14 +1,15 @@
-pub mod common;
-use common::{
-    data::{
-        mock_inputs, AssetPreservationStatus, MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
-    },
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx, Hasher, MemAdviceProvider, Word,
+use crate::common::{
+    prepare_transaction, procedures::prepare_word, run_tx, Hasher, MemAdviceProvider, Word,
 };
-use miden_objects::mock::{non_fungible_asset, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN};
+use mock::{
+    account::MockAccountType,
+    constants::{
+        non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
+    },
+    notes::AssetPreservationStatus,
+    transaction::mock_inputs,
+};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
@@ -28,7 +29,7 @@ fn test_create_fungible_asset_succeeds() {
 
             # push asset amount onto stack
             push.{FUNGIBLE_ASSET_AMOUNT}
-            
+
             # create fungible asset
             exec.asset::create_fungible_asset
 

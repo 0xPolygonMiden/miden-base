@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use crypto::hash::rpo::RpoDigest as Digest;
-use miden_objects::{AccountId, AccountType};
+use miden_objects::accounts::{AccountId, AccountType};
 
 fn grind_account_seed(c: &mut Criterion) {
     let init_seed = [

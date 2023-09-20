@@ -1,7 +1,9 @@
+use crate::constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN;
 use assembly::ast::ModuleAst;
+use miden_lib::assembler::assembler;
 use miden_objects::{
-    mock::{assembler, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
-    AccountCode, AccountError, AccountId,
+    accounts::{AccountCode, AccountId},
+    AccountError,
 };
 
 mod account;

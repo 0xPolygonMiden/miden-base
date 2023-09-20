@@ -1,6 +1,6 @@
 use super::{
-    assets::Asset, AccountId, Assembler, AssemblyContext, CodeBlock, Digest, Felt, Hasher,
-    NoteError, ProgramAst, ToString, Vec, Word, WORD_SIZE, ZERO,
+    accounts::AccountId, assets::Asset, Assembler, AssemblyContext, CodeBlock, Digest, Felt,
+    Hasher, NoteError, ProgramAst, ToString, Vec, Word, WORD_SIZE, ZERO,
 };
 
 mod envelope;
@@ -18,11 +18,11 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
-mod stub;
-pub use stub::NoteStub;
-
 mod vault;
 pub use vault::NoteVault;
+
+mod stub;
+pub use stub::NoteStub;
 
 // CONSTANTS
 // ================================================================================================

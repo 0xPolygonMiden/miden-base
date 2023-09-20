@@ -1,16 +1,20 @@
-use crate::mock::{
-    non_fungible_asset_2, prepare_assets, prepare_word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_NOTE_1_AMOUNT,
-    CONSUMED_NOTE_2_AMOUNT, CONSUMED_NOTE_3_AMOUNT,
+use crate::{
+    constants::{
+        non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_NOTE_1_AMOUNT,
+        CONSUMED_NOTE_2_AMOUNT, CONSUMED_NOTE_3_AMOUNT,
+    },
+    utils::{prepare_assets, prepare_word},
 };
 
-use super::super::{
+use assembly::{ast::ProgramAst, Assembler};
+use crypto::{utils::collections::Vec, Felt, Word};
+use miden_objects::{
+    accounts::AccountId,
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
-    AccountId, Felt, Vec, Word,
 };
-use assembly::{ast::ProgramAst, Assembler};
 use vm_core::FieldElement;
 
 pub enum AssetPreservationStatus {

@@ -3,6 +3,15 @@ use super::{
     PreparedTransaction, ProgramAst, RecAdviceProvider, TransactionComplier,
     TransactionExecutorError, TransactionResult,
 };
+use crate::TryFromVmResult;
+use crypto::merkle::MerkleTreeDelta;
+use miden_lib::transaction::extract_account_storage_delta;
+use miden_objects::{
+    accounts::{Account, AccountDelta},
+    transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub},
+    TransactionResultError,
+};
+use vm_core::{Program, StackOutputs};
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
@@ -116,7 +125,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script_root) =
             transaction.into_parts();
 
-        TransactionResult::new(
+        create_transaction_result(
             account,
             consumed_notes,
             block_header.hash(),
@@ -164,4 +173,58 @@ impl<D: DataStore> TransactionExecutor<D> {
         )
         .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
     }
+}
+
+/// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
+pub fn create_transaction_result(
+    initial_account: Account,
+    consumed_notes: ConsumedNotes,
+    block_hash: Digest,
+    program: Program,
+    tx_script_root: Option<Digest>,
+    advice_provider: RecAdviceProvider,
+    stack_outputs: StackOutputs,
+) -> Result<TransactionResult, TransactionResultError> {
+    // finalize the advice recorder
+    let (advice_witness, stack, map, store) = advice_provider.finalize();
+
+    // parse transaction results
+    let final_account_stub =
+        FinalAccountStub::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+    let created_notes = CreatedNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+
+    // TODO: Fix delta extraction for new account creation
+    // extract the account storage delta
+    let storage_delta =
+        extract_account_storage_delta(&store, &initial_account, &final_account_stub)?;
+
+    // extract the nonce delta
+    let nonce_delta = if initial_account.nonce() != final_account_stub.0.nonce() {
+        Some(final_account_stub.0.nonce())
+    } else {
+        None
+    };
+
+    // TODO: implement vault delta extraction
+    let vault_delta = MerkleTreeDelta::new(0);
+
+    // construct the account delta
+    let account_delta = AccountDelta {
+        code: None,
+        nonce: nonce_delta,
+        storage: storage_delta,
+        vault: vault_delta,
+    };
+
+    TransactionResult::new(
+        initial_account,
+        final_account_stub,
+        account_delta,
+        consumed_notes,
+        created_notes,
+        block_hash,
+        program,
+        tx_script_root,
+        advice_witness,
+    )
 }

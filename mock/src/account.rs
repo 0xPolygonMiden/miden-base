@@ -1,21 +1,30 @@
-use super::{
-    super::{
-        assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-        Account, AccountCode, AccountId, AccountStorage, AccountVault, Felt, Vec, Word, ZERO,
-    },
-    non_fungible_asset_2,
-};
-use super::{
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+use crate::constants::{
+    non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
     CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
     FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
 use assembly::{ast::ModuleAst, Assembler};
-use crypto::merkle::{SimpleSmt, TieredSmt};
+use crypto::{
+    merkle::{SimpleSmt, TieredSmt},
+    utils::collections::Vec,
+    Felt, Word, ZERO,
+};
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
+use miden_objects::accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault};
+use miden_objects::assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
 use vm_core::{crypto::merkle::MerkleStore, FieldElement};
+
+// Default account code
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::wallets::basic->basic_wallet
+    use.miden::eoa::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
+";
 
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset

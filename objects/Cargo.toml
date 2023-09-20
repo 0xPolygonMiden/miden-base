@@ -20,25 +20,19 @@ bench = false
 
 [features]
 default = ["std"]
-std = ["assembly/std", "crypto/std", "vm-core/std", "miden-lib/std", "vm-processor/std", "miden-verifier/std"]
-testing = ["miden-test-utils"]
+std = ["assembly/std", "crypto/std", "vm-core/std", "vm-processor/std", "miden-verifier/std"]
+testing = []
 serde = ["dep:serde", "crypto/serde"]
-mock = ["dep:rand", "testing"]
 concurrent = ["std"]
 
 [dependencies]
 assembly = { workspace = true }
 crypto = { workspace = true }
 log = { version = "0.4", optional = true }
-miden-lib = { path = "../miden-lib" }
-miden-stdlib = { workspace = true }
-miden-test-utils = { workspace = true, optional = true }
 miden-verifier = { workspace = true }
-rand = { version = "0.8", optional = true }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"], default-features = false }
-vm-processor = { workspace = true, features = ["internals"] }

@@ -1,17 +1,15 @@
-pub mod common;
-use common::{
-    data::{mock_executed_tx, AssetPreservationStatus},
+use crate::common::{
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
     procedures::created_notes_data_procedure,
     run_within_tx_kernel, Felt, FieldElement, MemAdviceProvider, TX_KERNEL_DIR,
 };
+use mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
 #[test]
 fn test_epilogue() {
-    let executed_transaction =
-        mock_executed_tx(miden_objects::mock::AssetPreservationStatus::Preserved);
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());

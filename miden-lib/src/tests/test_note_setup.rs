@@ -1,12 +1,9 @@
-pub mod common;
-use common::{
-    consumed_note_data_ptr,
-    data::{mock_inputs, AssetPreservationStatus, MockAccountType},
-    memory::CURRENT_CONSUMED_NOTE_PTR,
-    prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process,
-    TX_KERNEL_DIR,
+use crate::common::{
+    consumed_note_data_ptr, memory::CURRENT_CONSUMED_NOTE_PTR, prepare_transaction, run_tx,
+    AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process, TX_KERNEL_DIR,
 };
 use miden_objects::transaction::PreparedTransaction;
+use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};
 
 const NOTE_SETUP_FILE: &str = "note_setup.masm";
 

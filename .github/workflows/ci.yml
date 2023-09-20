@@ -75,8 +75,6 @@ jobs:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
-        target:
-          - wasm32-unknown-unknown
     steps:
       - uses: actions/checkout@main
       - name: Install rust
@@ -89,4 +87,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --verbose --no-default-features --target ${{ matrix.target }}
+          args: --verbose --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock

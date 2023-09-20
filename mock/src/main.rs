@@ -2,8 +2,10 @@ use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use crypto::{hash::rpo::RpoDigest as Digest, FieldElement, Word};
-use miden_mock::chain::{Immutable, MockChain, OnChain};
-use miden_objects::DEFAULT_ACCOUNT_CODE;
+use miden_mock::{
+    account::DEFAULT_ACCOUNT_CODE,
+    chain::{Immutable, MockChain, OnChain},
+};
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 

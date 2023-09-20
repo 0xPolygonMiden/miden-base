@@ -1,8 +1,10 @@
-use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
-    PreparedTransactionError, Program, StackInputs, Vec, Word,
+use crate::{
+    accounts::validate_account_seed,
+    transaction::{
+        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
+        PreparedTransactionError, Program, StackInputs, Vec, Word,
+    },
 };
-use crate::validate_account_seed;
 
 /// A struct that contains all of the data required to execute a transaction. This includes:
 /// - account: Account that the transaction is being executed against.

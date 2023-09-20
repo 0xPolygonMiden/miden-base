@@ -1,8 +1,11 @@
-use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note, StackInputs,
-    Vec, Word,
+use crate::{
+    accounts::validate_account_seed,
+    transaction::{
+        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
+        StackInputs, Vec, Word,
+    },
+    ExecutedTransactionError,
 };
-use crate::{validate_account_seed, ExecutedTransactionError};
 use vm_core::StackOutputs;
 
 #[derive(Debug)]
