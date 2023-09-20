@@ -72,10 +72,6 @@ end
 # ADD ASSET
 # =================================================================================================
 
-# TODO: Replace with an implementation that uses the advice provider to give new amount for
-#       insertion. Ideally we shouldn't be putting vault logic in miden-vm so how can we do
-#       this ergonomically?
-
 #! Add the specified fungible asset to the vault.  If the vault already contains an asset
 #! issued by the same faucet, the amounts are added together.
 #!
@@ -89,35 +85,38 @@ end
 #! - ASSET is the fungible asset to add to the vault.
 #! - ASSET' is the total fungible asset in the account vault after ASSET was added to it.
 export.add_fungible_asset
-    dup.4 movdn.5 push.0 movdn.3 dup movdn.4
-    # => [ASSET_KEY, faucet_id, amount, vault_root_ptr, vault_root_ptr]
+    push.0 movdn.3 dup movdn.4
+    # => [ASSET_KEY, faucet_id, amount, vault_root_ptr]
 
-    # get the asset vault root and read asset
-    padw movup.10 mem_loadw swapw exec.smt::get drop movup.7
-    # => [CUR_ASSET, VAULT_ROOT, amount, vault_root_ptr]
+    # get the asset vault root and read the vault asset value using the `push_smtpeek` decorator.
+    # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
+    # significant element with the faucet_id to construct the CUR_ASSET.
+    padw dup.10 mem_loadw swapw adv.push_smtpeek adv_loadw swapw dupw.1 drop movup.11
+    # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
     # arrange elements
-    movup.3 movup.8 dup
-    # => [amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
+    movup.3 movup.12 dup
+    # => [amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # compute max_amount - cur_amount
     exec.asset::get_fungible_asset_max_amount dup.3 sub
-    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
+    # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
-    # asset amount + cur_amount < max_amount
+    # assert amount + cur_amount < max_amount
     lte assert
-    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, vault_root_ptr]
+    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # add asset amounts
-    add movdn.3 
-    # => [ASSET', VAULT_ROOT, vault_root_ptr]
+    add movdn.3
+    # => [ASSET', VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # prepare the stack to insert the asset into the vault
-    dupw movdnw.2 dupw movup.3 drop push.0 movdn.3 swapw
-    # => [ASSET', KEY, VAULT_ROOT, ASSET', vault_root_ptr]
+    dupw movdnw.3 dupw movup.3 drop push.0 movdn.3 swapw
+    # => [ASSET', KEY, VAULT_ROOT, CUR_VAULT_VALUE, ASSET', vault_root_ptr]
 
-    # update asset in vault
-    exec.smt::insert dropw
+    # update asset in vault and assert the old value is equivalent to the value provided via the
+    # decorator
+    exec.smt::insert movupw.2 assert_eqw
     # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root
@@ -206,41 +205,44 @@ end
 #! - ASSET is the fungible asset to remove from the vault.
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 export.remove_fungible_asset
-    dup.4 movdn.5 dupw push.0 movdn.3 dup movdn.4
-    # => [ASSET_KEY, faucet_id, amount, ASSET, vault_root_ptr, vault_root_ptr]
+    dupw push.0 movdn.3 dup movdn.4
+    # => [ASSET_KEY, faucet_id, amount, ASSET, vault_root_ptr]
 
-    # get the asset vault root and read asset
-    padw movup.14 mem_loadw swapw exec.smt::get drop movup.7
-    # => [CUR_ASSET, VAULT_ROOT, amount, ASSET, vault_root_ptr]
+    # get the asset vault root and read the vault asset value using the `push_smtpeek` decorator
+    # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
+    # significant element with the faucet_id to construct the CUR_ASSET.
+    padw dup.14 mem_loadw swapw adv.push_smtpeek adv_loadw dupw movdnw.2 drop movup.11
+    # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, ASSET, vault_root_ptr]
 
     # arrange elements
-    movup.3 movup.8 dup dup.2
-    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
+    movup.3 movup.12 dup dup.2
+    # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
     lte assert
-    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
+    # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # asset amount + cur_amount < max_amount
     sub
-    # => [new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
+    # => [new_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # => check if the asset amount is zero
     dup eq.0
-    # => [is_zero, new_amount, faucet_id, 0, 0, VAULT_ROOT, ASSET, vault_root_ptr]
+    # => [is_zero, new_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     if.true
         # fungible asset empty - insert EMPTY_WORD in vault
         movdn.3 padw
-        # => [EMPTY_WORD, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
+        # => [EMPTY_WORD, ASSET_KEY, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
     else
         # fungible asset not empty - update asset in vault
         movdn.3 dupw movup.3 drop push.0 movdn.3 swapw
-        # => [NEW_ASSET, ASSET_KEY, VAULT_ROOT, ASSET, vault_root_ptr]
+        # => [NEW_ASSET, ASSET_KEY, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
     end
 
-    # update asset in vault
-    exec.smt::set dropw
+    # update asset in vault and assert the old value is equivalent to the value provided via the
+    # decorator
+    exec.smt::set movupw.2 assert_eqw
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
