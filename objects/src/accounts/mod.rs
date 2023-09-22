@@ -30,9 +30,6 @@ pub use stub::AccountStub;
 mod vault;
 pub use vault::AccountVault;
 
-#[cfg(test)]
-mod tests;
-
 // ACCOUNT
 // ================================================================================================
 
