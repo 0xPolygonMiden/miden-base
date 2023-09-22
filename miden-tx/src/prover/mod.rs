@@ -1,10 +1,7 @@
 use super::TransactionProverError;
-use miden_objects::{
-    transaction::{
-        CreatedNotes, FinalAccountStub, PreparedTransaction, ProvenTransaction, TransactionWitness,
-    },
-    TryFromVmResult,
-};
+use crate::TryFromVmResult;
+use miden_objects::transaction::{CreatedNotes, FinalAccountStub};
+use miden_objects::transaction::{PreparedTransaction, ProvenTransaction, TransactionWitness};
 use miden_prover::{prove, ProvingOptions};
 use vm_processor::MemAdviceProvider;
 

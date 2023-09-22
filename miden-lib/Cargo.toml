@@ -18,14 +18,18 @@ testing = ["miden-objects/testing"]
 
 [dependencies]
 assembly = { workspace = true }
+crypto = { workspace = true }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-stdlib = { workspace = true }
+vm-core = { workspace = true }
+vm-processor = { workspace = true }
 
 [dev-dependencies]
-crypto = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", features = ["testing"], default-features = false }
 miden-stdlib = { workspace = true }
 miden-tx = { package = "miden-tx", path = "../miden-tx", default-features = false }
 vm-processor = { workspace = true, features = ["internals"] }
-vm-core = { workspace = true }
+mock = { package = "miden-mock", path = "../mock", default-features = false }
 
 [build-dependencies]
 assembly = { workspace = true }

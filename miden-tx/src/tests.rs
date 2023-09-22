@@ -1,6 +1,6 @@
 use super::{
     AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
-    TransactionExecutor, TransactionProver, TransactionVerifier,
+    TransactionExecutor, TransactionProver, TransactionVerifier, TryFromVmResult,
 };
 use assembly::{
     ast::{ModuleAst, ProgramAst},
@@ -8,14 +8,17 @@ use assembly::{
 };
 use crypto::StarkField;
 use miden_objects::{
-    mock::{
-        mock_inputs, prepare_word, AssetPreservationStatus, MockAccountType,
-        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
-    },
+    accounts::{Account, AccountCode},
     transaction::{CreatedNotes, FinalAccountStub},
-    Account, AccountCode, TryFromVmResult,
 };
 use miden_prover::ProvingOptions;
+use mock::{
+    account::MockAccountType,
+    constants::{CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0},
+    notes::AssetPreservationStatus,
+    transaction::mock_inputs,
+    utils::prepare_word,
+};
 use vm_core::Felt;
 use vm_processor::MemAdviceProvider;
 

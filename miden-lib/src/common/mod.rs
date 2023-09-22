@@ -1,17 +1,17 @@
+pub use crate::{assembler::assembler, memory, MidenLib, SatKernel};
 pub use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
     merkle::{MerkleStore, NodeIndex, SimpleSmt},
     FieldElement, StarkField, ONE, ZERO,
 };
-pub use miden_lib::{memory, MidenLib, SatKernel};
 pub use miden_objects::{
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageItem,
+    },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    mock as data,
-    mock::assembler,
     notes::{Note, NoteInclusionProof, NoteScript, NoteVault, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ExecutedTransaction, PreparedTransaction, ProvenTransaction},
-    Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, BlockHeader,
-    ChainMmr, StorageItem,
+    BlockHeader, ChainMmr,
 };
 use std::{env, fs::File, io::Read, path::Path};
 pub use vm_processor::{

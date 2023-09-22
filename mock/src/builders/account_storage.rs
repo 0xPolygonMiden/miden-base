@@ -1,6 +1,6 @@
 use crypto::merkle::MerkleStore;
 use crypto::utils::collections::Vec;
-use miden_objects::{AccountStorage, StorageItem};
+use miden_objects::accounts::{AccountStorage, StorageItem};
 
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]

@@ -13,7 +13,7 @@ mod account_id;
 pub use account_id::{compute_digest, digest_pow, validate_account_seed, AccountId, AccountType};
 
 mod code;
-pub use code::{AccountCode, DEFAULT_ACCOUNT_CODE};
+pub use code::AccountCode;
 
 pub mod delta;
 pub use delta::{AccountDelta, AccountStorageDelta};

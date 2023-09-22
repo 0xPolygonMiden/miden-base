@@ -6,11 +6,12 @@ use crypto::{
     },
     Felt, Word,
 };
+use miden_lib::assembler::assembler;
 use miden_objects::{
+    accounts::AccountId,
     assets::Asset,
-    mock::assembler,
     notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
-    AccountId, NoteError,
+    NoteError,
 };
 use rand::Rng;
 

@@ -1,23 +1,29 @@
-pub mod common;
+use miden_lib::common;
 
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use common::{data::prepare_word, NodeIndex};
+use common::NodeIndex;
 use crypto::{Felt, StarkField, Word, ONE, ZERO};
 use miden_lib::{MidenLib, SatKernel};
 use miden_stdlib::StdLibrary;
 
 use miden_objects::{
+    accounts::{Account, AccountCode, AccountId, AccountVault},
     assets::{Asset, FungibleAsset},
-    mock::{
-        mock_account_storage, mock_inputs_with_existing, AssetPreservationStatus, MockAccountType,
+    notes::{Note, NoteOrigin, NoteScript},
+    BlockHeader, ChainMmr,
+};
+use mock::{
+    account::{mock_account_storage, MockAccountType, DEFAULT_ACCOUNT_CODE},
+    constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_SENDER,
     },
-    notes::{Note, NoteOrigin, NoteScript},
-    Account, AccountCode, AccountId, AccountVault, BlockHeader, ChainMmr, DEFAULT_ACCOUNT_CODE,
+    notes::AssetPreservationStatus,
+    transaction::mock_inputs_with_existing,
+    utils::prepare_word,
 };
 
 use miden_tx::{DataStore, TransactionExecutor};

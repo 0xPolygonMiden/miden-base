@@ -1,6 +1,7 @@
 use miden_objects::{
+    accounts::{AccountId, AccountType},
     assets::{NonFungibleAsset, NonFungibleAssetDetails},
-    AccountId, AccountType, AssetError,
+    AssetError,
 };
 use rand::{distributions::Standard, Rng};
 

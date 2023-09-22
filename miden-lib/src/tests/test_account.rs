@@ -1,17 +1,20 @@
-pub mod common;
-use common::{
-    data::{
-        mock_inputs, AssetPreservationStatus, MockAccountType, CHILD_ROOT_PARENT_LEAF_INDEX,
-        CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0,
-        STORAGE_ITEM_1,
-    },
+use crate::common::{
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
     prepare_transaction,
     procedures::created_notes_data_procedure,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
 };
-use miden_objects::mock::mock_executed_tx;
+use mock::transaction::mock_executed_tx;
+use mock::{
+    account::MockAccountType,
+    constants::{
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
+        CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
+    },
+    notes::AssetPreservationStatus,
+    transaction::mock_inputs,
+};
 use vm_core::StackInputs;
 
 // MOCK DATA

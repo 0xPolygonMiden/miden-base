@@ -10,21 +10,17 @@ use assembly::{
 };
 use crypto::{
     hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::{MerkleError, MerkleStore, Mmr, TieredSmt},
+    merkle::{MerkleError, Mmr, TieredSmt},
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::Vec,
         string::{String, ToString},
     },
     Felt, StarkField, Word, WORD_SIZE, ZERO,
 };
 use vm_core::code_blocks::CodeBlock;
-use vm_processor::{AdviceInputs, StackOutputs};
+use vm_processor::AdviceInputs;
 
-mod accounts;
-pub use accounts::{
-    validate_account_seed, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-    AccountStub, AccountType, AccountVault, StorageItem, DEFAULT_ACCOUNT_CODE,
-};
+pub mod accounts;
 
 mod advice;
 use advice::{AdviceInputsBuilder, ToAdviceInputs};
@@ -44,10 +40,4 @@ pub use errors::{
     TransactionResultError, TransactionWitnessError,
 };
 
-mod result;
-pub use result::TryFromVmResult;
-
 pub mod transaction;
-
-#[cfg(feature = "mock")]
-pub mod mock;

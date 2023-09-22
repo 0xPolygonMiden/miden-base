@@ -1,8 +1,4 @@
-pub mod common;
-use common::{
-    data::{
-        mock_inputs, AssetPreservationStatus, MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    },
+use crate::common::{
     memory::{
         CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
         CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
@@ -10,6 +6,10 @@ use common::{
     prepare_transaction,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel, Felt, MemAdviceProvider, StackInputs, ONE, ZERO,
+};
+use mock::{
+    account::MockAccountType, constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    notes::AssetPreservationStatus, transaction::mock_inputs,
 };
 
 #[test]

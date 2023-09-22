@@ -27,4 +27,6 @@ vm-core = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
+miden-lib = { package = "miden-lib", path = "../miden-lib", features = ["testing"] }
 miden-verifier = { workspace = true }
+mock = { package = "miden-mock", path = "../mock", default-features = false }

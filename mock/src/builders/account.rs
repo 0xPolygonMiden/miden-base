@@ -1,4 +1,7 @@
-use super::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder};
+use crate::{
+    account::DEFAULT_ACCOUNT_CODE,
+    builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
+};
 use crypto::{
     utils::{
         collections::Vec,
@@ -7,8 +10,8 @@ use crypto::{
     Felt, Word, ZERO,
 };
 use miden_objects::{
-    assets::Asset, Account, AccountStorage, AccountType, AccountVault, StorageItem,
-    DEFAULT_ACCOUNT_CODE,
+    accounts::{Account, AccountStorage, AccountType, AccountVault, StorageItem},
+    assets::Asset,
 };
 use rand::Rng;
 

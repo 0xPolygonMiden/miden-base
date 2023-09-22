@@ -1,18 +1,18 @@
-pub mod common;
-use common::{
-    data::{
-        mock_inputs, AssetPreservationStatus, MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        CONSUMED_NOTE_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
-    },
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx, MemAdviceProvider,
+use crate::{
+    common::{prepare_transaction, procedures::prepare_word, run_tx, MemAdviceProvider},
+    memory::FAUCET_STORAGE_DATA_SLOT,
 };
-use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
-use miden_objects::{
-    assets::FungibleAsset,
-    mock::{non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN},
+use miden_objects::assets::FungibleAsset;
+use mock::{
+    account::MockAccountType,
+    constants::{
+        non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, CONSUMED_NOTE_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT,
+        FUNGIBLE_FAUCET_INITIAL_BALANCE,
+    },
+    notes::AssetPreservationStatus,
+    transaction::mock_inputs,
 };
 
 #[test]

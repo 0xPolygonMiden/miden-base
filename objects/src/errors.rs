@@ -1,6 +1,7 @@
 use super::{
+    accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountId, Digest, MerkleError, String, Word,
+    Digest, MerkleError, String, Word,
 };
 use assembly::AssemblyError;
 use core::fmt;

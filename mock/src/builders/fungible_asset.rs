@@ -1,4 +1,8 @@
-use miden_objects::{assets::FungibleAsset, AccountId, AccountType, AssetError};
+use miden_objects::{
+    accounts::{AccountId, AccountType},
+    assets::FungibleAsset,
+    AssetError,
+};
 
 /// Builder for an `FungibleAsset`, the builder can be configured and used multipled times.
 #[derive(Debug, Clone)]

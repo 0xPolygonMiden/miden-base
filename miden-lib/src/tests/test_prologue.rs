@@ -1,22 +1,20 @@
-pub mod common;
-use common::{
+use crate::common::{
     consumed_note_data_ptr,
-    data::{
-        mock_inputs, AssetPreservationStatus, MockAccountType,
-        ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    },
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR,
         BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
         CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_COM_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-        TIMESTAMP_IDX,
+        NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
+        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
     },
     prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider,
     PreparedTransaction, Process, Word, TX_KERNEL_DIR, ZERO,
 };
-use miden_lib::memory::NULLIFIER_DB_ROOT_PTR;
+use mock::{
+    account::MockAccountType, constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    notes::AssetPreservationStatus, transaction::mock_inputs,
+};
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 
