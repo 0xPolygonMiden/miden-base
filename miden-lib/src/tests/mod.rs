@@ -4,6 +4,7 @@ mod test_asset_vault;
 mod test_epilogue;
 mod test_faucet;
 mod test_note;
+mod test_note_scripts;
 mod test_note_setup;
 mod test_prologue;
 mod test_tx;
