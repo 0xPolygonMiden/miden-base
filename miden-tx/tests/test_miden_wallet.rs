@@ -1,118 +1,34 @@
+use assembly::ast::{ModuleAst, ProgramAst};
+use crypto::{Felt, StarkField, Word, ONE, ZERO};
+use miden_lib::assembler;
+
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
-    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    crypto::merkle::NodeIndex,
-    notes::{Note, NoteOrigin, NoteScript},
-    BlockHeader, ChainMmr, Felt, StarkField, Word, ONE, ZERO,
+    notes::{Note, NoteScript},
 };
 use mock::{
+    account::{mock_account_storage, DEFAULT_ACCOUNT_CODE},
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
-    },
-    mock::{
-        account::{mock_account_storage, MockAccountType},
-        notes::AssetPreservationStatus,
-        transaction::mock_inputs_with_existing,
+        ACCOUNT_ID_SENDER,
     },
     utils::prepare_word,
 };
 
-use miden_tx::{DataStore, TransactionExecutor};
+use miden_tx::TransactionExecutor;
 
-#[derive(Clone)]
-pub enum DataStoreError {
-    AccountNotFound(AccountId),
-    NoteNotFound(u32, NodeIndex),
-}
-
-#[derive(Clone)]
-
-pub struct MockDataStore {
-    pub account: Account,
-    pub block_header: BlockHeader,
-    pub block_chain: ChainMmr,
-    pub notes: Vec<Note>,
-}
-
-impl MockDataStore {
-    pub fn with_existing(account: Option<Account>, consumed_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, consumed_notes) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            consumed_notes,
-        );
-        Self {
-            account,
-            block_header,
-            block_chain,
-            notes: consumed_notes,
-        }
-    }
-}
-
-impl DataStore for MockDataStore {
-    fn get_transaction_data(
-        &self,
-        account_id: AccountId,
-        block_num: u32,
-        notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<Note>), miden_tx::DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num as u64, self.block_header.block_num().as_int());
-        assert_eq!(notes.len(), self.notes.len());
-        let origins = self
-            .notes
-            .iter()
-            .map(|note| note.proof().as_ref().unwrap().origin())
-            .collect::<Vec<_>>();
-        notes.iter().all(|note| origins.contains(&note));
-        Ok((
-            self.account.clone(),
-            self.block_header.clone(),
-            self.block_chain.clone(),
-            self.notes.clone(),
-        ))
-    }
-
-    fn get_account_code(
-        &self,
-        account_id: AccountId,
-    ) -> Result<ModuleAst, miden_tx::DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        Ok(self.account.code().module().clone())
-    }
-}
+mod common;
+use common::MockDataStore;
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
 fn test_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
-    // Create sender and target account
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-
-    let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let target_account_code_ast = ModuleAst::parse(target_account_code_src).unwrap();
-    let mut account_assembler = miden_lib::assembler::assembler();
-
-    let target_account_code =
-        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let target_account_storage = mock_account_storage();
-    let target_account: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        target_account_storage.clone(),
-        target_account_code.clone(),
-        Felt::new(1),
-    );
+    let target_account = get_account_with_default_account_code(None);
 
     // Create the note
     let note_script_ast = ProgramAst::parse(
@@ -134,29 +50,14 @@ fn test_receive_asset_via_wallet() {
     )
     .unwrap();
 
-    let mut note_assembler = miden_lib::assembler::assembler();
-
-    let (note_script, _) = NoteScript::new(note_script_ast, &mut note_assembler).unwrap();
-
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-
-    let note = Note::new(
-        note_script.clone(),
-        &[],
-        &vec![fungible_asset_1],
-        SERIAL_NUM,
-        sender_account_id,
-        ONE,
-        None,
-    )
-    .unwrap();
+    let note = get_note_with_fungible_asset_and_script(fungible_asset_1.clone(), note_script_ast);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account), Some(vec![note]));
+    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(target_account_id).unwrap();
+    executor.load_account(target_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
     let note_origins = data_store
@@ -180,18 +81,21 @@ fn test_receive_asset_via_wallet() {
     .unwrap();
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(target_account.id(), block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
     // nonce delta
     assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
+    // clone account info
+    let account_storage = mock_account_storage();
+    let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![fungible_asset_1]).unwrap(),
-        target_account_storage,
-        target_account_code,
+        target_account.id(),
+        AccountVault::new(&vec![fungible_asset_1.into()]).unwrap(),
+        account_storage,
+        account_code,
         Felt::new(2),
     );
     assert!(transaction_result.final_account_hash() == target_account_after.hash());
@@ -206,30 +110,14 @@ fn test_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    // Create sender and target account
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let sender_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let sender_account_code_ast = ModuleAst::parse(sender_account_code_src).unwrap();
-    let mut account_assembler = miden_lib::assembler::assembler();
-
-    let sender_account_code =
-        AccountCode::new(sender_account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let sender_account_storage = mock_account_storage();
-    let sender_account: Account = Account::new(
-        sender_account_id,
-        AccountVault::new(&vec![fungible_asset_1.clone()]).unwrap(),
-        sender_account_storage.clone(),
-        sender_account_code.clone(),
-        Felt::new(1),
-    );
+    let sender_account = get_account_with_default_account_code(fungible_asset_1.clone().into());
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account), Some(vec![]));
+    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(sender_account_id).unwrap();
+    executor.load_account(sender_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
     let note_origins = data_store
@@ -266,19 +154,60 @@ fn test_send_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(sender_account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(sender_account.id(), block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
-    // nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
+    // clones account info
+    let sender_account_storage = mock_account_storage();
+    let sender_account_code = sender_account.code().clone();
 
     // vault delta
     let sender_account_after: Account = Account::new(
-        sender_account_id,
+        sender_account.id(),
         AccountVault::new(&vec![]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),
     );
     assert!(transaction_result.final_account_hash() == sender_account_after.hash());
+}
+
+fn get_account_with_default_account_code(asset: Option<Asset>) -> Account {
+    let account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let account_code_src = DEFAULT_ACCOUNT_CODE;
+    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
+    let mut account_assembler = assembler();
+
+    let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
+
+    let account_storage = mock_account_storage();
+    let account_vault = match asset {
+        Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
+        None => AccountVault::new(&vec![]).unwrap(),
+    };
+
+    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
+}
+
+fn get_note_with_fungible_asset_and_script(
+    fungible_asset: FungibleAsset,
+    note_script: ProgramAst,
+) -> Note {
+    let mut note_assembler = assembler();
+
+    let (note_script, _) = NoteScript::new(note_script, &mut note_assembler).unwrap();
+    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    Note::new(
+        note_script.clone(),
+        &[],
+        &vec![fungible_asset.into()],
+        SERIAL_NUM,
+        sender_id,
+        Felt::new(1),
+        None,
+    )
+    .unwrap()
 }

@@ -66,7 +66,7 @@ pub fn mock_inputs_with_existing(
         }
         MockAccountType::FungibleFaucet(acct_id) => {
             account.unwrap_or(mock_fungible_faucet(acct_id, &assembler))
-        },
+        }
         MockAccountType::NonFungibleFaucet => mock_non_fungible_faucet(&assembler),
     };
 
