@@ -1,0 +1,78 @@
+use.miden::sat::account
+use.miden::sat::faucet
+use.miden::wallets::basic->wallet
+
+export.test
+    #push.1 drop
+    push.0 exec.account::get_item
+    #dropw dropw
+    #push.17 assert_eq
+end
+
+#! Distributes freshly minted fungible assets to the provided address.
+#! 
+#! Inputs: [ASSET, tag, RECIPIENT, ...]
+#! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#!
+#! - ASSET is the fungible asset to be received.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT is the recipient of the note, i.e., 
+#!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
+#! - note_ptr is the pointer to the memory address in the kernel.
+#!   This cannot directly be accessed from another context.
+#!
+#! FAILS if: 
+#! - The asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - The asset is not well formed.
+#! - The total issuance after minting is greater than the maximum amount 
+#!   allowed.
+export.distribute
+    # Get max supply of this faucet. We assume max_supply is stored at pos 3 in memory slot 0
+    push.1000
+    #push.0 exec.account::get_item drop drop drop
+    # => [max_supply, ASSET, tag, RECIPIENT, ...]
+    
+    # Get total issuance of this faucet so far and add amount to be minted
+    exec.faucet::get_total_issuance dup.2 add
+    # => [(total_issuance + amount_to_be_minted), max_supply, ASSET, tag, RECIPIENT, ...]
+    
+    # Check that (total_issuance + amount_to_be_minted) =< max_supply
+    u32unchecked_gte assert
+
+    # Minting the asset
+    exec.faucet::mint
+    # => [ASSET, tag, RECIPIENT, ...]
+    
+    call.wallet::send_asset
+    # => [note_ptr, ZERO, ZERO, ...]
+end
+
+#! Burns fungible assets.
+#! 
+#! Input: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the fungible asset to be received.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT is the recipient of the note, i.e., 
+#!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
+#! - note_ptr is the pointer to the memory address in the kernel.
+#!   This cannot directly be accessed from another context.
+#!
+#! Fails if:
+#! - The transaction is not being executed against a faucet.
+#! - The asset being burned is not associated with the faucet the transaction is being executed
+#!   against.
+#! - The asset is not well formed.
+#! - The amount being burned is greater than the total input to the 
+#!   transaction.
+export.burn
+    # burning the asset
+    exec.faucet::burn
+    # => [ASSET]
+    
+    # clear the stack
+    dropw
+    # => [...]
+end
