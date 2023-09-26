@@ -87,6 +87,23 @@ proc.burn_fungible_asset
     # => [ASSET]
 end
 
+#! Returns the total issuance of the fungible faucet the transaction is being executed against.
+#!
+#! Stack: []
+#! Outputs: [total_issuance]
+#!
+#! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
+#!   against.
+export.get_total_issuance
+    # fetch the TOTAL_ISSUANCE from storage
+    exec.account::get_faucet_storage_data_slot exec.account::get_item
+    # => [TOTAL_ISSUANCE]
+
+    # extract the total_issuance and purge the padding
+    movdn.3 drop drop drop
+    # => [total_issuance]
+end
+
 # NON-FUNGIBLE ASSETS
 # ==================================================================================================
 

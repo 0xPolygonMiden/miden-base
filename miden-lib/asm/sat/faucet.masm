@@ -38,3 +38,23 @@ export.burn
     syscall.burn_asset
     # => [ASSET]
 end
+
+#! Returns the total issuance of the fungible faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a fungible faucet.
+#!
+#! Stack: []
+#! Outputs: [total_issuance]
+#!
+#! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
+#!   against.
+export.get_total_issuance
+    # add padding to the stack for kernel invocation
+    push.0
+    # => [0]
+
+    # invoke the `get_fungible_faucet_total_issuance` kernel procedure
+    syscall.get_fungible_faucet_total_issuance
+    # => [total_issuance]
+end
