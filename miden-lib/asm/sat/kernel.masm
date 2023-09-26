@@ -458,3 +458,27 @@ export.burn_asset
     exec.faucet::burn
     # => [ASSET]
 end
+
+#! Returns the total issuance of the fungible faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a fungible faucet.
+#!
+#! Stack: [0]
+#! Outputs: [total_issuance]
+#!
+#! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
+#!   against.
+export.get_fungible_faucet_total_issuance
+    # assert that we are executing a transaction against a fungible faucet (access checks)
+    exec.account::get_id exec.account::is_fungible_faucet assert
+    # => [0]
+
+    # get the total issuance
+    exec.faucet::get_total_issuance
+    # => [total_issuance]
+
+    # drop the padding
+    swap drop
+    # => []
+end

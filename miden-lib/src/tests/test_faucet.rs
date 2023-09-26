@@ -650,3 +650,41 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
     );
     assert!(process.is_err());
 }
+
+#[test]
+fn test_get_total_issuance_succeeds() {
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::FungibleFaucet(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN),
+        AssetPreservationStatus::TooManyNonFungibleInput,
+    );
+
+    let code = format!(
+        "\
+    use.miden::sat::internal::prologue
+    use.miden::sat::faucet
+
+    begin
+        # prepare the transaction
+        exec.prologue::prepare_transaction
+
+        # get the fungible faucet balance
+        exec.faucet::get_total_issuance
+        # => [total_issuance]
+
+        # assert the correct balance is returned
+        push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
+        # => []
+    end
+    ",
+    );
+
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
+    let _process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        &mut advice_provider,
+    )
+    .unwrap();
+}
