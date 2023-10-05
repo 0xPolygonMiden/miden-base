@@ -30,7 +30,7 @@ impl AccountVault {
     /// Returns a new account vault initialized with the provided assets.
     pub fn new(assets: &[Asset]) -> Result<Self, AccountError> {
         Ok(Self {
-            asset_tree: TieredSmt::with_leaves(
+            asset_tree: TieredSmt::with_entries(
                 assets.iter().map(|asset| (asset.vault_key().into(), (*asset).into())),
             )
             .map_err(AccountError::DuplicateAsset)?,

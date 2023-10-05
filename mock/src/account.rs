@@ -171,7 +171,7 @@ pub fn mock_fungible_faucet(account_id: u64, assembler: &Assembler) -> Account {
 
 pub fn mock_non_fungible_faucet(assembler: &Assembler) -> Account {
     let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    let nft_tree = TieredSmt::with_leaves(vec![(
+    let nft_tree = TieredSmt::with_entries(vec![(
         Word::from(non_fungible_asset).into(),
         non_fungible_asset.into(),
     )])
