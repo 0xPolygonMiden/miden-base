@@ -69,7 +69,7 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_nonce
-    u32assert.1
+    u32assert
     exec.layout::get_acct_nonce add
     exec.layout::set_acct_nonce
 end
