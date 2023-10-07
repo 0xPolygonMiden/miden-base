@@ -115,12 +115,8 @@ fn test_receive_asset_via_wallet() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let target_account_code = AccountCode::new(
-        target_account_id,
-        target_account_code_ast.clone(),
-        &mut account_assembler,
-    )
-    .unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
 
     let target_account_storage = mock_account_storage();
     let target_account: Account = Account::new(
@@ -241,12 +237,8 @@ fn test_send_asset_via_wallet() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let sender_account_code = AccountCode::new(
-        sender_account_id,
-        sender_account_code_ast.clone(),
-        &mut account_assembler,
-    )
-    .unwrap();
+    let sender_account_code =
+        AccountCode::new(sender_account_code_ast.clone(), &mut account_assembler).unwrap();
 
     let sender_account_storage = mock_account_storage();
     let sender_account: Account = Account::new(

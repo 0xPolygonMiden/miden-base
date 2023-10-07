@@ -102,7 +102,7 @@ impl TransactionComplier {
         account_id: AccountId,
         account_code: ModuleAst,
     ) -> Result<AccountCode, TransactionCompilerError> {
-        let account_code = AccountCode::new(account_id, account_code, &self.assembler)
+        let account_code = AccountCode::new(account_code, &self.assembler)
             .map_err(TransactionCompilerError::LoadAccountFailed)?;
         self.account_procedures.insert(account_id, account_code.procedures().to_vec());
         Ok(account_code)

@@ -108,12 +108,8 @@ fn test_p2id_script() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let target_account_code = AccountCode::new(
-        target_account_id,
-        target_account_code_ast.clone(),
-        &mut account_assembler,
-    )
-    .unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
 
     let target_account_storage = mock_account_storage();
     let target_account: Account = Account::new(
@@ -224,12 +220,9 @@ fn test_p2id_script() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let malicious_account_code = AccountCode::new(
-        malicious_account_id,
-        malicious_account_code_ast.clone(),
-        &mut malicious_account_assembler,
-    )
-    .unwrap();
+    let malicious_account_code =
+        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
+            .unwrap();
 
     let malicious_account_storage = mock_account_storage();
     let malicious_account: Account = Account::new(
@@ -287,12 +280,8 @@ fn test_p2id_script_two_assets() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let target_account_code = AccountCode::new(
-        target_account_id,
-        target_account_code_ast.clone(),
-        &mut account_assembler,
-    )
-    .unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
 
     let target_account_storage = mock_account_storage();
     let target_account: Account = Account::new(
@@ -403,12 +392,9 @@ fn test_p2id_script_two_assets() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let malicious_account_code = AccountCode::new(
-        malicious_account_id,
-        malicious_account_code_ast.clone(),
-        &mut malicious_account_assembler,
-    )
-    .unwrap();
+    let malicious_account_code =
+        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
+            .unwrap();
 
     let malicious_account_storage = mock_account_storage();
     let malicious_account: Account = Account::new(
@@ -462,12 +448,8 @@ fn test_p2idr_script() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let sender_account_code = AccountCode::new(
-        sender_account_id,
-        sender_account_code_ast.clone(),
-        &mut sender_account_assembler,
-    )
-    .unwrap();
+    let sender_account_code =
+        AccountCode::new(sender_account_code_ast.clone(), &mut sender_account_assembler).unwrap();
 
     let sender_account_storage = mock_account_storage();
 
@@ -493,12 +475,8 @@ fn test_p2idr_script() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let target_account_code = AccountCode::new(
-        target_account_id,
-        target_account_code_ast.clone(),
-        &mut target_account_assembler,
-    )
-    .unwrap();
+    let target_account_code =
+        AccountCode::new(target_account_code_ast.clone(), &mut target_account_assembler).unwrap();
 
     let target_account_storage = mock_account_storage();
     let target_account: Account = Account::new(
@@ -521,12 +499,9 @@ fn test_p2idr_script() {
         .with_kernel(SatKernel::kernel())
         .expect("kernel is well formed");
 
-    let malicious_account_code = AccountCode::new(
-        malicious_account_id,
-        malicious_account_code_ast.clone(),
-        &mut malicious_account_assembler,
-    )
-    .unwrap();
+    let malicious_account_code =
+        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
+            .unwrap();
 
     let malicious_account_storage = mock_account_storage();
     let malicious_account: Account = Account::new(

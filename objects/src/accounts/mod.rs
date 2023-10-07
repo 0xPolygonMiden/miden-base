@@ -1,8 +1,7 @@
 use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, Digest, Felt, Hasher,
-    LibraryPath, Module, ModuleAst, StarkField, TieredSmt, ToAdviceInputs, ToString, Vec, Word,
-    ZERO,
+    AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, Digest, Felt, Hasher, ModuleAst,
+    StarkField, TieredSmt, ToAdviceInputs, ToString, Vec, Word, ZERO,
 };
 use crypto::{
     merkle::StoreNode,
