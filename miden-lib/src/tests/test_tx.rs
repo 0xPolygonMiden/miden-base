@@ -8,8 +8,8 @@ use crate::testing::{
     run_tx, run_within_tx_kernel, Felt, MemAdviceProvider, StackInputs, ONE, ZERO,
 };
 use mock::{
-    account::MockAccountType, constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    notes::AssetPreservationStatus, transaction::mock_inputs,
+    constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
 };
 
 #[test]

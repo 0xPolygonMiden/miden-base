@@ -1,10 +1,10 @@
-use crate::{
-    account::DEFAULT_ACCOUNT_CODE,
+use super::{
     block::mock_block_header,
     builders::{
         accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuilder,
         FungibleAssetBuilder, NonFungibleAssetBuilder,
     },
+    constants::DEFAULT_ACCOUNT_CODE,
 };
 use core::fmt;
 use crypto::{

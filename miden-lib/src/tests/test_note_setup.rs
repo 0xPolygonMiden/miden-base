@@ -3,7 +3,9 @@ use crate::testing::{
     AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process, TX_KERNEL_DIR,
 };
 use miden_objects::transaction::PreparedTransaction;
-use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};
+use mock::mock::{
+    account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs,
+};
 
 const NOTE_SETUP_FILE: &str = "note_setup.masm";
 

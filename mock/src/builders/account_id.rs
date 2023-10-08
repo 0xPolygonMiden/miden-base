@@ -1,5 +1,5 @@
-use crate::account::DEFAULT_ACCOUNT_CODE;
 use crate::builders::{str_to_accountcode, AccountBuilderError};
+use crate::constants::DEFAULT_ACCOUNT_CODE;
 use crypto::{
     hash::rpo::RpoDigest as Digest,
     utils::string::{String, ToString},

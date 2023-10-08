@@ -1,6 +1,6 @@
 use crate::{
-    account::DEFAULT_ACCOUNT_CODE,
     builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
+    constants::DEFAULT_ACCOUNT_CODE,
 };
 use crypto::{
     utils::{

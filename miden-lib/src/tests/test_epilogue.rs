@@ -3,7 +3,7 @@ use crate::testing::{
     procedures::created_notes_data_procedure,
     run_within_tx_kernel, Felt, FieldElement, MemAdviceProvider, TX_KERNEL_DIR,
 };
-use mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx};
+use mock::mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 

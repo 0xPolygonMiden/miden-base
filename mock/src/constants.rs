@@ -26,6 +26,16 @@ pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
     0b1010011001011010101101000110111101010110100011011101000110111100u64;
 
+// Default account code
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::wallets::basic->basic_wallet
+    use.miden::eoa::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
+";
+
 pub const CONSUMED_NOTE_1_AMOUNT: u64 = 100;
 pub const CONSUMED_NOTE_2_AMOUNT: u64 = 200;
 pub const CONSUMED_NOTE_3_AMOUNT: u64 = 300;

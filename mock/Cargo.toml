@@ -18,11 +18,11 @@ required-features = ["executable"]
 
 [features]
 serde = ["dep:serde", "crypto/serde"]
-executable = ["serde"]
+executable = ["dep:clap", "serde"]
 
 [dependencies]
 assembly = { workspace = true }
-clap = { version = "4.4" }
+clap = { version = "4.4", features = ["derive"], optional = true }
 crypto = { workspace = true }
 env_logger = { version = "0.10" }
 hex = "0.4"

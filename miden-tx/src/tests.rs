@@ -13,10 +13,8 @@ use miden_objects::{
 };
 use miden_prover::ProvingOptions;
 use mock::{
-    account::MockAccountType,
     constants::{CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0},
-    notes::AssetPreservationStatus,
-    transaction::mock_inputs,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
 use vm_core::Felt;

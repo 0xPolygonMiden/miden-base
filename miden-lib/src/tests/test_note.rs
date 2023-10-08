@@ -1,7 +1,9 @@
 use crate::testing::{
     prepare_transaction, procedures::prepare_word, run_tx, Felt, MemAdviceProvider, Note,
 };
-use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};
+use mock::mock::{
+    account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs,
+};
 
 #[test]
 fn test_get_sender_no_sender() {

@@ -5,15 +5,15 @@ use crate::testing::{
     procedures::prepare_word,
     run_tx, run_within_tx_kernel, AccountId, AccountType, Felt, MemAdviceProvider, Word, ONE, ZERO,
 };
-use mock::transaction::mock_executed_tx;
 use mock::{
-    account::MockAccountType,
     constants::{
         CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
         CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
     },
-    notes::AssetPreservationStatus,
-    transaction::mock_inputs,
+    mock::{
+        account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_executed_tx,
+        transaction::mock_inputs,
+    },
 };
 use vm_core::StackInputs;
 

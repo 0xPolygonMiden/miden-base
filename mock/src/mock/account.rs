@@ -16,16 +16,6 @@ use miden_objects::accounts::{Account, AccountCode, AccountId, AccountStorage, A
 use miden_objects::assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
 use vm_core::{crypto::merkle::MerkleStore, FieldElement};
 
-// Default account code
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::wallets::basic->basic_wallet
-    use.miden::eoa::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
-";
-
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();

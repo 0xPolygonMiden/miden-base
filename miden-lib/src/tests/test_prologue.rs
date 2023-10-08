@@ -12,8 +12,8 @@ use crate::testing::{
     PreparedTransaction, Process, Word, TX_KERNEL_DIR, ZERO,
 };
 use mock::{
-    account::MockAccountType, constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    notes::AssetPreservationStatus, transaction::mock_inputs,
+    constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";

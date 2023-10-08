@@ -8,13 +8,11 @@ use crate::{
 use crypto::StarkField;
 use miden_objects::{accounts::AccountVault, assets::FungibleAsset};
 use mock::{
-    account::MockAccountType,
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
     },
-    notes::AssetPreservationStatus,
-    transaction::mock_inputs,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
 };
 
 #[test]

@@ -15,14 +15,16 @@ use miden_objects::{
 };
 
 use mock::{
-    account::{mock_account_storage, MockAccountType, DEFAULT_ACCOUNT_CODE},
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER,
+        ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
     },
-    notes::AssetPreservationStatus,
-    transaction::mock_inputs_with_existing,
+    mock::{
+        account::{mock_account_storage, MockAccountType},
+        notes::AssetPreservationStatus,
+        transaction::mock_inputs_with_existing,
+    },
 };
 
 use miden_tx::{DataStore, TransactionExecutor};
