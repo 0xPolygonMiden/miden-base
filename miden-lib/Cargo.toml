@@ -25,11 +25,11 @@ vm-core = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", features = ["testing"], default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = ["testing"] }
 miden-stdlib = { workspace = true }
 miden-tx = { package = "miden-tx", path = "../miden-tx", default-features = false }
-vm-processor = { workspace = true, features = ["internals"] }
 mock = { package = "miden-mock", path = "../mock", default-features = false }
+vm-processor = { workspace = true, features = ["internals"] }
 
 [build-dependencies]
 assembly = { workspace = true }

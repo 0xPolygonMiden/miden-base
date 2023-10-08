@@ -4,6 +4,7 @@ use crate::memory::{
 };
 use crypto::{
     merkle::{merkle_tree_delta, MerkleStore, MerkleStoreDelta, NodeIndex},
+    utils::vec,
     Word,
 };
 use miden_objects::{
