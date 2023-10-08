@@ -1,6 +1,6 @@
 use crate::{
-    common::{prepare_transaction, procedures::prepare_word, run_tx, MemAdviceProvider},
     memory::FAUCET_STORAGE_DATA_SLOT,
+    testing::{prepare_transaction, procedures::prepare_word, run_tx, MemAdviceProvider},
 };
 use miden_objects::assets::FungibleAsset;
 use mock::{

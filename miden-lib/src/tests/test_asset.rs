@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     prepare_transaction, procedures::prepare_word, run_tx, Hasher, MemAdviceProvider, Word,
 };
 use mock::{

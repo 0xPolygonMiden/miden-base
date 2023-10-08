@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     prepare_transaction, procedures::prepare_word, run_tx, Felt, MemAdviceProvider, Note,
 };
 use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};

@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     consumed_note_data_ptr,
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,

@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
     procedures::created_notes_data_procedure,
     run_within_tx_kernel, Felt, FieldElement, MemAdviceProvider, TX_KERNEL_DIR,

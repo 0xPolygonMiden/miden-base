@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     consumed_note_data_ptr, memory::CURRENT_CONSUMED_NOTE_PTR, prepare_transaction, run_tx,
     AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process, TX_KERNEL_DIR,
 };

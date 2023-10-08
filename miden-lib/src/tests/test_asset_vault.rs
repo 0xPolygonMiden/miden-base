@@ -1,9 +1,9 @@
 use crate::{
-    common::{
+    memory,
+    testing::{
         prepare_transaction, procedures::prepare_word, run_tx, AccountId, Asset, Felt,
         MemAdviceProvider, NonFungibleAsset, NonFungibleAssetDetails, Word, ONE, ZERO,
     },
-    memory,
 };
 use crypto::StarkField;
 use miden_objects::{accounts::AccountVault, assets::FungibleAsset};

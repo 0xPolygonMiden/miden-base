@@ -1,4 +1,4 @@
-use crate::common::{
+use crate::testing::{
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
     prepare_transaction,
     procedures::created_notes_data_procedure,

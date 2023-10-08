@@ -1,13 +1,13 @@
-use miden_lib::common;
+use miden_lib::testing;
 
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use common::NodeIndex;
 use crypto::{Felt, StarkField, Word, ONE, ZERO};
 use miden_lib::{MidenLib, SatKernel};
 use miden_stdlib::StdLibrary;
+use testing::NodeIndex;
 
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
