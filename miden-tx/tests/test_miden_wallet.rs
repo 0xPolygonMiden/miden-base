@@ -1,20 +1,16 @@
-use miden_lib::testing;
-
 use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use crypto::{Felt, StarkField, Word, ONE, ZERO};
+use crypto::{merkle::NodeIndex, Felt, StarkField, Word, ONE, ZERO};
 use miden_lib::{MidenLib, SatKernel};
-use miden_stdlib::StdLibrary;
-use testing::NodeIndex;
-
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteOrigin, NoteScript},
     BlockHeader, ChainMmr,
 };
+use miden_stdlib::StdLibrary;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,

@@ -8,9 +8,6 @@ use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Ve
 #[cfg(test)]
 mod tests;
 
-#[cfg(any(test, feature = "testing"))]
-pub mod testing;
-
 pub mod assembler;
 pub mod memory;
 pub mod notes;
@@ -108,22 +105,4 @@ impl SatKernel {
         end
         "
     }
-}
-
-// TEST
-// ================================================================================================
-
-#[test]
-fn test_compile() {
-    let path = "miden::sat::internal::layout::get_consumed_note_ptr";
-    let miden = MidenLib::default();
-    let exists = miden.modules().any(|module| {
-        module
-            .ast
-            .procs()
-            .iter()
-            .any(|proc| module.path.append(&proc.name).unwrap().as_str() == path)
-    });
-
-    assert!(exists);
 }

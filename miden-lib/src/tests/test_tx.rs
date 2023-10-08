@@ -1,15 +1,14 @@
-use crate::testing::{
-    memory::{
-        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-        CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
-    },
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx, run_within_tx_kernel, Felt, MemAdviceProvider, StackInputs, ONE, ZERO,
+use super::{Felt, MemAdviceProvider, StackInputs, ONE, ZERO};
+use crate::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction,
+    procedures::prepare_word,
+    run_tx, run_within_tx_kernel,
 };
 
 #[test]
@@ -43,7 +42,7 @@ fn test_create_note() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -114,14 +113,8 @@ fn test_create_note_too_many_notes() {
         asset = prepare_word(&asset)
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        StackInputs::default(),
-        MemAdviceProvider::default(),
-        None,
-        None,
-    );
+    let process =
+        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
 
     // assert the process failed
     assert!(process.is_err());

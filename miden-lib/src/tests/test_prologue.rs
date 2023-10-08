@@ -1,19 +1,18 @@
-use crate::testing::{
-    consumed_note_data_ptr,
-    memory::{
-        ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
-        ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR,
-        BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR,
-        CHAIN_ROOT_PTR, CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
-        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
-    },
-    prepare_transaction, run_tx, AdviceProvider, Felt, FieldElement, MemAdviceProvider,
-    PreparedTransaction, Process, Word, TX_KERNEL_DIR, ZERO,
+use super::{build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, Word, ZERO};
+use crate::memory::{
+    ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
+    ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+    BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+    CONSUMED_NOTE_SECTION_OFFSET, INIT_ACCT_HASH_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR,
+    NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+    TIMESTAMP_IDX,
 };
+use miden_objects::transaction::PreparedTransaction;
 use mock::{
     constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction, run_tx, TX_KERNEL_DIR,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
@@ -29,6 +28,7 @@ fn test_transaction_prologue() {
         end
         ";
 
+    let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
     let transaction = prepare_transaction(
         account,
         None,
@@ -37,8 +37,7 @@ fn test_transaction_prologue() {
         notes,
         &code,
         "",
-        Some(TX_KERNEL_DIR),
-        Some(PROLOGUE_FILE),
+        Some(assembly_file),
     );
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -180,7 +179,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     // The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]
     assert_eq!(
         process.get_memory_value(0, ACCT_ID_AND_NONCE_PTR).unwrap(),
-        [inputs.account().id().into(), Felt::ZERO, Felt::ZERO, inputs.account().nonce()]
+        [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()]
     );
 
     // The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR
@@ -297,7 +296,6 @@ pub fn test_prologue_create_account() {
         code,
         "",
         None,
-        None,
     );
 
     let _process = run_tx(
@@ -338,7 +336,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         code,
         "",
         None,
-        None,
     );
 
     // lets override the seed with an invalid seed to ensure the kernel fails
@@ -367,7 +364,7 @@ fn test_get_blk_version() {
     ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -394,7 +391,7 @@ fn test_get_blk_timestamp() {
     ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),

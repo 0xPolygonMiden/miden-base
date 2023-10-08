@@ -1,11 +1,10 @@
-use crate::{
-    memory,
-    testing::{
-        prepare_transaction, procedures::prepare_word, run_tx, AccountId, Asset, Felt,
-        MemAdviceProvider, NonFungibleAsset, NonFungibleAssetDetails, Word, ONE, ZERO,
-    },
-};
+use super::{Felt, MemAdviceProvider, Word, ONE, ZERO};
+use crate::memory;
 use crypto::StarkField;
+use miden_objects::{
+    accounts::AccountId,
+    assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
+};
 use miden_objects::{accounts::AccountVault, assets::FungibleAsset};
 use mock::{
     constants::{
@@ -13,6 +12,9 @@ use mock::{
         FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction,
+    procedures::prepare_word,
+    run_tx,
 };
 
 #[test]
@@ -35,7 +37,7 @@ fn test_get_balance() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -69,7 +71,7 @@ fn test_get_balance_non_fungible_fails() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -100,8 +102,7 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let inputs =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+    let inputs = prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         inputs.tx_program().clone(),
@@ -139,7 +140,7 @@ fn test_add_fungible_asset_success() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -185,7 +186,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -226,7 +227,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -273,7 +274,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -311,7 +312,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -356,7 +357,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -392,7 +393,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -439,7 +440,7 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -478,7 +479,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),

@@ -14,7 +14,6 @@ rust-version = "1.67"
 [features]
 default = ["std"]
 std = ["assembly/std", "vm-processor/std", "vm-core/std"]
-testing = ["miden-objects/testing"]
 
 [dependencies]
 assembly = { workspace = true }
