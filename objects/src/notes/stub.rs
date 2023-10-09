@@ -1,10 +1,6 @@
 use crate::{
     notes::{Note, NoteEnvelope, NoteMetadata, NoteVault},
-    NoteError,
-};
-use crypto::{
-    hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    StarkField,
+    Digest, Hasher, NoteError, StarkField,
 };
 
 // NOTE STUB

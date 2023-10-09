@@ -17,13 +17,11 @@ path = "src/main.rs"
 required-features = ["executable"]
 
 [features]
-serde = ["dep:serde", "crypto/serde"]
-executable = ["serde"]
+serde = ["dep:serde", "miden-objects/serde"]
+executable = ["dep:clap", "serde"]
 
 [dependencies]
-assembly = { workspace = true }
-clap = { version = "4.4" }
-crypto = { workspace = true }
+clap = { version = "4.4", features = ["derive"], optional = true }
 env_logger = { version = "0.10" }
 hex = "0.4"
 miden-lib = { path = "../miden-lib" }
@@ -33,4 +31,4 @@ postcard = { version = "1.0", features = [ "alloc" ] }
 rand = { version = "0.8" }
 rand_pcg = { version = "0.3", features = ["serde1"] }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
-vm-core = { workspace = true }
+vm-processor = { workspace = true }

@@ -1,9 +1,10 @@
 use super::{
     accounts::{Account, AccountId},
     notes::{Note, NoteEnvelope},
+    utils::collections::Vec,
     AdviceInputs, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher,
-    PreparedTransactionError, StarkField, ToAdviceInputs, TransactionWitnessError, Vec, Word,
-    WORD_SIZE, ZERO,
+    PreparedTransactionError, StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE,
+    ZERO,
 };
 use vm_core::{Program, StackInputs, StackOutputs};
 

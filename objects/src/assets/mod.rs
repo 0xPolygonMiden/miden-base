@@ -1,6 +1,7 @@
 use super::{
     accounts::{AccountId, AccountType},
-    AssetError, Felt, Hasher, StarkField, ToString, Vec, Word, ZERO,
+    utils::{collections::Vec, string::ToString},
+    AssetError, Felt, Hasher, StarkField, Word, ZERO,
 };
 
 mod fungible;

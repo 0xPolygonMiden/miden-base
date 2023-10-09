@@ -1,5 +1,4 @@
-use crate::notes::AssetPreservationStatus;
-use crate::{
+use super::{
     account::{
         mock_account, mock_fungible_faucet, mock_new_account, mock_non_fungible_faucet,
         MockAccountType,
@@ -7,13 +6,13 @@ use crate::{
     block::mock_block_header,
     chain::mock_chain_data,
     notes::mock_notes,
+    notes::AssetPreservationStatus,
 };
-use crypto::{utils::collections::Vec, Felt};
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::Account, notes::Note, transaction::ExecutedTransaction, BlockHeader, ChainMmr,
+    accounts::Account, notes::Note, transaction::ExecutedTransaction, utils::collections::Vec,
+    BlockHeader, ChainMmr, Felt, FieldElement,
 };
-use vm_core::FieldElement;
 
 pub fn mock_inputs(
     account_type: MockAccountType,

@@ -1,4 +1,6 @@
-use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO};
+use super::{
+    utils::collections::Vec, AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, ZERO,
+};
 
 mod header;
 pub use header::BlockHeader;

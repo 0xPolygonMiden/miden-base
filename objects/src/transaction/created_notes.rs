@@ -1,10 +1,9 @@
-use crate::notes::{Note, NoteEnvelope, NoteStub};
-use core::iter::FromIterator;
-use crypto::{
-    hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
+use crate::{
+    notes::{Note, NoteEnvelope, NoteStub},
     utils::collections::Vec,
-    Felt, Word,
+    Digest, Felt, Hasher, Word,
 };
+use core::iter::FromIterator;
 
 // CREATED NOTES
 // ================================================================================================

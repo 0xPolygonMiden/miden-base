@@ -1,7 +1,11 @@
-use crate::common::{
-    prepare_transaction, procedures::prepare_word, run_tx, Felt, MemAdviceProvider, Note,
+use super::{Felt, MemAdviceProvider};
+use miden_objects::notes::Note;
+use mock::{
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction,
+    procedures::prepare_word,
+    run_tx,
 };
-use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};
 
 #[test]
 fn test_get_sender_no_sender() {
@@ -21,7 +25,7 @@ fn test_get_sender_no_sender() {
         ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -51,7 +55,7 @@ fn test_get_sender() {
         ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -107,7 +111,7 @@ fn test_get_vault_data() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     // run to ensure success
     let _process = run_tx(
@@ -216,17 +220,8 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1]),
     );
 
-    let inputs = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes.clone(),
-        &code,
-        "",
-        None,
-        None,
-    );
+    let inputs =
+        prepare_transaction(account, None, block_header, chain, notes.clone(), &code, "", None);
 
     let _process = run_tx(
         inputs.tx_program().clone(),

@@ -13,12 +13,10 @@ rust-version = "1.67"
 
 [features]
 default = ["std"]
-std = ["assembly/std", "vm-processor/std", "vm-core/std"]
-testing = ["miden-objects/testing"]
+std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "vm-core/std"]
 
 [dependencies]
 assembly = { workspace = true }
-crypto = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-stdlib = { workspace = true }
 vm-core = { workspace = true }

@@ -1,9 +1,9 @@
 use super::{
-    AccountCode, AccountId, Assembler, AssemblyContext, BTreeMap, CodeBlock, Digest, MidenLib,
-    ModuleAst, Note, NoteScript, Operation, Program, ProgramAst, SatKernel, StdLibrary,
-    TransactionCompilerError,
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, Note, NoteScript, Operation, Program,
+    SatKernel, TransactionCompilerError,
 };
-use vm_core::ProgramInfo;
+use miden_objects::assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst};
+use vm_processor::ProgramInfo;
 
 #[cfg(test)]
 mod tests;
@@ -34,13 +34,7 @@ impl TransactionComplier {
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of the [TransactionComplier].
     pub fn new() -> TransactionComplier {
-        let assembler = Assembler::default()
-            .with_library(&MidenLib::default())
-            .expect("library is well formed")
-            .with_library(&StdLibrary::default())
-            .expect("library is well formed")
-            .with_kernel(SatKernel::kernel())
-            .expect("kernel is well formed");
+        let assembler = miden_lib::assembler::assembler();
 
         // compile prologue
         let prologue_ast =

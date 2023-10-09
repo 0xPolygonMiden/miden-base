@@ -1,13 +1,14 @@
 use super::{
     AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
-    PreparedTransaction, ProgramAst, RecAdviceProvider, TransactionComplier,
-    TransactionExecutorError, TransactionResult,
+    PreparedTransaction, RecAdviceProvider, TransactionComplier, TransactionExecutorError,
+    TransactionResult,
 };
 use crate::TryFromVmResult;
-use crypto::merkle::MerkleTreeDelta;
 use miden_lib::transaction::extract_account_storage_delta;
 use miden_objects::{
     accounts::{Account, AccountDelta},
+    assembly::ProgramAst,
+    crypto::merkle::MerkleTreeDelta,
     transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub},
     TransactionResultError,
 };

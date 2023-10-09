@@ -1,13 +1,13 @@
 use super::{AccountId, ModuleAst, Note, NoteTarget, Operation, ProgramAst, TransactionComplier};
-use assembly::AssemblyContext;
-use crypto::{Felt, FieldElement, Word};
-use miden_objects::assets::{Asset, FungibleAsset};
-use vm_core::code_blocks::CodeBlock;
+use miden_objects::{
+    accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    assembly::{AssemblyContext, CodeBlock},
+    assets::{Asset, FungibleAsset},
+    Felt, FieldElement, Word,
+};
 
 // CONSTANTS
 // ================================================================================================
-
-const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
 
 // Mast roots of account procedures:
 const ACCT_PROC_1: &'static str =

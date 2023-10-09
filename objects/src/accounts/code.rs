@@ -1,5 +1,5 @@
 use super::{AccountError, Assembler, AssemblyContext, Digest, ModuleAst, Vec};
-use crypto::merkle::SimpleSmt;
+use crate::crypto::merkle::SimpleSmt;
 
 // CONSTANTS
 // ================================================================================================

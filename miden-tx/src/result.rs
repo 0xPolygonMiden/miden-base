@@ -1,16 +1,12 @@
-use crypto::{
-    hash::rpo::RpoDigest as Digest,
-    merkle::MerkleStore,
-    utils::collections::{BTreeMap, Vec},
-    Felt, Word, WORD_SIZE,
-};
 use miden_lib::{
     memory::NOTE_MEM_SIZE, notes::notes_try_from_elements, transaction::parse_final_account_stub,
 };
 use miden_objects::{
+    crypto::merkle::MerkleStore,
     notes::NoteStub,
     transaction::{CreatedNotes, FinalAccountStub},
-    TransactionResultError,
+    utils::collections::{BTreeMap, Vec},
+    Digest, Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::utils::group_slice_elements;
 use vm_processor::StackOutputs;

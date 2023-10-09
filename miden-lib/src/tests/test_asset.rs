@@ -1,14 +1,13 @@
-use crate::common::{
-    prepare_transaction, procedures::prepare_word, run_tx, Hasher, MemAdviceProvider, Word,
-};
+use super::{Hasher, MemAdviceProvider, Word};
 use mock::{
-    account::MockAccountType,
     constants::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
     },
-    notes::AssetPreservationStatus,
-    transaction::mock_inputs,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction,
+    procedures::prepare_word,
+    run_tx,
 };
 
 #[test]
@@ -41,7 +40,7 @@ fn test_create_fungible_asset_succeeds() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
     let _process = run_tx(
@@ -80,7 +79,7 @@ fn test_create_non_fungible_asset_succeeds() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None, None);
+        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
 
     let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
     let _process = run_tx(

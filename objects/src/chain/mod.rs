@@ -1,4 +1,4 @@
-use super::{AdviceInputsBuilder, Felt, Mmr, ToAdviceInputs, ZERO};
+use super::{crypto::merkle::Mmr, AdviceInputsBuilder, Felt, ToAdviceInputs, ZERO};
 
 // TODO: Consider using a PartialMmr that only contains the Mmr nodes that are relevant to the
 // transaction being processed.
@@ -8,9 +8,9 @@ use super::{AdviceInputsBuilder, Felt, Mmr, ToAdviceInputs, ZERO};
 /// We use a custom type here as the traits we implement on this type could be context specific.
 ///
 /// The Mmr allows for efficient authentication of consumed notes during transaction execution.
-/// Authenticaiton is achieved by providing an inclusion proof for the consumed notes in the
+/// Authentication is achieved by providing an inclusion proof for the consumed notes in the
 /// transaction against the chain Mmr root associated with the latest block known at the time
-/// of transaction exectuion.
+/// of transaction execution.
 #[derive(Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ChainMmr(Mmr);

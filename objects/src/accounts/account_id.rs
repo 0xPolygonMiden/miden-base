@@ -1,8 +1,8 @@
 use super::{
-    get_account_seed, Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word,
+    get_account_seed, Account, AccountError, Digest, Felt, FieldElement, Hasher, StarkField,
+    ToString, Vec, Word,
 };
 use core::fmt;
-use crypto::FieldElement;
 
 // ACCOUNT ID
 // ================================================================================================
@@ -288,4 +288,46 @@ pub fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Di
 /// Given a [Digest] returns its proof-of-work.
 pub fn digest_pow(digest: Digest) -> u32 {
     digest.as_elements()[3].as_int().trailing_zeros()
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        super::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
+        AccountId, AccountType,
+    };
+
+    #[test]
+    fn test_account_tag_identifiers() {
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
+            .expect("Valid account ID");
+        assert!(account_id.is_regular_account());
+        assert_eq!(account_id.account_type(), AccountType::RegularAccountImmutableCode);
+        assert!(account_id.is_on_chain());
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert!(account_id.is_regular_account());
+        assert_eq!(account_id.account_type(), AccountType::RegularAccountUpdatableCode);
+        assert!(!account_id.is_on_chain());
+
+        let account_id =
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
+        assert!(account_id.is_faucet());
+        assert_eq!(account_id.account_type(), AccountType::FungibleFaucet);
+        assert!(account_id.is_on_chain());
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert!(account_id.is_faucet());
+        assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
+        assert!(!account_id.is_on_chain());
+    }
 }

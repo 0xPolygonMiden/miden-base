@@ -1,6 +1,5 @@
 use core::fmt::Display;
-use crypto::merkle::MerkleError;
-use miden_objects::AccountError;
+use miden_objects::{crypto::merkle::MerkleError, AccountError};
 
 #[derive(Debug)]
 pub enum AccountBuilderError {

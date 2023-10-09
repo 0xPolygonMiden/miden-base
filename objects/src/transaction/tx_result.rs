@@ -1,9 +1,8 @@
 use crate::{
     accounts::{Account, AccountDelta, AccountId},
     transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub, TransactionWitness},
-    TransactionResultError,
+    Digest, TransactionResultError,
 };
-use crypto::hash::rpo::RpoDigest as Digest;
 use vm_processor::{AdviceInputs, Program};
 
 /// [TransactionResult] represents the result of the execution of the transaction kernel.

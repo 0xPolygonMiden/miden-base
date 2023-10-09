@@ -162,12 +162,11 @@ pub fn get_account_seed(
 #[cfg(feature = "log")]
 mod log {
     use super::{
-        super::{digest_pow, Digest, Word},
+        super::{digest_pow, Digest, FieldElement, Word},
         AccountId, AccountType,
     };
+    use crate::utils::string::String;
     use assembly::utils::to_hex;
-    use crypto::utils::string::String;
-    use crypto::FieldElement;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.
     pub struct Log {

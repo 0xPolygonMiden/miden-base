@@ -1,17 +1,14 @@
-use assembly::ast::ProgramAst;
-use crypto::{
+use miden_lib::assembler::assembler;
+use miden_objects::{
+    accounts::AccountId,
+    assembly::ProgramAst,
+    assets::Asset,
+    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
     utils::{
         collections::Vec,
         string::{String, ToString},
     },
-    Felt, Word,
-};
-use miden_lib::assembler::assembler;
-use miden_objects::{
-    accounts::AccountId,
-    assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
-    NoteError,
+    Felt, NoteError, Word,
 };
 use rand::Rng;
 

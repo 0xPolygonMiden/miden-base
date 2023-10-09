@@ -61,7 +61,7 @@ impl NoteInputs {
 
 #[test]
 fn test_input_ordering() {
-    use crate::Vec;
+    use super::Vec;
 
     // inputs are provided in reverse stack order
     let inputs = Vec::from([Felt::new(1), Felt::new(2), Felt::new(3)]);

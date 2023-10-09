@@ -1,9 +1,13 @@
-use crate::common::{
-    consumed_note_data_ptr, memory::CURRENT_CONSUMED_NOTE_PTR, prepare_transaction, run_tx,
-    AdviceProvider, Felt, FieldElement, MemAdviceProvider, Process, TX_KERNEL_DIR,
+use super::{
+    build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, TX_KERNEL_DIR, ZERO,
 };
+use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::transaction::PreparedTransaction;
-use mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs};
+use mock::{
+    consumed_note_data_ptr,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction, run_tx,
+};
 
 const NOTE_SETUP_FILE: &str = "note_setup.masm";
 
@@ -20,6 +24,7 @@ fn test_note_setup() {
         end
         ";
 
+    let assembly_file = build_module_path(TX_KERNEL_DIR, NOTE_SETUP_FILE);
     let inputs = prepare_transaction(
         account,
         None,
@@ -28,8 +33,7 @@ fn test_note_setup() {
         notes,
         &code,
         imports,
-        Some(TX_KERNEL_DIR),
-        Some(NOTE_SETUP_FILE),
+        Some(assembly_file),
     );
 
     let process = run_tx(
@@ -46,7 +50,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
     process: &Process<A>,
     inputs: &PreparedTransaction,
 ) {
-    let mut note_inputs = [Felt::ZERO; 16];
+    let mut note_inputs = [ZERO; 16];
     note_inputs.copy_from_slice(inputs.consumed_notes().notes()[0].inputs().inputs());
     note_inputs.reverse();
 

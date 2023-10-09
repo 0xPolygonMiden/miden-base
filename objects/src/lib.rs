@@ -4,20 +4,6 @@
 #[macro_use]
 extern crate alloc;
 
-use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext,
-};
-use crypto::{
-    hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest},
-    merkle::{MerkleError, Mmr, TieredSmt},
-    utils::{
-        collections::Vec,
-        string::{String, ToString},
-    },
-    Felt, StarkField, Word, WORD_SIZE, ZERO,
-};
-use vm_core::code_blocks::CodeBlock;
 use vm_processor::AdviceInputs;
 
 pub mod accounts;
@@ -34,10 +20,34 @@ pub use block::BlockHeader;
 pub mod chain;
 pub use chain::ChainMmr;
 
+pub mod transaction;
+
 mod errors;
 pub use errors::{
     AccountError, AssetError, ExecutedTransactionError, NoteError, PreparedTransactionError,
     TransactionResultError, TransactionWitnessError,
 };
 
-pub mod transaction;
+// RE-EXPORTS
+// ================================================================================================
+
+pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
+pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
+
+pub mod assembly {
+    pub use assembly::{
+        ast::{ModuleAst, ProgramAst},
+        Assembler, AssemblyContext, AssemblyError,
+    };
+    pub use vm_core::code_blocks::CodeBlock;
+}
+
+pub mod crypto {
+    pub use miden_crypto::merkle;
+    pub use miden_crypto::utils;
+}
+
+pub mod utils {
+    pub use miden_crypto::utils::vec;
+    pub use vm_core::utils::{collections, string};
+}

@@ -1,5 +1,5 @@
 use super::{AccountError, AccountStorageDelta, Digest, TryApplyDiff, Vec, Word};
-use crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt, StoreNode};
+use crate::crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt, StoreNode};
 
 // TYPE ALIASES
 // ================================================================================================

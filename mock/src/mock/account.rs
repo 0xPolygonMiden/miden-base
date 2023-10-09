@@ -5,26 +5,15 @@ use crate::constants::{
     CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
     FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
-use assembly::{ast::ModuleAst, Assembler};
-use crypto::{
-    merkle::{SimpleSmt, TieredSmt},
-    utils::collections::Vec,
-    Felt, Word, ZERO,
-};
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
-use miden_objects::accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault};
-use miden_objects::assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
-use vm_core::{crypto::merkle::MerkleStore, FieldElement};
-
-// Default account code
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::wallets::basic->basic_wallet
-    use.miden::eoa::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
-";
+use miden_objects::{
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
+    assembly::{Assembler, ModuleAst},
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    crypto::merkle::{MerkleStore, SimpleSmt, TieredSmt},
+    utils::collections::Vec,
+    Felt, FieldElement, Word, ZERO,
+};
 
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset

@@ -1,7 +1,9 @@
 use super::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    Digest, MerkleError, String, Word,
+    crypto::merkle::MerkleError,
+    utils::string::String,
+    Digest, Word,
 };
 use assembly::AssemblyError;
 use core::fmt;

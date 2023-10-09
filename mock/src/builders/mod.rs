@@ -1,6 +1,5 @@
-use assembly::ast::ModuleAst;
 use miden_lib::assembler::assembler;
-use miden_objects::{accounts::AccountCode, AccountError};
+use miden_objects::{accounts::AccountCode, assembly::ModuleAst, AccountError};
 
 mod account;
 mod account_id;
