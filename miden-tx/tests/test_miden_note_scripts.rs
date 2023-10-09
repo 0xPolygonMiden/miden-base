@@ -1,7 +1,6 @@
-use crate::{MidenLib, SatKernel};
-use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler,
+use miden_lib::{
+    assembler,
+    notes::{create_note_with_script, Script},
 };
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
@@ -25,142 +24,43 @@ use mock::{
     },
 };
 
-use miden_tx::{DataStore, TransactionExecutor};
+use miden_tx::TransactionExecutor;
 
-#[derive(Clone)]
-pub struct MockDataStore {
-    pub account: Account,
-    pub block_header: BlockHeader,
-    pub block_chain: ChainMmr,
-    pub notes: Vec<Note>,
-}
-
-impl MockDataStore {
-    pub fn with_existing(account: Option<Account>, consumed_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, consumed_notes) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            consumed_notes,
-        );
-        Self {
-            account,
-            block_header,
-            block_chain,
-            notes: consumed_notes,
-        }
-    }
-}
-
-impl DataStore for MockDataStore {
-    fn get_transaction_data(
-        &self,
-        account_id: AccountId,
-        block_num: u32,
-        notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<Note>), miden_tx::DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num as u64, self.block_header.block_num().as_int());
-        assert_eq!(notes.len(), self.notes.len());
-        let origins = self
-            .notes
-            .iter()
-            .map(|note| note.proof().as_ref().unwrap().origin())
-            .collect::<Vec<_>>();
-        notes.iter().all(|note| origins.contains(&note));
-        Ok((
-            self.account.clone(),
-            self.block_header.clone(),
-            self.block_chain.clone(),
-            self.notes.clone(),
-        ))
-    }
-
-    fn get_account_code(
-        &self,
-        account_id: AccountId,
-    ) -> Result<ModuleAst, miden_tx::DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        Ok(self.account.code().module().clone())
-    }
-}
+mod common;
+use common::MockDataStore;
 
 // We test the Pay to ID script. So we create a note that can
 // only be consumed by the target account.
 #[test]
 fn test_p2id_script() {
     // Create assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
 
     // Create sender and target account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let target_account_code_ast = ModuleAst::parse(target_account_code_src).unwrap();
-    let mut account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let target_account_code =
-        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let target_account_storage = mock_account_storage();
-    let target_account: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        target_account_storage.clone(),
-        target_account_code.clone(),
-        Felt::new(1),
-    );
+    let target_account = get_account_with_default_account_code(target_account_id, None);
 
     // Create the note
-    let note_script_ast = ProgramAst::parse(
-        format!(
-            "
-        use.miden::note_scripts::basic
-    
-        begin
-            exec.basic::p2id
-        end
-        "
-        )
-        .as_str(),
-    )
-    .unwrap();
-
-    let mut note_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let (note_script, _) = NoteScript::new(note_script_ast, &mut note_assembler).unwrap();
-
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-
-    let note = Note::new(
-        note_script.clone(),
-        &[target_account_id.into()],
-        &vec![fungible_asset_1],
-        SERIAL_NUM,
+    let p2id_script = Script::P2ID {
+        target: target_account_id,
+    };
+    let note = create_note_with_script(
+        p2id_script,
+        vec![fungible_asset],
         sender_account_id,
-        ONE,
         None,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account), Some(vec![note.clone()]));
+    let data_store =
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -191,15 +91,12 @@ fn test_p2id_script() {
         .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
-    // nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
-
     // vault delta
     let target_account_after: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![fungible_asset_1]).unwrap(),
-        target_account_storage,
-        target_account_code,
+        target_account.id(),
+        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        target_account.storage().clone(),
+        target_account.code().clone(),
         Felt::new(2),
     );
     assert!(transaction_result.final_account_hash() == target_account_after.hash());
@@ -210,28 +107,8 @@ fn test_p2id_script() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let malicious_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let malicious_account_code_ast = ModuleAst::parse(malicious_account_code_src).unwrap();
-    let mut malicious_account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
 
-    let malicious_account_code =
-        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
-            .unwrap();
-
-    let malicious_account_storage = mock_account_storage();
-    let malicious_account: Account = Account::new(
-        malicious_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        malicious_account_storage.clone(),
-        malicious_account_code.clone(),
-        Felt::new(1),
-    );
+    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
@@ -257,82 +134,38 @@ fn test_p2id_script() {
 // We test the Pay to script with 2 assets to test the loop inside the script.
 // So we create a note containing two assets that can only be consumed by the target account.
 #[test]
-fn test_p2id_script_two_assets() {
+fn test_p2id_script_multiple_assets() {
     // Create assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();
 
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-    let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 100).unwrap().into();
+    let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 456).unwrap().into();
 
     // Create sender and target account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let target_account_code_ast = ModuleAst::parse(target_account_code_src).unwrap();
-    let mut account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let target_account_code =
-        AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let target_account_storage = mock_account_storage();
-    let target_account: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        target_account_storage.clone(),
-        target_account_code.clone(),
-        Felt::new(1),
-    );
+    let target_account = get_account_with_default_account_code(target_account_id, None);
 
     // Create the note
-    let note_script_ast = ProgramAst::parse(
-        format!(
-            "
-        use.miden::note_scripts::basic
-    
-        begin
-            exec.basic::p2id
-        end
-        "
-        )
-        .as_str(),
-    )
-    .unwrap();
-
-    let mut note_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let (note_script, _) = NoteScript::new(note_script_ast, &mut note_assembler).unwrap();
-
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-
-    let note = Note::new(
-        note_script.clone(),
-        &[target_account_id.into()],
-        &vec![fungible_asset_1, fungible_asset_2],
-        SERIAL_NUM,
+    let p2id_script = Script::P2ID {
+        target: target_account_id,
+    };
+    let note = create_note_with_script(
+        p2id_script,
+        vec![fungible_asset_1, fungible_asset_2],
         sender_account_id,
-        ONE,
         None,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account), Some(vec![note.clone()]));
+    let data_store =
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -363,15 +196,12 @@ fn test_p2id_script_two_assets() {
         .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
-    // Nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
-
-    // Vault delta
+    // vault delta
     let target_account_after: Account = Account::new(
-        target_account_id,
+        target_account.id(),
         AccountVault::new(&vec![fungible_asset_1, fungible_asset_2]).unwrap(),
-        target_account_storage,
-        target_account_code,
+        target_account.storage().clone(),
+        target_account.code().clone(),
         Felt::new(2),
     );
     assert!(transaction_result.final_account_hash() == target_account_after.hash());
@@ -382,28 +212,8 @@ fn test_p2id_script_two_assets() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let malicious_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let malicious_account_code_ast = ModuleAst::parse(malicious_account_code_src).unwrap();
-    let mut malicious_account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
 
-    let malicious_account_code =
-        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
-            .unwrap();
-
-    let malicious_account_storage = mock_account_storage();
-    let malicious_account: Account = Account::new(
-        malicious_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        malicious_account_storage.clone(),
-        malicious_account_code.clone(),
-        Felt::new(1),
-    );
+    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
@@ -422,7 +232,7 @@ fn test_p2id_script_two_assets() {
     let transaction_result_2 =
         executor_2.execute_transaction(malicious_account_id, block_ref, &note_origins, None);
 
-    // check that we got the expected result - TransactionExecutorError
+    // Check that we got the expected result - TransactionExecutorError
     assert!(transaction_result_2.is_err());
 }
 
@@ -433,137 +243,59 @@ fn test_p2id_script_two_assets() {
 #[test]
 fn test_p2idr_script() {
     // Create assets
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
+    let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
 
     // Create sender and target and malicious account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let sender_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let sender_account_code_ast = ModuleAst::parse(sender_account_code_src).unwrap();
-    let mut sender_account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let sender_account_code =
-        AccountCode::new(sender_account_code_ast.clone(), &mut sender_account_assembler).unwrap();
-
-    let sender_account_storage = mock_account_storage();
-
-    // Sender account has an empty vault; this is because we only test note consumption, not creation.
-    let sender_account: Account = Account::new(
-        sender_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        sender_account_storage.clone(),
-        sender_account_code.clone(),
-        Felt::new(1),
-    );
+    let sender_account = get_account_with_default_account_code(sender_account_id, None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let target_account_code_ast = ModuleAst::parse(target_account_code_src).unwrap();
-    let mut target_account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let target_account_code =
-        AccountCode::new(target_account_code_ast.clone(), &mut target_account_assembler).unwrap();
-
-    let target_account_storage = mock_account_storage();
-    let target_account: Account = Account::new(
-        target_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        target_account_storage.clone(),
-        target_account_code.clone(),
-        Felt::new(1),
-    );
+    let target_account = get_account_with_default_account_code(target_account_id, None);
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let malicious_account_code_src = DEFAULT_ACCOUNT_CODE;
-    let malicious_account_code_ast = ModuleAst::parse(malicious_account_code_src).unwrap();
-    let mut malicious_account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
-
-    let malicious_account_code =
-        AccountCode::new(malicious_account_code_ast.clone(), &mut malicious_account_assembler)
-            .unwrap();
-
-    let malicious_account_storage = mock_account_storage();
-    let malicious_account: Account = Account::new(
-        malicious_account_id,
-        AccountVault::new(&vec![]).unwrap(),
-        malicious_account_storage.clone(),
-        malicious_account_code.clone(),
-        Felt::new(1),
-    );
+    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
 
     // --------------------------------------------------------------------------------------------
     // Create notes
     // Create the reclaim block height (Note: Current block height is 4)
-    let reclaim_block_height_in_time = Felt::new(5);
-    let reclaim_block_height_too_late = Felt::new(3);
+    let reclaim_block_height_in_time = 5 as u32;
+    let reclaim_block_height_reclaimable = 3 as u32;
 
-    // Create the note with the P2IDR script
-    let note_program_ast = ProgramAst::parse(
-        format!(
-            "
-                use.miden::note_scripts::basic
-    
-                begin
-                    exec.basic::p2idr
-                end
-                ",
-        )
-        .as_str(),
+    // Create the notes with the P2IDR script
+    let p2idr_script_in_time = Script::P2IDR {
+        target: target_account_id,
+        recall_height: reclaim_block_height_in_time,
+    };
+    let note_in_time = create_note_with_script(
+        p2idr_script_in_time,
+        vec![fungible_asset],
+        sender_account_id,
+        None,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
-    let (note_script, _) =
-        NoteScript::new(note_program_ast, &mut sender_account_assembler).unwrap();
-
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-
-    let note_in_time = Note::new(
-        note_script.clone(),
-        &[target_account_id.into(), reclaim_block_height_in_time],
-        &vec![fungible_asset_1],
-        SERIAL_NUM,
+    let p2idr_script_reclaimable = Script::P2IDR {
+        target: target_account_id,
+        recall_height: reclaim_block_height_reclaimable,
+    };
+    let note_reclaimable = create_note_with_script(
+        p2idr_script_reclaimable,
+        vec![fungible_asset],
         sender_account_id,
-        ONE,
         None,
-    )
-    .unwrap();
-
-    let note_too_late = Note::new(
-        note_script.clone(),
-        &[target_account_id.into(), reclaim_block_height_too_late],
-        &vec![fungible_asset_1],
-        SERIAL_NUM,
-        sender_account_id,
-        ONE,
-        None,
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
     )
     .unwrap();
 
     // --------------------------------------------------------------------------------------------
     // We have two cases:
     //  Case "in time": block height is 4, reclaim block height is 5. Only the target account can consume the note.
-    //  Case "too late": block height is 4, reclaim block height is 3. Target and sender account can consume the note.
+    //  Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account can consume the note.
     //  The malicious account should never be able to consume the note.
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
@@ -603,15 +335,11 @@ fn test_p2idr_script() {
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
-    // Nonce delta
-    assert!(transaction_result_1.account_delta().nonce == Some(Felt::new(2)));
-
-    // Vault delta
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&vec![fungible_asset_1]).unwrap(),
-        target_account_storage.clone(),
-        target_account_code.clone(),
+        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        target_account.storage().clone(),
+        target_account.code().clone(),
         Felt::new(2),
     );
     assert!(transaction_result_1.final_account_hash() == target_account_after.hash());
@@ -674,11 +402,11 @@ fn test_p2idr_script() {
     // Third transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_3.is_err());
 
-    // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Target Account Success)
+    // CONSTRUCT AND EXECUTE TX (Case "reclaimable" - Execution Target Account Success)
     // --------------------------------------------------------------------------------------------
     let data_store_4 = MockDataStore::with_existing(
         Some(target_account.clone()),
-        Some(vec![note_too_late.clone()]),
+        Some(vec![note_reclaimable.clone()]),
     );
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
 
@@ -709,9 +437,9 @@ fn test_p2idr_script() {
     // Vault delta
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&vec![fungible_asset_1]).unwrap(),
-        target_account_storage,
-        target_account_code,
+        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        target_account.storage().clone(),
+        target_account.code().clone(),
         Felt::new(2),
     );
     assert!(transaction_result_4.final_account_hash() == target_account_after.hash());
@@ -720,7 +448,7 @@ fn test_p2idr_script() {
     // --------------------------------------------------------------------------------------------
     let data_store_5 = MockDataStore::with_existing(
         Some(sender_account.clone()),
-        Some(vec![note_too_late.clone()]),
+        Some(vec![note_reclaimable.clone()]),
     );
     let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
 
@@ -745,9 +473,9 @@ fn test_p2idr_script() {
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
         sender_account_id,
-        AccountVault::new(&vec![fungible_asset_1]).unwrap(),
-        sender_account_storage,
-        sender_account_code,
+        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        sender_account.storage().clone(),
+        sender_account.code().clone(),
         Felt::new(2),
     );
     assert!(transaction_result_5.final_account_hash() == sender_account_after.hash());
@@ -756,7 +484,7 @@ fn test_p2idr_script() {
     // --------------------------------------------------------------------------------------------
     let data_store_6 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
-        Some(vec![note_too_late.clone()]),
+        Some(vec![note_reclaimable.clone()]),
     );
     let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
 
@@ -780,4 +508,20 @@ fn test_p2idr_script() {
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
     // Sixth transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_6.is_err())
+}
+
+fn get_account_with_default_account_code(account_id: AccountId, assets: Option<Asset>) -> Account {
+    let account_code_src = DEFAULT_ACCOUNT_CODE;
+    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
+    let mut account_assembler = assembler();
+
+    let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
+
+    let account_storage = mock_account_storage();
+    let account_vault = match assets {
+        Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
+        None => AccountVault::new(&vec![]).unwrap(),
+    };
+
+    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
