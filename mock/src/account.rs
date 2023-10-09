@@ -62,7 +62,7 @@ pub fn mock_account_storage() -> AccountStorage {
     .unwrap()
 }
 
-fn mock_account_code(account_id: &AccountId, assembler: &Assembler) -> AccountCode {
+fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
             use.miden::sat::tx
@@ -113,14 +113,12 @@ fn mock_account_code(account_id: &AccountId, assembler: &Assembler) -> AccountCo
             end
             ";
     let account_module_ast = ModuleAst::parse(account_code).unwrap();
-    AccountCode::new(*account_id, account_module_ast, assembler).unwrap()
+    AccountCode::new(account_module_ast, assembler).unwrap()
 }
 
 pub fn mock_new_account(assembler: &Assembler) -> Account {
     let account_storage = mock_account_storage();
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account_code = mock_account_code(&account_id, assembler);
+    let account_code = mock_account_code(assembler);
     let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
         .iter()
         .map(|x| Felt::new(*x))
@@ -133,17 +131,13 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
 }
 
 pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assembler) -> Account {
-    // Create account id
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-
     // mock account storage
     let account_storage = mock_account_storage();
 
     // mock account code
     let account_code = match code {
         Some(code) => code,
-        None => mock_account_code(&account_id, assembler),
+        None => mock_account_code(assembler),
     };
 
     // Create account vault
@@ -165,7 +159,7 @@ pub fn mock_fungible_faucet(account_id: u64, assembler: &Assembler) -> Account {
     )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
-    let account_code = mock_account_code(&account_id, assembler);
+    let account_code = mock_account_code(assembler);
     Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
 }
 
@@ -183,7 +177,7 @@ pub fn mock_non_fungible_faucet(assembler: &Assembler) -> Account {
     )
     .unwrap();
     let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let account_code = mock_account_code(&account_id, assembler);
+    let account_code = mock_account_code(assembler);
     Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
 }
 

@@ -1,7 +1,4 @@
-use super::{
-    AccountError, AccountId, Assembler, AssemblyContext, Digest, LibraryPath, Module, ModuleAst,
-    Vec,
-};
+use super::{AccountError, Assembler, AssemblyContext, Digest, ModuleAst, Vec};
 use crypto::merkle::SimpleSmt;
 
 // CONSTANTS
@@ -43,23 +40,10 @@ impl AccountCode {
     /// Returns an error if:
     /// - Compilation of the provided module fails.
     /// - The number of procedures exported from the provided module is greater than 256.
-    pub fn new(
-        account_id: AccountId,
-        account_module: ModuleAst,
-        assembler: &Assembler,
-    ) -> Result<Self, AccountError> {
-        // create a module with an account-specific path
-        // TODO: this should be eliminated as it results in a circular logic: we need an account ID
-        // to compile code, but we also need code root to build an account ID.
-        let module = Module::new(
-            LibraryPath::new(format!("{}_{}", Self::ACCOUNT_CODE_NAMESPACE_BASE, account_id))
-                .expect("valid path"),
-            account_module,
-        );
-
+    pub fn new(account_module: ModuleAst, assembler: &Assembler) -> Result<Self, AccountError> {
         // compile the module and make sure the number of exported procedures is within the limit
         let mut procedure_digests = assembler
-            .compile_module(&module, &mut AssemblyContext::for_module(false))
+            .compile_module(&account_module, None, &mut AssemblyContext::for_module(false))
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
         if procedure_digests.len() > MAX_ACCOUNT_PROCEDURES {
@@ -74,7 +58,7 @@ impl AccountCode {
 
         Ok(Self {
             procedure_tree: build_procedure_tree(&procedure_digests),
-            module: module.ast,
+            module: account_module,
             procedures: procedure_digests,
         })
     }
