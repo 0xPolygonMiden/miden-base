@@ -31,8 +31,23 @@ pub use stub::AccountStub;
 mod vault;
 pub use vault::AccountVault;
 
-#[cfg(test)]
-mod tests;
+// TESTING CONSTANTS
+// ================================================================================================
+
+#[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
+
+#[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0b0001101110 << 54;
+
+#[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
+
+#[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1101100110 << 54;
+
+#[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 // ACCOUNT
 // ================================================================================================
