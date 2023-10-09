@@ -1,14 +1,14 @@
-use crypto::StarkField;
 use miden_objects::{
     accounts::{Account, AccountId},
+    assembly::ModuleAst,
     notes::{Note, NoteOrigin},
-    BlockHeader, ChainMmr,
+    BlockHeader, ChainMmr, StarkField,
 };
 use miden_tx::{DataStore, DataStoreError};
 use mock::{
-    account::MockAccountType,
-    notes::AssetPreservationStatus,
-    transaction::{mock_inputs, mock_inputs_with_existing},
+    mock::account::MockAccountType,
+    mock::notes::AssetPreservationStatus,
+    mock::transaction::{mock_inputs, mock_inputs_with_existing},
 };
 
 #[derive(Clone)]
@@ -77,10 +77,7 @@ impl DataStore for MockDataStore {
         ))
     }
 
-    fn get_account_code(
-        &self,
-        account_id: AccountId,
-    ) -> Result<assembly::ast::ModuleAst, DataStoreError> {
+    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
     }

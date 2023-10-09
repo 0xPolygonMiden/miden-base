@@ -1,16 +1,15 @@
-use miden_lib::{assembler, Note};
-
-use assembly::ast::{ModuleAst, ProgramAst};
-use crypto::{Felt, StarkField, Word};
+use miden_lib::assembler::assembler;
 
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    notes::{NoteMetadata, NoteScript, NoteStub, NoteVault},
+    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    Felt, StarkField, Word,
 };
 use mock::{
-    account::mock_account_storage,
     constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
+    mock::account::mock_account_storage,
     utils::prepare_word,
 };
 

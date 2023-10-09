@@ -1,18 +1,18 @@
-use assembly::ast::{ModuleAst, ProgramAst};
-use crypto::{Felt, StarkField, Word, ONE, ZERO};
-use miden_lib::assembler;
+use miden_lib::assembler::assembler;
 
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
+    Felt, StarkField, Word, ONE, ZERO,
 };
 use mock::{
-    account::{mock_account_storage, DEFAULT_ACCOUNT_CODE},
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER,
+        ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
     },
+    mock::account::mock_account_storage,
     utils::prepare_word,
 };
 
