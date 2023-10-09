@@ -1,0 +1,258 @@
+use miden_lib::assembler::assembler;
+
+use miden_objects::{
+    accounts::{Account, AccountCode, AccountId, AccountVault},
+    assembly::{ModuleAst, ProgramAst},
+    assets::{Asset, FungibleAsset},
+    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    Felt, StarkField, Word,
+};
+use mock::{
+    constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
+    mock::account::mock_account_storage,
+    utils::prepare_word,
+};
+
+use miden_tx::TransactionExecutor;
+
+mod common;
+use common::MockDataStore;
+
+#[test]
+fn test_faucet_contract_mint_fungible_asset_succeeds() {
+    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, None);
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+
+    let mut executor = TransactionExecutor::new(data_store.clone());
+    executor.load_account(faucet_account.id()).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let tag = Felt::new(4);
+    let amount = Felt::new(100);
+
+    let tx_script = ProgramAst::parse(
+        format!(
+            "
+            use.miden::faucets::basic->faucet
+            use.miden::eoa::basic->auth_tx
+    
+            begin
+
+                push.{recipient}
+                push.{tag}
+                push.{amount}
+                call.faucet::distribute
+                
+                call.auth_tx::auth_tx_rpo_falcon512
+                dropw dropw
+
+            end
+            ",
+            recipient = prepare_word(&recipient),
+            tag = tag,
+            amount = amount,
+        )
+        .as_str(),
+    )
+    .unwrap();
+
+    // Execute the transaction and get the witness
+    let transaction_result = executor
+        .execute_transaction(faucet_account.id(), block_ref, &note_origins, Some(tx_script))
+        .unwrap();
+
+    let fungible_asset: Asset =
+        FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
+
+    let expected_note = NoteStub::new(
+        recipient.into(),
+        NoteVault::new(&[fungible_asset]).unwrap(),
+        NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
+    )
+    .unwrap();
+
+    let created_note = transaction_result.created_notes().notes()[0].clone();
+    assert!(created_note.recipient() == expected_note.recipient());
+    assert!(created_note.vault() == expected_note.vault());
+    assert!(created_note.metadata() == expected_note.metadata());
+}
+
+#[test]
+fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
+    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, None);
+
+    // CONSTRUCT AND EXECUTE TX (Failure)
+    // --------------------------------------------------------------------------------------------
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+
+    let mut executor = TransactionExecutor::new(data_store.clone());
+    executor.load_account(faucet_account.id()).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let tag = Felt::new(4);
+    let amount = Felt::new(250);
+
+    let tx_script = ProgramAst::parse(
+        format!(
+            "
+            use.miden::faucets::basic->faucet
+            use.miden::eoa::basic->auth_tx
+    
+            begin
+
+                push.{recipient}
+                push.{tag}
+                push.{amount}
+                call.faucet::distribute
+                
+                call.auth_tx::auth_tx_rpo_falcon512
+                dropw dropw
+
+            end
+            ",
+            recipient = prepare_word(&recipient),
+            tag = tag,
+            amount = amount,
+        )
+        .as_str(),
+    )
+    .unwrap();
+
+    // Execute the transaction and get the witness
+    let transaction_result = executor.execute_transaction(
+        faucet_account.id(),
+        block_ref,
+        &note_origins,
+        Some(tx_script),
+    );
+
+    assert!(transaction_result.is_err());
+}
+
+#[test]
+fn test_faucet_contract_burn_fungible_asset_succeeds() {
+    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, Some(100));
+    let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
+
+    // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
+    assert!(
+        faucet_account.storage().get_item(1)
+            == [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
+    );
+    assert!(
+        faucet_account.storage().get_item(255)
+            == [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
+    );
+
+    // need to create a note with the fungible asset to be burned
+    let note_script = ProgramAst::parse(
+        format!(
+            "
+        use.miden::faucets::basic->faucet_contract
+        use.miden::sat::note
+
+        # burn the asset
+        begin
+            exec.note::get_assets drop
+            mem_loadw
+            call.faucet_contract::burn
+        end
+        "
+        )
+        .as_str(),
+    )
+    .unwrap();
+
+    let note = get_note_with_asset_and_script(fungible_asset.clone(), note_script);
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let data_store =
+        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
+
+    let mut executor = TransactionExecutor::new(data_store.clone());
+    executor.load_account(faucet_account.id()).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins = data_store
+        .notes
+        .iter()
+        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .collect::<Vec<_>>();
+
+    // Execute the transaction and get the witness
+    let transaction_result = executor
+        .execute_transaction(faucet_account.id(), block_ref, &note_origins, None)
+        .unwrap();
+
+    // check that the account burned the asset
+    assert!(transaction_result.account_delta().nonce.unwrap() == Felt::new(2));
+    assert!(transaction_result.consumed_notes().notes()[0].hash() == note.hash());
+}
+
+fn get_faucet_account_with_max_supply_and_total_issuance(
+    max_supply: u64,
+    total_issuance: Option<u64>,
+) -> Account {
+    let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic.masm");
+    let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
+    let mut account_assembler = assembler();
+
+    let faucet_account_code =
+        AccountCode::new(faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
+
+    let mut faucet_account_storage = mock_account_storage();
+    let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
+    faucet_account_storage.set_item(1, faucet_storage_slot_1);
+
+    if total_issuance.is_some() {
+        let faucet_storage_slot_255 =
+            [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(total_issuance.unwrap())];
+        faucet_account_storage.set_item(255, faucet_storage_slot_255);
+    };
+
+    Account::new(
+        faucet_account_id,
+        AccountVault::new(&vec![]).unwrap(),
+        faucet_account_storage.clone(),
+        faucet_account_code.clone(),
+        Felt::new(1),
+    )
+}
+
+fn get_note_with_asset_and_script(fungible_asset: FungibleAsset, note_script: ProgramAst) -> Note {
+    let mut note_assembler = assembler();
+
+    let (note_script, _) = NoteScript::new(note_script, &mut note_assembler).unwrap();
+    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    Note::new(
+        note_script.clone(),
+        &[],
+        &vec![fungible_asset.into()],
+        SERIAL_NUM,
+        sender_id,
+        Felt::new(1),
+        None,
+    )
+    .unwrap()
+}
