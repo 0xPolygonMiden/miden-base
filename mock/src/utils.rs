@@ -1,11 +1,11 @@
-use crypto::{
+use miden_objects::{
+    notes::NoteVault,
     utils::{
         collections::Vec,
         string::{String, ToString},
     },
     StarkField, Word,
 };
-use miden_objects::notes::NoteVault;
 
 // TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
 pub fn prepare_word(word: &Word) -> String {

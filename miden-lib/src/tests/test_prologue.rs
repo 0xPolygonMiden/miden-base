@@ -1,4 +1,6 @@
-use super::{build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, Word, ZERO};
+use super::{
+    build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, Word, TX_KERNEL_DIR, ZERO,
+};
 use crate::memory::{
     ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
     ACCT_STORAGE_ROOT_PTR, ACCT_VAULT_ROOT_PTR, BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
@@ -12,7 +14,7 @@ use mock::{
     constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
-    prepare_transaction, run_tx, TX_KERNEL_DIR,
+    prepare_transaction, run_tx,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";

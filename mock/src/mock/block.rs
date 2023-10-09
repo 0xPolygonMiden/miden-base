@@ -1,6 +1,7 @@
-use crypto::merkle::SimpleSmt;
-use crypto::{hash::rpo::RpoDigest as Digest, utils::collections::Vec, Felt, StarkField, ZERO};
-use miden_objects::{accounts::Account, BlockHeader};
+use miden_objects::{
+    accounts::Account, crypto::merkle::SimpleSmt, utils::collections::Vec, BlockHeader, Digest,
+    Felt, StarkField, ZERO,
+};
 use miden_test_utils::rand;
 
 pub fn mock_block_header(

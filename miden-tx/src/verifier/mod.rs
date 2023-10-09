@@ -1,11 +1,11 @@
 use super::{Digest, Hasher, TransactionComplier, TransactionVerifierError};
-use crypto::{WORD_SIZE, ZERO};
 use miden_objects::{
     notes::NoteEnvelope,
     transaction::{ConsumedNoteInfo, ProvenTransaction},
+    Felt, Word, WORD_SIZE, ZERO,
 };
 use miden_verifier::verify;
-use vm_core::{stack::STACK_TOP_SIZE, Felt, StackInputs, StackOutputs, Word};
+use vm_core::{stack::STACK_TOP_SIZE, StackInputs, StackOutputs};
 
 /// The [TransactionVerifier] is used to verify a [ProvenTransaction].
 ///

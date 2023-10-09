@@ -1,11 +1,13 @@
 use super::{
+    assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    AccountError, AdviceInputsBuilder, Assembler, AssemblyContext, Digest, Felt, Hasher, ModuleAst,
-    StarkField, TieredSmt, ToAdviceInputs, ToString, Vec, Word, ZERO,
-};
-use crypto::{
-    merkle::StoreNode,
-    utils::collections::{ApplyDiff, TryApplyDiff},
+    crypto::{
+        merkle::{StoreNode, TieredSmt},
+        utils::collections::{ApplyDiff, TryApplyDiff},
+    },
+    utils::{collections::Vec, string::ToString},
+    AccountError, AdviceInputsBuilder, Digest, Felt, FieldElement, Hasher, StarkField,
+    ToAdviceInputs, Word, ZERO,
 };
 
 mod account_id;

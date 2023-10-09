@@ -2,10 +2,9 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
-use crypto::{hash::rpo::RpoDigest as Digest, StarkField, Word, WORD_SIZE};
 use miden_objects::{
     notes::{NoteMetadata, NoteStub, NoteVault},
-    NoteError,
+    Digest, NoteError, StarkField, Word, WORD_SIZE,
 };
 
 pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {

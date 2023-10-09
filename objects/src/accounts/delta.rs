@@ -1,6 +1,6 @@
 use super::{AccountStorage, Felt};
+use crate::crypto::merkle::{MerkleStoreDelta, MerkleTreeDelta};
 use assembly::ast::ModuleAst;
-use crypto::merkle::{MerkleStoreDelta, MerkleTreeDelta};
 
 // ACCOUNT DELTA
 // ================================================================================================

@@ -7,15 +7,14 @@ use crate::{
     },
     utils::{prepare_assets, prepare_word},
 };
-
-use assembly::{ast::ProgramAst, Assembler};
-use crypto::{utils::collections::Vec, Felt, Word};
 use miden_objects::{
     accounts::AccountId,
+    assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
+    utils::collections::Vec,
+    Felt, FieldElement, Word,
 };
-use vm_core::FieldElement;
 
 pub enum AssetPreservationStatus {
     TooFewInput,

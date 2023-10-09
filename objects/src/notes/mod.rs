@@ -1,6 +1,9 @@
 use super::{
-    accounts::AccountId, assets::Asset, Assembler, AssemblyContext, CodeBlock, Digest, Felt,
-    Hasher, NoteError, ProgramAst, ToString, Vec, Word, WORD_SIZE, ZERO,
+    accounts::AccountId,
+    assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
+    assets::Asset,
+    utils::{collections::Vec, string::ToString},
+    Digest, Felt, Hasher, NoteError, Word, WORD_SIZE, ZERO,
 };
 
 mod envelope;

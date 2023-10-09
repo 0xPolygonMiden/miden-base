@@ -20,15 +20,15 @@ bench = false
 
 [features]
 default = ["std"]
-std = ["assembly/std", "crypto/std", "vm-core/std", "vm-processor/std", "miden-verifier/std"]
-testing = []
-serde = ["dep:serde", "crypto/serde"]
 concurrent = ["std"]
+serde = ["dep:serde", "miden-crypto/serde"]
+std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
+testing = []
 
 [dependencies]
 assembly = { workspace = true }
-crypto = { workspace = true }
 log = { version = "0.4", optional = true }
+miden-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
 miden-verifier = { workspace = true }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
 vm-core = { workspace = true }

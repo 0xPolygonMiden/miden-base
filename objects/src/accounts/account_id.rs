@@ -1,8 +1,8 @@
 use super::{
-    get_account_seed, Account, AccountError, Digest, Felt, Hasher, StarkField, ToString, Vec, Word,
+    get_account_seed, Account, AccountError, Digest, Felt, FieldElement, Hasher, StarkField,
+    ToString, Vec, Word,
 };
 use core::fmt;
-use crypto::FieldElement;
 
 // ACCOUNT ID
 // ================================================================================================

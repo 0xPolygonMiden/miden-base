@@ -2,15 +2,12 @@ use crate::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
-use crypto::{
-    merkle::{merkle_tree_delta, MerkleStore, MerkleStoreDelta, NodeIndex},
-    utils::vec,
-    Word,
-};
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
+    crypto::merkle::{merkle_tree_delta, MerkleStore, MerkleStoreDelta, NodeIndex},
     transaction::FinalAccountStub,
-    AccountError, TransactionResultError,
+    utils::vec,
+    AccountError, TransactionResultError, Word,
 };
 
 /// Parses the stub account data returned by the VM into individual account component commitments.

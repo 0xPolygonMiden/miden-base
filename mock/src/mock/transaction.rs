@@ -8,12 +8,11 @@ use super::{
     notes::mock_notes,
     notes::AssetPreservationStatus,
 };
-use crypto::{utils::collections::Vec, Felt};
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::Account, notes::Note, transaction::ExecutedTransaction, BlockHeader, ChainMmr,
+    accounts::Account, notes::Note, transaction::ExecutedTransaction, utils::collections::Vec,
+    BlockHeader, ChainMmr, Felt, FieldElement,
 };
-use vm_core::FieldElement;
 
 pub fn mock_inputs(
     account_type: MockAccountType,

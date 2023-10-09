@@ -1,9 +1,9 @@
-use super::{
-    AccountError, AccountId, AssemblyError, Digest, ExecutionError, NodeIndex,
-    TransactionResultError,
-};
+use super::{AccountError, AccountId, Digest, ExecutionError, TransactionResultError};
 use core::fmt;
-use miden_objects::{PreparedTransactionError, TransactionWitnessError};
+use miden_objects::{
+    assembly::AssemblyError, crypto::merkle::NodeIndex, PreparedTransactionError,
+    TransactionWitnessError,
+};
 use miden_verifier::VerificationError;
 
 // TRANSACTION ERROR

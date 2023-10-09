@@ -1,6 +1,5 @@
-use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStoreError, ModuleAst, Note, NoteOrigin,
-};
+use super::{Account, AccountId, BlockHeader, ChainMmr, DataStoreError, Note, NoteOrigin};
+use miden_objects::assembly::ModuleAst;
 
 /// The [DataStore] trait defines the interface that transaction objects use to fetch data
 /// required for transaction execution.

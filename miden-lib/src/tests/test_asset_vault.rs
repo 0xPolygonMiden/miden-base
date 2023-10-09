@@ -1,9 +1,9 @@
 use super::{Felt, MemAdviceProvider, Word, ONE, ZERO};
 use crate::memory;
-use crypto::StarkField;
 use miden_objects::{
     accounts::AccountId,
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
+    StarkField,
 };
 use miden_objects::{accounts::AccountVault, assets::FungibleAsset};
 use mock::{

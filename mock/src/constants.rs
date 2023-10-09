@@ -1,7 +1,7 @@
-use crypto::{Felt, FieldElement};
 use miden_objects::{
     accounts::{AccountId, StorageItem},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
+    Felt, FieldElement,
 };
 
 pub const ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: [u64; 4] = [

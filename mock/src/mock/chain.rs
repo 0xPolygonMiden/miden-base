@@ -7,17 +7,13 @@ use super::{
     constants::DEFAULT_ACCOUNT_CODE,
 };
 use core::fmt;
-use crypto::{
-    hash::rpo::RpoDigest as Digest,
-    merkle::{NodeIndex, SimpleSmt, TieredSmt},
-    utils::collections::Vec,
-    Felt, FieldElement, StarkField, Word,
-};
 use miden_objects::{
     accounts::{Account, AccountId, AccountType, StorageItem},
     assets::Asset,
+    crypto::merkle::{NodeIndex, SimpleSmt, TieredSmt},
     notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-    BlockHeader, ChainMmr,
+    utils::collections::Vec,
+    BlockHeader, ChainMmr, Digest, Felt, FieldElement, StarkField, Word,
 };
 use rand::{Rng, SeedableRng};
 

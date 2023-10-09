@@ -1,10 +1,12 @@
-use super::{build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, ZERO};
+use super::{
+    build_module_path, AdviceProvider, Felt, MemAdviceProvider, Process, TX_KERNEL_DIR, ZERO,
+};
 use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::transaction::PreparedTransaction;
 use mock::{
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
-    prepare_transaction, run_tx, TX_KERNEL_DIR,
+    prepare_transaction, run_tx,
 };
 
 const NOTE_SETUP_FILE: &str = "note_setup.masm";

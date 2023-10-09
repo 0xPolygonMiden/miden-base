@@ -2,14 +2,11 @@ use super::{
     AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
     TransactionExecutor, TransactionProver, TransactionVerifier, TryFromVmResult,
 };
-use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler,
-};
-use crypto::StarkField;
 use miden_objects::{
     accounts::{Account, AccountCode},
+    assembly::{Assembler, ModuleAst, ProgramAst},
     transaction::{CreatedNotes, FinalAccountStub},
+    Felt, StarkField,
 };
 use miden_prover::ProvingOptions;
 use mock::{
@@ -17,7 +14,6 @@ use mock::{
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
-use vm_core::Felt;
 use vm_processor::MemAdviceProvider;
 
 #[derive(Clone)]
@@ -71,10 +67,7 @@ impl DataStore for MockDataStore {
         ))
     }
 
-    fn get_account_code(
-        &self,
-        account_id: AccountId,
-    ) -> Result<assembly::ast::ModuleAst, DataStoreError> {
+    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
     }

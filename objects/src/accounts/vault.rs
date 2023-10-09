@@ -2,7 +2,7 @@ use super::{
     AccountError, AccountId, AccountType, AdviceInputsBuilder, ApplyDiff, Asset, Digest,
     FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, ZERO,
 };
-use crypto::merkle::MerkleTreeDelta;
+use crate::crypto::merkle::MerkleTreeDelta;
 
 // ACCOUNT VAULT
 // ================================================================================================

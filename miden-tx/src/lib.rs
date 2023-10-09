@@ -1,17 +1,13 @@
-use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext, AssemblyError,
-};
-use crypto::{hash::rpo::Rpo256 as Hasher, hash::rpo::RpoDigest as Digest, merkle::NodeIndex};
-use miden_lib::{MidenLib, SatKernel};
+use miden_lib::SatKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId},
+    assembly::CodeBlock,
     notes::{Note, NoteOrigin, NoteScript},
     transaction::{PreparedTransaction, TransactionResult},
-    AccountError, BlockHeader, ChainMmr, TransactionResultError,
+    utils::collections::BTreeMap,
+    AccountError, BlockHeader, ChainMmr, Digest, Hasher, TransactionResultError,
 };
-use miden_stdlib::StdLibrary;
-use vm_core::{code_blocks::CodeBlock, utils::collections::BTreeMap, Operation, Program};
+use vm_core::{Operation, Program};
 use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;

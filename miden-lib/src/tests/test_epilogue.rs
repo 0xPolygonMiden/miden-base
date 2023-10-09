@@ -1,9 +1,9 @@
-use super::{build_module_path, MemAdviceProvider, ZERO};
+use super::{build_module_path, MemAdviceProvider, TX_KERNEL_DIR, ZERO};
 use crate::memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE};
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
     procedures::created_notes_data_procedure,
-    run_within_tx_kernel, TX_KERNEL_DIR,
+    run_within_tx_kernel,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";

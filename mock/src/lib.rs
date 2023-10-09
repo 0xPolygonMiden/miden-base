@@ -1,11 +1,10 @@
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account, notes::Note, notes::NoteVault, transaction::PreparedTransaction,
-    BlockHeader, ChainMmr,
+    BlockHeader, ChainMmr, Felt, StarkField,
 };
 use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
-    math::{Felt, StarkField},
     AdviceProvider, ExecutionError, ExecutionOptions, Process, Program, StackInputs, Word,
 };
 
@@ -14,8 +13,6 @@ pub mod constants;
 pub mod mock;
 pub mod procedures;
 pub mod utils;
-
-pub const TX_KERNEL_DIR: &str = "sat/internal";
 
 // TEST BRACE
 // ================================================================================================

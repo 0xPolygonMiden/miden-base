@@ -3,17 +3,15 @@ use assembly::{
     ast::{ModuleAst, ProgramAst},
     Assembler,
 };
-use crypto::{Felt, StarkField, Word, ONE};
-use miden_stdlib::StdLibrary;
-
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
     chain::ChainMmr,
     notes::{Note, NoteOrigin, NoteScript},
+    Felt, StarkField, Word, ONE,
 };
-
+use miden_stdlib::StdLibrary;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,

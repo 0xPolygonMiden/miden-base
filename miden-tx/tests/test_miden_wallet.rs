@@ -1,16 +1,11 @@
-use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler,
-};
-use crypto::{merkle::NodeIndex, Felt, StarkField, Word, ONE, ZERO};
-use miden_lib::{MidenLib, SatKernel};
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
+    crypto::merkle::NodeIndex,
     notes::{Note, NoteOrigin, NoteScript},
-    BlockHeader, ChainMmr,
+    BlockHeader, ChainMmr, Felt, StarkField, Word, ONE, ZERO,
 };
-use miden_stdlib::StdLibrary;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
@@ -105,13 +100,7 @@ fn test_receive_asset_via_wallet() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let target_account_code_src = DEFAULT_ACCOUNT_CODE;
     let target_account_code_ast = ModuleAst::parse(target_account_code_src).unwrap();
-    let mut account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
+    let mut account_assembler = miden_lib::assembler::assembler();
 
     let target_account_code =
         AccountCode::new(target_account_code_ast.clone(), &mut account_assembler).unwrap();
@@ -145,13 +134,7 @@ fn test_receive_asset_via_wallet() {
     )
     .unwrap();
 
-    let mut note_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
+    let mut note_assembler = miden_lib::assembler::assembler();
 
     let (note_script, _) = NoteScript::new(note_script_ast, &mut note_assembler).unwrap();
 
@@ -227,13 +210,7 @@ fn test_send_asset_via_wallet() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let sender_account_code_src = DEFAULT_ACCOUNT_CODE;
     let sender_account_code_ast = ModuleAst::parse(sender_account_code_src).unwrap();
-    let mut account_assembler = Assembler::default()
-        .with_library(&MidenLib::default())
-        .expect("library is well formed")
-        .with_library(&StdLibrary::default())
-        .expect("library is well formed")
-        .with_kernel(SatKernel::kernel())
-        .expect("kernel is well formed");
+    let mut account_assembler = miden_lib::assembler::assembler();
 
     let sender_account_code =
         AccountCode::new(sender_account_code_ast.clone(), &mut account_assembler).unwrap();

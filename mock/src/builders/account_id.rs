@@ -1,11 +1,10 @@
 use crate::builders::{str_to_accountcode, AccountBuilderError};
 use crate::constants::DEFAULT_ACCOUNT_CODE;
-use crypto::{
-    hash::rpo::RpoDigest as Digest,
+use miden_objects::{
+    accounts::{AccountId, AccountType},
     utils::string::{String, ToString},
-    Word,
+    Digest, Word,
 };
-use miden_objects::accounts::{AccountId, AccountType};
 use rand::Rng;
 
 /// Builder for an `AccountId`, the builder can be configured and used multipled times.
