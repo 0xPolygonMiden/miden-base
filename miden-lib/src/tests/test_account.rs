@@ -1,4 +1,4 @@
-use super::{Felt, MemAdviceProvider, StackInputs, Word, ONE, ZERO};
+use super::{Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 use miden_objects::accounts::{
     AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
@@ -49,13 +49,13 @@ pub fn test_set_code_is_not_immediate() {
 
     // assert the code root is not changed
     assert_eq!(
-        process.get_memory_value(0, ACCT_CODE_ROOT_PTR).unwrap(),
+        process.get_mem_value(0, ACCT_CODE_ROOT_PTR).unwrap(),
         transaction.account().code().root().as_elements()
     );
 
     // assert the new code root is cached
     assert_eq!(
-        process.get_memory_value(0, ACCT_NEW_CODE_ROOT_PTR).unwrap(),
+        process.get_mem_value(0, ACCT_NEW_CODE_ROOT_PTR).unwrap(),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)]
     );
 }
@@ -101,7 +101,7 @@ pub fn test_set_code_succeeds() {
 
     // assert the code root is changed after the epilogue
     assert_eq!(
-        process.get_memory_value(0, ACCT_CODE_ROOT_PTR).unwrap(),
+        process.get_mem_value(0, ACCT_CODE_ROOT_PTR).unwrap(),
         [ZERO, ONE, Felt::new(2), Felt::new(3)]
     );
 }
