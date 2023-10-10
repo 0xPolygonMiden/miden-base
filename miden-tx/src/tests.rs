@@ -15,7 +15,7 @@ use mock::{
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
-use vm_processor::MemAdviceProvider;
+use vm_processor::{DefaultHost, MemAdviceProvider};
 
 // TESTS
 // ================================================================================================
@@ -42,16 +42,17 @@ fn test_transaction_executor_witness() {
     let witness = transaction_result.clone().into_witness();
 
     // use the witness to execute the transaction again
-    let mut mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let mut host = DefaultHost::new(mem_advice_provider);
     let result = vm_processor::execute(
         witness.program(),
         witness.get_stack_inputs(),
-        &mut mem_advice_provider,
+        &mut host,
         Default::default(),
     )
     .unwrap();
 
-    let (stack, map, store) = mem_advice_provider.into_parts();
+    let (stack, map, store) = host.into_inner().into_parts();
     let final_account_stub =
         FinalAccountStub::try_from_vm_result(result.stack_outputs(), &stack, &map, &store).unwrap();
     let created_notes =

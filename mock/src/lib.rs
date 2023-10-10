@@ -5,7 +5,8 @@ use miden_objects::{
 };
 use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
-    AdviceProvider, ExecutionError, ExecutionOptions, Process, Program, StackInputs, Word,
+    AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program, StackInputs,
+    Word,
 };
 
 pub mod builders;
@@ -32,15 +33,16 @@ pub fn run_tx<A>(
     program: Program,
     stack_inputs: StackInputs,
     mut adv: A,
-) -> Result<Process<A>, ExecutionError>
+) -> Result<Process<DefaultHost<A>>, ExecutionError>
 where
     A: AdviceProvider,
 {
     // mock account method for testing from root context
     adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
 
+    let host = DefaultHost::new(adv);
     let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, adv, ExecutionOptions::default());
+        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
     process.execute(&program)?;
     Ok(process)
 }
@@ -52,7 +54,7 @@ pub fn run_within_tx_kernel<A>(
     stack_inputs: StackInputs,
     mut adv: A,
     file_path: Option<PathBuf>,
-) -> Result<Process<A>, ExecutionError>
+) -> Result<Process<DefaultHost<A>>, ExecutionError>
 where
     A: AdviceProvider,
 {
@@ -68,8 +70,9 @@ where
 
     let program = assembler.compile(code).unwrap();
 
+    let host = DefaultHost::new(adv);
     let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, adv, ExecutionOptions::default());
+        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
     process.execute(&program)?;
     Ok(process)
 }

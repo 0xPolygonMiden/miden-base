@@ -3,7 +3,7 @@ use crate::TryFromVmResult;
 use miden_objects::transaction::{CreatedNotes, FinalAccountStub};
 use miden_objects::transaction::{PreparedTransaction, ProvenTransaction, TransactionWitness};
 use miden_prover::{prove, ProvingOptions};
-use vm_processor::MemAdviceProvider;
+use vm_processor::{DefaultHost, MemAdviceProvider};
 
 /// The [TransactionProver] is a stateless component which is responsible for proving transactions.
 ///
@@ -31,17 +31,18 @@ impl TransactionProver {
         transaction: PreparedTransaction,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         // prove transaction program
-        let mut advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
+        let advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
+        let mut host = DefaultHost::new(advice_provider);
         let (outputs, proof) = prove(
             transaction.tx_program(),
             transaction.stack_inputs(),
-            &mut advice_provider,
+            &mut host,
             self.proof_options.clone(),
         )
         .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (stack, map, store) = advice_provider.into_parts();
+        let (stack, map, store) = host.into_inner().into_parts();
         let final_account_stub =
             FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
                 .map_err(TransactionProverError::TransactionResultError)?;
@@ -88,13 +89,14 @@ impl TransactionProver {
             advice_witness,
         ) = tx_witness.into_parts();
 
-        let mut advice_provider: MemAdviceProvider = advice_witness.into();
+        let advice_provider: MemAdviceProvider = advice_witness.into();
+        let mut host = DefaultHost::new(advice_provider);
         let (outputs, proof) =
-            prove(&tx_program, stack_inputs, &mut advice_provider, self.proof_options.clone())
+            prove(&tx_program, stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (stack, map, store) = advice_provider.into_parts();
+        let (stack, map, store) = host.into_inner().into_parts();
         let final_account_stub =
             FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
                 .map_err(TransactionProverError::TransactionResultError)?;

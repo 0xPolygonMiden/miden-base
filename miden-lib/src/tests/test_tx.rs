@@ -1,4 +1,4 @@
-use super::{Felt, MemAdviceProvider, StackInputs, ONE, ZERO};
+use super::{Felt, MemAdviceProvider, ProcessState, StackInputs, ONE, ZERO};
 use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
     CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
@@ -53,14 +53,14 @@ fn test_create_note() {
 
     // assert the number of created notes has been incremented to 1.
     assert_eq!(
-        process.get_memory_value(0, NUM_CREATED_NOTES_PTR).unwrap(),
+        process.get_mem_value(0, NUM_CREATED_NOTES_PTR).unwrap(),
         [ONE, ZERO, ZERO, ZERO]
     );
 
     // assert the recipient is stored at the correct memory location.
     assert_eq!(
         process
-            .get_memory_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET)
+            .get_mem_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET)
             .unwrap(),
         recipient
     );
@@ -68,7 +68,7 @@ fn test_create_note() {
     // assert the metadata is stored at the correct memory location.
     assert_eq!(
         process
-            .get_memory_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET)
+            .get_mem_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET)
             .unwrap(),
         [ONE, tag, Felt::from(account_id), ZERO]
     );
@@ -76,7 +76,7 @@ fn test_create_note() {
     // assert the asset is stored at the correct memory location.
     assert_eq!(
         process
-            .get_memory_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET)
+            .get_mem_value(0, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET)
             .unwrap(),
         asset
     );
