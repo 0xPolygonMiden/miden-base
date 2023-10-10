@@ -1,27 +1,21 @@
 use miden_lib::{
-    assembler,
-    notes::{create_note_with_script, Script},
+    assembler::assembler,
+    notes::{create_note, Script},
 };
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    block::BlockHeader,
-    chain::ChainMmr,
-    notes::{Note, NoteOrigin, NoteScript},
-    Felt, StarkField, Word, ONE,
+    utils::collections::Vec,
+    Felt, StarkField,
 };
-use miden_stdlib::StdLibrary;
 use mock::{
     constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+        DEFAULT_ACCOUNT_CODE,
     },
-    mock::{
-        account::{mock_account_storage, MockAccountType},
-        notes::AssetPreservationStatus,
-        transaction::mock_inputs_with_existing,
-    },
+    mock::account::mock_account_storage,
 };
 
 use miden_tx::TransactionExecutor;
@@ -29,8 +23,10 @@ use miden_tx::TransactionExecutor;
 mod common;
 use common::MockDataStore;
 
-// We test the Pay to ID script. So we create a note that can
-// only be consumed by the target account.
+// P2ID TESTS
+// ===============================================================================================
+// We test the Pay to ID script. So we create a note that can only be consumed by the target
+// account.
 #[test]
 fn test_p2id_script() {
     // Create assets
@@ -48,7 +44,7 @@ fn test_p2id_script() {
     let p2id_script = Script::P2ID {
         target: target_account_id,
     };
-    let note = create_note_with_script(
+    let note = create_note(
         p2id_script,
         vec![fungible_asset],
         sender_account_id,
@@ -131,8 +127,8 @@ fn test_p2id_script() {
     assert!(transaction_result_2.is_err());
 }
 
-// We test the Pay to script with 2 assets to test the loop inside the script.
-// So we create a note containing two assets that can only be consumed by the target account.
+/// We test the Pay to script with 2 assets to test the loop inside the script.
+/// So we create a note containing two assets that can only be consumed by the target account.
 #[test]
 fn test_p2id_script_multiple_assets() {
     // Create assets
@@ -153,7 +149,7 @@ fn test_p2id_script_multiple_assets() {
     let p2id_script = Script::P2ID {
         target: target_account_id,
     };
-    let note = create_note_with_script(
+    let note = create_note(
         p2id_script,
         vec![fungible_asset_1, fungible_asset_2],
         sender_account_id,
@@ -236,6 +232,8 @@ fn test_p2id_script_multiple_assets() {
     assert!(transaction_result_2.is_err());
 }
 
+// P2IDR TESTS
+// ===============================================================================================
 // We want to test the Pay to ID Reclaim script, which is a script that allows the user
 // to provide a block height to the P2ID script. Before the block height is reached,
 // the note can only be consumed by the target account. After the block height is reached,
@@ -262,15 +260,15 @@ fn test_p2idr_script() {
     // --------------------------------------------------------------------------------------------
     // Create notes
     // Create the reclaim block height (Note: Current block height is 4)
-    let reclaim_block_height_in_time = 5 as u32;
-    let reclaim_block_height_reclaimable = 3 as u32;
+    let reclaim_block_height_in_time = 5_u32;
+    let reclaim_block_height_reclaimable = 3_u32;
 
     // Create the notes with the P2IDR script
     let p2idr_script_in_time = Script::P2IDR {
         target: target_account_id,
         recall_height: reclaim_block_height_in_time,
     };
-    let note_in_time = create_note_with_script(
+    let note_in_time = create_note(
         p2idr_script_in_time,
         vec![fungible_asset],
         sender_account_id,
@@ -283,7 +281,7 @@ fn test_p2idr_script() {
         target: target_account_id,
         recall_height: reclaim_block_height_reclaimable,
     };
-    let note_reclaimable = create_note_with_script(
+    let note_reclaimable = create_note(
         p2idr_script_reclaimable,
         vec![fungible_asset],
         sender_account_id,
@@ -509,6 +507,9 @@ fn test_p2idr_script() {
     // Sixth transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_6.is_err())
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 fn get_account_with_default_account_code(account_id: AccountId, assets: Option<Asset>) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;

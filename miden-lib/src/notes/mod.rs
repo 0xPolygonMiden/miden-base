@@ -1,54 +1,61 @@
+use crate::assembler::assembler;
 use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
 use miden_objects::{
-    notes::{NoteMetadata, NoteStub, NoteVault, Note, NoteScript},
-    NoteError, accounts::AccountId, assets::Asset,
-    Digest, NoteError, StarkField, Word, WORD_SIZE,
+    accounts::AccountId,
     assembly::ProgramAst,
-
+    assets::Asset,
+    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    utils::{collections::Vec, format, vec},
+    Digest, Felt, NoteError, StarkField, Word, WORD_SIZE, ZERO,
 };
-use crate::assembler::assembler;
 
 pub enum Script {
-    P2ID { target: AccountId },
+    P2ID {
+        target: AccountId,
+    },
     P2IDR {
         target: AccountId,
         recall_height: u32,
     },
 }
 
-pub fn create_note_with_script(
+/// Users can create notes with a standard script. Atm we provide two standard scripts:
+/// 1. P2ID - pay to id
+/// 2. P2IDR - pay to id with recall after a certain block height
+pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
     sender: AccountId,
     tag: Option<Felt>,
     serial_num: Word,
 ) -> Result<Note, NoteError> {
-
-    let mut note_assembler = assembler();
+    let note_assembler = assembler();
     let (note_script, inputs): (&str, Vec<Felt>) = match script {
         Script::P2ID { target } => ("p2id", vec![target.into()]), // Convert `target` to a suitable type if necessary
-        Script::P2IDR { target, recall_height } => ("p2idr", vec![target.into(), recall_height.into()]), // Convert both to a suitable type
+        Script::P2IDR {
+            target,
+            recall_height,
+        } => ("p2idr", vec![target.into(), recall_height.into()]), // Convert both to a suitable type
     };
 
     // Create the note
-    let note_script_ast = ProgramAst::parse(
-        format!(
-            "
+    let note_script_str = format!(
+        "
         use.miden::note_scripts::basic
     
         begin
             exec.basic::{note_script}
         end
         "
-        )
-        .as_str(),
-    )
-    .unwrap();
+    );
 
-    let (note_script, _) = NoteScript::new(note_script_ast, &mut note_assembler).unwrap();
+    let note_script_ast = ProgramAst::parse(&note_script_str)
+        .map_err(|e| NoteError::ScriptCompilationError(e.into()))?;
+
+    let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
 
     Note::new(
         note_script.clone(),
@@ -56,10 +63,9 @@ pub fn create_note_with_script(
         &assets,
         serial_num,
         sender,
-        tag.unwrap_or(Felt::new(0)),
+        tag.unwrap_or(ZERO),
         None,
     )
-
 }
 
 pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {
