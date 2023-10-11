@@ -48,6 +48,6 @@ pub mod crypto {
 }
 
 pub mod utils {
-    pub use miden_crypto::utils::vec;
+    pub use miden_crypto::utils::{format, vec};
     pub use vm_core::utils::{collections, string};
 }
