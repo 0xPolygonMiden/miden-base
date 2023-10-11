@@ -28,7 +28,7 @@ testing = []
 [dependencies]
 assembly = { workspace = true }
 log = { version = "0.4", optional = true }
-miden-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
+miden-crypto = { version = "0.7", default-features = false }
 miden-verifier = { workspace = true }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
 vm-core = { workspace = true }
