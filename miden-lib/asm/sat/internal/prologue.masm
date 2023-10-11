@@ -161,11 +161,43 @@ proc.validate_new_account
     # => [ACCT_VAULT_ROOT]
 
     # push empty vault root onto stack 
-    exec.constants::get_empty_smt_root
+    exec.constants::get_empty_tsmt_root
     # => [EMPTY_VAULT_ROOT, ACCT_VAULT_ROOT]
 
     assert_eqw
     # => []
+
+    # Assert faucet reserved slot is correctly initialized
+    # -----------------------------------------------------------------------------------------
+    # check if the account is a faucet
+    exec.account::get_id dup exec.account::is_faucet
+    # => [is_faucet, acct_id]
+
+    # process conditional logic depending on whether the account is a faucet
+    if.true
+        # get the faucet reserved slot
+        exec.account::get_faucet_storage_data_slot exec.account::get_item
+        # => [FAUCET_RESERVED_SLOT, acct_id]
+
+        # check if the account is a fungible faucet
+        movup.4 exec.account::is_fungible_faucet
+        # => [is_fungible_faucet, FAUCET_RESERVED_SLOT]
+
+        if.true
+            # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
+            or or or assertz
+            # => []
+        else
+            # assert the non-fungible faucet reserved slot is initialized correctly (root of
+            # empty TSMT)
+            exec.constants::get_empty_tsmt_root assert_eqw
+            # => []
+        end
+    else
+        # drop the account id
+        drop
+        # => []
+    end
 
     # Assert the provided account seed satisfies the seed requirements
     # -----------------------------------------------------------------------------------------

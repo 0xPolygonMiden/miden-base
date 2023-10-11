@@ -20,9 +20,9 @@ const.MAX_NUM_CREATED_NOTES=4096
 # zeros for a regular account (2^23).
 const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=8388608
 
-# Specifies a modulus multiplier used to asses if an account seed digest has the required number of 
-# trailing zeros for a faucet account (2^8).
-const.FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER=256
+# Specifies a modulus used to asses if an account seed digest has the required number of trailing
+# zeros for a faucet account (2^31).
+const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2147483648
 
 # PROCEDURES
 # =================================================================================================
@@ -89,16 +89,16 @@ export.get_regular_account_seed_digest_modulus
     push.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS
 end
 
-#! Returns a modulus multiplier used to asses if an account seed digest has the required number of 
-#! trailing zeros for a faucet account (2^8).
+#! Returns a modulus used to asses if an account seed digest has the required number of trailing
+#! zeros for a faucet account (2^31).
 #!
 #! Stack: []
-#! Output: [FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER]
+#! Output: [FAUCET_ACCOUNT_SEED_DIGEST_MODULUS]
 #!
-#! - FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER is a modulus multiplier used to asses if a seed 
-#!   digest has the required number of trailing zeros for a faucet account.
-export.get_faucet_seed_digest_modulus_multiplier
-    push.FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER
+#! - FAUCET_ACCOUNT_SEED_DIGEST_MODULUS is a modulus used to asses if a seed digest has the
+#!   required number of trailing zeros for a faucet account.
+export.get_faucet_seed_digest_modulus
+    push.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS
 end
 
 #! Returns the root of an empty tiered sparse Merkle tree.
@@ -107,6 +107,6 @@ end
 #! Output: [EMPTY_SMT_ROOT]
 #!
 #! - EMPTY_SMT_ROOT is the root of an empty tiered sparse Merkle tree.
-export.get_empty_smt_root
+export.get_empty_tsmt_root
     push.15321474589252129342.17373224439259377994.15071539326562317628.3312677166725950353
 end

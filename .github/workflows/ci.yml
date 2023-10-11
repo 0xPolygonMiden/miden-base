@@ -28,7 +28,7 @@ jobs:
           RUSTFLAGS: -C debug-assertions
         with:
           command: test
-          args: --release
+          args: --release --features testing
 
   clippy:
     name: Clippy
