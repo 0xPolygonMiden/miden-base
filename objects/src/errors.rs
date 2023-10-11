@@ -265,6 +265,7 @@ pub enum TransactionResultError {
     InconsistentAccountCodeHash(Digest, Digest),
     ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     ExtractAccountStorageStoreDeltaFailed(MerkleError),
+    ExtractAccountVaultLeavesDeltaFailed(MerkleError),
     UpdatedAccountCodeInvalid(AccountError),
 }
 

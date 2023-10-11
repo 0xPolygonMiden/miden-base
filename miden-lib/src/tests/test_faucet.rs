@@ -5,7 +5,7 @@ use mock::{
     constants::{
         non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, CONSUMED_NOTE_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT,
         FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -358,7 +358,7 @@ fn test_burn_fungible_asset_succeeds() {
             assert_eq
         end
         ",
-        final_input_vault_asset_amount = CONSUMED_NOTE_1_AMOUNT - FUNGIBLE_ASSET_AMOUNT,
+        final_input_vault_asset_amount = CONSUMED_ASSET_1_AMOUNT - FUNGIBLE_ASSET_AMOUNT,
         expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT
     );
 
@@ -457,7 +457,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
             exec.faucet::burn
         end
         ",
-        saturating_amount = CONSUMED_NOTE_1_AMOUNT + 1
+        saturating_amount = CONSUMED_ASSET_1_AMOUNT + 1
     );
 
     let transaction =

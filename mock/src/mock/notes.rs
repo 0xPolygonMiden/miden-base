@@ -2,8 +2,8 @@ use crate::{
     constants::{
         non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_NOTE_1_AMOUNT,
-        CONSUMED_NOTE_2_AMOUNT, CONSUMED_NOTE_3_AMOUNT,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_ASSET_1_AMOUNT,
+        CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
     },
     utils::{prepare_assets, prepare_word},
 };
@@ -13,30 +13,31 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
     utils::collections::Vec,
-    Felt, FieldElement, Word,
+    Felt, Word, ZERO,
 };
 
 pub enum AssetPreservationStatus {
     TooFewInput,
     Preserved,
+    PreservedWithAccountVaultDelta,
     TooManyFungibleInput,
     TooManyNonFungibleInput,
 }
 
 pub fn mock_notes(
     assembler: &Assembler,
-    asset_preservation: AssetPreservationStatus,
+    asset_preservation: &AssetPreservationStatus,
 ) -> (Vec<Note>, Vec<Note>) {
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
     let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
     let fungible_asset_1: Asset =
-        FungibleAsset::new(faucet_id_1, CONSUMED_NOTE_1_AMOUNT).unwrap().into();
+        FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
     let fungible_asset_2: Asset =
-        FungibleAsset::new(faucet_id_2, CONSUMED_NOTE_2_AMOUNT).unwrap().into();
+        FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
     let fungible_asset_3: Asset =
-        FungibleAsset::new(faucet_id_3, CONSUMED_NOTE_3_AMOUNT).unwrap().into();
+        FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
     // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -55,7 +56,7 @@ pub fn mock_notes(
         &[fungible_asset_1],
         SERIAL_NUM_4,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -67,7 +68,7 @@ pub fn mock_notes(
         &[fungible_asset_2],
         SERIAL_NUM_5,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -79,7 +80,7 @@ pub fn mock_notes(
         &[fungible_asset_3],
         SERIAL_NUM_6,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -145,7 +146,7 @@ pub fn mock_notes(
         &[fungible_asset_1],
         SERIAL_NUM_1,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -157,7 +158,7 @@ pub fn mock_notes(
         &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -172,7 +173,7 @@ pub fn mock_notes(
         &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_3,
         sender,
-        Felt::ZERO,
+        ZERO,
         None,
     )
     .unwrap();
@@ -187,14 +188,66 @@ pub fn mock_notes(
         &[non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)],
         SERIAL_NUM_7,
         sender,
-        Felt::ZERO,
+        ZERO,
+        None,
+    )
+    .unwrap();
+
+    // note that changes the account vault
+    let note_5_script_ast = ProgramAst::parse(
+        "\
+                    use.miden::sat::note
+                    use.miden::wallets::basic->wallet
+
+                    begin
+                        # read the assets to memory 
+                        push.0 exec.note::get_assets
+                        # => [num_assets, dest_ptr]
+
+                        # assert the number of assets is 3
+                        push.3 assert_eq
+                        # => [dest_ptr]
+
+                        # add the first asset to the vault
+                        padw dup.4 mem_loadw call.wallet::receive_asset dropw
+                        # => [dest_ptr]
+
+                        # add the second asset to the vault
+                        push.1 add padw dup.4 mem_loadw call.wallet::receive_asset dropw
+                        # => [dest_ptr+1]
+
+                        # add the third asset to the vault
+                        push.1 add padw movup.4 mem_loadw call.wallet::receive_asset dropw
+                        # => []
+                    end
+                    ",
+    )
+    .unwrap();
+    let (note_5_script, _) = NoteScript::new(note_5_script_ast, assembler).unwrap();
+    const SERIAL_NUM_8: Word = [Felt::new(29), Felt::new(30), Felt::new(31), Felt::new(32)];
+    let consumed_note_5 = Note::new(
+        note_5_script,
+        &[],
+        &[
+            fungible_asset_1,
+            fungible_asset_3,
+            non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN),
+        ],
+        SERIAL_NUM_8,
+        sender,
+        ZERO,
         None,
     )
     .unwrap();
 
     let consumed_notes = match asset_preservation {
         AssetPreservationStatus::TooFewInput => vec![consumed_note_1],
-        AssetPreservationStatus::Preserved => vec![consumed_note_1, consumed_note_2],
+        AssetPreservationStatus::Preserved => {
+            vec![consumed_note_1, consumed_note_2]
+        }
+        AssetPreservationStatus::PreservedWithAccountVaultDelta => {
+            vec![consumed_note_1, consumed_note_2, consumed_note_5]
+        }
         AssetPreservationStatus::TooManyFungibleInput => {
             vec![consumed_note_1, consumed_note_2, consumed_note_3]
         }

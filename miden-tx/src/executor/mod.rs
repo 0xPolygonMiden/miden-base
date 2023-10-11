@@ -4,11 +4,10 @@ use super::{
     TransactionResult,
 };
 use crate::TryFromVmResult;
-use miden_lib::transaction::extract_account_storage_delta;
+use miden_lib::transaction::{extract_account_storage_delta, extract_account_vault_delta};
 use miden_objects::{
     accounts::{Account, AccountDelta},
     assembly::ProgramAst,
-    crypto::merkle::MerkleTreeDelta,
     transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub},
     TransactionResultError,
 };
@@ -209,8 +208,9 @@ pub fn create_transaction_result(
         None
     };
 
-    // TODO: implement vault delta extraction
-    let vault_delta = MerkleTreeDelta::new(0);
+    // extract vault delta
+    let vault_delta =
+        extract_account_vault_delta(&store, &map, &initial_account, &final_account_stub)?;
 
     // construct the account delta
     let account_delta = AccountDelta {

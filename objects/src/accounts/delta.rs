@@ -1,6 +1,10 @@
 use super::{AccountStorage, Felt};
-use crate::crypto::merkle::{MerkleStoreDelta, MerkleTreeDelta};
-use assembly::ast::ModuleAst;
+use crate::{
+    assembly::ModuleAst,
+    assets::Asset,
+    crypto::merkle::{MerkleStoreDelta, MerkleTreeDelta},
+    utils::collections::Vec,
+};
 
 // ACCOUNT DELTA
 // ================================================================================================
@@ -17,7 +21,7 @@ pub struct AccountDelta {
     pub code: Option<ModuleAst>,
     pub nonce: Option<Felt>,
     pub storage: AccountStorageDelta,
-    pub vault: MerkleTreeDelta,
+    pub vault: AccountVaultDelta,
 }
 
 // ACCOUNT STORAGE DELTA
@@ -42,4 +46,18 @@ impl Default for AccountStorageDelta {
             store_delta: MerkleStoreDelta::default(),
         }
     }
+}
+
+// ACCOUNT VAULT DELTA
+// ================================================================================================
+
+/// [AccountVaultDelta] stores the difference between the initial and final account vault states.
+///
+/// The difference is represented as follows:
+/// - added_assets: a vector of assets that were added to the account vault.
+/// - removed_assets: a vector of assets that were removed from the account vault.
+#[derive(Clone, Debug, Default)]
+pub struct AccountVaultDelta {
+    pub added_assets: Vec<Asset>,
+    pub removed_assets: Vec<Asset>,
 }

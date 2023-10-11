@@ -1,15 +1,16 @@
 use crate::constants::{
-    non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
     CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
-    FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA, STORAGE_ITEM_0, STORAGE_ITEM_1,
+    FUNGIBLE_FAUCET_INITIAL_BALANCE, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
     assembly::{Assembler, ModuleAst},
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    assets::{Asset, FungibleAsset},
     crypto::merkle::{MerkleStore, SimpleSmt, TieredSmt},
     utils::collections::Vec,
     Felt, FieldElement, Word, ZERO,
@@ -21,14 +22,20 @@ fn mock_account_vault() -> AccountVault {
     let fungible_asset =
         Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    // prepare non fungible asset
-    let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let non_fungible_asset_details =
-        NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
-    let non_fungible_asset =
-        Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
+    // prepare second fungible asset
+    let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
+    let fungible_asset_1 =
+        Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    AccountVault::new(&[fungible_asset, non_fungible_asset]).unwrap()
+    // prepare third fungible asset
+    let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
+    let fungible_asset_2 =
+        Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
+
+    // prepare non fungible asset
+    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    AccountVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
+        .unwrap()
 }
 
 pub fn mock_account_storage() -> AccountStorage {
@@ -55,6 +62,10 @@ fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
             use.miden::sat::tx
+            use.miden::wallets::basic->wallet
+
+            export.wallet::receive_asset
+            export.wallet::send_asset
 
             export.incr_nonce
                 push.0 swap
