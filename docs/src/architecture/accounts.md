@@ -60,7 +60,7 @@ An account vault can be reduced to a single hash which is the root of the sparse
 ### Code
 Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by note scripts. Functions exposed by the account have the following properties:
 
-* Functions are actually roots of [Miden program MASTs](https://wiki.polygon.technology/docs/miden/user_docs/assembly/main) (i.e., 32-byte hash). Thus, function identifier is a commitment to the code which is executed when a function is invoked.
+* Functions are actually roots of [Miden program MASTs](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) (i.e., 32-byte hash). Thus, function identifier is a commitment to the code which is executed when a function is invoked.
 * Only account functions have mutable access to an account's storage and vault. Therefore, the only way to modify an account's internal state is through one of account's functions.
 * Account functions can take parameters and can create new notes.
 
