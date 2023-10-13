@@ -1,9 +1,13 @@
-use miden_lib::assembler::assembler;
+use miden_lib::{
+    assembler::assembler,
+    wallets::{create_basic_wallet, AuthScheme},
+};
 
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
+    crypto::dsa::rpo_falcon512,
     notes::{Note, NoteScript},
     Felt, StarkField, Word, ONE, ZERO,
 };
@@ -20,6 +24,8 @@ use miden_tx::TransactionExecutor;
 
 mod common;
 use common::MockDataStore;
+
+use vm_core::crypto::dsa::rpo_falcon512::{KeyPair, PublicKey};
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
@@ -170,6 +176,32 @@ fn test_send_asset_via_wallet() {
         Felt::new(2),
     );
     assert!(transaction_result.final_account_hash() == sender_account_after.hash());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_wallet_creation() {
+    // we need a Falcon Public Key to create the wallet account
+    let key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let pub_key: PublicKey = key_pair.public_key();
+    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
+        pub_key: pub_key.into(),
+    };
+
+    // we need to use an initial seed to create the wallet account
+    let init_seed: [u8; 32] = [
+        95, 113, 209, 94, 84, 105, 250, 242, 223, 203, 216, 124, 22, 159, 14, 132, 215, 85, 183,
+        204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
+    ];
+
+    let (wallet, _) = create_basic_wallet(init_seed, auth_scheme).unwrap();
+
+    let expected_code_root = get_account_with_default_account_code(None).code().root();
+
+    assert!(wallet.is_regular_account() == true);
+    assert!(wallet.code().root() == expected_code_root);
+    let pub_key_word: Word = pub_key.into();
+    assert!(wallet.storage().get_item(0).as_elements() == pub_key_word);
 }
 
 fn get_account_with_default_account_code(asset: Option<Asset>) -> Account {

@@ -12,6 +12,7 @@ pub mod assembler;
 pub mod memory;
 pub mod notes;
 pub mod transaction;
+pub mod wallets;
 
 // STANDARD LIBRARY
 // ================================================================================================
