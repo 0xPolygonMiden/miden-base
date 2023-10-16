@@ -11,7 +11,7 @@ use.miden::sat::account
 use.miden::sat::asset
 use.miden::sat::faucet
 use.miden::sat::tx
-use.miden::eoa::basic->basic_eoa
+use.miden::eoa::basic
 
 # CONSTANTS
 # =================================================================================================
@@ -20,7 +20,7 @@ use.miden::eoa::basic->basic_eoa
 const.METADATA_SLOT=1
 
 # Basic authentication for the faucet owner.
-export.basic_eoa::auth_tx_rpo_falcon512
+export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
 #! 
