@@ -1,15 +1,11 @@
-use crate::assembler::assembler;
+use crate::{assembler::assembler, auth::AuthScheme};
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault},
     assembly::ModuleAst,
-    crypto::{dsa::rpo_falcon512, merkle::MerkleStore},
+    crypto::merkle::MerkleStore,
     utils::{format, string::String, vec},
     AccountError, Word, ZERO,
 };
-
-pub enum AuthScheme {
-    RpoFalcon512 { pub_key: rpo_falcon512::PublicKey },
-}
 
 /// Creates a new account with basic wallet interface and the specified authentication scheme.
 ///

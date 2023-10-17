@@ -28,6 +28,7 @@ pub enum AccountError {
     DuplicateStorageItems(MerkleError),
     FungibleAssetNotFound(FungibleAsset),
     FungibleFaucetIdInvalidFirstBit,
+    FungibleFaucetInvalidMetadata(String),
     InconsistentAccountIdSeed {
         expected: AccountId,
         actual: AccountId,

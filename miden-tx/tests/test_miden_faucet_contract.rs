@@ -1,6 +1,7 @@
 use miden_lib::{
     assembler::assembler,
-    faucets::{create_basic_faucet, AuthScheme},
+    auth::AuthScheme,
+    faucets::{create_basic_faucet, encode_symbol_to_felt},
 };
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
@@ -227,15 +228,17 @@ fn test_faucet_contract_creation() {
         204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
-    let faucet_meta_data: Word = [Felt::new(123), ZERO, Felt::new(456), Felt::new(789)];
+    let max_supply = Felt::new(123);
+    let token_symbol = "POL".to_string();
+    let decimals = 2u8;
 
     let (faucet_account, _) =
-        create_basic_faucet(init_seed, faucet_meta_data, auth_scheme).unwrap();
+        create_basic_faucet(init_seed, token_symbol, decimals, max_supply, auth_scheme).unwrap();
 
     // check that max_supply (slot 1) is 123
     assert!(
         faucet_account.storage().get_item(1)
-            == [Felt::new(123), ZERO, Felt::new(456), Felt::new(789)].into()
+            == [Felt::new(123), ZERO, Felt::new(2), encode_symbol_to_felt("POL").unwrap()].into()
     );
 
     assert!(faucet_account.is_faucet() == true);

@@ -9,6 +9,7 @@ use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Ve
 mod tests;
 
 pub mod assembler;
+pub mod auth;
 pub mod faucets;
 pub mod memory;
 pub mod notes;
