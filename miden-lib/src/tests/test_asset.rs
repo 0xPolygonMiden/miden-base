@@ -1,4 +1,4 @@
-use super::{Hasher, MemAdviceProvider, Word};
+use super::{Hasher, MemAdviceProvider, Word, ONE};
 use mock::{
     constants::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -13,7 +13,11 @@ use mock::{
 #[test]
 fn test_create_fungible_asset_succeeds() {
     let (account, block_header, chain, notes) = mock_inputs(
-        MockAccountType::FungibleFaucet(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN),
+        MockAccountType::FungibleFaucet {
+            acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            nonce: ONE,
+            empty_reserved_slot: false,
+        },
         AssetPreservationStatus::Preserved,
     );
 
@@ -52,8 +56,14 @@ fn test_create_fungible_asset_succeeds() {
 
 #[test]
 fn test_create_non_fungible_asset_succeeds() {
-    let (account, block_header, chain, notes) =
-        mock_inputs(MockAccountType::NonFungibleFaucet, AssetPreservationStatus::Preserved);
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::NonFungibleFaucet {
+            acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            nonce: ONE,
+            empty_reserved_slot: false,
+        },
+        AssetPreservationStatus::Preserved,
+    );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
     let code = format!(

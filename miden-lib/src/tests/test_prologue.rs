@@ -12,7 +12,17 @@ use crate::memory::{
 };
 use miden_objects::transaction::PreparedTransaction;
 use mock::{
-    constants::ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    constants::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
+        ACCOUNT_SEED_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
+        ACCOUNT_SEED_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
+        ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+        ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
+        ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
+    },
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     prepare_transaction, run_tx,
@@ -267,6 +277,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
     }
 }
 
+#[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
     let (account, block_header, chain, notes) =
@@ -304,6 +315,185 @@ pub fn test_prologue_create_account() {
     .unwrap();
 }
 
+#[cfg_attr(not(feature = "testing"), ignore)]
+#[test]
+pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::FungibleFaucet {
+            acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
+            nonce: ZERO,
+            empty_reserved_slot: true,
+        },
+        AssetPreservationStatus::Preserved,
+    );
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    let account_seed: Word = ACCOUNT_SEED_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+    );
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    );
+    assert!(process.is_ok());
+}
+
+#[cfg_attr(not(feature = "testing"), ignore)]
+#[test]
+pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::FungibleFaucet {
+            acct_id: ACCOUT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
+            nonce: ZERO,
+            empty_reserved_slot: false,
+        },
+        AssetPreservationStatus::Preserved,
+    );
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    let account_seed: Word = ACCOUNT_SEED_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+    );
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    );
+    assert!(process.is_err());
+}
+
+#[cfg_attr(not(feature = "testing"), ignore)]
+#[test]
+pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::NonFungibleFaucet {
+            acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
+            nonce: ZERO,
+            empty_reserved_slot: true,
+        },
+        AssetPreservationStatus::Preserved,
+    );
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    let account_seed: Word = ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+    );
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    );
+    assert!(process.is_ok())
+}
+
+#[cfg_attr(not(feature = "testing"), ignore)]
+#[test]
+pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
+    let (account, block_header, chain, notes) = mock_inputs(
+        MockAccountType::NonFungibleFaucet {
+            acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+            nonce: ZERO,
+            empty_reserved_slot: false,
+        },
+        AssetPreservationStatus::Preserved,
+    );
+    let code = "
+    use.miden::sat::internal::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+    end
+    ";
+
+    let account_seed: Word = ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
+        .iter()
+        .map(|x| Felt::new(*x))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+
+    let transaction = prepare_transaction(
+        account,
+        Some(account_seed),
+        block_header,
+        chain,
+        notes,
+        code,
+        "",
+        None,
+    );
+
+    let process = run_tx(
+        transaction.tx_program().clone(),
+        transaction.stack_inputs(),
+        MemAdviceProvider::from(transaction.advice_provider_inputs()),
+    );
+    assert!(process.is_err());
+}
+
+#[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
     let (account, block_header, chain, notes) =

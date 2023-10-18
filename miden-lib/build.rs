@@ -51,9 +51,9 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
         line.clear();
         line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=1024"); // 2**10
     }
-    if line.starts_with("const.FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER") {
+    if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
         line.clear();
-        line.push_str("const.FAUCET_SEED_DIGEST_EXTRA_MODULUS_MULTIPLIER=2"); // 2**11
+        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2048"); // 2**11
     }
     Ok(line)
 }

@@ -26,8 +26,16 @@ pub fn mock_inputs(
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => mock_account(Felt::ONE, None, &assembler),
-        MockAccountType::FungibleFaucet(acct_id) => mock_fungible_faucet(acct_id, &assembler),
-        MockAccountType::NonFungibleFaucet => mock_non_fungible_faucet(&assembler),
+        MockAccountType::FungibleFaucet {
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+        } => mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler),
+        MockAccountType::NonFungibleFaucet {
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+        } => mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler),
     };
 
     // mock notes
@@ -64,10 +72,18 @@ pub fn mock_inputs_with_existing(
         MockAccountType::StandardExisting => {
             account.unwrap_or(mock_account(Felt::ONE, None, &assembler))
         }
-        MockAccountType::FungibleFaucet(acct_id) => {
-            account.unwrap_or(mock_fungible_faucet(acct_id, &assembler))
+        MockAccountType::FungibleFaucet {
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+        } => {
+            account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler))
         }
-        MockAccountType::NonFungibleFaucet => mock_non_fungible_faucet(&assembler),
+        MockAccountType::NonFungibleFaucet {
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+        } => mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler),
     };
 
     let (mut consumed_notes, _created_notes) = mock_notes(&assembler, &asset_preservation);

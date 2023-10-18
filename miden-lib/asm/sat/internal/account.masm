@@ -366,23 +366,21 @@ export.validate_seed
         movdn.3 drop drop exec.layout::get_acct_id eq assert
         # => [pow]
 
-        # construct a modulus to check the min number of trailing zeros required in the pow
-        exec.constants::get_regular_account_seed_digest_modulus
-        # => [modulus, pow]
+        # get acct and facuet modulus to check the min number of trailing zeros required in the pow
+        exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
+        # => [faucet_modulus, acct_modulus, pow]
 
         exec.layout::get_acct_id
-        # => [acct_id, modulus, pow]
+        # => [acct_id, faucet_modulus, acct_modulus, pow]
 
         exec.is_faucet
-        # => [is_faucet, modulus, pow]
+        # => [is_faucet, faucet_modulus, acct_modulus, pow]
 
-        exec.constants::get_faucet_seed_digest_modulus_multiplier
-        # => [modulus_mul, is_faucet, modulus, pow]
-
-        mul mul swap
+        # select the appropriate modulus based on the account type
+        cdrop swap
         # => [pow, modulus]
 
         # assert that the pow is valid
-        u32split drop u32unchecked_divmod assertz drop 
+        u32split drop swap u32unchecked_divmod assertz drop 
         # => []
 end

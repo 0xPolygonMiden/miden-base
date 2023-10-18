@@ -149,42 +149,64 @@ pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assemble
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
 
-pub fn mock_fungible_faucet(account_id: u64, assembler: &Assembler) -> Account {
+pub fn mock_fungible_faucet(
+    account_id: u64,
+    nonce: Felt,
+    empty_reserved_slot: bool,
+    assembler: &Assembler,
+) -> Account {
+    let initial_balance = if empty_reserved_slot {
+        ZERO
+    } else {
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
+    };
     let account_storage = AccountStorage::new(
-        vec![(
-            FAUCET_STORAGE_DATA_SLOT,
-            [ZERO, ZERO, ZERO, Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)],
-        )],
+        vec![(FAUCET_STORAGE_DATA_SLOT, [ZERO, ZERO, ZERO, initial_balance])],
         Default::default(),
     )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
+    Account::new(account_id, AccountVault::default(), account_storage, account_code, nonce)
 }
 
-pub fn mock_non_fungible_faucet(assembler: &Assembler) -> Account {
-    let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    let nft_tree = TieredSmt::with_entries(vec![(
-        Word::from(non_fungible_asset).into(),
-        non_fungible_asset.into(),
-    )])
-    .unwrap();
+pub fn mock_non_fungible_faucet(
+    account_id: u64,
+    nonce: Felt,
+    empty_reserved_slot: bool,
+    assembler: &Assembler,
+) -> Account {
+    let entires = match empty_reserved_slot {
+        true => vec![],
+        false => vec![(
+            Word::from(non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)).into(),
+            non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).into(),
+        )],
+    };
+    let nft_tree = TieredSmt::with_entries(entires).unwrap();
 
     let account_storage = AccountStorage::new(
         vec![(FAUCET_STORAGE_DATA_SLOT, nft_tree.root().into())],
         (&nft_tree).into(),
     )
     .unwrap();
-    let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ONE)
+    Account::new(account_id, AccountVault::default(), account_storage, account_code, nonce)
 }
 
 #[derive(Debug, PartialEq)]
 pub enum MockAccountType {
     StandardNew,
     StandardExisting,
-    FungibleFaucet(u64),
-    NonFungibleFaucet,
+    FungibleFaucet {
+        acct_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+    },
+    NonFungibleFaucet {
+        acct_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+    },
 }
