@@ -34,11 +34,11 @@ pub fn create_note(
 ) -> Result<Note, NoteError> {
     let note_assembler = assembler();
     let (note_script, inputs): (&str, Vec<Felt>) = match script {
-        Script::P2ID { target } => ("p2id", vec![target.into()]), // Convert `target` to a suitable type if necessary
+        Script::P2ID { target } => ("p2id", vec![target.into(), ZERO, ZERO, ZERO]), // Convert `target` to a suitable type if necessary
         Script::P2IDR {
             target,
             recall_height,
-        } => ("p2idr", vec![target.into(), recall_height.into()]), // Convert both to a suitable type
+        } => ("p2idr", vec![ZERO, ZERO, target.into(), recall_height.into()]), // Convert both to a suitable type
     };
 
     // Create the note
@@ -47,6 +47,11 @@ pub fn create_note(
         use.miden::note_scripts::basic
     
         begin
+            # drop the transaction script root
+            dropw
+            # => []
+
+            # invoke the note script procedure
             exec.basic::{note_script}
         end
         "

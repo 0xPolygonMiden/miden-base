@@ -48,6 +48,9 @@ const.NULLIFIER_COM_PTR=103
 # The memory address at which the initial nonce is stored
 const.INIT_NONCE_PTR=104
 
+# The memory address at which the transaction script mast root is store
+const.TX_SCRIPT_ROOT_PTR=105
+
 # GLOBAL BLOCK DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -366,6 +369,27 @@ export.set_init_nonce
     push.INIT_NONCE_PTR mem_store
 end
 
+#! Gets the transaction script root.
+#!
+#! Stack: []
+#! Output: [TX_SCRIPT_ROOT]
+#!
+#! - TX_SCRIPT_ROOT is the transaction script root.
+export.get_tx_script_root
+    padw push.TX_SCRIPT_ROOT_PTR mem_loadw
+end
+
+
+#! Sets the transaction script root.
+#!
+#! Stack: [TX_SCRIPT_ROOT]
+#! Output: []
+#!
+#! - TX_SCRIPT_ROOT is the transaction script root.
+export.set_tx_script_root
+    push.TX_SCRIPT_ROOT_PTR mem_storew dropw
+end
+
 # BLOCK DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -670,6 +694,16 @@ end
 
 # CONSUMED NOTES
 # -------------------------------------------------------------------------------------------------
+
+#! Gets the total number of consumed notes in the transaction.
+#!
+#! Stack: []
+#! Output: [num_consumed_notes]
+#!
+#! - num_consumed_notes is the total number of consumed notes in the transaction.
+export.get_total_num_consumed_notes
+    push.CONSUMED_NOTE_NUM_PTR mem_load
+end
 
 #! Sets the total number of consumed notes in the transaction.
 #!

@@ -15,6 +15,7 @@ pub mod assembler;
 pub mod faucets;
 pub mod memory;
 pub mod notes;
+pub mod outputs;
 pub mod transaction;
 pub mod wallets;
 
@@ -66,47 +67,15 @@ impl SatKernel {
         include_str!("../asm/sat/kernel.masm")
     }
 
-    // SAT KERNEL SECTIONS
+    // SAT KERNEL MAIN
     // --------------------------------------------------------------------------------------------
-    /// Returns masm source code which encodes the transaction kernel prologue.
-    pub fn prologue() -> &'static str {
+    /// Returns masm source code which encodes the transaction kernel main procedure.
+    pub fn main() -> &'static str {
         "\
-        use.miden::sat::internal::prologue
+        use.miden::sat::internal::main
 
         begin
-            exec.prologue::prepare_transaction
-        end
-        "
-    }
-
-    /// Returns masm source code which encodes the transaction kernel epilogue.
-    pub fn epilogue() -> &'static str {
-        "\
-        use.miden::sat::internal::epilogue
-
-        begin
-            exec.epilogue::finalize_transaction
-        end"
-    }
-
-    /// Returns masm source code which encodes the transaction kernel note setup script.
-    pub fn note_setup() -> &'static str {
-        "\
-        use.miden::sat::internal::note_setup
-
-        begin
-            exec.note_setup::prepare_note
-        end
-        "
-    }
-
-    /// Returns masm source code which encodes the transaction kernel note teardown script.
-    pub fn note_processing_teardown() -> &'static str {
-        "\
-        use.miden::sat::internal::note
-
-        begin
-            exec.note::reset_current_consumed_note_ptr
+            exec.main::main
         end
         "
     }

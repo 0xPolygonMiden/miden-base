@@ -172,6 +172,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 
         # burn the asset
         begin
+            dropw
             exec.note::get_assets drop
             mem_loadw
             call.faucet_contract::burn

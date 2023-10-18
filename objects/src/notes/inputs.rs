@@ -1,4 +1,4 @@
-use super::{Digest, Felt, Hasher, NoteError, ZERO};
+use super::{Digest, Felt, Hasher, NoteError, Vec, ZERO};
 
 /// Holds the inputs which are placed onto the stack before a note's script is executed.
 /// - inputs are stored in reverse stack order such that when they are pushed onto stack they are
@@ -19,8 +19,7 @@ impl NoteInputs {
     // --------------------------------------------------------------------------------------------
     /// Returns NoteInputs created from the provided inputs.
     ///
-    /// The inputs (provided in reverse stack order) are padded with ZERO such that they are always
-    /// of length 16.
+    /// The inputs are padded with ZERO such that they are always of length 16.
     ///
     /// # Errors
     /// Returns an error if the number of provided inputs is greater than 16.
@@ -30,11 +29,14 @@ impl NoteInputs {
         }
 
         // pad inputs with ZERO to be constant size (16 elements)
-        let mut padded_inputs = [ZERO; Self::NOTE_NUM_INPUTS];
-
-        // insert inputs in reverse stack order starting from the end of the array
-        let start_index = Self::NOTE_NUM_INPUTS - inputs.len();
-        padded_inputs[start_index..].copy_from_slice(inputs);
+        let padded_inputs: [Felt; Self::NOTE_NUM_INPUTS] = inputs
+            .iter()
+            .cloned()
+            .chain(core::iter::repeat(ZERO))
+            .take(Self::NOTE_NUM_INPUTS)
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("padded are of the correct length");
 
         // compute hash from padded inputs.
         let hash = Hasher::hash_elements(&padded_inputs);
@@ -67,22 +69,22 @@ fn test_input_ordering() {
     let inputs = Vec::from([Felt::new(1), Felt::new(2), Felt::new(3)]);
     // we expect the inputs to be padded to length 16 and to remain in reverse stack order.
     let expected_ordering = Vec::from([
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
         Felt::new(1),
         Felt::new(2),
         Felt::new(3),
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
+        ZERO,
     ]);
 
     let note_inputs = NoteInputs::new(&inputs).expect("note created should succeed");

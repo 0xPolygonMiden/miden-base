@@ -103,6 +103,7 @@ impl PreparedTransaction {
             &self.block_header,
             &self.block_chain,
             &self.consumed_notes,
+            &self.tx_script_root,
         )
     }
 

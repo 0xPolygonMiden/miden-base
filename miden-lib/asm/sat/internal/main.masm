@@ -1,0 +1,136 @@
+use.std::utils
+
+use.miden::sat::internal::epilogue
+use.miden::sat::internal::layout
+use.miden::sat::internal::note
+use.miden::sat::internal::prologue
+
+#! This is the entrypoint for the transaction kernel program. It is composed of the following
+#! program sections:
+#!
+#! 1. Prologue: execute the transaction prologue which prepares the transaction for processing
+#!    by parsing the transaction data and setting up the root context.
+#! 2. Note Processing: execute the note processing loop which consumes each input note and 
+#!    invokes the note script of each note via a `dyncall` instruction invocation.
+#! 3. Transaction Script Processing: execute the transaction script if it exists via the invocation
+#!    of a `dyncall` instruction.
+#! 4. Epilogue: execute the transaction epilogue which finalizes the transaction by computing the 
+#!    created notes commitment, the final account hash, asserting asset invariant conditions and
+#!    asserting the nonce rules are upheld.
+#!
+#! Stack:        [BH, acct_id, IAH, NC]
+#! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
+#!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
+#!                num_cn,
+#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                CN1_A1, CN1_A2, ...
+#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                CN2_A1, CN2_A2, ...,
+#!                ...,
+#!                TXSR]
+#! Output:       [TXSR, CNC, FAH]
+#!
+#!
+#! - BH is the latest known block hash at the time of transaction execution.
+#! - acct_id is the account id of the account that the transaction is being executed against.
+#! - NR is the note root of the last known block.
+#! - PH is the previous hash of the last known block.
+#! - CR is the chain root of the last known block.
+#! - SR is the state root of the last known block.
+#! - BR is the batch root of the last known block.
+#! - PH is the proof hash of the last known block.
+#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
+#! - IAH is the initial account hash of the account that the transaction is being executed against.
+#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
+#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+#! - nonce is the account nonce.
+#! - AVR is the account vault root.
+#! - ASR is the account storage root.
+#! - ACR is the account code root.
+#! - num_cn is the number of consumed notes.
+#! - CN1_SN is the serial number of consumed note 1.
+#! - CN1_SR is the script root of consumed note 1.
+#! - CN1_IR is the inputs root of consumed note 1.
+#! - CN1_VR is the vault root of consumed note 1.
+#! - CN1_M is the metadata of consumed note 1.
+#! - CN1_A1 is the first asset of consumed note 1.
+#! - CN1_A2 is the second asset of consumed note 1.
+#! - TXSR is the transaction script root.
+#! - CNC is the commitment to the notes created by the transaction.
+#! - FAH is the final account hash of the account that the transaction is being
+#!   executed against.
+export.main
+    # Prologue
+    # ---------------------------------------------------------------------------------------------
+
+    # execute the transaction prologue
+    exec.prologue::prepare_transaction
+    # => []
+
+    # Note Processing
+    # ---------------------------------------------------------------------------------------------
+
+    # get the total number of consumed notes
+    exec.layout::get_total_num_consumed_notes
+    # => [num_consumed_notes]
+
+    # check if we have any notes to consume
+    eq.0 not
+    # => [should_loop]
+
+    # loop while we have notes to consume
+    while.true
+        # execute the note setup script
+        exec.note::prepare_note
+        # => [NOTE_SCRIPT_HASH]
+
+        # invoke the note script using the dyncall instruction
+        dyncall
+        # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]
+
+        # clean up note script outputs
+        dropw dropw dropw dropw
+        # => []
+
+        # check if we have more notes to consume and should loop again
+        exec.layout::get_total_num_consumed_notes
+        exec.layout::get_current_consumed_note_idx
+        neq
+        # => [should_loop]
+    end
+
+    # execute note processing teardown
+    exec.note::note_processing_teardown
+    # => []
+
+    # Transaction Script Processing
+    # ---------------------------------------------------------------------------------------------
+
+    # execute the transaction script
+    exec.layout::get_tx_script_root
+    # => [TX_SCRIPT_ROOT]
+
+    exec.utils::is_empty_word not
+    # => [has_tx_script, TX_SCRIPT_ROOT]
+
+    if.true
+        # execute the transaction script
+        dyncall
+        # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]
+
+        # clean up transaction script outputs
+        dropw dropw dropw dropw
+        # => []
+    else
+        # drop the empty transaction script root word
+        dropw
+        # => []
+    end
+
+    # Epilogue
+    # ---------------------------------------------------------------------------------------------
+
+    # execute the transaction epilogue
+    exec.epilogue::finalize_transaction
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+end

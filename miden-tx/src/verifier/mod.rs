@@ -1,29 +1,31 @@
 use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
+use miden_lib::outputs::{
+    CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
+};
 use miden_objects::{
     notes::NoteEnvelope,
     transaction::{ConsumedNoteInfo, ProvenTransaction},
     Felt, Word, WORD_SIZE, ZERO,
 };
 use miden_verifier::verify;
-use vm_core::{stack::STACK_TOP_SIZE, StackInputs, StackOutputs};
+use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackInputs, StackOutputs};
 
 /// The [TransactionVerifier] is used to verify a [ProvenTransaction].
 ///
-/// The [TransactionVerifier] contains a [TransactionComplier] object which we use to construct
-/// the transaction program associated with a transaction.  The `proof_security_level` specifies
-/// the minimum security level that the transaction proof must have in order to be considered
-/// valid.
+/// The [TransactionVerifier] contains a [ProgramInfo] object which is associated with the
+/// transaction kernel program.  The `proof_security_level` specifies the minimum security
+/// level that the transaction proof must have in order to be considered valid.
 pub struct TransactionVerifier {
-    compiler: TransactionCompiler,
+    tx_program_info: ProgramInfo,
     proof_security_level: u32,
 }
 
 impl TransactionVerifier {
     /// Creates a new [TransactionVerifier] object.
     pub fn new(proof_security_level: u32) -> Self {
-        let compiler = TransactionCompiler::new();
+        let tx_program_info = TransactionCompiler::new().build_program_info();
         Self {
-            compiler,
+            tx_program_info,
             proof_security_level,
         }
     }
@@ -34,14 +36,8 @@ impl TransactionVerifier {
     /// - if transaction verification fails.
     /// - if the proof security level is insufficient.
     pub fn verify(&self, transaction: ProvenTransaction) -> Result<(), TransactionVerifierError> {
-        let consumed_notes_hashes =
-            transaction.consumed_notes().iter().map(|x| x.script_root()).collect();
-        let program_info = self
-            .compiler
-            .build_program_info(consumed_notes_hashes, transaction.tx_script_root());
-
         let proof_security_level = verify(
-            program_info,
+            self.tx_program_info.clone(),
             Self::build_stack_inputs(&transaction),
             Self::build_stack_outputs(&transaction),
             transaction.proof().clone(),
@@ -95,10 +91,16 @@ impl TransactionVerifier {
     /// Returns the stack outputs for the transaction.
     fn build_stack_outputs(transaction: &ProvenTransaction) -> StackOutputs {
         let mut stack_outputs: Vec<Felt> = vec![ZERO; STACK_TOP_SIZE];
-        stack_outputs[STACK_TOP_SIZE - WORD_SIZE..].copy_from_slice(
-            Self::compute_created_notes_commitment(transaction.created_notes()).as_elements(),
-        );
-        stack_outputs[STACK_TOP_SIZE - (2 * WORD_SIZE)..STACK_TOP_SIZE - WORD_SIZE]
+        stack_outputs[STACK_TOP_SIZE - ((TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE)
+            ..STACK_TOP_SIZE - (TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE)]
+            .copy_from_slice(transaction.tx_script_root().unwrap_or_default().as_elements());
+        stack_outputs[STACK_TOP_SIZE - ((CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE)
+            ..STACK_TOP_SIZE - (CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE)]
+            .copy_from_slice(
+                Self::compute_created_notes_commitment(transaction.created_notes()).as_elements(),
+            );
+        stack_outputs[STACK_TOP_SIZE - ((FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE)
+            ..STACK_TOP_SIZE - (FINAL_ACCOUNT_HASH_WORD_IDX * WORD_SIZE)]
             .copy_from_slice(transaction.final_account_hash().as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())

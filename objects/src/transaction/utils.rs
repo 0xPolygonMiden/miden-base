@@ -50,6 +50,7 @@ pub fn generate_advice_provider_inputs(
     block_header: &BlockHeader,
     block_chain: &ChainMmr,
     notes: &ConsumedNotes,
+    tx_script_root: &Option<Digest>,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
 
@@ -64,6 +65,9 @@ pub fn generate_advice_provider_inputs(
 
     // insert consumed notes data to advice stack
     notes.to_advice_inputs(&mut advice_inputs);
+
+    // insert transaction script root into advice map
+    advice_inputs.extend_stack(*tx_script_root.unwrap_or_default());
 
     // insert account id seed into advice map
     if let Some(seed) = account_id_seed {

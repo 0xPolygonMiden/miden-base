@@ -50,10 +50,8 @@ end
 #! 
 #! Requires that the account exposes: miden::wallets::basic::receive_asset procedure.
 #!
-#! Inputs: [target_account_id]
+#! Stack Inputs: []
 #! Outputs: []
-#!
-#! - ASSET is the asset to be received, can be fungible or non-fungible
 #!
 #! FAILS if: 
 #! - Account does not expose miden::wallets::basic::receive_asset procedure.
@@ -62,7 +60,13 @@ end
 #! - Adding a fungible asset would result in amount overflow, i.e.,
 #!   the total amount would be greater than 2^63.
 export.p2id                                             
-    # => [note_inputs = target_account_id, ...]                                            
+    # load the note inputs to memory starting at address 0
+    push.0 exec.note::get_inputs
+    # => [inputs_ptr]
+
+    # read the target account id from the note inputs
+    mem_load
+    # => [target_account_id]
     
     exec.account::get_id                                
     # => [account_id, target_account_id, ...]
@@ -78,9 +82,12 @@ end
 #! Pay to ID reclaimable: ensures that note can be consumed only by an account with the provided ID
 #! or after provided block number also by the sender account
 #! 
-#! Inputs: [reclaim_block_height, target_account_id, ...]
+#! Note Inputs: [reclaim_block_height, target_account_id, ...]
+#! Stack Inputs: []
 #! Outputs: []
 #!
+#! - reclaim_block_height is the block height at which the note can be reclaimed by the sender
+#! - target_account_id is the account ID to which the assets should be added
 #! - ASSET is the asset to be received, can be fungible or non-fungible
 #!
 #! FAILS if: 
@@ -91,8 +98,14 @@ end
 #! - Adding a fungible asset would result in amount overflow, i.e.,
 #!   the total amount would be greater than 2^63.
 export.p2idr
-    # => [reclaim_block_height, target_account_id, ...]                                                                                        
-    
+    # load the note inputs to memory starting at address 0
+    push.0 exec.note::get_inputs
+    # => [inputs_ptr]
+
+    # read the reclaim block height and target account id from the note inputs
+    padw movup.4 mem_loadw movup.2 drop movup.2 drop
+    # => [reclaim_block_height, target_account_id]
+
     exec.account::get_id dup
     # => [account_id, account_id, reclaim_block_height, target_account_id, ...]
 

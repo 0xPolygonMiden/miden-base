@@ -1,11 +1,14 @@
-use super::{Felt, MemAdviceProvider};
-use miden_objects::notes::Note;
+use super::{AdviceProvider, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO};
+use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
+use miden_objects::{notes::Note, transaction::PreparedTransaction};
 use mock::{
+    consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     prepare_transaction,
     procedures::prepare_word,
     run_tx,
 };
+use vm_core::WORD_SIZE;
 
 #[test]
 fn test_get_sender_no_sender() {
@@ -15,7 +18,6 @@ fn test_get_sender_no_sender() {
     // calling get_sender should return sender
     let code = "
         use.miden::sat::internal::prologue
-        use.miden::sat::internal::note_setup
         use.miden::sat::note
 
         begin
@@ -25,7 +27,7 @@ fn test_get_sender_no_sender() {
         ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -43,19 +45,19 @@ fn test_get_sender() {
     // calling get_sender should return sender
     let code = "
         use.miden::sat::internal::prologue
-        use.miden::sat::internal::note_setup
+        use.miden::sat::internal::note->note_internal
         use.miden::sat::note
 
         begin
             exec.prologue::prepare_transaction
-            exec.note_setup::prepare_note
+            exec.note_internal::prepare_note
             dropw dropw dropw dropw
             exec.note::get_sender
         end
         ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -77,14 +79,13 @@ fn test_get_vault_data() {
     let code = format!(
         "
         use.miden::sat::internal::prologue
-        use.miden::sat::internal::note_setup
         use.miden::sat::internal::note
 
         begin
             exec.prologue::prepare_transaction
 
             # prepare note 0
-            exec.note_setup::prepare_note
+            exec.note::prepare_note
 
             # get the vault data
             exec.note::get_vault_info
@@ -94,7 +95,7 @@ fn test_get_vault_data() {
             push.{note_0_num_assets} assert_eq
 
             # prepare note 1
-            exec.note_setup::prepare_note
+            exec.note::prepare_note
 
             # get the vault data
             exec.note::get_vault_info
@@ -111,7 +112,7 @@ fn test_get_vault_data() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     // run to ensure success
     let _process = run_tx(
@@ -148,7 +149,7 @@ fn test_get_assets() {
     let code = format!(
         "
         use.miden::sat::internal::prologue
-        use.miden::sat::internal::note_setup
+        use.miden::sat::internal::note->note_internal
         use.miden::sat::note
 
         proc.process_note_0
@@ -202,13 +203,13 @@ fn test_get_assets() {
             exec.prologue::prepare_transaction
 
             # prepare note 0
-            exec.note_setup::prepare_note
+            exec.note_internal::prepare_note
 
             # process note 0
             call.process_note_0
 
             # prepare note 1
-            exec.note_setup::prepare_note
+            exec.note_internal::prepare_note
 
             # process note 1
             call.process_note_1
@@ -220,8 +221,17 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1]),
     );
 
-    let inputs =
-        prepare_transaction(account, None, block_header, chain, notes.clone(), &code, "", None);
+    let inputs = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes.clone(),
+        None,
+        &code,
+        "",
+        None,
+    );
 
     let _process = run_tx(
         inputs.tx_program().clone(),
@@ -229,4 +239,137 @@ fn test_get_assets() {
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )
     .unwrap();
+}
+
+#[test]
+fn test_get_inputs() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    const DEST_POINTER_NOTE_0: u32 = 100000000;
+
+    fn construct_input_assertions(note: &Note) -> String {
+        let mut code = String::new();
+        for input_word in note.inputs().inputs().chunks(WORD_SIZE) {
+            code += &format!(
+                "
+                # assert the asset is correct
+                dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.1 add
+                ",
+                input_word = prepare_word(input_word.try_into().unwrap())
+            );
+        }
+        code
+    }
+
+    // calling get_assets should return assets at the specified address
+    let code = format!(
+        "
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note->note_internal
+        use.miden::sat::note
+
+        proc.process_note_0
+            # drop the note inputs
+            dropw
+
+            # set the destination pointer for note 0 assets
+            push.{DEST_POINTER_NOTE_0}
+
+            # get the assets
+            exec.note::get_inputs
+
+            # assert the correct pointer is returned
+            dup eq.{DEST_POINTER_NOTE_0} assert
+
+            # apply note 1 input assertions
+            {NOTE_1_INPUT_ASSERTIONS}
+
+            # clean the pointer
+            drop
+        end
+
+        begin
+            # prepare tx
+            exec.prologue::prepare_transaction
+
+            # prepare note 0
+            exec.note_internal::prepare_note
+
+            # process note 0
+            call.process_note_0
+        end
+        ",
+        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(&notes[0]),
+    );
+
+    let inputs = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes.clone(),
+        None,
+        &code,
+        "",
+        None,
+    );
+
+    let _process = run_tx(
+        inputs.tx_program().clone(),
+        inputs.stack_inputs(),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
+    )
+    .unwrap();
+}
+
+#[test]
+fn test_note_setup() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let code = "
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::note
+
+        begin
+            exec.prologue::prepare_transaction
+            exec.note::prepare_note
+        end
+        ";
+
+    let inputs =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+
+    let process = run_tx(
+        inputs.tx_program().clone(),
+        inputs.stack_inputs(),
+        MemAdviceProvider::from(inputs.advice_provider_inputs()),
+    )
+    .unwrap();
+    note_setup_stack_assertions(&process, &inputs);
+    note_setup_memory_assertions(&process);
+}
+
+fn note_setup_stack_assertions<A: AdviceProvider>(
+    process: &Process<DefaultHost<A>>,
+    inputs: &PreparedTransaction,
+) {
+    let mut expected_stack = [ZERO; 16];
+
+    // replace the top four elements with the tx script root
+    let mut note_script_root = *inputs.consumed_notes().notes()[0].script().hash();
+    note_script_root.reverse();
+    expected_stack[..4].copy_from_slice(&note_script_root);
+
+    // assert that the stack contains the note inputs at the end of execution
+    assert_eq!(process.stack.trace_state(), expected_stack)
+}
+
+fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<DefaultHost<A>>) {
+    // assert that the correct pointer is stored in bookkeeping memory
+    assert_eq!(
+        process.get_mem_value(0, CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
+        Felt::try_from(consumed_note_data_ptr(0)).unwrap()
+    );
 }

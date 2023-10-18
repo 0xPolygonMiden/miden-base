@@ -49,6 +49,42 @@ export.get_assets
     # => [num_assets, dest_ptr]
 end
 
+#! Writes the inputs of the currently execute note into memory starting at the specified address.
+#!
+#! Inputs: [dest_ptr]
+#! Outputs: [dest_ptr]
+#!
+#! - dest_ptr is the memory address to write the inputs.
+export.get_inputs
+    # duplicate the dest_ptr
+    dup
+    # => [dest_ptr, dest_ptr]
+
+    # get the current consumed note inputs hash
+    padw syscall.get_note_inputs_hash
+    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+
+    # load the inputs from the advice map to the advice stack
+    adv.push_mapval
+    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+
+    # prepare stack for inputs ingestion
+    movup.4 padw padw padw
+    # => [WORD, WORD, ZERO, addr, INPUTS_HASH, dest_ptr]
+
+    # load the note inputs from the advice provider
+    adv_pipe hperm adv_pipe hperm
+    # => [PERM, PERM, PERM, addr', INPUTS_HASH, dest_ptr]
+
+    # extract inputs hash and assert it matches commitment stored in memory
+    dropw swapw dropw movup.4 drop
+    # => [DIG, INPUTS_HASH, dest_ptr]
+
+    # assert the inputs hash matches the commitment stored in memory
+    assert_eqw
+    # => [dest_ptr]
+end
+
 #! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.
 #!

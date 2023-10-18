@@ -1,5 +1,10 @@
 use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
-use crate::memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE};
+use crate::{
+    memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
+    outputs::{
+        CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
+    },
+};
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
     procedures::created_notes_data_procedure,
@@ -38,21 +43,29 @@ fn test_epilogue() {
     )
     .unwrap();
 
+    // assert tx script root is correct
+    assert_eq!(
+        process.stack.get_word(TX_SCRIPT_ROOT_WORD_IDX),
+        executed_transaction.tx_script_root().unwrap_or_default().as_elements()
+    );
+
     // assert created notes commitment is correct
     assert_eq!(
-        process.stack.get_word(0),
+        process.stack.get_word(CREATED_NOTES_COMMITMENT_WORD_IDX),
         executed_transaction.created_notes_commitment().as_elements()
     );
 
     // assert final account hash is correct
-    let final_account_hash = (4..8).rev().map(|i| process.stack.get(i)).collect::<Vec<_>>();
-    assert_eq!(executed_transaction.final_account().hash().as_elements(), &final_account_hash);
+    assert_eq!(
+        process.stack.get_word(FINAL_ACCOUNT_HASH_WORD_IDX),
+        executed_transaction.final_account().hash().as_elements(),
+    );
 
     // assert stack has been truncated correctly
     assert_eq!(process.stack.depth(), 16);
 
     // assert the bottom of the stack is filled with zeros
-    for i in 8..16 {
+    for i in 12..16 {
         assert_eq!(process.stack.get(i), ZERO);
     }
 }
