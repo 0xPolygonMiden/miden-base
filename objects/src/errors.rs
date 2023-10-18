@@ -99,6 +99,7 @@ pub enum AssetError {
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
+    TokenSymbolError(String),
 }
 
 impl AssetError {

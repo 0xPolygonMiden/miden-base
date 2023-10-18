@@ -10,6 +10,9 @@ pub use fungible::FungibleAsset;
 mod nonfungible;
 pub use nonfungible::{NonFungibleAsset, NonFungibleAssetDetails};
 
+mod token_symbol;
+pub use token_symbol::TokenSymbol;
+
 // ASSET
 // ================================================================================================
 

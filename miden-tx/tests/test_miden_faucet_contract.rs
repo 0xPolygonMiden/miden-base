@@ -1,12 +1,8 @@
-use miden_lib::{
-    assembler::assembler,
-    auth::AuthScheme,
-    faucets::{create_basic_faucet, encode_symbol_to_felt},
-};
+use miden_lib::{assembler::assembler, faucets::create_basic_faucet, AuthScheme};
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512,
     notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
     Felt, StarkField, Word, ZERO,
@@ -229,16 +225,18 @@ fn test_faucet_contract_creation() {
     ];
 
     let max_supply = Felt::new(123);
-    let token_symbol = "POL".to_string();
+    let token_symbol_string = "POL";
+    let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
     let decimals = 2u8;
 
     let (faucet_account, _) =
-        create_basic_faucet(init_seed, token_symbol, decimals, max_supply, auth_scheme).unwrap();
+        create_basic_faucet(init_seed, token_symbol.clone(), decimals, max_supply, auth_scheme)
+            .unwrap();
 
     // check that max_supply (slot 1) is 123
     assert!(
         faucet_account.storage().get_item(1)
-            == [Felt::new(123), ZERO, Felt::new(2), encode_symbol_to_felt("POL").unwrap()].into()
+            == [Felt::new(123), Felt::new(2), token_symbol.as_felt(), ZERO].into()
     );
 
     assert!(faucet_account.is_faucet() == true);

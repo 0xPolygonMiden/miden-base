@@ -10,6 +10,7 @@ mod tests;
 
 pub mod assembler;
 pub mod auth;
+pub use auth::AuthScheme;
 pub mod faucets;
 pub mod memory;
 pub mod notes;

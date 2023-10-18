@@ -1,4 +1,4 @@
-use miden_lib::{assembler::assembler, auth::AuthScheme, wallets::create_basic_wallet};
+use miden_lib::{assembler::assembler, wallets::create_basic_wallet, AuthScheme};
 
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
