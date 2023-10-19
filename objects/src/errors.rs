@@ -28,6 +28,7 @@ pub enum AccountError {
     DuplicateStorageItems(MerkleError),
     FungibleAssetNotFound(FungibleAsset),
     FungibleFaucetIdInvalidFirstBit,
+    FungibleFaucetInvalidMetadata(String),
     InconsistentAccountIdSeed {
         expected: AccountId,
         actual: AccountId,
@@ -98,6 +99,7 @@ pub enum AssetError {
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
+    TokenSymbolError(String),
 }
 
 impl AssetError {

@@ -8,7 +8,11 @@ use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Ve
 #[cfg(test)]
 mod tests;
 
+mod auth;
+pub use auth::AuthScheme;
+
 pub mod assembler;
+pub mod faucets;
 pub mod memory;
 pub mod notes;
 pub mod transaction;

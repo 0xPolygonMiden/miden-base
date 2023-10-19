@@ -1,11 +1,11 @@
-use miden_lib::assembler::assembler;
-
+use miden_lib::{assembler::assembler, faucets::create_basic_faucet, AuthScheme};
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, FungibleAsset, TokenSymbol},
+    crypto::dsa::rpo_falcon512,
     notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
-    Felt, StarkField, Word,
+    Felt, StarkField, Word, ZERO,
 };
 use mock::{
     constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
@@ -17,6 +17,8 @@ use miden_tx::TransactionExecutor;
 
 mod common;
 use common::MockDataStore;
+
+use vm_core::crypto::dsa::rpo_falcon512::{KeyPair, PublicKey};
 
 #[test]
 fn test_faucet_contract_mint_fungible_asset_succeeds() {
@@ -205,6 +207,48 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // check that the account burned the asset
     assert!(transaction_result.account_delta().nonce.unwrap() == Felt::new(2));
     assert!(transaction_result.consumed_notes().notes()[0].hash() == note.hash());
+}
+
+#[test]
+fn test_faucet_contract_creation() {
+    // we need a Falcon Public Key to create the wallet account
+    let key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let pub_key: PublicKey = key_pair.public_key();
+    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
+        pub_key: pub_key.into(),
+    };
+
+    // we need to use an initial seed to create the wallet account
+    let init_seed: [u8; 32] = [
+        90, 110, 209, 94, 84, 105, 250, 242, 223, 203, 216, 124, 22, 159, 14, 132, 215, 85, 183,
+        204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
+    ];
+
+    let max_supply = Felt::new(123);
+    let token_symbol_string = "POL";
+    let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
+    let decimals = 2u8;
+
+    let (faucet_account, _) =
+        create_basic_faucet(init_seed, token_symbol.clone(), decimals, max_supply, auth_scheme)
+            .unwrap();
+
+    // check that max_supply (slot 1) is 123
+    assert!(
+        faucet_account.storage().get_item(1)
+            == [Felt::new(123), Felt::new(2), TokenSymbol::from(token_symbol).into(), ZERO].into()
+    );
+
+    assert!(faucet_account.is_faucet() == true);
+
+    let exp_faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic.masm");
+    let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
+    let mut account_assembler = assembler();
+
+    let exp_faucet_account_code =
+        AccountCode::new(exp_faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
+
+    assert!(faucet_account.code() == &exp_faucet_account_code);
 }
 
 fn get_faucet_account_with_max_supply_and_total_issuance(
