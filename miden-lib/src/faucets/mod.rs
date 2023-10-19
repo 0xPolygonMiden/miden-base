@@ -46,7 +46,7 @@ pub fn create_basic_faucet(
     // First check that the metadata is valid.
     if decimals > MAX_DECIMALS {
         return Err(AccountError::FungibleFaucetInvalidMetadata(
-            "Decimals must be less than 19".to_string(),
+            "Decimals must be less than 13".to_string(),
         ));
     } else if max_supply.as_int() > MAX_MAX_SUPPLY {
         return Err(AccountError::FungibleFaucetInvalidMetadata(
@@ -54,7 +54,7 @@ pub fn create_basic_faucet(
         ));
     }
 
-    // Note: data is stored as [ao, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0, ...]
+    // Note: data is stored as [a0, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0, ...]
     let metadata = [max_supply, Felt::from(decimals), symbol.into(), ZERO];
 
     // We store the authentication data and the token metadata in the account storage:

@@ -12,6 +12,10 @@ impl TokenSymbol {
         let felt = encode_symbol_to_felt(symbol)?;
         Ok(Self(felt))
     }
+
+    pub fn to_str(&self) -> String {
+        decode_felt_to_symbol(self.0)
+    }
 }
 
 impl From<TokenSymbol> for Felt {
@@ -36,8 +40,7 @@ impl TryFrom<Felt> for TokenSymbol {
         if felt.as_int() >= TokenSymbol::MAX_ENCODED_VALUE {
             return Err(AssetError::TokenSymbolError("Encoded value is too large".to_string()));
         }
-        let symbol = decode_felt_to_symbol(felt);
-        TokenSymbol::new(&symbol)
+        Ok(TokenSymbol(felt))
     }
 }
 
@@ -48,7 +51,7 @@ impl TryFrom<Felt> for TokenSymbol {
 fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
     if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGHT {
         return Err(AssetError::TokenSymbolError(
-            "Token Symbol must be of length >0 and <7".to_string(),
+            "Token symbol must be between 1 and 6 characters long.".to_string(),
         ));
     } else if s.chars().any(|c| !c.is_ascii_uppercase()) {
         return Err(AssetError::TokenSymbolError(
@@ -89,8 +92,8 @@ fn decode_felt_to_symbol(encoded_felt: Felt) -> String {
 fn test_token_symbol_decoding_encoding() {
     let symbols = vec!["AAAAAA", "AAAAAB", "AAAAAC", "AAAAAD", "AAAAAE", "AAAAAF", "AAAAAG"];
     for symbol in symbols {
-        let felt = encode_symbol_to_felt(symbol).unwrap();
-        let decoded_symbol = decode_felt_to_symbol(felt);
+        let token_symbol = TokenSymbol::try_from(symbol).unwrap();
+        let decoded_symbol = TokenSymbol::to_str(&token_symbol);
         assert_eq!(symbol, decoded_symbol);
     }
 
