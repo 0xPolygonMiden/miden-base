@@ -236,7 +236,7 @@ fn test_faucet_contract_creation() {
     // check that max_supply (slot 1) is 123
     assert!(
         faucet_account.storage().get_item(1)
-            == [Felt::new(123), Felt::new(2), token_symbol.as_felt(), ZERO].into()
+            == [Felt::new(123), Felt::new(2), TokenSymbol::from(token_symbol).into(), ZERO].into()
     );
 
     assert!(faucet_account.is_faucet() == true);

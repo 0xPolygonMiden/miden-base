@@ -1,22 +1,22 @@
 use super::{AssetError, Felt, StarkField, ToString};
 use crate::utils::string::String;
 
-const MAX_SUMBOL_LENGHT: usize = 6;
 #[derive(Clone, Copy, Debug)]
 pub struct TokenSymbol(Felt);
 
 impl TokenSymbol {
+    pub const MAX_SYMBOL_LENGHT: usize = 6;
+    pub const MAX_ENCODED_VALUE: u64 = 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGHT as u32);
+
     pub fn new(symbol: &str) -> Result<Self, AssetError> {
         let felt = encode_symbol_to_felt(symbol)?;
         Ok(Self(felt))
     }
+}
 
-    pub fn as_felt(&self) -> Felt {
-        self.0
-    }
-
-    pub fn as_symbol(&self) -> Result<String, AssetError> {
-        decode_felt_to_symbol(self.0)
+impl From<TokenSymbol> for Felt {
+    fn from(symbol: TokenSymbol) -> Self {
+        symbol.0
     }
 }
 
@@ -28,9 +28,16 @@ impl TryFrom<&str> for TokenSymbol {
     }
 }
 
-impl From<TokenSymbol> for Felt {
-    fn from(symbol: TokenSymbol) -> Self {
-        symbol.0
+impl TryFrom<Felt> for TokenSymbol {
+    type Error = AssetError;
+
+    fn try_from(felt: Felt) -> Result<Self, Self::Error> {
+        // Check if the felt value is within the valid range
+        if felt.as_int() >= TokenSymbol::MAX_ENCODED_VALUE {
+            return Err(AssetError::TokenSymbolError("Encoded value is too large".to_string()));
+        }
+        let symbol = decode_felt_to_symbol(felt);
+        TokenSymbol::new(&symbol)
     }
 }
 
@@ -39,31 +46,29 @@ impl From<TokenSymbol> for Felt {
 // Utils to encode and decode the token symbol as a Felt. Token Symbols can consists of up to 6 characters
 // , e.g., A = 0, ...
 fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
-    if s.is_empty() || s.len() > MAX_SUMBOL_LENGHT || s.chars().any(|c| !c.is_ascii_uppercase()) {
+    if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGHT {
         return Err(AssetError::TokenSymbolError(
-            "Input contains characters outside the valid range".to_string(),
+            "Token Symbol must be of length >0 and <7".to_string(),
+        ));
+    } else if s.chars().any(|c| !c.is_ascii_uppercase()) {
+        return Err(AssetError::TokenSymbolError(
+            "Token Symbol contains characters that are not ASCII upper case".to_string(),
         ));
     }
 
     let mut encoded_value = 0;
     for char in s.chars() {
         let digit = char as u64 - b'A' as u64;
-        if digit >= 26 {
-            return Err(AssetError::TokenSymbolError(
-                "Input string contains characters outside the valid range".to_string(),
-            ));
-        }
+        assert!(digit < 26);
         encoded_value = encoded_value * 26 + digit;
     }
 
     Ok(Felt::new(encoded_value))
 }
 
-fn decode_felt_to_symbol(encoded_felt: Felt) -> Result<String, AssetError> {
+fn decode_felt_to_symbol(encoded_felt: Felt) -> String {
     let encoded_value = encoded_felt.as_int();
-    if encoded_value >= 26u64.pow(6) {
-        return Err(AssetError::TokenSymbolError("Encoded value is out of range".to_string()));
-    }
+    assert!(encoded_value < 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGHT as u32));
 
     let mut decoded_string = String::new();
     let mut remaining_value = encoded_value;
@@ -75,5 +80,35 @@ fn decode_felt_to_symbol(encoded_felt: Felt) -> Result<String, AssetError> {
         remaining_value /= 26;
     }
 
-    Ok(decoded_string)
+    decoded_string
+}
+
+// TESTS
+// ================================================================================================
+#[test]
+fn test_token_symbol_decoding_encoding() {
+    let symbols = vec!["AAAAAA", "AAAAAB", "AAAAAC", "AAAAAD", "AAAAAE", "AAAAAF", "AAAAAG"];
+    for symbol in symbols {
+        let felt = encode_symbol_to_felt(symbol).unwrap();
+        let decoded_symbol = decode_felt_to_symbol(felt);
+        assert_eq!(symbol, decoded_symbol);
+    }
+
+    let symbol = "";
+    let felt = encode_symbol_to_felt(symbol);
+    assert!(felt.is_err());
+
+    let symbol = "ABCDEFG";
+    let felt = encode_symbol_to_felt(symbol);
+    assert!(felt.is_err());
+
+    let symbol = "$$$";
+    let felt = encode_symbol_to_felt(symbol);
+    assert!(felt.is_err());
+
+    let symbol = "ABCDEF";
+    let token_symbol = TokenSymbol::try_from(symbol);
+    assert!(token_symbol.is_ok());
+    let token_symbol_felt: Felt = TokenSymbol::from(token_symbol.unwrap()).into();
+    assert_eq!(token_symbol_felt, encode_symbol_to_felt(symbol).unwrap());
 }

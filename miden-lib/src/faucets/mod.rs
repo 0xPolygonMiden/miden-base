@@ -8,8 +8,8 @@ use miden_objects::{
     AccountError, Felt, StarkField, Word, ZERO,
 };
 
-const MAX_MAX_SUPPLY: u64 = 1 << 63;
-const MAX_DECIMALS: u8 = 18;
+const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
+const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic faucet interface, specified authentication scheme,
 /// and provided meta data (token symbol, decimals, max supply).
@@ -30,8 +30,9 @@ pub fn create_basic_faucet(
     max_supply: Felt,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
-    // Atm we onlt have RpoFalcon512 as authentication scheme and this is also the default in the
+    // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract, so we can just use the public key as storage slot 0.
+    // TODO: consider using a trait when we have more auth schemes.
     let auth_data: Word = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
@@ -47,18 +48,18 @@ pub fn create_basic_faucet(
         return Err(AccountError::FungibleFaucetInvalidMetadata(
             "Decimals must be less than 19".to_string(),
         ));
-    } else if max_supply.as_int() >= MAX_MAX_SUPPLY {
+    } else if max_supply.as_int() > MAX_MAX_SUPPLY {
         return Err(AccountError::FungibleFaucetInvalidMetadata(
             "Max supply must be < 2^63".to_string(),
         ));
     }
 
-    // Note: data is stored as [ao, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0]
-    let metadata = [max_supply, Felt::from(decimals), symbol.as_felt(), ZERO];
+    // Note: data is stored as [ao, a1, a2, a3] but loaded onto the stack as [a3, a2, a1, a0, ...]
+    let metadata = [max_supply, Felt::from(decimals), symbol.into(), ZERO];
 
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: authentication data
-    // - slot 1: token metadata as [token_symbol, decimals, 0, max_supply]
+    // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage =
         AccountStorage::new(vec![(0, auth_data), (1, metadata)], MerkleStore::new())?;
     let account_vault = AccountVault::new(&[])?;
