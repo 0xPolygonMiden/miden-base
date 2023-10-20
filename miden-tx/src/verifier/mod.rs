@@ -1,4 +1,4 @@
-use super::{Digest, Hasher, TransactionComplier, TransactionVerifierError};
+use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
 use miden_objects::{
     notes::NoteEnvelope,
     transaction::{ConsumedNoteInfo, ProvenTransaction},
@@ -14,14 +14,14 @@ use vm_core::{stack::STACK_TOP_SIZE, StackInputs, StackOutputs};
 /// the minimum security level that the transaction proof must have in order to be considered
 /// valid.
 pub struct TransactionVerifier {
-    compiler: TransactionComplier,
+    compiler: TransactionCompiler,
     proof_security_level: u32,
 }
 
 impl TransactionVerifier {
     /// Creates a new [TransactionVerifier] object.
     pub fn new(proof_security_level: u32) -> Self {
-        let compiler = TransactionComplier::new();
+        let compiler = TransactionCompiler::new();
         Self {
             compiler,
             proof_security_level,

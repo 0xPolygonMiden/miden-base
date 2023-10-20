@@ -1,6 +1,6 @@
 use super::{
     AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
-    PreparedTransaction, RecAdviceProvider, TransactionComplier, TransactionExecutorError,
+    PreparedTransaction, RecAdviceProvider, TransactionCompiler, TransactionExecutorError,
     TransactionResult,
 };
 use crate::TryFromVmResult;
@@ -28,7 +28,7 @@ use vm_processor::DefaultHost;
 /// executor and produces a [TransactionWitness] for the transaction. The TransactionWitness can
 /// then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
-    compiler: TransactionComplier,
+    compiler: TransactionCompiler,
     data_store: D,
 }
 
@@ -37,7 +37,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
-        let compiler = TransactionComplier::new();
+        let compiler = TransactionCompiler::new();
         Self {
             compiler,
             data_store,

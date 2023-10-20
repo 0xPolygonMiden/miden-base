@@ -1,4 +1,4 @@
-use super::{AccountId, ModuleAst, Note, NoteTarget, Operation, ProgramAst, TransactionComplier};
+use super::{AccountId, ModuleAst, Note, NoteTarget, Operation, ProgramAst, TransactionCompiler};
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assembly::{AssemblyContext, CodeBlock},
@@ -48,7 +48,7 @@ end
 
 #[test]
 fn test_load_account() {
-    let mut tx_compiler = TransactionComplier::new();
+    let mut tx_compiler = TransactionCompiler::new();
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
@@ -104,7 +104,7 @@ fn test_compile_valid_note_script() {
         ),
     ];
 
-    let mut tx_compiler = TransactionComplier::new();
+    let mut tx_compiler = TransactionCompiler::new();
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
@@ -130,7 +130,7 @@ fn test_compile_valid_note_script() {
 }
 
 fn mock_consumed_notes(
-    tx_compiler: &mut TransactionComplier,
+    tx_compiler: &mut TransactionCompiler,
     target_account: AccountId,
 ) -> Vec<Note> {
     pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
@@ -184,7 +184,7 @@ fn mock_consumed_notes(
 
 #[test]
 fn test_transaction_compilation() {
-    let mut tx_compiler = TransactionComplier::new();
+    let mut tx_compiler = TransactionCompiler::new();
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
@@ -209,7 +209,7 @@ fn test_transaction_compilation() {
 // ================================================================================================
 
 fn expected_mast_tree(
-    tx_compiler: &mut TransactionComplier,
+    tx_compiler: &mut TransactionCompiler,
     notes: &[Note],
     tx_script: &ProgramAst,
 ) -> CodeBlock {
@@ -240,7 +240,7 @@ fn expected_mast_tree(
     program_root
 }
 
-fn create_note_leafs(tx_compiler: &mut TransactionComplier, note: &Note) -> CodeBlock {
+fn create_note_leafs(tx_compiler: &mut TransactionCompiler, note: &Note) -> CodeBlock {
     let note_code_block = tx_compiler
         .assembler
         .compile_in_context(

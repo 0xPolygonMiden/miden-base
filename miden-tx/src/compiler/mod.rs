@@ -19,8 +19,7 @@ mod tests;
 ///
 /// In addition to transaction compilation, transaction compiler provides methods which can be
 /// used to compile Miden account code and note scripts.
-#[cfg(not(test))]
-pub struct TransactionComplier {
+pub struct TransactionCompiler {
     assembler: Assembler,
     account_procedures: BTreeMap<AccountId, Vec<Digest>>,
     prologue: CodeBlock,
@@ -29,11 +28,11 @@ pub struct TransactionComplier {
     note_processing_teardown: CodeBlock,
 }
 
-impl TransactionComplier {
+impl TransactionCompiler {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of the [TransactionComplier].
-    pub fn new() -> TransactionComplier {
+    pub fn new() -> TransactionCompiler {
         let assembler = miden_lib::assembler::assembler();
 
         // compile prologue
@@ -76,7 +75,7 @@ impl TransactionComplier {
             )
             .expect("note processing teardown is well formed");
 
-        TransactionComplier {
+        TransactionCompiler {
             assembler,
             account_procedures: BTreeMap::default(),
             prologue,
@@ -357,7 +356,7 @@ impl TransactionComplier {
     }
 }
 
-impl Default for TransactionComplier {
+impl Default for TransactionCompiler {
     fn default() -> Self {
         Self::new()
     }
@@ -445,16 +444,4 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
 pub enum NoteTarget {
     AccountId(AccountId),
     Procedures(Vec<Digest>),
-}
-
-// TEST ASSETS
-// ================================================================================================
-#[cfg(test)]
-pub struct TransactionComplier {
-    pub assembler: Assembler,
-    pub account_procedures: BTreeMap<AccountId, Vec<Digest>>,
-    pub prologue: CodeBlock,
-    pub epilogue: CodeBlock,
-    pub note_setup: CodeBlock,
-    pub note_processing_teardown: CodeBlock,
 }
