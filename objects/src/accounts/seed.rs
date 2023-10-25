@@ -100,7 +100,7 @@ pub fn get_account_seed_inner(
         // check if the seed satisfies the specified account type
         if AccountId::validate_seed_digest(&current_digest).is_ok() {
             // `validate_seed_digest` already validated it
-            let account_id = AccountId::new_unchecked(current_digest[0]);
+            let account_id = unsafe { AccountId::new_unchecked(current_digest[0]) };
             if account_id.account_type() == account_type && account_id.is_on_chain() == on_chain {
                 #[cfg(feature = "log")]
                 log.done(current_digest, current_seed, account_id);

@@ -68,7 +68,7 @@ impl Asset {
     pub(crate) fn new_unchecked(value: Word) -> Asset {
         let first_bit = value[3].as_int() >> 63;
         match first_bit {
-            0 => Asset::NonFungible(NonFungibleAsset::new_unchecked(value)),
+            0 => Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(value) }),
             1 => Asset::Fungible(FungibleAsset::new_unchecked(value)),
             _ => unreachable!(),
         }
