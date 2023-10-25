@@ -239,7 +239,7 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.account_vault_add_asset
-    push.1 drop emit.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT
+    emit.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
@@ -266,7 +266,7 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
-    push.1 drop emit.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT
+    emit.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
