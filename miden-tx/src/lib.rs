@@ -11,7 +11,7 @@ use vm_core::{Operation, Program};
 use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;
-pub use compiler::{NoteTarget, TransactionComplier};
+pub use compiler::{NoteTarget, TransactionCompiler};
 
 mod data;
 pub use data::DataStore;
