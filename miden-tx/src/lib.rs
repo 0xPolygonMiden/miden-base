@@ -19,6 +19,9 @@ pub use data::DataStore;
 mod executor;
 pub use executor::TransactionExecutor;
 
+pub mod host;
+pub use host::TransactionHost;
+
 mod prover;
 pub use prover::TransactionProver;
 

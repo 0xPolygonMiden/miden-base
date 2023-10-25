@@ -12,7 +12,8 @@ use miden_objects::{
     TransactionResultError,
 };
 use vm_core::{Program, StackOutputs};
-use vm_processor::DefaultHost;
+
+use super::TransactionHost;
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
@@ -115,7 +116,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
         let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
-        let mut host = DefaultHost::new(advice_recorder);
+        let mut host = TransactionHost::new(advice_recorder);
         let result = vm_processor::execute(
             transaction.tx_program(),
             transaction.stack_inputs(),
@@ -127,7 +128,8 @@ impl<D: DataStore> TransactionExecutor<D> {
         let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script_root) =
             transaction.into_parts();
 
-        let advice_recorder = host.into_inner();
+        let (advice_recorder, event_handler) = host.into_parts();
+        println!("event_handler: {:?}", event_handler);
         create_transaction_result(
             account,
             consumed_notes,

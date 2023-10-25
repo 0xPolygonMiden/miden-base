@@ -12,6 +12,7 @@ mod auth;
 pub use auth::AuthScheme;
 
 pub mod assembler;
+pub mod event;
 pub mod faucets;
 pub mod memory;
 pub mod notes;
