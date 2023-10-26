@@ -4,14 +4,17 @@ use super::{
     TransactionResult,
 };
 use crate::TryFromVmResult;
-use miden_lib::transaction::{extract_account_storage_delta, extract_account_vault_delta};
+use miden_lib::{
+    outputs::TX_SCRIPT_ROOT_WORD_IDX,
+    transaction::{extract_account_storage_delta, extract_account_vault_delta},
+};
 use miden_objects::{
     accounts::{Account, AccountDelta},
     assembly::ProgramAst,
     transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub},
-    TransactionResultError,
+    TransactionResultError, WORD_SIZE,
 };
-use vm_core::{Program, StackOutputs};
+use vm_core::{Program, StackOutputs, StarkField};
 use vm_processor::DefaultHost;
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
@@ -195,6 +198,17 @@ pub fn create_transaction_result(
     let final_account_stub =
         FinalAccountStub::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
     let created_notes = CreatedNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+
+    // assert the tx_script_root is consistent with the output stack
+    debug_assert_eq!(
+        (*tx_script_root.unwrap_or_default())
+            .into_iter()
+            .rev()
+            .map(|x| x.as_int())
+            .collect::<Vec<_>>(),
+        stack_outputs.stack()
+            [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
+    );
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta

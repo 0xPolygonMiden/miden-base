@@ -60,6 +60,9 @@ pub const NULLIFIER_COM_PTR: MemoryAddress = 103;
 /// The memory address at which the initial nonce is stored.
 pub const INIT_NONCE_PTR: MemoryAddress = 104;
 
+/// The memory address at which the transaction script mast root is store
+pub const TX_SCRIPT_ROOT_PTR: MemoryAddress = 105;
+
 // BLOCK DATA
 // ------------------------------------------------------------------------------------------------
 

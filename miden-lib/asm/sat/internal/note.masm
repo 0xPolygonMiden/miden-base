@@ -49,6 +49,28 @@ export.get_vault_info
     # => [VAULT_HASH, num_assets]
 end
 
+#! Returns the note inputs hash of the note currently being processed. Panics if a note is not
+#! being processed.
+#!
+#! Inputs: []
+#! Outputs: [NOTE_INPUTS_HASH]
+#!
+#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
+export.get_inputs_hash
+    # get the current consumed note pointer
+    exec.layout::get_current_consumed_note_ptr
+    # => [ptr]
+
+    # assert the pointer is not zero - this would suggest the procedure has been called from an
+    # incorrect context
+    dup neq.0 assert
+    # => [ptr]
+
+    # get the note inputs hash from the note pointer
+    exec.layout::get_consumed_note_inputs_hash
+    # => [NOTE_INPUTS_HASH]
+end
+
 #! Increments the number of consumed notes by one. Returns the index of the next note to be consumed.
 #!
 #! Inputs: []
@@ -68,21 +90,34 @@ end
 #!
 #! Inputs: []
 #! Outputs: []
-export.reset_current_consumed_note_ptr
-    # get the current consumed note index
-    exec.layout::get_current_consumed_note_idx
-    # => [note_idx, ...]
-
-    # if at least one note has been consumed we need to clear the note outputs from the stack
-    eq.0 not
-    # => [has_processed_notes, ...]
-
-    if.true
-        dropw dropw dropw dropw
-    end
-    drop
-    # => []
-
+export.note_processing_teardown
     # set the current consumed note pointer to 0
     push.0 exec.layout::set_current_consumed_note_ptr
+    # => []                                                                                                                                            
+end
+
+#! Prepares for the execution of a consumed note.  This involves:
+#! 1. Incrementing the current consumed note index and pointer.
+#! 2. Loading the note script root onto the stack.
+#!
+#! Stack: []
+#! Output: [NSR]
+#!
+#! - NSR is the note script root of the note currently being executed.
+export.prepare_note
+    # load the note index onto the stack
+    exec.increment_current_consumed_note_idx
+    # => [idx]
+
+    # convert the index of the consumed note being executed to a pointer and store in memory
+    exec.layout::get_consumed_note_ptr
+    # => [note_ptr]
+
+    # set current consumed note pointer to the note being executed
+    dup exec.layout::set_current_consumed_note_ptr
+    # => [note_ptr]
+
+    # read the note script root onto the stack
+    exec.layout::get_consumed_note_script_root
+    # => [NOTE_SCRIPT_ROOT]
 end

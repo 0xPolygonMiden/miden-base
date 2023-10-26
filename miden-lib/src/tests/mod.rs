@@ -1,6 +1,9 @@
 use super::Library;
 use std::path::PathBuf;
-use vm_core::{crypto::hash::Rpo256 as Hasher, Felt, StackInputs, Word, ONE, ZERO};
+use vm_core::{
+    crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest},
+    Felt, StackInputs, Word, ONE, ZERO,
+};
 use vm_processor::{
     AdviceProvider, ContextId, DefaultHost, MemAdviceProvider, Process, ProcessState,
 };
@@ -11,7 +14,6 @@ mod test_asset_vault;
 mod test_epilogue;
 mod test_faucet;
 mod test_note;
-mod test_note_setup;
 mod test_prologue;
 mod test_tx;
 

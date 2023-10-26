@@ -1,5 +1,8 @@
 use miden_lib::{
-    memory::NOTE_MEM_SIZE, notes::notes_try_from_elements, transaction::parse_final_account_stub,
+    memory::NOTE_MEM_SIZE,
+    notes::notes_try_from_elements,
+    outputs::{CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX},
+    transaction::parse_final_account_stub,
 };
 use miden_objects::{
     crypto::merkle::MerkleStore,
@@ -33,8 +36,6 @@ impl TryFromVmResult for CreatedNotes {
         advice_map: &BTreeMap<[u8; 32], Vec<Felt>>,
         _merkle_store: &MerkleStore,
     ) -> Result<Self, Self::Error> {
-        const CREATED_NOTES_COMMITMENT_WORD_IDX: usize = 0;
-
         let created_notes_commitment: Word =
             stack_outputs.stack()[CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE
                 ..(CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE]
@@ -83,8 +84,6 @@ impl TryFromVmResult for FinalAccountStub {
         advice_map: &BTreeMap<[u8; 32], Vec<Felt>>,
         _merkle_store: &MerkleStore,
     ) -> Result<Self, Self::Error> {
-        const FINAL_ACCOUNT_HASH_WORD_IDX: usize = 1;
-
         let final_account_hash: Word =
             stack_outputs.stack()[FINAL_ACCOUNT_HASH_WORD_IDX * WORD_SIZE
                 ..(FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE]

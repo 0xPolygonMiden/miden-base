@@ -38,7 +38,7 @@ pub fn test_set_code_is_not_immediate() {
         ";
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -207,7 +207,7 @@ fn test_get_item() {
         );
 
         let transaction =
-            prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
         let _process = run_tx(
             transaction.tx_program().clone(),
@@ -251,8 +251,17 @@ fn test_get_child_tree_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, code.as_str(), "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        code.as_str(),
+        "",
+        None,
+    );
 
     let _process = run_tx(
         transaction.tx_program().clone(),
@@ -311,7 +320,7 @@ fn test_set_item() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
         transaction.tx_program().clone(),
@@ -399,7 +408,7 @@ fn test_authenticate_procedure() {
         );
 
         let transaction =
-            prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
         let process = run_tx(
             transaction.tx_program().clone(),
@@ -438,7 +447,7 @@ fn test_get_vault_commitment() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
         transaction.tx_program().clone(),

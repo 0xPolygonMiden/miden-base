@@ -1,7 +1,7 @@
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account, notes::Note, notes::NoteVault, transaction::PreparedTransaction,
-    BlockHeader, ChainMmr, Felt, StarkField,
+    BlockHeader, ChainMmr, Digest, Felt, StarkField,
 };
 use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
@@ -90,6 +90,7 @@ pub fn prepare_transaction(
     block_header: BlockHeader,
     chain: ChainMmr,
     notes: Vec<Note>,
+    tx_script_root: Option<Digest>,
     code: &str,
     imports: &str,
     file_path: Option<PathBuf>,
@@ -103,6 +104,14 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    PreparedTransaction::new(account, account_seed, block_header, chain, notes, None, program)
-        .unwrap()
+    PreparedTransaction::new(
+        account,
+        account_seed,
+        block_header,
+        chain,
+        notes,
+        tx_script_root,
+        program,
+    )
+    .unwrap()
 }

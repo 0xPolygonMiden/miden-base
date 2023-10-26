@@ -22,10 +22,7 @@ mod tests;
 pub struct TransactionCompiler {
     assembler: Assembler,
     account_procedures: BTreeMap<AccountId, Vec<Digest>>,
-    prologue: CodeBlock,
-    epilogue: CodeBlock,
-    note_setup: CodeBlock,
-    note_processing_teardown: CodeBlock,
+    kernel_main: CodeBlock,
 }
 
 impl TransactionCompiler {
@@ -35,53 +32,16 @@ impl TransactionCompiler {
     pub fn new() -> TransactionCompiler {
         let assembler = miden_lib::assembler::assembler();
 
-        // compile prologue
-        let prologue_ast =
-            ProgramAst::parse(SatKernel::prologue()).expect("prologue is well formed");
-        let prologue = assembler
-            .compile_in_context(
-                &prologue_ast,
-                &mut AssemblyContext::for_program(Some(&prologue_ast)),
-            )
-            .expect("prologue is well formed");
-
-        // compile epilogue
-        let epilogue_ast =
-            ProgramAst::parse(SatKernel::epilogue()).expect("epilogue is well formed");
-        let epilogue = assembler
-            .compile_in_context(
-                &epilogue_ast,
-                &mut AssemblyContext::for_program(Some(&epilogue_ast)),
-            )
-            .expect("epilogue is well formed");
-
-        // compile note setup
-        let note_setup_ast =
-            ProgramAst::parse(SatKernel::note_setup()).expect("note setup is well formed");
-        let note_setup = assembler
-            .compile_in_context(
-                &note_setup_ast,
-                &mut AssemblyContext::for_program(Some(&note_setup_ast)),
-            )
-            .expect("note setup is well formed");
-
-        // compile note processing teardown
-        let note_processing_teardown_ast = ProgramAst::parse(SatKernel::note_processing_teardown())
-            .expect("note processing teardown is well formed");
-        let note_processing_teardown = assembler
-            .compile_in_context(
-                &note_processing_teardown_ast,
-                &mut AssemblyContext::for_program(Some(&note_processing_teardown_ast)),
-            )
-            .expect("note processing teardown is well formed");
+        // compile transaction kernel main
+        let main_ast = ProgramAst::parse(SatKernel::main()).expect("main is well formed");
+        let kernel_main = assembler
+            .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
+            .expect("main is well formed");
 
         TransactionCompiler {
             assembler,
             account_procedures: BTreeMap::default(),
-            prologue,
-            epilogue,
-            note_setup,
-            note_processing_teardown,
+            kernel_main,
         }
     }
 
@@ -159,26 +119,19 @@ impl TransactionCompiler {
             return Err(TransactionCompilerError::InvalidTransactionInputs);
         }
 
-        // Create the [AssemblyContext] for compilation of the transaction program
+        // Create the [AssemblyContext] for compilation of notes scripts and the transaction script
         let mut assembly_context = AssemblyContext::for_program(None);
 
-        // Create note tree and note [CodeBlock]s
-        let (note_tree_root, note_roots) = self.compile_and_build_note_program_tree(
-            &target_account_interface,
-            notes,
-            &mut assembly_context,
-        )?;
+        // Compile note scripts
+        let note_script_programs =
+            self.compile_notes(&target_account_interface, notes, &mut assembly_context)?;
 
         // Create the transaction program
-        let (tx_script_code_block, tx_script_hash) = self.create_tx_script_program(
+        let (tx_script_program, tx_script_hash) = self.compile_tx_script_program(
             tx_script,
             &mut assembly_context,
             target_account_interface,
         )?;
-
-        // build transaction program
-        let program_root =
-            self.build_transaction_program(note_tree_root, tx_script_code_block.hash());
 
         // Create [CodeBlockTable] from [AssemblyContext]
         let mut cb_table = self
@@ -187,75 +140,67 @@ impl TransactionCompiler {
             .map_err(TransactionCompilerError::BuildCodeBlockTableFailed)?;
 
         // insert note roots into [CodeBlockTable]
-        note_roots.into_iter().for_each(|note_root| {
+        note_script_programs.into_iter().for_each(|note_root| {
             cb_table.insert(note_root);
         });
 
         // insert transaction script into [CodeBlockTable]
-        cb_table.insert(tx_script_code_block);
+        cb_table.insert(tx_script_program);
 
         // Create transaction program with kernel
-        let program = Program::with_kernel(program_root, self.assembler.kernel().clone(), cb_table);
+        let program = Program::with_kernel(
+            self.kernel_main.clone(),
+            self.assembler.kernel().clone(),
+            cb_table,
+        );
 
         // Create compiled transaction
         Ok((program, tx_script_hash))
     }
 
-    /// Returns a [ProgramInfo] which contains the hash of the transaction program associated with
-    /// the provided consumed note script hashes and transaction script hash.
-    pub fn build_program_info(
-        &self,
-        note_script_hashes: Vec<Digest>,
-        tx_script_hash: Option<Digest>,
-    ) -> ProgramInfo {
-        let tx_script_hash =
-            tx_script_hash.unwrap_or(CodeBlock::new_span(vec![Operation::Noop]).hash());
-        let note_tree_root = self.build_note_program_tree(note_script_hashes);
-        let transaction_program = self.build_transaction_program(note_tree_root, tx_script_hash);
-        ProgramInfo::new(transaction_program.hash(), self.assembler.kernel().clone())
+    /// Returns a [ProgramInfo] associated with the transaction kernel program.
+    pub fn build_program_info(&self) -> ProgramInfo {
+        ProgramInfo::new(self.kernel_main.hash(), self.assembler.kernel().clone())
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a [CodeBlock] which contains the note program tree root and a [Vec<CodeBlock>] which
-    /// contains the [CodeBlock]s associated with the notes.
-    fn compile_and_build_note_program_tree(
+    /// Compiles the provided notes into [CodeBlock]s (programs) and verifies that each note is
+    /// compatible with the target account interfaces. Returns a vector of the compiled note
+    /// programs.
+    fn compile_notes(
         &mut self,
         target_account_interface: &[Digest],
         notes: &[Note],
         assembly_context: &mut AssemblyContext,
-    ) -> Result<(CodeBlock, Vec<CodeBlock>), TransactionCompilerError> {
-        // Create vectors to store note programs and note roots
-        let mut note_script_hashes = Vec::new();
+    ) -> Result<Vec<CodeBlock>, TransactionCompilerError> {
         let mut note_programs = Vec::new();
 
         // Create and verify note programs. Note programs are verified against the target account.
         for note in notes.iter() {
-            let note_root = self
+            let note_program = self
                 .assembler
                 .compile_in_context(note.script().code(), assembly_context)
                 .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
-            verify_program_account_compatibility(&note_root, target_account_interface).map_err(
+            verify_program_account_compatibility(&note_program, target_account_interface).map_err(
                 |_| {
-                    TransactionCompilerError::NoteIncompatibleWithAccountInterface(note_root.hash())
+                    TransactionCompilerError::NoteIncompatibleWithAccountInterface(
+                        note_program.hash(),
+                    )
                 },
             )?;
-            note_script_hashes.push(note_root.hash());
-            note_programs.push(note_root);
+            note_programs.push(note_program);
         }
 
-        // build the note program tree
-        let note_tree_root = self.build_note_program_tree(note_script_hashes);
-
-        Ok((note_tree_root, note_programs))
+        Ok(note_programs)
     }
 
     /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
     /// transaction script program and the second element is the hash of the transaction script
     /// program. If no transaction script is provided, the first element is a [CodeBlock] containing
     /// a single [Operation::Noop] and the second element is `None`.
-    fn create_tx_script_program(
+    fn compile_tx_script_program(
         &mut self,
         tx_script: Option<ProgramAst>,
         assembly_context: &mut AssemblyContext,
@@ -296,63 +241,6 @@ impl TransactionCompiler {
                 .ok_or(TransactionCompilerError::AccountInterfaceNotFound(id)),
             NoteTarget::Procedures(procs) => Ok(procs),
         }
-    }
-
-    /// Returns a [CodeBlock] which represents the transaction program.
-    fn build_transaction_program(
-        &self,
-        note_program_tree: CodeBlock,
-        tx_script_hash: Digest,
-    ) -> CodeBlock {
-        // Merge transaction script code block and epilogue code block
-        let tx_script_and_epilogue =
-            CodeBlock::new_join([CodeBlock::new_call(tx_script_hash), self.epilogue.clone()]);
-
-        // Merge prologue and note script tree
-        let prologue_and_notes = CodeBlock::new_join([self.prologue.clone(), note_program_tree]);
-
-        // Merge prologue, note tree, tx script and epilogue
-        CodeBlock::new_join([prologue_and_notes, tx_script_and_epilogue])
-    }
-
-    /// Returns a [CodeBlock] which represents the note program tree.
-    fn build_note_program_tree(&self, note_script_hashes: Vec<Digest>) -> CodeBlock {
-        let mut note_programs = note_script_hashes
-            .into_iter()
-            .map(|note_hash| {
-                CodeBlock::new_join([self.note_setup.clone(), CodeBlock::new_call(note_hash)])
-            })
-            .collect::<Vec<_>>();
-
-        // Push note processing teardown onto the note programs vector
-        note_programs.push(self.note_processing_teardown.clone());
-
-        // Merge the note programs into a tree using join blocks
-        while note_programs.len() != 1 {
-            // TODO: We should optimize this in the future - however maybe not required as this
-            // part will be handled by a pcall-like operation in the future.
-            // Pad note programs to an even number using a [Operation::Noop] span block
-            if note_programs.len() % 2 != 0 {
-                note_programs.push(CodeBlock::new_span(vec![Operation::Noop]));
-            }
-
-            // convert vector into an iterator
-            let mut note_programs_iter = note_programs.into_iter();
-
-            // create a temporary vector to hold the merged CodeBlocks
-            let mut note_programs_temp = Vec::new();
-
-            // Consume two code blocks at a time and merge them into a single code block
-            while let (Some(left_code_block), Some(right_code_block)) =
-                (note_programs_iter.next(), note_programs_iter.next())
-            {
-                note_programs_temp.push(CodeBlock::new_join([left_code_block, right_code_block]));
-            }
-
-            note_programs = note_programs_temp;
-        }
-
-        note_programs.into_iter().next().expect("a single root code block exists")
     }
 }
 

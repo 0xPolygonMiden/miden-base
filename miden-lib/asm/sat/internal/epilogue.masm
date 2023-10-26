@@ -224,10 +224,12 @@ end
 #! - if the account has changed, assert that the final account nonce is greater than the initial
 #!   account nonce
 #! - computes the created notes commitment
+#! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
-#! Output: [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output: [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
+#! - TX_SCRIPT_ROOT is the transaction script root
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
@@ -306,11 +308,15 @@ export.finalize_transaction
     movup.4 drop movup.4 drop
     # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
+    # load the transaction script root on to the top of the stack
+    exec.layout::get_tx_script_root
+    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+
     # truncate stack
-    swapw.2 dropw swapw.2 dropw
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    swapw.3 dropw swapw.3 dropw swapw.3 dropw
+    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
     exec.layout::get_input_vault_root exec.layout::get_output_vault_root assert_eqw
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

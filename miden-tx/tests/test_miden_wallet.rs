@@ -42,6 +42,7 @@ fn test_receive_asset_via_wallet() {
 
     # add the asset
     begin
+        dropw
         exec.note::get_assets drop
         mem_loadw
         call.wallet::receive_asset

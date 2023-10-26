@@ -42,7 +42,7 @@ fn test_create_note() {
     );
 
     let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, &code, "", None);
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
