@@ -1,6 +1,6 @@
 use super::{
-    build_module_path, AdviceProvider, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState,
-    TX_KERNEL_DIR, ZERO,
+    build_module_path, AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process,
+    ProcessState, TX_KERNEL_DIR, ZERO,
 };
 use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::transaction::PreparedTransaction;
@@ -62,7 +62,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
 fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<DefaultHost<A>>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        process.get_mem_value(0, CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
+        process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
         Felt::try_from(consumed_note_data_ptr(0)).unwrap()
     );
 }
