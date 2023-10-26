@@ -3,7 +3,10 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{
+    ast::ModuleAst, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
+    Version,
+};
 
 #[cfg(test)]
 mod tests;
@@ -50,6 +53,10 @@ impl Library for MidenLib {
 
     fn dependencies(&self) -> &[LibraryNamespace] {
         self.contents.dependencies()
+    }
+
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
+        self.contents.get_module_ast(path)
     }
 }
 
