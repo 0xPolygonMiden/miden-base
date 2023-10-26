@@ -23,8 +23,8 @@ pub enum Script {
 }
 
 /// Users can create notes with a standard script. Atm we provide two standard scripts:
-/// 1. P2ID - pay to id
-/// 2. P2IDR - pay to id with recall after a certain block height
+/// 1. P2ID - pay to id.
+/// 2. P2IDR - pay to id with recall after a certain block height.
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -34,11 +34,11 @@ pub fn create_note(
 ) -> Result<Note, NoteError> {
     let note_assembler = assembler();
     let (note_script, inputs): (&str, Vec<Felt>) = match script {
-        Script::P2ID { target } => ("p2id", vec![target.into(), ZERO, ZERO, ZERO]), // Convert `target` to a suitable type if necessary
+        Script::P2ID { target } => ("p2id", vec![target.into(), ZERO, ZERO, ZERO]),
         Script::P2IDR {
             target,
             recall_height,
-        } => ("p2idr", vec![ZERO, ZERO, target.into(), recall_height.into()]), // Convert both to a suitable type
+        } => ("p2idr", vec![target.into(), recall_height.into(), ZERO, ZERO]),
     };
 
     // Create the note

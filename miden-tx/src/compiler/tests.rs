@@ -2,7 +2,7 @@ use super::{AccountId, ModuleAst, Note, NoteTarget, ProgramAst, TransactionCompi
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
-    Felt, FieldElement, Word, ZERO,
+    Felt, FieldElement, Word,
 };
 
 // CONSTANTS
@@ -157,7 +157,7 @@ fn mock_consumed_notes(
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let note_1 = Note::new(
         note_script.clone(),
-        &[ZERO, ZERO, ZERO, Felt::new(1)],
+        &[Felt::new(1)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_1,
         sender,
@@ -169,7 +169,7 @@ fn mock_consumed_notes(
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
     let note_2 = Note::new(
         note_script,
-        &[ZERO, ZERO, ZERO, Felt::new(2)],
+        &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
         sender,

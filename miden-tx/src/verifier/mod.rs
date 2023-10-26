@@ -1,4 +1,5 @@
 use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
+use core::ops::Range;
 use miden_lib::outputs::{
     CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
@@ -23,6 +24,7 @@ pub struct TransactionVerifier {
 impl TransactionVerifier {
     /// Creates a new [TransactionVerifier] object.
     pub fn new(proof_security_level: u32) -> Self {
+        // TODO: create program info at build time?
         let tx_program_info = TransactionCompiler::new().build_program_info();
         Self {
             tx_program_info,
@@ -90,17 +92,26 @@ impl TransactionVerifier {
 
     /// Returns the stack outputs for the transaction.
     fn build_stack_outputs(transaction: &ProvenTransaction) -> StackOutputs {
+        const TX_SCRIPT_ROOT_RANGE: Range<usize> = Range {
+            start: STACK_TOP_SIZE - ((TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE),
+            end: STACK_TOP_SIZE - (TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE),
+        };
+        const CREATED_NOTES_COMMITMENT_RANGE: Range<usize> = Range {
+            start: STACK_TOP_SIZE - ((CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE),
+            end: STACK_TOP_SIZE - (CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE),
+        };
+        const FINAL_ACCOUNT_HASH_RANGE: Range<usize> = Range {
+            start: STACK_TOP_SIZE - ((FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE),
+            end: STACK_TOP_SIZE - (FINAL_ACCOUNT_HASH_WORD_IDX * WORD_SIZE),
+        };
+
         let mut stack_outputs: Vec<Felt> = vec![ZERO; STACK_TOP_SIZE];
-        stack_outputs[STACK_TOP_SIZE - ((TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE)
-            ..STACK_TOP_SIZE - (TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE)]
+        stack_outputs[TX_SCRIPT_ROOT_RANGE]
             .copy_from_slice(transaction.tx_script_root().unwrap_or_default().as_elements());
-        stack_outputs[STACK_TOP_SIZE - ((CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE)
-            ..STACK_TOP_SIZE - (CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE)]
-            .copy_from_slice(
-                Self::compute_created_notes_commitment(transaction.created_notes()).as_elements(),
-            );
-        stack_outputs[STACK_TOP_SIZE - ((FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE)
-            ..STACK_TOP_SIZE - (FINAL_ACCOUNT_HASH_WORD_IDX * WORD_SIZE)]
+        stack_outputs[CREATED_NOTES_COMMITMENT_RANGE].copy_from_slice(
+            Self::compute_created_notes_commitment(transaction.created_notes()).as_elements(),
+        );
+        stack_outputs[FINAL_ACCOUNT_HASH_RANGE]
             .copy_from_slice(transaction.final_account_hash().as_elements());
         stack_outputs.reverse();
         StackOutputs::from_elements(stack_outputs, Default::default())

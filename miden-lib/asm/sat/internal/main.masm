@@ -132,5 +132,5 @@ export.main
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

@@ -1,8 +1,8 @@
 use super::Library;
 use std::path::PathBuf;
 use vm_core::{
-    crypto::hash::Rpo256 as Hasher, crypto::hash::RpoDigest as Digest, Felt, StackInputs, Word,
-    ONE, ZERO,
+    crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest},
+    Felt, StackInputs, Word, ONE, ZERO,
 };
 use vm_processor::{
     AdviceProvider, ContextId, DefaultHost, MemAdviceProvider, Process, ProcessState,
