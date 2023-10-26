@@ -13,6 +13,7 @@ use miden_verifier::ExecutionProof;
 /// - tx_script_root: the script root of the transaction.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
 /// - proof: the proof of the transaction.
+#[derive(Clone, Debug)]
 pub struct ProvenTransaction {
     account_id: AccountId,
     initial_account_hash: Digest,
