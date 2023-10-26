@@ -97,11 +97,14 @@ fn global_input_memory_assertions<A: AdviceProvider>(
     );
 
     // The initial nonce should be stored at the INIT_NONCE_PTR
-    assert_eq!(process.get_mem_value(0, INIT_NONCE_PTR).unwrap()[0], inputs.account().nonce());
+    assert_eq!(
+        process.get_mem_value(ContextId::root(), INIT_NONCE_PTR).unwrap()[0],
+        inputs.account().nonce()
+    );
 
     // The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(0, TX_SCRIPT_ROOT_PTR).unwrap(),
+        process.get_mem_value(ContextId::root(), TX_SCRIPT_ROOT_PTR).unwrap(),
         *inputs.tx_script_root().unwrap_or_default()
     );
 }

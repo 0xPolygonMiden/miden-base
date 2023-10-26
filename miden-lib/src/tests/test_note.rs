@@ -1,4 +1,6 @@
-use super::{AdviceProvider, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO};
+use super::{
+    AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO,
+};
 use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{notes::Note, transaction::PreparedTransaction};
 use mock::{
@@ -369,7 +371,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
 fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<DefaultHost<A>>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        process.get_mem_value(0, CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
+        process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
         Felt::try_from(consumed_note_data_ptr(0)).unwrap()
     );
 }
