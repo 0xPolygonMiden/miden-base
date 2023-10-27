@@ -40,7 +40,7 @@ impl ToAdviceInputs for &ChainMmr {
         //    elements[0]       = number of leaves in the Mmr
         //    elements[1..4]    = padding ([Felt::ZERO; 3])
         //    elements[4..]     = Mmr peak roots
-        let mut elements = vec![Felt::new(accumulator.num_leaves as u64), ZERO, ZERO, ZERO];
+        let mut elements = vec![Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO];
         elements.extend(accumulator.flatten_and_pad_peaks());
 
         // insert the Mmr accumulator vector into the advice map against the Mmr root, which acts

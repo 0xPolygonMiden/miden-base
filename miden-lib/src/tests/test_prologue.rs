@@ -190,7 +190,7 @@ fn chain_mmr_memory_assertions<A: AdviceProvider>(
         Felt::new(inputs.block_chain().mmr().forest() as u64)
     );
 
-    for (i, peak) in inputs.block_chain().mmr().accumulator().peaks.iter().enumerate() {
+    for (i, peak) in inputs.block_chain().mmr().accumulator().peaks().iter().enumerate() {
         // The peaks should be stored at the CHAIN_MMR_PEAKS_PTR
         let i: u32 = i.try_into().expect(
             "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
