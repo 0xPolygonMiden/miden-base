@@ -135,7 +135,7 @@ export.p2idr
         exec.tx::get_block_number
         # => [current_block_height, reclaim_block_height, ...]
 
-        u32checked_lte assert
+        u32assert2 u32lte assert
     end
 
     exec.add_note_assets_to_account

@@ -78,7 +78,7 @@ export.validate_non_fungible_asset
     # => [ASSET]
 
     # assert the most significant bit of the most significant element (ASSET[3]) is 0
-    dup u32split swap drop u32checked_shr.31 not assert
+    dup u32split swap drop u32assert u32shr.31 not assert
     # => [ASSET]
 end
 

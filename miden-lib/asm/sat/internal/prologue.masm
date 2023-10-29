@@ -414,7 +414,7 @@ proc.process_consumed_note
     # => [num_assets, note_ptr]
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
-    dup push.1 u32checked_and add
+    dup push.1 u32and add
     # => [rounded_num_assets, note_ptr]
 
     # initiate counter for assets
