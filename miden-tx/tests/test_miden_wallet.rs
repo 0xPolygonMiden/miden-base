@@ -1,9 +1,9 @@
 use miden_lib::{assembler::assembler, wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountVault},
+    accounts::{Account, AccountCode, AccountId, AccountVault, AccountStorage},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    crypto::dsa::rpo_falcon512,
+    crypto::{dsa::rpo_falcon512, merkle::MerkleStore},
     notes::{Note, NoteScript},
     Felt, StarkField, Word, ONE, ZERO,
 };
@@ -12,7 +12,6 @@ use mock::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
     },
-    mock::account::mock_account_storage,
     utils::prepare_word,
 };
 
@@ -30,7 +29,8 @@ fn test_receive_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
-    let target_account = get_account_with_default_account_code(None);
+    let target_account_key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let target_account = get_account_with_default_account_code(target_account_key_pair.public_key().clone(), None);
 
     // Create the note
     let note_script_ast = ProgramAst::parse(
@@ -90,7 +90,7 @@ fn test_receive_asset_via_wallet() {
     assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // clone account info
-    let account_storage = mock_account_storage();
+    let account_storage = AccountStorage::new(vec![(0, target_account_key_pair.public_key().into())], MerkleStore::new()).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -112,7 +112,8 @@ fn test_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    let sender_account = get_account_with_default_account_code(fungible_asset_1.clone().into());
+    let sender_account_key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let sender_account = get_account_with_default_account_code(sender_account_key_pair.public_key().clone(), fungible_asset_1.clone().into());
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -139,8 +140,8 @@ fn test_send_asset_via_wallet() {
             push.{tag}
             push.{asset}
             call.wallet::send_asset drop
-            call.auth_tx::auth_tx_rpo_falcon512
             dropw dropw
+            call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
             recipient = prepare_word(&recipient),
@@ -158,7 +159,7 @@ fn test_send_asset_via_wallet() {
         .unwrap();
 
     // clones account info
-    let sender_account_storage = mock_account_storage();
+    let sender_account_storage = AccountStorage::new(vec![(0, sender_account_key_pair.public_key().into())], MerkleStore::new()).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
@@ -190,7 +191,7 @@ fn test_wallet_creation() {
 
     let (wallet, _) = create_basic_wallet(init_seed, auth_scheme).unwrap();
 
-    let expected_code_root = get_account_with_default_account_code(None).code().root();
+    let expected_code_root = get_account_with_default_account_code(pub_key, None).code().root();
 
     assert!(wallet.is_regular_account() == true);
     assert!(wallet.code().root() == expected_code_root);
@@ -198,7 +199,7 @@ fn test_wallet_creation() {
     assert!(wallet.storage().get_item(0).as_elements() == pub_key_word);
 }
 
-fn get_account_with_default_account_code(asset: Option<Asset>) -> Account {
+fn get_account_with_default_account_code(public_key: PublicKey, asset: Option<Asset>) -> Account {
     let account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let account_code_src = DEFAULT_ACCOUNT_CODE;
@@ -207,7 +208,8 @@ fn get_account_with_default_account_code(asset: Option<Asset>) -> Account {
 
     let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
 
-    let account_storage = mock_account_storage();
+    let pub_key_word: Word = public_key.into();
+    let account_storage = AccountStorage::new(vec![(0, pub_key_word)], MerkleStore::new()).unwrap();
     let account_vault = match asset {
         Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
         None => AccountVault::new(&vec![]).unwrap(),

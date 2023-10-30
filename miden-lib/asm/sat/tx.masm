@@ -51,7 +51,7 @@ end
 export.get_output_notes_hash
     padw
     # => [0, 0, 0, 0]
-
+    
     syscall.get_output_notes_hash
     # => [COM]
 end
