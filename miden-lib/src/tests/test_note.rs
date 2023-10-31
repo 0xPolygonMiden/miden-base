@@ -19,11 +19,17 @@ fn test_get_sender_no_sender() {
 
     // calling get_sender should return sender
     let code = "
+        use.miden::sat::internal::layout
         use.miden::sat::internal::prologue
         use.miden::sat::note
 
         begin
             exec.prologue::prepare_transaction
+
+            # force the current consumed note pointer to 0
+            push.0 exec.layout::set_current_consumed_note_ptr
+
+            # get the sender
             exec.note::get_sender
         end
         ";
@@ -95,6 +101,9 @@ fn test_get_vault_data() {
             # assert the vault data is correct
             push.{note_0_vault_root} assert_eqw
             push.{note_0_num_assets} assert_eq
+
+            # increment current consumed note pointer
+            exec.note::increment_current_consumed_note_ptr
 
             # prepare note 1
             exec.note::prepare_note
@@ -209,6 +218,9 @@ fn test_get_assets() {
 
             # process note 0
             call.process_note_0
+
+            # increment current consumed note pointer
+            exec.note_internal::increment_current_consumed_note_ptr
 
             # prepare note 1
             exec.note_internal::prepare_note
