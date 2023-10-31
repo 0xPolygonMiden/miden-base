@@ -1,27 +1,22 @@
-use miden_lib::{
-    assembler::assembler,
-    notes::{create_note, Script},
-};
+use miden_lib::notes::{create_note, Script};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountVault},
-    assembly::{ModuleAst, ProgramAst},
+    accounts::{Account, AccountId, AccountVault},
+    assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     utils::collections::Vec,
     Felt, StarkField,
 };
-use mock::{
-    constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
-        DEFAULT_ACCOUNT_CODE,
-    },
-    mock::account::mock_account_storage,
+use mock::constants::{
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
 };
 
 use miden_tx::TransactionExecutor;
 
 mod common;
-use common::MockDataStore;
+use common::{
+    get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
+};
 
 // P2ID TESTS
 // ===============================================================================================
@@ -38,7 +33,12 @@ fn test_p2id_script() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account = get_account_with_default_account_code(target_account_id, None);
+    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let target_account = get_account_with_default_account_code(
+        target_account_id,
+        target_keypair.public_key().clone(),
+        None,
+    );
 
     // Create the note
     let p2id_script = Script::P2ID {
@@ -82,7 +82,13 @@ fn test_p2id_script() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(
+            target_account_id,
+            block_ref,
+            &note_origins,
+            Some(tx_script),
+            Some(target_keypair_to_advice_map),
+        )
         .unwrap();
 
     // vault delta
@@ -101,8 +107,12 @@ fn test_p2id_script() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-
-    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
+    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let malicious_account = get_account_with_default_account_code(
+        malicious_account_id,
+        malicious_keypair.public_key().clone(),
+        None,
+    );
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
@@ -118,8 +128,13 @@ fn test_p2id_script() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 =
-        executor_2.execute_transaction(malicious_account_id, block_ref, &note_origins, None);
+    let transaction_result_2 = executor_2.execute_transaction(
+        malicious_account_id,
+        block_ref,
+        &note_origins,
+        None,
+        Some(malicious_keypair_to_advice_map),
+    );
 
     // Check that we got the expected result - TransactionExecutorError
     assert!(transaction_result_2.is_err());
@@ -141,7 +156,12 @@ fn test_p2id_script_multiple_assets() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account = get_account_with_default_account_code(target_account_id, None);
+    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let target_account = get_account_with_default_account_code(
+        target_account_id,
+        target_keypair.public_key().clone(),
+        None,
+    );
 
     // Create the note
     let p2id_script = Script::P2ID {
@@ -185,7 +205,13 @@ fn test_p2id_script_multiple_assets() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(
+            target_account_id,
+            block_ref,
+            &note_origins,
+            Some(tx_script),
+            Some(target_keypair_to_advice_map),
+        )
         .unwrap();
 
     // vault delta
@@ -204,8 +230,12 @@ fn test_p2id_script_multiple_assets() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-
-    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
+    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let malicious_account = get_account_with_default_account_code(
+        malicious_account_id,
+        malicious_keypair.public_key().clone(),
+        None,
+    );
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
@@ -221,8 +251,13 @@ fn test_p2id_script_multiple_assets() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 =
-        executor_2.execute_transaction(malicious_account_id, block_ref, &note_origins, None);
+    let transaction_result_2 = executor_2.execute_transaction(
+        malicious_account_id,
+        block_ref,
+        &note_origins,
+        None,
+        Some(malicious_keypair_to_advice_map),
+    );
 
     // Check that we got the expected result - TransactionExecutorError
     assert!(transaction_result_2.is_err());
@@ -242,16 +277,32 @@ fn test_p2idr_script() {
 
     // Create sender and target and malicious account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let sender_account = get_account_with_default_account_code(sender_account_id, None);
+    let (sender_keypair, sender_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let sender_account = get_account_with_default_account_code(
+        sender_account_id,
+        sender_keypair.public_key().clone(),
+        None,
+    );
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let target_account = get_account_with_default_account_code(target_account_id, None);
+    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let target_account = get_account_with_default_account_code(
+        target_account_id,
+        target_keypair.public_key().clone(),
+        None,
+    );
 
+    // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let malicious_account = get_account_with_default_account_code(malicious_account_id, None);
+    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let malicious_account = get_account_with_default_account_code(
+        malicious_account_id,
+        malicious_keypair.public_key().clone(),
+        None,
+    );
 
     // --------------------------------------------------------------------------------------------
     // Create notes
@@ -323,7 +374,13 @@ fn test_p2idr_script() {
 
     // Execute the transaction and get the witness
     let transaction_result_1 = executor_1
-        .execute_transaction(target_account_id, block_ref_1, &note_origins, Some(tx_script.clone()))
+        .execute_transaction(
+            target_account_id,
+            block_ref_1,
+            &note_origins,
+            Some(tx_script.clone()),
+            Some(target_keypair_to_advice_map.clone()),
+        )
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
@@ -356,6 +413,7 @@ fn test_p2idr_script() {
         block_ref_2,
         &note_origins_2,
         Some(tx_script.clone()),
+        Some(sender_keypair_to_advice_map.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
@@ -382,6 +440,7 @@ fn test_p2idr_script() {
         block_ref_3,
         &note_origins_3,
         Some(tx_script.clone()),
+        Some(malicious_keypair_to_advice_map.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
@@ -409,6 +468,7 @@ fn test_p2idr_script() {
             block_ref_4,
             &note_origins_4,
             Some(tx_script.clone()),
+            Some(target_keypair_to_advice_map),
         )
         .unwrap();
 
@@ -443,7 +503,13 @@ fn test_p2idr_script() {
 
     // Execute the transaction and get the witness
     let transaction_result_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_origins, Some(tx_script.clone()))
+        .execute_transaction(
+            sender_account_id,
+            block_ref_5,
+            &note_origins,
+            Some(tx_script.clone()),
+            Some(sender_keypair_to_advice_map),
+        )
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -480,28 +546,10 @@ fn test_p2idr_script() {
         block_ref_6,
         &note_origins_6,
         Some(tx_script.clone()),
+        Some(malicious_keypair_to_advice_map),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
     // Sixth transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_6.is_err())
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn get_account_with_default_account_code(account_id: AccountId, assets: Option<Asset>) -> Account {
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let mut account_assembler = assembler();
-
-    let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let account_storage = mock_account_storage();
-    let account_vault = match assets {
-        Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
-        None => AccountVault::new(&vec![]).unwrap(),
-    };
-
-    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }

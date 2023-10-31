@@ -127,8 +127,13 @@ impl<D: DataStore> TransactionExecutor<D> {
         note_origins: &[NoteOrigin],
         tx_script: Option<TransactionScript>,
     ) -> Result<TransactionResult, TransactionExecutorError> {
-        let transaction =
-            self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
+        let transaction = self.prepare_transaction(
+            account_id,
+            block_ref,
+            note_origins,
+            tx_script,
+            keypair_to_advice_map,
+        )?;
 
         let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
         let mut host = TransactionHost::new(advice_recorder);
@@ -190,6 +195,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             notes,
             tx_script,
             tx_program,
+            keypair_to_advice_map,
         )
         .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
     }

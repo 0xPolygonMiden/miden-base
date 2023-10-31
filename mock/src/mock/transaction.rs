@@ -144,6 +144,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         None,
         block_header,
         chain_mmr,
+        None,
     )
     .unwrap()
 }

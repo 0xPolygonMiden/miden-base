@@ -41,7 +41,7 @@ fn test_transaction_executor_witness() {
 
     // execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
+        .execute_transaction(account_id, block_ref, &note_origins, None, None)
         .unwrap();
     let witness = transaction_result.clone().into_witness();
 
@@ -213,7 +213,7 @@ fn test_transaction_result_account_delta() {
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(account_id, block_ref, &note_origins, Some(tx_script), None)
         .unwrap();
 
     // nonce delta
@@ -280,7 +280,7 @@ fn test_prove_witness_and_verify() {
 
     // execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
+        .execute_transaction(account_id, block_ref, &note_origins, None, None)
         .unwrap();
     let witness = transaction_result.clone().into_witness();
 
@@ -307,7 +307,7 @@ fn test_prove_and_verify_with_tx_executor() {
 
     // prove the transaction with the executor
     let prepared_transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_origins, None)
+        .prepare_transaction(account_id, block_ref, &note_origins, None, None)
         .unwrap();
 
     // prove transaction

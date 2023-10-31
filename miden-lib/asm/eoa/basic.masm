@@ -38,9 +38,7 @@ export.auth_tx_rpo_falcon512
     # inputs the hash of the public key and the hash of the message via the operand 
     # stack. The signature is provided via the advice stack.The signature is valid if and
     # only if the procedure returns.
-    #exec.rpo_falcon512::verify
-    # JUST FOR TESTING
-    dropw dropw
+    exec.rpo_falcon512::verify
     # => []
 
     # Update the nonce
