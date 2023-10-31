@@ -10,11 +10,11 @@ use.miden::sat::internal::prologue
 #!
 #! 1. Prologue: execute the transaction prologue which prepares the transaction for processing
 #!    by parsing the transaction data and setting up the root context.
-#! 2. Note Processing: execute the note processing loop which consumes each input note and 
+#! 2. Note Processing: execute the note processing loop which consumes each input note and
 #!    invokes the note script of each note via a `dyncall` instruction invocation.
 #! 3. Transaction Script Processing: execute the transaction script if it exists via the invocation
 #!    of a `dyncall` instruction.
-#! 4. Epilogue: execute the transaction epilogue which finalizes the transaction by computing the 
+#! 4. Epilogue: execute the transaction epilogue which finalizes the transaction by computing the
 #!    created notes commitment, the final account hash, asserting asset invariant conditions and
 #!    asserting the nonce rules are upheld.
 #!

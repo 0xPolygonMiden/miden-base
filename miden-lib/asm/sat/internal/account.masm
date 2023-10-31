@@ -326,7 +326,7 @@ export.authenticate_procedure.1
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
-#! 
+#!
 #! Validation is performed via the following steps:
 #! 1. compute the hash of (SEED, CODE_ROOT, STORAGE_ROOT, 0, 0, 0, 0)
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
@@ -358,7 +358,7 @@ export.validate_seed
         # => [RATE, RATE, CAP]
 
         # extract digest
-        dropw swapw dropw 
+        dropw swapw dropw
         # => [DIG]
 
         # assert the account id matches the account id of the new account and extract pow
@@ -381,6 +381,6 @@ export.validate_seed
         # => [pow, modulus]
 
         # assert that the pow is valid
-        u32split drop swap u32unchecked_divmod assertz drop 
+        u32split drop swap u32unchecked_divmod assertz drop
         # => []
 end

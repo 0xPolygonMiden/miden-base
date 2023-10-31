@@ -64,7 +64,7 @@ end
 export.incr_nonce
     syscall.incr_account_nonce
     # => [0]
-     
+
     drop
     # => []
 end

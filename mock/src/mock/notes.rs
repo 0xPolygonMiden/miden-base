@@ -200,7 +200,7 @@ pub fn mock_notes(
                     use.miden::wallets::basic->wallet
 
                     begin
-                        # read the assets to memory 
+                        # read the assets to memory
                         push.0 exec.note::get_assets
                         # => [num_assets, dest_ptr]
 

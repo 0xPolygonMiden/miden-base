@@ -1,8 +1,8 @@
 # BASIC FUNGIBLE FAUCET CONTRACT
 # =================================================================================================
-# This is a basic fungible faucet smart contract. 
+# This is a basic fungible faucet smart contract.
 #
-# It allows the owner of the faucet to mint, distribute, and burn tokens. Token metadata is stored 
+# It allows the owner of the faucet to mint, distribute, and burn tokens. Token metadata is stored
 # in account storage at position 1 as [max_supply, decimals, token_symbol, 0], where:
 # - max_supply is the maximum supply of the token.
 # - decimals are the decimals of the token.
@@ -23,25 +23,25 @@ const.METADATA_SLOT=1
 export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
-#! 
+#!
 #! Inputs: [amount, tag, RECIPIENT, ...]
 #! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
 #!
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.
-#! - RECIPIENT is the recipient of the asset, i.e., 
+#! - RECIPIENT is the recipient of the asset, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
 #! - note_ptr is the pointer to the memory address in the kernel.
 #!   This cannot directly be accessed from another context.
 #!
-#! FAILS if: 
+#! FAILS if:
 #! - The transaction is being executed against an account that is not a fungible asset faucet.
 #! - The total issuance after minting is greater than the maximum allowed supply.
 export.distribute
     # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
-    push.METADATA_SLOT exec.account::get_item drop drop drop 
+    push.METADATA_SLOT exec.account::get_item drop drop drop
     # => [max_supply, amount, tag, RECIPIENT, ...]
-    
+
     # get total issuance of this faucet so far and add amount to be minted
     exec.faucet::get_total_issuance
     # => [total_issuance, max_supply, amount, tag, RECIPIENT, ...]
@@ -57,18 +57,18 @@ export.distribute
     # creating the asset
     exec.asset::create_fungible_asset
     # => [ASSET, tag, RECIPIENT, ...]
-    
+
     # mint the asset; this is needed to satisfy asset preservation logic.
     exec.faucet::mint
     # => [ASSET, tag, RECIPIENT, ...]
-    
+
     # create a note containing the asset
     exec.tx::create_note
     # => [note_ptr, ZERO, ZERO, ...]
 end
 
 #! Burns fungible assets.
-#! 
+#!
 #! Input: [ASSET]
 #! Outputs: []
 #!
@@ -82,7 +82,7 @@ export.burn
     # burning the asset
     exec.faucet::burn
     # => [ASSET]
-    
+
     # increments the nonce (anyone should be able to call that function)
     push.1 exec.account::incr_nonce
 
