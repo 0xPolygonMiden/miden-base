@@ -247,7 +247,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx)
                 .unwrap(),
-            note.nullifier().as_elements()
+            note.note().nullifier().as_elements()
         );
 
         // The note hash should be computed and stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024)
@@ -255,7 +255,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx))
                 .unwrap(),
-            note.hash().as_elements()
+            note.note().hash().as_elements()
         );
 
         // The note serial num should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 1)
@@ -263,7 +263,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 1)
                 .unwrap(),
-            note.serial_num()
+            note.note().serial_num()
         );
 
         // The note script hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 2)
@@ -271,7 +271,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 2)
                 .unwrap(),
-            note.script().hash().as_elements()
+            note.note().script().hash().as_elements()
         );
 
         // The note input hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 3)
@@ -279,7 +279,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 3)
                 .unwrap(),
-            note.inputs().hash().as_elements()
+            note.note().inputs().hash().as_elements()
         );
 
         // The note vault hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 4)
@@ -287,7 +287,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 4)
                 .unwrap(),
-            note.vault().hash().as_elements()
+            note.note().vault().hash().as_elements()
         );
 
         // The number of assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 5)
@@ -295,11 +295,11 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 5)
                 .unwrap(),
-            Word::from(note.metadata())
+            Word::from(note.note().metadata())
         );
 
         // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)
-        for (asset, asset_idx) in note.vault().iter().cloned().zip(0u32..) {
+        for (asset, asset_idx) in note.note().vault().iter().cloned().zip(0u32..) {
             let word: Word = asset.into();
             assert_eq!(
                 process

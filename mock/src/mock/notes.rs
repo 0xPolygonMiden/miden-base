@@ -57,7 +57,6 @@ pub fn mock_notes(
         SERIAL_NUM_4,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 
@@ -69,21 +68,13 @@ pub fn mock_notes(
         SERIAL_NUM_5,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 
     const SERIAL_NUM_6: Word = [Felt::new(21), Felt::new(22), Felt::new(23), Felt::new(24)];
-    let created_note_3 = Note::new(
-        note_script,
-        &[Felt::new(2)],
-        &[fungible_asset_3],
-        SERIAL_NUM_6,
-        sender,
-        ZERO,
-        None,
-    )
-    .unwrap();
+    let created_note_3 =
+        Note::new(note_script, &[Felt::new(2)], &[fungible_asset_3], SERIAL_NUM_6, sender, ZERO)
+            .unwrap();
 
     let created_notes = vec![created_note_1, created_note_2, created_note_3];
 
@@ -140,16 +131,9 @@ pub fn mock_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let consumed_note_1 = Note::new(
-        note_1_script,
-        &[Felt::new(1)],
-        &[fungible_asset_1],
-        SERIAL_NUM_1,
-        sender,
-        ZERO,
-        None,
-    )
-    .unwrap();
+    let consumed_note_1 =
+        Note::new(note_1_script, &[Felt::new(1)], &[fungible_asset_1], SERIAL_NUM_1, sender, ZERO)
+            .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
     let consumed_note_2 = Note::new(
@@ -159,7 +143,6 @@ pub fn mock_notes(
         SERIAL_NUM_2,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 
@@ -174,7 +157,6 @@ pub fn mock_notes(
         SERIAL_NUM_3,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 
@@ -189,7 +171,6 @@ pub fn mock_notes(
         SERIAL_NUM_7,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 
@@ -236,7 +217,6 @@ pub fn mock_notes(
         SERIAL_NUM_8,
         sender,
         ZERO,
-        None,
     )
     .unwrap();
 

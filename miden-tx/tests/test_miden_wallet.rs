@@ -64,11 +64,8 @@ fn test_receive_asset_via_wallet() {
     executor.load_account(target_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script = ProgramAst::parse(
         format!(
@@ -124,11 +121,8 @@ fn test_send_asset_via_wallet() {
     executor.load_account(sender_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -237,7 +231,6 @@ fn get_note_with_fungible_asset_and_script(
         SERIAL_NUM,
         sender_id,
         Felt::new(1),
-        None,
     )
     .unwrap()
 }

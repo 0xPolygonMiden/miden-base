@@ -62,15 +62,7 @@ pub fn create_note(
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
 
-    Note::new(
-        note_script.clone(),
-        &inputs,
-        &assets,
-        serial_num,
-        sender,
-        tag.unwrap_or(ZERO),
-        None,
-    )
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
 }
 
 pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {

@@ -1,6 +1,6 @@
 use super::{
     accounts::{Account, AccountId},
-    notes::{Note, NoteEnvelope},
+    notes::{Note, NoteEnvelope, RecordedNote},
     utils::collections::Vec,
     AdviceInputs, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher,
     PreparedTransactionError, StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE,

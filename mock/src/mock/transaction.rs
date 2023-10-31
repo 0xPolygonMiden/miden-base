@@ -10,14 +10,17 @@ use super::{
 };
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::Account, notes::Note, transaction::ExecutedTransaction, utils::collections::Vec,
+    accounts::Account,
+    notes::{Note, RecordedNote},
+    transaction::ExecutedTransaction,
+    utils::collections::Vec,
     BlockHeader, ChainMmr, Felt, FieldElement,
 };
 
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
-) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
+) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>) {
     // Create assembler and assembler context
     let assembler = assembler();
 
@@ -39,10 +42,10 @@ pub fn mock_inputs(
     };
 
     // mock notes
-    let (mut consumed_notes, _created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (consumed_notes, _created_notes) = mock_notes(&assembler, &asset_preservation);
 
     // Chain data
-    let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
     // Block header
     let block_header = mock_block_header(
@@ -53,7 +56,7 @@ pub fn mock_inputs(
     );
 
     // Transaction inputs
-    (account, block_header, chain_mmr, consumed_notes)
+    (account, block_header, chain_mmr, recorded_notes)
 }
 
 pub fn mock_inputs_with_existing(
@@ -61,7 +64,7 @@ pub fn mock_inputs_with_existing(
     asset_preservation: AssetPreservationStatus,
     account: Option<Account>,
     consumed_notes_from: Option<Vec<Note>>,
-) -> (Account, BlockHeader, ChainMmr, Vec<Note>) {
+) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>) {
     // Create assembler and assembler context
     let assembler = assembler();
 
@@ -92,7 +95,7 @@ pub fn mock_inputs_with_existing(
     }
 
     // Chain data
-    let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
     // Block header
     let block_header = mock_block_header(
@@ -103,7 +106,7 @@ pub fn mock_inputs_with_existing(
     );
 
     // Transaction inputs
-    (account, block_header, chain_mmr, consumed_notes)
+    (account, block_header, chain_mmr, recorded_notes)
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
@@ -118,10 +121,10 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         mock_account(Felt::new(2), Some(initial_account.code().clone()), &assembler);
 
     // mock notes
-    let (mut consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
 
     // Chain data
-    let chain_mmr: ChainMmr = mock_chain_data(&mut consumed_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
     // Block header
     let block_header = mock_block_header(
@@ -136,7 +139,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account,
         None,
         final_account,
-        consumed_notes,
+        recorded_notes,
         created_notes,
         None,
         block_header,

@@ -68,7 +68,7 @@ fn test_get_sender() {
     )
     .unwrap();
 
-    let sender = transaction.consumed_notes().notes()[0].metadata().sender().into();
+    let sender = transaction.consumed_notes().notes()[0].note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
 
@@ -107,10 +107,10 @@ fn test_get_vault_data() {
             push.{note_1_num_assets} assert_eq
         end
         ",
-        note_0_vault_root = prepare_word(&notes[0].vault().hash()),
-        note_0_num_assets = notes[0].vault().num_assets(),
-        note_1_vault_root = prepare_word(&notes[1].vault().hash()),
-        note_1_num_assets = notes[1].vault().num_assets(),
+        note_0_vault_root = prepare_word(&notes[0].note().vault().hash()),
+        note_0_num_assets = notes[0].note().vault().num_assets(),
+        note_1_vault_root = prepare_word(&notes[1].note().vault().hash()),
+        note_1_num_assets = notes[1].note().vault().num_assets(),
     );
 
     let transaction =
@@ -217,10 +217,10 @@ fn test_get_assets() {
             call.process_note_1
         end
         ",
-        note_0_num_assets = notes[0].vault().num_assets(),
-        note_1_num_assets = notes[1].vault().num_assets(),
-        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(&notes[0]),
-        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1]),
+        note_0_num_assets = notes[0].note().vault().num_assets(),
+        note_1_num_assets = notes[1].note().vault().num_assets(),
+        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(&notes[0].note()),
+        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1].note()),
     );
 
     let inputs = prepare_transaction(
@@ -302,7 +302,7 @@ fn test_get_inputs() {
             call.process_note_0
         end
         ",
-        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(&notes[0]),
+        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(&notes[0].note()),
     );
 
     let inputs = prepare_transaction(
@@ -360,7 +360,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.consumed_notes().notes()[0].script().hash();
+    let mut note_script_root = *inputs.consumed_notes().notes()[0].note().script().hash();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 

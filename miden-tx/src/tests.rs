@@ -1,11 +1,12 @@
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, Note, NoteOrigin,
+    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, NoteOrigin,
     TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier, TryFromVmResult,
 };
 use miden_objects::{
     accounts::AccountCode,
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
+    notes::RecordedNote,
     transaction::{CreatedNotes, FinalAccountStub},
     Felt, StarkField, Word,
 };
@@ -35,11 +36,8 @@ fn test_transaction_executor_witness() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
     let transaction_result = executor
@@ -208,11 +206,8 @@ fn test_transaction_result_account_delta() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
@@ -241,7 +236,15 @@ fn test_transaction_result_account_delta() {
     // vault delta
     // --------------------------------------------------------------------------------------------
     // assert that added assets are tracked
-    let added_assets = data_store.notes.last().unwrap().vault().iter().cloned().collect::<Vec<_>>();
+    let added_assets = data_store
+        .notes
+        .last()
+        .unwrap()
+        .note()
+        .vault()
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
     assert!(transaction_result
         .account_delta()
         .vault
@@ -272,11 +275,8 @@ fn test_prove_witness_and_verify() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
     let transaction_result = executor
@@ -302,11 +302,8 @@ fn test_prove_and_verify_with_tx_executor() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // prove the transaction with the executor
     let prepared_transaction = executor
@@ -330,7 +327,7 @@ struct MockDataStore {
     pub account: Account,
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
-    pub notes: Vec<Note>,
+    pub notes: Vec<RecordedNote>,
 }
 
 impl MockDataStore {
@@ -358,15 +355,11 @@ impl DataStore for MockDataStore {
         account_id: AccountId,
         block_num: u32,
         notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<Note>), DataStoreError> {
+    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>), DataStoreError> {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num as u64, self.block_header.block_num().as_int());
         assert_eq!(notes.len(), self.notes.len());
-        let origins = self
-            .notes
-            .iter()
-            .map(|note| note.proof().as_ref().unwrap().origin())
-            .collect::<Vec<_>>();
+        let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
         Ok((
             self.account.clone(),

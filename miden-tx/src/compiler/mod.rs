@@ -1,8 +1,11 @@
 use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, Note, NoteScript, Operation, Program,
-    SatKernel, TransactionCompilerError,
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Operation, Program, SatKernel,
+    TransactionCompilerError,
 };
-use miden_objects::assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst};
+use miden_objects::{
+    assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
+    notes::RecordedNote,
+};
 use vm_processor::ProgramInfo;
 
 #[cfg(test)]
@@ -103,7 +106,7 @@ impl TransactionCompiler {
     pub fn compile_transaction(
         &mut self,
         account_id: AccountId,
-        notes: &[Note],
+        notes: &[RecordedNote],
         tx_script: Option<ProgramAst>,
     ) -> Result<(Program, Option<Digest>), TransactionCompilerError> {
         // Fetch the account interface from the `account_procedures` map. Return an error if the
@@ -172,16 +175,16 @@ impl TransactionCompiler {
     fn compile_notes(
         &mut self,
         target_account_interface: &[Digest],
-        notes: &[Note],
+        notes: &[RecordedNote],
         assembly_context: &mut AssemblyContext,
     ) -> Result<Vec<CodeBlock>, TransactionCompilerError> {
         let mut note_programs = Vec::new();
 
         // Create and verify note programs. Note programs are verified against the target account.
-        for note in notes.iter() {
+        for recorded_note in notes.iter() {
             let note_program = self
                 .assembler
-                .compile_in_context(note.script().code(), assembly_context)
+                .compile_in_context(recorded_note.note().script().code(), assembly_context)
                 .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
             verify_program_account_compatibility(&note_program, target_account_interface).map_err(
                 |_| {

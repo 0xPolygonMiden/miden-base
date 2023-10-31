@@ -21,11 +21,11 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
-mod vault;
-pub use vault::NoteVault;
-
 mod stub;
 pub use stub::NoteStub;
+
+mod vault;
+pub use vault::NoteVault;
 
 // CONSTANTS
 // ================================================================================================
@@ -48,15 +48,14 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 ///
 /// Core on-chain data which is used to execute a note:
 /// - A script which must be executed in a context of some account to claim the assets.
-/// - A set of inputs which are placed onto the stack before a note's script is executed.
+/// - A set of inputs which can be read to memory during script execution via the invocation of the
+///   `note::get_inputs` in the kernel api.
 /// - A set of assets stored in a vault.
 /// - A serial number which can be used to break linkability between note hash and note nullifier.
 ///
 /// Auxiliary data which is used to verify authenticity and signal additional information:
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
-/// - A proof which provides the data required to authenticate the note against the note root of
-///   the block in which the note was produced.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
@@ -65,7 +64,6 @@ pub struct Note {
     vault: NoteVault,
     serial_num: Word,
     metadata: NoteMetadata,
-    proof: Option<NoteInclusionProof>,
 }
 
 impl Note {
@@ -85,7 +83,6 @@ impl Note {
         serial_num: Word,
         sender: AccountId,
         tag: Felt,
-        proof: Option<NoteInclusionProof>,
     ) -> Result<Self, NoteError> {
         let vault = NoteVault::new(assets)?;
         let num_assets = vault.num_assets();
@@ -95,7 +92,6 @@ impl Note {
             vault,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
-            proof,
         })
     }
 
@@ -120,16 +116,6 @@ impl Note {
     /// Returns a serial number of this note.
     pub fn serial_num(&self) -> Word {
         self.serial_num
-    }
-
-    /// Returns the origin of the note.
-    pub fn origin(&self) -> Option<&NoteOrigin> {
-        self.proof.as_ref().map(|x| x.origin())
-    }
-
-    /// Returns the note inclusion proof.
-    pub fn proof(&self) -> &Option<NoteInclusionProof> {
-        &self.proof
     }
 
     /// Returns the metadata associated with this note.
@@ -189,10 +175,40 @@ impl Note {
         elements.extend_from_slice(self.vault.hash().as_elements());
         Hasher::hash_elements(&elements)
     }
+}
 
-    // MODIFIERS
-    // --------------------------------------------------------------------------------------------
-    pub fn set_proof(&mut self, proof: NoteInclusionProof) {
-        self.proof = Some(proof);
+// RECORDED NOTE
+// ================================================================================================
+
+/// Represents a note which has been recorded in the Miden notes database.
+///
+/// This struct is composed:
+/// - A note which has been recorded.
+/// - The inclusion proof of the note.
+#[derive(Debug, Clone)]
+pub struct RecordedNote {
+    note: Note,
+    proof: NoteInclusionProof,
+}
+
+impl RecordedNote {
+    /// Returns a new instance of a [RecordedNote] with the specified note and origin.
+    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
+        Self { note, proof }
+    }
+
+    /// Returns a reference to the note which was recorded.
+    pub fn note(&self) -> &Note {
+        &self.note
+    }
+
+    /// Returns a reference to the inclusion proof of the recorded note.
+    pub fn proof(&self) -> &NoteInclusionProof {
+        &self.proof
+    }
+
+    /// Returns a reference to the origin of the recorded note.
+    pub fn origin(&self) -> &NoteOrigin {
+        self.proof.origin()
     }
 }
