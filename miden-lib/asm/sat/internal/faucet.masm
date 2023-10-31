@@ -30,7 +30,7 @@ export.mint_fungible_asset
     # => [ASSET]
 
     # get the current total issuance
-    exec.account::get_faucet_storage_data_slot exec.account::get_item 
+    exec.account::get_faucet_storage_data_slot exec.account::get_item
     # => [TOTAL_ISSUANCE, ASSET]
 
     # prepare stack to ensure that minting the asset will not exceed the maximum
@@ -159,7 +159,7 @@ end
 #! - If the transaction is not being executed against a non-fungible faucet.
 #! - If the non-fungible asset being burned is not associated with the faucet the transaction is
 #!   being executed against.
-#! - If the non-fungible asset being burned does not exist or was not provided as input to the 
+#! - If the non-fungible asset being burned does not exist or was not provided as input to the
 #!   transaction via a note or the accounts vault.
 #!
 #! Stack: [ASSET]
@@ -211,7 +211,7 @@ end
 #! - If the asset being minted is not associated with the faucet the transaction is being executed
 #!   against.
 #! - If the asset is not well formed.
-#! - For fungible faucets if the total issuance after minting is greater than the maximum amount 
+#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
 #!   allowed.
 #! - For non-fungible faucets if the non-fungible asset being minted already exists.
 #!
@@ -242,9 +242,9 @@ end
 #! - If the asset being burned is not associated with the faucet the transaction is being executed
 #!   against.
 #! - If the asset is not well formed.
-#! - For fungible faucets if the amount being burned is greater than the total input to the 
+#! - For fungible faucets if the amount being burned is greater than the total input to the
 #!   transaction.
-#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not 
+#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
 #! Stack: [ASSET]
@@ -266,4 +266,3 @@ export.burn
         # => [ASSET]
     end
 end
-

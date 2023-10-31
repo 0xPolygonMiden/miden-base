@@ -10,7 +10,7 @@ Polygon Miden is an Ethereum Rollup. It batches transactions - or more precisely
 
 Every transaction will result in a ZK proof that attests to its correctness.
 
-As mentioned in [transactions](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html#local-vs-network-transactions), there are two types of transactions: local and network. For every transaction there is a proof which is either created by the user in the Miden Client or by the Operator using the Miden Node. 
+As mentioned in [transactions](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html#local-vs-network-transactions), there are two types of transactions: local and network. For every transaction there is a proof which is either created by the user in the Miden Client or by the Operator using the Miden Node.
 
 ## Transaction Batching
 To reduce the required space on the Ethereum blockchain, transaction proofs are aggregated into batches. This can happen in parallel by different machines that need to verify several proofs using the Miden VM and thus creating a proof. Verifying a STARK proof within the VM is relatively efficient but it is still a pretty costly operation (we aim for 2<sup>16</sup> cycles).
@@ -18,7 +18,7 @@ To reduce the required space on the Ethereum blockchain, transaction proofs are 
 ## Block Production
 Several batch proofs are being aggregated together into one block. This can not happen in parallel and must be done by the Miden Operator running the Miden Node. The idea is the same, using recursive verification.
 
-## State progress 
+## State progress
 At the beginning, Miden will have a centralized Operator running a Miden Node.
 
 Users will send either transaction proofs (using local execution) or transaction data (for network execution) to the Miden Node. Later on, the Miden Node will use recursive verification to aggregate transaction proofs into batches.

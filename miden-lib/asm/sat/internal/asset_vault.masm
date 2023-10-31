@@ -261,7 +261,7 @@ end
 #! - ASSET is the non-fungible asset to remove from the vault.
 #! - vault_root_ptr is a pointer to the memory location at which the vault root is stored.
 export.remove_non_fungible_asset
-    # prepare the stack to insert an EMPTY_WORD into the vault at key associated with the 
+    # prepare the stack to insert an EMPTY_WORD into the vault at key associated with the
     # non-fungible asset
     dup.4 movdn.5 dupw padw movup.12 mem_loadw swapw padw
     # => [EMPTY_WORD, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]

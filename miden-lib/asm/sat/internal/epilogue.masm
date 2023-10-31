@@ -32,26 +32,26 @@ proc.compute_created_note_vault_hash
     # => [num_assets, note_data_ptr, note_data_ptr]
 
     # get the number of assets from memory
-    exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup 
-    # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr, 
+    exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup
+    # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
     #     note_data_ptr]
-    
-    # compute end pointer 
+
+    # compute end pointer
     dup.3 add swap
-    # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr, 
+    # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
     #     note_data_ptr]
 
     # loop over assets and insert them into input vault
 
     # assess if we should loop
     dup.1 dup.1 neq
-    # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+    # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
     #     note_data_ptr, note_data_ptr]
 
     while.true
         # duplicate output_vault_root_ptr
         dup.2
-        # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, 
+        # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
         #     num_assets, note_data_ptr, note_data_ptr]
 
         # read the asset from memory
@@ -66,7 +66,7 @@ proc.compute_created_note_vault_hash
 
         # increment assets_start_ptr and asses if we should loop again
         add.1 dup.1 dup.1 neq
-        # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, 
+        # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
         #     note_data_ptr, note_data_ptr]
     end
 
@@ -103,7 +103,7 @@ proc.compute_created_note_vault_hash
 
         # check if we should loop again
         movup.13 add.1 dup movdn.14 dup.15 neq
-        # => [should_loop, PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs, 
+        # => [should_loop, PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs,
         #     note_data_ptr]
     end
 
@@ -303,7 +303,7 @@ export.finalize_transaction
     # insert created data into the advice map
     adv.insert_mem
     # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
-    
+
     # drop created note pointers
     movup.4 drop movup.4 drop
     # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]

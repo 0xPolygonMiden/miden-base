@@ -68,7 +68,7 @@ end
 #! Output: [H]
 #!
 #! - H is the initial account hash.
-export.get_initial_account_hash 
+export.get_initial_account_hash
     # get the initial account hash
     exec.account::get_initial_hash
     # => [H, 0, 0, 0, 0]
@@ -140,7 +140,7 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_account_item
-    # if the transaction is being executed against a faucet account then assert 
+    # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
     dup exec.account::get_faucet_storage_data_slot eq
     exec.account::get_id exec.account::is_faucet
@@ -432,7 +432,7 @@ end
 #! - If the asset being minted is not associated with the faucet the transaction is being executed
 #!   against.
 #! - If the asset is not well formed.
-#! - For fungible faucets if the total issuance after minting is greater than the maximum amount 
+#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
 #!   allowed.
 #! - For non-fungible faucets if the non-fungible asset being minted already exists.
 #!
@@ -457,9 +457,9 @@ end
 #! - If the asset being burned is not associated with the faucet the transaction is being executed
 #!   against.
 #! - If the asset is not well formed.
-#! - For fungible faucets if the amount being burned is greater than the total input to the 
+#! - For fungible faucets if the amount being burned is greater than the total input to the
 #!   transaction.
-#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not 
+#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
 #!   provided as input to the transaction via a note or the accounts vault.
 #!
 #! Stack: [ASSET]
@@ -470,7 +470,7 @@ export.burn_asset
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]
-    
+
     # burn the asset
     exec.faucet::burn
     # => [ASSET]

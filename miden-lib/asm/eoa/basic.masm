@@ -1,7 +1,7 @@
 use.miden::sat::account
 use.miden::sat::tx
 
-#! Authenticate a transaction using Falcon 
+#! Authenticate a transaction using Falcon
 #! WIP - FALCON VERIFICATION IS MISSING, NOT SURE IF HASHING IN CORRECT ORDER
 #! Stack: []
 #! Output: []

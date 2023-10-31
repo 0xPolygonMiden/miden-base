@@ -34,9 +34,9 @@ In the above picture, you can see:
 *Note: Miden uses little-endian by default, but big_endian for better readability in the picture above.*
 
 ### Account Storage
-User-defined data that can be stored in an account. `AccountStorage` is composed of two components. 
+User-defined data that can be stored in an account. `AccountStorage` is composed of two components.
 
-The first component is a simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `Word` slots. 
+The first component is a simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `Word` slots.
 
 Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in the simple sparse Merkle tree. When `AccountStorage` is serialized it will check to see if any of the leafs in the simple sparse Merkle tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage` `MerkleStore`.
 
@@ -82,5 +82,5 @@ The process is as follows:
 Account data - stored by the Miden Node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
 
 * Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
-* Account with **encrypted state**, where the account data is stored onchain but in encrypted text. It provides liveness guarantee of the protocol for the account in question.  
-* Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`. 
+* Account with **encrypted state**, where the account data is stored onchain but in encrypted text. It provides liveness guarantee of the protocol for the account in question.
+* Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.

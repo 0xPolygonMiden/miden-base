@@ -134,7 +134,7 @@ end
 # =================================================================================================
 
 #! Validates that the account the transaction is being executed against satisfies the criteria
-#! for a new account. 
+#! for a new account.
 #!
 #! Stack: []
 #! Output: []
@@ -160,7 +160,7 @@ proc.validate_new_account
     exec.layout::get_acct_vault_root
     # => [ACCT_VAULT_ROOT]
 
-    # push empty vault root onto stack 
+    # push empty vault root onto stack
     exec.constants::get_empty_tsmt_root
     # => [EMPTY_VAULT_ROOT, ACCT_VAULT_ROOT]
 
@@ -207,10 +207,10 @@ end
 
 #! Process the account data provided via the advice provider. This involves reading the data from
 #! the advice provider and storing it at the appropriate memory addresses. As the account data is
-#! read from the advice provider, the account hash is computed.  If the account is new then the 
+#! read from the advice provider, the account hash is computed.  If the account is new then the
 #! global initial account hash is updated and the new account is validated.  If the account
-#! already exists then it is asserted that the computed account hash matches the account hash 
-#! provided via global inputs. It is also asserted that the account id matches the account id 
+#! already exists then it is asserted that the computed account hash matches the account hash
+#! provided via global inputs. It is also asserted that the account id matches the account id
 #! provided via the stack public inputs.
 #!
 #! Stack: []
@@ -231,12 +231,12 @@ proc.process_acct_data
     padw padw padw
     # => [ZERO, ZERO, ZERO, acct_data_ptr]
 
-    # read the account data  
+    # read the account data
     adv_pipe hperm adv_pipe hperm
     # => [ACT_DATA', ACCT_HASH, CAP', act_data_ptr']
 
     # extract digest from hasher rate elements (h_0, ..., h_3) and drop pointer
-    dropw swapw dropw movup.4 drop 
+    dropw swapw dropw movup.4 drop
     # => [ACCT_HASH]
 
     # check if the account is new
@@ -632,7 +632,7 @@ end
 #! Reads the transaction script root from the advice provider stack and stores the root at the
 #! appropriate memory address.
 #!
-#! Advice Stack: [TXSR] 
+#! Advice Stack: [TXSR]
 #! Stack: []
 #! Output: []
 #!

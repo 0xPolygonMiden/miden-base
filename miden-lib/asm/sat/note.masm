@@ -92,7 +92,7 @@ end
 #! Outputs: [sender]
 #!
 #! - sender is the sender of the note currently being processed.
-export.get_sender 
+export.get_sender
     push.0
     # => [0]
 

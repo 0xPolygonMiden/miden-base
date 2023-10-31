@@ -1,5 +1,5 @@
 # State
-The state of the Miden rollup describes the current condition of all accounts and note states. It describes what is currently the case. With its state model, using concurrent offchain state, Polygon Miden aims to realise private transactions, and execution and state bloat minimization. 
+The state of the Miden rollup describes the current condition of all accounts and note states. It describes what is currently the case. With its state model, using concurrent offchain state, Polygon Miden aims to realise private transactions, and execution and state bloat minimization.
 
 Privacy is realised from a UTXO-like state model consisting of notes and nullifiers combined with offchain execution using zero-knowledge proofs. Execution bloat happens when transactions get re-executed by all participants of the network. State bloat describes the ever growing state stored in blockchain nodes. Polygon Miden addresses these challenges via its state model that enables concurrent offchain execution and offchain storage.
 
@@ -25,7 +25,7 @@ These databases are represented by authenticated data structures, such that we c
 Polygon Miden has two databases to capture the note states. The note database is append-only and stores all notes permanently. The nullifier database stores nullifiers that indicate that a note has been previsously consumed. Separating note storage into these two databases gives Polygon Miden client-side proving and advanced privacy.
 
 ### Account database
-The latest account states - and data for onchain accounts - are recorded in a [tiered sparse Merkle tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html) which maps account IDs to account hashes and account data if needed. 
+The latest account states - and data for onchain accounts - are recorded in a [tiered sparse Merkle tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html) which maps account IDs to account hashes and account data if needed.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Account_DB.png" width="80%">
@@ -61,7 +61,7 @@ Using a Merkle Mountain Range (append-only accumulator) is important for two rea
 1. Membership witnesses (a note exists in the database) against such an accumulator needs to be updated very infrequently.
 2. Old membership witnesses can be extended to be used with a new accumulator value, but this extension does not need to be done by the original witness holder.
 
-Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, this witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest state of this database, so there is no need to query the operator on a constantly changing state. 
+Both of these properties are needed for supporting local transactions using client-side proofs and privacy. In an append-only data structure, this witness data does not become stale when the data structure is updated. That means users can generate valid proofs even if they don’t have the latest state of this database, so there is no need to query the operator on a constantly changing state.
 
 However, the size of the note database does not grow indefinitely. Theoretically, at high tps, it would grow very quickly: at $1$K TPS there would be about $1$TB/year added to the database. But, only the unconsumed public notes and enough info to construct membership proofs against them need to be stored explicitly. Private notes, as well as public notes which have already been consumed, can be safely discarded. Such notes would still remain in the accumulator, but there is no need to store them explicitly as the append-only accumulator can be updated without knowing all items stored in it. This reduces actual storage requirements to a fraction of the database's nominal size.
 
@@ -74,9 +74,9 @@ Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.gi
 
 To prove that a note has not been consumed previously, the operator needs to provide a Merkle path to its node, and then show that the value in that node is `0`. In our case nullifiers are $32$ bytes each, and thus, the height of the Sparse Merkle tree need to be $256$.
 
-To be able to add new nullifiers to the database, Operators needs to maintain the entire nullifier set. Otherwise, they would not be able to compute the new root of the tree. 
+To be able to add new nullifiers to the database, Operators needs to maintain the entire nullifier set. Otherwise, they would not be able to compute the new root of the tree.
 
-*Note: Nullifiers as constructed in Miden break linkability of privately stored notes and the information about the note's consumption. To know the [note's nullifier](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) one must know the note's data. 
+*Note: Nullifiers as constructed in Miden break linkability of privately stored notes and the information about the note's consumption. To know the [note's nullifier](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) one must know the note's data.
 
 There will be one tree per epoch (~3 months), and Miden nodes always store trees for at least two epochs. However, the roots of the old trees are still stored. If a user wants to consume a note that is more than $6$ month old, there must be a merkle path provided to the Miden Node for verification.
 
@@ -85,4 +85,4 @@ Operators don’t need to know the entire state to verify or produce a new block
 
 At its core, the idea is simple: Instead of storing the full state data with the operators, the users store their data, and the rollup only keeps track of commitments to the data. At least for private accounts, some smart contracts need to be publicly visible. This minimizes state bloat—as the operator doesn’t need to store an ever-growing database—and provides privacy because all other users and the operator only see a hash of other users’ data.
 
-That way the account and note databases can remain manageable, even at high usage for extended periods of time. 
+That way the account and note databases can remain manageable, even at high usage for extended periods of time.

@@ -1,5 +1,5 @@
 # Notes
-Miden aims to achieve parallel transaction execution and privacy. The UTXO-model combined with client-side proofs provide those features. In Miden, an note is a way of transferring assets between accounts. Notes can be consumed and produced asynchronously and privately. 
+Miden aims to achieve parallel transaction execution and privacy. The UTXO-model combined with client-side proofs provide those features. In Miden, an note is a way of transferring assets between accounts. Notes can be consumed and produced asynchronously and privately.
 
 ## Note design
 The diagram below illustrates the contents of a note:
@@ -26,19 +26,19 @@ Unlike an account, a note has a single executable script. This script will be ex
 A note script can take parameters (passed via the stack) as inputs.
 
 ### Serial number
-A note's unique serial number identifies the note and this is needed to create the note's hash and nullifier. The serial number is used to break linkability between note hash and note nullifier. 
+A note's unique serial number identifies the note and this is needed to create the note's hash and nullifier. The serial number is used to break linkability between note hash and note nullifier.
 
 ## Note metadata
 For every note the Miden Operator stores metadata in the Note DB. This metadata includes:
 
 * A **user-defined tag** as a means to quickly grab all notes for a certain application or use case.
-* A **sender** to be able to provide also ERC20 contract functionality. 
+* A **sender** to be able to provide also ERC20 contract functionality.
 * The **number of assets** contained in the note.
 
 ## Note storage modes
 Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored privately in the [Notes DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with only the note hash. Or notes can be stored publicly with all data.
 
-Privately stored notes can only be consumed if the note data is known to the consumer. That means, there must be some offchain communication to transmit the note's data from the sender to the receipient. 
+Privately stored notes can only be consumed if the note data is known to the consumer. That means, there must be some offchain communication to transmit the note's data from the sender to the receipient.
 
 ## Note hash
 The note hash is computed as:
@@ -63,7 +63,7 @@ This achieves the following properties:
 - We cannot derive a note's hash from its nullifier.
 - To compute the nullifier, we must know all components of the note: `serial_num`, `script_hash`, `input_hash`, and `vault_hash`.
 
-To know a note’s nullifier, one needs to know all details of the note. That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first introduced this approach. 
+To know a note’s nullifier, one needs to know all details of the note. That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first introduced this approach.
 
 <p align="center">
     <img src="../diagrams/architecture/note/Nullifier.png">
@@ -78,5 +78,5 @@ The lifcycle of a note is as follows:
 * Operator verifies the correctness of the underlying transaction before adding the note hash to the Notes DB
 * The note can now be consumed in a seperate transaction - to consume the note, the note's data must be known
 * A note is consumed when the its nullifier in the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) is set to `1`
-* Operator will receive the note's nullifier together with a transaction proof 
+* Operator will receive the note's nullifier together with a transaction proof
 * After successful verification, the Operator sets the corresponding entry in the Nullifier DB to `1`

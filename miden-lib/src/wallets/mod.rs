@@ -33,7 +33,7 @@ pub fn create_basic_wallet(
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset
     export.{auth_scheme_procedure}
-    
+
     "
     );
     let account_code_src: &str = &account_code_string;

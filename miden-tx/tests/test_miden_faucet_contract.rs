@@ -47,14 +47,14 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
             "
             use.miden::faucets::basic->faucet
             use.miden::eoa::basic->auth_tx
-    
+
             begin
 
                 push.{recipient}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
-                
+
                 call.auth_tx::auth_tx_rpo_falcon512
                 dropw dropw
 
@@ -116,14 +116,14 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             "
             use.miden::faucets::basic->faucet
             use.miden::eoa::basic->auth_tx
-    
+
             begin
 
                 push.{recipient}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
-                
+
                 call.auth_tx::auth_tx_rpo_falcon512
                 dropw dropw
 
