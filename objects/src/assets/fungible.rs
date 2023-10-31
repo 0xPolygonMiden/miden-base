@@ -43,7 +43,7 @@ impl FungibleAsset {
     /// Creates a new [FungibleAsset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
         FungibleAsset {
-            faucet_id: AccountId::new_unchecked(value[3]),
+            faucet_id: unsafe { AccountId::new_unchecked(value[3]) },
             amount: value[0].as_int(),
         }
     }

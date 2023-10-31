@@ -1,13 +1,10 @@
 use super::{
     AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
     PreparedTransaction, RecAdviceProvider, TransactionCompiler, TransactionExecutorError,
-    TransactionResult,
+    TransactionHost, TransactionResult,
 };
-use crate::TryFromVmResult;
-use miden_lib::{
-    outputs::TX_SCRIPT_ROOT_WORD_IDX,
-    transaction::{extract_account_storage_delta, extract_account_vault_delta},
-};
+use crate::{host::EventHandler, TryFromVmResult};
+use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
 use miden_objects::{
     accounts::{Account, AccountDelta},
     assembly::ProgramAst,
@@ -15,7 +12,6 @@ use miden_objects::{
     TransactionResultError, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
-use vm_processor::DefaultHost;
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
@@ -118,7 +114,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
         let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
-        let mut host = DefaultHost::new(advice_recorder);
+        let mut host = TransactionHost::new(advice_recorder);
         let result = vm_processor::execute(
             transaction.tx_program(),
             transaction.stack_inputs(),
@@ -130,7 +126,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script_root) =
             transaction.into_parts();
 
-        let advice_recorder = host.into_inner();
+        let (advice_recorder, event_handler) = host.into_parts();
         create_transaction_result(
             account,
             consumed_notes,
@@ -139,6 +135,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             tx_script_root,
             advice_recorder,
             result.stack_outputs().clone(),
+            event_handler,
         )
         .map_err(TransactionExecutorError::TransactionResultError)
     }
@@ -181,6 +178,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 /// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
 pub fn create_transaction_result(
     initial_account: Account,
@@ -190,6 +188,7 @@ pub fn create_transaction_result(
     tx_script_root: Option<Digest>,
     advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
+    event_handler: EventHandler,
 ) -> Result<TransactionResult, TransactionResultError> {
     // finalize the advice recorder
     let (advice_witness, stack, map, store) = advice_provider.finalize();
@@ -222,9 +221,8 @@ pub fn create_transaction_result(
         None
     };
 
-    // extract vault delta
-    let vault_delta =
-        extract_account_vault_delta(&store, &map, &initial_account, &final_account_stub)?;
+    // finalize the event handler
+    let vault_delta = event_handler.finalize();
 
     // construct the account delta
     let account_delta = AccountDelta {

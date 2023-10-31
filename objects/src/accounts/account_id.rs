@@ -92,7 +92,11 @@ impl AccountId {
     }
 
     /// Creates a new [AccountId] without checking its validity.
-    pub(crate) fn new_unchecked(value: Felt) -> AccountId {
+    ///
+    /// # Safety
+    /// This function requires that the provided value is a valid [Felt] representation of an
+    /// [AccountId].
+    pub unsafe fn new_unchecked(value: Felt) -> AccountId {
         AccountId(value)
     }
 

@@ -62,7 +62,11 @@ impl NonFungibleAsset {
     }
 
     /// Creates a new [NonFungibleAsset] without checking its validity.
-    pub(crate) fn new_unchecked(value: Word) -> NonFungibleAsset {
+    ///
+    /// # Safety
+    /// This function required that the provided value is a valid word representation of a
+    /// [NonFungibleAsset].
+    pub unsafe fn new_unchecked(value: Word) -> NonFungibleAsset {
         NonFungibleAsset(value)
     }
 
@@ -74,7 +78,7 @@ impl NonFungibleAsset {
 
     /// Return ID of the faucet which issued this asset.
     pub fn faucet_id(&self) -> AccountId {
-        AccountId::new_unchecked(self.0[FAUCET_ID_POS])
+        unsafe { AccountId::new_unchecked(self.0[FAUCET_ID_POS]) }
     }
 
     // HELPER FUNCTIONS

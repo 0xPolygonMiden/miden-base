@@ -5,6 +5,16 @@ use.miden::sat::internal::layout
 use.miden::sat::internal::note
 use.miden::sat::internal::tx
 
+# EVENTS
+# =================================================================================================
+
+# Event emitted to signal that an asset is being added to the account vault.
+const.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT=131072
+
+# Event emitted to signal that an asset is being removed from the account vault.
+const.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT=131073
+
+
 # AUTHENTICATION
 # =================================================================================================
 
@@ -233,6 +243,11 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.account_vault_add_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an asset is being added to the account vault
+    push.1 drop emit.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT
+
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]
@@ -258,6 +273,11 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an asset is being removed from the account vault
+    push.1 drop emit.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT
+
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]

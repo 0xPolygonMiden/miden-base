@@ -58,7 +58,7 @@ pub fn mock_account_storage() -> AccountStorage {
     .unwrap()
 }
 
-fn mock_account_code(assembler: &Assembler) -> AccountCode {
+pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
             use.miden::sat::tx
