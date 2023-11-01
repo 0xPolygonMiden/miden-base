@@ -460,7 +460,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let notes = self.pending_objects.build_notes_tree();
 
         let previous = self.blocks.last();
-        let peaks = self.chain.mmr().accumulator();
+        let peaks = self.chain.mmr().peaks(self.chain.mmr().forest()).unwrap();
         let chain_root: Digest = peaks.hash_peaks().into();
         let account_root = self.accounts.root();
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());

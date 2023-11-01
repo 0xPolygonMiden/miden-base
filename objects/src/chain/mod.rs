@@ -33,7 +33,7 @@ impl ToAdviceInputs for &ChainMmr {
         target.add_merkle_nodes(self.0.inner_nodes());
 
         // Extract Mmr accumulator
-        let accumulator = self.0.accumulator();
+        let accumulator = self.0.peaks(self.0.forest()).unwrap();
 
         // create the vector of items to insert into the map
         // The vector is in the following format:
