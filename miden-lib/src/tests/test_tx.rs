@@ -136,9 +136,9 @@ fn test_get_output_notes_hash() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
-    let input_note_1 = notes.first().unwrap();
+    let input_note_1 = notes.first().unwrap().note();
     let input_asset_1 = **input_note_1.vault().iter().take(1).collect::<Vec<_>>().first().unwrap();
-    let input_note_2 = notes.last().unwrap();
+    let input_note_2 = notes.last().unwrap().note();
     let input_asset_2 = **input_note_2.vault().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
     // create output note 1
@@ -151,7 +151,6 @@ fn test_get_output_notes_hash() {
         output_serial_no_1,
         account.id(),
         output_tag_1,
-        None,
     )
     .unwrap();
 
@@ -165,7 +164,6 @@ fn test_get_output_notes_hash() {
         output_serial_no_2,
         account.id(),
         output_tag_2,
-        None,
     )
     .unwrap();
 

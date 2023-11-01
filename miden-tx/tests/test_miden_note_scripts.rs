@@ -62,11 +62,8 @@ fn test_p2id_script() {
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script = ProgramAst::parse(
         format!(
@@ -116,7 +113,7 @@ fn test_p2id_script() {
     let note_origins = data_store_malicious_account
         .notes
         .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .map(|note| note.origin().clone())
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
@@ -167,11 +164,8 @@ fn test_p2id_script_multiple_assets() {
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script = ProgramAst::parse(
         format!(
@@ -221,7 +215,7 @@ fn test_p2id_script_multiple_assets() {
     let note_origins = data_store_malicious_account
         .notes
         .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
+        .map(|note| note.origin().clone())
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
@@ -307,11 +301,8 @@ fn test_p2idr_script() {
     executor_1.load_account(target_account_id).unwrap();
 
     let block_ref_1 = data_store_1.block_header.block_num().as_int() as u32;
-    let note_origins = data_store_1
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store_1.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script = ProgramAst::parse(
         format!(
@@ -353,11 +344,8 @@ fn test_p2idr_script() {
     executor_2.load_account(sender_account_id).unwrap();
 
     let block_ref_2 = data_store_2.block_header.block_num().as_int() as u32;
-    let note_origins_2 = data_store_2
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins_2 =
+        data_store_2.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_2 = executor_2.execute_transaction(
@@ -382,11 +370,8 @@ fn test_p2idr_script() {
     executor_3.load_account(malicious_account_id).unwrap();
 
     let block_ref_3 = data_store_3.block_header.block_num().as_int() as u32;
-    let note_origins_3 = data_store_3
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins_3 =
+        data_store_3.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_3 = executor_3.execute_transaction(
@@ -411,11 +396,8 @@ fn test_p2idr_script() {
     executor_4.load_account(target_account_id).unwrap();
 
     let block_ref_4 = data_store_4.block_header.block_num().as_int() as u32;
-    let note_origins_4 = data_store_4
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins_4 =
+        data_store_4.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_4 = executor_4
@@ -453,11 +435,8 @@ fn test_p2idr_script() {
     executor_5.load_account(sender_account_id).unwrap();
 
     let block_ref_5 = data_store_5.block_header.block_num().as_int() as u32;
-    let note_origins = data_store_5
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store_5.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_5 = executor_5
@@ -489,11 +468,8 @@ fn test_p2idr_script() {
     executor_6.load_account(malicious_account_id).unwrap();
 
     let block_ref_6 = data_store_6.block_header.block_num().as_int() as u32;
-    let note_origins_6 = data_store_6
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins_6 =
+        data_store_6.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_6 = executor_6.execute_transaction(

@@ -11,7 +11,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountType, StorageItem},
     assets::Asset,
     crypto::merkle::{NodeIndex, SimpleSmt, TieredSmt},
-    notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    notes::{Note, NoteInclusionProof, RecordedNote, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     utils::collections::Vec,
     BlockHeader, ChainMmr, Digest, Felt, FieldElement, StarkField, Word,
 };
@@ -30,6 +30,7 @@ pub struct Objects<R> {
     fungible_faucets: Vec<(AccountId, FungibleAssetBuilder)>,
     nonfungible_faucets: Vec<(AccountId, NonFungibleAssetBuilder<R>)>,
     notes: Vec<Note>,
+    recorded_notes: Vec<RecordedNote>,
     nullifiers: Vec<Digest>,
 }
 
@@ -40,6 +41,7 @@ impl<R: Rng> Objects<R> {
             fungible_faucets: vec![],
             nonfungible_faucets: vec![],
             notes: vec![],
+            recorded_notes: vec![],
             nullifiers: vec![],
         }
     }
@@ -61,8 +63,8 @@ impl<R: Rng> Objects<R> {
         self.fungible_faucets.append(&mut pending.fungible_faucets);
         self.nonfungible_faucets.append(&mut pending.nonfungible_faucets);
 
-        pending.set_notes_proofs(header, notes);
-        self.notes.append(&mut pending.notes);
+        let recorded_notes = pending.finalize_notes(header, notes);
+        self.recorded_notes.extend(recorded_notes);
         pending.nullifiers.clear(); // nullifiers are saved in the nullifier TSTM
     }
 
@@ -89,23 +91,28 @@ impl<R: Rng> Objects<R> {
     /// Given the [BlockHeader] and its notedb's [SimpleSmt], set all the [Note]'s proof.
     ///
     /// Update the [Note]'s proof once the [BlockHeader] has been created.
-    fn set_notes_proofs(&mut self, header: BlockHeader, notes: &SimpleSmt) {
-        self.notes.iter_mut().enumerate().for_each(|(index, note)| {
-            let auth_index =
-                NodeIndex::new(NOTE_TREE_DEPTH, index as u64).expect("index bigger than 2**20");
-            let note_path =
-                notes.get_path(auth_index).expect("auth_index outside of SimpleSmt range");
-            note.set_proof(
-                NoteInclusionProof::new(
-                    header.block_num(),
-                    header.sub_hash(),
-                    header.note_root(),
-                    index as u64,
-                    note_path,
+    fn finalize_notes(&mut self, header: BlockHeader, notes: &SimpleSmt) -> Vec<RecordedNote> {
+        self.notes
+            .drain(..)
+            .enumerate()
+            .map(|(index, note)| {
+                let auth_index =
+                    NodeIndex::new(NOTE_TREE_DEPTH, index as u64).expect("index bigger than 2**20");
+                let note_path =
+                    notes.get_path(auth_index).expect("auth_index outside of SimpleSmt range");
+                RecordedNote::new(
+                    note.clone(),
+                    NoteInclusionProof::new(
+                        header.block_num(),
+                        header.sub_hash(),
+                        header.note_root(),
+                        index as u64,
+                        note_path,
+                    )
+                    .expect("Invalid data provided to proof constructor"),
                 )
-                .expect("Invalid data provided to proof constructor"),
-            );
-        });
+            })
+            .collect::<Vec<_>>()
     }
 }
 
@@ -497,7 +504,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         // The check below works because the notes can not be added directly to the
         // [BlockHeader], so we don't have to iterate over the known headers and check for
         // inclusion proofs.
-        if self.objects.notes.iter().any(|e| e.hash() == note.hash()) {
+        if self.objects.recorded_notes.iter().any(|e| e.note().hash() == note.hash()) {
             return Err(MockError::DuplicatedNote);
         }
 
@@ -591,7 +598,7 @@ where
     Ok(data)
 }
 
-pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
+pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote>) {
     let mut note_trees = Vec::new();
 
     // TODO: Consider how to better represent note authentication data.
@@ -623,20 +630,25 @@ pub fn mock_chain_data(consumed_notes: &mut [Note]) -> ChainMmr {
     }
 
     // set origin for consumed notes using chain and block data
-    for (index, note) in consumed_notes.iter_mut().enumerate() {
-        let block_header = &block_chain[index];
-        let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
-        note.set_proof(
-            NoteInclusionProof::new(
-                block_header.block_num(),
-                block_header.sub_hash(),
-                block_header.note_root(),
-                index as u64,
-                note_trees[index].get_path(auth_index).unwrap(),
+    let recorded_notes = consumed_notes
+        .into_iter()
+        .enumerate()
+        .map(|(index, note)| {
+            let block_header = &block_chain[index];
+            let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
+            RecordedNote::new(
+                note,
+                NoteInclusionProof::new(
+                    block_header.block_num(),
+                    block_header.sub_hash(),
+                    block_header.note_root(),
+                    index as u64,
+                    note_trees[index].get_path(auth_index).unwrap(),
+                )
+                .unwrap(),
             )
-            .unwrap(),
-        );
-    }
+        })
+        .collect::<Vec<_>>();
 
-    chain_mmr
+    (chain_mmr, recorded_notes)
 }

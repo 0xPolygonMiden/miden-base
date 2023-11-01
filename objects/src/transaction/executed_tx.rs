@@ -2,7 +2,7 @@ use crate::{
     accounts::validate_account_seed,
     transaction::{
         utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
-        StackInputs, Vec, Word,
+        RecordedNote, StackInputs, Vec, Word,
     },
     ExecutedTransactionError,
 };
@@ -27,7 +27,7 @@ impl ExecutedTransaction {
         initial_account: Account,
         initial_account_seed: Option<Word>,
         final_account: Account,
-        consumed_notes: Vec<Note>,
+        consumed_notes: Vec<RecordedNote>,
         created_notes: Vec<Note>,
         tx_script_root: Option<Digest>,
         block_header: BlockHeader,

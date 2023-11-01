@@ -1,6 +1,6 @@
 use super::{
     Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
-    Note, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word, ZERO,
+    Note, RecordedNote, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word, ZERO,
 };
 use vm_core::utils::IntoBytes;
 
@@ -83,11 +83,11 @@ pub fn generate_advice_provider_inputs(
 /// Returns the consumed notes commitment.
 /// This is a sequential hash of all (nullifier, script_root) pairs for the notes consumed in the
 /// transaction.
-pub fn generate_consumed_notes_commitment(notes: &[Note]) -> Digest {
-    let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 8);
-    for note in notes.iter() {
-        elements.extend_from_slice(note.nullifier().as_elements());
-        elements.extend_from_slice(note.script().hash().as_elements());
+pub fn generate_consumed_notes_commitment(recorded_notes: &[RecordedNote]) -> Digest {
+    let mut elements: Vec<Felt> = Vec::with_capacity(recorded_notes.len() * 8);
+    for recorded_note in recorded_notes.iter() {
+        elements.extend_from_slice(recorded_note.note().nullifier().as_elements());
+        elements.extend_from_slice(recorded_note.note().script().hash().as_elements());
     }
     Hasher::hash_elements(&elements)
 }

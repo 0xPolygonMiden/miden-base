@@ -1,5 +1,5 @@
-use super::{Account, AccountId, BlockHeader, ChainMmr, DataStoreError, Note, NoteOrigin};
-use miden_objects::assembly::ModuleAst;
+use super::{Account, AccountId, BlockHeader, ChainMmr, DataStoreError, NoteOrigin};
+use miden_objects::{assembly::ModuleAst, notes::RecordedNote};
 
 /// The [DataStore] trait defines the interface that transaction objects use to fetch data
 /// required for transaction execution.
@@ -11,7 +11,7 @@ pub trait DataStore {
         account_id: AccountId,
         block_num: u32,
         notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<Note>), DataStoreError>;
+    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>), DataStoreError>;
 
     /// Returns the account code [ModuleAst] associated with the the specified [AccountId].
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError>;

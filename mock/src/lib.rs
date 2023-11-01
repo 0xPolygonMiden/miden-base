@@ -1,6 +1,8 @@
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
-    accounts::Account, notes::Note, notes::NoteVault, transaction::PreparedTransaction,
+    accounts::Account,
+    notes::{Note, NoteVault, RecordedNote},
+    transaction::PreparedTransaction,
     BlockHeader, ChainMmr, Digest, Felt, StarkField,
 };
 use std::{fs::File, io::Read, path::PathBuf};
@@ -89,7 +91,7 @@ pub fn prepare_transaction(
     account_seed: Option<Word>,
     block_header: BlockHeader,
     chain: ChainMmr,
-    notes: Vec<Note>,
+    notes: Vec<RecordedNote>,
     tx_script_root: Option<Digest>,
     code: &str,
     imports: &str,

@@ -2,7 +2,7 @@ use miden_lib::SatKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId},
     assembly::CodeBlock,
-    notes::{Note, NoteOrigin, NoteScript},
+    notes::{NoteOrigin, NoteScript},
     transaction::{PreparedTransaction, TransactionResult},
     utils::collections::BTreeMap,
     AccountError, BlockHeader, ChainMmr, Digest, Hasher, TransactionResultError,

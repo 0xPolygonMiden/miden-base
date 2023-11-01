@@ -79,14 +79,6 @@ impl NoteBuilder {
         let assembler = assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
-        Note::new(
-            note_script,
-            &self.inputs,
-            &self.assets,
-            self.serial_num,
-            self.sender,
-            self.tag,
-            self.proof,
-        )
+        Note::new(note_script, &self.inputs, &self.assets, self.serial_num, self.sender, self.tag)
     }
 }

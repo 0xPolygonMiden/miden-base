@@ -32,11 +32,8 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -101,11 +98,8 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -194,11 +188,8 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
-    let note_origins = data_store
-        .notes
-        .iter()
-        .map(|note| note.proof().as_ref().unwrap().origin().clone())
-        .collect::<Vec<_>>();
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -207,7 +198,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 
     // check that the account burned the asset
     assert!(transaction_result.account_delta().nonce.unwrap() == Felt::new(2));
-    assert!(transaction_result.consumed_notes().notes()[0].hash() == note.hash());
+    assert!(transaction_result.consumed_notes().notes()[0].note().hash() == note.hash());
 }
 
 #[test]
@@ -297,7 +288,6 @@ fn get_note_with_asset_and_script(fungible_asset: FungibleAsset, note_script: Pr
         SERIAL_NUM,
         sender_id,
         Felt::new(1),
-        None,
     )
     .unwrap()
 }

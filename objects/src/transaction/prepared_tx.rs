@@ -1,8 +1,8 @@
 use crate::{
     accounts::validate_account_seed,
     transaction::{
-        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
-        PreparedTransactionError, Program, StackInputs, Vec, Word,
+        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
+        PreparedTransactionError, Program, RecordedNote, StackInputs, Vec, Word,
     },
 };
 
@@ -31,7 +31,7 @@ impl PreparedTransaction {
         account_seed: Option<Word>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
-        consumed_notes: Vec<Note>,
+        consumed_notes: Vec<RecordedNote>,
         tx_script_root: Option<Digest>,
         tx_program: Program,
     ) -> Result<Self, PreparedTransactionError> {

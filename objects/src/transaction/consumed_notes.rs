@@ -1,5 +1,5 @@
 use super::{
-    utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, Note,
+    utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, RecordedNote,
     ToAdviceInputs, Vec, Word,
 };
 
@@ -12,19 +12,19 @@ use super::{
 /// provider at once via the [ToAdviceInputs] trait.
 #[derive(Debug, Clone)]
 pub struct ConsumedNotes {
-    notes: Vec<Note>,
+    notes: Vec<RecordedNote>,
     commitment: Digest,
 }
 
 impl ConsumedNotes {
     /// Creates a new [ConsumedNotes] object.
-    pub fn new(notes: Vec<Note>) -> Self {
+    pub fn new(notes: Vec<RecordedNote>) -> Self {
         let commitment = generate_consumed_notes_commitment(&notes);
         Self { notes, commitment }
     }
 
     /// Returns the consumed notes.
-    pub fn notes(&self) -> &[Note] {
+    pub fn notes(&self) -> &[RecordedNote] {
         &self.notes
     }
 
@@ -61,7 +61,10 @@ impl ToAdviceInputs for ConsumedNotes {
 
         note_data.push(Felt::from(self.notes.len() as u64));
 
-        for note in &self.notes {
+        for recorded_note in &self.notes {
+            let note = recorded_note.note();
+            let proof = recorded_note.proof();
+
             note_data.extend(note.serial_num());
             note_data.extend(*note.script().hash());
             note_data.extend(*note.inputs().hash());
@@ -70,8 +73,6 @@ impl ToAdviceInputs for ConsumedNotes {
 
             note_data.extend(note.vault().to_padded_assets());
             target.insert_into_map(note.vault().hash().into(), note.vault().to_padded_assets());
-
-            let proof = note.proof().as_ref().expect("NoteInclusionProof must be populated.");
 
             note_data.push(proof.origin().block_num);
             note_data.extend(*proof.sub_hash());
@@ -97,14 +98,14 @@ impl From<ConsumedNotes> for Vec<ConsumedNoteInfo> {
     }
 }
 
-impl From<Vec<Note>> for ConsumedNotes {
-    fn from(notes: Vec<Note>) -> Self {
-        Self::new(notes)
+impl From<Vec<RecordedNote>> for ConsumedNotes {
+    fn from(recorded_notes: Vec<RecordedNote>) -> Self {
+        Self::new(recorded_notes)
     }
 }
 
-impl FromIterator<Note> for ConsumedNotes {
-    fn from_iter<T: IntoIterator<Item = Note>>(iter: T) -> Self {
+impl FromIterator<RecordedNote> for ConsumedNotes {
+    fn from_iter<T: IntoIterator<Item = RecordedNote>>(iter: T) -> Self {
         Self::new(iter.into_iter().collect())
     }
 }
@@ -160,9 +161,9 @@ impl From<ConsumedNoteInfo> for [u8; 64] {
     }
 }
 
-impl From<Note> for ConsumedNoteInfo {
-    fn from(note: Note) -> Self {
-        (&note).into()
+impl From<RecordedNote> for ConsumedNoteInfo {
+    fn from(recorded_note: RecordedNote) -> Self {
+        (&recorded_note).into()
     }
 }
 
@@ -193,8 +194,8 @@ impl From<&ConsumedNoteInfo> for [u8; 64] {
     }
 }
 
-impl From<&Note> for ConsumedNoteInfo {
-    fn from(note: &Note) -> Self {
-        Self::new(note.nullifier(), note.script().hash())
+impl From<&RecordedNote> for ConsumedNoteInfo {
+    fn from(recorded_note: &RecordedNote) -> Self {
+        Self::new(recorded_note.note().nullifier(), recorded_note.note().script().hash())
     }
 }
