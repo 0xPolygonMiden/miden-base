@@ -143,7 +143,6 @@ pub fn get_note_with_fungible_asset_and_script(
         SERIAL_NUM,
         sender_id,
         Felt::new(1),
-        None,
     )
     .unwrap()
 }

@@ -3,7 +3,7 @@ use crate::{
     accounts::validate_account_seed,
     transaction::{
         utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Note,
-        StackInputs, Vec, Word, RecordedNote,
+        RecordedNote, StackInputs, Vec, Word,
     },
     ExecutedTransactionError,
 };
