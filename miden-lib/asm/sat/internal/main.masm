@@ -59,7 +59,7 @@ use.miden::sat::internal::prologue
 #! - CNC is the commitment to the notes created by the transaction.
 #! - FAH is the final account hash of the account that the transaction is being
 #!   executed against.
-export.main
+export.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
 
@@ -72,6 +72,11 @@ export.main
 
     # get the total number of consumed notes
     exec.layout::get_total_num_consumed_notes
+    # => [num_consumed_notes]
+
+    # compute the pointer to the consumed note after the last consumed note (i.e. the pointer at
+    # which the looping should terminate)
+    dup exec.layout::get_consumed_note_ptr loc_store.0
     # => [num_consumed_notes]
 
     # check if we have any notes to consume
@@ -93,8 +98,8 @@ export.main
         # => []
 
         # check if we have more notes to consume and should loop again
-        exec.layout::get_total_num_consumed_notes
-        exec.layout::get_current_consumed_note_idx
+        exec.note::increment_current_consumed_note_ptr
+        loc_load.0
         neq
         # => [should_loop]
     end

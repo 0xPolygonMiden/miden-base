@@ -624,6 +624,10 @@ proc.process_consumed_notes_data
 
     # clear stack
     drop drop
+
+    # set the current consumed note pointer to the first consumed note
+    push.0 exec.layout::get_consumed_note_ptr exec.layout::set_current_consumed_note_ptr
+    # => []
 end
 
 # TRANSACTION SCRIPT

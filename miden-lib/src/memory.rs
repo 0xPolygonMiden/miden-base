@@ -24,20 +24,17 @@ pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 255;
 /// The memory address at which the transaction vault root is stored.
 pub const TX_VAULT_ROOT_PTR: MemoryAddress = 0;
 
-/// The memory address at which the number of executed notes is stored.
-pub const NUM_EXECUTED_NOTES_PTR: MemoryAddress = 1;
+/// The memory address at which a pointer to the consumed note being executed is stored.
+pub const CURRENT_CONSUMED_NOTE_PTR: MemoryAddress = 1;
 
 /// The memory address at which the number of created notes is stored.
 pub const NUM_CREATED_NOTES_PTR: MemoryAddress = 2;
 
-/// The memory address at which a pointer to the consumed note being executed is stored.
-pub const CURRENT_CONSUMED_NOTE_PTR: MemoryAddress = 3;
-
 /// The memory address at which the input vault root is stored
-pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 5;
+pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 3;
 
 /// The memory address at which the output vault root is stored
-pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 6;
+pub const OUTPUT_VAULT_ROOT_PTR: MemoryAddress = 4;
 
 // GLOBAL INPUTS
 // ------------------------------------------------------------------------------------------------

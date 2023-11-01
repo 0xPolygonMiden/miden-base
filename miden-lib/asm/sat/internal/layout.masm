@@ -9,23 +9,17 @@ use.miden::sat::internal::constants
 # The memory address at which the transaction vault root is stored
 const.TX_VAULT_ROOT_PTR=0
 
-# The memory address at which the number of executed notes is stored
-const.NUM_EXECUTED_NOTES_PTR=1
+# The memory address at which a pointer to the consumed note being executed is stored.
+const.CURRENT_CONSUMED_NOTE_PTR=1
 
 # The memory address at which the number of created notes is stored.
 const.NUM_CREATED_NOTES_PTR=2
 
-# The memory address at which a pointer to the consumed note being executed is stored.
-const.CURRENT_CONSUMED_NOTE_PTR=3
-
-# The memory address at which the index of the current consumed note is stored.
-const.CURRENT_CONSUMED_NOTE_IDX=4
-
 # The memory address at which the input vault root is stored
-const.INPUT_VAULT_ROOT_PTR=5
+const.INPUT_VAULT_ROOT_PTR=3
 
 # The memory address at which the output vault root is stored
-const.OUTPUT_VAULT_ROOT_PTR=6
+const.OUTPUT_VAULT_ROOT_PTR=4
 
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
@@ -187,22 +181,6 @@ end
 #! Output: []
 export.set_current_consumed_note_ptr
     push.CURRENT_CONSUMED_NOTE_PTR mem_store
-end
-
-#! Returns the index of the consumed note being executed.
-#!
-#! Stack: []
-#! Output: [idx]
-export.get_current_consumed_note_idx
-    push.CURRENT_CONSUMED_NOTE_IDX mem_load
-end
-
-#! Sets the index of the consumed note being executed.
-#!
-#! Stack: [idx]
-#! Output: []
-export.set_current_consumed_note_idx
-    push.CURRENT_CONSUMED_NOTE_IDX mem_store
 end
 
 #! Returns a pointer to the memory address at which the input vault root is stored

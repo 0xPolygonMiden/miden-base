@@ -1,3 +1,4 @@
+use.miden::sat::internal::constants
 use.miden::sat::internal::layout
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
@@ -71,18 +72,24 @@ export.get_inputs_hash
     # => [NOTE_INPUTS_HASH]
 end
 
-#! Increments the number of consumed notes by one. Returns the index of the next note to be consumed.
+#! Increment current consumed note pointer to the next note and returns the pointer value.
 #!
 #! Inputs: []
-#! Outputs: [note_idx]
-export.increment_current_consumed_note_idx
-    # get the current consumed note index
-    exec.layout::get_current_consumed_note_idx
-    # => [note_idx]
+#! Outputs: [current_consumed_note_ptr]
+#!
+#! - current_consumed_note_ptr is the pointer to the next note to be processed.
+export.increment_current_consumed_note_ptr
+    # get the current consumed note pointer
+    exec.layout::get_current_consumed_note_ptr
+    # => [orig_consumed_note_ptr]
 
-    # increment the index of the current consumed note and save back to memory
-    dup add.1 exec.layout::set_current_consumed_note_idx
-    # => [note_idx]
+    # increment the pointer
+    exec.constants::get_note_mem_size add
+    # => [current_consumed_note_ptr]
+
+    # set the current consumed note pointer to the incremented value
+    dup exec.layout::set_current_consumed_note_ptr
+    # => [current_consumed_note_ptr]
 end
 
 #! Sets the current consumed note pointer to 0. This should be called after all consumed notes have
@@ -105,16 +112,8 @@ end
 #!
 #! - NSR is the note script root of the note currently being executed.
 export.prepare_note
-    # load the note index onto the stack
-    exec.increment_current_consumed_note_idx
-    # => [idx]
-
     # convert the index of the consumed note being executed to a pointer and store in memory
-    exec.layout::get_consumed_note_ptr
-    # => [note_ptr]
-
-    # set current consumed note pointer to the note being executed
-    dup exec.layout::set_current_consumed_note_ptr
+    exec.layout::get_current_consumed_note_ptr
     # => [note_ptr]
 
     # read the note script root onto the stack
