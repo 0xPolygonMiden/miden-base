@@ -25,7 +25,7 @@ pub mod transaction;
 mod errors;
 pub use errors::{
     AccountError, AssetError, ExecutedTransactionError, NoteError, PreparedTransactionError,
-    TransactionResultError, TransactionWitnessError,
+    TransactionResultError, TransactionScriptError, TransactionWitnessError,
 };
 
 // RE-EXPORTS

@@ -53,6 +53,7 @@ impl std::error::Error for TransactionCompilerError {}
 #[derive(Debug)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
+    ComipleTransactionScriptFailed(TransactionCompilerError),
     CompileTransactionError(TransactionCompilerError),
     ConstructPreparedTransactionFailed(PreparedTransactionError),
     ExecuteTransactionProgramFailed(ExecutionError),

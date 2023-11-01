@@ -1,4 +1,4 @@
-use super::{AccountId, ModuleAst, NoteTarget, ProgramAst, TransactionCompiler};
+use super::{AccountId, ModuleAst, ProgramAst, ScriptTarget, TransactionCompiler};
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
@@ -109,7 +109,7 @@ fn test_compile_valid_note_script() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
     let _account_code = tx_compiler.load_account(account_id, account_code_ast).unwrap();
-    let target_account_proc = NoteTarget::AccountId(account_id);
+    let target_account_proc = ScriptTarget::AccountId(account_id);
 
     // TODO: replace this with anonymous call targets once they are implemented
     let account_id =
@@ -151,7 +151,7 @@ fn mock_consumed_notes(
     let note_program_ast =
         ProgramAst::parse(format!("begin call.{ACCT_PROC_1} drop end").as_str()).unwrap();
     let note_script = tx_compiler
-        .compile_note_script(note_program_ast, vec![NoteTarget::AccountId(target_account)])
+        .compile_note_script(note_program_ast, vec![ScriptTarget::AccountId(target_account)])
         .unwrap();
 
     // Consumed Notes
@@ -205,7 +205,7 @@ fn test_transaction_compilation_succeeds() {
     let tx_script_src = format!("begin call.{ACCT_PROC_2} end");
     let tx_script_ast = ProgramAst::parse(tx_script_src.as_str()).unwrap();
 
-    let res = tx_compiler.compile_transaction(account_id, &notes, Some(tx_script_ast.clone()));
+    let res = tx_compiler.compile_transaction(account_id, &notes, Some(&tx_script_ast));
     assert!(res.is_ok());
 }
 

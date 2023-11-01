@@ -1,5 +1,4 @@
 use miden_lib::{assembler::assembler, wallets::create_basic_wallet, AuthScheme};
-
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountVault},
     assembly::{ModuleAst, ProgramAst},
@@ -67,7 +66,7 @@ fn test_receive_asset_via_wallet() {
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
         use.miden::eoa::basic->auth_tx
@@ -80,6 +79,8 @@ fn test_receive_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
     // Execute the transaction and get the witness
     let transaction_result = executor
         .execute_transaction(target_account.id(), block_ref, &note_origins, Some(tx_script))
@@ -127,7 +128,7 @@ fn test_send_asset_via_wallet() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
         use.miden::eoa::basic->auth_tx
@@ -149,6 +150,7 @@ fn test_send_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor

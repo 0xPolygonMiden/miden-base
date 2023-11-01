@@ -2,7 +2,7 @@ use crate::{
     accounts::validate_account_seed,
     transaction::{
         utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
-        PreparedTransactionError, Program, RecordedNote, StackInputs, Vec, Word,
+        PreparedTransactionError, Program, RecordedNote, StackInputs, TransactionScript, Vec, Word,
     },
 };
 
@@ -12,7 +12,7 @@ use crate::{
 /// - block_header: The header of the latest known block.
 /// - block_chain: The chain mmr associated with the latest known block.
 /// - consumed_notes: A vector of consumed notes.
-/// - tx_script_root: An optional transaction script root.
+/// - tx_script: An optional transaction script.
 /// - tx_program: The transaction program.
 #[derive(Debug)]
 pub struct PreparedTransaction {
@@ -21,7 +21,7 @@ pub struct PreparedTransaction {
     block_header: BlockHeader,
     block_chain: ChainMmr,
     consumed_notes: ConsumedNotes,
-    tx_script_root: Option<Digest>,
+    tx_script: Option<TransactionScript>,
     tx_program: Program,
 }
 
@@ -32,7 +32,7 @@ impl PreparedTransaction {
         block_header: BlockHeader,
         block_chain: ChainMmr,
         consumed_notes: Vec<RecordedNote>,
-        tx_script_root: Option<Digest>,
+        tx_script: Option<TransactionScript>,
         tx_program: Program,
     ) -> Result<Self, PreparedTransactionError> {
         Self::validate_new_account_seed(&account, account_seed)?;
@@ -42,7 +42,7 @@ impl PreparedTransaction {
             block_header,
             block_chain,
             consumed_notes: ConsumedNotes::new(consumed_notes),
-            tx_script_root,
+            tx_script,
             tx_program,
         })
     }
@@ -70,9 +70,9 @@ impl PreparedTransaction {
         &self.consumed_notes
     }
 
-    /// Return the transaction script root.
-    pub fn tx_script_root(&self) -> Option<Digest> {
-        self.tx_script_root
+    /// Return a reference the transaction script.
+    pub fn tx_script(&self) -> &Option<TransactionScript> {
+        &self.tx_script
     }
 
     /// Returns the transaction program.
@@ -103,7 +103,7 @@ impl PreparedTransaction {
             &self.block_header,
             &self.block_chain,
             &self.consumed_notes,
-            &self.tx_script_root,
+            &self.tx_script,
         )
     }
 
@@ -133,14 +133,21 @@ impl PreparedTransaction {
     /// Consumes the prepared transaction and returns its parts.
     pub fn into_parts(
         self,
-    ) -> (Account, BlockHeader, ChainMmr, ConsumedNotes, Program, Option<Digest>) {
+    ) -> (
+        Account,
+        BlockHeader,
+        ChainMmr,
+        ConsumedNotes,
+        Program,
+        Option<TransactionScript>,
+    ) {
         (
             self.account,
             self.block_header,
             self.block_chain,
             self.consumed_notes,
             self.tx_program,
-            self.tx_script_root,
+            self.tx_script,
         )
     }
 }

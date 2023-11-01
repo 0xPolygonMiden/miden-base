@@ -1,6 +1,6 @@
 use super::{
-    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, NoteTarget,
-    PreparedTransaction, RecAdviceProvider, TransactionCompiler, TransactionExecutorError,
+    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, PreparedTransaction,
+    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost, TransactionResult,
 };
 use crate::{host::EventHandler, TryFromVmResult};
@@ -8,8 +8,8 @@ use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_s
 use miden_objects::{
     accounts::{Account, AccountDelta},
     assembly::ProgramAst,
-    transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub},
-    TransactionResultError, WORD_SIZE,
+    transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub, TransactionScript},
+    Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
 
@@ -84,11 +84,28 @@ impl<D: DataStore> TransactionExecutor<D> {
     pub fn compile_note_script(
         &mut self,
         note_script_ast: ProgramAst,
-        target_account_procs: Vec<NoteTarget>,
+        target_account_procs: Vec<ScriptTarget>,
     ) -> Result<NoteScript, TransactionExecutorError> {
         self.compiler
             .compile_note_script(note_script_ast, target_account_procs)
             .map_err(TransactionExecutorError::CompileNoteScriptFailed)
+    }
+
+    /// Compiles the provided transaction script source and inputs into a [TransactionScript] and
+    /// checks (to the extent possible) that the transaction script can be executed against all
+    /// accounts with the specified interfaces.
+    pub fn compile_tx_script<T>(
+        &mut self,
+        tx_script_ast: ProgramAst,
+        inputs: T,
+        target_account_procs: Vec<ScriptTarget>,
+    ) -> Result<TransactionScript, TransactionExecutorError>
+    where
+        T: IntoIterator<Item = (Word, Vec<Felt>)>,
+    {
+        self.compiler
+            .compile_tx_script(tx_script_ast, inputs, target_account_procs)
+            .map_err(TransactionExecutorError::ComipleTransactionScriptFailed)
     }
 
     /// Prepares and executes a transaction specified by the provided arguments and returns a
@@ -108,7 +125,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         note_origins: &[NoteOrigin],
-        tx_script: Option<ProgramAst>,
+        tx_script: Option<TransactionScript>,
     ) -> Result<TransactionResult, TransactionExecutorError> {
         let transaction =
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
@@ -123,7 +140,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
-        let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script_root) =
+        let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script) =
             transaction.into_parts();
 
         let (advice_recorder, event_handler) = host.into_parts();
@@ -132,7 +149,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             consumed_notes,
             block_header.hash(),
             tx_program,
-            tx_script_root,
+            tx_script.map(|s| *s.hash()),
             advice_recorder,
             result.stack_outputs().clone(),
             event_handler,
@@ -153,16 +170,16 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         note_origins: &[NoteOrigin],
-        tx_script: Option<ProgramAst>,
+        tx_script: Option<TransactionScript>,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
         let (account, block_header, block_chain, notes) = self
             .data_store
             .get_transaction_data(account_id, block_ref, note_origins)
             .map_err(TransactionExecutorError::FetchTransactionDataFailed)?;
 
-        let (tx_program, tx_script_root) = self
+        let tx_program = self
             .compiler
-            .compile_transaction(account_id, &notes, tx_script)
+            .compile_transaction(account_id, &notes, tx_script.as_ref().map(|x| x.code()))
             .map_err(TransactionExecutorError::CompileTransactionError)?;
 
         PreparedTransaction::new(
@@ -171,7 +188,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             block_header,
             block_chain,
             notes,
-            tx_script_root,
+            tx_script,
             tx_program,
         )
         .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)

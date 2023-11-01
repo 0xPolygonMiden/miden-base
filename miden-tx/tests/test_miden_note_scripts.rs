@@ -65,7 +65,7 @@ fn test_p2id_script() {
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
         use.miden::eoa::basic->auth_tx
@@ -78,6 +78,7 @@ fn test_p2id_script() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -167,7 +168,7 @@ fn test_p2id_script_multiple_assets() {
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
         use.miden::eoa::basic->auth_tx
@@ -180,6 +181,7 @@ fn test_p2id_script_multiple_assets() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -304,7 +306,7 @@ fn test_p2idr_script() {
     let note_origins =
         data_store_1.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
         use.miden::eoa::basic->auth_tx
@@ -317,6 +319,7 @@ fn test_p2idr_script() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor_1.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result_1 = executor_1
