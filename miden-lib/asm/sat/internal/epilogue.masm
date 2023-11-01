@@ -1,3 +1,4 @@
+use.miden::sat::internal::constants
 use.miden::sat::internal::layout
 use.miden::sat::internal::account
 use.miden::sat::internal::asset_vault
@@ -22,60 +23,9 @@ const.CREATED_NOTE_HASHING_MEM_DIFF=1022
 #! - note_data_ptr is a pointer to the data section of the created note.
 #! - VAULT_HASH is the vault hash of the created note with index i.
 proc.compute_created_note_vault_hash
-    # TODO: Consider moving output vault asset insertion into the loop for note vault hash creation.
-    #       Similarly we should consider doing the same in the prologue.
-
-    # insert note assets into the output vault
-    # ---------------------------------------------------------------------------------------------
-    # duplicate note pointer - we will use this to save vault hash to memory
+    # duplicate note pointer and fetch num_assets
     dup dup exec.layout::get_created_note_num_assets
     # => [num_assets, note_data_ptr, note_data_ptr]
-
-    # get the number of assets from memory
-    exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup
-    # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-    #     note_data_ptr]
-
-    # compute end pointer
-    dup.3 add swap
-    # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-    #     note_data_ptr]
-
-    # loop over assets and insert them into input vault
-
-    # assess if we should loop
-    dup.1 dup.1 neq
-    # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
-    #     note_data_ptr, note_data_ptr]
-
-    while.true
-        # duplicate output_vault_root_ptr
-        dup.2
-        # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
-        #     num_assets, note_data_ptr, note_data_ptr]
-
-        # read the asset from memory
-        padw dup.5 mem_loadw
-        # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
-        #     num_assets, note_data_ptr, note_data_ptr]
-
-        # insert asset into input vault
-        exec.asset_vault::add_asset dropw
-        # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-        #     note_data_ptr]
-
-        # increment assets_start_ptr and asses if we should loop again
-        add.1 dup.1 dup.1 neq
-        # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
-        #     note_data_ptr, note_data_ptr]
-    end
-
-    # clean stack
-    drop drop drop
-    # => [num_assets, note_data_ptr, note_data_ptr]
-
-    # construct output note vault hash
-    # ---------------------------------------------------------------------------------------------
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
     add.1 u32checked_div.2
@@ -196,6 +146,97 @@ export.compute_output_notes_hash
     movup.4 drop
 end
 
+# BUILD OUTPUT VAULT
+# =================================================================================================
+
+#! Builds the output vault which is combination of the assets in the account vault at the end of
+#! the transaction and all the assets from the created notes.
+#!
+#! The output vault is built as follows:
+#! - we first copy the account vault root to the output vault root.
+#! - we then loop over the created notes and insert the assets into the output vault.
+#!
+#! Stack: []
+#! Output: []
+proc.build_output_vault
+    # copy final account vault root to output account vault root
+    exec.layout::get_acct_vault_root exec.layout::set_output_vault_root
+    # => []
+
+    # get the number of created notes from memory
+    exec.layout::get_num_created_notes
+    # => [num_created_notes]
+
+    # calculate the address at which we should stop looping
+    exec.layout::get_created_note_ptr
+    # => [created_notes_end_ptr]
+
+    # compute pointer for the first created note
+    push.0 exec.layout::get_created_note_ptr
+    # => [created_note_ptr, created_notes_end_ptr]
+
+    # check if the number of created notes is greater then 0. Conditional for the while loop.
+    dup.1 dup.1 neq
+    # => [should_loop, created_note_ptr, created_notes_end_ptr]
+
+    # loop over created notes and add assets to output vault
+    while.true
+        # get the number of assets for the created note from memory
+        dup exec.layout::get_created_note_num_assets
+        # => [num_assets, note_data_ptr, created_notes_end_ptr]
+
+        # prepare stack for reading created note assets
+        exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup
+        # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr.
+        #     created_notes_end_ptr]
+
+        # compute the end pointer for created note asset looping
+        dup.3 add swap
+        # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
+        #     created_notes_end_ptr]
+
+        # assess if we should loop
+        dup.1 dup.1 neq
+        # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
+        #     note_data_ptr, created_notes_end_ptr]
+
+        # loop over created note assets and insert them into the output vault
+        while.true
+            # duplicate output_vault_root_ptr
+            dup.2
+            # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
+            #     num_assets, note_data_ptr, created_notes_end_ptr]
+
+            # read the created note asset from memory
+            padw dup.5 mem_loadw
+            # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
+            #     num_assets, note_data_ptr, created_notes_end_ptr]
+
+            # insert created note asset into output vault
+            exec.asset_vault::add_asset dropw
+            # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
+            #     created_notes_end_ptr]
+
+            # increment assets_start_ptr and asses if we should loop again
+            add.1 dup.1 dup.1 neq
+            # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
+            #     note_data_ptr, created_notes_end_ptr]
+        end
+
+        # clean stack
+        drop drop drop drop
+        # => [note_data_ptr, created_note_end_ptr]
+
+        # increment created note pointer and check if we should loop again
+        exec.constants::get_note_mem_size add dup.1 dup.1 neq
+        # => [should_loop, created_note_ptr, created_notes_end_ptr]
+    end
+
+    # clean stack
+    drop drop
+    # => []
+end
+
 # ACCOUNT CODE UPDATE
 # =================================================================================================
 
@@ -284,8 +325,8 @@ export.finalize_transaction
     swapw dropw
     # => [FINAL_ACCOUNT_HASH]
 
-    # copy final account vault root to output account vault root
-    exec.layout::get_acct_vault_root exec.layout::set_output_vault_root
+    # build the output vault
+    exec.build_output_vault
     # => [FINAL_ACCOUNT_HASH]
 
     # compute created note hash
