@@ -13,6 +13,7 @@ use crate::memory::{
 use miden_objects::transaction::PreparedTransaction;
 use mock::{
     constants::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
         ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
@@ -21,7 +22,6 @@ use mock::{
         ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
         ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
         ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
     },
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -411,7 +411,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
-            acct_id: ACCOUT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
+            acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
             nonce: ZERO,
             empty_reserved_slot: false,
         },

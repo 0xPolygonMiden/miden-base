@@ -19,7 +19,7 @@ use rand::{Rng, SeedableRng};
 
 /// Initial timestamp value
 const TIMESTAMP_START: Felt = Felt::new(1693348223);
-/// Timestep of timestamp on each new block
+/// Timestamp of timestamp on each new block
 const TIMESTAMP_STEP: Felt = Felt::new(10);
 
 #[derive(Default, Debug, Clone)]
@@ -141,7 +141,7 @@ pub struct MockChain<R> {
     /// Builder for new [AccountId]s of faucets.
     account_id_builder: AccountIdBuilder<R>,
 
-    /// Objects that have been created and commited to a block.
+    /// Objects that have been created and committed to a block.
     ///
     /// These can be used to perform additional operations on a block.
     ///
@@ -529,7 +529,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         self.pending_objects.accounts.push((account, seed));
     }
 
-    // ACESSORS
+    // ACCESSORS
     // ----------------------------------------------------------------------------------------
 
     /// Get a reference to the latest [ChainMmr].
