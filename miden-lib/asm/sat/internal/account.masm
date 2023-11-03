@@ -113,7 +113,7 @@ export.layout::get_init_acct_hash->get_initial_hash
 #! - acct_type is the account type.
 proc.type
     # compute the account type
-    u32split swap drop u32checked_shr.30
+    u32split swap drop u32assert u32shr.30
     # => [acct_type]
 end
 
@@ -225,11 +225,11 @@ export.validate_id
     # => [l_1, l_0]
 
     # count the number of 1 bits
-    u32unchecked_popcnt swap u32unchecked_popcnt add
+    u32popcnt swap u32popcnt add
     # => [ones]
 
     # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
-    push.MIN_ACCOUNT_ONES u32unchecked_gte assert
+    push.MIN_ACCOUNT_ONES u32gte assert
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
@@ -381,6 +381,6 @@ export.validate_seed
         # => [pow, modulus]
 
         # assert that the pow is valid
-        u32split drop swap u32unchecked_divmod assertz drop
+        u32split drop swap u32divmod assertz drop 
         # => []
 end

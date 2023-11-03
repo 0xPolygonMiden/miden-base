@@ -186,6 +186,7 @@ impl Note {
 /// - A note which has been recorded.
 /// - The inclusion proof of the note.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RecordedNote {
     note: Note,
     proof: NoteInclusionProof,

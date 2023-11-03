@@ -28,7 +28,7 @@ proc.compute_created_note_vault_hash
     # => [num_assets, note_data_ptr, note_data_ptr]
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
-    add.1 u32checked_div.2
+    add.1 u32assert u32div.2
     # => [num_asset_pairs, note_data_ptr, note_data_ptr]
 
     # initiate counter for assets
