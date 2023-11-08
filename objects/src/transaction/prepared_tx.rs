@@ -23,11 +23,9 @@ pub struct PreparedTransaction {
     consumed_notes: ConsumedNotes,
     tx_script: Option<TransactionScript>,
     tx_program: Program,
-    keypair_to_advice_map: Option<([u8; 32], Vec<Felt>)>,
 }
 
 impl PreparedTransaction {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         account: Account,
         account_seed: Option<Word>,
@@ -36,7 +34,6 @@ impl PreparedTransaction {
         consumed_notes: Vec<RecordedNote>,
         tx_script: Option<TransactionScript>,
         tx_program: Program,
-        keypair_to_advice_map: Option<([u8; 32], Vec<Felt>)>,
     ) -> Result<Self, PreparedTransactionError> {
         Self::validate_new_account_seed(&account, account_seed)?;
         Ok(Self {
@@ -47,7 +44,6 @@ impl PreparedTransaction {
             consumed_notes: ConsumedNotes::new(consumed_notes),
             tx_script,
             tx_program,
-            keypair_to_advice_map,
         })
     }
 

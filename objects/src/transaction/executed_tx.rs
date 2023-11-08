@@ -2,7 +2,7 @@ use super::TransactionScript;
 use crate::{
     accounts::validate_account_seed,
     transaction::{
-        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Note,
+        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
         RecordedNote, StackInputs, Vec, Word,
     },
     ExecutedTransactionError,
@@ -19,7 +19,6 @@ pub struct ExecutedTransaction {
     tx_script: Option<TransactionScript>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
-    keypair_to_advice_map: Option<([u8; 32], Vec<Felt>)>,
 }
 
 impl ExecutedTransaction {
@@ -34,7 +33,6 @@ impl ExecutedTransaction {
         tx_script: Option<TransactionScript>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
-        keypair_to_advice_map: Option<([u8; 32], Vec<Felt>)>,
     ) -> Result<Self, ExecutedTransactionError> {
         Self::validate_new_account_seed(&initial_account, initial_account_seed)?;
         Ok(Self {
@@ -46,7 +44,6 @@ impl ExecutedTransaction {
             tx_script,
             block_header,
             block_chain,
-            keypair_to_advice_map,
         })
     }
 

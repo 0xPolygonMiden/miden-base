@@ -68,17 +68,13 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![faucet_keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            faucet_account.id(),
-            block_ref,
-            &note_origins,
-            Some(tx_script),
-            Some(faucet_keypair_to_advice_map),
-        )
+        .execute_transaction(faucet_account.id(), block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
     let fungible_asset: Asset =
@@ -146,7 +142,9 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![faucet_keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor.execute_transaction(
@@ -154,7 +152,6 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         block_ref,
         &note_origins,
         Some(tx_script),
-        Some(faucet_keypair_to_advice_map),
     );
 
     assert!(transaction_result.is_err());
@@ -162,7 +159,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
 #[test]
 fn test_faucet_contract_burn_fungible_asset_succeeds() {
-    let (faucet_keypair, faucet_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (faucet_keypair, _faucet_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
     let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(
         faucet_keypair.public_key().clone(),
         200,
@@ -217,13 +214,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            faucet_account.id(),
-            block_ref,
-            &note_origins,
-            None,
-            Some(faucet_keypair_to_advice_map),
-        )
+        .execute_transaction(faucet_account.id(), block_ref, &note_origins, None)
         .unwrap();
 
     // check that the account burned the asset

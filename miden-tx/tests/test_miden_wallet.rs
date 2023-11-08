@@ -89,17 +89,13 @@ fn test_receive_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            target_account.id(),
-            block_ref,
-            &note_origins,
-            Some(tx_script),
-            Some(keypair_to_advice_map),
-        )
+        .execute_transaction(target_account.id(), block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
     // nonce delta
@@ -173,17 +169,13 @@ fn test_send_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            sender_account.id(),
-            block_ref,
-            &note_origins,
-            Some(tx_script),
-            Some(keypair_to_advice_map),
-        )
+        .execute_transaction(sender_account.id(), block_ref, &note_origins, Some(tx_script))
         .unwrap();
 
     // clones account info

@@ -78,17 +78,13 @@ fn test_p2id_script() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script_target = executor
+        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            target_account_id,
-            block_ref,
-            &note_origins,
-            Some(tx_script),
-            Some(target_keypair_to_advice_map),
-        )
+        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
         .unwrap();
 
     // vault delta
@@ -117,8 +113,10 @@ fn test_p2id_script() {
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
-
     executor_2.load_account(malicious_account_id).unwrap();
+    let tx_script_malicious = executor
+        .compile_tx_script(tx_script_code, vec![malicious_keypair_to_advice_map], vec![])
+        .unwrap();
 
     let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
     let note_origins = data_store_malicious_account
@@ -132,8 +130,7 @@ fn test_p2id_script() {
         malicious_account_id,
         block_ref,
         &note_origins,
-        None,
-        Some(malicious_keypair_to_advice_map),
+        Some(tx_script_malicious),
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -201,17 +198,13 @@ fn test_p2id_script_multiple_assets() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script_target = executor
+        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(
-            target_account_id,
-            block_ref,
-            &note_origins,
-            Some(tx_script),
-            Some(target_keypair_to_advice_map),
-        )
+        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
         .unwrap();
 
     // vault delta
@@ -240,8 +233,10 @@ fn test_p2id_script_multiple_assets() {
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
-
     executor_2.load_account(malicious_account_id).unwrap();
+    let tx_script_malicious = executor
+        .compile_tx_script(tx_script_code.clone(), vec![malicious_keypair_to_advice_map], vec![])
+        .unwrap();
 
     let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
     let note_origins = data_store_malicious_account
@@ -255,8 +250,7 @@ fn test_p2id_script_multiple_assets() {
         malicious_account_id,
         block_ref,
         &note_origins,
-        None,
-        Some(malicious_keypair_to_advice_map),
+        Some(tx_script_malicious),
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -370,7 +364,9 @@ fn test_p2idr_script() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor_1.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script_target = executor_1
+        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result_1 = executor_1
@@ -378,8 +374,7 @@ fn test_p2idr_script() {
             target_account_id,
             block_ref_1,
             &note_origins,
-            Some(tx_script.clone()),
-            Some(target_keypair_to_advice_map.clone()),
+            Some(tx_script_target.clone()),
         )
         .unwrap();
 
@@ -400,8 +395,10 @@ fn test_p2idr_script() {
         Some(vec![note_in_time.clone()]),
     );
     let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
-
     executor_2.load_account(sender_account_id).unwrap();
+    let tx_script_sender = executor_2
+        .compile_tx_script(tx_script_code.clone(), vec![sender_keypair_to_advice_map], vec![])
+        .unwrap();
 
     let block_ref_2 = data_store_2.block_header.block_num().as_int() as u32;
     let note_origins_2 =
@@ -412,8 +409,7 @@ fn test_p2idr_script() {
         sender_account_id,
         block_ref_2,
         &note_origins_2,
-        Some(tx_script.clone()),
-        Some(sender_keypair_to_advice_map.clone()),
+        Some(tx_script_sender.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
@@ -427,8 +423,10 @@ fn test_p2idr_script() {
         Some(vec![note_in_time.clone()]),
     );
     let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
-
     executor_3.load_account(malicious_account_id).unwrap();
+    let tx_script_malicious = executor_3
+        .compile_tx_script(tx_script_code, vec![malicious_keypair_to_advice_map], vec![])
+        .unwrap();
 
     let block_ref_3 = data_store_3.block_header.block_num().as_int() as u32;
     let note_origins_3 =
@@ -439,8 +437,7 @@ fn test_p2idr_script() {
         malicious_account_id,
         block_ref_3,
         &note_origins_3,
-        Some(tx_script.clone()),
-        Some(malicious_keypair_to_advice_map.clone()),
+        Some(tx_script_malicious.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult
@@ -454,7 +451,6 @@ fn test_p2idr_script() {
         Some(vec![note_reclaimable.clone()]),
     );
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
-
     executor_4.load_account(target_account_id).unwrap();
 
     let block_ref_4 = data_store_4.block_header.block_num().as_int() as u32;
@@ -467,8 +463,7 @@ fn test_p2idr_script() {
             target_account_id,
             block_ref_4,
             &note_origins_4,
-            Some(tx_script.clone()),
-            Some(target_keypair_to_advice_map),
+            Some(tx_script_target),
         )
         .unwrap();
 
@@ -503,13 +498,7 @@ fn test_p2idr_script() {
 
     // Execute the transaction and get the witness
     let transaction_result_5 = executor_5
-        .execute_transaction(
-            sender_account_id,
-            block_ref_5,
-            &note_origins,
-            Some(tx_script.clone()),
-            Some(sender_keypair_to_advice_map),
-        )
+        .execute_transaction(sender_account_id, block_ref_5, &note_origins, Some(tx_script_sender))
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -545,8 +534,7 @@ fn test_p2idr_script() {
         malicious_account_id,
         block_ref_6,
         &note_origins_6,
-        Some(tx_script.clone()),
-        Some(malicious_keypair_to_advice_map),
+        Some(tx_script_malicious),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not TransactionResult

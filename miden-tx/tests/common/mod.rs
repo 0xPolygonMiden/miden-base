@@ -10,7 +10,7 @@ use miden_objects::{
         utils::Serializable,
     },
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
-    BlockHeader, ChainMmr, Digest, Felt, StarkField, Word,
+    BlockHeader, ChainMmr, Felt, StarkField, Word,
 };
 use miden_tx::{DataStore, DataStoreError};
 use mock::{
@@ -90,14 +90,13 @@ impl DataStore for MockDataStore {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-pub fn get_new_key_pair_with_advice_map() -> (KeyPair, ([u8; 32], Vec<Felt>)) {
+pub fn get_new_key_pair_with_advice_map() -> (KeyPair, ([Felt; 4], Vec<Felt>)) {
     let keypair: KeyPair = KeyPair::new().unwrap();
 
     let pk: Word = keypair.public_key().into();
-    let pk: Digest = pk.into();
     let pk_sk_bytes = keypair.to_bytes();
     let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-    let advice_map_tupel: ([u8; 32], Vec<Felt>) = (pk.as_bytes(), to_adv_map.into());
+    let advice_map_tupel: ([Felt; 4], Vec<Felt>) = (pk, to_adv_map.into());
 
     (keypair, advice_map_tupel)
 }

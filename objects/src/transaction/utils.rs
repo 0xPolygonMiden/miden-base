@@ -84,11 +84,6 @@ pub fn generate_advice_provider_inputs(
         )]);
     }
 
-    // insert keypair to advice map
-    if let Some((key, advice)) = keypair_to_advice_map {
-        advice_inputs.extend_map(vec![(*key, advice.clone())]);
-    }
-
     advice_inputs
 }
 
