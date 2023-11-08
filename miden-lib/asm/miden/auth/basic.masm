@@ -1,6 +1,11 @@
+<<<<<<< HEAD:miden-lib/asm/eoa/basic.masm
 use.miden::sat::account
 use.miden::sat::tx
 use.std::crypto::dsa::rpo_falcon512
+=======
+use.miden::miden::kernels::single_account::account
+use.miden::miden::kernels::single_account::tx
+>>>>>>> fe826bb5 (refactor: change asm names and structure):miden-lib/asm/miden/auth/basic.masm
 
 # CONSTANTS
 # =================================================================================================

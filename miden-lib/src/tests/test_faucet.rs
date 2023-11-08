@@ -27,11 +27,11 @@ fn test_mint_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -78,8 +78,8 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -115,8 +115,8 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -152,8 +152,8 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -193,11 +193,11 @@ fn test_mint_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -247,8 +247,8 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -280,8 +280,8 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -319,8 +319,8 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -357,11 +357,11 @@ fn test_burn_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -409,8 +409,8 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -446,8 +446,8 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -483,8 +483,8 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -524,11 +524,11 @@ fn test_burn_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -586,11 +586,11 @@ fn test_burn_non_fungible_asset_fails_doesnt_exist() {
         "
         use.std::collections::smt
 
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -626,11 +626,11 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         "
         use.std::collections::smt
 
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -670,11 +670,11 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         "
         use.std::collections::smt
 
-        use.miden::sat::internal::account
-        use.miden::sat::internal::asset_vault
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::faucet
+        use.miden::miden::kernels::single_account::internal::account
+        use.miden::miden::kernels::single_account::internal::asset_vault
+        use.miden::miden::kernels::single_account::internal::layout
+        use.miden::miden::kernels::single_account::internal::prologue
+        use.miden::miden::kernels::single_account::faucet
 
         begin
             # mint asset
@@ -711,8 +711,8 @@ fn test_get_total_issuance_succeeds() {
 
     let code = format!(
         "\
-    use.miden::sat::internal::prologue
-    use.miden::sat::faucet
+    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::kernels::single_account::faucet
 
     begin
         # prepare the transaction

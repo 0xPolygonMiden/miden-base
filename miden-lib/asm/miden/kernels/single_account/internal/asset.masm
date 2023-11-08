@@ -1,4 +1,4 @@
-use.miden::sat::internal::account
+use.miden::miden::kernels::single_account::internal::account
 
 # CONSTANTS
 # =================================================================================================

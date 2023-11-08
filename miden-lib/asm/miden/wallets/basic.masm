@@ -1,5 +1,5 @@
-use.miden::sat::account
-use.miden::sat::tx
+use.miden::miden::kernels::single_account::account
+use.miden::miden::kernels::single_account::tx
 
 #! Adds the provided asset to the current account.
 #!
