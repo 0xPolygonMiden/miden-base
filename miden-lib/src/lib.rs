@@ -64,7 +64,7 @@ impl SatKernel {
     // --------------------------------------------------------------------------------------------
     /// Returns masm source code which encodes the transaction kernel system procedures.
     pub fn kernel() -> &'static str {
-        include_str!("../asm/sat/kernel.masm")
+        include_str!("../asm/miden/kernels/single_account/kernel.masm")
     }
 
     // SAT KERNEL MAIN
@@ -72,7 +72,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel main procedure.
     pub fn main() -> &'static str {
         "\
-        use.miden::sat::internal::main
+        use.miden::miden::kernels::single_account::internal::main
 
         begin
             exec.main::main

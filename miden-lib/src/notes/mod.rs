@@ -44,7 +44,7 @@ pub fn create_note(
     // Create the note
     let note_script_str = format!(
         "
-        use.miden::note_scripts::basic
+        use.miden::scripts::note_scripts::basic
 
         begin
             # drop the transaction script root

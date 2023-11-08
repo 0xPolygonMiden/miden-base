@@ -1,11 +1,11 @@
 use.std::collections::smt
 use.std::collections::mmr
 
-use.miden::sat::internal::account
-use.miden::sat::internal::asset_vault
-use.miden::sat::internal::constants
-use.miden::sat::internal::layout
-use.miden::sat::internal::utils
+use.miden::miden::kernels::single_account::internal::account
+use.miden::miden::kernels::single_account::internal::asset_vault
+use.miden::miden::kernels::single_account::internal::constants
+use.miden::miden::kernels::single_account::internal::layout
+use.miden::miden::kernels::single_account::internal::utils
 
 # PUBLIC INPUTS
 # =================================================================================================

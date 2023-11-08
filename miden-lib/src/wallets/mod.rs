@@ -39,8 +39,8 @@ pub fn create_basic_wallet(
 
     let account_code_string: String = format!(
         "
-    use.miden::wallets::basic->basic_wallet
-    use.miden::eoa::basic
+    use.miden::miden::wallets::basic->basic_wallet
+    use.miden::miden::auth::basic
 
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset

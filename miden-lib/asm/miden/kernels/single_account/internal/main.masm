@@ -1,9 +1,9 @@
 use.std::utils
 
-use.miden::sat::internal::epilogue
-use.miden::sat::internal::layout
-use.miden::sat::internal::note
-use.miden::sat::internal::prologue
+use.miden::miden::kernels::single_account::internal::epilogue
+use.miden::miden::kernels::single_account::internal::layout
+use.miden::miden::kernels::single_account::internal::note
+use.miden::miden::kernels::single_account::internal::prologue
 
 #! This is the entrypoint for the transaction kernel program. It is composed of the following
 #! program sections:
