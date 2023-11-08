@@ -1,4 +1,6 @@
-use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
+use super::{
+    build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
+};
 use crate::{
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
     outputs::{
@@ -46,7 +48,10 @@ fn test_epilogue() {
     // assert tx script root is correct
     assert_eq!(
         process.stack.get_word(TX_SCRIPT_ROOT_WORD_IDX),
-        executed_transaction.tx_script_root().unwrap_or_default().as_elements()
+        executed_transaction
+            .tx_script()
+            .as_ref()
+            .map_or_else(|| Word::default(), |s| **s.hash())
     );
 
     // assert created notes commitment is correct

@@ -221,6 +221,27 @@ impl fmt::Display for NoteError {
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
 
+// TRANSACTION SCRIPT ERROR
+// ================================================================================================
+
+#[derive(Debug)]
+pub enum TransactionScriptError {
+    ScriptCompilationError(AssemblyError),
+}
+
+impl fmt::Display for TransactionScriptError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ScriptCompilationError(err) => {
+                write!(f, "transaction script compilation error: {}", err)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionScriptError {}
+
 // PREPARED TRANSACTION ERROR
 // ===============================================================================================
 #[derive(Debug)]

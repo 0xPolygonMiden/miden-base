@@ -1,6 +1,7 @@
 use super::{
     Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
-    Note, RecordedNote, StackInputs, StackOutputs, ToAdviceInputs, Vec, Word, ZERO,
+    Note, RecordedNote, StackInputs, StackOutputs, ToAdviceInputs, TransactionScript, Vec, Word,
+    ZERO,
 };
 use vm_core::utils::IntoBytes;
 
@@ -50,7 +51,7 @@ pub fn generate_advice_provider_inputs(
     block_header: &BlockHeader,
     block_chain: &ChainMmr,
     notes: &ConsumedNotes,
-    tx_script_root: &Option<Digest>,
+    tx_script: &Option<TransactionScript>,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
 
@@ -66,8 +67,14 @@ pub fn generate_advice_provider_inputs(
     // insert consumed notes data to advice stack
     notes.to_advice_inputs(&mut advice_inputs);
 
-    // insert transaction script root into advice map
-    advice_inputs.extend_stack(*tx_script_root.unwrap_or_default());
+    if let Some(tx_script) = tx_script.as_ref() {
+        // populate the advice inputs with the transaction script data
+        tx_script.to_advice_inputs(&mut advice_inputs)
+    } else {
+        // if no transaction script is provided, extend the advice stack with an empty transaction
+        // script root
+        advice_inputs.extend_stack(Word::default());
+    }
 
     // insert account id seed into advice map
     if let Some(seed) = account_id_seed {

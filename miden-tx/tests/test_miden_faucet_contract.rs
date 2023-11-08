@@ -39,7 +39,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let tag = Felt::new(4);
     let amount = Felt::new(100);
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
             use.miden::faucets::basic->faucet
@@ -64,6 +64,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -105,7 +106,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tag = Felt::new(4);
     let amount = Felt::new(250);
 
-    let tx_script = ProgramAst::parse(
+    let tx_script_code = ProgramAst::parse(
         format!(
             "
             use.miden::faucets::basic->faucet
@@ -130,6 +131,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .as_str(),
     )
     .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor.execute_transaction(

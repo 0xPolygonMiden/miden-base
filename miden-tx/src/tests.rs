@@ -70,6 +70,9 @@ fn test_transaction_executor_witness() {
 #[test]
 fn test_transaction_result_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
+    let mut executor = TransactionExecutor::new(data_store.clone());
+    let account_id = data_store.account.id();
+    executor.load_account(account_id).unwrap();
 
     let new_acct_code_src = "\
     export.account_proc_1
@@ -199,11 +202,8 @@ fn test_transaction_result_account_delta() {
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
     );
-    let tx_script = ProgramAst::parse(&tx_script).unwrap();
-
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let block_ref = data_store.block_header.block_num().as_int() as u32;
     let note_origins =
@@ -317,6 +317,56 @@ fn test_prove_and_verify_with_tx_executor() {
 
     let verifier = TransactionVerifier::new(96);
     assert!(verifier.verify(proven_transaction).is_ok());
+}
+
+// TEST TRANSACTION SCRIPT
+// ================================================================================================
+
+#[test]
+fn test_tx_script() {
+    let data_store = MockDataStore::default();
+    let mut executor = TransactionExecutor::new(data_store.clone());
+
+    let account_id = data_store.account.id();
+    executor.load_account(account_id).unwrap();
+
+    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let note_origins =
+        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+
+    let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
+    let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
+    let tx_script_source = format!(
+        "
+    begin
+        # push the tx script input key onto the stack
+        push.{key}
+
+        # load the tx script input value from the map and read it onto the stack
+        adv.push_mapval adv_loadw
+
+        # assert that the value is correct
+        push.{value} assert_eqw
+    end
+",
+        key = prepare_word(&tx_script_input_key),
+        value = prepare_word(&tx_script_input_value)
+    );
+    let tx_script_code = ProgramAst::parse(&tx_script_source).unwrap();
+    let tx_script = executor
+        .compile_tx_script(
+            tx_script_code,
+            vec![(tx_script_input_key, tx_script_input_value.into())],
+            vec![],
+        )
+        .unwrap();
+
+    // execute the transaction
+    let transaction_result =
+        executor.execute_transaction(account_id, block_ref, &note_origins, Some(tx_script));
+
+    // assert the transaction executed successfully
+    assert!(transaction_result.is_ok());
 }
 
 // MOCK DATA STORE

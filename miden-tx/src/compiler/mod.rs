@@ -1,10 +1,12 @@
 use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Operation, Program, SatKernel,
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program, SatKernel,
     TransactionCompilerError,
 };
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
     notes::RecordedNote,
+    transaction::TransactionScript,
+    Felt, TransactionScriptError, Word,
 };
 use vm_processor::ProgramInfo;
 
@@ -79,7 +81,7 @@ impl TransactionCompiler {
     pub fn compile_note_script(
         &mut self,
         note_script_ast: ProgramAst,
-        target_account_proc: Vec<NoteTarget>,
+        target_account_proc: Vec<ScriptTarget>,
     ) -> Result<NoteScript, TransactionCompilerError> {
         let (note_script, code_block) = NoteScript::new(note_script_ast, &self.assembler)
             .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
@@ -96,19 +98,48 @@ impl TransactionCompiler {
         Ok(note_script)
     }
 
+    /// Constructs a [TransactionScript] by compiling the provided source code and checking the
+    /// compatibility of the resulting program with the target account interfaces.
+    pub fn compile_tx_script<T>(
+        &mut self,
+        tx_script_ast: ProgramAst,
+        tx_script_inputs: T,
+        target_account_proc: Vec<ScriptTarget>,
+    ) -> Result<TransactionScript, TransactionCompilerError>
+    where
+        T: IntoIterator<Item = (Word, Vec<Felt>)>,
+    {
+        let (tx_script, code_block) =
+            TransactionScript::new(tx_script_ast, tx_script_inputs, &mut self.assembler).map_err(
+                |e| match e {
+                    TransactionScriptError::ScriptCompilationError(asm_error) => {
+                        TransactionCompilerError::CompileTxScriptFailed(asm_error)
+                    }
+                },
+            )?;
+        for target in target_account_proc.into_iter() {
+            verify_program_account_compatibility(&code_block, &self.get_target_interface(target)?)
+                .map_err(|_| {
+                    TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(
+                        code_block.hash(),
+                    )
+                })?;
+        }
+        Ok(tx_script)
+    }
+
     // TRANSACTION PROGRAM BUILDER
     // --------------------------------------------------------------------------------------------
     /// Compiles a transaction which executes the provided notes and an optional tx script against
-    /// the specified account. Returns the a tuple containing the compiled program and the root
-    /// hash of the transaction script if it was provided.
+    /// the specified account. Returns the the compiled transaction program.
     ///
     /// The account is assumed to have been previously loaded into this compiler.
     pub fn compile_transaction(
         &mut self,
         account_id: AccountId,
         notes: &[RecordedNote],
-        tx_script: Option<ProgramAst>,
-    ) -> Result<(Program, Option<Digest>), TransactionCompilerError> {
+        tx_script: Option<&ProgramAst>,
+    ) -> Result<Program, TransactionCompilerError> {
         // Fetch the account interface from the `account_procedures` map. Return an error if the
         // interface is not found.
         let target_account_interface = self
@@ -129,12 +160,15 @@ impl TransactionCompiler {
         let note_script_programs =
             self.compile_notes(&target_account_interface, notes, &mut assembly_context)?;
 
-        // Create the transaction program
-        let (tx_script_program, tx_script_hash) = self.compile_tx_script_program(
-            tx_script,
-            &mut assembly_context,
-            target_account_interface,
-        )?;
+        // Compile the transaction script
+        let tx_script_program = match tx_script {
+            Some(tx_script) => Some(self.compile_tx_script_program(
+                tx_script,
+                &mut assembly_context,
+                target_account_interface,
+            )?),
+            None => None,
+        };
 
         // Create [CodeBlockTable] from [AssemblyContext]
         let mut cb_table = self
@@ -148,7 +182,9 @@ impl TransactionCompiler {
         });
 
         // insert transaction script into [CodeBlockTable]
-        cb_table.insert(tx_script_program);
+        if let Some(tx_script_program) = tx_script_program {
+            cb_table.insert(tx_script_program);
+        }
 
         // Create transaction program with kernel
         let program = Program::with_kernel(
@@ -158,7 +194,7 @@ impl TransactionCompiler {
         );
 
         // Create compiled transaction
-        Ok((program, tx_script_hash))
+        Ok(program)
     }
 
     /// Returns a [ProgramInfo] associated with the transaction kernel program.
@@ -199,50 +235,44 @@ impl TransactionCompiler {
         Ok(note_programs)
     }
 
-    /// Returns a ([CodeBlock], Option<Digest>) tuple where the first element is the compiled
-    /// transaction script program and the second element is the hash of the transaction script
-    /// program. If no transaction script is provided, the first element is a [CodeBlock] containing
-    /// a single [Operation::Noop] and the second element is `None`.
+    /// Returns a [CodeBlock] of the compiled transaction script program.
+    ///
+    /// The transaction script compatibility is verified against the target account interface.
     fn compile_tx_script_program(
         &mut self,
-        tx_script: Option<ProgramAst>,
+        tx_script: &ProgramAst,
         assembly_context: &mut AssemblyContext,
         target_account_interface: Vec<Digest>,
-    ) -> Result<(CodeBlock, Option<Digest>), TransactionCompilerError> {
-        let tx_script_is_some = tx_script.is_some();
-        let tx_script_code_block = match tx_script {
-            Some(tx_script) => self
-                .assembler
-                .compile_in_context(&tx_script, assembly_context)
-                .map_err(TransactionCompilerError::CompileTxScriptFailed)?,
-            None => CodeBlock::new_span(vec![Operation::Noop]),
-        };
+    ) -> Result<CodeBlock, TransactionCompilerError> {
+        let tx_script_code_block = self
+            .assembler
+            .compile_in_context(tx_script, assembly_context)
+            .map_err(TransactionCompilerError::CompileTxScriptFailed)?;
         verify_program_account_compatibility(&tx_script_code_block, &target_account_interface)
             .map_err(|_| {
                 TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(
                     tx_script_code_block.hash(),
                 )
             })?;
-        let tx_script_hash = tx_script_is_some.then_some(tx_script_code_block.hash());
-        Ok((tx_script_code_block, tx_script_hash))
+        Ok(tx_script_code_block)
     }
 
-    /// Returns the account interface associated with the provided [NoteTarget].
+    /// Returns the account interface associated with the provided [ScriptTarget].
     ///
     /// # Errors
     /// - If the account interface associated with the [AccountId] provided as a target can not be
     ///   found in the `account_procedures` map.
     fn get_target_interface(
         &self,
-        target: NoteTarget,
+        target: ScriptTarget,
     ) -> Result<Vec<Digest>, TransactionCompilerError> {
         match target {
-            NoteTarget::AccountId(id) => self
+            ScriptTarget::AccountId(id) => self
                 .account_procedures
                 .get(&id)
                 .cloned()
                 .ok_or(TransactionCompilerError::AccountInterfaceNotFound(id)),
-            NoteTarget::Procedures(procs) => Ok(procs),
+            ScriptTarget::Procedures(procs) => Ok(procs),
         }
     }
 }
@@ -328,11 +358,14 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
     }
 }
 
-// NOTE TARGET
+// SCRIPT TARGET
 // ================================================================================================
 
+/// The [ScriptTarget] enum is used to specify the target account interface for note and
+/// transaction scripts. This is specified as an account ID (for which the interface should be
+/// fetched) or a vector of procedure digests which represents the account interface.
 #[derive(Clone)]
-pub enum NoteTarget {
+pub enum ScriptTarget {
     AccountId(AccountId),
     Procedures(Vec<Digest>),
 }

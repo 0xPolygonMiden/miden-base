@@ -7,11 +7,11 @@ use miden_objects::{
     utils::collections::BTreeMap,
     AccountError, BlockHeader, ChainMmr, Digest, Hasher, TransactionResultError,
 };
-use vm_core::{Operation, Program};
+use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;
-pub use compiler::{NoteTarget, TransactionCompiler};
+pub use compiler::{ScriptTarget, TransactionCompiler};
 
 mod data;
 pub use data::DataStore;

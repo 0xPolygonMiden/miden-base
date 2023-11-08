@@ -1,3 +1,4 @@
+use super::TransactionScript;
 use crate::{
     accounts::validate_account_seed,
     transaction::{
@@ -15,7 +16,7 @@ pub struct ExecutedTransaction {
     final_account: Account,
     consumed_notes: ConsumedNotes,
     created_notes: Vec<Note>,
-    tx_script_root: Option<Digest>,
+    tx_script: Option<TransactionScript>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
 }
@@ -29,7 +30,7 @@ impl ExecutedTransaction {
         final_account: Account,
         consumed_notes: Vec<RecordedNote>,
         created_notes: Vec<Note>,
-        tx_script_root: Option<Digest>,
+        tx_script: Option<TransactionScript>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
     ) -> Result<Self, ExecutedTransactionError> {
@@ -40,7 +41,7 @@ impl ExecutedTransaction {
             final_account,
             consumed_notes: ConsumedNotes::new(consumed_notes),
             created_notes,
-            tx_script_root,
+            tx_script,
             block_header,
             block_chain,
         })
@@ -66,9 +67,9 @@ impl ExecutedTransaction {
         &self.created_notes
     }
 
-    /// Returns the transaction script root.
-    pub fn tx_script_root(&self) -> Option<Digest> {
-        self.tx_script_root
+    /// Returns a reference to the transaction script.
+    pub fn tx_script(&self) -> &Option<TransactionScript> {
+        &self.tx_script
     }
 
     /// Returns the block reference.
@@ -104,7 +105,7 @@ impl ExecutedTransaction {
             &self.block_header,
             &self.block_chain,
             &self.consumed_notes,
-            &self.tx_script_root,
+            &self.tx_script,
         )
     }
 
