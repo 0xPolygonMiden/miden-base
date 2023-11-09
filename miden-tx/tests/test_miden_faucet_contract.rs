@@ -21,12 +21,9 @@ use common::{
 
 #[test]
 fn test_faucet_contract_mint_fungible_asset_succeeds() {
-    let (faucet_keypair, faucet_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(
-        faucet_keypair.public_key().clone(),
-        200,
-        None,
-    );
+    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let faucet_account =
+        get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -69,7 +66,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     )
     .unwrap();
     let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![faucet_keypair_to_advice_map], vec![])
+        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -95,12 +92,9 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
-    let (faucet_keypair, faucet_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(
-        faucet_keypair.public_key().clone(),
-        200,
-        None,
-    );
+    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let faucet_account =
+        get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key.clone(), 200, None);
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -143,7 +137,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     )
     .unwrap();
     let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![faucet_keypair_to_advice_map], vec![])
+        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -159,9 +153,9 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
 #[test]
 fn test_faucet_contract_burn_fungible_asset_succeeds() {
-    let (faucet_keypair, _faucet_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, _faucet_keypair_felts) = get_new_key_pair_with_advice_map();
     let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(
-        faucet_keypair.public_key().clone(),
+        faucet_pub_key.clone(),
         200,
         Some(100),
     );
@@ -265,7 +259,7 @@ fn test_faucet_contract_creation() {
 }
 
 fn get_faucet_account_with_max_supply_and_total_issuance(
-    public_key: PublicKey,
+    public_key: Word,
     max_supply: u64,
     total_issuance: Option<u64>,
 ) -> Account {
@@ -277,13 +271,10 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_code =
         AccountCode::new(faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
 
-    let pub_key_word: Word = public_key.into();
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    let mut faucet_account_storage = AccountStorage::new(
-        vec![(0, pub_key_word), (1, faucet_storage_slot_1)],
-        MerkleStore::new(),
-    )
-    .unwrap();
+    let mut faucet_account_storage =
+        AccountStorage::new(vec![(0, public_key), (1, faucet_storage_slot_1)], MerkleStore::new())
+            .unwrap();
 
     if total_issuance.is_some() {
         let faucet_storage_slot_255 =

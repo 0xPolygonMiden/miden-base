@@ -8,21 +8,24 @@ use.std::crypto::dsa::rpo_falcon512
 # Slot in account storage at which the public key is stored.
 const.PUBLIC_KEY_SLOT=0
 
-#! Authenticate a transaction using Falcon 
+#! Authenticate a transaction using the Falcon signature scheme
 #! Stack: []
 #! Output: []
 #!
 export.auth_tx_rpo_falcon512
-    # Get commitments to consumed and created notes, current nonce, and ID
+    # Get commitments to created notes
     exec.tx::get_output_notes_hash
     # => [OUTPUT_NOTES_HASH, ...]
     
+    # Get commitments to consumed notes
     exec.tx::get_input_notes_hash
     # => [INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, ...]
 
+    # Get current nonce of the account and pad
     exec.account::get_nonce push.0.0.0
     # => [0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, ...]
 
+    # Get current AccountID and pad
     exec.account::get_id push.0.0.0
     # => [0, 0, 0, account_id, 0, 0, 0, nonce, INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, ...]
 

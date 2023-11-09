@@ -33,12 +33,9 @@ fn test_p2id_script() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let target_account = get_account_with_default_account_code(
-        target_account_id,
-        target_keypair.public_key().clone(),
-        None,
-    );
+    let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
+    let target_account =
+        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
     let p2id_script = Script::P2ID {
@@ -79,7 +76,11 @@ fn test_p2id_script() {
     )
     .unwrap();
     let tx_script_target = executor
-        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code.clone(),
+            vec![(target_pub_key, target_sk_pk_felt)],
+            vec![],
+        )
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -103,10 +104,10 @@ fn test_p2id_script() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account = get_account_with_default_account_code(
         malicious_account_id,
-        malicious_keypair.public_key().clone(),
+        malicious_pub_key.clone(),
         None,
     );
 
@@ -115,7 +116,11 @@ fn test_p2id_script() {
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
-        .compile_tx_script(tx_script_code, vec![malicious_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code,
+            vec![(malicious_pub_key, malicious_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
@@ -153,12 +158,9 @@ fn test_p2id_script_multiple_assets() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let target_account = get_account_with_default_account_code(
-        target_account_id,
-        target_keypair.public_key().clone(),
-        None,
-    );
+    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let target_account =
+        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
     let p2id_script = Script::P2ID {
@@ -199,7 +201,11 @@ fn test_p2id_script_multiple_assets() {
     )
     .unwrap();
     let tx_script_target = executor
-        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code.clone(),
+            vec![(target_pub_key, target_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -223,10 +229,10 @@ fn test_p2id_script_multiple_assets() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account = get_account_with_default_account_code(
         malicious_account_id,
-        malicious_keypair.public_key().clone(),
+        malicious_pub_key.clone(),
         None,
     );
 
@@ -235,7 +241,11 @@ fn test_p2id_script_multiple_assets() {
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
-        .compile_tx_script(tx_script_code.clone(), vec![malicious_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code.clone(),
+            vec![(malicious_pub_key, malicious_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
@@ -271,30 +281,24 @@ fn test_p2idr_script() {
 
     // Create sender and target and malicious account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let (sender_keypair, sender_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let sender_account = get_account_with_default_account_code(
-        sender_account_id,
-        sender_keypair.public_key().clone(),
-        None,
-    );
+    let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
+    let sender_account =
+        get_account_with_default_account_code(sender_account_id, sender_pub_key.clone(), None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_keypair, target_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let target_account = get_account_with_default_account_code(
-        target_account_id,
-        target_keypair.public_key().clone(),
-        None,
-    );
+    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let target_account =
+        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let (malicious_keypair, malicious_keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account = get_account_with_default_account_code(
         malicious_account_id,
-        malicious_keypair.public_key().clone(),
+        malicious_pub_key.clone(),
         None,
     );
 
@@ -365,7 +369,11 @@ fn test_p2idr_script() {
     )
     .unwrap();
     let tx_script_target = executor_1
-        .compile_tx_script(tx_script_code.clone(), vec![target_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code.clone(),
+            vec![(target_pub_key, target_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -397,7 +405,11 @@ fn test_p2idr_script() {
     let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
     executor_2.load_account(sender_account_id).unwrap();
     let tx_script_sender = executor_2
-        .compile_tx_script(tx_script_code.clone(), vec![sender_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code.clone(),
+            vec![(sender_pub_key, sender_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     let block_ref_2 = data_store_2.block_header.block_num().as_int() as u32;
@@ -425,7 +437,11 @@ fn test_p2idr_script() {
     let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
     executor_3.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor_3
-        .compile_tx_script(tx_script_code, vec![malicious_keypair_to_advice_map], vec![])
+        .compile_tx_script(
+            tx_script_code,
+            vec![(malicious_pub_key, malicious_keypair_felt)],
+            vec![],
+        )
         .unwrap();
 
     let block_ref_3 = data_store_3.block_header.block_num().as_int() as u32;

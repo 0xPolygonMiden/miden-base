@@ -4,11 +4,7 @@ use miden_objects::{
     assembly::ModuleAst,
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
-    crypto::{
-        dsa::rpo_falcon512::{KeyPair, PublicKey},
-        merkle::MerkleStore,
-        utils::Serializable,
-    },
+    crypto::{dsa::rpo_falcon512::KeyPair, merkle::MerkleStore, utils::Serializable},
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
     BlockHeader, ChainMmr, Felt, StarkField, Word,
 };
@@ -90,21 +86,21 @@ impl DataStore for MockDataStore {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-pub fn get_new_key_pair_with_advice_map() -> (KeyPair, ([Felt; 4], Vec<Felt>)) {
+pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
     let keypair: KeyPair = KeyPair::new().unwrap();
 
     let pk: Word = keypair.public_key().into();
     let pk_sk_bytes = keypair.to_bytes();
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-    let advice_map_tupel: ([Felt; 4], Vec<Felt>) = (pk, to_adv_map.into());
+    let pk_sk_felts: Vec<Felt> =
+        pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    (keypair, advice_map_tupel)
+    (pk, pk_sk_felts)
 }
 
 #[allow(dead_code)]
 pub fn get_account_with_default_account_code(
     account_id: AccountId,
-    public_key: PublicKey,
+    public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;
@@ -112,9 +108,7 @@ pub fn get_account_with_default_account_code(
     let mut account_assembler = assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let pub_key_word: Word = public_key.into();
-    let account_storage = AccountStorage::new(vec![(0, pub_key_word)], MerkleStore::new()).unwrap();
+    let account_storage = AccountStorage::new(vec![(0, public_key)], MerkleStore::new()).unwrap();
 
     let account_vault = match assets {
         Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),

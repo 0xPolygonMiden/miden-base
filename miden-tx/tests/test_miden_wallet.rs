@@ -35,12 +35,9 @@ fn test_receive_asset_via_wallet() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (keypair, keypair_to_advice_map) = get_new_key_pair_with_advice_map();
-    let target_account = get_account_with_default_account_code(
-        target_account_id,
-        keypair.public_key().clone(),
-        None,
-    );
+    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let target_account =
+        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
     let note_script_ast = ProgramAst::parse(
@@ -90,7 +87,7 @@ fn test_receive_asset_via_wallet() {
     )
     .unwrap();
     let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![keypair_to_advice_map], vec![])
+        .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -103,7 +100,7 @@ fn test_receive_asset_via_wallet() {
 
     // clone account info
     let account_storage =
-        AccountStorage::new(vec![(0, keypair.public_key().into())], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, target_pub_key.into())], MerkleStore::new()).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -126,10 +123,10 @@ fn test_send_asset_via_wallet() {
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let (keypair, keypair_to_advice_map) = get_new_key_pair_with_advice_map();
+    let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,
-        keypair.public_key().clone(),
+        sender_pub_key.clone(),
         fungible_asset_1.clone().into(),
     );
 
@@ -170,7 +167,7 @@ fn test_send_asset_via_wallet() {
     )
     .unwrap();
     let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![keypair_to_advice_map], vec![])
+        .compile_tx_script(tx_script_code, vec![(sender_pub_key, sender_keypair_felt)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
@@ -180,7 +177,7 @@ fn test_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage =
-        AccountStorage::new(vec![(0, keypair.public_key().into())], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, sender_pub_key.into())], MerkleStore::new()).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
@@ -215,7 +212,7 @@ fn test_wallet_creation() {
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let expected_code_root =
-        get_account_with_default_account_code(sender_account_id, pub_key, None)
+        get_account_with_default_account_code(sender_account_id, pub_key.into(), None)
             .code()
             .root();
 
