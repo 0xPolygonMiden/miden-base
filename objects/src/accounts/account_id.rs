@@ -30,7 +30,7 @@ pub enum AccountType {
 ///  - 0 - full account data is stored on-chain.
 ///  - 1 - only the account hash is stored on-chain which serves as a commitment to the account state.
 /// As such the three most significant bits fully describes the type of the account.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct AccountId(Felt);
