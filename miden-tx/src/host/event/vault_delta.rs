@@ -111,7 +111,7 @@ impl AccountVaultDeltaHandler {
             if amount > 0 {
                 added_assets.push(Asset::Fungible(
                     FungibleAsset::new(
-                        unsafe { AccountId::new_unchecked(faucet_id.into()) },
+                        AccountId::new_unchecked(faucet_id.into()),
                         amount.unsigned_abs() as u64,
                     )
                     .expect("fungible asset is well formed"),
@@ -119,7 +119,7 @@ impl AccountVaultDeltaHandler {
             } else {
                 removed_assets.push(Asset::Fungible(
                     FungibleAsset::new(
-                        unsafe { AccountId::new_unchecked(faucet_id.into()) },
+                        AccountId::new_unchecked(faucet_id.into()),
                         amount.unsigned_abs() as u64,
                     )
                     .expect("fungible asset is well formed"),
