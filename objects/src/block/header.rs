@@ -17,7 +17,7 @@ use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO
 /// - timestamp is the time when the block was created.
 /// - sub_hash is a sequential hash of all fields except the note_root.
 /// - hash is a 2-to-1 hash of the sub_hash and the note_root.
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
     prev_hash: Digest,
