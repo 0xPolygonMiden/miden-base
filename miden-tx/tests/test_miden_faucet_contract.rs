@@ -1,28 +1,29 @@
 use miden_lib::{assembler::assembler, faucets::create_basic_faucet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountVault},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset, TokenSymbol},
-    crypto::dsa::rpo_falcon512,
-    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    crypto::{
+        dsa::rpo_falcon512::{KeyPair, PublicKey},
+        merkle::MerkleStore,
+    },
+    notes::{NoteMetadata, NoteStub, NoteVault},
     Felt, StarkField, Word, ZERO,
 };
-use mock::{
-    constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER},
-    mock::account::mock_account_storage,
-    utils::prepare_word,
-};
+use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
 use miden_tx::TransactionExecutor;
 
 mod common;
-use common::MockDataStore;
-
-use vm_core::crypto::dsa::rpo_falcon512::{KeyPair, PublicKey};
+use common::{
+    get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script, MockDataStore,
+};
 
 #[test]
 fn test_faucet_contract_mint_fungible_asset_succeeds() {
-    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, None);
+    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let faucet_account =
+        get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -64,7 +65,9 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -89,7 +92,9 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
-    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, None);
+    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let faucet_account =
+        get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key.clone(), 200, None);
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -131,7 +136,9 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor.execute_transaction(
@@ -146,7 +153,13 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
 #[test]
 fn test_faucet_contract_burn_fungible_asset_succeeds() {
-    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(200, Some(100));
+    let (faucet_pub_key, _faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let faucet_account = get_faucet_account_with_max_supply_and_total_issuance(
+        faucet_pub_key.clone(),
+        200,
+        Some(100),
+    );
+
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
     // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
@@ -179,7 +192,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     )
     .unwrap();
 
-    let note = get_note_with_asset_and_script(fungible_asset.clone(), note_script);
+    let note = get_note_with_fungible_asset_and_script(fungible_asset.clone(), note_script);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -206,7 +219,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 #[test]
 fn test_faucet_contract_creation() {
     // we need a Falcon Public Key to create the wallet account
-    let key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let key_pair: KeyPair = KeyPair::new().unwrap();
     let pub_key: PublicKey = key_pair.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
         pub_key: pub_key.into(),
@@ -246,6 +259,7 @@ fn test_faucet_contract_creation() {
 }
 
 fn get_faucet_account_with_max_supply_and_total_issuance(
+    public_key: Word,
     max_supply: u64,
     total_issuance: Option<u64>,
 ) -> Account {
@@ -257,9 +271,10 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_code =
         AccountCode::new(faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
 
-    let mut faucet_account_storage = mock_account_storage();
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    faucet_account_storage.set_item(1, faucet_storage_slot_1);
+    let mut faucet_account_storage =
+        AccountStorage::new(vec![(0, public_key), (1, faucet_storage_slot_1)], MerkleStore::new())
+            .unwrap();
 
     if total_issuance.is_some() {
         let faucet_storage_slot_255 =
@@ -274,22 +289,4 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
         faucet_account_code.clone(),
         Felt::new(1),
     )
-}
-
-fn get_note_with_asset_and_script(fungible_asset: FungibleAsset, note_script: ProgramAst) -> Note {
-    let mut note_assembler = assembler();
-
-    let (note_script, _) = NoteScript::new(note_script, &mut note_assembler).unwrap();
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-
-    Note::new(
-        note_script.clone(),
-        &[],
-        &vec![fungible_asset.into()],
-        SERIAL_NUM,
-        sender_id,
-        Felt::new(1),
-    )
-    .unwrap()
 }

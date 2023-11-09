@@ -1,27 +1,30 @@
-use miden_lib::{assembler::assembler, wallets::create_basic_wallet, AuthScheme};
+use miden_lib::{wallets::create_basic_wallet, AuthScheme};
+
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountVault},
-    assembly::{ModuleAst, ProgramAst},
+    accounts::{Account, AccountId, AccountStorage, AccountVault},
+    assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
-    crypto::dsa::rpo_falcon512,
-    notes::{Note, NoteScript},
+    crypto::{
+        dsa::rpo_falcon512::{KeyPair, PublicKey},
+        merkle::MerkleStore,
+    },
     Felt, StarkField, Word, ONE, ZERO,
 };
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE,
+        ACCOUNT_ID_SENDER,
     },
-    mock::account::mock_account_storage,
     utils::prepare_word,
 };
 
 use miden_tx::TransactionExecutor;
 
 mod common;
-use common::MockDataStore;
-
-use vm_core::crypto::dsa::rpo_falcon512::{KeyPair, PublicKey};
+use common::{
+    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    get_note_with_fungible_asset_and_script, MockDataStore,
+};
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
@@ -30,7 +33,11 @@ fn test_receive_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
-    let target_account = get_account_with_default_account_code(None);
+    let target_account_id =
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let target_account =
+        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
     let note_script_ast = ProgramAst::parse(
@@ -79,7 +86,9 @@ fn test_receive_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -90,7 +99,8 @@ fn test_receive_asset_via_wallet() {
     assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // clone account info
-    let account_storage = mock_account_storage();
+    let account_storage =
+        AccountStorage::new(vec![(0, target_pub_key.into())], MerkleStore::new()).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -112,7 +122,13 @@ fn test_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    let sender_account = get_account_with_default_account_code(fungible_asset_1.clone().into());
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
+    let sender_account = get_account_with_default_account_code(
+        sender_account_id,
+        sender_pub_key.clone(),
+        fungible_asset_1.clone().into(),
+    );
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -139,8 +155,8 @@ fn test_send_asset_via_wallet() {
             push.{tag}
             push.{asset}
             call.wallet::send_asset drop
-            call.auth_tx::auth_tx_rpo_falcon512
             dropw dropw
+            call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
             recipient = prepare_word(&recipient),
@@ -150,7 +166,9 @@ fn test_send_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor
+        .compile_tx_script(tx_script_code, vec![(sender_pub_key, sender_keypair_felt)], vec![])
+        .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
@@ -158,7 +176,8 @@ fn test_send_asset_via_wallet() {
         .unwrap();
 
     // clones account info
-    let sender_account_storage = mock_account_storage();
+    let sender_account_storage =
+        AccountStorage::new(vec![(0, sender_pub_key.into())], MerkleStore::new()).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
@@ -176,7 +195,7 @@ fn test_send_asset_via_wallet() {
 #[test]
 fn test_wallet_creation() {
     // we need a Falcon Public Key to create the wallet account
-    let key_pair: KeyPair = rpo_falcon512::KeyPair::new().unwrap();
+    let key_pair: KeyPair = KeyPair::new().unwrap();
     let pub_key: PublicKey = key_pair.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
         pub_key: pub_key.into(),
@@ -190,49 +209,15 @@ fn test_wallet_creation() {
 
     let (wallet, _) = create_basic_wallet(init_seed, auth_scheme).unwrap();
 
-    let expected_code_root = get_account_with_default_account_code(None).code().root();
+    // sender_account_id not relevant here, just to create a default account code
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let expected_code_root =
+        get_account_with_default_account_code(sender_account_id, pub_key.into(), None)
+            .code()
+            .root();
 
     assert!(wallet.is_regular_account() == true);
     assert!(wallet.code().root() == expected_code_root);
     let pub_key_word: Word = pub_key.into();
     assert!(wallet.storage().get_item(0).as_elements() == pub_key_word);
-}
-
-fn get_account_with_default_account_code(asset: Option<Asset>) -> Account {
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let mut account_assembler = assembler();
-
-    let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
-
-    let account_storage = mock_account_storage();
-    let account_vault = match asset {
-        Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
-        None => AccountVault::new(&vec![]).unwrap(),
-    };
-
-    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
-}
-
-fn get_note_with_fungible_asset_and_script(
-    fungible_asset: FungibleAsset,
-    note_script: ProgramAst,
-) -> Note {
-    let mut note_assembler = assembler();
-
-    let (note_script, _) = NoteScript::new(note_script, &mut note_assembler).unwrap();
-    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-
-    Note::new(
-        note_script.clone(),
-        &[],
-        &vec![fungible_asset.into()],
-        SERIAL_NUM,
-        sender_id,
-        Felt::new(1),
-    )
-    .unwrap()
 }
