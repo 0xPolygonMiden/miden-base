@@ -1,18 +1,19 @@
-use miden_lib::{assembler::assembler, faucets::create_basic_fungible_faucet, AuthScheme};
+use miden_lib::{
+    assembler::assembler, faucets::create_basic_fungible_faucet, memory::FAUCET_STORAGE_DATA_SLOT,
+    AuthScheme,
+};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageEntry, StorageSlot,
+    },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset, TokenSymbol},
-    crypto::{
-        dsa::rpo_falcon512::{KeyPair, PublicKey},
-        merkle::MerkleStore,
-    },
+    crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteMetadata, NoteStub, NoteVault},
     Felt, StarkField, Word, ZERO,
 };
-use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
-
 use miden_tx::TransactionExecutor;
+use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
 mod common;
 use common::{
@@ -27,7 +28,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -98,7 +99,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -168,7 +169,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
             == [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
     assert!(
-        faucet_account.storage().get_item(255)
+        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT)
             == [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
     );
 
@@ -197,7 +198,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
+        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -279,14 +280,16 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
         AccountCode::new(faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    let mut faucet_account_storage =
-        AccountStorage::new(vec![(0, public_key), (1, faucet_storage_slot_1)], MerkleStore::new())
-            .unwrap();
+    let mut faucet_account_storage = AccountStorage::new(vec![
+        (0, StorageSlot::new_scalar(StorageEntry::new_scalar(public_key))),
+        (1, StorageSlot::new_scalar(StorageEntry::new_scalar(faucet_storage_slot_1))),
+    ])
+    .unwrap();
 
     if total_issuance.is_some() {
-        let faucet_storage_slot_255 =
+        let faucet_storage_slot_254 =
             [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(total_issuance.unwrap())];
-        faucet_account_storage.set_item(255, faucet_storage_slot_255);
+        faucet_account_storage.set_item(FAUCET_STORAGE_DATA_SLOT, faucet_storage_slot_254);
     };
 
     Account::new(

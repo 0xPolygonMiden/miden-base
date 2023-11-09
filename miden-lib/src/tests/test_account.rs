@@ -7,8 +7,8 @@ use miden_objects::accounts::{
 };
 use mock::{
     constants::{
-        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0,
-        CHILD_STORAGE_VALUE_0, STORAGE_ITEM_0, STORAGE_ITEM_1,
+        storage_item_0, storage_item_1, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
+        CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
     },
     mock::{
         account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_executed_tx,
@@ -24,7 +24,7 @@ use mock::{
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -37,8 +37,18 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        code,
+        "",
+        None,
+    );
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -178,8 +188,8 @@ fn test_validate_id_fails_on_insuficcient_ones() {
 
 #[test]
 fn test_get_item() {
-    for storage_item in [STORAGE_ITEM_0, STORAGE_ITEM_1] {
-        let (account, block_header, chain, notes) =
+    for storage_item in [storage_item_0(), storage_item_1()] {
+        let (account, block_header, chain, notes, auxiliary_data) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -203,11 +213,21 @@ fn test_get_item() {
         end
         ",
             item_index = storage_item.0,
-            item_value = prepare_word(&storage_item.1)
+            item_value = prepare_word(&storage_item.1.entry().value())
         );
 
-        let transaction =
-            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+        let transaction = prepare_transaction(
+            account,
+            None,
+            block_header,
+            chain,
+            notes,
+            None,
+            auxiliary_data,
+            &code,
+            "",
+            None,
+        );
 
         let _process = run_tx(
             transaction.tx_program().clone(),
@@ -220,7 +240,7 @@ fn test_get_item() {
 
 #[test]
 fn test_get_child_tree_item() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
@@ -258,6 +278,7 @@ fn test_get_child_tree_item() {
         chain,
         notes,
         None,
+        auxiliary_data,
         code.as_str(),
         "",
         None,
@@ -273,7 +294,7 @@ fn test_get_child_tree_item() {
 
 #[test]
 fn test_set_item() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // copy the initial account slots (SMT)
@@ -319,8 +340,18 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     let _process = run_tx(
         transaction.tx_program().clone(),
@@ -375,7 +406,7 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let (account, _, _, _) =
+    let (account, _, _, _, _) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let test_cases = vec![
@@ -385,7 +416,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let (account, block_header, chain, notes) =
+        let (account, block_header, chain, notes, auxiliary_data) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -407,8 +438,18 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction =
-            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+        let transaction = prepare_transaction(
+            account,
+            None,
+            block_header,
+            chain,
+            notes,
+            None,
+            auxiliary_data,
+            &code,
+            "",
+            None,
+        );
 
         let process = run_tx(
             transaction.tx_program().clone(),
@@ -425,7 +466,7 @@ fn test_authenticate_procedure() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
@@ -446,8 +487,18 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     let _process = run_tx(
         transaction.tx_program().clone(),

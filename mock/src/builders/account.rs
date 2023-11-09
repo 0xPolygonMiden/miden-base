@@ -3,7 +3,7 @@ use crate::{
     constants::DEFAULT_ACCOUNT_CODE,
 };
 use miden_objects::{
-    accounts::{Account, AccountStorage, AccountType, AccountVault, StorageItem},
+    accounts::{Account, AccountStorage, AccountType, AccountVault, SlotItem},
     assets::Asset,
     utils::{
         collections::Vec,
@@ -48,12 +48,12 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_storage_item(mut self, item: StorageItem) -> Self {
+    pub fn add_storage_item(mut self, item: SlotItem) -> Self {
         self.storage_builder.add_item(item);
         self
     }
 
-    pub fn add_storage_items<I: IntoIterator<Item = StorageItem>>(mut self, items: I) -> Self {
+    pub fn add_storage_items<I: IntoIterator<Item = SlotItem>>(mut self, items: I) -> Self {
         self.storage_builder.add_items(items);
         self
     }
@@ -116,7 +116,6 @@ impl<T: Rng> AccountBuilder<T> {
         for (key, value) in inner_storage.slots().leaves() {
             slots.update_leaf(key, *value).map_err(AccountBuilderError::MerkleError)?;
         }
-        storage.store_mut().extend(inner_storage.store().inner_nodes());
 
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());

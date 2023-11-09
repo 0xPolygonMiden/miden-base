@@ -8,7 +8,7 @@ use super::{
 };
 use core::fmt;
 use miden_objects::{
-    accounts::{Account, AccountId, AccountType, StorageItem},
+    accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
     crypto::merkle::{NodeIndex, SimpleSmt, TieredSmt},
     notes::{Note, NoteInclusionProof, RecordedNote, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
@@ -218,7 +218,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     ) -> AccountId
     where
         C: AsRef<str>,
-        S: IntoIterator<Item = StorageItem>,
+        S: IntoIterator<Item = SlotItem>,
         A: IntoIterator<Item = Asset>,
     {
         let account_type = match immutable {
@@ -267,7 +267,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     ) -> AccountId
     where
         C: AsRef<str>,
-        S: IntoIterator<Item = StorageItem>,
+        S: IntoIterator<Item = SlotItem>,
         A: IntoIterator<Item = Asset>,
     {
         let account_type = match immutable {

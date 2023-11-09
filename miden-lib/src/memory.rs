@@ -16,7 +16,10 @@ pub type StorageSlot = u8;
 /// The account storage slot at which faucet data is stored.
 /// Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
 /// Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
-pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 255;
+pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
+
+/// The account storage slot at which the slot types commitment is stored.
+pub const SLOT_TYPES_COMMITMENT_STORAGE_SLOT: StorageSlot = 255;
 
 // BOOKKEEPING
 // ------------------------------------------------------------------------------------------------
@@ -165,6 +168,9 @@ pub const ACCT_NEW_CODE_ROOT_OFFSET: MemoryOffset = 4;
 /// The memory address at which the new account code root is stored
 pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_ROOT_OFFSET;
+
+/// The memory address at which the account storage slot type data beings
+pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
 
 // NOTES DATA
 // ------------------------------------------------------------------------------------------------

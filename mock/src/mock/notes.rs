@@ -89,7 +89,7 @@ pub fn mock_notes(
             push.{created_note_0_recipient}
             push.{created_note_0_tag}
             push.{created_note_0_asset}
-            # MAST root of the `create_note` mock account procedure 
+            # MAST root of the `create_note` mock account procedure
             call.0xeba65b5e6276e2c2f8e52f8ab8ce0c039bdfba127961826ff7d125c32d6d2458
             drop dropw dropw
 
@@ -97,7 +97,7 @@ pub fn mock_notes(
             push.{created_note_1_recipient}
             push.{created_note_1_tag}
             push.{created_note_1_asset}
-            # MAST root of the `create_note` mock account procedure 
+            # MAST root of the `create_note` mock account procedure
             call.0xeba65b5e6276e2c2f8e52f8ab8ce0c039bdfba127961826ff7d125c32d6d2458
             drop dropw dropw
         end
@@ -120,7 +120,7 @@ pub fn mock_notes(
             push.{created_note_2_recipient}
             push.{created_note_2_tag}
             push.{created_note_2_asset}
-            # MAST root of the `create_note` mock account procedure 
+            # MAST root of the `create_note` mock account procedure
             call.0xeba65b5e6276e2c2f8e52f8ab8ce0c039bdfba127961826ff7d125c32d6d2458
             drop dropw dropw
         end

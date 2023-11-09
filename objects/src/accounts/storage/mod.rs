@@ -1,29 +1,32 @@
-use super::{AccountError, AccountStorageDelta, Digest, TryApplyDiff, Vec, Word};
-use crate::crypto::merkle::{MerkleStore, NodeIndex, SimpleSmt, StoreNode};
+use super::{AccountError, AccountStorageDelta, Digest, Felt, Hasher, TryApplyDiff, Vec, Word};
+use crate::crypto::merkle::{NodeIndex, SimpleSmt, StoreNode};
+
+mod entry;
+pub use entry::{StorageEntry, StorageEntryType};
+
+mod slot;
+pub use slot::{StorageSlot, StorageSlotType};
 
 // TYPE ALIASES
 // ================================================================================================
 
-/// A type that represents a single storage item. The tuple contains the slot index of the item and
-/// the value of the item.
-pub type StorageItem = (u8, Word);
+/// A type that represents a single storage slot item. The tuple contains the slot index of the item
+/// and the entry of the item.
+pub type SlotItem = (u8, StorageSlot);
 
 // ACCOUNT STORAGE
 // ================================================================================================
 
 /// Account storage is composed of two components. The first component is a simple sparse Merkle
-/// tree of depth 8 which is index addressable. This provides the user with 256 Word slots. Users
-/// that require additional storage can use the second component which is a `MerkleStore`. This
-/// will allow the user to store any Merkle structures they need.  This is achieved by storing the
-/// root of the Merkle structure as a leaf in the simple sparse merkle tree. When `AccountStorage`
-/// is serialized it will check to see if any of the leafs in the simple sparse Merkle tree are
-/// Merkle roots of other Merkle structures.  If any Merkle roots are found then the Merkle
-/// structures will be persisted in the `AccountStorage` `MerkleStore`.
+/// tree of depth 8 which is index addressable. This provides the user with 256 slots. The slots
+/// can contain either a scalar, a map or an array entry. The second component is a vector of slot
+/// types which describes the type of each slot. The slot types vector is committed to by
+/// performing a sequential hash of the slot types vector.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStorage {
     slots: SimpleSmt,
-    store: MerkleStore,
+    types: Vec<StorageSlotType>,
 }
 
 impl AccountStorage {
@@ -33,20 +36,47 @@ impl AccountStorage {
     /// Depth of the storage tree.
     pub const STORAGE_TREE_DEPTH: u8 = 8;
 
+    /// The storage slot at which the slot types commitment is stored.
+    pub const SLOT_TYPES_COMMITMENT_INDEX: u8 = 255;
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
-    pub fn new(
-        items: Vec<StorageItem>,
-        store: MerkleStore,
-    ) -> Result<AccountStorage, AccountError> {
-        // construct storage slots smt
-        let slots = SimpleSmt::with_leaves(
-            Self::STORAGE_TREE_DEPTH,
-            items.into_iter().map(|x| (x.0 as u64, x.1)),
-        )
-        .map_err(AccountError::DuplicateStorageItems)?;
-        Ok(Self { slots, store })
+    pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
+        // initialize slot types vector
+        let mut types = vec![StorageSlotType::Scalar(StorageEntryType::Scalar); 256];
+
+        // set the slot type for the types commitment
+        types[Self::SLOT_TYPES_COMMITMENT_INDEX as usize] =
+            StorageSlotType::Scalar(StorageEntryType::Array { arity: 64 });
+
+        // process entries to extract type data
+        let mut entires = items
+            .into_iter()
+            .map(|x| {
+                if x.0 == 255 {
+                    return Err(AccountError::StorageSlotIsReserved(x.0));
+                }
+
+                let (slot_type, slot_entry) = x.1.into_inner();
+                types[x.0 as usize] = slot_type;
+                Ok((x.0 as u64, slot_entry.value()))
+            })
+            .collect::<Result<Vec<_>, AccountError>>()?;
+
+        // add slot types commitment entry
+        entires.push((
+            Self::SLOT_TYPES_COMMITMENT_INDEX as u64,
+            *Hasher::hash_elements(&types.iter().map(Felt::from).collect::<Vec<_>>()),
+        ));
+
+        // construct storage slots smt and populate the types vector.
+        let slots = SimpleSmt::with_leaves(Self::STORAGE_TREE_DEPTH, entires)
+            .map_err(AccountError::DuplicateStorageItems)?;
+
+        // TODO: should we return a (Self, BTreeMap) tuple that includes the data for scalar slot
+        // array entries?
+        Ok(Self { slots, types })
     }
 
     // PUBLIC ACCESSORS
@@ -76,14 +106,14 @@ impl AccountStorage {
         &mut self.slots
     }
 
-    /// Returns a reference to the Merkle store that backs the storage.
-    pub fn store(&self) -> &MerkleStore {
-        &self.store
+    /// Returns a slice of slot types.
+    pub fn slot_types(&self) -> &[StorageSlotType] {
+        &self.types
     }
 
-    /// Returns a mutable reference to the Merkle store that backs the storage.
-    pub fn store_mut(&mut self) -> &mut MerkleStore {
-        &mut self.store
+    /// Returns a commitment to the storage slot types.
+    pub fn slot_types_commitment(&self) -> Digest {
+        Hasher::hash_elements(&self.types.iter().map(Felt::from).collect::<Vec<_>>())
     }
 
     /// Returns a list of items contained in this storage.
@@ -99,22 +129,6 @@ impl AccountStorage {
             .update_leaf(index as u64, value)
             .expect("index is u8 - index within range")
     }
-
-    /// Sets the node, specified by the slot index and node index, to the specified value.
-    pub fn set_store_node(
-        &mut self,
-        slot_index: u8,
-        index: NodeIndex,
-        value: Digest,
-    ) -> Result<Digest, AccountError> {
-        let root = self.get_item(slot_index);
-        let root = self
-            .store
-            .set_node(root, index, value)
-            .map_err(AccountError::SetStoreNodeFailed)?;
-        self.set_item(slot_index, *root.root);
-        Ok(root.root)
-    }
 }
 
 impl TryApplyDiff<Digest, StoreNode> for AccountStorage {
@@ -125,9 +139,6 @@ impl TryApplyDiff<Digest, StoreNode> for AccountStorage {
         self.slots
             .try_apply(diff.slots_delta)
             .map_err(AccountError::ApplyStorageSlotsDiffFailed)?;
-        self.store
-            .try_apply(diff.store_delta)
-            .map_err(AccountError::ApplyStorageStoreDiffFailed)?;
         Ok(())
     }
 }

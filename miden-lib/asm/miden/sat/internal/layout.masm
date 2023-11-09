@@ -111,7 +111,10 @@ const.ACCT_CODE_ROOT_PTR=403
 const.ACCT_NEW_CODE_ROOT_PTR=404
 
 # The memory offset at which the account data section ends (exclusive)
-const.ACCT_DATA_SECTION_END_OFFSET=404
+const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
+
+# The memory address at which the account storage slot type data beings
+const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 
 # CONSUMED NOTES DATA
 # -------------------------------------------------------------------------------------------------
@@ -544,8 +547,8 @@ end
 #! Output: [ptr]
 #!
 #! - ptr is the memory address at which the account data ends.
-export.get_acct_data_end_ptr
-    push.ACCT_DATA_SECTION_END_OFFSET
+export.get_core_acct_data_end_ptr
+    push.ACCT_CORE_DATA_SECTION_END_OFFSET
 end
 
 #! Returns the account id.
@@ -668,6 +671,49 @@ end
 #! - ACCT_VAULT_ROOT is the account vault root to be set.
 export.set_acct_vault_root
     push.ACCT_VAULT_ROOT_PTR mem_storew dropw
+end
+
+#! Returns a pointer to the memory address at which the account storage slot type data begins.
+#!
+#! Stack: []
+#! Output: [ptr]
+#!
+#! - ptr is a pointer to the memory address at which the account storage slot type data begins.
+export.get_acct_storage_slot_type_data_ptr
+    push.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET
+end
+
+#! Returns the storage slot type info for the specified storage slot.
+#!
+#! Stack: [idx]
+#! Output: [slot_type_info]
+#!
+#! - idx is the index of the storage slot.
+#! - slot_type_info is the storage slot type info.
+export.get_acct_storage_slot_type_data
+    # compute the word offset and element offset
+    exec.constants::get_word_size u32divmod
+    # => [element_offset, word_offset]
+
+    # compute the memory address of the storage slot type info
+    swap exec.get_acct_storage_slot_type_data_ptr add
+    # => [word_ptr, element_offset]
+
+    # load the storage slot type info
+    padw movup.4 mem_loadw
+    # => [slot_type_i+3, slot_type_i+2, slot_type_i+1, slot_type_i, element_offset]
+
+    # check if element offset == 3 and filter accordingly
+    push.3 dup.5 eq cdrop
+    # => [slot_type_i+(3|2), slot_type_i+1, slot_type_i, element_offset]
+
+    # check if element offset == 1 and filter accordingly
+    swap push.1 dup.4 eq cdrop
+    # => [slot_type_i+(3|2|1), slot_type_i, element_offset]
+
+    # check if element offset == 0 and filter accordingly
+    swap push.0 movup.3 eq cdrop
+    # => [slot_type]
 end
 
 # CONSUMED NOTES

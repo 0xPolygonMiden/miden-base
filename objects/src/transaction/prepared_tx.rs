@@ -14,6 +14,7 @@ use crate::{
 /// - consumed_notes: A vector of consumed notes.
 /// - tx_script: An optional transaction script.
 /// - tx_program: The transaction program.
+/// - auxiliary_data: The auxiliary data required to execute the transaction.
 #[derive(Debug)]
 pub struct PreparedTransaction {
     account: Account,
@@ -23,17 +24,21 @@ pub struct PreparedTransaction {
     consumed_notes: ConsumedNotes,
     tx_script: Option<TransactionScript>,
     tx_program: Program,
+    auxiliary_data: AdviceInputs,
 }
 
 impl PreparedTransaction {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         account: Account,
+        // TODO: Move this to auxiliary data
         account_seed: Option<Word>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
         consumed_notes: Vec<RecordedNote>,
         tx_script: Option<TransactionScript>,
         tx_program: Program,
+        auxiliary_data: AdviceInputs,
     ) -> Result<Self, PreparedTransactionError> {
         Self::validate_new_account_seed(&account, account_seed)?;
         Ok(Self {
@@ -44,6 +49,7 @@ impl PreparedTransaction {
             consumed_notes: ConsumedNotes::new(consumed_notes),
             tx_script,
             tx_program,
+            auxiliary_data,
         })
     }
 
@@ -80,6 +86,11 @@ impl PreparedTransaction {
         &self.tx_program
     }
 
+    /// Returns the auxiliary data required to execute the transaction.
+    pub fn auxiliary_data(&self) -> &AdviceInputs {
+        &self.auxiliary_data
+    }
+
     /// Returns the stack inputs required when executing the transaction.
     pub fn stack_inputs(&self) -> StackInputs {
         let initial_acct_hash = if self.account.is_new() {
@@ -104,6 +115,7 @@ impl PreparedTransaction {
             &self.block_chain,
             &self.consumed_notes,
             &self.tx_script,
+            &self.auxiliary_data,
         )
     }
 

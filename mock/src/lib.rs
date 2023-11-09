@@ -7,8 +7,8 @@ use miden_objects::{
 };
 use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
-    AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program, StackInputs,
-    Word,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program,
+    StackInputs, Word,
 };
 
 pub mod builders;
@@ -93,6 +93,7 @@ pub fn prepare_transaction(
     chain: ChainMmr,
     notes: Vec<RecordedNote>,
     tx_script: Option<TransactionScript>,
+    auxiliary_data: AdviceInputs,
     code: &str,
     imports: &str,
     file_path: Option<PathBuf>,
@@ -106,6 +107,15 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    PreparedTransaction::new(account, account_seed, block_header, chain, notes, tx_script, program)
-        .unwrap()
+    PreparedTransaction::new(
+        account,
+        account_seed,
+        block_header,
+        chain,
+        notes,
+        tx_script,
+        program,
+        auxiliary_data,
+    )
+    .unwrap()
 }

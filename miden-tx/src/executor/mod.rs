@@ -172,7 +172,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         note_origins: &[NoteOrigin],
         tx_script: Option<TransactionScript>,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
-        let (account, block_header, block_chain, notes) = self
+        let (account, block_header, block_chain, notes, auxiliary_data) = self
             .data_store
             .get_transaction_data(account_id, block_ref, note_origins)
             .map_err(TransactionExecutorError::FetchTransactionDataFailed)?;
@@ -190,6 +190,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             notes,
             tx_script,
             tx_program,
+            auxiliary_data,
         )
         .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
     }

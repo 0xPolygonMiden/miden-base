@@ -1,6 +1,9 @@
 # CONSTANTS
 # =================================================================================================
 
+# The number of elements in a Word
+const.WORD_SIZE=4
+
 # The maximum number of assets that can be stored in a single note
 const.MAX_ASSETS_PER_NOTE=255
 
@@ -26,6 +29,16 @@ const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2147483648
 
 # PROCEDURES
 # =================================================================================================
+
+#! Returns the number of elements in a Word.
+#!
+#! Stack: []
+#! Output: [word_size]
+#!
+#! - word_size is the number of elements in a Word.
+export.get_word_size
+    push.WORD_SIZE
+end
 
 #! Returns the max allowed number of assets per note.
 #!

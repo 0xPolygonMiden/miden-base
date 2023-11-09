@@ -45,6 +45,16 @@ pub enum AccountError {
         actual: u32,
     },
     SetStoreNodeFailed(MerkleError),
+    StorageArrayRequiresMoreThanOneElement,
+    StorageArrayTooLong {
+        actual: usize,
+        max: usize,
+    },
+    StorageSlotArrayTooSmall {
+        actual: u8,
+        min: u8,
+    },
+    StorageSlotIsReserved(u8),
     StubDataIncorrectLength(usize, usize),
     SubtractFungibleAssetBalanceError(AssetError),
 }

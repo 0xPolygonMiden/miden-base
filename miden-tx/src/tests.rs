@@ -23,7 +23,7 @@ use mock::{
     utils::prepare_word,
 };
 use vm_core::utils::to_hex;
-use vm_processor::MemAdviceProvider;
+use vm_processor::{AdviceInputs, MemAdviceProvider};
 
 // TESTS
 // ================================================================================================
@@ -392,17 +392,19 @@ struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<RecordedNote>,
+    pub auxiliary_data: AdviceInputs,
 }
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, block_header, block_chain, consumed_notes) =
+        let (account, block_header, block_chain, consumed_notes, auxiliary_data) =
             mock_inputs(MockAccountType::StandardExisting, asset_preservation);
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
+            auxiliary_data,
         }
     }
 }
@@ -419,7 +421,8 @@ impl DataStore for MockDataStore {
         account_id: AccountId,
         block_num: u32,
         notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>), DataStoreError> {
+    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs), DataStoreError>
+    {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num as u64, self.block_header.block_num().as_int());
         assert_eq!(notes.len(), self.notes.len());
@@ -430,6 +433,7 @@ impl DataStore for MockDataStore {
             self.block_header,
             self.block_chain.clone(),
             self.notes.clone(),
+            self.auxiliary_data.clone(),
         ))
     }
 

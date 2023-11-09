@@ -283,7 +283,7 @@ export.finalize_transaction
     # => [INIT_ACCT_HASH]
 
     # get the offset for the end of the account data section
-    exec.layout::get_acct_data_end_ptr
+    exec.layout::get_core_acct_data_end_ptr
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section

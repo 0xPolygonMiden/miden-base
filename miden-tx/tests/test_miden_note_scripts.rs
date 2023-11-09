@@ -6,12 +6,11 @@ use miden_objects::{
     utils::collections::Vec,
     Felt, StarkField,
 };
+use miden_tx::TransactionExecutor;
 use mock::constants::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
 };
-
-use miden_tx::TransactionExecutor;
 
 mod common;
 use common::{
@@ -53,7 +52,7 @@ fn test_p2id_script() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -112,7 +111,7 @@ fn test_p2id_script() {
     );
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
@@ -178,7 +177,7 @@ fn test_p2id_script_multiple_assets() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -237,7 +236,7 @@ fn test_p2id_script_multiple_assets() {
     );
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
@@ -346,6 +345,7 @@ fn test_p2idr_script() {
     let data_store_1 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_in_time.clone()]),
+        None,
     );
     let mut executor_1 = TransactionExecutor::new(data_store_1.clone());
 
@@ -401,6 +401,7 @@ fn test_p2idr_script() {
     let data_store_2 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_in_time.clone()]),
+        None,
     );
     let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
     executor_2.load_account(sender_account_id).unwrap();
@@ -433,6 +434,7 @@ fn test_p2idr_script() {
     let data_store_3 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_in_time.clone()]),
+        None,
     );
     let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
     executor_3.load_account(malicious_account_id).unwrap();
@@ -465,6 +467,7 @@ fn test_p2idr_script() {
     let data_store_4 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_reclaimable.clone()]),
+        None,
     );
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
     executor_4.load_account(target_account_id).unwrap();
@@ -503,6 +506,7 @@ fn test_p2idr_script() {
     let data_store_5 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_reclaimable.clone()]),
+        None,
     );
     let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
 
@@ -536,6 +540,7 @@ fn test_p2idr_script() {
     let data_store_6 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_reclaimable.clone()]),
+        None,
     );
     let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
 

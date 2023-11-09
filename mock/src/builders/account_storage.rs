@@ -1,13 +1,12 @@
 use miden_objects::{
-    accounts::{AccountStorage, StorageItem},
-    crypto::merkle::MerkleStore,
+    accounts::{AccountStorage, SlotItem},
     utils::collections::Vec,
 };
 
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStorageBuilder {
-    items: Vec<StorageItem>,
+    items: Vec<SlotItem>,
 }
 
 /// Builder for an `AccountStorage`, the builder can be configured and used multipled times.
@@ -16,12 +15,12 @@ impl AccountStorageBuilder {
         Self { items: vec![] }
     }
 
-    pub fn add_item(&mut self, item: StorageItem) -> &mut Self {
+    pub fn add_item(&mut self, item: SlotItem) -> &mut Self {
         self.items.push(item);
         self
     }
 
-    pub fn add_items<I: IntoIterator<Item = StorageItem>>(&mut self, items: I) -> &mut Self {
+    pub fn add_items<I: IntoIterator<Item = SlotItem>>(&mut self, items: I) -> &mut Self {
         for item in items.into_iter() {
             self.add_item(item);
         }
@@ -29,6 +28,6 @@ impl AccountStorageBuilder {
     }
 
     pub fn build(&self) -> AccountStorage {
-        AccountStorage::new(self.items.clone(), MerkleStore::new()).unwrap()
+        AccountStorage::new(self.items.clone()).unwrap()
     }
 }
