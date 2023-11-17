@@ -1,8 +1,8 @@
 use crate::constants::{
-    non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
+    generate_account_seed, non_fungible_asset, non_fungible_asset_2, AccountSeedType,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
     CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
     FUNGIBLE_FAUCET_INITIAL_BALANCE, STORAGE_ITEM_0, STORAGE_ITEM_1,
 };
@@ -12,7 +12,6 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
     crypto::merkle::{MerkleStore, SimpleSmt, TieredSmt},
-    utils::collections::Vec,
     Felt, FieldElement, Word, ZERO,
 };
 
@@ -130,17 +129,11 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
 }
 
 pub fn mock_new_account(assembler: &Assembler) -> Account {
+    let (acct_id, _account_seed) =
+        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
-    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-    let account_id =
-        AccountId::new(account_seed, account_code.root(), account_storage.root()).unwrap();
-    Account::new(account_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
+    Account::new(acct_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
 pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assembler) -> Account {
