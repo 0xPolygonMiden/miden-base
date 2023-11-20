@@ -1,4 +1,4 @@
-use miden_lib::{assembler::assembler, faucets::create_basic_faucet, AuthScheme};
+use miden_lib::{assembler::assembler, faucets::create_basic_fungible_faucet, AuthScheme};
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
     assembly::{ModuleAst, ProgramAst},
@@ -43,7 +43,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic->faucet
+            use.miden::faucets::basic_fungible->faucet
             use.miden::eoa::basic->auth_tx
 
             begin
@@ -114,7 +114,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic->faucet
+            use.miden::faucets::basic_fungible->faucet
             use.miden::eoa::basic->auth_tx
 
             begin
@@ -176,7 +176,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let note_script = ProgramAst::parse(
         format!(
             "
-        use.miden::faucets::basic->faucet_contract
+        use.miden::faucets::basic_fungible->faucet_contract
         use.miden::sat::note
 
         # burn the asset
@@ -236,9 +236,14 @@ fn test_faucet_contract_creation() {
     let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
     let decimals = 2u8;
 
-    let (faucet_account, _) =
-        create_basic_faucet(init_seed, token_symbol.clone(), decimals, max_supply, auth_scheme)
-            .unwrap();
+    let (faucet_account, _) = create_basic_fungible_faucet(
+        init_seed,
+        token_symbol.clone(),
+        decimals,
+        max_supply,
+        auth_scheme,
+    )
+    .unwrap();
 
     // check that max_supply (slot 1) is 123
     assert!(
@@ -248,7 +253,8 @@ fn test_faucet_contract_creation() {
 
     assert!(faucet_account.is_faucet() == true);
 
-    let exp_faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic.masm");
+    let exp_faucet_account_code_src =
+        include_str!("../../miden-lib/asm/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
     let mut account_assembler = assembler();
 
@@ -264,7 +270,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     total_issuance: Option<u64>,
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic.masm");
+    let faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
     let mut account_assembler = assembler();
 
