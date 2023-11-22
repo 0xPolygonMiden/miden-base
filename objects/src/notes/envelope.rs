@@ -11,7 +11,7 @@ use vm_core::StarkField;
 ///   it is four elements in size (a word). The metadata includes the following elements:
 ///     - sender
 ///     - tag
-///     - ZERO
+///     - num assets
 ///     - ZERO
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
