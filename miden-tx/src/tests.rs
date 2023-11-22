@@ -15,13 +15,14 @@ use mock::{
     constants::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_PROCEDURE_INCR_NONCE_MAST_ROOT, ACCOUNT_PROCEDURE_SET_CODE_MAST_ROOT,
-        ACCOUNT_PROCEDURE_SET_ITEM_MAST_ROOT, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
+        ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
+        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
         CHILD_STORAGE_INDEX_0, FUNGIBLE_ASSET_AMOUNT,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
+use vm_core::utils::to_hex;
 use vm_processor::MemAdviceProvider;
 
 // TESTS
@@ -102,6 +103,19 @@ fn test_transaction_result_account_delta() {
     let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let removed_assets = vec![removed_asset_1, removed_asset_2, removed_asset_3];
 
+    let account_procedure_incr_nonce_mast_root = to_hex(
+        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX].as_bytes(),
+    )
+    .unwrap();
+    let account_procedure_set_code_mast_root = to_hex(
+        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX].as_bytes(),
+    )
+    .unwrap();
+    let account_procedure_set_item_mast_root = to_hex(
+        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX].as_bytes(),
+    )
+    .unwrap();
+
     let tx_script = format!(
         "\
         use.miden::sat::account
@@ -114,12 +128,12 @@ fn test_transaction_result_account_delta() {
             push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
             # => [index, V', 0, 0, 0]
 
-            call.{ACCOUNT_PROCEDURE_SET_ITEM_MAST_ROOT}
+            call.0x{account_procedure_set_item_mast_root}
             # => [R', V]
         end
 
         proc.set_code
-            call.{ACCOUNT_PROCEDURE_SET_CODE_MAST_ROOT}
+            call.0x{account_procedure_set_code_mast_root}
             # => [0, 0, 0, 0]
 
             dropw
@@ -127,7 +141,7 @@ fn test_transaction_result_account_delta() {
         end
 
         proc.incr_nonce
-            call.{ACCOUNT_PROCEDURE_INCR_NONCE_MAST_ROOT}
+            call.0x{account_procedure_incr_nonce_mast_root}
             # => [0]
 
             drop

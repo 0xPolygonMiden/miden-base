@@ -58,15 +58,23 @@ pub fn mock_account_storage() -> AccountStorage {
     .unwrap()
 }
 
+// Constants that define the indexes of the account procedures of interest
+pub const ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX: usize = 2;
+pub const ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX: usize = 3;
+pub const ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX: usize = 4;
+
 pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
             use.miden::sat::account
             use.miden::sat::tx
             use.miden::wallets::basic->wallet
 
+            # acct proc 0
             export.wallet::receive_asset
+            # acct proc 1
             export.wallet::send_asset
 
+            # acct proc 2
             export.incr_nonce
                 push.0 swap
                 # => [value, 0]
@@ -75,6 +83,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0]
             end
 
+            # acct proc 3
             export.set_item
                 exec.account::set_item
                 # => [R', V, 0, 0, 0]
@@ -83,6 +92,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [R', V]
             end
 
+            # acct proc 4
             export.set_code
                 padw swapw
                 # => [CODE_ROOT, 0, 0, 0, 0]
@@ -91,6 +101,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0, 0, 0, 0]
             end
 
+            # acct proc 5
             export.create_note
                 # apply padding
                 repeat.8
@@ -102,11 +113,13 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
             end
 
+            # acct proc 6
             export.account_procedure_1
                 push.1.2
                 add
             end
 
+            # acct proc 7
             export.account_procedure_2
                 push.2.1
                 sub

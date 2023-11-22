@@ -1,3 +1,7 @@
+pub use super::mock::account::{
+    ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
+    ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
+};
 use miden_objects::{
     accounts::{AccountId, StorageItem},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
@@ -66,13 +70,6 @@ pub const DEFAULT_ACCOUNT_CODE: &str = "
     export.basic_wallet::send_asset
     export.basic_eoa::auth_tx_rpo_falcon512
 ";
-
-pub const ACCOUNT_PROCEDURE_INCR_NONCE_MAST_ROOT: &str =
-    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac";
-pub const ACCOUNT_PROCEDURE_SET_CODE_MAST_ROOT: &str =
-    "0x9d221abcc386973775499406d126764cdf4530ccf8084e27091f7e9f28177bbe";
-pub const ACCOUNT_PROCEDURE_SET_ITEM_MAST_ROOT: &str =
-    "0x49935297f029f8b229fe86c6c47b9d291d063b8558fe90319128fb60dbda3d1b";
 
 pub const CONSUMED_ASSET_1_AMOUNT: u64 = 100;
 pub const CONSUMED_ASSET_2_AMOUNT: u64 = 200;

@@ -42,7 +42,7 @@ impl AccountCode {
     /// - The number of procedures exported from the provided module is greater than 256.
     pub fn new(account_module: ModuleAst, assembler: &Assembler) -> Result<Self, AccountError> {
         // compile the module and make sure the number of exported procedures is within the limit
-        let mut procedure_digests = assembler
+        let procedure_digests = assembler
             .compile_module(&account_module, None, &mut AssemblyContext::for_module(false))
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
@@ -52,9 +52,6 @@ impl AccountCode {
                 actual: procedure_digests.len(),
             });
         }
-
-        // sort the procedure digests so that their order is stable
-        procedure_digests.sort_by_key(|a| a.as_bytes());
 
         Ok(Self {
             procedure_tree: build_procedure_tree(&procedure_digests),
@@ -163,6 +160,13 @@ mod serialization {
 // ================================================================================================
 
 fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt {
+    // order the procedure digests to achieve a reproducible tree
+    let procedures = {
+        let mut procedures = procedures.to_vec();
+        procedures.sort_by_key(|a| a.as_bytes());
+        procedures
+    };
+
     SimpleSmt::with_leaves(
         ACCOUNT_CODE_TREE_DEPTH,
         procedures
