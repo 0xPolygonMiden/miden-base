@@ -11,8 +11,8 @@ use miden_objects::{
 const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
 
-/// Creates a new faucet account with basic faucet interface, specified authentication scheme,
-/// and provided meta data (token symbol, decimals, max supply).
+/// Creates a new faucet account with basic fungible faucet interface,
+/// specified authentication scheme, and provided meta data (token symbol, decimals, max supply).
 ///
 /// The basic faucet interface exposes two procedures:
 /// - `distribute`, which mints an assets and create a note for the provided recipient.
@@ -23,7 +23,7 @@ const MAX_DECIMALS: u8 = 12;
 ///
 /// Public key information for the scheme is stored in the account storage at slot 0. The token
 /// metadata is stored in the account storage at slot 1.
-pub fn create_basic_faucet(
+pub fn create_basic_fungible_faucet(
     init_seed: [u8; 32],
     symbol: TokenSymbol,
     decimals: u8,
@@ -37,7 +37,7 @@ pub fn create_basic_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
 
-    let account_code_src = include_str!("../../asm/faucets/basic.masm");
+    let account_code_src = include_str!("../../asm/faucets/basic_fungible.masm");
     let account_code_ast = ModuleAst::parse(account_code_src)
         .map_err(|e| AccountError::AccountCodeAssemblerError(e.into()))?;
     let account_assembler = assembler();

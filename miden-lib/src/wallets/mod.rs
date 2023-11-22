@@ -3,11 +3,16 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault},
     assembly::ModuleAst,
     crypto::merkle::MerkleStore,
-    utils::{format, string::String, vec},
+    utils::{
+        format,
+        string::{String, ToString},
+        vec,
+    },
     AccountError, Word, ZERO,
 };
 
 /// Creates a new account with basic wallet interface and the specified authentication scheme.
+/// Basic wallets can be specified to have either mutable or immutable code.
 ///
 /// The basic wallet interface exposes two procedures:
 /// - `receive_asset`, which can be used to add an asset to the account.
@@ -20,7 +25,14 @@ use miden_objects::{
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
+    account_type: AccountType,
 ) -> Result<(Account, Word), AccountError> {
+    if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
+        return Err(AccountError::AccountIdInvalidFieldElement(
+            "Basic wallet accounts cannot have a faucet account type".to_string(),
+        ));
+    }
+
     let (auth_scheme_procedure, storage_slot_0): (&str, Word) = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => ("basic::auth_tx_rpo_falcon512", pub_key.into()),
     };
@@ -48,7 +60,7 @@ pub fn create_basic_wallet(
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
-        AccountType::RegularAccountUpdatableCode,
+        account_type,
         false,
         account_code.root(),
         account_storage.root(),

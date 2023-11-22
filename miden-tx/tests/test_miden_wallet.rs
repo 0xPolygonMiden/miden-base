@@ -37,12 +37,11 @@ fn test_receive_asset_via_wallet() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
+        get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
     let note_script_ast = ProgramAst::parse(
-        format!(
-            "
+        "
     use.miden::sat::note
     use.miden::wallets::basic->wallet
 
@@ -55,12 +54,12 @@ fn test_receive_asset_via_wallet() {
         dropw
     end
     "
-        )
+        .to_string()
         .as_str(),
     )
     .unwrap();
 
-    let note = get_note_with_fungible_asset_and_script(fungible_asset_1.clone(), note_script_ast);
+    let note = get_note_with_fungible_asset_and_script(fungible_asset_1, note_script_ast);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -74,15 +73,14 @@ fn test_receive_asset_via_wallet() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+        "
         use.miden::eoa::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
         end
         "
-        )
+        .to_string()
         .as_str(),
     )
     .unwrap();
@@ -100,12 +98,12 @@ fn test_receive_asset_via_wallet() {
 
     // clone account info
     let account_storage =
-        AccountStorage::new(vec![(0, target_pub_key.into())], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, target_pub_key)], MerkleStore::new()).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&vec![fungible_asset_1.into()]).unwrap(),
+        AccountVault::new(&[fungible_asset_1.into()]).unwrap(),
         account_storage,
         account_code,
         Felt::new(2),
@@ -126,8 +124,8 @@ fn test_send_asset_via_wallet() {
     let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,
-        sender_pub_key.clone(),
-        fungible_asset_1.clone().into(),
+        sender_pub_key,
+        fungible_asset_1.into(),
     );
 
     // CONSTRUCT AND EXECUTE TX (Success)
@@ -177,13 +175,13 @@ fn test_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage =
-        AccountStorage::new(vec![(0, sender_pub_key.into())], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, sender_pub_key)], MerkleStore::new()).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
     let sender_account_after: Account = Account::new(
         sender_account.id(),
-        AccountVault::new(&vec![]).unwrap(),
+        AccountVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),
@@ -195,11 +193,11 @@ fn test_send_asset_via_wallet() {
 #[test]
 fn test_wallet_creation() {
     // we need a Falcon Public Key to create the wallet account
+
+    use miden_objects::accounts::AccountType;
     let key_pair: KeyPair = KeyPair::new().unwrap();
     let pub_key: PublicKey = key_pair.public_key();
-    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
-        pub_key: pub_key.into(),
-    };
+    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 
     // we need to use an initial seed to create the wallet account
     let init_seed: [u8; 32] = [
@@ -207,7 +205,9 @@ fn test_wallet_creation() {
         204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
-    let (wallet, _) = create_basic_wallet(init_seed, auth_scheme).unwrap();
+    let (wallet, _) =
+        create_basic_wallet(init_seed, auth_scheme, AccountType::RegularAccountImmutableCode)
+            .unwrap();
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -216,7 +216,7 @@ fn test_wallet_creation() {
             .code()
             .root();
 
-    assert!(wallet.is_regular_account() == true);
+    assert!(wallet.is_regular_account());
     assert!(wallet.code().root() == expected_code_root);
     let pub_key_word: Word = pub_key.into();
     assert!(wallet.storage().get_item(0).as_elements() == pub_key_word);
