@@ -2,7 +2,7 @@ use super::{Digest, Felt, NoteError, ToString, NOTE_TREE_DEPTH};
 use crate::crypto::merkle::{MerklePath, NodeIndex};
 
 /// Contains information about the origin of a note.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteOrigin {
     pub block_num: Felt,
@@ -18,7 +18,7 @@ pub struct NoteOrigin {
 ///              in.
 /// note_path  - the Merkle path to the note in the note Merkle tree of the block the note was
 ///              created in.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInclusionProof {
     origin: NoteOrigin,

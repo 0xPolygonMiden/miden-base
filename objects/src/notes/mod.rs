@@ -56,7 +56,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// Auxiliary data which is used to verify authenticity and signal additional information:
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
     script: NoteScript,
@@ -93,6 +93,23 @@ impl Note {
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
         })
+    }
+
+    /// Returns a note instance created from the provided parts.
+    pub fn from_parts(
+        script: NoteScript,
+        inputs: NoteInputs,
+        vault: NoteVault,
+        serial_num: Word,
+        metadata: NoteMetadata,
+    ) -> Self {
+        Self {
+            script,
+            inputs,
+            vault,
+            serial_num,
+            metadata,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -185,7 +202,7 @@ impl Note {
 /// This struct is composed:
 /// - A note which has been recorded.
 /// - The inclusion proof of the note.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RecordedNote {
     note: Note,

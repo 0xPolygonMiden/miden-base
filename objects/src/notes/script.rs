@@ -1,6 +1,6 @@
 use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteScript {
     hash: Digest,
