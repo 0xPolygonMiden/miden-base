@@ -1,50 +1,15 @@
+use super::mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet};
 pub use super::mock::account::{
     ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
     ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
 };
+use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::{AccountId, StorageItem},
+    accounts::{AccountId, AccountType, StorageItem},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
-    Felt, FieldElement,
+    Felt, FieldElement, Word, ZERO,
 };
-pub const ACCOUNT_SEED_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE: [u64; 4] = [
-    5342472004481420725,
-    15139745540144612214,
-    7175220148257528278,
-    12185026252347356330,
-];
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE: u64 = 11808006999189383835;
 
-pub const ACCOUNT_SEED_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE: [u64; 4] = [
-    2389651479266964250,
-    12570482780864789472,
-    3827181395997035738,
-    15484731259405424484,
-];
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE: u64 = 13650031744811031251;
-
-pub const ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT: [u64; 4] = [
-    6127036790776509692,
-    7202481422049357184,
-    4843524022082280619,
-    10803188976143115680,
-];
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT: u64 = 16992539250668925014;
-
-pub const ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT: [u64; 4] = [
-    1480622438474629078,
-    7551952530545164022,
-    14268335233603228254,
-    322360296984864845,
-];
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT: u64 = 17114871292473597866;
-
-pub const ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: [u64; 4] = [
-    4160082958698397031,
-    5735601916245113230,
-    4289496549565608242,
-    16940108222232119545,
-];
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
 
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
@@ -112,4 +77,77 @@ pub fn non_fungible_asset_2(account_id: u64) -> Asset {
     let non_fungible_asset_2: NonFungibleAsset =
         NonFungibleAsset::new(&non_fungible_asset_2_details).unwrap();
     Asset::NonFungible(non_fungible_asset_2)
+}
+
+// ACCOUNT SEED GENERATION
+// ================================================================================================
+
+pub enum AccountSeedType {
+    FungibleFaucetInvalidInitialBalance,
+    FungibleFaucetValidInitialBalance,
+    NonFungibleFaucetInvalidReservedSlot,
+    NonFungibleFaucetValidReservedSlot,
+    RegularAccountUpdatableCodeOnChain,
+}
+
+/// Returns the account id and seed for the specified account type.
+pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, Word) {
+    let assembler = assembler();
+    let init_seed: [u8; 32] = Default::default();
+
+    let (account, account_type) = match account_seed_type {
+        AccountSeedType::FungibleFaucetInvalidInitialBalance => (
+            mock_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                false,
+                &assembler,
+            ),
+            AccountType::FungibleFaucet,
+        ),
+        AccountSeedType::FungibleFaucetValidInitialBalance => (
+            mock_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                true,
+                &assembler,
+            ),
+            AccountType::FungibleFaucet,
+        ),
+        AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
+            mock_non_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                false,
+                &assembler,
+            ),
+            AccountType::NonFungibleFaucet,
+        ),
+        AccountSeedType::NonFungibleFaucetValidReservedSlot => (
+            mock_non_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                true,
+                &assembler,
+            ),
+            AccountType::NonFungibleFaucet,
+        ),
+        AccountSeedType::RegularAccountUpdatableCodeOnChain => (
+            mock_account(Felt::ONE, None, &assembler),
+            AccountType::RegularAccountUpdatableCode,
+        ),
+    };
+
+    let seed = AccountId::get_account_seed(
+        init_seed,
+        account_type,
+        true,
+        account.code().root(),
+        account.storage().root(),
+    )
+    .unwrap();
+
+    let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
+
+    (account_id, seed)
 }

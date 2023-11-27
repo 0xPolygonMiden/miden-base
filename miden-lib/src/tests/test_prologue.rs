@@ -16,17 +16,7 @@ use crate::{
 use assembly::ast::ProgramAst;
 use miden_objects::transaction::{PreparedTransaction, TransactionScript};
 use mock::{
-    constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
-        ACCOUNT_SEED_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
-        ACCOUNT_SEED_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
-        ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
-        ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
-        ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    },
+    constants::{generate_account_seed, AccountSeedType},
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     prepare_transaction, run_tx,
@@ -339,6 +329,8 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
+    let (_acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let code = "
@@ -349,12 +341,6 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
     let transaction = prepare_transaction(
         account,
         Some(account_seed),
@@ -378,9 +364,11 @@ pub fn test_prologue_create_account() {
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
+    let (acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::FungibleFaucetValidInitialBalance);
     let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
-            acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE,
+            acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: true,
         },
@@ -394,12 +382,6 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let account_seed: Word = ACCOUNT_SEED_FUNGIBLE_FAUCET_VALID_INITIAL_BALANCE
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
     let transaction = prepare_transaction(
         account,
         Some(account_seed),
@@ -423,9 +405,11 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
+    let (acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::FungibleFaucetInvalidInitialBalance);
     let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
-            acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE,
+            acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: false,
         },
@@ -439,12 +423,6 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let account_seed: Word = ACCOUNT_SEED_FUNGIBLE_FAUCET_INVALID_INITIAL_BALANCE
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
     let transaction = prepare_transaction(
         account,
         Some(account_seed),
@@ -468,9 +446,11 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
+    let (acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::NonFungibleFaucetValidReservedSlot);
     let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
-            acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT,
+            acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: true,
         },
@@ -483,13 +463,6 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         exec.prologue::prepare_transaction
     end
     ";
-
-    let account_seed: Word = ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_VALID_RESERVED_SLOT
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
 
     let transaction = prepare_transaction(
         account,
@@ -514,9 +487,11 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
+    let (acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::NonFungibleFaucetInvalidReservedSlot);
     let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
-            acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+            acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: false,
         },
@@ -529,13 +504,6 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         exec.prologue::prepare_transaction
     end
     ";
-
-    let account_seed: Word = ACCOUNT_SEED_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
 
     let transaction = prepare_transaction(
         account,
@@ -560,6 +528,8 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
+    let (_acct_id, account_seed) =
+        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let account_seed_key = [account.id().into(), ZERO, ZERO, ZERO];
@@ -572,13 +542,6 @@ pub fn test_prologue_create_account_invalid_seed() {
     end
     ";
 
-    // we must provide a valid seed to `prepare_transaction` otherwise it will error
-    let account_seed: Word = ACCOUNT_SEED_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN
-        .iter()
-        .map(|x| Felt::new(*x))
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
     let transaction = prepare_transaction(
         account,
         Some(account_seed),
