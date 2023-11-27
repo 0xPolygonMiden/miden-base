@@ -22,7 +22,7 @@ fn test_epilogue() {
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
 
-    let imports = "use.miden::miden::kernels::single_account::internal::prologue\n";
+    let imports = "use.miden::miden::single_account::internal::prologue\n";
     let code = format!(
         "
         {created_notes_data_procedure}
@@ -83,7 +83,7 @@ fn test_compute_created_note_hash() {
         created_notes_data_procedure(executed_transaction.created_notes());
 
     for (note, i) in executed_transaction.created_notes().iter().zip(0u32..) {
-        let imports = "use.miden::miden::kernels::single_account::internal::prologue\n";
+        let imports = "use.miden::miden::single_account::internal::prologue\n";
         let test = format!(
             "
         {created_notes_data_procedure}
@@ -133,7 +133,7 @@ fn test_epilogue_asset_preservation_violation() {
         let created_notes_data_procedure =
             created_notes_data_procedure(executed_transaction.created_notes());
 
-        let imports = "use.miden::miden::kernels::single_account::internal::prologue\n";
+        let imports = "use.miden::miden::single_account::internal::prologue\n";
         let code = format!(
             "
         {created_notes_data_procedure}
@@ -167,7 +167,7 @@ fn test_epilogue_increment_nonce_success() {
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
 
-    let imports = "use.miden::miden::kernels::single_account::internal::prologue\n";
+    let imports = "use.miden::miden::single_account::internal::prologue\n";
     let code = format!(
         "
         {created_notes_data_procedure}
@@ -199,7 +199,7 @@ fn test_epilogue_increment_nonce_violation() {
     let created_notes_data_procedure =
         created_notes_data_procedure(executed_transaction.created_notes());
 
-    let imports = "use.miden::miden::kernels::single_account::internal::prologue\n";
+    let imports = "use.miden::miden::single_account::internal::prologue\n";
     let code = format!(
         "
         {created_notes_data_procedure}

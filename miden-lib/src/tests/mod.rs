@@ -17,14 +17,14 @@ mod test_tx;
 // CONSTANTS
 // ================================================================================================
 
-const TX_KERNEL_DIR: &str = "miden/kernels/single_account/internal";
+const TX_KERNEL_DIR: &str = "miden/single_account/internal";
 
 // TESTS
 // ================================================================================================
 
 #[test]
 fn test_compile() {
-    let path = "miden::miden::kernels::single_account::internal::layout::get_consumed_note_ptr";
+    let path = "miden::miden::single_account::internal::layout::get_consumed_note_ptr";
     let miden = super::MidenLib::default();
     let exists = miden.modules().any(|module| {
         module

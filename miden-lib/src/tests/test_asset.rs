@@ -23,8 +23,8 @@ fn test_create_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::miden::kernels::single_account::internal::prologue
-        use.miden::miden::kernels::single_account::asset
+        use.miden::miden::single_account::internal::prologue
+        use.miden::miden::single_account::asset
 
         begin
             # prepare the transaction
@@ -68,8 +68,8 @@ fn test_create_non_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::miden::kernels::single_account::internal::prologue
-        use.miden::miden::kernels::single_account::asset
+        use.miden::miden::single_account::internal::prologue
+        use.miden::miden::single_account::asset
 
         begin
             # prepare the transaction

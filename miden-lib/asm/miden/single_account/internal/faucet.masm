@@ -1,9 +1,9 @@
 use.std::collections::smt
 
-use.miden::miden::kernels::single_account::internal::account
-use.miden::miden::kernels::single_account::internal::asset
-use.miden::miden::kernels::single_account::internal::asset_vault
-use.miden::miden::kernels::single_account::internal::layout
+use.miden::miden::single_account::internal::account
+use.miden::miden::single_account::internal::asset
+use.miden::miden::single_account::internal::asset_vault
+use.miden::miden::single_account::internal::layout
 
 # FUNGIBLE ASSETS
 # ==================================================================================================
