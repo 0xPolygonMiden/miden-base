@@ -43,19 +43,19 @@ fn test_receive_asset_via_wallet() {
     let note_script_ast = ProgramAst::parse(
         format!(
             "
-    use.miden::miden::single_account::note
-    use.miden::miden::wallets::basic->wallet
+        use.miden::miden::single_account::note
+        use.miden::miden::wallets::basic->wallet
 
-    # add the asset
-    begin
-        dropw
-        exec.note::get_assets drop
-        mem_loadw
-        call.wallet::receive_asset
-        dropw
-    end
-    "
-        .to_string()
+        # add the asset
+        begin
+            dropw
+            exec.note::get_assets drop
+            mem_loadw
+            call.wallet::receive_asset
+            dropw
+        end
+        "
+        )
         .as_str(),
     )
     .unwrap();
@@ -82,7 +82,7 @@ fn test_receive_asset_via_wallet() {
             call.auth_tx::auth_tx_rpo_falcon512
         end
         "
-        .to_string()
+        )
         .as_str(),
     )
     .unwrap();
