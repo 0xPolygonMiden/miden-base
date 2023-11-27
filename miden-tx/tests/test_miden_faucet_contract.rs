@@ -186,8 +186,12 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
         use.miden::sat::note
 =======
         use.miden::miden::faucets::basic->faucet_contract
+<<<<<<< HEAD
         use.miden::miden::kernels::single_account::note
 >>>>>>> fe826bb5 (refactor: change asm names and structure)
+=======
+        use.miden::miden::single_account::note
+>>>>>>> 29178708 (refactor: changing asm structure)
 
         # burn the asset
         begin
@@ -263,12 +267,7 @@ fn test_faucet_contract_creation() {
 
     assert!(faucet_account.is_faucet() == true);
 
-<<<<<<< HEAD
-    let exp_faucet_account_code_src =
-        include_str!("../../miden-lib/asm/faucets/basic_fungible.masm");
-=======
     let exp_faucet_account_code_src = include_str!("../../miden-lib/asm/miden/faucets/basic.masm");
->>>>>>> fe826bb5 (refactor: change asm names and structure)
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
     let mut account_assembler = assembler();
 
@@ -284,11 +283,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     total_issuance: Option<u64>,
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-<<<<<<< HEAD
-    let faucet_account_code_src = include_str!("../../miden-lib/asm/faucets/basic_fungible.masm");
-=======
     let faucet_account_code_src = include_str!("../../miden-lib/asm/miden/faucets/basic.masm");
->>>>>>> fe826bb5 (refactor: change asm names and structure)
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
     let mut account_assembler = assembler();
 

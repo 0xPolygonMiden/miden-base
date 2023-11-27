@@ -24,8 +24,8 @@ fn test_create_note() {
 
     let code = format!(
         "
-    use.miden::miden::kernels::single_account::internal::prologue
-    use.miden::miden::kernels::single_account::tx
+    use.miden::miden::single_account::internal::prologue
+    use.miden::miden::single_account::tx
 
     begin
         exec.prologue::prepare_transaction
@@ -103,9 +103,9 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-    use.miden::miden::kernels::single_account::internal::constants
-    use.miden::miden::kernels::single_account::internal::layout
-    use.miden::miden::kernels::single_account::tx
+    use.miden::miden::single_account::internal::constants
+    use.miden::miden::single_account::internal::layout
+    use.miden::miden::single_account::tx
 
     begin
         exec.constants::get_max_num_created_notes
@@ -173,8 +173,8 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
-    use.miden::miden::kernels::single_account::internal::prologue
-    use.miden::miden::kernels::single_account::tx
+    use.miden::miden::single_account::internal::prologue
+    use.miden::miden::single_account::tx
 
     begin
         exec.prologue::prepare_transaction

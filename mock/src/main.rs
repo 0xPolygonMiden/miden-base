@@ -20,7 +20,7 @@ struct Args {
 
 // TODO: update with correct faucet code
 pub const DEFAULT_FAUCET_CODE: &str = "\
-use.miden::miden::kernels::single_account::account
+use.miden::miden::single_account::account
 
 export.incr_nonce
     push.0 swap

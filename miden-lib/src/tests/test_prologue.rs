@@ -334,7 +334,7 @@ pub fn test_prologue_create_account() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -375,7 +375,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -416,7 +416,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -457,7 +457,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -498,7 +498,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -535,7 +535,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     let account_seed_key = [account.id().into(), ZERO, ZERO, ZERO];
 
     let code = "
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -570,8 +570,8 @@ fn test_get_blk_version() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::miden::kernels::single_account::internal::layout
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::layout
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -597,8 +597,8 @@ fn test_get_blk_timestamp() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::miden::kernels::single_account::internal::layout
-    use.miden::miden::kernels::single_account::internal::prologue
+    use.miden::miden::single_account::internal::layout
+    use.miden::miden::single_account::internal::prologue
 
     begin
         exec.prologue::prepare_transaction

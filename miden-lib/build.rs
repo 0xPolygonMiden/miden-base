@@ -77,10 +77,10 @@ fn main() -> io::Result<()> {
         Ok(ref s) if s == "1" => {
             let constants = dst
                 .join(ASM_DIR_PATH)
-                .join("miden/kernels/single_account/internal/constants.masm");
+                .join("miden/single_account/internal/constants.masm");
             let patched = dst
                 .join(ASM_DIR_PATH)
-                .join("miden/kernels/single_account/internal/constants.masm.patched");
+                .join("miden/single_account/internal/constants.masm.patched");
 
             // scope for file handlers
             {

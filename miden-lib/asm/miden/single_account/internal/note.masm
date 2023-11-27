@@ -1,5 +1,5 @@
-use.miden::miden::kernels::single_account::internal::constants
-use.miden::miden::kernels::single_account::internal::layout
+use.miden::miden::single_account::internal::constants
+use.miden::miden::single_account::internal::layout
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.

@@ -1,8 +1,8 @@
-use.miden::miden::kernels::single_account::internal::account
-use.miden::miden::kernels::single_account::internal::asset
-use.miden::miden::kernels::single_account::internal::constants
-use.miden::miden::kernels::single_account::internal::epilogue
-use.miden::miden::kernels::single_account::internal::layout
+use.miden::miden::single_account::internal::account
+use.miden::miden::single_account::internal::asset
+use.miden::miden::single_account::internal::constants
+use.miden::miden::single_account::internal::epilogue
+use.miden::miden::single_account::internal::layout
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!

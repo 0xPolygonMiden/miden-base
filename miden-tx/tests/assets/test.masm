@@ -1,6 +1,6 @@
-use.miden::miden::kernels::single_account::prologue
-use.miden::miden::kernels::single_account::epilogue
-use.miden::miden::kernels::single_account::utils
+use.miden::miden::single_account::prologue
+use.miden::miden::single_account::epilogue
+use.miden::miden::single_account::utils
 
 # CONSTANTS
 # =================================================================================================
