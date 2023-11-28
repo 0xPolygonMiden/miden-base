@@ -45,6 +45,6 @@ impl ToAdviceInputs for &ChainMmr {
 
         // insert the Mmr accumulator vector into the advice map against the Mmr root, which acts
         // as the key.
-        target.insert_into_map(accumulator.hash_peaks(), elements);
+        target.insert_into_map(accumulator.hash_peaks().into(), elements);
     }
 }
