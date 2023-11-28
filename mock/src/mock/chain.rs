@@ -461,7 +461,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
         let previous = self.blocks.last();
         let peaks = self.chain.mmr().peaks(self.chain.mmr().forest()).unwrap();
-        let chain_root: Digest = peaks.hash_peaks().into();
+        let chain_root: Digest = peaks.hash_peaks();
         let account_root = self.accounts.root();
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());
         let nullifier_root = self.nullifiers.root();
