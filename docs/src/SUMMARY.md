@@ -16,7 +16,5 @@
     - [Verifier Contract](network/verifier-contract.md)
     - [Bridge](network/bridge.md)
 - [Roadmap](./roadmap.md)
-- [Developer info](./developer-info.md)
-- [Specifications](./specifications.md)
 - [Cryptographic primitives](./crypto-primitives.md)
     - [Tiered Sparse Merkle Tree (TSMT)](crypto-primitives/tsmt.md)
