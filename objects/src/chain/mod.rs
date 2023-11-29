@@ -1,4 +1,4 @@
-use super::{crypto::merkle::Mmr, AdviceInputsBuilder, Felt, ToAdviceInputs, ZERO};
+use super::{crypto::merkle::Mmr, AdviceInputsBuilder, ToAdviceInputs};
 
 // TODO: Consider using a PartialMmr that only contains the Mmr nodes that are relevant to the
 // transaction being processed.
@@ -35,16 +35,6 @@ impl ToAdviceInputs for &ChainMmr {
         // Extract Mmr accumulator
         let accumulator = self.0.peaks(self.0.forest()).unwrap();
 
-        // create the vector of items to insert into the map
-        // The vector is in the following format:
-        //    elements[0]       = number of leaves in the Mmr
-        //    elements[1..4]    = padding ([Felt::ZERO; 3])
-        //    elements[4..]     = Mmr peak roots
-        let mut elements = vec![Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO];
-        elements.extend(accumulator.flatten_and_pad_peaks());
-
-        // insert the Mmr accumulator vector into the advice map against the Mmr root, which acts
-        // as the key.
-        target.insert_into_map(accumulator.hash_peaks().into(), elements);
+        accumulator.to_advice_inputs(target);
     }
 }
