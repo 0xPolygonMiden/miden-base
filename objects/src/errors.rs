@@ -29,6 +29,7 @@ pub enum AccountError {
     FungibleAssetNotFound(FungibleAsset),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
+    HexParseError(String),
     InconsistentAccountIdSeed {
         expected: AccountId,
         actual: AccountId,

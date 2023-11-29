@@ -190,6 +190,17 @@ impl AccountId {
 
         Ok(())
     }
+
+    pub fn from_hex(hex_value: &str) -> Result<AccountId, AccountError> {
+        miden_crypto::utils::hex_to_bytes(hex_value)
+            .map_err(|err| AccountError::HexParseError(err.to_string()))
+            .and_then(|mut bytes: [u8; 8]| {
+                // `bytes` ends up being parsed as felt, and the input to that is assumed to be little-endian
+                // so we need to reverse the order
+                bytes.reverse();
+                bytes.try_into()
+            })
+    }
 }
 
 impl From<AccountId> for Felt {
@@ -225,6 +236,7 @@ impl TryFrom<Felt> for AccountId {
 impl TryFrom<[u8; 8]> for AccountId {
     type Error = AccountError;
 
+    // Expects little-endian byte order
     fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
         let element = parse_felt(&value[..8])?;
         Self::try_from(element)
@@ -306,6 +318,14 @@ mod tests {
         },
         AccountId, AccountType,
     };
+
+    #[test]
+    fn test_from_hex_and_back() {
+        let account_id_hex = "0x45ce97a017946317";
+        let account_id = AccountId::from_hex(account_id_hex).unwrap();
+
+        assert_eq!(account_id.to_string(), account_id_hex);
+    }
 
     #[test]
     fn test_account_tag_identifiers() {
