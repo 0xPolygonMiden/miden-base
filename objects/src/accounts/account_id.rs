@@ -192,7 +192,8 @@ impl AccountId {
         Ok(())
     }
 
-    /// Creates an Account Id from a hex string. Assumes the string starts with "0x"
+    /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and 
+    /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<AccountId, AccountError> {
         miden_crypto::utils::hex_to_bytes(hex_value)
             .map_err(|err| AccountError::HexParseError(err.to_string()))
@@ -204,7 +205,7 @@ impl AccountId {
             })
     }
 
-    /// Returns a big-endian, hex-encoded string
+    /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
         format!("0x{:02x}", self.0.as_int())
     }
