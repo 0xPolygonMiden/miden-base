@@ -5,9 +5,7 @@
 ## Welcome to the Polygon Miden Documentation
 Polygon Miden is a zkRollup for high-throughput and private applications. Users can create zero-knowledge proofs of their own state changes, and the Miden network verifies. It is expected to launch a public testnet in Q1 2024.
 
-This documentation explains how to use Miden. Furthermore, it explains the Miden architecture and concepts, the network and its components, and the underlying cryptographic primitives.
-
-Press `s` or for full-text search in the docs.
+This documentation explains how to develop on Miden. Furthermore, it explains the Miden architecture and concepts, the network and its components, and the underlying cryptographic primitives.
 
 If you want to join the technical discussion, please check out
 
