@@ -2,6 +2,7 @@ use super::{
     get_account_seed, Account, AccountError, Digest, Felt, FieldElement, Hasher, StarkField,
     ToString, Vec, Word,
 };
+use crate::utils::string::String;
 use core::fmt;
 
 // ACCOUNT ID
@@ -201,6 +202,10 @@ impl AccountId {
                 bytes.try_into()
             })
     }
+
+    pub fn to_hex(&self) -> String {
+        format!("0x{:02x}", self.0.as_int())
+    }
 }
 
 impl From<AccountId> for Felt {
@@ -324,7 +329,7 @@ mod tests {
         let account_id_hex = "0x45ce97a017946317";
         let account_id = AccountId::from_hex(account_id_hex).unwrap();
 
-        assert_eq!(account_id.to_string(), account_id_hex);
+        assert_eq!(account_id.to_hex(), account_id_hex);
     }
 
     #[test]
