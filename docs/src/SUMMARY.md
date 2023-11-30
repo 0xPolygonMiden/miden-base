@@ -15,7 +15,6 @@
     - [Miden Node](network/miden-node.md)
     - [Verifier Contract](network/verifier-contract.md)
     - [Bridge](network/bridge.md)
-- [Developer info](./developer-info.md)
-- [Specifications](./specifications.md)
+- [Roadmap](./roadmap.md)
 - [Cryptographic primitives](./crypto-primitives.md)
     - [Tiered Sparse Merkle Tree (TSMT)](crypto-primitives/tsmt.md)
