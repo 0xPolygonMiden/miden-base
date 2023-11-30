@@ -9,7 +9,8 @@ use vm_processor::AdviceInputs;
 pub mod accounts;
 
 mod advice;
-use advice::{AdviceInputsBuilder, ToAdviceInputs};
+use advice::AdviceInputsBuilder;
+pub use advice::ToAdviceInputs;
 
 pub mod assets;
 pub mod notes;
