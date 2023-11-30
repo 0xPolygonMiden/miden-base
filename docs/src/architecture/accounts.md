@@ -5,7 +5,7 @@ Miden aims to support expressive smart contracts via a Turing-complete language.
 The diagram below illustrates basic components of an account. In Miden every account is a smart contract.
 
 <p align="center">
-    <img src="../diagrams/architecture/account/Account_Definition.png" style="width: 50%;">
+    <img src="../diagrams/architecture/account/Account_Definition.png" style="width: 25%;">
 </p>
 
 In the above picture, you can see:
@@ -17,33 +17,7 @@ In the above picture, you can see:
 * **Code &rarr;** a collection of functions which define the external interface for an account
 
 ### Account ID
-~63 bits (1 Felt) long identifier for the account. The four most significant bits specify its type and the [storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes). 
-
-#### Account types
-There are four types of accounts in Miden:
-
-| | Regular updatable account | Regular immutable account | Faucet for fungible assets | Faucet for non-fungible assets |
-|---|---|---|---|---|
-| **Description** | For most users, e.g. a wallet. Code specification and change possible. | For most smart contracts. Once deployed code is immutable. | Users can issue fungible assets and customize them. | Users can issue non-fungible assets and customize them. |
-| **Code updatability** | yes | no | no | no |
-| **Most significant bits** | `00` | `01` | `10` | `11` |
-
-#### Account storage mode
-Account data - stored by the Miden Node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
-
-* Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
-* Account with **encrypted state**, where the account data is stored onchain but in encrypted text. It provides liveness guarantee of the protocol for the account in question.
-* Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
-
-#### Example Account ID (big-endian)
-
-<p align="center">
-    <img src="../diagrams/architecture/account/Account_ID.png">
-</p>
-
-This example shows a regular updatable account that will be publicly stored onchain.
-
-*Note: Miden uses little-endian by default, but big-endian for better readability in the picture above.*
+~63 bits (1 field element) long identifier for the account. The four most significant bits specify its [account type](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-types) - regular, immutable, faucet - and the [storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes) - public or private. 
 
 ### Account Storage
 Storage for user-defined data. `AccountStorage` is composed of two components.
@@ -89,3 +63,21 @@ The process is as follows:
 * Bob executes a transaction and creates a note that contains an asset for Alice
 * Alice consumes Bob's note to receive the asset in a transaction
 * Depending on the account storage mode (private vs. public) and transaction type (local vs. network) the Operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
+
+
+## Account types
+There are four types of accounts in Miden:
+
+| | Regular updatable account | Regular immutable account | Faucet for fungible assets | Faucet for non-fungible assets |
+|---|---|---|---|---|
+| **Description** | For most users, e.g. a wallet. Code changes allowed, including public API. | For most smart contracts. Once deployed code is immutable. | Users can issue fungible assets and customize them. | Users can issue non-fungible assets and customize them. |
+| **Code updatability** | yes | no | no | no |
+| **Most significant bits** | `00` | `01` | `10` | `11` |
+
+## Account storage mode
+Account data - stored by the Miden Node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
+
+* Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
+* Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
+
+In the future we will also support **encrypted state** which will be onchain but encrypted. * Depending on the account storage mode (private vs. encrypted vs. public) and transaction type (local vs. network) the operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
