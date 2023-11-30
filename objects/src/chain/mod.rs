@@ -33,8 +33,8 @@ impl ToAdviceInputs for &ChainMmr {
         target.add_merkle_nodes(self.0.inner_nodes());
 
         // Extract Mmr accumulator
-        let accumulator = self.0.peaks(self.0.forest()).unwrap();
+        let peaks = self.0.peaks(self.0.forest()).unwrap();
 
-        accumulator.to_advice_inputs(target);
+        peaks.to_advice_inputs(target);
     }
 }
