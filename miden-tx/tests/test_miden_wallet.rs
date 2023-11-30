@@ -43,7 +43,7 @@ fn test_receive_asset_via_wallet() {
     let note_script_ast = ProgramAst::parse(
         format!(
             "
-        use.miden::miden::single_account::note
+        use.miden::miden::sat::note
         use.miden::miden::wallets::basic->wallet
 
         # add the asset

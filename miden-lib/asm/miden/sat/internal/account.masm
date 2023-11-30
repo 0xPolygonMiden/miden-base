@@ -1,5 +1,5 @@
-use.miden::miden::single_account::internal::constants
-use.miden::miden::single_account::internal::layout
+use.miden::miden::sat::internal::constants
+use.miden::miden::sat::internal::layout
 
 # CONSTANTS
 # =================================================================================================

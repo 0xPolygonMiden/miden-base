@@ -43,7 +43,7 @@ receive_asset(asset)
 end
 ```
 
-In the above, `add_asset` is a kernel procedure `miden::single_account::account::add_asset` of the Tx Kernel.
+In the above, `add_asset` is a kernel procedure `miden::sat::account::add_asset` of the Tx Kernel.
 
 Note: this method does not increment account nonce. The nonce will be incremented in auth_tx method described below. Thus, receiving assets requires authentication.
 
@@ -57,7 +57,7 @@ send_asset(asset, recipient)
 end
 ```
 
-In the above, `remove_asset` is a kernel procedure `miden::single_account::account::remove_asset` and `create_note` is a kernel procedure `miden::single_account::tx::create_note`, both in the Tx Kernel.
+In the above, `remove_asset` is a kernel procedure `miden::sat::account::remove_asset` and `create_note` is a kernel procedure `miden::sat::tx::create_note`, both in the Tx Kernel.
 
 `recipient` is a partial hash of the created note computed outside the VM as `hash(hash(hash(serial_num), script_hash), input_hash)`. This allows computing note hash as `hash(recipient, vault_hash)` where the `vault_hash` can be computed inside the VM based on the specified asset.
 

@@ -19,9 +19,9 @@ fn test_get_sender_no_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::miden::single_account::internal::layout
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::note
+        use.miden::miden::sat::internal::layout
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::note
 
         begin
             exec.prologue::prepare_transaction
@@ -52,9 +52,9 @@ fn test_get_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::internal::note->note_internal
-        use.miden::miden::single_account::note
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::internal::note->note_internal
+        use.miden::miden::sat::note
 
         begin
             exec.prologue::prepare_transaction
@@ -86,8 +86,8 @@ fn test_get_vault_data() {
     // calling get_vault_info should return vault info
     let code = format!(
         "
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::internal::note
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::internal::note
 
         begin
             exec.prologue::prepare_transaction
@@ -159,9 +159,9 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::internal::note->note_internal
-        use.miden::miden::single_account::note
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::internal::note->note_internal
+        use.miden::miden::sat::note
 
         proc.process_note_0
             # drop the note inputs
@@ -279,9 +279,9 @@ fn test_get_inputs() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::internal::note->note_internal
-        use.miden::miden::single_account::note
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::internal::note->note_internal
+        use.miden::miden::sat::note
 
         proc.process_note_0
             # drop the note inputs
@@ -343,8 +343,8 @@ fn test_note_setup() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
-        use.miden::miden::single_account::internal::prologue
-        use.miden::miden::single_account::internal::note
+        use.miden::miden::sat::internal::prologue
+        use.miden::miden::sat::internal::note
 
         begin
             exec.prologue::prepare_transaction

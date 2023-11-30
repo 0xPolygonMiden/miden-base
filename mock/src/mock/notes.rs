@@ -180,7 +180,7 @@ pub fn mock_notes(
     // note that changes the account vault
     let note_5_script_ast = ProgramAst::parse(
         "\
-                    use.miden::miden::single_account::note
+                    use.miden::miden::sat::note
                     use.miden::miden::wallets::basic->wallet
 
                     begin

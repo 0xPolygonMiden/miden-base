@@ -177,8 +177,8 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
         format!(
             "
         use.miden::miden::faucets::basic_fungible->faucet_contract
-        use.miden::miden::kernels::single_account::note
-        use.miden::miden::single_account::note
+        use.miden::miden::kernels::sat::note
+        use.miden::miden::sat::note
 
         # burn the asset
         begin

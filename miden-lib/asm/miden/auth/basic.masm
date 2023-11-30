@@ -1,6 +1,6 @@
 use.std::crypto::dsa::rpo_falcon512
-use.miden::miden::single_account::account
-use.miden::miden::single_account::tx
+use.miden::miden::sat::account
+use.miden::miden::sat::tx
 
 # CONSTANTS
 # =================================================================================================

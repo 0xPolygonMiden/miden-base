@@ -7,10 +7,10 @@
 # - max_supply is the maximum supply of the token.
 # - decimals are the decimals of the token.
 # - token_symbol as three chars encoded in a Felt.
-use.miden::miden::single_account::account
-use.miden::miden::single_account::asset
-use.miden::miden::single_account::faucet
-use.miden::miden::single_account::tx
+use.miden::miden::sat::account
+use.miden::miden::sat::asset
+use.miden::miden::sat::faucet
+use.miden::miden::sat::tx
 use.miden::miden::auth::basic
 
 # CONSTANTS
