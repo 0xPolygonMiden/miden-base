@@ -1,4 +1,4 @@
-use.miden::miden::single_account::internal::constants
+use.miden::miden::sat::internal::constants
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================

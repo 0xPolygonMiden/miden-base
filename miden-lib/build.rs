@@ -75,11 +75,8 @@ fn main() -> io::Result<()> {
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
-            let constants =
-                dst.join(ASM_DIR_PATH).join("miden/single_account/internal/constants.masm");
-            let patched = dst
-                .join(ASM_DIR_PATH)
-                .join("miden/single_account/internal/constants.masm.patched");
+            let constants = dst.join(ASM_DIR_PATH).join("miden/sat/internal/constants.masm");
+            let patched = dst.join(ASM_DIR_PATH).join("miden/sat/internal/constants.masm.patched");
 
             // scope for file handlers
             {

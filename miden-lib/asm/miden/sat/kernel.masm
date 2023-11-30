@@ -1,9 +1,9 @@
-use.miden::miden::single_account::internal::account
-use.miden::miden::single_account::internal::asset_vault
-use.miden::miden::single_account::internal::faucet
-use.miden::miden::single_account::internal::layout
-use.miden::miden::single_account::internal::note
-use.miden::miden::single_account::internal::tx
+use.miden::miden::sat::internal::account
+use.miden::miden::sat::internal::asset_vault
+use.miden::miden::sat::internal::faucet
+use.miden::miden::sat::internal::layout
+use.miden::miden::sat::internal::note
+use.miden::miden::sat::internal::tx
 
 # EVENTS
 # =================================================================================================

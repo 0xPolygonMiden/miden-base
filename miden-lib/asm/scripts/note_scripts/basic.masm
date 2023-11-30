@@ -1,6 +1,6 @@
-use.miden::miden::single_account::account
-use.miden::miden::single_account::note
-use.miden::miden::single_account::tx
+use.miden::miden::sat::account
+use.miden::miden::sat::note
+use.miden::miden::sat::tx
 use.miden::miden::wallets::basic->wallet
 
 #! Helper procedure to add all assets of a note to an account.

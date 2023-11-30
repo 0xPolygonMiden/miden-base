@@ -1,6 +1,6 @@
-use.miden::miden::single_account::internal::account->internal_account
-use.miden::miden::single_account::internal::asset
-use.miden::miden::single_account::account
+use.miden::miden::sat::internal::account->internal_account
+use.miden::miden::sat::internal::asset
+use.miden::miden::sat::account
 
 # CONSTANTS
 # =================================================================================================
