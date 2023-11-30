@@ -11,6 +11,7 @@ use super::{
 /// This objects primary use case is to enable all consumed notes to be populated into the advice
 /// provider at once via the [ToAdviceInputs] trait.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ConsumedNotes {
     notes: Vec<RecordedNote>,
     commitment: Digest,
@@ -118,6 +119,7 @@ impl FromIterator<RecordedNote> for ConsumedNotes {
 /// - nullifier: nullifier of the note that was consumed
 /// - script_root: script root of the note that was consumed
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ConsumedNoteInfo {
     nullifier: Digest,
     script_root: Digest,

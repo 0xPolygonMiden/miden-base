@@ -20,7 +20,9 @@ use vm_core::code_blocks::CodeBlock;
 /// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
 /// advice map such that the transaction script can access them.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct TransactionScript {
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     code: ProgramAst,
     hash: Digest,
     inputs: BTreeMap<Digest, Vec<Felt>>,
@@ -81,5 +83,33 @@ impl ToAdviceInputs for TransactionScript {
         for (hash, input) in self.inputs.iter() {
             target.insert_into_map(**hash, input.clone());
         }
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use assembly::ast::AstSerdeOptions;
+
+    pub fn serialize<S>(program: &super::ProgramAst, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = program.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
+
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ProgramAst, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        super::ProgramAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }

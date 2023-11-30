@@ -10,6 +10,7 @@ use crate::{
 use vm_core::StackOutputs;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ExecutedTransaction {
     initial_account: Account,
     initial_account_seed: Option<Word>,

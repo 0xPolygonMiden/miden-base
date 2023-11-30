@@ -2,6 +2,8 @@ use super::{AssetError, Felt, StarkField, ToString};
 use crate::utils::string::String;
 
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct TokenSymbol(Felt);
 
 impl TokenSymbol {

@@ -13,6 +13,7 @@ use core::iter::FromIterator;
 /// - notes: a vector of [NoteStub] objects representing the notes created by the transaction.
 /// - commitment: a commitment to the created notes.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct CreatedNotes {
     notes: Vec<NoteStub>,
     commitment: Digest,

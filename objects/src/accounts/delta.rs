@@ -34,6 +34,7 @@ pub struct AccountDelta {
 /// - slots_delta: a `MerkleTreeDelta` that represents the changes to the account storage slots.
 /// - store_delta: a `MerkleStoreDelta` that represents the changes to the account storage store.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStorageDelta {
     pub slots_delta: MerkleTreeDelta,
     pub store_delta: MerkleStoreDelta,
@@ -57,6 +58,7 @@ impl Default for AccountStorageDelta {
 /// - added_assets: a vector of assets that were added to the account vault.
 /// - removed_assets: a vector of assets that were removed from the account vault.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountVaultDelta {
     pub added_assets: Vec<Asset>,
     pub removed_assets: Vec<Asset>,

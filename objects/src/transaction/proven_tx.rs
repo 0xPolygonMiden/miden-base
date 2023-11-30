@@ -14,6 +14,7 @@ use miden_verifier::ExecutionProof;
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
 /// - proof: the proof of the transaction.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ProvenTransaction {
     account_id: AccountId,
     initial_account_hash: Digest,
@@ -22,6 +23,7 @@ pub struct ProvenTransaction {
     created_notes: Vec<NoteEnvelope>,
     tx_script_root: Option<Digest>,
     block_ref: Digest,
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     proof: ExecutionProof,
 }
 
@@ -89,5 +91,28 @@ impl ProvenTransaction {
     /// Returns the block reference the transaction was executed against.
     pub fn block_ref(&self) -> Digest {
         self.block_ref
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+#[cfg(feature = "serde")]
+mod serialization {
+    pub fn serialize<S>(proof: &super::ExecutionProof, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = proof.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ExecutionProof, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        super::ExecutionProof::from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }

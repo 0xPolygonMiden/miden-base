@@ -4,6 +4,7 @@ use vm_processor::ExecutionError;
 /// `emit.<event_id>` instruction. The event ID is a 32-bit unsigned integer which is used to
 /// identify the event type.
 #[repr(u32)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Event {
     AddAssetToAccountVault = 131072,
     RemoveAssetFromAccountVault = 131073,
