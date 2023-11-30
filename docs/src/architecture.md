@@ -14,7 +14,7 @@ The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to a
 In Miden, there are accounts and notes which can hold assets. Accounts consume and produce notes in transactions. Transactions describe account state changes of single accounts. The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
 
 <p align="center">
-    <img src="../diagrams/architecture/miden_architecture.gif" style="width: 80%;">
+    <img src="./diagrams/architecture/miden_architecture.gif" style="width: 80%;">
 </p>
 
 ### Accounts
