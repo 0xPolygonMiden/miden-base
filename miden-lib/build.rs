@@ -4,7 +4,7 @@ use std::{env, fs, fs::File, io, io::BufRead, io::BufReader, io::Write, path::Pa
 // CONSTANTS
 // ================================================================================================
 const ASL_DIR_PATH: &str = "assets";
-const ASM_DIR_PATH: &str = "asm";
+const ASM_DIR_PATH: &str = "asm/miden";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -17,7 +17,10 @@ const ASM_DIR_PATH: &str = "asm";
 /// - If any of the IO operation fails.
 fn copy_directory<T: AsRef<Path>, R: AsRef<Path>>(src: T, dst: R) {
     let mut prefix = src.as_ref().canonicalize().unwrap();
-    prefix.pop(); // keep all the files inside the `asm` folder
+    // keep all the files inside the `miden-lib` folder
+    prefix.pop(); 
+    prefix.pop(); 
+
 
     let target_dir = dst.as_ref().join(ASM_DIR_PATH);
     if !target_dir.exists() {
@@ -58,7 +61,7 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
     Ok(line)
 }
 
-/// Read and parse the contents from `./asm` into a `LibraryContents` struct, serializing it into
+/// Read and parse the contents from `./asm/miden` into a `LibraryContents` struct, serializing it into
 /// `assets` folder under `std` namespace.
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
@@ -75,8 +78,8 @@ fn main() -> io::Result<()> {
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
-            let constants = dst.join(ASM_DIR_PATH).join("miden/sat/internal/constants.masm");
-            let patched = dst.join(ASM_DIR_PATH).join("miden/sat/internal/constants.masm.patched");
+            let constants = dst.join(ASM_DIR_PATH).join("/sat/internal/constants.masm");
+            let patched = dst.join(ASM_DIR_PATH).join("/sat/internal/constants.masm.patched");
 
             // scope for file handlers
             {

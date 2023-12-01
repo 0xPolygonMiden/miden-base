@@ -1,6 +1,6 @@
-use.miden::miden::sat::prologue
-use.miden::miden::sat::epilogue
-use.miden::miden::sat::utils
+use.miden::sat::prologue
+use.miden::sat::epilogue
+use.miden::sat::utils
 
 # CONSTANTS
 # =================================================================================================

@@ -23,8 +23,8 @@ fn test_create_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::miden::sat::internal::prologue
-        use.miden::miden::sat::asset
+        use.miden::sat::internal::prologue
+        use.miden::sat::asset
 
         begin
             # prepare the transaction
@@ -68,8 +68,8 @@ fn test_create_non_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::miden::sat::internal::prologue
-        use.miden::miden::sat::asset
+        use.miden::sat::internal::prologue
+        use.miden::sat::asset
 
         begin
             # prepare the transaction

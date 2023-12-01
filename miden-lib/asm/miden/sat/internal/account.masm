@@ -1,5 +1,5 @@
-use.miden::miden::sat::internal::constants
-use.miden::miden::sat::internal::layout
+use.miden::sat::internal::constants
+use.miden::sat::internal::layout
 
 # CONSTANTS
 # =================================================================================================
