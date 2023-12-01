@@ -1,5 +1,5 @@
-use.miden::miden::sat::internal::constants
-use.miden::miden::sat::internal::layout
+use.miden::sat::internal::constants
+use.miden::sat::internal::layout
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.

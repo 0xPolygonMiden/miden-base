@@ -28,8 +28,8 @@ pub fn test_set_code_is_not_immediate() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
-        use.miden::miden::sat::internal::prologue
-        use.miden::miden::sat::account
+        use.miden::sat::internal::prologue
+        use.miden::sat::account
         begin
             exec.prologue::prepare_transaction
             push.1.2.3.4
@@ -69,9 +69,9 @@ pub fn test_set_code_succeeds() {
 
     let code = format!(
         "
-        use.miden::miden::sat::account
-        use.miden::miden::sat::internal::prologue
-        use.miden::miden::sat::internal::epilogue
+        use.miden::sat::account
+        use.miden::sat::internal::prologue
+        use.miden::sat::internal::epilogue
 
         {created_notes_data_procedure}
         begin
@@ -128,8 +128,8 @@ pub fn test_account_type() {
 
             let code = format!(
                 "
-                use.miden::miden::sat::internal::layout
-                use.miden::miden::sat::internal::account
+                use.miden::sat::internal::layout
+                use.miden::sat::internal::account
 
                 begin
                     exec.account::{}
@@ -161,7 +161,7 @@ pub fn test_account_type() {
 fn test_validate_id_fails_on_insuficcient_ones() {
     let code = format!(
         "
-        use.miden::miden::sat::internal::account
+        use.miden::sat::internal::account
 
         begin
             push.{ACCOUNT_ID_INSUFFICIENT_ONES}
@@ -184,8 +184,8 @@ fn test_get_item() {
 
         let code = format!(
             "
-        use.miden::miden::sat::account
-        use.miden::miden::sat::internal::prologue
+        use.miden::sat::account
+        use.miden::sat::internal::prologue
 
 
         begin
@@ -225,8 +225,8 @@ fn test_get_child_tree_item() {
 
     let code = format!(
         "
-        use.miden::miden::sat::account
-        use.miden::miden::sat::internal::prologue
+        use.miden::sat::account
+        use.miden::sat::internal::prologue
 
         begin
             # prepare the transaction
@@ -288,9 +288,9 @@ fn test_set_item() {
 
     let code = format!(
         "
-    use.miden::miden::sat::account
-    use.miden::miden::sat::internal::layout
-    use.miden::miden::sat::internal::prologue
+    use.miden::sat::account
+    use.miden::sat::internal::layout
+    use.miden::sat::internal::prologue
 
     begin
         # prepare the transaction
@@ -345,7 +345,7 @@ fn test_is_faucet_procedure() {
         // assembly codes that checks if an account is a fauct
         let code = format!(
             "
-        use.miden::miden::sat::internal::account
+        use.miden::sat::internal::account
 
         begin
             # push the account id on to the stack
@@ -390,8 +390,8 @@ fn test_authenticate_procedure() {
 
         let code = format!(
             "\
-            use.miden::miden::sat::internal::account
-            use.miden::miden::sat::internal::prologue
+            use.miden::sat::internal::account
+            use.miden::sat::internal::prologue
 
             begin
                 # prepare the transaction
@@ -430,8 +430,8 @@ fn test_get_vault_commitment() {
 
     let code = format!(
         "
-    use.miden::miden::sat::account
-    use.miden::miden::sat::internal::prologue
+    use.miden::sat::account
+    use.miden::sat::internal::prologue
 
     begin
         # prepare the transaction

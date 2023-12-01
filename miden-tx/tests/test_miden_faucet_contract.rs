@@ -43,8 +43,8 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::miden::faucets::basic_fungible->faucet
-            use.miden::miden::auth::basic->auth_tx
+            use.miden::faucets::basic_fungible->faucet
+            use.miden::auth::basic->auth_tx
 
             begin
 
@@ -114,8 +114,8 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::miden::faucets::basic_fungible->faucet
-            use.miden::miden::auth::basic->auth_tx
+            use.miden::faucets::basic_fungible->faucet
+            use.miden::auth::basic->auth_tx
 
             begin
 
@@ -176,9 +176,9 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let note_script = ProgramAst::parse(
         format!(
             "
-        use.miden::miden::faucets::basic_fungible->faucet_contract
-        use.miden::miden::kernels::sat::note
-        use.miden::miden::sat::note
+        use.miden::faucets::basic_fungible->faucet_contract
+        use.miden::kernels::sat::note
+        use.miden::sat::note
 
         # burn the asset
         begin

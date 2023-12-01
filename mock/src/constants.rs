@@ -28,8 +28,8 @@ pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
 
 // Default account code
 pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::miden::wallets::basic->basic_wallet
-    use.miden::miden::auth::basic->basic_auth
+    use.miden::wallets::basic->basic_wallet
+    use.miden::auth::basic->basic_auth
 
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset

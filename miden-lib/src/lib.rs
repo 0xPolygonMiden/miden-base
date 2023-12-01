@@ -72,7 +72,7 @@ impl SatKernel {
     /// Returns masm source code which encodes the transaction kernel main procedure.
     pub fn main() -> &'static str {
         "\
-        use.miden::miden::sat::internal::main
+        use.miden::sat::internal::main
 
         begin
             exec.main::main
