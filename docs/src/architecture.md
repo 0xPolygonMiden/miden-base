@@ -11,11 +11,7 @@ The architecture reflects the design goals for the rollup:
 The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to achieve concurrent and local state changes. In the model, actors are little state machines with inboxes, meaning each actor is responsible for their own state. Actors can send and receive messages to communicate with other actors. Messages can be read asynchronously.
 
 ## Core Concepts in Miden
-In Miden, there are accounts and notes which can hold assets. Accounts consume and produce notes in transactions. Transactions describe account state changes of single accounts. The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
-
-<p align="center">
-    <img src="./diagrams/architecture/miden_architecture.gif" style="width: 80%;">
-</p>
+In Miden, there are accounts and notes which can hold assets. Accounts consume and produce notes in transactions. Transactions describe account state changes of single accounts.
 
 ### Accounts
 [Accounts](./architecture/accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. This chapter describes the design, the storage types, and the creation of an account.
@@ -29,11 +25,24 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 ### Transactions
 [Transactions](./architecture/transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the different transaction types.
 
+#### Accounts produce and consume notes to communicate 
+<p align="center">
+    <img src="./diagrams/architecture/miden_architecture_core_concepts.gif" style="width: 80%;">
+</p>
+
+## State and Execution
+The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
+
 ### State model
 [State](./architecture/state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
 
 ### Execution model
 [Execution](./architecture/execution.md) describes how the state progresses - on an individual level via transactions and at the global level expressed as aggregated state updates in blocks. This chapter describes the execution model and how blocks are built.
+
+#### Operators capture and progress state 
+<p align="center">
+    <img src="./diagrams/architecture/miden_architecture_state_progress.gif" style="width: 80%;">
+</p>
 
 # Architecture tradeoffs
 <details>
