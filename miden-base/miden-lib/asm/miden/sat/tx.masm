@@ -1,0 +1,74 @@
+#! Returns the block number of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [num]
+#!
+#! num is the last known block number.
+export.get_block_number
+    push.0
+    # => [0]
+
+    syscall.get_block_number
+    # => [num]
+end
+
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Inputs: []
+#! Outputs: [H]
+#!
+#! H is the last known block hash.
+export.get_block_hash
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_block_hash
+    # => [H]
+end
+
+#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
+#! tuples over all input notes.
+#!
+#! Inputs: []
+#! Outputs: [COM]
+#!
+#! COM is the input notes hash.
+export.get_input_notes_hash
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_input_notes_hash
+    # => [COM]
+end
+
+#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! tuples over all output notes.
+#!
+#! Inputs: [0, 0, 0, 0]
+#! Outputs: [COM]
+#!
+#! COM is the output notes hash.
+export.get_output_notes_hash
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_output_notes_hash
+    # => [COM]
+end
+
+#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#!
+#! Inputs: [ASSET, tag, RECIPIENT]
+#! Outputs: [ptr]
+#!
+#! ASSET is the asset to be included in the note.
+#! tag is the tag to be included in the note.
+#! RECIPIENT is the recipient of the note.
+#! ptr is the pointer to the memory address at which the note is stored.
+export.create_note
+    syscall.create_note
+    # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    movdn.8 dropw dropw
+    # => [ptr]
+end

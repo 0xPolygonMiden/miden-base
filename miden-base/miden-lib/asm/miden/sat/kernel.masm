@@ -1,0 +1,521 @@
+use.miden::sat::internal::account
+use.miden::sat::internal::asset_vault
+use.miden::sat::internal::faucet
+use.miden::sat::internal::layout
+use.miden::sat::internal::note
+use.miden::sat::internal::tx
+
+# EVENTS
+# =================================================================================================
+
+# Event emitted to signal that an asset is being added to the account vault.
+const.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT=131072
+
+# Event emitted to signal that an asset is being removed from the account vault.
+const.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT=131073
+
+
+# AUTHENTICATION
+# =================================================================================================
+
+#! Authenticates that the invocation of a kernel procedure originates from the account context.
+#!
+#! Panics:
+#!   - if the invocation of the kernel procedure does not originate from the account context.
+#!
+#! Stack: [...]
+#! Output: [...]
+proc.authenticate_account_origin
+    # get the hash of the caller
+    padw caller
+    # => [CALLER, ...]
+
+    # assert that the caller is from the user context
+    exec.account::authenticate_procedure
+    # => [CALLER, ...]
+
+    # drop the caller
+    dropw
+    # => [...]
+end
+
+# KERNEL PROCEDURES
+# =================================================================================================
+
+#! Returns the account id.
+#!
+#! Stack: [0]
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.get_account_id
+    # get the account id
+    exec.account::get_id
+    # => [acct_id, 0]
+
+    swap drop
+    # => [acct_id]
+end
+
+#! Returns the account nonce.
+#!
+#! Stack: [0]
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.get_account_nonce
+    # get the account nonce
+    exec.account::get_nonce
+    # => [0, nonce]
+
+    swap drop
+    # => [nonce]
+end
+
+#! Returns the initial account hash.
+#!
+#! Stack: [0, 0, 0, 0]
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.get_initial_account_hash
+    # get the initial account hash
+    exec.account::get_initial_hash
+    # => [H, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [H]
+end
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: [0, 0, 0, 0]
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_account_hash
+    # get the current account hash
+    exec.account::get_current_hash
+    # => [ACCT_HASH, 0, 0, 0, 0]
+
+    swapw dropw
+    # => [ACCT_HASH]
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: [0]
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_account_nonce
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [value]
+
+    # arrange stack
+    push.0 swap
+    # => [value, 0]
+
+    # increment the account nonce
+    exec.account::incr_nonce
+    # => [0]
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, 0, 0, 0]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_account_item
+    # fetch the account storage item
+    exec.account::get_item
+    # => [VALUE, 0, 0, 0]
+
+    # organize the stack for return
+    movup.4 drop movup.4 drop movup.4 drop
+    # => [VALUE]
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V', 0, 0, 0]
+#! Output: [R', V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R' is the new storage root.
+export.set_account_item
+    # if the transaction is being executed against a faucet account then assert
+    # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
+    dup exec.account::get_faucet_storage_data_slot eq
+    exec.account::get_id exec.account::is_faucet
+    and assertz
+    # => [index, V', 0, 0, 0]
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [index, V', 0, 0, 0]
+
+    # set the account storage item
+    exec.account::set_item
+    # => [R', V, 0, 0, 0]
+
+    # organize the stack for return
+    movup.8 drop movup.8 drop movup.8 drop
+    # => [R', V]
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: [0, 0, 0, 0]
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_account_code
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [CODE_ROOT]
+
+    # arrange stack
+    padw swapw
+    # => [CODE_ROOT, 0, 0, 0, 0]
+
+    # set the account code
+    exec.account::set_code
+    # => [0, 0, 0, 0]
+end
+
+#! Returns the balance of a fungible asset associated with a faucet_id.
+#! Panics if the asset is not a fungible asset.
+#!
+#! Stack: [faucet_id]
+#! Output: [balance]
+#!
+#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - balance is the vault balance of the fungible asset.
+export.account_vault_get_balance
+    # get the vault root
+    exec.layout::get_acct_vault_root_ptr swap
+    # => [faucet_id, acct_vault_root_ptr]
+
+    # get the asset balance
+    exec.asset_vault::get_balance
+    # => [balance]
+end
+
+#! Returns a boolean indicating whether the non-fungible asset is present in the vault.
+#! Panics if the ASSET is a fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [has_asset, 0, 0, 0]
+#!
+#! - ASSET is the non-fungible asset of interest
+#! - has_asset is a boolean indicating whether the account vault has the asset of interest
+export.account_vault_has_non_fungible_asset
+    # arrange stack and get the vault root
+    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.layout::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, 0, 0, 0]
+
+    # check if the account vault has the non-fungible asset
+    exec.asset_vault::has_non_fungible_asset
+    # => [has_asset, 0, 0, 0]
+end
+
+#! Add the specified asset to the vault.
+#!
+#! Panics:
+#! - If the asset is not valid.
+#! - If the total value of two fungible assets is greater than or equal to 2^63.
+#! - If the vault already contains the same non-fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET']
+#!
+#! - ASSET is the asset to add to the vault.
+#! - ASSET' final asset in the account vault defined as follows:
+#!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
+#!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
+#!     after ASSET was added to it.
+export.account_vault_add_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an asset is being added to the account vault
+    push.1 drop emit.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET]
+
+    # fetch the vault root
+    exec.layout::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, acct_vault_root_ptr]
+
+    # add the asset to the account vault
+    exec.asset_vault::add_asset
+    # => [ASSET']
+end
+
+#! Remove the specified asset from the vault.
+#!
+#! Panics:
+#! - The fungible asset is not found in the vault.
+#! - The amount of the fungible asset in the vault is less than the amount to be removed.
+#! - The non-fungible asset is not found in the vault.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET]
+#!
+#! - ASSET is the asset to remove from the vault.
+export.account_vault_remove_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an asset is being removed from the account vault
+    push.1 drop emit.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET]
+
+    # fetch the vault root
+    exec.layout::get_acct_vault_root_ptr movdn.4
+    # => [ASSET, acct_vault_root_ptr]
+
+    # remove the asset from the account vault
+    exec.asset_vault::remove_asset
+    # => [ASSET]
+end
+
+#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
+#! note is not being processed.
+#!
+#! Inputs: [0, 0, 0, 0, 0]
+#! Outputs: [VAULT_HASH, num_assets]
+#!
+#! - num_assets is the number of assets in the note currently being processed.
+#! - VAULT_HASH is the vault hash of the note currently being processed.
+export.get_note_vault_info
+    # get the vault info
+    exec.note::get_vault_info
+    # => [VAULT_HASH, num_assets, 0, 0, 0, 0, 0]
+
+    # organize the stack for return
+    movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
+    # => [VAULT_HASH, num_assets]
+end
+
+#! Returns the note inputs hash of the note currently being processed. Panics if a note is not
+#! being processed.
+#!
+#! Inputs: [0, 0, 0, 0]
+#! Outputs: [NOTE_INPUTS_HASH]
+#!
+#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
+export.get_note_inputs_hash
+    # get the note inputs hash
+    exec.note::get_inputs_hash
+    # => [NOTE_INPUTS_HASH, 0, 0, 0, 0]
+
+    # organize the stack for return
+    swapw dropw
+    # => [NOTE_INPUTS_HASH]
+end
+
+#! Returns the sender of the note currently being processed. Panics if a note is not being
+#! processed.
+#!
+#! Inputs: [0]
+#! Outputs: [sender]
+#!
+#! - sender is the sender of the note currently being processed.
+export.get_note_sender
+    # get the note sender
+    exec.note::get_sender
+    # => [sender, 0]
+
+    # organize the stack for return
+    swap drop
+    # => [sender]
+
+end
+
+#! Returns the block number of the last known block at the time of transaction execution.
+#!
+#! Inputs: [0]
+#! Outputs: [num]
+#!
+#! num is the last known block number.
+export.get_block_number
+    # get the block number
+    exec.tx::get_block_number
+    # => [num, 0]
+
+    # organize the stack for return
+    swap drop
+    # => [num]
+end
+
+#! Returns the block hash of the last known block at the time of transaction execution.
+#!
+#! Inputs: [0, 0, 0, 0]
+#! Outputs: [H]
+#!
+#! H is the last known block hash.
+export.get_block_hash
+    # get the block hash
+    exec.tx::get_block_hash
+    # => [H, 0, 0, 0, 0]
+
+    # organize the stack for return
+    swapw dropw
+    # => [H]
+end
+
+#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
+#! tuples over all input notes.
+#!
+#! Inputs: [0, 0, 0, 0]
+#! Outputs: [COM]
+#!
+#! COM is the input notes hash.
+export.get_input_notes_hash
+    # get the input notes hash
+    exec.tx::get_input_notes_hash
+    # => [COM, 0, 0, 0, 0]
+
+    # organize the stack for return
+    swapw dropw
+    # => [COM]
+end
+
+#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! tuples over all output notes.
+#!
+#! Inputs: [0, 0, 0, 0]
+#! Outputs: [COM]
+#!
+#! COM is the output notes hash.
+export.get_output_notes_hash
+    # get the output notes hash
+    exec.tx::get_output_notes_hash
+    # => [COM, 0, 0, 0, 0]
+
+    # organize the stack for return
+    swapw dropw
+    # => [COM]
+end
+
+#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#!
+#! Inputs: [ASSET, tag, RECIPIENT]
+#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+#!
+#! ASSET is the asset to be included in the note.
+#! tag is the tag to be included in the note.
+#! RECIPIENT is the recipient of the note.
+#! ptr is the pointer to the memory address at which the note is stored.
+export.create_note
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET, tag, RECIPIENT]
+
+    # create the note
+    exec.tx::create_note
+    # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+end
+
+#! Returns a commitment to the account vault the transaction is being executed against.
+#!
+#! Stack: [0, 0, 0, 0]
+#! Outputs: [COM]
+#!
+#! - COM is the commitment to the account vault.
+export.get_account_vault_commitment
+    # fetch the account vault root
+    exec.layout::get_acct_vault_root
+    # => [COM, 0, 0, 0, 0]
+
+    # organize the stack for return
+    swapw dropw
+    # => [COM]
+end
+
+#! Mint an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
+#!   allowed.
+#! - For non-fungible faucets if the non-fungible asset being minted already exists.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was minted.
+export.mint_asset
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET]
+
+    # mint the asset
+    exec.faucet::mint
+    # => [ASSET]
+end
+
+#! Burn an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being burned is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the amount being burned is greater than the total input to the
+#!   transaction.
+#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
+#!   provided as input to the transaction via a note or the accounts vault.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was burned.
+export.burn_asset
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [ASSET]
+
+    # burn the asset
+    exec.faucet::burn
+    # => [ASSET]
+end
+
+#! Returns the total issuance of the fungible faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a fungible faucet.
+#!
+#! Stack: [0]
+#! Outputs: [total_issuance]
+#!
+#! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
+#!   against.
+export.get_fungible_faucet_total_issuance
+    # assert that we are executing a transaction against a fungible faucet (access checks)
+    exec.account::get_id exec.account::is_fungible_faucet assert
+    # => [0]
+
+    # get the total issuance
+    exec.faucet::get_total_issuance
+    # => [total_issuance]
+
+    # drop the padding
+    swap drop
+    # => []
+end

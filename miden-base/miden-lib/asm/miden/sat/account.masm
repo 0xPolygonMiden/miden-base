@@ -1,0 +1,195 @@
+#! Returns the account id.
+#!
+#! Stack: []
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.get_id
+    push.0
+    # => [0]
+
+    syscall.get_account_id
+    # => [acct_id]
+end
+
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.get_nonce
+    push.0
+    # => [0]
+
+    syscall.get_account_nonce
+    # => [nonce]
+end
+
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.get_initial_hash
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_initial_account_hash
+    # => [H]
+end
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_hash
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_current_account_hash
+    # => [ACCT_HASH]
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_nonce
+    syscall.incr_account_nonce
+    # => [0]
+
+    drop
+    # => []
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_item
+    push.0.0.0 movup.3
+    # => [index, 0, 0, 0]
+
+    syscall.get_account_item
+    # => [VALUE]
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V']
+#! Output: [R', V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R' is the new storage root.
+export.set_item
+    push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
+    # => [index, V', 0, 0, 0]
+
+    syscall.set_account_item
+    # => [R', V]
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_code
+    syscall.set_account_code
+    # => [0, 0, 0, 0]
+
+    dropw
+    # => []
+end
+
+#! Returns the balance of a fungible asset associated with a faucet_id.
+#! Panics if the asset is not a fungible asset.
+#!
+#! Stack: [faucet_id]
+#! Output: [balance]
+#!
+#! - faucet_id is the faucet id of the fungible asset of interest.
+#! - balance is the vault balance of the fungible asset.
+export.get_balance
+    syscall.account_vault_get_balance
+    # => [balance]
+end
+
+#! Returns a boolean indicating whether the non-fungible asset is present in the vault.
+#! Panics if the ASSET is a fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [has_asset]
+#!
+#! - ASSET is the non-fungible asset of interest
+#! - has_asset is a boolean indicating whether the account vault has the asset of interest
+export.has_non_fungible_asset
+    syscall.account_vault_has_non_fungible_asset
+    # => [has_asset, 0, 0, 0]
+
+    swap drop swap drop swap drop
+    # => [has_asset]
+end
+
+#! Add the specified asset to the vault.
+#!
+#! Panics:
+#! - If the asset is not valid.
+#! - If the total value of two fungible assets is greater than or equal to 2^63.
+#! - If the vault already contains the same non-fungible asset.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET']
+#!
+#! - ASSET' final asset in the account vault defined as follows:
+#!   - If ASSET is a non-fungible asset, then ASSET' is the same as ASSET.
+#!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
+#!     after ASSET was added to it.
+export.add_asset
+    syscall.account_vault_add_asset
+end
+
+#! Remove the specified asset from the vault.
+#!
+#! Panics:
+#! - The fungible asset is not found in the vault.
+#! - The amount of the fungible asset in the vault is less than the amount to be removed.
+#! - The non-fungible asset is not found in the vault.
+#!
+#! Stack: [ASSET]
+#! Output: [ASSET]
+#!
+#! - ASSET is the asset to remove from the vault.
+export.remove_asset
+    syscall.account_vault_remove_asset
+end
+
+#! Returns a commitment to the account vault.
+#!
+#! Stack: []
+#! Output: [COM]
+#!
+#! - COM is a commitment to the account vault.
+export.get_vault_commitment
+    # pad the stack for syscall invocation
+    padw
+    # => [0, 0, 0, 0]
+
+    # invoke the syscall
+    syscall.get_account_vault_commitment
+    # => [COM]
+end
