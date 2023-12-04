@@ -1,0 +1,25 @@
+[package]
+name = "miden-tx"
+version = "0.1.0"
+description = "Miden rollup transaction compiler, executor, and prover"
+authors = ["miden contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/0xPolygonMiden/miden-base"
+categories = ["no-std"]
+keywords = []
+edition = "2021"
+rust-version = "1.67"
+[features]
+default = ["std"]
+std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
+
+[dependencies]
+miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-prover = { workspace = true }
+miden-verifier = { workspace = true }
+vm-core = { workspace = true }
+vm-processor = { workspace = true }
+[dev-dependencies]
+mock = { package = "miden-mock", path = "../mock", default-features = false }

@@ -1,0 +1,60 @@
+#! Mint an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being minted is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the total issuance after minting is greater than the maximum amount
+#!   allowed.
+#! - For non-fungible faucets if the non-fungible asset being minted already exists.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was minted.
+export.mint
+    syscall.mint_asset
+    # => [ASSET]
+end
+
+#! Burn an asset from the faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a faucet.
+#! - If the asset being burned is not associated with the faucet the transaction is being executed
+#!   against.
+#! - If the asset is not well formed.
+#! - For fungible faucets if the amount being burned is greater than the total input to the
+#!   transaction.
+#! - For non-fungible faucets if the non-fungible asset being burned does not exist or was not
+#!   provided as input to the transaction via a note or the accounts vault.
+#!
+#! Stack: [ASSET]
+#! Outputs: [ASSET]
+#!
+#! - ASSET is the asset that was burned.
+export.burn
+    syscall.burn_asset
+    # => [ASSET]
+end
+
+#! Returns the total issuance of the fungible faucet the transaction is being executed against.
+#!
+#! Panics:
+#! - If the transaction is not being executed against a fungible faucet.
+#!
+#! Stack: []
+#! Outputs: [total_issuance]
+#!
+#! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
+#!   against.
+export.get_total_issuance
+    # add padding to the stack for kernel invocation
+    push.0
+    # => [0]
+
+    # invoke the `get_fungible_faucet_total_issuance` kernel procedure
+    syscall.get_fungible_faucet_total_issuance
+    # => [total_issuance]
+end

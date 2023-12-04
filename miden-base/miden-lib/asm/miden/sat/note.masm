@@ -1,0 +1,101 @@
+use.std::crypto::hashes::native
+use.std::mem
+
+#! Writes the assets of the currently executing note into memory starting at the specified address.
+#!
+#! Inputs: [dest_ptr]
+#! Outputs: [num_assets, dest_ptr]
+#!
+#! - dest_ptr is the memory address to write the assets.
+#! - num_assets is the number of assets in the currently executing note.
+export.get_assets
+    padw push.0
+    # => [0, 0, 0, 0, 0, dest_ptr]
+
+    # get the current consumed note vault hash
+    syscall.get_note_vault_info
+    # => [VAULT_HASH, num_assets, dest_ptr]
+
+    # load the vault data from the advice map to the advice stack
+    adv.push_mapval
+    # => [VAULT_HASH, num_assets, dest_ptr]
+
+    # calculate number of assets rounded up to an even number
+    dup.4 dup is_odd add
+    # => [even_num_assets, VAULT_HASH, num_assets, dest_ptr]
+
+    # calculate the start and end pointer for reading to memory
+    dup.6 add dup.6
+    # => [start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # prepare the stack for reading from the advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # read the assets from advice stack to memory
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+
+    # drop pointer for reading from memory
+    movup.4 drop
+    # => [DIGEST, VAULT_HASH, num_assets, dest_ptr]
+
+    # assert the vault hash is what we expect
+    assert_eqw
+    # => [num_assets, dest_ptr]
+end
+
+#! Writes the inputs of the currently execute note into memory starting at the specified address.
+#!
+#! Inputs: [dest_ptr]
+#! Outputs: [dest_ptr]
+#!
+#! - dest_ptr is the memory address to write the inputs.
+export.get_inputs
+    # duplicate the dest_ptr
+    dup
+    # => [dest_ptr, dest_ptr]
+
+    # get the current consumed note inputs hash
+    padw syscall.get_note_inputs_hash
+    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+
+    # load the inputs from the advice map to the advice stack
+    adv.push_mapval
+    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+
+    # prepare stack for inputs ingestion
+    movup.4 padw padw padw
+    # => [WORD, WORD, ZERO, addr, INPUTS_HASH, dest_ptr]
+
+    # load the note inputs from the advice provider
+    adv_pipe hperm adv_pipe hperm
+    # => [PERM, PERM, PERM, addr', INPUTS_HASH, dest_ptr]
+
+    # extract inputs hash and assert it matches commitment stored in memory
+    dropw swapw dropw movup.4 drop
+    # => [DIG, INPUTS_HASH, dest_ptr]
+
+    # assert the inputs hash matches the commitment stored in memory
+    assert_eqw
+    # => [dest_ptr]
+end
+
+#! Returns the sender of the note currently being processed. Panics if a note is not being
+#! processed.
+#!
+#! Inputs: []
+#! Outputs: [sender]
+#!
+#! - sender is the sender of the note currently being processed.
+export.get_sender
+    push.0
+    # => [0]
+
+    syscall.get_note_sender
+    # => [sender]
+end
