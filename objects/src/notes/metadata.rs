@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{AccountId, Felt, NoteError, Word};
 
 /// Represents metadata associated with a note. This includes the sender, tag, and number of assets.
@@ -64,6 +67,31 @@ impl TryFrom<Word> for NoteMetadata {
             sender: elements[2].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?,
             tag: elements[1],
             num_assets: elements[0],
+        })
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteMetadata {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.sender.write_into(target);
+        self.tag.write_into(target);
+        self.num_assets.write_into(target);
+    }
+}
+
+impl Deserializable for NoteMetadata {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let sender = AccountId::read_from(source)?;
+        let tag = Felt::read_from(source)?;
+        let num_assets = Felt::read_from(source)?;
+
+        Ok(Self {
+            sender,
+            tag,
+            num_assets,
         })
     }
 }

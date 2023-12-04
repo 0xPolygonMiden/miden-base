@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{
     get_account_seed, Account, AccountError, Digest, Felt, FieldElement, Hasher, StarkField,
     ToString, Vec, Word,
@@ -275,6 +278,21 @@ impl PartialOrd for AccountId {
 impl Ord for AccountId {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.0.as_int().cmp(&other.0.as_int())
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountId {
+    fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target);
+    }
+}
+
+impl Deserializable for AccountId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(AccountId(Felt::read_from(source)?))
     }
 }
 

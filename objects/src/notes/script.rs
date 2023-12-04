@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,5 +56,24 @@ impl NoteScript {
 
     pub fn code(&self) -> &ProgramAst {
         &self.code
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteScript {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.hash.write_into(target);
+        self.code.write_into(target);
+    }
+}
+
+impl Deserializable for NoteScript {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let hash = Digest::read_from(source)?;
+        let code = ProgramAst::read_from(source)?;
+
+        Ok(Self { hash, code })
     }
 }

@@ -8,10 +8,12 @@ mod fungible;
 pub use fungible::FungibleAsset;
 
 mod nonfungible;
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 pub use nonfungible::{NonFungibleAsset, NonFungibleAssetDetails};
 
 mod token_symbol;
 pub use token_symbol::TokenSymbol;
+use vm_processor::DeserializationError;
 
 // ASSET
 // ================================================================================================
@@ -112,6 +114,12 @@ impl From<Asset> for Word {
     }
 }
 
+impl From<&Asset> for Word {
+    fn from(value: &Asset) -> Self {
+        (*value).into()
+    }
+}
+
 impl From<Asset> for [u8; 32] {
     fn from(asset: Asset) -> Self {
         use Asset::*;
@@ -119,6 +127,12 @@ impl From<Asset> for [u8; 32] {
             Fungible(asset) => asset.into(),
             NonFungible(asset) => asset.into(),
         }
+    }
+}
+
+impl From<&Asset> for [u8; 32] {
+    fn from(value: &Asset) -> Self {
+        (*value).into()
     }
 }
 
@@ -145,6 +159,35 @@ impl TryFrom<[u8; 32]> for Asset {
             1 => FungibleAsset::try_from(value).map(Asset::from),
             _ => unreachable!(),
         }
+    }
+}
+
+impl TryFrom<&[u8; 32]> for Asset {
+    type Error = AssetError;
+
+    fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
+        (*value).try_into()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for Asset {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let data: [u8; 32] = self.into();
+        target.write_bytes(&data);
+    }
+}
+
+impl Deserializable for Asset {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let data_vec = source.read_vec(32)?;
+        let data_array: [u8; 32] = data_vec.try_into().expect("Vec must be of size 32");
+
+        let asset = Asset::try_from(&data_array)
+            .map_err(|v| DeserializationError::InvalidValue(format!("{v:?}")))?;
+        Ok(asset)
     }
 }
 

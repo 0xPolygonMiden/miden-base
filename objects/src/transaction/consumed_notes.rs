@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{
     utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, RecordedNote,
     ToAdviceInputs, Vec, Word,
@@ -19,6 +22,7 @@ pub struct ConsumedNotes {
 impl ConsumedNotes {
     /// Creates a new [ConsumedNotes] object.
     pub fn new(notes: Vec<RecordedNote>) -> Self {
+        assert!(notes.len() <= u16::MAX.into());
         let commitment = generate_consumed_notes_commitment(&notes);
         Self { notes, commitment }
     }
@@ -197,5 +201,45 @@ impl From<&ConsumedNoteInfo> for [u8; 64] {
 impl From<&RecordedNote> for ConsumedNoteInfo {
     fn from(recorded_note: &RecordedNote) -> Self {
         Self::new(recorded_note.note().nullifier(), recorded_note.note().script().hash())
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+//
+
+impl Serializable for ConsumedNotes {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        assert!(self.notes.len() <= u16::MAX.into());
+        target.write_u16(self.notes.len() as u16);
+        self.notes.write_into(target);
+    }
+}
+
+impl Deserializable for ConsumedNotes {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let count = source.read_u16()?;
+        let notes = RecordedNote::read_batch_from(source, count.into())?;
+
+        Ok(Self::new(notes))
+    }
+}
+
+impl Serializable for ConsumedNoteInfo {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_bytes(&self.nullifier.to_bytes());
+        target.write_bytes(&self.script_root.to_bytes());
+    }
+}
+
+impl Deserializable for ConsumedNoteInfo {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let nullifier = Digest::read_from(source)?;
+        let script_root = Digest::read_from(source)?;
+
+        Ok(Self {
+            nullifier,
+            script_root,
+        })
     }
 }

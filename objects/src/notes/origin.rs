@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{Digest, Felt, NoteError, ToString, NOTE_TREE_DEPTH};
 use crate::crypto::merkle::{MerklePath, NodeIndex};
 
@@ -71,5 +74,52 @@ impl NoteInclusionProof {
     /// created in.
     pub fn note_path(&self) -> &MerklePath {
         &self.note_path
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteOrigin {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.block_num.write_into(target);
+        self.node_index.write_into(target);
+    }
+}
+
+impl Deserializable for NoteOrigin {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let block_num = Felt::read_from(source)?;
+        let node_index = NodeIndex::read_from(source)?;
+
+        Ok(Self {
+            block_num,
+            node_index,
+        })
+    }
+}
+
+impl Serializable for NoteInclusionProof {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.origin.write_into(target);
+        self.sub_hash.write_into(target);
+        self.note_root.write_into(target);
+        self.note_path.write_into(target);
+    }
+}
+
+impl Deserializable for NoteInclusionProof {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let origin = NoteOrigin::read_from(source)?;
+        let sub_hash = Digest::read_from(source)?;
+        let note_root = Digest::read_from(source)?;
+        let note_path = MerklePath::read_from(source)?;
+
+        Ok(Self {
+            origin,
+            sub_hash,
+            note_root,
+            note_path,
+        })
     }
 }

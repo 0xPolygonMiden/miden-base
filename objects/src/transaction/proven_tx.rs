@@ -1,6 +1,8 @@
 use super::{AccountId, ConsumedNoteInfo, Digest, NoteEnvelope, Vec};
 
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
+use vm_processor::DeserializationError;
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
 /// amount of data needed to verify that the transaction was executed correctly.
@@ -89,5 +91,53 @@ impl ProvenTransaction {
     /// Returns the block reference the transaction was executed against.
     pub fn block_ref(&self) -> Digest {
         self.block_ref
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProvenTransaction {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account_id.write_into(target);
+        self.initial_account_hash.write_into(target);
+        self.final_account_hash.write_into(target);
+        target.write_u64(self.consumed_notes.len() as u64);
+        self.consumed_notes.write_into(target);
+        target.write_u64(self.created_notes.len() as u64);
+        self.created_notes.write_into(target);
+        self.tx_script_root.write_into(target);
+        self.block_ref.write_into(target);
+        self.proof.write_into(target);
+    }
+}
+
+impl Deserializable for ProvenTransaction {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let account_id = AccountId::read_from(source)?;
+        let initial_account_hash = Digest::read_from(source)?;
+        let final_account_hash = Digest::read_from(source)?;
+
+        let count = source.read_u64()?;
+        let consumed_notes = ConsumedNoteInfo::read_batch_from(source, count as usize)?;
+
+        let count = source.read_u64()?;
+        let created_notes = NoteEnvelope::read_batch_from(source, count as usize)?;
+
+        let tx_script_root = Deserializable::read_from(source)?;
+
+        let block_ref = Digest::read_from(source)?;
+        let proof = ExecutionProof::read_from(source)?;
+
+        Ok(Self {
+            account_id,
+            initial_account_hash,
+            final_account_hash,
+            consumed_notes,
+            created_notes,
+            tx_script_root,
+            block_ref,
+            proof,
+        })
     }
 }

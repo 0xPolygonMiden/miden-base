@@ -16,10 +16,16 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+miden-test-utils = { package = "miden-test-utils", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "hacka-codeblock-programast-serialize-deserialize", default-features = false }
+
+[patch.crates-io]
+winter-utils = { package = "winter-utils", git = "https://github.com/hackaugusto/winterfell.git", branch = "hacka-default-deserializers" }
+
+[patch."https://github.com/0xPolygonMiden/crypto"]
+miden-crypto = { package = "miden-crypto", git = "https://github.com/hackaugusto/crypto.git", branch = "hacka-serde-merklepath" }
