@@ -21,7 +21,7 @@ Only specialized accounts called faucets can issue assets. Just like with regula
 Faucets can create assets and immediately distribute them by producing notes. However, assets can also stay in the faucet after creation to be sent later, e.g., in a bundle. That way, one can mint a million NFTs locally in a single transaction and then send them out as needed in separate transactions in the future.
 
 <p align="center">
-    <img src="../diagrams/architecture/asset/Asset_Issuance.png">
+    <img src="../diagrams/architecture/asset/Asset_Issuance.png" style="width: 50%;">
 </p>
 
 ### Fungible assets
@@ -38,10 +38,10 @@ Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket'
 [Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html) and [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a [tiered sparse Merkle tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html) called `account vault`. Notes can only store up to `255` distinct assets.
 
 <p align="center">
-    <img src="../diagrams/architecture/asset/Asset_Storage.png">
+    <img src="../diagrams/architecture/asset/Asset_Storage.png" style="width: 50%;">
 </p>
 
-The information on which and how many assets are owned can be private depending on the account's storage mode or the note. This is true for any native asset in Miden.
+The information on which and how many assets are owned can be private depending on the account's or note's storage mode. This is true for any native asset in Miden.
 
 ## Non-native assets
 Miden is flexible enough to create other types of assets as well.
