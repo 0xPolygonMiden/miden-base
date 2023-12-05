@@ -37,7 +37,7 @@ pub fn create_basic_fungible_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
 
-    let account_code_src = include_str!("../../asm/faucets/basic_fungible.masm");
+    let account_code_src = include_str!("../../asm/miden/faucets/basic_fungible.masm");
     let account_code_ast = ModuleAst::parse(account_code_src)
         .map_err(|e| AccountError::AccountCodeAssemblerError(e.into()))?;
     let account_assembler = assembler();
