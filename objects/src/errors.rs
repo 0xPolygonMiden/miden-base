@@ -14,6 +14,7 @@ use core::fmt;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
+    AccountCodeNoProcedures,
     AccountCodeTooManyProcedures {
         max: usize,
         actual: usize,

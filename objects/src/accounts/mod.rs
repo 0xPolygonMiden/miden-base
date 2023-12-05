@@ -73,6 +73,7 @@ pub struct Account {
     id: AccountId,
     vault: AccountVault,
     storage: AccountStorage,
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     code: AccountCode,
     nonce: Felt,
 }
@@ -210,8 +211,35 @@ impl ToAdviceInputs for Account {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use super::AccountCode;
+    use crate::utils::serde::{Deserializable, Serializable};
+
+    pub fn serialize<S>(code: &AccountCode, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = code.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountCode, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        AccountCode::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
+}
+
 // HELPERS
 // ================================================================================================
+
 /// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code root.
 ///
 /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
@@ -234,6 +262,7 @@ pub fn hash_account(
 
 // DIFF IMPLEMENTATION
 // ================================================================================================
+
 impl TryApplyDiff<Digest, StoreNode> for Account {
     type DiffType = AccountDelta;
     type Error = AccountError;

@@ -52,4 +52,10 @@ pub mod crypto {
 pub mod utils {
     pub use miden_crypto::utils::{format, vec};
     pub use vm_core::utils::{collections, string};
+
+    pub mod serde {
+        pub use miden_crypto::utils::{
+            ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+        };
+    }
 }
