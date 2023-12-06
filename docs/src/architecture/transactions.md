@@ -1,44 +1,48 @@
 # Transactions
-Asset transfers between accounts are done by executing transactions. Miden aims for parallel and private transaction execution. Therefore, a transaction is always performed against a single account which provides asynchronicity. And, every transaction causes a provable state-change and a STARK proof thereof. Thus, when executed locally, it provides privacy.
+Transactions in Miden can be understood as facilitating account state changes. Asset transfers between accounts are done by executing transactions. Basically, they take one single account and some notes as input and output the same account at a new state together with some other notes. Miden aims for parallel and private transaction execution. Because a transaction is always performed against a single account Miden obtains asynchronicity. And, because every transaction causes a provable state-change and a STARK proof thereof it provides privacy, when executed locally.
 
 ## Transaction design
-Transactions can be described as state-transition function T that takes an account and `0 to n` notes to map it to another version of that account and produces `0 to n` notes
+Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 4096` notes as output.
 
-$
-T(A, \sum_{\substack{
-   0 \leq i < 1024
-  }}
- N(i))) \to (A', \sum_{\substack{
-   0 \leq j < 4096
-  }}
- N(j))
-$
-, where  $ A \in { Accounts }$, $N \in { Notes }, 0 < i + j  $
+\
+\
 
-A transaction must include an executable program in addition to inputs and outputs. The transaction program has a well-defined structure and must perform the following functions:
 
-1. Create a uniform vault for all inputs.
-2. Run scripts for all input notes (scripts are run one after the other).
-3. Run a user-defined script if desired.
-4. Create a uniform vault for all outputs.
-5. Ensure that the assets in the unified input and output vaults are the same.
+<p align="center">
+    <img src="../diagrams/architecture/transaction/Transaction_Diagram.png" style="width: 75%;">
+</p>
 
-### Transaction inputs and outputs
-As inputs, a transaction accepts the state of one single account and up to `1023` notes for consumption. Optionally, it also takes a user defined script which is executed after all input notes have been consumed. The transaction's output will consist of that single account and up to `4096` newly created notes.
+\
+\
+
+
+At its core, a transaction is an executable program processing the provided inputs and creating the requested outputs. Because the program is being executed in the Miden VM a STARK-proof is being generated for every transaction. 
+
+### Transaction inputs
+As inputs, a transaction requires 
+
+- the **Account** including the [AccountID](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-id) and the [AccountCode](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#code) which will be executed during the transaction execution. 
+- the **BlockHeader**, which contains metadata about the block, commitments to the current state of the chain and the hash of the proof that attests to the integrity of the chain.
+- the **ChainMmr**, which allows for efficient authentication of consumed notes during transaction execution. Authentication is achieved by providing an inclusion proof for the consumed notes in the transaction against the ChainMmr root associated with the latest block known at the time of transaction execution.  
+- the **Notes** that are being consumed in the transaction, including the corresponding note data, e.g. the [note script](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#script) and [serial number](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#serial-number).
 
 ### Transaction program
-In addition to specifying inputs and outputs, a transaction must also include an executable program. The transaction program has a well-defined structure which must do the following:
-
-A user-defined transaction script can also be included in a transaction.
-
-The last point ensures that a transaction does not create or destroy any assets. A transaction can also include a user-defined transaction script. A transaction script is different to the [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#script) that are executed during a transaction.
-
-## Execution steps of a transaction
-Transaction execution consists of several steps. These steps are described below:
+In addition to specifying inputs and outputs, a transaction must be represented by an executable program. The transaction program has a well-defined structure which must do the following:
 
 1. **Prologue**: during this step we build a single unified vault all all transaction inputs (account + notes).
 2. **Execution**: during this step we first execute scripts of all input notes (one after another), and then execute an optional user-defined script (called tx script).
 3. **Epilogue**: during this step we build a single unified vault of all transaction outputs (account + notes), and make sure it contains the same assets as the input vault.
+
+The last point ensures that a transaction does not create or destroy any assets. A transaction can also include a user-defined transaction script. A transaction script is different to the [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#script) that are executed during a transaction.
+
+<p align="center">
+    <img src="../diagrams/architecture/transaction/Transaction_Program.png" style="width: 75%;">
+</p>
+
+### Transaction outputs
+A successfully executed transaction results the a new state of the provided account, a vector of all created Notes and a vector of all the consumed Notes and their Nullifiers and a STARK-proof. 
+
+The transaction outputs are sufficient for the Miden Operator to verify a transaction and updating the [State](state.md) databases.
 
 ## Asset transfer using two transactions
 Under this model transferring assets between accounts requires two transactions as shown in the diagram below.
