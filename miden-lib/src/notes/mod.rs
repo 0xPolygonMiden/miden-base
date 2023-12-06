@@ -1,3 +1,6 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(feature = "std")]
 use std::env;
 
 use crate::assembler::assembler;
@@ -27,6 +30,7 @@ pub enum Script {
 /// Users can create notes with a standard script. Atm we provide two standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
+#[cfg(feature = "std")]
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -42,14 +46,14 @@ pub fn create_note(
 
     let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
         Script::P2ID { target } => (
-            ProgramAst::from_bytes(p2id_bytes).unwrap(),
+            ProgramAst::from_bytes(p2id_bytes).expect("Cannot deserialize the note script"),
             vec![target.into(), ZERO, ZERO, ZERO],
         ),
         Script::P2IDR {
             target,
             recall_height,
         } => (
-            ProgramAst::from_bytes(p2idr_bytes).unwrap(),
+            ProgramAst::from_bytes(p2idr_bytes).expect("Cannot deserialize the note script"),
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
     };

@@ -3,7 +3,10 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{
+    ast::ModuleAst, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
+    Version,
+};
 
 #[cfg(test)]
 mod tests;
@@ -62,8 +65,16 @@ pub struct SatKernel;
 impl SatKernel {
     // SAT KERNEL METHODS
     // --------------------------------------------------------------------------------------------
+    /// Returns kernel module which encodes the transaction kernel system procedures.
+    pub fn kernel() -> Option<ModuleAst> {
+        let miden = MidenLib::default();
+        let path = "miden::sat::kernel";
+
+        miden.get_module_ast(&LibraryPath::new(path).unwrap()).cloned()
+    }
+
     /// Returns masm source code which encodes the transaction kernel system procedures.
-    pub fn kernel() -> &'static str {
+    pub fn kernel_module_as_str() -> &'static str {
         include_str!("../asm/miden/sat/kernel.masm")
     }
 

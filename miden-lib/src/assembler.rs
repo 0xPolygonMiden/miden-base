@@ -8,6 +8,6 @@ pub fn assembler() -> Assembler {
         .expect("failed to load miden-lib")
         .with_library(&StdLibrary::default())
         .expect("failed to load std-lib")
-        .with_kernel(SatKernel::kernel())
+        .with_kernel(SatKernel::kernel_module_as_str())
         .expect("kernel is well formed")
 }
