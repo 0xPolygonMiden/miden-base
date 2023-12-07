@@ -1,39 +1,21 @@
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
+use crate::utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable};
+use assembly::ast::AstSerdeOptions;
 use vm_processor::DeserializationError;
 
-use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
+// CONSTANTS
+// ================================================================================================
+
+/// Default serialization options for script code AST.
+const CODE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
+
+// NOTE SCRIPT
+// ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteScript {
     hash: Digest,
-    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     code: ProgramAst,
-}
-
-#[cfg(feature = "serde")]
-mod serialization {
-    use assembly::ast::AstSerdeOptions;
-
-    pub fn serialize<S>(module: &super::ProgramAst, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = module.to_bytes(AstSerdeOptions {
-            serialize_imports: true,
-        });
-
-        serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<super::ProgramAst, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-
-        super::ProgramAst::from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
 }
 
 impl NoteScript {
@@ -65,7 +47,7 @@ impl NoteScript {
 impl Serializable for NoteScript {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.hash.write_into(target);
-        self.code.write_into(target);
+        self.code.write_into(target, CODE_SERDE_OPTIONS);
     }
 }
 

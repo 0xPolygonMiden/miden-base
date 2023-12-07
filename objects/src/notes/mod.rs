@@ -61,6 +61,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     script: NoteScript,
     inputs: NoteInputs,
     vault: NoteVault,
@@ -277,5 +278,28 @@ impl Deserializable for RecordedNote {
         let proof = NoteInclusionProof::read_from(source)?;
 
         Ok(Self { note, proof })
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use super::NoteScript;
+    use crate::utils::serde::{Deserializable, Serializable};
+
+    pub fn serialize<S>(code: &NoteScript, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = code.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<NoteScript, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        NoteScript::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }
