@@ -26,13 +26,14 @@ These databases are represented by authenticated data structures, such that we c
 Polygon Miden has two databases to capture the note states. The note database is append-only and stores all notes permanently. The nullifier database stores nullifiers that indicate that a note has been previsously consumed. Separating note storage into these two databases gives Polygon Miden client-side proving and advanced privacy.
 
 ### Account database
-The latest account states - and data for onchain accounts - are recorded in a [tiered sparse Merkle tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html) which maps account IDs to account hashes and account data if needed.
+The latest account states - and data for onchain accounts - are recorded in a [sparse Merkle tree] which maps account IDs to account hashes and account data if needed.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Account_DB.png" width="80%">
 </p>
 
-As described in [Accounts](http://localhost:3000/architecture/accounts.html#account-storage-modes), there are three types of accounts:
+As described in [Accounts](http://localhost:3000/architecture/accounts.html#account-storage-modes), there are two types of accounts:
+
 * **Public accounts** where all account data is stored onchain.
 * **Private accounts** where only the hashes of accounts are stored onchain.
 
@@ -40,10 +41,10 @@ Private accounts significantly reduce the storage overhead for nodes. A private 
 
 > Losing the state of a private account would mean loss of funds (as the user won't be able to execute transactions) in a similar manner as a loss of a private key would. This problem can be easily mitigated by storing encrypted account state in a cloud or backing it up somewhere else. Unlike storing private keys in the cloud, this does not compromise privacy or security of an account.
 
-In the future we also want to enable **Encrypted accounts** where the account data is stored onchain but in encrypted text. This is especially interesting for shared accounts like advanced multi-sig wallets.
+In the future we also want to enable **Encrypted accounts** where the account data is stored onchain but in an encrypted format. This is especially interesting for shared accounts like advanced multi-sig wallets.
 
 ### Note database
-Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). Each leaf is a block header which contains the commitment to all notes created in that block. The size of the Merkle Mountain Range grows logarithmically with the number of items in it.
+Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). Each leaf is a block header which contains the commitment to all notes created in that block. The commitment is a sparse Merkle tree of all the notes in a block. The size of the Merkle Mountain Range grows logarithmically with the number of items in it.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Note_DB.png" width="80%">
@@ -78,7 +79,7 @@ To be able to add new nullifiers to the database, operators needs to maintain th
 
 *Note: Nullifiers as constructed in Miden break linkability of privately stored notes and the information about the note's consumption. To know the [note's nullifier](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) one must know the note's data.
 
-In the future, when there a lots of TPS, there will be one tree per epoch (~3 months), and Miden nodes always store trees for at least two epochs. However, the roots of the old trees are still stored. If a user wants to consume a note that is more than $6$ month old, there must be a merkle path provided to the Miden Node for verification.
+In the future, when the network experiences a large number of transactions per second (TPS), there will be one tree per epoch (~3 months), and Miden nodes always store trees for at least two epochs. However, the roots of the old trees are still stored. If a user wants to consume a note that is more than $6$ month old, there must be a merkle path provided to the Miden Node for verification.
 
 ## State bloat minimization
 Operators don’t need to know the entire state to verify or produce a new block. No operator is required to store the entire state.
