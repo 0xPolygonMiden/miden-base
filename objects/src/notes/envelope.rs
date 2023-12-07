@@ -1,5 +1,7 @@
 use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::StarkField;
+use vm_processor::DeserializationError;
 
 // NOTE ENVELOPE
 // ================================================================================================
@@ -101,5 +103,27 @@ impl From<&Note> for NoteEnvelope {
             note_hash: note.hash(),
             note_metadata: *note.metadata(),
         }
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteEnvelope {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.note_hash.write_into(target);
+        self.note_metadata.write_into(target);
+    }
+}
+
+impl Deserializable for NoteEnvelope {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let note_hash = Digest::read_from(source)?;
+        let note_metadata = NoteMetadata::read_from(source)?;
+
+        Ok(Self {
+            note_hash,
+            note_metadata,
+        })
     }
 }

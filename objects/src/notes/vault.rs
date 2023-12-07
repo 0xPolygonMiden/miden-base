@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 
 // NOTE VAULT
@@ -127,5 +130,25 @@ impl TryFrom<&[Word]> for NoteVault {
             .map_err(NoteError::InvalidVaultAssetData)?;
 
         Self::new(&assets)
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteVault {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        debug_assert!(self.assets.len() <= NoteVault::MAX_NUM_ASSETS);
+        target.write_u8((self.assets.len() - 1) as u8);
+        self.assets.write_into(target);
+    }
+}
+
+impl Deserializable for NoteVault {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let count = source.read_u8()? + 1;
+        let assets = Asset::read_batch_from(source, count.into())?;
+
+        Self::new(&assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
     }
 }

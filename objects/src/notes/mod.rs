@@ -16,6 +16,7 @@ mod metadata;
 pub use metadata::NoteMetadata;
 
 mod origin;
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 pub use origin::{NoteInclusionProof, NoteOrigin};
 
 mod script;
@@ -26,6 +27,7 @@ pub use stub::NoteStub;
 
 mod vault;
 pub use vault::NoteVault;
+use vm_processor::DeserializationError;
 
 // CONSTANTS
 // ================================================================================================
@@ -59,6 +61,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
+    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     script: NoteScript,
     inputs: NoteInputs,
     vault: NoteVault,
@@ -228,5 +231,75 @@ impl RecordedNote {
     /// Returns a reference to the origin of the recorded note.
     pub fn origin(&self) -> &NoteOrigin {
         self.proof.origin()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for Note {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.script.write_into(target);
+        self.inputs.write_into(target);
+        self.vault.write_into(target);
+        self.serial_num.write_into(target);
+        self.metadata.write_into(target);
+    }
+}
+
+impl Deserializable for Note {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let script = NoteScript::read_from(source)?;
+        let inputs = NoteInputs::read_from(source)?;
+        let vault = NoteVault::read_from(source)?;
+        let serial_num = Word::read_from(source)?;
+        let metadata = NoteMetadata::read_from(source)?;
+
+        Ok(Self {
+            script,
+            inputs,
+            vault,
+            serial_num,
+            metadata,
+        })
+    }
+}
+
+impl Serializable for RecordedNote {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.note.write_into(target);
+        self.proof.write_into(target);
+    }
+}
+
+impl Deserializable for RecordedNote {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let note = Note::read_from(source)?;
+        let proof = NoteInclusionProof::read_from(source)?;
+
+        Ok(Self { note, proof })
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serialization {
+    use super::NoteScript;
+    use crate::utils::serde::{Deserializable, Serializable};
+
+    pub fn serialize<S>(code: &NoteScript, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = code.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<NoteScript, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+
+        NoteScript::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }

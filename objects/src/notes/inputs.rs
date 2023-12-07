@@ -1,3 +1,6 @@
+use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::DeserializationError;
+
 use super::{Digest, Felt, Hasher, NoteError, Vec, ZERO};
 
 /// Holds the inputs which are placed onto the stack before a note's script is executed.
@@ -60,6 +63,25 @@ impl NoteInputs {
         self.hash
     }
 }
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for NoteInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.inputs.write_into(target);
+    }
+}
+
+impl Deserializable for NoteInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let inputs = <[Felt; 16]>::read_from(source)?;
+        Self::new(&inputs).map_err(|v| DeserializationError::InvalidValue(format!("{v}")))
+    }
+}
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn test_input_ordering() {
