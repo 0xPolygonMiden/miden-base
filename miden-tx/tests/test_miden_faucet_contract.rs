@@ -261,12 +261,7 @@ fn test_faucet_contract_creation() {
     let exp_faucet_account_code =
         AccountCode::new(exp_faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
 
-    // println!("faucet_account.code() = {:?}", faucet_account.code());
-    // println!(
-    //     "exp_faucet_account_code = {:?}",
-    //     exp_faucet_account_code
-    // );
-    //assert!(faucet_account.code() == &exp_faucet_account_code);
+    assert!(faucet_account.code() == &exp_faucet_account_code);
 }
 
 fn get_faucet_account_with_max_supply_and_total_issuance(

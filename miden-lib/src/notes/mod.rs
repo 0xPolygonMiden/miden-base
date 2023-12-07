@@ -46,14 +46,14 @@ pub fn create_note(
 
     let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
         Script::P2ID { target } => (
-            ProgramAst::from_bytes(p2id_bytes).expect("Cannot deserialize the note script"),
+            ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), ZERO, ZERO, ZERO],
         ),
         Script::P2IDR {
             target,
             recall_height,
         } => (
-            ProgramAst::from_bytes(p2idr_bytes).expect("Cannot deserialize the note script"),
+            ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
     };
