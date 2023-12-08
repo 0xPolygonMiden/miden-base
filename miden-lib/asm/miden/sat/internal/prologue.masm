@@ -200,11 +200,11 @@ proc.validate_storage_slot_types
             # => [arity, type, ...]
 
             # assert the entry arity is less than or equal to 255
-            push.255 lte assert
+            u32split assertz push.255 u32lte assert
             # => [type, ...]
 
             # assert the slot type is valid
-            exec.account::get_max_slot_type lte assert
+            u32split assertz exec.account::get_max_slot_type u32lte assert
             # => [...]
         end
         # => [slot_type_data_ptr]
@@ -364,7 +364,7 @@ proc.process_acct_data
 
     # ingest storage slot type data
     exec.ingest_acct_storage_types
-    # => []
+    # => [is_new, ACCT_HASH]
 
     # process conditional logic depending on whether the account is new or existing
     if.true

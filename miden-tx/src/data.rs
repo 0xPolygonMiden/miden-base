@@ -5,8 +5,8 @@ use vm_processor::AdviceInputs;
 /// The [DataStore] trait defines the interface that transaction objects use to fetch data
 /// required for transaction execution.
 pub trait DataStore {
-    /// Returns the [Account], [BlockHeader], [ChainMmr], and [Note]s required for transaction
-    /// execution.
+    /// Returns the [Account], [BlockHeader], [ChainMmr], [RecordedNote]s and [AdviceInputs] required
+    /// for transaction execution.
     fn get_transaction_data(
         &self,
         account_id: AccountId,

@@ -1,8 +1,7 @@
 use crate::{assembler::assembler, auth::AuthScheme};
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageEntry,
-        StorageSlot,
+        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
     },
     assembly::ModuleAst,
     utils::{
@@ -57,8 +56,10 @@ pub fn create_basic_wallet(
     let account_assembler = assembler();
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler)?;
 
-    let storage_slot_0_entry = StorageSlot::new_scalar(StorageEntry::Scalar(storage_slot_0_data));
-    let account_storage = AccountStorage::new(vec![(0, storage_slot_0_entry)])?;
+    let account_storage = AccountStorage::new(vec![(
+        0,
+        (StorageSlotType::Value { value_arity: 0 }, storage_slot_0_data),
+    )])?;
     let account_vault = AccountVault::new(&[])?;
 
     let account_seed = AccountId::get_account_seed(

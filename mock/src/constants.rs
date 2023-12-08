@@ -5,7 +5,7 @@ pub use super::mock::account::{
 };
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::{AccountId, AccountType, SlotItem, StorageEntry, StorageSlot},
+    accounts::{AccountId, AccountType, SlotItem, StorageSlotType},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt, FieldElement, Word, ZERO,
 };
@@ -53,14 +53,11 @@ pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
 
 pub fn storage_item_0() -> SlotItem {
-    let storage_slot: StorageSlot =
-        StorageSlot::new_scalar(StorageEntry::new_scalar(STORAGE_VALUE_0));
-    (STORAGE_INDEX_0, storage_slot)
+    (STORAGE_INDEX_0, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_0))
 }
+
 pub fn storage_item_1() -> SlotItem {
-    let storage_slot: StorageSlot =
-        StorageSlot::new_scalar(StorageEntry::new_scalar(STORAGE_VALUE_1));
-    (STORAGE_INDEX_1, storage_slot)
+    (STORAGE_INDEX_1, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_1))
 }
 
 pub const CHILD_ROOT_PARENT_LEAF_INDEX: u8 = 10;

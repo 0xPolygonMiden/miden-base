@@ -23,9 +23,7 @@ mod seed;
 pub use seed::get_account_seed;
 
 mod storage;
-pub use storage::{
-    AccountStorage, SlotItem, StorageEntry, StorageEntryType, StorageSlot, StorageSlotType,
-};
+pub use storage::{AccountStorage, SlotItem, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;
@@ -181,6 +179,8 @@ impl Account {
 }
 
 impl ToAdviceInputs for Account {
+    /// Pushes account data required for transaction execution into the advice inputs target.
+    ///
     /// Pushes an array of field elements representing this account onto the advice stack.
     /// The array (elements) is in the following format:
     ///    elements[0]       = account id
@@ -189,6 +189,14 @@ impl ToAdviceInputs for Account {
     ///    elements[4..8]    = account vault root
     ///    elements[8..12]   = storage root
     ///    elements[12..16]  = code root
+    ///
+    /// Pushes the following items into the Merkle store:
+    ///  - The Merkle nodes associated with the storage slots tree.
+    ///  - The Merkle nodes associated with the account code procedures tree.
+    ///
+    /// Pushes the following items into the advice map:
+    /// - The storage types commitment -> storage slot types vector
+    /// - The account code procedure root -> procedure leaf index
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // push core items onto the stack
         target.push_onto_stack(&[self.id.into(), ZERO, ZERO, self.nonce]);

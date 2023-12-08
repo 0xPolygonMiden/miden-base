@@ -1,6 +1,6 @@
 use miden_lib::{wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountVault, StorageEntry, StorageSlot},
+    accounts::{Account, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
@@ -93,11 +93,9 @@ fn test_receive_asset_via_wallet() {
     assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
 
     // clone account info
-    let account_storage = AccountStorage::new(vec![(
-        0,
-        StorageSlot::new_scalar(StorageEntry::new_scalar(target_pub_key)),
-    )])
-    .unwrap();
+    let account_storage =
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, target_pub_key))])
+            .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -173,11 +171,9 @@ fn test_send_asset_via_wallet() {
         .unwrap();
 
     // clones account info
-    let sender_account_storage = AccountStorage::new(vec![(
-        0,
-        StorageSlot::new_scalar(StorageEntry::new_scalar(sender_pub_key)),
-    )])
-    .unwrap();
+    let sender_account_storage =
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, sender_pub_key))])
+            .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta

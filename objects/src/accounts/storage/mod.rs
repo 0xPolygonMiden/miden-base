@@ -1,11 +1,8 @@
 use super::{AccountError, AccountStorageDelta, Digest, Felt, Hasher, TryApplyDiff, Vec, Word};
 use crate::crypto::merkle::{NodeIndex, SimpleSmt, StoreNode};
 
-mod entry;
-pub use entry::{StorageEntry, StorageEntryType};
-
 mod slot;
-pub use slot::{StorageSlot, StorageSlotType};
+pub use slot::StorageSlotType;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -14,14 +11,23 @@ pub use slot::{StorageSlot, StorageSlotType};
 /// and the entry of the item.
 pub type SlotItem = (u8, StorageSlot);
 
+/// A type that represents a single storage slot entry. The tuple contains the type of the slot and
+/// the value of the slot - the value can be a raw value or a commitment to the underlying data
+/// structure.
+pub type StorageSlot = (StorageSlotType, Word);
+
 // ACCOUNT STORAGE
 // ================================================================================================
 
-/// Account storage is composed of two components. The first component is a simple sparse Merkle
-/// tree of depth 8 which is index addressable. This provides the user with 256 slots. The slots
-/// can contain either a scalar, a map or an array entry. The second component is a vector of slot
-/// types which describes the type of each slot. The slot types vector is committed to by
-/// performing a sequential hash of the slot types vector.
+/// Account storage consists of 256 index-addressable storage slots. Each slot has a type which
+/// defines the size and the structure of the slot. Currently, the following types are supported:
+/// - Scalar: a sequence of up to 256 words.
+/// - Array: a sparse array of up to 2^n values where n < 64 and each value contains up to 256
+///          words.
+/// - Map: a key-value map where keys are words and values contain up to 256 words.
+///
+/// Storage slots are stored in a simple Sparse Merkle tree of depth 8. Slot 255 is always reserved
+/// and contains information about slot types of all other slots.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStorage {
@@ -44,11 +50,11 @@ impl AccountStorage {
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
         // initialize slot types vector
-        let mut types = vec![StorageSlotType::Scalar(StorageEntryType::Scalar); 256];
+        let mut types = vec![StorageSlotType::Value { value_arity: 0 }; 256];
 
         // set the slot type for the types commitment
         types[Self::SLOT_TYPES_COMMITMENT_INDEX as usize] =
-            StorageSlotType::Scalar(StorageEntryType::Array { arity: 64 });
+            StorageSlotType::Value { value_arity: 64 };
 
         // process entries to extract type data
         let mut entires = items
@@ -58,9 +64,9 @@ impl AccountStorage {
                     return Err(AccountError::StorageSlotIsReserved(x.0));
                 }
 
-                let (slot_type, slot_entry) = x.1.into_inner();
+                let (slot_type, slot_value) = x.1;
                 types[x.0 as usize] = slot_type;
-                Ok((x.0 as u64, slot_entry.value()))
+                Ok((x.0 as u64, slot_value))
             })
             .collect::<Result<Vec<_>, AccountError>>()?;
 
@@ -74,8 +80,6 @@ impl AccountStorage {
         let slots = SimpleSmt::with_leaves(Self::STORAGE_TREE_DEPTH, entires)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        // TODO: should we return a (Self, BTreeMap) tuple that includes the data for scalar slot
-        // array entries?
         Ok(Self { slots, types })
     }
 
@@ -114,11 +118,6 @@ impl AccountStorage {
     /// Returns a commitment to the storage slot types.
     pub fn slot_types_commitment(&self) -> Digest {
         Hasher::hash_elements(&self.types.iter().map(Felt::from).collect::<Vec<_>>())
-    }
-
-    /// Returns a list of items contained in this storage.
-    pub fn items(&self) -> &[Word] {
-        todo!()
     }
 
     // PUBLIC MODIFIERS

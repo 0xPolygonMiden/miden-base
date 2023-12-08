@@ -213,7 +213,7 @@ fn test_get_item() {
         end
         ",
             item_index = storage_item.0,
-            item_value = prepare_word(&storage_item.1.entry().value())
+            item_value = prepare_word(&storage_item.1 .1)
         );
 
         let transaction = prepare_transaction(

@@ -8,10 +8,7 @@ use crate::constants::{
 };
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageEntry,
-        StorageEntryType, StorageSlot,
-    },
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
     crypto::merkle::{SimpleSmt, TieredSmt},
@@ -54,7 +51,7 @@ pub fn mock_account_storage(auxiliary_data: &mut AdviceInputs) -> AccountStorage
         storage_item_1(),
         (
             CHILD_ROOT_PARENT_LEAF_INDEX,
-            StorageSlot::new_scalar(StorageEntry::new_scalar(*child_smt.root())),
+            (StorageSlotType::Value { value_arity: 0 }, *child_smt.root()),
         ),
     ])
     .unwrap()
@@ -175,10 +172,11 @@ pub fn mock_fungible_faucet(
     } else {
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
-    let initial_balance_slot_entry =
-        StorageSlot::new_scalar(StorageEntry::Scalar([ZERO, ZERO, ZERO, initial_balance]));
-    let account_storage =
-        AccountStorage::new(vec![(FAUCET_STORAGE_DATA_SLOT, initial_balance_slot_entry)]).unwrap();
+    let account_storage = AccountStorage::new(vec![(
+        FAUCET_STORAGE_DATA_SLOT,
+        (StorageSlotType::Value { value_arity: 0 }, [ZERO, ZERO, ZERO, initial_balance]),
+    )])
+    .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
     Account::new(account_id, AccountVault::default(), account_storage, account_code, nonce)
@@ -207,7 +205,7 @@ pub fn mock_non_fungible_faucet(
 
     let account_storage = AccountStorage::new(vec![(
         FAUCET_STORAGE_DATA_SLOT,
-        StorageSlot::new_map(*nft_tree.root(), StorageEntryType::Scalar),
+        (StorageSlotType::Map { value_arity: 0 }, *nft_tree.root()),
     )])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();

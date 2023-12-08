@@ -1,8 +1,6 @@
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageEntry, StorageSlot,
-    },
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::ModuleAst,
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
@@ -127,11 +125,9 @@ pub fn get_account_with_default_account_code(
     let mut account_assembler = assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
-    let account_storage = AccountStorage::new(vec![(
-        0,
-        StorageSlot::new_scalar(StorageEntry::new_scalar(public_key)),
-    )])
-    .unwrap();
+    let account_storage =
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, public_key))])
+            .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),
