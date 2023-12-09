@@ -157,7 +157,7 @@ fn main() -> io::Result<()> {
         LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
     let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
     let stdlib =
-        MaslLibrary::read_from_dir(dst.join(ASM_MIDEN_DIR_PATH), namespace, false, version)?;
+        MaslLibrary::read_from_dir(dst.join(ASM_MIDEN_DIR_PATH), namespace, true, version)?;
 
     stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
 
