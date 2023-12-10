@@ -5,10 +5,7 @@ use assembly::{
 use std::{
     env, fs,
     fs::File,
-    io,
-    io::BufRead,
-    io::BufReader,
-    io::Write,
+    io::{self, BufRead, BufReader, Write},
     path::{Path, PathBuf},
 };
 
@@ -72,6 +69,18 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
     Ok(line)
 }
 
+fn compile_miden_lib(build_dir: &String, dst: PathBuf) -> io::Result<()> {
+    let namespace =
+        LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
+    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
+    let midenlib =
+        MaslLibrary::read_from_dir(dst.join(ASM_MIDEN_DIR_PATH), namespace, true, version)?;
+
+    midenlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
+
+    Ok(())
+}
+
 fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
     let binding = dst.join(ASM_SCRIPTS_DIR_PATH);
     let path = Path::new(&binding);
@@ -110,10 +119,9 @@ fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
 }
 
 /// Read and parse the contents from `./asm`.
-/// - Stores contents from `/miden` into a `LibraryContents` struct, serializing it into
-/// `assets` folder under `std` namespace.
-/// - Compiles contents from `/scripts` into bytes and stores each script as `.masb`
-/// files into `assets` folder under `scripts` namespace.
+/// - Compiles contents of asm/miden directory into a Miden library file (.masl) under
+/// miden namespace.
+/// - Compiles contents of asm/scripts directory into individual .masb files.
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
     // re-build when the masm code changes.
@@ -121,9 +129,8 @@ fn main() -> io::Result<()> {
 
     // Copies the Masm code to the build directory
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let build_dir = env::var("OUT_DIR").unwrap();
+    let build_dir: String = env::var("OUT_DIR").unwrap();
     let src = Path::new(&crate_dir).join(ASM_DIR_PATH);
-    println!("src: {}", src.to_str().unwrap_or("<invalid UTF-8 filename>"));
     let dst = Path::new(&build_dir).to_path_buf();
     copy_directory(src, &dst);
 
@@ -153,13 +160,7 @@ fn main() -> io::Result<()> {
     }
 
     // compile the stdlib
-    let namespace =
-        LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
-    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let stdlib =
-        MaslLibrary::read_from_dir(dst.join(ASM_MIDEN_DIR_PATH), namespace, true, version)?;
-
-    stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
+    compile_miden_lib(&build_dir, dst.clone())?;
 
     // compile the note scripts separately because they are not part of the stdlib
     compile_note_scripts(dst)?;
