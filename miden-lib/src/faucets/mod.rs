@@ -1,7 +1,8 @@
+use super::Library;
 use crate::{assembler::assembler, auth::AuthScheme};
+use assembly::LibraryPath;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault},
-    assembly::ModuleAst,
     assets::TokenSymbol,
     crypto::merkle::MerkleStore,
     utils::{string::ToString, vec},
@@ -37,11 +38,14 @@ pub fn create_basic_fungible_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
 
-    let account_code_src = include_str!("../../asm/faucets/basic_fungible.masm");
-    let account_code_ast = ModuleAst::parse(account_code_src)
-        .map_err(|e| AccountError::AccountCodeAssemblerError(e.into()))?;
+    let miden = super::MidenLib::default();
+    let path = "miden::faucets::basic_fungible";
+    let faucet_code_ast = miden
+        .get_module_ast(&LibraryPath::new(path).unwrap())
+        .expect("Getting module AST failed");
+
     let account_assembler = assembler();
-    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler)?;
+    let account_code = AccountCode::new(faucet_code_ast.clone(), &account_assembler)?;
 
     // First check that the metadata is valid.
     if decimals > MAX_DECIMALS {

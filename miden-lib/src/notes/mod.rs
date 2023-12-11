@@ -8,7 +8,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::Asset,
     notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
-    utils::{collections::Vec, format, vec},
+    utils::{collections::Vec, vec},
     Digest, Felt, NoteError, StarkField, Word, WORD_SIZE, ZERO,
 };
 
@@ -33,32 +33,24 @@ pub fn create_note(
     serial_num: Word,
 ) -> Result<Note, NoteError> {
     let note_assembler = assembler();
-    let (note_script, inputs): (&str, Vec<Felt>) = match script {
-        Script::P2ID { target } => ("p2id", vec![target.into(), ZERO, ZERO, ZERO]),
+
+    // Include the binary version of the scripts into the source file at compile time
+    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
+
+    let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
+        Script::P2ID { target } => (
+            ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?,
+            vec![target.into(), ZERO, ZERO, ZERO],
+        ),
         Script::P2IDR {
             target,
             recall_height,
-        } => ("p2idr", vec![target.into(), recall_height.into(), ZERO, ZERO]),
+        } => (
+            ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
+            vec![target.into(), recall_height.into(), ZERO, ZERO],
+        ),
     };
-
-    // Create the note
-    let note_script_str = format!(
-        "
-        use.miden::note_scripts::basic
-
-        begin
-            # drop the transaction script root
-            dropw
-            # => []
-
-            # invoke the note script procedure
-            exec.basic::{note_script}
-        end
-        "
-    );
-
-    let note_script_ast = ProgramAst::parse(&note_script_str)
-        .map_err(|e| NoteError::ScriptCompilationError(e.into()))?;
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
 
