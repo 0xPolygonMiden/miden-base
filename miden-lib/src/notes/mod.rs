@@ -25,7 +25,6 @@ pub enum Script {
 /// Users can create notes with a standard script. Atm we provide two standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
-#[cfg(feature = "std")]
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
