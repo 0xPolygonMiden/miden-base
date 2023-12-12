@@ -23,7 +23,7 @@ pub mod host;
 pub use host::TransactionHost;
 
 mod prover;
-pub use prover::TransactionProver;
+pub use prover::{ProvingOptions, TransactionProver};
 
 mod result;
 pub use result::TryFromVmResult;
