@@ -75,7 +75,7 @@ impl ExecutedTransaction {
         &self.tx_script
     }
 
-    /// Returns the block reference.
+    /// Returns the block hash.
     pub fn block_hash(&self) -> Digest {
         self.block_header.hash()
     }
