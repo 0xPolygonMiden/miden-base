@@ -11,7 +11,7 @@ use.miden::sat::account
 use.miden::sat::asset
 use.miden::sat::faucet
 use.miden::sat::tx
-use.miden::eoa::basic
+use.miden::auth::basic
 
 # CONSTANTS
 # =================================================================================================
