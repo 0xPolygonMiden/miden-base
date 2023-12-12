@@ -16,7 +16,7 @@ export.auth_tx_rpo_falcon512
     # Get commitments to created notes
     exec.tx::get_output_notes_hash
     # => [OUTPUT_NOTES_HASH, ...]
-    
+
     # Get commitments to consumed notes
     exec.tx::get_input_notes_hash
     # => [INPUT_NOTES_HASH, OUTPUT_NOTES_HASH, ...]
@@ -37,8 +37,8 @@ export.auth_tx_rpo_falcon512
     push.PUBLIC_KEY_SLOT exec.account::get_item
     # => [PUB_KEY, M]
 
-    # Verify the signature against the public key and the message. The procedure gets as 
-    # inputs the hash of the public key and the hash of the message via the operand 
+    # Verify the signature against the public key and the message. The procedure gets as
+    # inputs the hash of the public key and the hash of the message via the operand
     # stack. The signature is provided via the advice stack.The signature is valid if and
     # only if the procedure returns.
     exec.rpo_falcon512::verify

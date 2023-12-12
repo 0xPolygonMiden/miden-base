@@ -1,15 +1,12 @@
 use miden_lib::{wallets::create_basic_wallet, AuthScheme};
-
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountVault},
+    accounts::{Account, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
-    crypto::{
-        dsa::rpo_falcon512::{KeyPair, PublicKey},
-        merkle::MerkleStore,
-    },
+    crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     Felt, StarkField, Word, ONE, ZERO,
 };
+use miden_tx::TransactionExecutor;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
@@ -17,8 +14,6 @@ use mock::{
     },
     utils::prepare_word,
 };
-
-use miden_tx::TransactionExecutor;
 
 mod common;
 use common::{
@@ -63,7 +58,8 @@ fn test_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
+    let data_store =
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account.id()).unwrap();
@@ -98,7 +94,8 @@ fn test_receive_asset_via_wallet() {
 
     // clone account info
     let account_storage =
-        AccountStorage::new(vec![(0, target_pub_key)], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, target_pub_key))])
+            .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -130,7 +127,7 @@ fn test_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]), None);
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(sender_account.id()).unwrap();
@@ -175,13 +172,14 @@ fn test_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage =
-        AccountStorage::new(vec![(0, sender_pub_key)], MerkleStore::new()).unwrap();
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, sender_pub_key))])
+            .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
     let sender_account_after: Account = Account::new(
-        sender_account.id(),
-        AccountVault::new(&[]).unwrap(),
+        data_store.account.id(),
+        AccountVault::new(&vec![]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),

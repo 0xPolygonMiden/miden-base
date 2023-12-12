@@ -1,8 +1,9 @@
 use crate::{assembler::assembler, auth::AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
+    },
     assembly::ModuleAst,
-    crypto::merkle::MerkleStore,
     utils::{
         format,
         string::{String, ToString},
@@ -33,7 +34,7 @@ pub fn create_basic_wallet(
         ));
     }
 
-    let (auth_scheme_procedure, storage_slot_0): (&str, Word) = match auth_scheme {
+    let (auth_scheme_procedure, storage_slot_0_data): (&str, Word) = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => ("basic::auth_tx_rpo_falcon512", pub_key.into()),
     };
 
@@ -55,7 +56,10 @@ pub fn create_basic_wallet(
     let account_assembler = assembler();
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler)?;
 
-    let account_storage = AccountStorage::new(vec![(0, storage_slot_0)], MerkleStore::new())?;
+    let account_storage = AccountStorage::new(vec![(
+        0,
+        (StorageSlotType::Value { value_arity: 0 }, storage_slot_0_data),
+    )])?;
     let account_vault = AccountVault::new(&[])?;
 
     let account_seed = AccountId::get_account_seed(

@@ -52,8 +52,10 @@ pub fn generate_advice_provider_inputs(
     block_chain: &ChainMmr,
     notes: &ConsumedNotes,
     tx_script: &Option<TransactionScript>,
+    auxiliary_data: &AdviceInputs,
 ) -> AdviceInputs {
-    let mut advice_inputs = AdviceInputs::default();
+    // create a copy of the auxiliary data and extend it with the transaction data
+    let mut advice_inputs = auxiliary_data.clone();
 
     // insert block data
     block_header.to_advice_inputs(&mut advice_inputs);

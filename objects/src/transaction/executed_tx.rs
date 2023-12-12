@@ -19,6 +19,7 @@ pub struct ExecutedTransaction {
     tx_script: Option<TransactionScript>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
+    auxiliary_data: AdviceInputs,
 }
 
 impl ExecutedTransaction {
@@ -33,6 +34,7 @@ impl ExecutedTransaction {
         tx_script: Option<TransactionScript>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
+        auxiliary_data: AdviceInputs,
     ) -> Result<Self, ExecutedTransactionError> {
         Self::validate_new_account_seed(&initial_account, initial_account_seed)?;
         Ok(Self {
@@ -44,6 +46,7 @@ impl ExecutedTransaction {
             tx_script,
             block_header,
             block_chain,
+            auxiliary_data,
         })
     }
 
@@ -106,6 +109,7 @@ impl ExecutedTransaction {
             &self.block_chain,
             &self.consumed_notes,
             &self.tx_script,
+            &self.auxiliary_data,
         )
     }
 

@@ -2,9 +2,10 @@ use super::Library;
 use crate::{assembler::assembler, auth::AuthScheme};
 use assembly::LibraryPath;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
+    },
     assets::TokenSymbol,
-    crypto::merkle::MerkleStore,
     utils::{string::ToString, vec},
     AccountError, Felt, StarkField, Word, ZERO,
 };
@@ -64,8 +65,10 @@ pub fn create_basic_fungible_faucet(
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: authentication data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
-    let account_storage =
-        AccountStorage::new(vec![(0, auth_data), (1, metadata)], MerkleStore::new())?;
+    let account_storage = AccountStorage::new(vec![
+        (0, (StorageSlotType::Value { value_arity: 0 }, auth_data)),
+        (1, (StorageSlotType::Value { value_arity: 0 }, metadata)),
+    ])?;
     let account_vault = AccountVault::new(&[])?;
 
     let account_seed = AccountId::get_account_seed(

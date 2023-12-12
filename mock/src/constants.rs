@@ -5,10 +5,11 @@ pub use super::mock::account::{
 };
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::{AccountId, AccountType, StorageItem},
+    accounts::{AccountId, AccountType, SlotItem, StorageSlotType},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt, FieldElement, Word, ZERO,
 };
+use vm_processor::AdviceInputs;
 
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
 
@@ -39,6 +40,7 @@ pub const DEFAULT_ACCOUNT_CODE: &str = "
 pub const CONSUMED_ASSET_1_AMOUNT: u64 = 100;
 pub const CONSUMED_ASSET_2_AMOUNT: u64 = 200;
 pub const CONSUMED_ASSET_3_AMOUNT: u64 = 300;
+pub const CONSUMED_ASSET_4_AMOUNT: u64 = 100;
 
 pub const NON_FUNGIBLE_ASSET_DATA: [u8; 4] = [1, 2, 3, 4];
 pub const NON_FUNGIBLE_ASSET_DATA_2: [u8; 4] = [5, 6, 7, 8];
@@ -46,11 +48,17 @@ pub const NON_FUNGIBLE_ASSET_DATA_2: [u8; 4] = [5, 6, 7, 8];
 pub const NONCE: Felt = Felt::ZERO;
 
 pub const STORAGE_INDEX_0: u8 = 20;
-pub const STORAGE_VALUE_0: [Felt; 4] = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
 pub const STORAGE_INDEX_1: u8 = 30;
-pub const STORAGE_VALUE_1: [Felt; 4] = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-pub const STORAGE_ITEM_0: StorageItem = (STORAGE_INDEX_0, STORAGE_VALUE_0);
-pub const STORAGE_ITEM_1: StorageItem = (STORAGE_INDEX_1, STORAGE_VALUE_1);
+pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
+
+pub fn storage_item_0() -> SlotItem {
+    (STORAGE_INDEX_0, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_0))
+}
+
+pub fn storage_item_1() -> SlotItem {
+    (STORAGE_INDEX_1, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_1))
+}
 
 pub const CHILD_ROOT_PARENT_LEAF_INDEX: u8 = 10;
 pub const CHILD_SMT_DEPTH: u8 = 64;
@@ -120,6 +128,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ZERO,
                 false,
                 &assembler,
+                &mut AdviceInputs::default(),
             ),
             AccountType::NonFungibleFaucet,
         ),
@@ -129,11 +138,12 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ZERO,
                 true,
                 &assembler,
+                &mut AdviceInputs::default(),
             ),
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            mock_account(Felt::ONE, None, &assembler),
+            mock_account(None, Felt::ONE, None, &assembler, &mut AdviceInputs::default()),
             AccountType::RegularAccountUpdatableCode,
         ),
     };

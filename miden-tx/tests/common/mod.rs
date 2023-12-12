@@ -1,10 +1,10 @@
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::ModuleAst,
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::KeyPair, merkle::MerkleStore, utils::Serializable},
+    crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
     BlockHeader, ChainMmr, Felt, StarkField, Word,
 };
@@ -15,6 +15,10 @@ use mock::{
     mock::notes::AssetPreservationStatus,
     mock::transaction::{mock_inputs, mock_inputs_with_existing},
 };
+use vm_processor::AdviceInputs;
+
+// MOCK DATA STORE
+// ================================================================================================
 
 #[derive(Clone)]
 pub struct MockDataStore {
@@ -22,32 +26,43 @@ pub struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<RecordedNote>,
+    pub auxiliary_data: AdviceInputs,
 }
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, consumed_notes) =
+        let (account, block_header, block_chain, consumed_notes, auxiliary_data) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
+            auxiliary_data,
         }
     }
 
-    pub fn with_existing(account: Option<Account>, consumed_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, consumed_notes) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            consumed_notes,
-        );
+    pub fn with_existing(
+        account: Option<Account>,
+        consumed_notes: Option<Vec<Note>>,
+        auxiliary_data: Option<AdviceInputs>,
+    ) -> Self {
+        let (account, block_header, block_chain, consumed_notes, mut auxiliary_data_inputs) =
+            mock_inputs_with_existing(
+                MockAccountType::StandardExisting,
+                AssetPreservationStatus::Preserved,
+                account,
+                consumed_notes,
+            );
+        if let Some(auxiliary_data) = auxiliary_data {
+            auxiliary_data_inputs.extend(auxiliary_data);
+        }
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
+            auxiliary_data: auxiliary_data_inputs,
         }
     }
 }
@@ -64,7 +79,8 @@ impl DataStore for MockDataStore {
         account_id: AccountId,
         block_num: u32,
         notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>), DataStoreError> {
+    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs), DataStoreError>
+    {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num as u64, self.block_header.block_num().as_int());
         assert_eq!(notes.len(), self.notes.len());
@@ -75,6 +91,7 @@ impl DataStore for MockDataStore {
             self.block_header,
             self.block_chain.clone(),
             self.notes.clone(),
+            self.auxiliary_data.clone(),
         ))
     }
 
@@ -108,7 +125,9 @@ pub fn get_account_with_default_account_code(
     let mut account_assembler = assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &mut account_assembler).unwrap();
-    let account_storage = AccountStorage::new(vec![(0, public_key)], MerkleStore::new()).unwrap();
+    let account_storage =
+        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, public_key))])
+            .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AccountVault::new(&vec![asset.into()]).unwrap(),

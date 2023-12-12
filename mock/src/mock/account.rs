@@ -1,19 +1,20 @@
 use crate::constants::{
-    generate_account_seed, non_fungible_asset, non_fungible_asset_2, AccountSeedType,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, CHILD_ROOT_PARENT_LEAF_INDEX,
-    CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0, FUNGIBLE_ASSET_AMOUNT,
-    FUNGIBLE_FAUCET_INITIAL_BALANCE, STORAGE_ITEM_0, STORAGE_ITEM_1,
+    generate_account_seed, non_fungible_asset, non_fungible_asset_2, storage_item_0,
+    storage_item_1, AccountSeedType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
+    FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
 };
 use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
-    crypto::merkle::{MerkleStore, SimpleSmt, TieredSmt},
+    crypto::merkle::{SimpleSmt, TieredSmt},
     Felt, FieldElement, Word, ZERO,
 };
+use vm_processor::AdviceInputs;
 
 fn mock_account_vault() -> AccountVault {
     // prepare fungible asset
@@ -37,23 +38,22 @@ fn mock_account_vault() -> AccountVault {
         .unwrap()
 }
 
-pub fn mock_account_storage() -> AccountStorage {
+pub fn mock_account_storage(auxiliary_data: &mut AdviceInputs) -> AccountStorage {
     // Create an account merkle store
-    let mut account_merkle_store = MerkleStore::new();
     let child_smt =
         SimpleSmt::with_leaves(CHILD_SMT_DEPTH, [(CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0)])
             .unwrap();
-    account_merkle_store.extend(child_smt.inner_nodes());
+    auxiliary_data.extend_merkle_store(child_smt.inner_nodes());
 
     // create account storage
-    AccountStorage::new(
-        vec![
-            STORAGE_ITEM_0,
-            STORAGE_ITEM_1,
-            (CHILD_ROOT_PARENT_LEAF_INDEX, *child_smt.root()),
-        ],
-        account_merkle_store,
-    )
+    AccountStorage::new(vec![
+        storage_item_0(),
+        storage_item_1(),
+        (
+            CHILD_ROOT_PARENT_LEAF_INDEX,
+            (StorageSlotType::Value { value_arity: 0 }, *child_smt.root()),
+        ),
+    ])
     .unwrap()
 }
 
@@ -128,17 +128,23 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     AccountCode::new(account_module_ast, assembler).unwrap()
 }
 
-pub fn mock_new_account(assembler: &Assembler) -> Account {
+pub fn mock_new_account(assembler: &Assembler, auxiliary_data: &mut AdviceInputs) -> Account {
     let (acct_id, _account_seed) =
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
-    let account_storage = mock_account_storage();
+    let account_storage = mock_account_storage(auxiliary_data);
     let account_code = mock_account_code(assembler);
     Account::new(acct_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
-pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assembler) -> Account {
+pub fn mock_account(
+    account_id: Option<u64>,
+    nonce: Felt,
+    code: Option<AccountCode>,
+    assembler: &Assembler,
+    auxiliary_data: &mut AdviceInputs,
+) -> Account {
     // mock account storage
-    let account_storage = mock_account_storage();
+    let account_storage = mock_account_storage(auxiliary_data);
 
     // mock account code
     let account_code = match code {
@@ -150,8 +156,8 @@ pub fn mock_account(nonce: Felt, code: Option<AccountCode>, assembler: &Assemble
     let account_vault = mock_account_vault();
 
     // Create an account with storage items
-    let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+    let account_id = account_id.unwrap_or(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN);
+    let account_id = AccountId::try_from(account_id).unwrap();
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
 
@@ -166,10 +172,10 @@ pub fn mock_fungible_faucet(
     } else {
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
-    let account_storage = AccountStorage::new(
-        vec![(FAUCET_STORAGE_DATA_SLOT, [ZERO, ZERO, ZERO, initial_balance])],
-        Default::default(),
-    )
+    let account_storage = AccountStorage::new(vec![(
+        FAUCET_STORAGE_DATA_SLOT,
+        (StorageSlotType::Value { value_arity: 0 }, [ZERO, ZERO, ZERO, initial_balance]),
+    )])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
@@ -181,6 +187,7 @@ pub fn mock_non_fungible_faucet(
     nonce: Felt,
     empty_reserved_slot: bool,
     assembler: &Assembler,
+    auxiliary_data: &mut AdviceInputs,
 ) -> Account {
     let entires = match empty_reserved_slot {
         true => vec![],
@@ -189,12 +196,17 @@ pub fn mock_non_fungible_faucet(
             non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).into(),
         )],
     };
+
+    // construct nft tree
     let nft_tree = TieredSmt::with_entries(entires).unwrap();
 
-    let account_storage = AccountStorage::new(
-        vec![(FAUCET_STORAGE_DATA_SLOT, nft_tree.root().into())],
-        (&nft_tree).into(),
-    )
+    // add nft tree data to auxiliary data inputs
+    auxiliary_data.extend_merkle_store(nft_tree.inner_nodes());
+
+    let account_storage = AccountStorage::new(vec![(
+        FAUCET_STORAGE_DATA_SLOT,
+        (StorageSlotType::Map { value_arity: 0 }, *nft_tree.root()),
+    )])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);

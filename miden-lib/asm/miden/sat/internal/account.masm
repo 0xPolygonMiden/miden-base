@@ -28,13 +28,48 @@ const.ACCOUNT_CODE_TREE_DEPTH=8
 # The account storage slot at which faucet data is stored.
 # Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
 # Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
-const.FAUCET_STORAGE_DATA_SLOT=255
+const.FAUCET_STORAGE_DATA_SLOT=254
 
-# Returns the account storage slot at which faucet data is stored.
-# Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
-# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+# The account storage slot at which the slot types commitment is stored.
+const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
+
+# The maximum value a slot type can take (An array of depth 64).
+const.MAX_SLOT_TYPE=64
+
+# CONSTANT ACCESSORS
+# =================================================================================================
+
+#! Returns the account storage slot at which faucet data is stored.
+#! Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+#! Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+#!
+#! Stack: []
+#! Output: [faucet_storage_data_slot]
+#!
+#! - faucet_storage_data_slot is the account storage slot at which faucet data is stored.
 export.get_faucet_storage_data_slot
     push.FAUCET_STORAGE_DATA_SLOT
+end
+
+#! Returns the account storage slot at which the slot types commitment is stored.
+#!
+#! Stack: []
+#! Output: [slot_types_commitment_storage_slot]
+#!
+#! - slot_types_commitment_storage_slot is the account storage slot at which the slot types
+#!   commitment is stored.
+export.get_slot_types_commitment_storage_slot
+    push.SLOT_TYPES_COMMITMENT_STORAGE_SLOT
+end
+
+#! Returns the maximum value a slot type can take (An array of depth 64).
+#!
+#! Stack: []
+#! Output: [max_slot_type]
+#!
+#! - max_slot_type is the maximum value a slot type can take (An array of depth 64).
+export.get_max_slot_type
+    push.MAX_SLOT_TYPE
 end
 
 # PROCEDURES
@@ -253,6 +288,18 @@ export.set_code
     # => []
 end
 
+#! Returns the type info (slot type, entry arity) of the slot at the provided index.
+#!
+#! Stack: [idx]
+#! Output: [entry_arity, slot_type]
+#!
+#! - idx is the index of the slot to get the type info of.
+#! - slot_type is the type of the slot.
+#! - entry_arity is the arity of the slot.
+export.get_storage_slot_type_info
+    exec.layout::get_acct_storage_slot_type_data u32split
+end
+
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
 #! Stack: [index]
@@ -381,6 +428,6 @@ export.validate_seed
         # => [pow, modulus]
 
         # assert that the pow is valid
-        u32split drop swap u32divmod assertz drop 
+        u32split drop swap u32divmod assertz drop
         # => []
 end

@@ -14,7 +14,7 @@ use vm_core::WORD_SIZE;
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
@@ -34,8 +34,18 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -47,7 +57,7 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
@@ -64,8 +74,18 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -80,7 +100,7 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_vault_info should return vault info
@@ -122,8 +142,18 @@ fn test_get_vault_data() {
         note_1_num_assets = notes[1].note().vault().num_assets(),
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let transaction = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     // run to ensure success
     let _process = run_tx(
@@ -136,7 +166,7 @@ fn test_get_vault_data() {
 
 #[test]
 fn test_get_assets() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -242,6 +272,7 @@ fn test_get_assets() {
         chain,
         notes.clone(),
         None,
+        auxiliary_data,
         &code,
         "",
         None,
@@ -257,7 +288,7 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -324,6 +355,7 @@ fn test_get_inputs() {
         chain,
         notes.clone(),
         None,
+        auxiliary_data,
         &code,
         "",
         None,
@@ -339,7 +371,7 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let (account, block_header, chain, notes) =
+    let (account, block_header, chain, notes, auxiliary_data) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -352,8 +384,18 @@ fn test_note_setup() {
         end
         ";
 
-    let inputs =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let inputs = prepare_transaction(
+        account,
+        None,
+        block_header,
+        chain,
+        notes,
+        None,
+        auxiliary_data,
+        &code,
+        "",
+        None,
+    );
 
     let process = run_tx(
         inputs.tx_program().clone(),
