@@ -74,7 +74,7 @@ fn test_receive_asset_via_wallet() {
 
     let tx_script_code = ProgramAst::parse(
         "
-        use.miden::eoa::basic->auth_tx
+        use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -145,7 +145,7 @@ fn test_send_asset_via_wallet() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-        use.miden::eoa::basic->auth_tx
+        use.miden::auth::basic->auth_tx
         use.miden::wallets::basic->wallet
 
         begin
