@@ -47,8 +47,7 @@ This achieves the following properties:
 - To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash
     of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is sufficient.
 - Moreover, the note hash can be computed having the [recipient](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-recipient) and note vault, as `hash(recipient, vault_hash)`.
-- We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within
-the VM.
+- We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM.
 
 # Note nullifier
 The nullifier is the note's index in the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database). The Nullifier DB stores the information whether a note was already consumed.
