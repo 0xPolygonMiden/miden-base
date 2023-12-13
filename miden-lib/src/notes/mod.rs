@@ -20,6 +20,7 @@ pub enum Script {
         target: AccountId,
         recall_height: u32,
     },
+    ASWAP {},
 }
 
 /// Users can create notes with a standard script. Atm we provide two standard scripts:
@@ -50,6 +51,7 @@ pub fn create_note(
             ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
+        Script::ASWAP {} => (),
     };
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
