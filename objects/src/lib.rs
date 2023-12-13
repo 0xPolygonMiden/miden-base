@@ -4,13 +4,11 @@
 #[macro_use]
 extern crate alloc;
 
-use vm_processor::AdviceInputs;
-
 pub mod accounts;
 
 mod advice;
 use advice::AdviceInputsBuilder;
-pub use advice::ToAdviceInputs;
+pub use advice::{AdviceInputs, ToAdviceInputs};
 
 pub mod assets;
 pub mod notes;

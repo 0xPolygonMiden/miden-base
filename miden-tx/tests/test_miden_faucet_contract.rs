@@ -43,7 +43,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         format!(
             "
             use.miden::faucets::basic_fungible->faucet
-            use.miden::eoa::basic->auth_tx
+            use.miden::auth::basic->auth_tx
 
             begin
 
@@ -114,7 +114,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         format!(
             "
             use.miden::faucets::basic_fungible->faucet
-            use.miden::eoa::basic->auth_tx
+            use.miden::auth::basic->auth_tx
 
             begin
 

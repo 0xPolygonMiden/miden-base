@@ -64,7 +64,7 @@ fn test_p2id_script() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-        use.miden::eoa::basic->auth_tx
+        use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -189,7 +189,7 @@ fn test_p2id_script_multiple_assets() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-        use.miden::eoa::basic->auth_tx
+        use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -358,7 +358,7 @@ fn test_p2idr_script() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-        use.miden::eoa::basic->auth_tx
+        use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
