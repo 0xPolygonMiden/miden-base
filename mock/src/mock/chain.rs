@@ -508,7 +508,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             return Err(MockError::DuplicatedNote);
         }
 
-        self.check_nullifier_unknown(note.nullifier());
+        self.check_nullifier_unknown(note.nullifier().inner());
         self.pending_objects.notes.push(note);
         Ok(())
     }

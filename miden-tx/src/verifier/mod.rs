@@ -4,8 +4,8 @@ use miden_lib::outputs::{
     CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
 use miden_objects::{
-    notes::NoteEnvelope,
-    transaction::{ConsumedNoteInfo, ProvenTransaction},
+    notes::{NoteEnvelope, Nullifier},
+    transaction::ProvenTransaction,
     Felt, Word, WORD_SIZE, ZERO,
 };
 use miden_verifier::verify;
@@ -58,12 +58,13 @@ impl TransactionVerifier {
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
+
     /// Returns the consumed notes commitment.
-    fn compute_consumed_notes_hash(consumed_notes: &[ConsumedNoteInfo]) -> Digest {
+    fn compute_consumed_notes_hash(consumed_notes: &[Nullifier]) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(consumed_notes.len() * 8);
-        for note in consumed_notes.iter() {
-            elements.extend_from_slice(note.nullifier().as_elements());
-            elements.extend_from_slice(note.script_root().as_elements());
+        for nullifier in consumed_notes.iter() {
+            elements.extend_from_slice(nullifier.inner().as_elements());
+            elements.extend_from_slice(&Word::default());
         }
         Hasher::hash_elements(&elements)
     }

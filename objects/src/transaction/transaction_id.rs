@@ -55,9 +55,9 @@ impl From<&ProvenTransaction> for TransactionId {
         // TODO: move input/output note hash computations into a more central location
         let input_notes_hash = {
             let mut elements: Vec<Felt> = Vec::with_capacity(tx.consumed_notes().len() * 8);
-            for note in tx.consumed_notes().iter() {
-                elements.extend_from_slice(note.nullifier().as_elements());
-                elements.extend_from_slice(note.script_root().as_elements());
+            for nullifier in tx.consumed_notes().iter() {
+                elements.extend_from_slice(nullifier.as_elements());
+                elements.extend_from_slice(&Word::default());
             }
             Hasher::hash_elements(&elements)
         };

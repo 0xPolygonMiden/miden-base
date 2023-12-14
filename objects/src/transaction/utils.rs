@@ -90,13 +90,14 @@ pub fn generate_advice_provider_inputs(
 }
 
 /// Returns the consumed notes commitment.
-/// This is a sequential hash of all (nullifier, script_root) pairs for the notes consumed in the
+///
+/// This is a sequential hash of all (nullifier, ZERO) pairs for the notes consumed in the
 /// transaction.
 pub fn generate_consumed_notes_commitment(recorded_notes: &[RecordedNote]) -> Digest {
     let mut elements: Vec<Felt> = Vec::with_capacity(recorded_notes.len() * 8);
     for recorded_note in recorded_notes.iter() {
         elements.extend_from_slice(recorded_note.note().nullifier().as_elements());
-        elements.extend_from_slice(recorded_note.note().script().hash().as_elements());
+        elements.extend_from_slice(&Word::default());
     }
     Hasher::hash_elements(&elements)
 }

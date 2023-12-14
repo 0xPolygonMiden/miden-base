@@ -15,6 +15,9 @@ pub use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
+mod nullifier;
+pub use nullifier::Nullifier;
+
 mod origin;
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 pub use origin::{NoteInclusionProof, NoteOrigin};
@@ -177,23 +180,8 @@ impl Note {
     }
 
     /// Returns the nullifier for this note.
-    ///
-    /// The nullifier is computed as hash(serial_num, script_hash, input_hash, vault_hash).
-    /// This achieves the following properties:
-    /// - Every note can be reduced to a single unique nullifier.
-    /// - We cannot derive a note's hash from its nullifier.
-    /// - To compute the nullifier we must know all components of the note: serial_num,
-    ///   script_hash, input_hash and vault hash.
-    pub fn nullifier(&self) -> Digest {
-        // The total number of elements to be hashed is 16. We can absorb them in
-        // exactly two permutations
-        let target_num_elements = 4 * WORD_SIZE;
-        let mut elements: Vec<Felt> = Vec::with_capacity(target_num_elements);
-        elements.extend_from_slice(&self.serial_num);
-        elements.extend_from_slice(self.script.hash().as_elements());
-        elements.extend_from_slice(self.inputs.hash().as_elements());
-        elements.extend_from_slice(self.vault.hash().as_elements());
-        Hasher::hash_elements(&elements)
+    pub fn nullifier(&self) -> Nullifier {
+        self.into()
     }
 }
 

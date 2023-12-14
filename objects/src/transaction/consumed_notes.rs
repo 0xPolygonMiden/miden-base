@@ -2,8 +2,8 @@ use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{
-    utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, RecordedNote,
-    ToAdviceInputs, Vec, Word,
+    utils::generate_consumed_notes_commitment, AdviceInputsBuilder, Digest, Felt, Nullifier,
+    RecordedNote, ToAdviceInputs, Vec, Word,
 };
 
 // CONSUMED NOTES
@@ -96,9 +96,13 @@ impl ToAdviceInputs for ConsumedNotes {
     }
 }
 
-impl From<ConsumedNotes> for Vec<ConsumedNoteInfo> {
+impl From<ConsumedNotes> for Vec<Nullifier> {
     fn from(consumed_notes: ConsumedNotes) -> Self {
-        consumed_notes.notes.into_iter().map(|note| note.into()).collect::<Vec<_>>()
+        consumed_notes
+            .notes
+            .into_iter()
+            .map(|note| note.note().nullifier())
+            .collect::<Vec<_>>()
     }
 }
 
@@ -111,96 +115,6 @@ impl From<Vec<RecordedNote>> for ConsumedNotes {
 impl FromIterator<RecordedNote> for ConsumedNotes {
     fn from_iter<T: IntoIterator<Item = RecordedNote>>(iter: T) -> Self {
         Self::new(iter.into_iter().collect())
-    }
-}
-
-// CONSUMED NOTE INFO
-// ================================================================================================
-
-/// Holds information about a note that was consumed by a transaction.
-/// Contains:
-/// - nullifier: nullifier of the note that was consumed
-/// - script_root: script root of the note that was consumed
-#[derive(Clone, Copy, Debug)]
-pub struct ConsumedNoteInfo {
-    nullifier: Digest,
-    script_root: Digest,
-}
-
-impl ConsumedNoteInfo {
-    /// Creates a new ConsumedNoteInfo object.
-    pub fn new(nullifier: Digest, script_root: Digest) -> Self {
-        Self {
-            nullifier,
-            script_root,
-        }
-    }
-
-    /// Returns the nullifier of the note that was consumed.
-    pub fn nullifier(&self) -> Digest {
-        self.nullifier
-    }
-
-    /// Returns the script root of the note that was consumed.
-    pub fn script_root(&self) -> Digest {
-        self.script_root
-    }
-}
-
-impl From<ConsumedNoteInfo> for [Felt; 8] {
-    fn from(note_info: ConsumedNoteInfo) -> Self {
-        (&note_info).into()
-    }
-}
-
-impl From<ConsumedNoteInfo> for [Word; 2] {
-    fn from(note_info: ConsumedNoteInfo) -> Self {
-        (&note_info).into()
-    }
-}
-
-impl From<ConsumedNoteInfo> for [u8; 64] {
-    fn from(note_info: ConsumedNoteInfo) -> Self {
-        (&note_info).into()
-    }
-}
-
-impl From<RecordedNote> for ConsumedNoteInfo {
-    fn from(recorded_note: RecordedNote) -> Self {
-        (&recorded_note).into()
-    }
-}
-
-impl From<&ConsumedNoteInfo> for [Felt; 8] {
-    fn from(note_info: &ConsumedNoteInfo) -> Self {
-        let mut elements: [Felt; 8] = Default::default();
-        elements[..4].copy_from_slice(note_info.nullifier.as_elements());
-        elements[4..].copy_from_slice(note_info.script_root.as_elements());
-        elements
-    }
-}
-
-impl From<&ConsumedNoteInfo> for [Word; 2] {
-    fn from(note_info: &ConsumedNoteInfo) -> Self {
-        let mut elements: [Word; 2] = Default::default();
-        elements[0].copy_from_slice(note_info.nullifier.as_elements());
-        elements[1].copy_from_slice(note_info.script_root.as_elements());
-        elements
-    }
-}
-
-impl From<&ConsumedNoteInfo> for [u8; 64] {
-    fn from(note_info: &ConsumedNoteInfo) -> Self {
-        let mut elements: [u8; 64] = [0; 64];
-        elements[..32].copy_from_slice(&note_info.nullifier.as_bytes());
-        elements[32..].copy_from_slice(&note_info.script_root.as_bytes());
-        elements
-    }
-}
-
-impl From<&RecordedNote> for ConsumedNoteInfo {
-    fn from(recorded_note: &RecordedNote) -> Self {
-        Self::new(recorded_note.note().nullifier(), recorded_note.note().script().hash())
     }
 }
 
@@ -222,24 +136,5 @@ impl Deserializable for ConsumedNotes {
         let notes = RecordedNote::read_batch_from(source, count.into())?;
 
         Ok(Self::new(notes))
-    }
-}
-
-impl Serializable for ConsumedNoteInfo {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_bytes(&self.nullifier.to_bytes());
-        target.write_bytes(&self.script_root.to_bytes());
-    }
-}
-
-impl Deserializable for ConsumedNoteInfo {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let nullifier = Digest::read_from(source)?;
-        let script_root = Digest::read_from(source)?;
-
-        Ok(Self {
-            nullifier,
-            script_root,
-        })
     }
 }
