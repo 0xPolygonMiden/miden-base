@@ -1,13 +1,13 @@
-use super::{Felt, Vec, Word};
+use super::{Digest, Felt, Word};
 use crate::{
     advice::{AdviceInputsBuilder, ToAdviceInputs},
-    assembly::ProgramAst,
+    assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
     errors::TransactionScriptError,
-    utils::collections::BTreeMap,
-    Digest,
+    utils::collections::{BTreeMap, Vec},
 };
-use assembly::{Assembler, AssemblyContext};
-use vm_core::code_blocks::CodeBlock;
+
+// TRANSACTION SCRIPT
+// ================================================================================================
 
 /// A struct that represents a transaction script.
 ///
@@ -18,7 +18,7 @@ use vm_core::code_blocks::CodeBlock;
 /// - [code](TransactionScript::code): the transaction script source code.
 /// - [hash](TransactionScript::hash): the hash of the compiled transaction script.
 /// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
-/// advice map such that the transaction script can access them.
+///   advice map such that the transaction script can access them.
 #[derive(Clone, Debug)]
 pub struct TransactionScript {
     code: ProgramAst,
@@ -27,19 +27,19 @@ pub struct TransactionScript {
 }
 
 impl TransactionScript {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new instance of a [TransactionScript] with the provided script and inputs and the
     /// compiled script code block.
-    pub fn new<T>(
+    ///
+    /// # Errors
+    /// Returns an error if script compilation fails.
+    pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
         code: ProgramAst,
         inputs: T,
         assembler: &mut Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionScriptError>
-    where
-        T: IntoIterator<Item = (Word, Vec<Felt>)>,
-    {
+    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
             .map_err(TransactionScriptError::ScriptCompilationError)?;
@@ -51,6 +51,22 @@ impl TransactionScript {
             },
             code_block,
         ))
+    }
+
+    /// Returns a new instance of a [TransactionScript] instantiated from the provided components.
+    ///
+    /// Note: this constructor does not verify that a compiled code in fact results in the provided
+    /// hash.
+    pub fn from_parts<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
+        code: ProgramAst,
+        hash: Digest,
+        inputs: T,
+    ) -> Result<Self, TransactionScriptError> {
+        Ok(Self {
+            code,
+            hash,
+            inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
+        })
     }
 
     // PUBLIC ACCESSORS
