@@ -22,6 +22,9 @@ In `miden-lib` there are predefined P2ID and P2IDR note scripts that every user 
 
 The Note scripts is also the root of a [Miden program MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) which means every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change.
 
+# Note recipient 
+We define `recipient` as: `hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)` represented as `Word`. The account that executes a given note needs to provide the pre-image data to `recipient` during the transaction prologue. That means, one can create notes that can only be consumed if the `serial_num` and other data is known. This information can be passed on off-chain by the sender to the recipient. 
+
 # Note storage modes
 Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored privately in the [Notes DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with only the note hash. Or notes can be stored publicly with all data.
 

@@ -1,15 +1,12 @@
 # State
-The state of the Miden rollup describes the current condition of all accounts and note states. It describes what is currently the case. With its state model, using concurrent offchain state, Polygon Miden aims to realise private transactions, and execution and state bloat minimization.
+The state of the Miden rollup describes the current condition of all accounts and note states. It describes what is currently the case. With its state model, using concurrent off-chain state, Polygon Miden aims to realise private, and parallel transaction execution and state bloat minimization. Midens aims to realise:
 
-Privacy is realised from a UTXO-like state model consisting of notes and nullifiers combined with offchain execution using zero-knowledge proofs. Execution bloat happens when transactions get re-executed by all participants of the network. State bloat describes the ever growing state stored in blockchain nodes. Polygon Miden addresses these challenges via its state model that enables concurrent offchain execution and offchain storage. Simply put, in Miden users can store their own data locally which reduces the burden on the network - integrity is ensured using zero-knowledge.
+* **Notes and nullifiers** ensure privacy of note consumption
+* **Flexible data storage** for users who can store their data off-chain or with the network
+* **Parallel transactions** executed concurrently by distinct actors
+* **Concurrent state model** allows block production without knowing the full state
 
-
-| | Minimize execution bloat | Minimize state bloat |
-|---|---|---|
-| **Result of** | Verfifying state by re-executing | Storing all data onchain as state |
-| **Zero-knowledge helps with** | Transactions executed only once | No need to know full state to validate blocks |
-| **Concurrent state model helps with** | Transactions executed concurrently by distinct actors | No need to kow full state to produce blocks |
-
+Privacy is realised from a UTXO-like state model consisting of notes and nullifiers combined with off-chain execution using zero-knowledge proofs. State bloat describes the ever growing state stored in blockchain nodes. Polygon Miden addresses this challenges via its state model that enables concurrent off-chain execution and off-chain storage. Simply put, in Miden users can store their own data locally which reduces the burden on the network - integrity is ensured using zero-knowledge.
 
 ## State components
 The Miden Node(s) maintain three databases to describe the state:
