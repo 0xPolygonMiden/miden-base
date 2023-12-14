@@ -9,7 +9,7 @@ Transactions describe the state-transition of a single account that takes chain 
 
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_Diagram.png" style="width: 75%;">
+    <img src="../diagrams/architecture/transaction/Transaction_diagram.png" style="width: 75%;">
 </p>
 
 \
@@ -36,7 +36,7 @@ In addition to specifying inputs and outputs, a transaction must be represented 
 The last point ensures that a transaction does not create or destroy any assets. A transaction can also include a user-defined transaction script. A transaction script is different to the [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#script) that are executed during a transaction.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_Program.png" style="width: 75%;">
+    <img src="../diagrams/architecture/transaction/Transaction_program.png" style="width: 75%;">
 </p>
 
 ### Transaction outputs

@@ -6,7 +6,7 @@ Miden aims to achieve parallel transaction execution and privacy. The UTXO-model
 The diagram below illustrates the contents of a note:
 
 <p align="center">
-    <img src="../../diagrams/architecture/note/Note.png">
+    <img src="../diagrams/architecture/note/Note.png">
 </p>
 
 As shown in the above picture:
@@ -62,12 +62,12 @@ This achieves the following properties:
 To know a note’s nullifier, one needs to know all details of the note, e.g. the note's serial number. That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first introduced this approach.
 
 <p align="center">
-    <img src="../../diagrams/architecture/note/Nullifier.png">
+    <img src="../diagrams/architecture/note/Nullifier.png">
 </p>
 
 # Note lifecycle
 New notes are being produced when executing a transaction. After verifying the transaction proof the Operator adds the note to the [Notes DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database). Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the Operator sets the corresponding entry in the Nullifier DB to `1`. 
 
 <p align="center">
-    <img src="../../diagrams/architecture/note/Note_life_cycle.png">
+    <img src="../diagrams/architecture/note/Note_life_cycle.png">
 </p>
