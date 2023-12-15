@@ -20,7 +20,14 @@ pub enum Script {
         target: AccountId,
         recall_height: u32,
     },
-    ASWAP {},
+    ASWAP {
+        faucet_id: AccountId,
+        amount: Felt,
+        tag: Felt,
+        // Should be -
+        // recipient: Digest,
+        recipient: Felt,
+    },
 }
 
 /// Users can create notes with a standard script. Atm we provide two standard scripts:
@@ -52,9 +59,15 @@ pub fn create_note(
             ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
-        Script::ASWAP {} => (
+        Script::ASWAP {
+            faucet_id,
+            amount,
+            tag,
+            recipient,
+        } => (
             ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
-            vec![ZERO, ZERO, ZERO, ZERO],
+            // vec![faucet_id.into(), amount.into(), tag, recipient[0]],
+            vec![faucet_id.into(), amount.into(), tag, recipient],
         ),
     };
 
