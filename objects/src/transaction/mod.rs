@@ -1,6 +1,6 @@
 use super::{
     accounts::{Account, AccountId},
-    notes::{Note, NoteEnvelope, RecordedNote},
+    notes::{Note, NoteEnvelope, Nullifier, RecordedNote},
     utils::collections::Vec,
     AdviceInputs, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher,
     PreparedTransactionError, StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE,
@@ -23,7 +23,7 @@ mod tx_witness;
 mod utils;
 
 pub use account_stub::FinalAccountStub;
-pub use consumed_notes::{ConsumedNoteInfo, ConsumedNotes};
+pub use consumed_notes::ConsumedNotes;
 pub use created_notes::CreatedNotes;
 pub use event::Event;
 pub use executed_tx::ExecutedTransaction;

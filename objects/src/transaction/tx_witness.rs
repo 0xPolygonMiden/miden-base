@@ -1,6 +1,6 @@
 use super::{
-    AccountId, AdviceInputs, ConsumedNoteInfo, Digest, Felt, Hasher, Program, StackInputs,
-    StarkField, TransactionWitnessError, Vec, Word, WORD_SIZE,
+    AccountId, AdviceInputs, Digest, Felt, Hasher, Nullifier, Program, StackInputs, StarkField,
+    TransactionWitnessError, Vec, Word, WORD_SIZE,
 };
 
 /// A [TransactionWitness] is the minimum required data required to execute and prove a Miden rollup
@@ -68,12 +68,12 @@ impl TransactionWitness {
         &self.consumed_notes_hash
     }
 
-    /// Returns a vector of [ConsumedNoteInfo] for all of the consumed notes in the transaction.
+    /// Returns a vector of [Nullifier] for all consumed notes in the transaction.
     ///
     /// # Errors
     /// - If the consumed notes data is not found in the advice map.
     /// - If the consumed notes data is not well formed.
-    pub fn consumed_notes_info(&self) -> Result<Vec<ConsumedNoteInfo>, TransactionWitnessError> {
+    pub fn consumed_notes_info(&self) -> Result<Vec<Nullifier>, TransactionWitnessError> {
         // fetch consumed notes data from the advice map
         let notes_data = self
             .advice_witness
@@ -94,10 +94,10 @@ impl TransactionWitness {
             }
 
             // compute the nullifier and extract script root and number of assets
-            let (nullifier, script_root, num_assets) = extract_note_data(&notes_data[note_ptr..]);
+            let (nullifier, num_assets) = extract_note_data(&notes_data[note_ptr..]);
 
             // push the [ConsumedNoteInfo] to the vector
-            consumed_notes_info.push(ConsumedNoteInfo::new(nullifier, script_root));
+            consumed_notes_info.push(nullifier.into());
 
             // round up the number of assets to the next multiple of 2 to account for asset padding
             let num_assets = (num_assets + 1) & !1;
@@ -111,7 +111,11 @@ impl TransactionWitness {
             Hasher::hash_elements(
                 &consumed_notes_info
                     .iter()
-                    .flat_map(|info| <[Felt; 8]>::from(*info))
+                    .flat_map(|info| {
+                        let mut elements = Word::from(info).to_vec();
+                        elements.extend_from_slice(&Word::default());
+                        elements
+                    })
                     .collect::<Vec<_>>()
             )
         );
@@ -164,8 +168,7 @@ impl TransactionWitness {
 
 // HELPERS
 // ================================================================================================
-/// Extracts and returns the nullifier, script root and number of assets from the provided note
-/// data.
+/// Extracts and returns the nullifier and the number of assets from the provided note data.
 ///
 /// Expects the note data to be organized as follows:
 /// [CN_SN, CN_SR, CN_IR, CN_VR, CN_M]
@@ -175,14 +178,12 @@ impl TransactionWitness {
 /// - CN_IR is the inputs root of the consumed note.
 /// - CN_VR is the vault root of the consumed note.
 /// - CN1_M is the metadata of the consumed note.
-fn extract_note_data(note_data: &[Felt]) -> (Digest, Digest, u64) {
+fn extract_note_data(note_data: &[Felt]) -> (Digest, u64) {
     // compute the nullifier
     let nullifier = Hasher::hash_elements(&note_data[..4 * WORD_SIZE]);
 
-    // extract the script root and number of assets
-    let script_root: Word =
-        note_data[WORD_SIZE..2 * WORD_SIZE].try_into().expect("word is well formed");
+    // extract the number of assets
     let num_assets = note_data[4 * WORD_SIZE].as_int();
 
-    (nullifier, script_root.into(), num_assets)
+    (nullifier, num_assets)
 }

@@ -1,7 +1,8 @@
 use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
-use crate::utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable};
+use crate::utils::serde::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
 use assembly::ast::AstSerdeOptions;
-use vm_processor::DeserializationError;
 
 // CONSTANTS
 // ================================================================================================
