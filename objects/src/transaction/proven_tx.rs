@@ -1,5 +1,4 @@
-use super::{AccountId, ConsumedNoteInfo, Digest, NoteEnvelope, Vec};
-
+use super::{AccountId, ConsumedNoteInfo, Digest, NoteEnvelope, TransactionId, Vec};
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
 use vm_processor::DeserializationError;
@@ -54,6 +53,12 @@ impl ProvenTransaction {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns unique identifier of this transaction.
+    pub fn id(&self) -> TransactionId {
+        self.into()
+    }
+
     /// Returns the account ID.
     pub fn account_id(&self) -> AccountId {
         self.account_id
