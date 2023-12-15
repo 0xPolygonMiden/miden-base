@@ -16,7 +16,7 @@ concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
 std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "vm-core/std"]
 # the testing feature is required to enable the account creation pow patch
-testing = []
+testing = ["miden-objects/testing"]
 
 [dependencies]
 assembly = { workspace = true }
