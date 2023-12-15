@@ -38,6 +38,7 @@ pub fn create_note(
     // Include the binary version of the scripts into the source file at compile time
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
     let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
+    let aswap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/ASWAP.masb"));
 
     let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
         Script::P2ID { target } => (
@@ -51,7 +52,10 @@ pub fn create_note(
             ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
-        Script::ASWAP {} => (),
+        Script::ASWAP {} => (
+            ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
+            vec![ZERO, ZERO, ZERO, ZERO],
+        ),
     };
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
