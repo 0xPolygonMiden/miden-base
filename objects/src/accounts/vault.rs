@@ -1,6 +1,7 @@
 use super::{
-    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
-    NonFungibleAsset, TieredSmt, ToAdviceInputs, ZERO,
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, ByteReader, ByteWriter,
+    Deserializable, DeserializationError, Digest, FungibleAsset, NonFungibleAsset, Serializable,
+    TieredSmt, ToAdviceInputs, ToString, Vec, ZERO,
 };
 
 // ACCOUNT VAULT
@@ -18,7 +19,6 @@ use super::{
 ///
 /// An account vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountVault {
     asset_tree: TieredSmt,
 }
@@ -203,6 +203,34 @@ impl AccountVault {
         Ok(asset)
     }
 }
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountVault {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO: determine total number of assets in the vault without allocating the vector
+        let assets = self.assets().collect::<Vec<_>>();
+
+        assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
+        target.write_u32(assets.len() as u32);
+
+        for asset in assets {
+            asset.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for AccountVault {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num_assets = source.read_u32()? as usize;
+        let assets = Asset::read_batch_from(source, num_assets)?;
+        Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// ADVICE INPUTS INJECTION
+// ================================================================================================
 
 impl ToAdviceInputs for AccountVault {
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {

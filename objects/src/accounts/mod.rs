@@ -2,7 +2,11 @@ use super::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::TieredSmt,
-    utils::{collections::Vec, string::ToString},
+    utils::{
+        collections::{BTreeMap, Vec},
+        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+        string::{String, ToString},
+    },
     AccountError, AdviceInputsBuilder, Digest, Felt, FieldElement, Hasher, StarkField,
     ToAdviceInputs, Word, ZERO,
 };
@@ -68,9 +72,11 @@ pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Account {
     id: AccountId,
+    #[cfg_attr(feature = "serde", serde(with = "vault_serialization"))]
     vault: AccountVault,
+    #[cfg_attr(feature = "serde", serde(with = "storage_serialization"))]
     storage: AccountStorage,
-    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
+    #[cfg_attr(feature = "serde", serde(with = "code_serialization"))]
     code: AccountCode,
     nonce: Felt,
 }
@@ -227,7 +233,51 @@ impl ToAdviceInputs for Account {
 // ================================================================================================
 
 #[cfg(feature = "serde")]
-mod serialization {
+mod vault_serialization {
+    use super::AccountVault;
+    use crate::utils::serde::{Deserializable, Serializable};
+
+    pub fn serialize<S>(vault: &AccountVault, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = vault.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountVault, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+        AccountVault::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(feature = "serde")]
+mod storage_serialization {
+    use super::AccountStorage;
+    use crate::utils::serde::{Deserializable, Serializable};
+
+    pub fn serialize<S>(storage: &AccountStorage, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = storage.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountStorage, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
+        AccountStorage::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(feature = "serde")]
+mod code_serialization {
     use super::AccountCode;
     use crate::utils::serde::{Deserializable, Serializable};
 
@@ -244,7 +294,6 @@ mod serialization {
         D: serde::Deserializer<'de>,
     {
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-
         AccountCode::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }
