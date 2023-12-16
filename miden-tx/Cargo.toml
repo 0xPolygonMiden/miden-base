@@ -10,6 +10,7 @@ categories = ["no-std"]
 keywords = []
 edition = "2021"
 rust-version = "1.67"
+
 [features]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
@@ -21,5 +22,6 @@ miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
+
 [dev-dependencies]
 mock = { package = "miden-mock", path = "../mock", default-features = false }

@@ -1,5 +1,5 @@
-use super::{AccountError, AccountStorageDelta, Digest, Felt, Hasher, TryApplyDiff, Vec, Word};
-use crate::crypto::merkle::{NodeIndex, SimpleSmt, StoreNode};
+use super::{AccountError, Digest, Felt, Hasher, Vec, Word};
+use crate::crypto::merkle::{NodeIndex, SimpleSmt};
 
 mod slot;
 pub use slot::StorageSlotType;
@@ -127,17 +127,5 @@ impl AccountStorage {
         self.slots
             .update_leaf(index as u64, value)
             .expect("index is u8 - index within range")
-    }
-}
-
-impl TryApplyDiff<Digest, StoreNode> for AccountStorage {
-    type DiffType = AccountStorageDelta;
-    type Error = AccountError;
-
-    fn try_apply(&mut self, diff: Self::DiffType) -> Result<(), Self::Error> {
-        self.slots
-            .try_apply(diff.slots_delta)
-            .map_err(AccountError::ApplyStorageSlotsDiffFailed)?;
-        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use super::{
-    AccountError, AccountId, AccountType, AccountVaultDelta, AdviceInputsBuilder, Asset, Digest,
-    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, TryApplyDiff, ZERO,
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, Digest, FungibleAsset,
+    NonFungibleAsset, TieredSmt, ToAdviceInputs, ZERO,
 };
 
 // ACCOUNT VAULT
@@ -213,24 +213,5 @@ impl ToAdviceInputs for AccountVault {
         self.asset_tree.upper_leaves().for_each(|(node, key, value)| {
             target.insert_into_map(*node, (*key).into_iter().chain(value).collect());
         })
-    }
-}
-
-// DIFF
-// ================================================================================================
-impl TryApplyDiff<Digest, StoreNode> for AccountVault {
-    type DiffType = AccountVaultDelta;
-    type Error = AccountError;
-
-    fn try_apply(&mut self, diff: AccountVaultDelta) -> Result<(), Self::Error> {
-        for asset in diff.added_assets {
-            self.add_asset(asset)?;
-        }
-
-        for asset in diff.removed_assets {
-            self.remove_asset(asset)?;
-        }
-
-        Ok(())
     }
 }

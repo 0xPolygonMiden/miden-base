@@ -12,8 +12,7 @@ use core::fmt;
 // ================================================================================================
 
 /// Specifies the account type.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountType {
     FungibleFaucet,
     NonFungibleFaucet,

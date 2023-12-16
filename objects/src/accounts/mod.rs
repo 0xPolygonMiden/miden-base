@@ -1,10 +1,7 @@
 use super::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::{
-        merkle::{StoreNode, TieredSmt},
-        utils::collections::TryApplyDiff,
-    },
+    crypto::merkle::TieredSmt,
     utils::{collections::Vec, string::ToString},
     AccountError, AdviceInputsBuilder, Digest, Felt, FieldElement, Hasher, StarkField,
     ToAdviceInputs, Word, ZERO,
@@ -273,36 +270,4 @@ pub fn hash_account(
     elements[8..12].copy_from_slice(&*storage_root);
     elements[12..].copy_from_slice(&*code_root);
     Hasher::hash_elements(&elements)
-}
-
-// DIFF IMPLEMENTATION
-// ================================================================================================
-
-impl TryApplyDiff<Digest, StoreNode> for Account {
-    type DiffType = AccountDelta;
-    type Error = AccountError;
-
-    fn try_apply(&mut self, diff: Self::DiffType) -> Result<(), Self::Error> {
-        let AccountDelta {
-            code: _code,
-            nonce,
-            storage,
-            vault,
-        } = diff;
-
-        self.storage.try_apply(storage)?;
-        self.vault.try_apply(vault)?;
-
-        if let Some(nonce) = nonce {
-            if nonce.as_int() <= self.nonce.as_int() {
-                return Err(AccountError::NonceMustBeMonotonicallyIncreasing(
-                    nonce.as_int(),
-                    self.nonce.as_int(),
-                ));
-            }
-            self.nonce = nonce;
-        }
-
-        Ok(())
-    }
 }
