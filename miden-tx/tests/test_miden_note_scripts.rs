@@ -489,7 +489,7 @@ fn test_p2idr_script() {
     // Check that we got the expected result - TransactionResult
     // Assert that the target_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert!(transaction_result_4.account_delta().nonce == Some(Felt::new(2)));
+    assert_eq!(transaction_result_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
     let target_account_after: Account = Account::new(
@@ -523,7 +523,7 @@ fn test_p2idr_script() {
 
     // Assert that the sender_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert!(transaction_result_5.account_delta().nonce == Some(Felt::new(2)));
+    assert_eq!(transaction_result_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(

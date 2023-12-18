@@ -212,6 +212,8 @@ impl Serializable for AccountVault {
         // TODO: determine total number of assets in the vault without allocating the vector
         let assets = self.assets().collect::<Vec<_>>();
 
+        // TODO: either enforce that number of assets in account vault is never greater than
+        // u32::MAX or use variable-length encoding for the number of assets
         assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
         target.write_u32(assets.len() as u32);
 

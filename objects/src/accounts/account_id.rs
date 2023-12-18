@@ -53,20 +53,21 @@ impl AccountId {
     /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
     /// for the normal accounts if the code is updatable or not. These metadata bits are also
     /// checked by the PoW and add to the total work defined below.
-    #[cfg(not(feature = "testing"))]
+    #[cfg(not(any(feature = "testing", test)))]
     pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 23;
-    #[cfg(not(feature = "testing"))]
+    #[cfg(not(any(feature = "testing", test)))]
     pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 31;
-    #[cfg(feature = "testing")]
-    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 10;
-    #[cfg(feature = "testing")]
-    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 11;
+    #[cfg(any(feature = "testing", test))]
+    pub const REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 5;
+    #[cfg(any(feature = "testing", test))]
+    pub const FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS: u32 = 6;
 
     /// Specifies a minimum number of ones for a valid account ID.
     pub const MIN_ACCOUNT_ONES: u32 = 5;
 
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new account ID derived from the specified seed, code root and storage root.
     ///
     /// The account ID is computed by hashing the seed, code root and storage root and using 1
@@ -100,6 +101,18 @@ impl AccountId {
     /// [AccountId].
     pub fn new_unchecked(value: Felt) -> AccountId {
         AccountId(value)
+    }
+
+    /// Creates a new dummy [AccountId] for testing purposes.
+    #[cfg(any(feature = "testing", test))]
+    pub fn new_dummy(init_seed: [u8; 32], account_type: AccountType) -> Self {
+        let code_root = Digest::default();
+        let storage_root = Digest::default();
+
+        let seed =
+            get_account_seed(init_seed, account_type, true, code_root, storage_root).unwrap();
+
+        AccountId::new(seed, code_root, storage_root).unwrap()
     }
 
     // PUBLIC ACCESSORS

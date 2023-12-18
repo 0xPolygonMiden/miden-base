@@ -14,7 +14,7 @@ const DEFAULT_SLOT_TYPE: StorageSlotType = StorageSlotType::Value { value_arity:
 // ================================================================================================
 
 /// An object that represents the type of a storage slot.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StorageSlotType {
     /// Represents a slot that contains a value with the specified arity.
     Value { value_arity: u8 },
@@ -87,43 +87,55 @@ impl TryFrom<u16> for StorageSlotType {
 // CONVERSIONS FROM STORAGE SLOT TYPE
 // ================================================================================================
 
-impl From<&StorageSlotType> for u16 {
+impl From<StorageSlotType> for u16 {
     /// Converts storage type into a u16 value as the following 2 bytes:
     ///
     /// [value_arity, slot_data_type]
     ///
     /// Where slot_data_type is 0 for Value type, 1 for Map type, and set to depth fro Array type.
-    fn from(slot_type: &StorageSlotType) -> Self {
+    fn from(slot_type: StorageSlotType) -> Self {
         match slot_type {
-            StorageSlotType::Value { value_arity } => (*value_arity as u16) << 8,
-            StorageSlotType::Map { value_arity } => ((*value_arity as u16) << 8) | 1_u16,
+            StorageSlotType::Value { value_arity } => (value_arity as u16) << 8,
+            StorageSlotType::Map { value_arity } => ((value_arity as u16) << 8) | 1_u16,
             StorageSlotType::Array { depth, value_arity } => {
-                ((*value_arity as u16) << 8) | (*depth as u16)
+                ((value_arity as u16) << 8) | (depth as u16)
+            }
+        }
+    }
+}
+
+impl From<&StorageSlotType> for u16 {
+    fn from(value: &StorageSlotType) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl From<StorageSlotType> for Felt {
+    /// Converts storage type into a field element as the following 32-bit values:
+    ///
+    /// [value_arity, slot_data_type]
+    ///
+    /// Where slot_data_type is 0 for Value type, 1 for Map type, and set to depth fro Array type.
+    fn from(slot_type: StorageSlotType) -> Self {
+        match slot_type {
+            StorageSlotType::Value { value_arity } => {
+                let type_value = (value_arity as u64) << 32;
+                Felt::from(type_value)
+            }
+            StorageSlotType::Map { value_arity } => {
+                let type_value = ((value_arity as u64) << 32) | 1_u64;
+                Felt::from(type_value)
+            }
+            StorageSlotType::Array { depth, value_arity } => {
+                let type_value = ((value_arity as u64) << 32) | (depth as u64);
+                Felt::from(type_value)
             }
         }
     }
 }
 
 impl From<&StorageSlotType> for Felt {
-    /// Converts storage type into a field element as the following 32-bit values:
-    ///
-    /// [value_arity, slot_data_type]
-    ///
-    /// Where slot_data_type is 0 for Value type, 1 for Map type, and set to depth fro Array type.
-    fn from(slot_type: &StorageSlotType) -> Self {
-        match slot_type {
-            StorageSlotType::Value { value_arity } => {
-                let type_value = (*value_arity as u64) << 32;
-                Felt::from(type_value)
-            }
-            StorageSlotType::Map { value_arity } => {
-                let type_value = ((*value_arity as u64) << 32) | 1_u64;
-                Felt::from(type_value)
-            }
-            StorageSlotType::Array { depth, value_arity } => {
-                let type_value = ((*value_arity as u64) << 32) | (*depth as u64);
-                Felt::from(type_value)
-            }
-        }
+    fn from(value: &StorageSlotType) -> Self {
+        Self::from(*value)
     }
 }
