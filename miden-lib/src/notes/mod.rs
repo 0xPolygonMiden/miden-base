@@ -3,6 +3,7 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
+use miden_objects::assets::FungibleAsset;
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -21,12 +22,9 @@ pub enum Script {
         recall_height: u32,
     },
     ASWAP {
-        faucet_id: AccountId,
-        amount: Felt,
+        requested_asset: FungibleAsset,
         tag: Felt,
-        // Should be -
-        // recipient: Digest,
-        recipient: Felt,
+        recipient: Digest,
     },
 }
 
@@ -60,14 +58,25 @@ pub fn create_note(
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
         Script::ASWAP {
-            faucet_id,
-            amount,
+            requested_asset,
             tag,
             recipient,
         } => (
             ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
-            // vec![faucet_id.into(), amount.into(), tag, recipient[0]],
-            vec![faucet_id.into(), amount.into(), tag, recipient],
+            vec![
+                recipient.as_elements()[0],
+                recipient.as_elements()[1],
+                recipient.as_elements()[2],
+                recipient.as_elements()[3],
+                tag,
+                ZERO,
+                ZERO,
+                ZERO,
+                requested_asset.amount().into(),
+                ZERO,
+                ZERO,
+                requested_asset.faucet_id().into(),
+            ],
         ),
     };
 

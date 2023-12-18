@@ -1,9 +1,59 @@
-use.miden::sat::account
 use.miden::sat::note
-use.miden::sat::tx
+use.miden::wallets::basic->wallet
+
+#! Helper procedure to add all assets of a note to an account.
+#!
+#! Inputs: []
+#! Outputs: []
+#!
+proc.add_note_assets_to_account
+    push.0 exec.note::get_assets
+    # => [num_of_assets, 0 = ptr, ...]
+
+    # compute the pointer at which we should stop iterating
+    dup.1 add
+    # => [end_ptr, ptr, ...]
+
+    # pad the stack and move the pointer to the top
+    padw movup.5
+    # => [ptr, 0, 0, 0, 0, end_ptr, ...]
+
+    # compute the loop latch
+    dup dup.6 neq
+    # => [latch, ptr, 0, 0, 0, 0, end_ptr, ...]
+
+    while.true
+        # => [ptr, 0, 0, 0, 0, end_ptr, ...]
+
+        # save the pointer so that we can use it later
+        dup movdn.5
+        # => [ptr, 0, 0, 0, 0, ptr, end_ptr, ...]
+
+        # load the asset and add it to the account
+        mem_loadw call.wallet::receive_asset
+        # => [ASSET, ptr, end_ptr, ...]
+
+        # increment the pointer and compare it to the end_ptr
+        movup.4 add.1 dup dup.6 neq
+        # => [latch, ptr+1, ASSET, end_ptr, ...]
+    end
+
+    # clear the stack
+    drop dropw drop
+end
 
 # Atomic Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by initial issuer containing requested ASSET.
+#
+# Process:
+# 1. Alice creates a note A containing ASSET X consumable by anyone
+# 2. Bob consumes note A receiving ASSET X
+# 3. Bob create a note B containing ASSET Y
+# 
+# Requirements:
+# - Anyone can consume note A
+# - Note B needs to contain ASSET Y initialy requested by Alice
+# - Only Alice can consume note B
 #
 # Requires that the account exposes: 
 #
@@ -14,40 +64,31 @@ use.miden::sat::tx
 #
 # FAILS if:
 begin
-    # Process:
-    # 1. Alice creates a note A containing ASSET X consumable by anyone
-    # 2. Bob consumes note A receiving ASSET X
-    # 3. Bob create a note B containing ASSET Y
-    # 
-    # Requirements:
-    # - Anyone can consume note A
-    # - Note B needs to contain ASSET Y initialy requested by Alice
-    # - Only Alice can consume note B
+
 
     # drop the transaction script root
     dropw
     # => []
-
-    # load the note inputs to memory starting at address 0
-    push.0 exec.note::get_inputs
-    # => [inputs_ptr] 
     
-    # load the asset into the stack
-    exec.get_assets drop mem_loadw
-    # => [ASSET]
+    exec.add_note_assets_to_account
+    # => [...]
 
-    # add asset to account
-    exec.account::add_asset dropw
+    # get the note inputs
+    # [ASSET, tag, recipient]
+
+    push.0 exec.note::get_inputs
+    # => [inputs_ptr]
+
+    mem_loadw 
+    # => [RECIPIENT]
+
+    padw drop push.1 mem_loadw drop drop drop
+    # => [tag, RECIPIENT]
+
+    padw drop push.2 mem_loadw
+    # => [ASSET, tag, RECIPIENT]
+
+    # create a note using Inputs
+    call.wallet::send_asset drop drop drop
     # => []
-
-    # TODO: I need more information on the organisation of my memory
-    # and public / private inputs to make sure that I can access and
-    # manipulate them correctly
-
-    # Inputs: [ASSET, tag, RECIPIENT]
-    # Need to push to the operand_stack the requested ASSET,
-    # Tag and Recipient that has been pre-computed by initial note issuer
-    # create new note
-    exec.tx::create_note
-    # => [ptr]
 end
