@@ -656,7 +656,7 @@ end
 #! Process the consumed notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
 #! consumed its hash and nullifier is computed. The transaction nullifier commitment is computed
-#! via a sequential hash of all (nullifier, script_root) pairs for all consumed notes.
+#! via a sequential hash of all (nullifier, ZERO) pairs for all consumed notes.
 #!
 #! Stack: []
 #! Advice stack: [num_cn,
@@ -679,78 +679,99 @@ end
 proc.process_consumed_notes_data
     # load the consumed notes data onto the advice stack
     exec.layout::get_nullifier_com adv.push_mapval dropw
+    # => [...]
 
     # read the number of consumed notes from the advice provider
     adv_push.1
+    # => [num_notes, ...]
 
     # store the number of consumed notes
     dup exec.layout::set_total_num_consumed_notes
+    # => [num_notes, ...]
 
-    # assert the number of consumed notes is within limits
-    dup exec.constants::get_max_num_consumed_notes lte assert
+    # assert the number of consumed notes is within limits; since max number of consumed notes is
+    # expected to be smaller than 2^32, we can use a more efficient u32 comparison
+    dup exec.constants::get_max_num_consumed_notes u32assert2 u32lte assert
+    # => [num_notes, ...]
 
     # loop over consumed notes and read data
     # ---------------------------------------------------------------------------------------------
 
-    # initialize counter for consumed notes
+    # initialize counter of already processed notes
     push.0
+    # => [num_processed_notes = 0, num_notes, ...]
 
     # check if the number of consumed notes is greater then 0. Conditional for the while loop.
     dup.1 dup.1 neq
+    # => [has_more_notes, num_processed_notes, num_notes, ...]
 
     # loop and read note data from the advice provider
     while.true
         dup exec.process_consumed_note
+        # => [num_processed_notes, num_notes, ...]
 
-        # increment consumed note counter and check if we should loop again
+        # increment processed note counter and check if we should loop again
         add.1 dup.1 dup.1 neq
+        # => [has_more_notes, num_processed_notes + 1, num_notes, ...]
     end
 
     # drop counter
     drop
+    # => [num_notes, ...]
 
     # compute nullifier commitment
     # ---------------------------------------------------------------------------------------------
 
-    # initiate counter for nullifiers
+    # initiate counter of notes processed for nullifier hashing
     push.0
+    # => [num_processed_notes = 0, num_notes, ...]
 
     # initiate stack for sequential hash to compute nullifier commitment
     padw padw padw
+    # => [R1, R0, CAP, num_processed_notes, num_notes, ...]
 
     # check if the number of consumed notes is greater then 0. Conditional for the while loop.
     dup.13 dup.13 neq
+    # => [has_more_notes, R1, R0, CAP, num_processed_notes, num_notes, ...]
 
-    # loop and sequentially hash hperm(nullifier, script_root) over all consumed notes
+    # loop and sequentially hash hperm(nullifier, ZERO) over all consumed notes
     while.true
         # clear hasher rate
         dropw dropw
+        # => [CAP, num_processed_notes, num_notes, ...]
 
         # get consumed note nullifier
         dup.4 exec.layout::get_consumed_note_nullifier
+        # => [NULLIFIER, CAP, num_processed_notes, num_notes, ...]
 
-        # get consumed note script root
-        dup.8 exec.layout::get_consumed_note_ptr exec.layout::get_consumed_note_script_root
+        # pad the stack
+        padw
+        # => [ZERO, NULLIFIER, CAP, num_processed_notes, num_notes, ...]
 
-        # compute hperm(nullifier, script_root)
+        # compute hperm(nullifier, ZERO)
         hperm
+        # => [PERM, PERM, CAP, num_processed_notes, num_notes, ...]
 
-        # increment nullifier counter and check if we should loop again
+        # increment processed note counter and check if we should loop again
         movup.12 add.1 dup movdn.13 dup.14 neq
+        # => [has_more_notes, PERM, PERM, CAP, num_processed_notes + 1, num_notes, ...]
     end
 
     # extract nullifier hash
     dropw swapw dropw
+    # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect
     exec.layout::get_nullifier_com assert_eqw
+    # => [num_processed_notes + 1, num_notes, ...]
 
     # clear stack
     drop drop
+    # => [...]
 
     # set the current consumed note pointer to the first consumed note
     push.0 exec.layout::get_consumed_note_ptr exec.layout::set_current_consumed_note_ptr
-    # => []
+    # => [...]
 end
 
 # TRANSACTION SCRIPT
