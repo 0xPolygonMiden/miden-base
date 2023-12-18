@@ -243,12 +243,8 @@ pub fn create_transaction_result(
     let vault_delta = event_handler.finalize();
 
     // construct the account delta
-    let account_delta = AccountDelta {
-        code: None,
-        nonce: nonce_delta,
-        storage: storage_delta,
-        vault: vault_delta,
-    };
+    let account_delta =
+        AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
 
     TransactionResult::new(
         initial_account,

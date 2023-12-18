@@ -94,6 +94,30 @@ impl fmt::Display for AccountError {
 #[cfg(feature = "std")]
 impl std::error::Error for AccountError {}
 
+// ACCOUNT DELTA ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum AccountDeltaError {
+    DuplicateStorageItemUpdate(usize),
+    DuplicateVaultUpdate(Asset),
+    InconsistentNonceUpdate(String),
+    ImmutableStorageSlot(usize),
+    TooManyAddedAsset { actual: usize, max: usize },
+    TooManyClearedStorageItems { actual: usize, max: usize },
+    TooManyRemovedAssets { actual: usize, max: usize },
+    TooManyUpdatedStorageItems { actual: usize, max: usize },
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AccountDeltaError {}
+
+impl fmt::Display for AccountDeltaError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 // ASSET ERROR
 // ================================================================================================
 

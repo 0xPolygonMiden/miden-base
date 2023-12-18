@@ -90,7 +90,7 @@ fn test_receive_asset_via_wallet() {
         .unwrap();
 
     // nonce delta
-    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
+    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
     let account_storage =

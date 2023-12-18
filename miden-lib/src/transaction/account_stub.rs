@@ -4,9 +4,8 @@ use crate::memory::{
 };
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
-    crypto::merkle::{merkle_tree_delta, MerkleStore, MerkleStoreDelta, NodeIndex},
+    crypto::merkle::{merkle_tree_delta, MerkleStore},
     transaction::FinalAccountStub,
-    utils::vec,
     AccountError, TransactionResultError, Word,
 };
 
@@ -36,7 +35,7 @@ pub fn extract_account_storage_delta(
     final_account_stub: &FinalAccountStub,
 ) -> Result<AccountStorageDelta, TransactionResultError> {
     // extract storage slots delta
-    let slots_delta = merkle_tree_delta(
+    let tree_delta = merkle_tree_delta(
         initial_account.storage().root(),
         final_account_stub.0.storage_root(),
         AccountStorage::STORAGE_TREE_DEPTH,
@@ -44,28 +43,19 @@ pub fn extract_account_storage_delta(
     )
     .map_err(TransactionResultError::ExtractAccountStorageSlotsDeltaFailed)?;
 
-    // extract child deltas
-    let mut store_delta = vec![];
-    for (slot, new_value) in slots_delta.updated_slots() {
-        // if a slot was updated, check if it was originally a Merkle root of a Merkle tree
-        let leaf = store
-            .get_node(
-                initial_account.storage().root(),
-                NodeIndex::new_unchecked(AccountStorage::STORAGE_TREE_DEPTH, *slot),
-            )
-            .expect("storage slut must exist");
-        // if a slot was a Merkle root then extract the delta.  We assume the tree is a SMT of depth 64.
-        if store.get_node(leaf, NodeIndex::new_unchecked(0, 0)).is_ok() {
-            let child_delta = merkle_tree_delta(leaf, (*new_value).into(), 64, store)
-                .map_err(TransactionResultError::ExtractAccountStorageStoreDeltaFailed)?;
-            store_delta.push((leaf, child_delta));
-        }
-    }
+    // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
+    // the number of storage slots cannot be greater than 256
+    let cleared_items = tree_delta.cleared_slots().iter().map(|idx| *idx as u8).collect();
+    let updated_items = tree_delta
+        .updated_slots()
+        .iter()
+        .map(|(idx, value)| (*idx as u8, *value))
+        .collect();
 
     // construct storage delta
     let storage_delta = AccountStorageDelta {
-        slots_delta,
-        store_delta: MerkleStoreDelta(store_delta),
+        cleared_items,
+        updated_items,
     };
 
     Ok(storage_delta)

@@ -232,19 +232,14 @@ fn test_transaction_result_account_delta() {
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
-    assert!(transaction_result.account_delta().nonce == Some(Felt::new(2)));
+    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
 
     // storage delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(transaction_result.account_delta().storage.slots_delta.updated_slots().len(), 1);
+    assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
     assert_eq!(
-        transaction_result.account_delta().storage.slots_delta.updated_slots()[0].0,
-        CHILD_ROOT_PARENT_LEAF_INDEX as u64
-    );
-    assert_eq!(transaction_result.account_delta().storage.store_delta.0.len(), 1);
-    assert_eq!(
-        transaction_result.account_delta().storage.store_delta.0[0].1.cleared_slots()[0],
-        CHILD_STORAGE_INDEX_0
+        transaction_result.account_delta().storage().updated_items[0].0,
+        CHILD_ROOT_PARENT_LEAF_INDEX as u8
     );
 
     // vault delta
@@ -261,22 +256,25 @@ fn test_transaction_result_account_delta() {
         .collect::<Vec<_>>();
     assert!(transaction_result
         .account_delta()
-        .vault
+        .vault()
         .added_assets
         .iter()
         .all(|x| added_assets.contains(x)));
-    assert_eq!(added_assets.len(), transaction_result.account_delta().vault.added_assets.len());
+    assert_eq!(
+        added_assets.len(),
+        transaction_result.account_delta().vault().added_assets.len()
+    );
 
     // assert that removed assets are tracked
     assert!(transaction_result
         .account_delta()
-        .vault
+        .vault()
         .removed_assets
         .iter()
         .all(|x| removed_assets.contains(x)));
     assert_eq!(
         removed_assets.len(),
-        transaction_result.account_delta().vault.removed_assets.len()
+        transaction_result.account_delta().vault().removed_assets.len()
     );
 }
 

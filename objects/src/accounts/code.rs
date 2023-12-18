@@ -1,8 +1,8 @@
-use super::{AccountError, Assembler, AssemblyContext, Digest, ModuleAst, Vec};
-use crate::{
-    crypto::merkle::SimpleSmt,
-    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+use super::{
+    AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, ModuleAst, Serializable, Vec,
 };
+use crate::crypto::merkle::SimpleSmt;
 use assembly::ast::AstSerdeOptions;
 use core::cell::OnceCell;
 
