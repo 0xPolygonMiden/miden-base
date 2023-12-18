@@ -23,7 +23,6 @@ pub enum Script {
     },
     ASWAP {
         requested_asset: FungibleAsset,
-        tag: Felt,
         recipient: Digest,
     },
 }
@@ -59,19 +58,14 @@ pub fn create_note(
         ),
         Script::ASWAP {
             requested_asset,
-            tag,
             recipient,
         } => (
             ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![
-                recipient.as_elements()[0],
-                recipient.as_elements()[1],
-                recipient.as_elements()[2],
                 recipient.as_elements()[3],
-                tag,
-                ZERO,
-                ZERO,
-                ZERO,
+                recipient.as_elements()[2],
+                recipient.as_elements()[1],
+                recipient.as_elements()[0],
                 requested_asset.amount().into(),
                 ZERO,
                 ZERO,

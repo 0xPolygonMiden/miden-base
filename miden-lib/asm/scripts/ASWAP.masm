@@ -1,94 +1,52 @@
 use.miden::sat::note
 use.miden::wallets::basic->wallet
 
-#! Helper procedure to add all assets of a note to an account.
-#!
-#! Inputs: []
-#! Outputs: []
-#!
-proc.add_note_assets_to_account
-    push.0 exec.note::get_assets
-    # => [num_of_assets, 0 = ptr, ...]
-
-    # compute the pointer at which we should stop iterating
-    dup.1 add
-    # => [end_ptr, ptr, ...]
-
-    # pad the stack and move the pointer to the top
-    padw movup.5
-    # => [ptr, 0, 0, 0, 0, end_ptr, ...]
-
-    # compute the loop latch
-    dup dup.6 neq
-    # => [latch, ptr, 0, 0, 0, 0, end_ptr, ...]
-
-    while.true
-        # => [ptr, 0, 0, 0, 0, end_ptr, ...]
-
-        # save the pointer so that we can use it later
-        dup movdn.5
-        # => [ptr, 0, 0, 0, 0, ptr, end_ptr, ...]
-
-        # load the asset and add it to the account
-        mem_loadw call.wallet::receive_asset
-        # => [ASSET, ptr, end_ptr, ...]
-
-        # increment the pointer and compare it to the end_ptr
-        movup.4 add.1 dup dup.6 neq
-        # => [latch, ptr+1, ASSET, end_ptr, ...]
-    end
-
-    # clear the stack
-    drop dropw drop
-end
-
 # Atomic Swap script: adds an asset from the note into consumers account and
-# creates a note consumable by initial issuer containing requested ASSET.
-#
-# Process:
-# 1. Alice creates a note A containing ASSET X consumable by anyone
-# 2. Bob consumes note A receiving ASSET X
-# 3. Bob create a note B containing ASSET Y
-# 
-# Requirements:
-# - Anyone can consume note A
-# - Note B needs to contain ASSET Y initialy requested by Alice
-# - Only Alice can consume note B
+# creates a note consumable by note issuer containing requested ASSET.
 #
 # Requires that the account exposes: 
 #
-# Inputs: []
+# Inputs: [ASSET, serial_num]
 # Outputs: []
 #
 # Note inputs are assumed to be as follows:
+# - asset:
+# - serial_num
 #
 # FAILS if:
+# - Account does not expose miden::wallets::basic::receive_asset procedure
+# - Account does not expose miden::wallets::basic::send_asset procedure
+# - Account vault does not contain the requested asset
+# - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
+#   greater than 2^63
 begin
-
-
     # drop the transaction script root
     dropw
     # => []
-    
-    exec.add_note_assets_to_account
-    # => [...]
 
-    # get the note inputs
-    # [ASSET, tag, recipient]
+    # store asset into memory
+    push.3 exec.note::get_assets assert
+    # => [ptr]
 
+    # load the asset and add it to the account
+    mem_loadw call.wallet::receive_asset dropw
+    # => [] 
+
+    # store note inputs into memory
     push.0 exec.note::get_inputs
     # => [inputs_ptr]
 
-    mem_loadw 
+    # load recipient
+    mem_loadw
     # => [RECIPIENT]
 
-    padw drop push.1 mem_loadw drop drop drop
+    push.0 exec.note::get_sender
     # => [tag, RECIPIENT]
 
-    padw drop push.2 mem_loadw
+    padw drop push.1 mem_loadw
     # => [ASSET, tag, RECIPIENT]
 
-    # create a note using Inputs
-    call.wallet::send_asset drop drop drop
+    # create a note using inputs
+    call.wallet::send_asset dropw drop
     # => []
 end

@@ -14,7 +14,6 @@ use mock::constants::{
     ACCOUNT_ID_SENDER,
 };
 use vm_core::StarkField;
-use vm_processor::Digest;
 
 mod common;
 
@@ -32,20 +31,17 @@ fn test_atomic_swap_script() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, target_sk_felt) = get_new_key_pair_with_advice_map();
     let target_account = get_account_with_default_account_code(
         target_account_id,
         target_pub_key.clone(),
         Some(fungible_asset_2.into()),
     );
 
-    let recipient: Digest = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)].into();
-
     // Create the note
     let aswap_script = Script::ASWAP {
         requested_asset: fungible_asset_2,
-        tag: Felt::new(99),
-        recipient,
+        recipient: [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)].into(),
     };
 
     let note = create_note(
@@ -83,19 +79,15 @@ fn test_atomic_swap_script() {
     )
     .unwrap();
     let tx_script_target = executor
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(target_pub_key, target_sk_pk_felt)],
-            vec![],
-        )
+        .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
 
-    // Execute the transaction and get the witness
+    // Execute the transaction
     let transaction_result = executor
         .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
         .unwrap();
 
-    // vault delta
+    // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
         AccountVault::new(&vec![fungible_asset_1.into()]).unwrap(),
@@ -104,5 +96,6 @@ fn test_atomic_swap_script() {
         Felt::new(2),
     );
 
+    // Check that the target account has received the asset from the note
     assert!(transaction_result.final_account_hash() == target_account_after.hash());
 }
