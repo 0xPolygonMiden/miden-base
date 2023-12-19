@@ -47,7 +47,7 @@ Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](http
   <img src="../diagrams/architecture/state/Note_DB.png" width="80%">
 </p>
 
-As described in [Notes](http://localhost:3000/architecture/notes.html#note-storage-modes), there are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
+As described in [Notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-storage-modes), there are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
 
 * **Public notes** where the entire note content is recorded in the state.
 * **Private notes** where only a note's hash is recorded in the state.
