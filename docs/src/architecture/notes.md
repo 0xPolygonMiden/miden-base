@@ -11,7 +11,7 @@ The diagram below illustrates the contents of a note:
 
 As shown in the above picture:
 * **Vault &rarr;** serves as [asset](assets.md) container for a note. It can contain up to `255` assets stored in an array which can be reduced to a single hash.
-* **Script &rarr;** will be executed in a [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) aginst a single account, see next chapter.
+* **Script &rarr;** will be executed in a [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) against a single account, see next chapter.
 * **Inputs &rarr;** are placed onto the stack as parameters before a note's script is executed.
 * **Serial number &rarr;** a note's unique identifier to break linkability between [note hash](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-hash) and [nullifier](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier). Should be a random `Word` chosen by the user - if revealed, the nullifier might be computed easily.
 
