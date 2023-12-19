@@ -6,6 +6,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    notes::{NoteMetadata, NoteStub, NoteVault},
     Felt,
 };
 use miden_tx::TransactionExecutor;
@@ -14,6 +15,7 @@ use mock::constants::{
     ACCOUNT_ID_SENDER,
 };
 use vm_core::StarkField;
+use vm_processor::Digest;
 
 mod common;
 
@@ -92,8 +94,6 @@ fn test_atomic_swap_script() {
         .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
         .unwrap();
 
-    println!("{:#?}", transaction_result.created_notes().notes());
-
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
@@ -105,4 +105,27 @@ fn test_atomic_swap_script() {
 
     // Check that the target account has received the asset from the note
     assert!(transaction_result.final_account_hash() == target_account_after.hash());
+
+    // Check if only one `Note` has been created
+    assert!(transaction_result.created_notes().notes().len() == 1);
+
+    // Check if the created `Note` is what we expect
+    let recipient = Digest::new([
+        Felt::new(403044469077705077),
+        Felt::new(5814218301633521607),
+        Felt::new(3036312160134047413),
+        Felt::new(9100684949500007517),
+    ]);
+
+    let tag = Felt::new(99);
+
+    let note_metadata = NoteMetadata::new(target_account_id, tag, Felt::new(1));
+
+    let note_vault = NoteVault::new(&[non_fungible_asset]).unwrap();
+
+    let requested_note = NoteStub::new(recipient, note_vault, note_metadata).unwrap();
+
+    let created_note = &transaction_result.created_notes().notes()[0];
+
+    assert!(created_note == &requested_note);
 }
