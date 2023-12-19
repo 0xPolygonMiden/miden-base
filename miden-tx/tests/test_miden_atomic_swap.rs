@@ -5,12 +5,12 @@ use miden_lib::notes::{create_note, Script};
 use miden_objects::{
     accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
-    assets::FungibleAsset,
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt,
 };
 use miden_tx::TransactionExecutor;
 use mock::constants::{
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_ID_SENDER,
 };
 use vm_core::StarkField;
@@ -21,10 +21,14 @@ mod common;
 fn test_atomic_swap_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let fungible_asset_1 = FungibleAsset::new(faucet_id, 100).unwrap();
+    let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
 
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-    let fungible_asset_2 = FungibleAsset::new(faucet_id_2, 100).unwrap();
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let non_fungible_asset: Asset = NonFungibleAsset::new(
+        &NonFungibleAssetDetails::new(faucet_id_2, vec![1, 2, 3, 4]).unwrap(),
+    )
+    .unwrap()
+    .into();
 
     // Create sender and target account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -35,18 +39,19 @@ fn test_atomic_swap_script() {
     let target_account = get_account_with_default_account_code(
         target_account_id,
         target_pub_key.clone(),
-        Some(fungible_asset_2.into()),
+        Some(non_fungible_asset),
     );
 
     // Create the note
     let aswap_script = Script::ASWAP {
-        requested_asset: fungible_asset_2,
-        recipient: [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)].into(),
+        asset: non_fungible_asset,
+        serial_num: [Felt::new(6), Felt::new(7), Felt::new(8), Felt::new(9)],
+        tag: Felt::new(99),
     };
 
     let note = create_note(
         aswap_script,
-        vec![fungible_asset_1.into()],
+        vec![fungible_asset],
         sender_account_id,
         None,
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
@@ -87,10 +92,12 @@ fn test_atomic_swap_script() {
         .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
         .unwrap();
 
+    println!("{:#?}", transaction_result.created_notes().notes());
+
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&vec![fungible_asset_1.into()]).unwrap(),
+        AccountVault::new(&vec![fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),

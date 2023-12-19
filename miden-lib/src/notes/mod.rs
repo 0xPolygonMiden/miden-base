@@ -3,7 +3,8 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
-use miden_objects::assets::FungibleAsset;
+use assembly::Assembler;
+use miden_objects::Hasher;
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -22,14 +23,16 @@ pub enum Script {
         recall_height: u32,
     },
     ASWAP {
-        requested_asset: FungibleAsset,
-        recipient: Digest,
+        asset: Asset,
+        serial_num: Word,
+        tag: Felt,
     },
 }
 
-/// Users can create notes with a standard script. Atm we provide two standard scripts:
+/// Users can create notes with a standard script. Atm we provide three standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
+/// 3. ASWAP - Atomic swap.
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -57,21 +60,33 @@ pub fn create_note(
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
         Script::ASWAP {
-            requested_asset,
-            recipient,
-        } => (
-            ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
-            vec![
-                recipient.as_elements()[3],
-                recipient.as_elements()[2],
-                recipient.as_elements()[1],
-                recipient.as_elements()[0],
-                requested_asset.amount().into(),
-                ZERO,
-                ZERO,
-                requested_asset.faucet_id().into(),
-            ],
-        ),
+            asset,
+            serial_num,
+            tag,
+        } => {
+            let note_script_ast =
+                ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?;
+            let recipient =
+                build_p2id_recipient(sender, serial_num, &note_script_ast, &note_assembler)?;
+            let asset_word: Word = asset.into();
+            (
+                note_script_ast,
+                vec![
+                    recipient[0],
+                    recipient[1],
+                    recipient[2],
+                    recipient[3],
+                    asset_word[0],
+                    asset_word[1],
+                    asset_word[2],
+                    asset_word[3],
+                    tag,
+                    ZERO,
+                    ZERO,
+                    ZERO,
+                ],
+            )
+        }
     };
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
@@ -109,4 +124,25 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError>
     }
 
     Ok(stub)
+}
+
+/// Utility function generating RECIPIENT for the P2ID note script created by the ASWAP script
+pub fn build_p2id_recipient(
+    target: AccountId,
+    serial_num: Word,
+    note_script_ast: &ProgramAst,
+    assembler: &Assembler,
+) -> Result<Digest, NoteError> {
+    let (note_script, _) = NoteScript::new(note_script_ast.clone(), &assembler)?;
+
+    let script_hash = note_script.hash();
+
+    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
+
+    let merge_script = Hasher::merge(&[serial_num_hash, script_hash]);
+
+    Ok(Hasher::merge(&[
+        merge_script,
+        Hasher::hash_elements(&[target.into(), ZERO, ZERO, ZERO]),
+    ]))
 }
