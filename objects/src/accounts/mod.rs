@@ -232,6 +232,28 @@ impl ToAdviceInputs for Account {
 // SERIALIZATION
 // ================================================================================================
 
+impl Serializable for Account {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.id.write_into(target);
+        self.vault.write_into(target);
+        self.storage.write_into(target);
+        self.code.write_into(target);
+        self.nonce.write_into(target);
+    }
+}
+
+impl Deserializable for Account {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let id = AccountId::read_from(source)?;
+        let vault = AccountVault::read_from(source)?;
+        let storage = AccountStorage::read_from(source)?;
+        let code = AccountCode::read_from(source)?;
+        let nonce = Felt::read_from(source)?;
+
+        Ok(Self::new(id, vault, storage, code, nonce))
+    }
+}
+
 #[cfg(feature = "serde")]
 mod vault_serialization {
     use super::AccountVault;
