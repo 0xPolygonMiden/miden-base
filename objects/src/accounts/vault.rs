@@ -1,6 +1,7 @@
 use super::{
-    AccountError, AccountId, AccountType, AccountVaultDelta, AdviceInputsBuilder, Asset, Digest,
-    FungibleAsset, NonFungibleAsset, StoreNode, TieredSmt, ToAdviceInputs, TryApplyDiff, ZERO,
+    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, ByteReader, ByteWriter,
+    Deserializable, DeserializationError, Digest, FungibleAsset, NonFungibleAsset, Serializable,
+    TieredSmt, ToAdviceInputs, ToString, Vec, ZERO,
 };
 
 // ACCOUNT VAULT
@@ -18,7 +19,6 @@ use super::{
 ///
 /// An account vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountVault {
     asset_tree: TieredSmt,
 }
@@ -204,6 +204,36 @@ impl AccountVault {
     }
 }
 
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AccountVault {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO: determine total number of assets in the vault without allocating the vector
+        let assets = self.assets().collect::<Vec<_>>();
+
+        // TODO: either enforce that number of assets in account vault is never greater than
+        // u32::MAX or use variable-length encoding for the number of assets
+        assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
+        target.write_u32(assets.len() as u32);
+
+        for asset in assets {
+            asset.write_into(target);
+        }
+    }
+}
+
+impl Deserializable for AccountVault {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num_assets = source.read_u32()? as usize;
+        let assets = Asset::read_batch_from(source, num_assets)?;
+        Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// ADVICE INPUTS INJECTION
+// ================================================================================================
+
 impl ToAdviceInputs for AccountVault {
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // extend the merkle store with account vault data
@@ -213,24 +243,5 @@ impl ToAdviceInputs for AccountVault {
         self.asset_tree.upper_leaves().for_each(|(node, key, value)| {
             target.insert_into_map(*node, (*key).into_iter().chain(value).collect());
         })
-    }
-}
-
-// DIFF
-// ================================================================================================
-impl TryApplyDiff<Digest, StoreNode> for AccountVault {
-    type DiffType = AccountVaultDelta;
-    type Error = AccountError;
-
-    fn try_apply(&mut self, diff: AccountVaultDelta) -> Result<(), Self::Error> {
-        for asset in diff.added_assets {
-            self.add_asset(asset)?;
-        }
-
-        for asset in diff.removed_assets {
-            self.remove_asset(asset)?;
-        }
-
-        Ok(())
     }
 }

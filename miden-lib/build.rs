@@ -60,11 +60,12 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
     let mut line = line?;
     if line.starts_with("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS") {
         line.clear();
-        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=1024"); // 2**10
-    }
-    if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
+        // 2**5
+        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs");
+    } else if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
         line.clear();
-        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2048"); // 2**11
+        // 2**6
+        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
     }
     Ok(line)
 }

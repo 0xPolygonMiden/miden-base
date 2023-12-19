@@ -176,7 +176,7 @@ mod log {
         pow: u32,
     }
 
-    /// Given a [Digest] returns its hex representaiton.
+    /// Given a [Digest] returns its hex representation.
     pub fn digest_hex(digest: Digest) -> String {
         to_hex(&digest.as_bytes()).expect("hex formatting failed")
     }
