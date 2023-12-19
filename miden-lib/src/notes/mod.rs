@@ -3,7 +3,6 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
-use assembly::Assembler;
 use miden_objects::Hasher;
 use miden_objects::{
     accounts::AccountId,
@@ -64,13 +63,10 @@ pub fn create_note(
             serial_num,
             tag,
         } => {
-            let note_script_ast =
-                ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?;
-            let recipient =
-                build_p2id_recipient(sender, serial_num, &note_script_ast, &note_assembler)?;
+            let recipient = build_p2id_recipient(sender, serial_num)?;
             let asset_word: Word = asset.into();
             (
-                note_script_ast,
+                ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
                 vec![
                     recipient[0],
                     recipient[1],
@@ -127,13 +123,15 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError>
 }
 
 /// Utility function generating RECIPIENT for the P2ID note script created by the ASWAP script
-pub fn build_p2id_recipient(
-    target: AccountId,
-    serial_num: Word,
-    note_script_ast: &ProgramAst,
-    assembler: &Assembler,
-) -> Result<Digest, NoteError> {
-    let (note_script, _) = NoteScript::new(note_script_ast.clone(), &assembler)?;
+pub fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
+    let assembler = assembler();
+
+    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+
+    let note_script_ast =
+        ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?;
+
+    let (note_script, _) = NoteScript::new(note_script_ast, &assembler)?;
 
     let script_hash = note_script.hash();
 
