@@ -5,7 +5,7 @@ use.miden::wallets::basic->wallet
 
 #! Helper procedure to add all assets of a note to an account.
 #!
-#! Inputs: []
+#! Inputs: [SCRIPT_ROOT]
 #! Outputs: []
 #!
 proc.add_note_assets_to_account
