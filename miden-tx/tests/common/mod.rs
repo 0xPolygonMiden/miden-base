@@ -6,7 +6,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
-    BlockHeader, ChainMmr, Felt, StarkField, Word,
+    BlockHeader, ChainMmr, Felt, Word,
 };
 use miden_tx::{DataStore, DataStoreError};
 use mock::{
@@ -82,7 +82,7 @@ impl DataStore for MockDataStore {
     ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs), DataStoreError>
     {
         assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num as u64, self.block_header.block_num().as_int());
+        assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));

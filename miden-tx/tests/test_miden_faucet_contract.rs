@@ -8,7 +8,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteMetadata, NoteStub, NoteVault},
-    Felt, StarkField, Word, ZERO,
+    Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
 use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
@@ -31,7 +31,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -102,7 +102,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -201,7 +201,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 

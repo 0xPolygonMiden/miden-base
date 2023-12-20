@@ -1,14 +1,14 @@
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-use super::{Digest, Felt, NoteError, ToString, NOTE_TREE_DEPTH};
+use super::{Digest, NoteError, ToString, NOTE_TREE_DEPTH};
 use crate::crypto::merkle::{MerklePath, NodeIndex};
 
 /// Contains information about the origin of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteOrigin {
-    pub block_num: Felt,
+    pub block_num: u32,
     pub node_index: NodeIndex,
 }
 
@@ -33,7 +33,7 @@ pub struct NoteInclusionProof {
 impl NoteInclusionProof {
     /// Creates a new note origin.
     pub fn new(
-        block_num: Felt,
+        block_num: u32,
         sub_hash: Digest,
         note_root: Digest,
         index: u64,
@@ -82,14 +82,14 @@ impl NoteInclusionProof {
 
 impl Serializable for NoteOrigin {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.block_num.write_into(target);
+        target.write_u32(self.block_num);
         self.node_index.write_into(target);
     }
 }
 
 impl Deserializable for NoteOrigin {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let block_num = Felt::read_from(source)?;
+        let block_num = source.read_u32()?;
         let node_index = NodeIndex::read_from(source)?;
 
         Ok(Self {
