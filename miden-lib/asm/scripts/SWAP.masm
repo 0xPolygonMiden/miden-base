@@ -1,7 +1,7 @@
 use.miden::sat::note
 use.miden::wallets::basic->wallet
 
-# Atomic Swap script: adds an asset from the note into consumers account and
+# Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
 # Requires that the account exposes: 

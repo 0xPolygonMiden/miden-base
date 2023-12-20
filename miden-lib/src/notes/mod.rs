@@ -21,17 +21,16 @@ pub enum Script {
         target: AccountId,
         recall_height: u32,
     },
-    ASWAP {
+    SWAP {
         asset: Asset,
         serial_num: Word,
-        tag: Felt,
     },
 }
 
 /// Users can create notes with a standard script. Atm we provide three standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
-/// 3. ASWAP - Atomic swap.
+/// 3. SWAP - Atomic swap.
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -44,7 +43,7 @@ pub fn create_note(
     // Include the binary version of the scripts into the source file at compile time
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
     let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
-    let aswap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/ASWAP.masb"));
+    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/SWAP.masb"));
 
     let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
         Script::P2ID { target } => (
@@ -58,15 +57,11 @@ pub fn create_note(
             ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
-        Script::ASWAP {
-            asset,
-            serial_num,
-            tag,
-        } => {
+        Script::SWAP { asset, serial_num } => {
             let recipient = build_p2id_recipient(sender, serial_num)?;
             let asset_word: Word = asset.into();
             (
-                ProgramAst::from_bytes(aswap_bytes).map_err(NoteError::NoteDeserializationError)?,
+                ProgramAst::from_bytes(swap_bytes).map_err(NoteError::NoteDeserializationError)?,
                 vec![
                     recipient[0],
                     recipient[1],
@@ -76,7 +71,7 @@ pub fn create_note(
                     asset_word[1],
                     asset_word[2],
                     asset_word[3],
-                    tag,
+                    sender.into(),
                     ZERO,
                     ZERO,
                     ZERO,

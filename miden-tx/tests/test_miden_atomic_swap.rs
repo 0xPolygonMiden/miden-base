@@ -20,7 +20,7 @@ use vm_processor::Digest;
 mod common;
 
 #[test]
-fn test_atomic_swap_script() {
+fn test_swap_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -45,10 +45,9 @@ fn test_atomic_swap_script() {
     );
 
     // Create the note
-    let aswap_script = Script::ASWAP {
+    let aswap_script = Script::SWAP {
         asset: non_fungible_asset,
         serial_num: [Felt::new(6), Felt::new(7), Felt::new(8), Felt::new(9)],
-        tag: Felt::new(99),
     };
 
     let note = create_note(
@@ -117,9 +116,8 @@ fn test_atomic_swap_script() {
         Felt::new(9100684949500007517),
     ]);
 
-    let tag = Felt::new(99);
-
-    let note_metadata = NoteMetadata::new(target_account_id, tag, Felt::new(1));
+    let note_metadata =
+        NoteMetadata::new(target_account_id, sender_account_id.into(), Felt::new(1));
 
     let note_vault = NoteVault::new(&[non_fungible_asset]).unwrap();
 
