@@ -3,14 +3,13 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
-use miden_objects::Hasher;
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
     notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
     utils::{collections::Vec, vec},
-    Digest, Felt, NoteError, StarkField, Word, WORD_SIZE, ZERO,
+    Digest, Felt, Hasher, NoteError, StarkField, Word, WORD_SIZE, ZERO,
 };
 
 pub enum Script {
@@ -30,7 +29,7 @@ pub enum Script {
 /// Users can create notes with a standard script. Atm we provide three standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
-/// 3. SWAP - Atomic swap.
+/// 3. SWAP - swap.
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -118,7 +117,7 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError>
 }
 
 /// Utility function generating RECIPIENT for the P2ID note script created by the ASWAP script
-pub fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
+fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
     let assembler = assembler();
 
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
