@@ -4,7 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     utils::collections::Vec,
-    Felt, StarkField,
+    Felt,
 };
 use miden_tx::TransactionExecutor;
 use mock::constants::{
@@ -57,7 +57,7 @@ fn test_p2id_script() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -122,7 +122,7 @@ fn test_p2id_script() {
         )
         .unwrap();
 
-    let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
+    let block_ref = data_store_malicious_account.block_header.block_num();
     let note_origins = data_store_malicious_account
         .notes
         .iter()
@@ -182,7 +182,7 @@ fn test_p2id_script_multiple_assets() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -247,7 +247,7 @@ fn test_p2id_script_multiple_assets() {
         )
         .unwrap();
 
-    let block_ref = data_store_malicious_account.block_header.block_num().as_int() as u32;
+    let block_ref = data_store_malicious_account.block_header.block_num();
     let note_origins = data_store_malicious_account
         .notes
         .iter()
@@ -351,7 +351,7 @@ fn test_p2idr_script() {
 
     executor_1.load_account(target_account_id).unwrap();
 
-    let block_ref_1 = data_store_1.block_header.block_num().as_int() as u32;
+    let block_ref_1 = data_store_1.block_header.block_num();
     let note_origins =
         data_store_1.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -413,7 +413,7 @@ fn test_p2idr_script() {
         )
         .unwrap();
 
-    let block_ref_2 = data_store_2.block_header.block_num().as_int() as u32;
+    let block_ref_2 = data_store_2.block_header.block_num();
     let note_origins_2 =
         data_store_2.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -446,7 +446,7 @@ fn test_p2idr_script() {
         )
         .unwrap();
 
-    let block_ref_3 = data_store_3.block_header.block_num().as_int() as u32;
+    let block_ref_3 = data_store_3.block_header.block_num();
     let note_origins_3 =
         data_store_3.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -472,7 +472,7 @@ fn test_p2idr_script() {
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
     executor_4.load_account(target_account_id).unwrap();
 
-    let block_ref_4 = data_store_4.block_header.block_num().as_int() as u32;
+    let block_ref_4 = data_store_4.block_header.block_num();
     let note_origins_4 =
         data_store_4.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -512,7 +512,7 @@ fn test_p2idr_script() {
 
     executor_5.load_account(sender_account_id).unwrap();
 
-    let block_ref_5 = data_store_5.block_header.block_num().as_int() as u32;
+    let block_ref_5 = data_store_5.block_header.block_num();
     let note_origins =
         data_store_5.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -546,7 +546,7 @@ fn test_p2idr_script() {
 
     executor_6.load_account(malicious_account_id).unwrap();
 
-    let block_ref_6 = data_store_6.block_header.block_num().as_int() as u32;
+    let block_ref_6 = data_store_6.block_header.block_num();
     let note_origins_6 =
         data_store_6.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 

@@ -78,7 +78,7 @@ impl ToAdviceInputs for ConsumedNotes {
             note_data.extend(note.vault().to_padded_assets());
             target.insert_into_map(note.vault().hash().into(), note.vault().to_padded_assets());
 
-            note_data.push(proof.origin().block_num);
+            note_data.push(proof.origin().block_num.into());
             note_data.extend(*proof.sub_hash());
             note_data.extend(*proof.note_root());
             note_data.push(Felt::from(proof.origin().node_index.value()));

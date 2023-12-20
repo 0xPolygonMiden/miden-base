@@ -21,7 +21,7 @@ use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
     prev_hash: Digest,
-    block_num: Felt,
+    block_num: u32,
     chain_root: Digest,
     account_root: Digest,
     nullifier_root: Digest,
@@ -39,7 +39,7 @@ impl BlockHeader {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         prev_hash: Digest,
-        block_num: Felt,
+        block_num: u32,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
@@ -105,7 +105,7 @@ impl BlockHeader {
     }
 
     /// Returns the block number.
-    pub fn block_num(&self) -> Felt {
+    pub fn block_num(&self) -> u32 {
         self.block_num
     }
 
@@ -167,7 +167,7 @@ impl BlockHeader {
         proof_hash: Digest,
         version: Felt,
         timestamp: Felt,
-        block_num: Felt,
+        block_num: u32,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
         elements.extend_from_slice(prev_hash.as_elements());
@@ -176,7 +176,7 @@ impl BlockHeader {
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(batch_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
-        elements.extend([block_num, version, timestamp, ZERO]);
+        elements.extend([block_num.into(), version, timestamp, ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
@@ -191,7 +191,7 @@ impl ToAdviceInputs for &BlockHeader {
         target.push_onto_stack(self.nullifier_root.as_elements());
         target.push_onto_stack(self.batch_root.as_elements());
         target.push_onto_stack(self.proof_hash.as_elements());
-        target.push_onto_stack(&[self.block_num, self.version, self.timestamp, ZERO]);
+        target.push_onto_stack(&[self.block_num.into(), self.version, self.timestamp, ZERO]);
         target.push_onto_stack(&[ZERO; 4]);
         target.push_onto_stack(self.note_root.as_elements());
     }

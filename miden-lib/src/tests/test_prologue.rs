@@ -170,7 +170,7 @@ fn block_data_memory_assertions<A: AdviceProvider>(
     // The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]
     assert_eq!(
         process.get_mem_value(ContextId::root(), BLOCK_METADATA_PTR).unwrap()[BLOCK_NUMBER_IDX],
-        inputs.block_header().block_num()
+        inputs.block_header().block_num().into()
     );
 
     // The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]

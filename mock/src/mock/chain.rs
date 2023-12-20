@@ -437,8 +437,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     ///
     /// This will also make all the objects currently pending available for use.
     pub fn seal_block(&mut self) -> BlockHeader {
-        let block_num: u64 = self.blocks.len().try_into().expect("usize to u64 failed");
-        let block_num: Felt = block_num.into();
+        let block_num: u32 = self.blocks.len().try_into().expect("usize to u32 failed");
 
         for (account, _seed) in self.pending_objects.accounts.iter() {
             let id: Felt = account.id().into();
@@ -451,11 +450,11 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
         // TODO:
         // - resetting the nullifier tree once defined at the protocol level.
-        // - insering only nullifier from transactions included in the batches, once the batch
+        // - inserting only nullifier from transactions included in the batches, once the batch
         // kernel has been implemented.
         for nullifier in self.pending_objects.nullifiers.iter() {
             self.nullifiers
-                .insert(*nullifier, [block_num, Felt::ZERO, Felt::ZERO, Felt::ZERO]);
+                .insert(*nullifier, [block_num.into(), Felt::ZERO, Felt::ZERO, Felt::ZERO]);
         }
         let notes = self.pending_objects.build_notes_tree();
 
@@ -617,10 +616,10 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote
 
     // create a dummy chain of block headers
     let block_chain = vec![
-        mock_block_header(Felt::ZERO, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::ONE, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::new(2), None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(Felt::new(3), None, note_tree_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(0, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(1, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(2, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        mock_block_header(3, None, note_tree_iter.next().map(|x| x.root()), &[]),
     ];
 
     // instantiate and populate MMR
