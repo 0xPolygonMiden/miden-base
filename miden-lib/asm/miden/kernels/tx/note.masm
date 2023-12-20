@@ -118,7 +118,7 @@ end
 #! 2. Loading the note script root onto the stack.
 #!
 #! Stack: []
-#! Output: [NSR]
+#! Output: [NSR, note_args]
 #!
 #! - NSR is the note script root of the note currently being executed.
 export.prepare_note
@@ -126,9 +126,14 @@ export.prepare_note
     exec.memory::get_current_consumed_note_ptr
     # => [note_ptr]
 
+    # get the note args for the note 
+    # TODO: this should only be called if there are note_args
+    dup exec.layout::get_consumed_note_args movup.4
+    # => [note_ptr, NOTE_ARGS]
+
     # read the note script root onto the stack
-    exec.memory::get_consumed_note_script_root
-    # => [NOTE_SCRIPT_ROOT]
+    exec.layout::get_consumed_note_script_root
+    # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 end
 
 # OUTPUT NOTE PROCEDURES
