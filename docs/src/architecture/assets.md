@@ -25,7 +25,7 @@ Faucets can create assets and immediately distribute them by producing notes. Ho
 </p>
 
 ### Fungible assets
-A fungible asset is encoded using the amount and the `faucet_id` of the faucet which issued the asset. The amount is guaranteed to be  $2^{64} - 1$ or smaller, the maximum supply for any fungible asset. Examples of fungible assets are ETH and stablecoins, e.g., DAI, USDT, and USDC.
+A fungible asset is encoded using the amount and the `faucet_id` of the faucet which issued the asset. The amount is guaranteed to be  $2^{63} - 1$ or smaller, the maximum supply for any fungible asset. Examples of fungible assets are ETH and stablecoins, e.g., DAI, USDT, and USDC.
 
 If the `faucet_id` of MATIC were to be `2`, 100 MATIC are encoded as `[100, 0, 0, 2]` - whereas the `0`s in the middle help to quickly distinguish between fungible and non-fungible assets.
 

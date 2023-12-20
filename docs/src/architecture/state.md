@@ -29,7 +29,7 @@ The latest account states - and data for onchain accounts - are recorded in a [s
   <img src="../diagrams/architecture/state/Account_DB.png" width="80%">
 </p>
 
-As described in [Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes), there are two types of accounts:
+As described in [Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-mode), there are two types of accounts:
 
 * **Public accounts** where all account data is stored onchain.
 * **Private accounts** where only the hashes of accounts are stored onchain.
