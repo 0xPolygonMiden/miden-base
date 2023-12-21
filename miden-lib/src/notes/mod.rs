@@ -29,7 +29,7 @@ pub enum Script {
 /// Users can create notes with a standard script. Atm we provide three standard scripts:
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
-/// 3. SWAP - swap.
+/// 3. SWAP - swap of assets between two accounts.
 pub fn create_note(
     script: Script,
     assets: Vec<Asset>,
@@ -116,8 +116,10 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError>
     Ok(stub)
 }
 
-/// Utility function generating RECIPIENT for the P2ID note script created by the ASWAP script
+/// Utility function generating RECIPIENT for the P2ID note script created by the SWAP script
 fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
+    // TODO: add lazy_static initialization or compile-time optimization instead of re-generating
+    // the script hash every time we call the SWAP script
     let assembler = assembler();
 
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));

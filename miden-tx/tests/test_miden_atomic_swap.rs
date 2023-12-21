@@ -14,7 +14,6 @@ use mock::constants::{
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_ID_SENDER,
 };
-use vm_core::StarkField;
 use vm_processor::Digest;
 
 mod common;
@@ -67,7 +66,7 @@ fn test_swap_script() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
