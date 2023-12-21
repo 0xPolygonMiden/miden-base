@@ -8,7 +8,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::RecordedNote,
     transaction::{CreatedNotes, FinalAccountStub},
-    Felt, StarkField, Word,
+    Felt, Word,
 };
 use miden_prover::ProvingOptions;
 use mock::{
@@ -36,7 +36,7 @@ fn test_transaction_executor_witness() {
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -219,7 +219,7 @@ fn test_transaction_result_account_delta() {
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -286,7 +286,7 @@ fn test_prove_witness_and_verify() {
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -313,7 +313,7 @@ fn test_prove_and_verify_with_tx_executor() {
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -342,7 +342,7 @@ fn test_tx_script() {
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -422,7 +422,7 @@ impl DataStore for MockDataStore {
     ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs), DataStoreError>
     {
         assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num as u64, self.block_header.block_num().as_int());
+        assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));

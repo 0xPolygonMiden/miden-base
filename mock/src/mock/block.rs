@@ -5,7 +5,7 @@ use miden_objects::{
 use miden_test_utils::rand;
 
 pub fn mock_block_header(
-    block_num: Felt,
+    block_num: u32,
     chain_root: Option<Digest>,
     note_root: Option<Digest>,
     accts: &[Account],

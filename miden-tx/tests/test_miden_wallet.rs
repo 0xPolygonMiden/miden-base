@@ -4,7 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
-    Felt, StarkField, Word, ONE, ZERO,
+    Felt, Word, ONE, ZERO,
 };
 use miden_tx::TransactionExecutor;
 use mock::{
@@ -64,7 +64,7 @@ fn test_receive_asset_via_wallet() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
@@ -132,7 +132,7 @@ fn test_send_asset_via_wallet() {
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(sender_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num().as_int() as u32;
+    let block_ref = data_store.block_header.block_num();
     let note_origins =
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 

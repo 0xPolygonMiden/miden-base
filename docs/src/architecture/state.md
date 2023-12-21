@@ -29,7 +29,7 @@ The latest account states - and data for onchain accounts - are recorded in a [s
   <img src="../diagrams/architecture/state/Account_DB.png" width="80%">
 </p>
 
-As described in [Accounts](http://localhost:3000/architecture/accounts.html#account-storage-modes), there are two types of accounts:
+As described in [Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes), there are two types of accounts:
 
 * **Public accounts** where all account data is stored onchain.
 * **Private accounts** where only the hashes of accounts are stored onchain.
@@ -47,7 +47,7 @@ Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](http
   <img src="../diagrams/architecture/state/Note_DB.png" width="80%">
 </p>
 
-As described in [Notes](http://localhost:3000/architecture/notes.html#note-storage-modes), there are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
+As described in [Notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-storage-modes), there are two types of [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html):
 
 * **Public notes** where the entire note content is recorded in the state.
 * **Private notes** where only a note's hash is recorded in the state.

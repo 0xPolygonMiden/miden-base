@@ -74,7 +74,7 @@ There are four types of accounts in Miden:
 | **Code updatability** | yes | no | no | no |
 | **Most significant bits** | `00` | `01` | `10` | `11` |
 
-## Account storage mode
+## Account storage modes
 Account data - stored by the Miden Node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
 
 * Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.

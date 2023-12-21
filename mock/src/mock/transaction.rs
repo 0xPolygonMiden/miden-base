@@ -60,7 +60,7 @@ pub fn mock_inputs(
 
     // Block header
     let block_header = mock_block_header(
-        Felt::new(4),
+        4,
         Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
         None,
         &[account.clone()],
@@ -119,7 +119,7 @@ pub fn mock_inputs_with_existing(
 
     // Block header
     let block_header = mock_block_header(
-        Felt::new(4),
+        4,
         Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
         None,
         &[account.clone()],
@@ -156,7 +156,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
 
     // Block header
     let block_header = mock_block_header(
-        Felt::new(4),
+        4,
         Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
         None,
         &[initial_account.clone()],
