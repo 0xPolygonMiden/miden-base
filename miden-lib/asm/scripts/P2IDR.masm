@@ -48,7 +48,7 @@ end
 # matches target account ID specified by the note inputs OR matches the sender ID if the note is
 # consumed after the reclaim block height specified by the note inputs.
 #
-# Inputs: []
+# Inputs: [SCRIPT_ROOT]
 # Outputs: []
 #
 # Note inputs are assumed to be as follows:
