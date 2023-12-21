@@ -29,7 +29,7 @@ As inputs, a transaction requires
 ### Transaction program
 In addition to specifying inputs and outputs, a transaction must be represented by an executable program. The transaction program has a well-defined structure which must do the following:
 
-1. **Prologue**: during this step we build a single unified vault all all transaction inputs (account + notes).
+1. **Prologue**: during this step we build a single unified vault all transaction inputs (account + notes).
 2. **Execution**: during this step we first execute scripts of all input notes (one after another), and then execute an optional user-defined script (called tx script).
 3. **Epilogue**: during this step we build a single unified vault of all transaction outputs (account + notes), and make sure it contains the same assets as the input vault.
 
