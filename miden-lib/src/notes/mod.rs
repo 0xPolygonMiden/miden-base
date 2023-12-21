@@ -3,6 +3,7 @@ use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
     CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
+use miden_objects::crypto::rand::FeltRng;
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -30,12 +31,12 @@ pub enum Script {
 /// 1. P2ID - pay to id.
 /// 2. P2IDR - pay to id with recall after a certain block height.
 /// 3. SWAP - swap of assets between two accounts.
-pub fn create_note(
+pub fn create_note<R: FeltRng>(
     script: Script,
     assets: Vec<Asset>,
     sender: AccountId,
     tag: Option<Felt>,
-    serial_num: Word,
+    mut rng: R,
 ) -> Result<Note, NoteError> {
     let note_assembler = assembler();
 
@@ -81,7 +82,14 @@ pub fn create_note(
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
+    Note::new(
+        note_script.clone(),
+        &inputs,
+        &assets,
+        rng.draw_word(),
+        sender,
+        tag.unwrap_or(ZERO),
+    )
 }
 
 pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {
