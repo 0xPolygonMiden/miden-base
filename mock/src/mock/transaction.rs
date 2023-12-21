@@ -12,9 +12,9 @@ use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::Account,
     notes::{Note, RecordedNote},
-    transaction::ExecutedTransaction,
+    transaction::{ChainMmr, ExecutedTransaction},
     utils::collections::Vec,
-    BlockHeader, ChainMmr, Felt, FieldElement,
+    BlockHeader, Felt, FieldElement,
 };
 use vm_processor::AdviceInputs;
 
@@ -59,12 +59,8 @@ pub fn mock_inputs(
     let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
     // Block header
-    let block_header = mock_block_header(
-        4,
-        Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
-        None,
-        &[account.clone()],
-    );
+    let block_header =
+        mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
     // Transaction inputs
     (account, block_header, chain_mmr, recorded_notes, auxiliary_data)
@@ -118,12 +114,8 @@ pub fn mock_inputs_with_existing(
     let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
     // Block header
-    let block_header = mock_block_header(
-        4,
-        Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
-        None,
-        &[account.clone()],
-    );
+    let block_header =
+        mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
     // Transaction inputs
     (account, block_header, chain_mmr, recorded_notes, auxiliary_data)
@@ -157,7 +149,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     // Block header
     let block_header = mock_block_header(
         4,
-        Some(chain_mmr.mmr().peaks(chain_mmr.mmr().forest()).unwrap().hash_peaks()),
+        Some(chain_mmr.peaks().hash_peaks()),
         None,
         &[initial_account.clone()],
     );
