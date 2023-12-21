@@ -102,10 +102,10 @@ fn test_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert!(transaction_result.final_account_hash() == target_account_after.hash());
+    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
-    assert!(transaction_result.created_notes().notes().len() == 1);
+    assert_eq!(transaction_result.created_notes().notes().len(), 1);
 
     // Check if the created `Note` is what we expect
     let recipient = Digest::new([
@@ -124,5 +124,5 @@ fn test_swap_script() {
 
     let created_note = &transaction_result.created_notes().notes()[0];
 
-    assert!(created_note == &requested_note);
+    assert_eq!(created_note, &requested_note);
 }

@@ -84,9 +84,9 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     .unwrap();
 
     let created_note = transaction_result.created_notes().notes()[0].clone();
-    assert!(created_note.recipient() == expected_note.recipient());
-    assert!(created_note.vault() == expected_note.vault());
-    assert!(created_note.metadata() == expected_note.metadata());
+    assert_eq!(created_note.recipient(), expected_note.recipient());
+    assert_eq!(created_note.vault(), expected_note.vault());
+    assert_eq!(created_note.metadata(), expected_note.metadata());
 }
 
 #[test]
@@ -162,13 +162,13 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
     // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
-    assert!(
-        faucet_account.storage().get_item(1)
-            == [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
+    assert_eq!(
+        faucet_account.storage().get_item(1),
+        [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
-    assert!(
-        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT)
-            == [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
+    assert_eq!(
+        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
     );
 
     // need to create a note with the fungible asset to be burned
@@ -245,12 +245,12 @@ fn test_faucet_contract_creation() {
     .unwrap();
 
     // check that max_supply (slot 1) is 123
-    assert!(
-        faucet_account.storage().get_item(1)
-            == [Felt::new(123), Felt::new(2), TokenSymbol::from(token_symbol).into(), ZERO].into()
+    assert_eq!(
+        faucet_account.storage().get_item(1),
+        [Felt::new(123), Felt::new(2), TokenSymbol::from(token_symbol).into(), ZERO].into()
     );
 
-    assert!(faucet_account.is_faucet() == true);
+    assert_eq!(faucet_account.is_faucet(), true);
 
     let exp_faucet_account_code_src =
         include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
@@ -260,7 +260,7 @@ fn test_faucet_contract_creation() {
     let exp_faucet_account_code =
         AccountCode::new(exp_faucet_account_code_ast.clone(), &mut account_assembler).unwrap();
 
-    assert!(faucet_account.code() == &exp_faucet_account_code);
+    assert_eq!(faucet_account.code(), &exp_faucet_account_code);
 }
 
 fn get_faucet_account_with_max_supply_and_total_issuance(
