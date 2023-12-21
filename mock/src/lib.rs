@@ -2,8 +2,8 @@ use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account,
     notes::{Note, NoteVault, RecordedNote},
-    transaction::{PreparedTransaction, TransactionScript},
-    BlockHeader, ChainMmr, Felt, StarkField,
+    transaction::{ChainMmr, PreparedTransaction, TransactionScript},
+    BlockHeader, Felt, StarkField,
 };
 use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
