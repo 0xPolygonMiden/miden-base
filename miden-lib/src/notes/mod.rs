@@ -82,14 +82,8 @@ pub fn create_note<R: FeltRng>(
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
 
-    Note::new(
-        note_script.clone(),
-        &inputs,
-        &assets,
-        rng.draw_word(),
-        sender,
-        tag.unwrap_or(ZERO),
-    )
+    let serial_num = rng.draw_word();
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
 }
 
 pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {
