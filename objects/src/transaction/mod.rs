@@ -2,13 +2,13 @@ use super::{
     accounts::{Account, AccountId},
     notes::{Note, NoteEnvelope, Nullifier, RecordedNote},
     utils::collections::Vec,
-    AdviceInputs, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher,
-    PreparedTransactionError, StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE,
-    ZERO,
+    AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, PreparedTransactionError,
+    StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
 };
 use vm_core::{Program, StackInputs, StackOutputs};
 
 mod account_stub;
+mod chain_mmr;
 mod consumed_notes;
 mod created_notes;
 mod event;
@@ -23,6 +23,7 @@ mod tx_witness;
 mod utils;
 
 pub use account_stub::FinalAccountStub;
+pub use chain_mmr::ChainMmr;
 pub use consumed_notes::ConsumedNotes;
 pub use created_notes::CreatedNotes;
 pub use event::Event;

@@ -105,7 +105,7 @@ fn test_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert!(transaction_result.final_account_hash() == target_account_after.hash());
+    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
 }
 
 #[test]
@@ -184,7 +184,7 @@ fn test_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert!(transaction_result.final_account_hash() == sender_account_after.hash());
+    assert_eq!(transaction_result.final_account_hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -215,7 +215,7 @@ fn test_wallet_creation() {
             .root();
 
     assert!(wallet.is_regular_account());
-    assert!(wallet.code().root() == expected_code_root);
+    assert_eq!(wallet.code().root(), expected_code_root);
     let pub_key_word: Word = pub_key.into();
-    assert!(wallet.storage().get_item(0).as_elements() == pub_key_word);
+    assert_eq!(wallet.storage().get_item(0).as_elements(), pub_key_word);
 }

@@ -6,7 +6,8 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
-    BlockHeader, ChainMmr, Felt, Word,
+    transaction::ChainMmr,
+    BlockHeader, Felt, Word,
 };
 use miden_tx::{DataStore, DataStoreError};
 use mock::{

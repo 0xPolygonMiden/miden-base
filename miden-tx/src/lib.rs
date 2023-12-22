@@ -3,9 +3,9 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId},
     assembly::CodeBlock,
     notes::{NoteOrigin, NoteScript},
-    transaction::{PreparedTransaction, TransactionResult},
+    transaction::{ChainMmr, PreparedTransaction, TransactionResult},
     utils::collections::BTreeMap,
-    AccountError, BlockHeader, ChainMmr, Digest, Hasher, TransactionResultError,
+    AccountError, BlockHeader, Digest, Hasher, TransactionResultError,
 };
 use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};

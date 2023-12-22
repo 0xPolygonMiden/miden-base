@@ -259,6 +259,35 @@ impl fmt::Display for NoteError {
 #[cfg(feature = "std")]
 impl std::error::Error for NoteError {}
 
+// CHAIN MMR ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone)]
+pub enum ChainMmrError {
+    BlockNumTooBig {
+        chain_length: usize,
+        block_num: usize,
+    },
+}
+
+impl ChainMmrError {
+    pub fn block_num_too_big(chain_length: usize, block_num: usize) -> Self {
+        Self::BlockNumTooBig {
+            chain_length,
+            block_num,
+        }
+    }
+}
+
+impl fmt::Display for ChainMmrError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ChainMmrError {}
+
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 

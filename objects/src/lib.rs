@@ -16,15 +16,12 @@ pub mod notes;
 pub mod block;
 pub use block::BlockHeader;
 
-pub mod chain;
-pub use chain::ChainMmr;
-
 pub mod transaction;
 
 mod errors;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, ExecutedTransactionError, NoteError,
-    PreparedTransactionError, TransactionResultError, TransactionScriptError,
+    AccountDeltaError, AccountError, AssetError, ChainMmrError, ExecutedTransactionError,
+    NoteError, PreparedTransactionError, TransactionResultError, TransactionScriptError,
     TransactionWitnessError,
 };
 

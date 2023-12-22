@@ -10,10 +10,11 @@ use core::fmt;
 use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
-    crypto::merkle::{NodeIndex, SimpleSmt, TieredSmt},
+    crypto::merkle::{Mmr, NodeIndex, PartialMmr, SimpleSmt, TieredSmt},
     notes::{Note, NoteInclusionProof, RecordedNote, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-    utils::collections::Vec,
-    BlockHeader, ChainMmr, Digest, Felt, FieldElement, StarkField, Word,
+    transaction::ChainMmr,
+    utils::collections::{BTreeMap, Vec},
+    BlockHeader, Digest, Felt, FieldElement, StarkField, Word,
 };
 use rand::{Rng, SeedableRng};
 
@@ -121,7 +122,7 @@ impl<R: Rng> Objects<R> {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct MockChain<R> {
     /// An append-only structure used to represent the history of blocks produced for this chain.
-    chain: ChainMmr,
+    chain: Mmr,
 
     /// History of produced blocks.
     blocks: Vec<BlockHeader>,
@@ -193,7 +194,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let account_rng = R::from_rng(&mut rng).expect("rng seeding failed");
         let account_id_builder = AccountIdBuilder::new(account_rng);
         Self {
-            chain: ChainMmr::default(),
+            chain: Mmr::default(),
             blocks: vec![],
             nullifiers: TieredSmt::default(),
             accounts: SimpleSmt::new(64).expect("depth too big for SimpleSmt"),
@@ -459,7 +460,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let notes = self.pending_objects.build_notes_tree();
 
         let previous = self.blocks.last();
-        let peaks = self.chain.mmr().peaks(self.chain.mmr().forest()).unwrap();
+        let peaks = self.chain.peaks(self.chain.forest()).unwrap();
         let chain_root: Digest = peaks.hash_peaks();
         let account_root = self.accounts.root();
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());
@@ -488,7 +489,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         );
 
         self.blocks.push(header);
-        self.chain.mmr_mut().add(header.hash());
+        self.chain.add(header.hash());
         self.objects.update_with(&mut self.pending_objects, header, &notes);
 
         header
@@ -531,13 +532,13 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     // ACCESSORS
     // ----------------------------------------------------------------------------------------
 
-    /// Get a reference to the latest [ChainMmr].
-    pub fn chain(&self) -> &ChainMmr {
-        &self.chain
+    /// Get the latest [ChainMmr].
+    pub fn chain(&self) -> ChainMmr {
+        mmr_to_chain_mmr(&self.chain)
     }
 
     /// Get a reference to [BlockHeader] with `block_number`.
-    pub fn blockheader(&self, block_number: usize) -> &BlockHeader {
+    pub fn block_header(&self, block_number: usize) -> &BlockHeader {
         &self.blocks[block_number]
     }
 
@@ -623,10 +624,11 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote
     ];
 
     // instantiate and populate MMR
-    let mut chain_mmr = ChainMmr::default();
+    let mut mmr = Mmr::default();
     for block_header in block_chain.iter() {
-        chain_mmr.mmr_mut().add(block_header.hash())
+        mmr.add(block_header.hash())
     }
+    let chain_mmr = mmr_to_chain_mmr(&mmr);
 
     // set origin for consumed notes using chain and block data
     let recorded_notes = consumed_notes
@@ -650,4 +652,23 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote
         .collect::<Vec<_>>();
 
     (chain_mmr, recorded_notes)
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Converts the MMR into partial MMR by copying all leaves from MMR to partial MMR.
+fn mmr_to_chain_mmr(mmr: &Mmr) -> ChainMmr {
+    let num_leaves = mmr.forest();
+    let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks(mmr.forest()).unwrap());
+    let mut headers = BTreeMap::new();
+
+    for i in 0..num_leaves {
+        let node = mmr.get(i).unwrap();
+        let path = mmr.open(i, mmr.forest()).unwrap().merkle_path;
+        partial_mmr.add(i, node, &path).unwrap();
+        headers.insert(i as u32, node);
+    }
+
+    ChainMmr::new(partial_mmr, headers).unwrap()
 }
