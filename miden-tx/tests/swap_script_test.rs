@@ -6,6 +6,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    crypto::rand::RpoRandomCoin,
     notes::{NoteMetadata, NoteStub, NoteVault},
     Felt,
 };
@@ -54,7 +55,7 @@ fn test_swap_script() {
         vec![fungible_asset],
         sender_account_id,
         None,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 

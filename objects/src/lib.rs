@@ -42,6 +42,7 @@ pub mod assembly {
 pub mod crypto {
     pub use miden_crypto::dsa;
     pub use miden_crypto::merkle;
+    pub use miden_crypto::rand;
     pub use miden_crypto::utils;
 }
 
