@@ -55,12 +55,12 @@ impl std::error::Error for TransactionCompilerError {}
 #[derive(Debug)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
-    ComipleTransactionScriptFailed(TransactionCompilerError),
+    CompileTransactionScriptFailed(TransactionCompilerError),
     CompileTransactionError(TransactionCompilerError),
     ConstructPreparedTransactionFailed(PreparedTransactionError),
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchAccountCodeFailed(DataStoreError),
-    FetchTransactionDataFailed(DataStoreError),
+    FetchTransactionInputsFailed(DataStoreError),
     LoadAccountFailed(TransactionCompilerError),
     TransactionResultError(TransactionResultError),
 }

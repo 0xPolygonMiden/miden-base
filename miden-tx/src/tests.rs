@@ -1,9 +1,10 @@
 use miden_objects::{
-    accounts::AccountCode,
+    accounts::{Account, AccountCode},
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
+    block::BlockHeader,
     notes::RecordedNote,
-    transaction::{CreatedNotes, FinalAccountStub},
+    transaction::{ChainMmr, CreatedNotes, FinalAccountStub},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -22,8 +23,8 @@ use vm_core::utils::to_hex;
 use vm_processor::{AdviceInputs, MemAdviceProvider};
 
 use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, NoteOrigin,
-    TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier, TryFromVmResult,
+    AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
+    TransactionInputs, TransactionProver, TransactionVerifier, TryFromVmResult,
 };
 
 // TESTS
@@ -414,25 +415,25 @@ impl Default for MockDataStore {
 }
 
 impl DataStore for MockDataStore {
-    fn get_transaction_data(
+    fn get_transaction_inputs(
         &self,
         account_id: AccountId,
         block_num: u32,
         notes: &[NoteOrigin],
-    ) -> Result<(Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs), DataStoreError>
-    {
+    ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
-        Ok((
-            self.account.clone(),
-            self.block_header,
-            self.block_chain.clone(),
-            self.notes.clone(),
-            self.auxiliary_data.clone(),
-        ))
+        Ok(TransactionInputs {
+            account: self.account.clone(),
+            account_seed: None,
+            block_header: self.block_header,
+            block_chain: self.block_chain.clone(),
+            input_notes: self.notes.clone(),
+            aux_data: self.auxiliary_data.clone(),
+        })
     }
 
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {

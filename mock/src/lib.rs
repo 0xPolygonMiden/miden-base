@@ -4,7 +4,7 @@ use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account,
     notes::{Note, NoteVault, RecordedNote},
-    transaction::{ChainMmr, PreparedTransaction, TransactionScript},
+    transaction::{ChainMmr, PreparedTransaction, TransactionInputs, TransactionScript},
     BlockHeader, Felt, StarkField,
 };
 use vm_processor::{
@@ -108,15 +108,14 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    PreparedTransaction::new(
+    let tx_inputs = TransactionInputs {
         account,
         account_seed,
         block_header,
-        chain,
-        notes,
-        tx_script,
-        program,
-        auxiliary_data,
-    )
-    .unwrap()
+        block_chain: chain,
+        input_notes: notes,
+        aux_data: auxiliary_data,
+    };
+
+    PreparedTransaction::new(program, tx_script, tx_inputs).unwrap()
 }

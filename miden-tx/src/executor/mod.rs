@@ -103,7 +103,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     {
         self.compiler
             .compile_tx_script(tx_script_ast, inputs, target_account_procs)
-            .map_err(TransactionExecutorError::ComipleTransactionScriptFailed)
+            .map_err(TransactionExecutorError::CompileTransactionScriptFailed)
     }
 
     /// Prepares and executes a transaction specified by the provided arguments and returns a
@@ -170,27 +170,22 @@ impl<D: DataStore> TransactionExecutor<D> {
         note_origins: &[NoteOrigin],
         tx_script: Option<TransactionScript>,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
-        let (account, block_header, block_chain, notes, auxiliary_data) = self
+        let tx_inputs = self
             .data_store
-            .get_transaction_data(account_id, block_ref, note_origins)
-            .map_err(TransactionExecutorError::FetchTransactionDataFailed)?;
+            .get_transaction_inputs(account_id, block_ref, note_origins)
+            .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_program = self
             .compiler
-            .compile_transaction(account_id, &notes, tx_script.as_ref().map(|x| x.code()))
+            .compile_transaction(
+                account_id,
+                &tx_inputs.input_notes,
+                tx_script.as_ref().map(|x| x.code()),
+            )
             .map_err(TransactionExecutorError::CompileTransactionError)?;
 
-        PreparedTransaction::new(
-            account,
-            None,
-            block_header,
-            block_chain,
-            notes,
-            tx_script,
-            tx_program,
-            auxiliary_data,
-        )
-        .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
+        PreparedTransaction::new(tx_program, tx_script, tx_inputs)
+            .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
     }
 }
 

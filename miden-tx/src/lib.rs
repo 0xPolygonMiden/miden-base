@@ -1,11 +1,12 @@
 use miden_lib::SatKernel;
+pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId},
+    accounts::{AccountCode, AccountId},
     assembly::CodeBlock,
     notes::{NoteOrigin, NoteScript},
-    transaction::{ChainMmr, PreparedTransaction, TransactionResult},
+    transaction::{PreparedTransaction, TransactionResult},
     utils::collections::BTreeMap,
-    AccountError, BlockHeader, Digest, Hasher, TransactionResultError,
+    AccountError, Digest, Hasher, TransactionResultError,
 };
 use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};

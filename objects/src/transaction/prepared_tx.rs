@@ -1,16 +1,19 @@
-use crate::{
-    accounts::validate_account_seed,
-    transaction::{
-        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
-        PreparedTransactionError, Program, RecordedNote, StackInputs, TransactionScript, Vec, Word,
-    },
+use super::{
+    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
+    PreparedTransactionError, Program, StackInputs, TransactionInputs, TransactionScript, Word,
 };
+use crate::accounts::validate_account_seed;
 
-/// A struct that contains all of the data required to execute a transaction. This includes:
+// PREPARED TRANSACTION
+// ================================================================================================
+
+/// A struct that contains all of the data required to execute a transaction.
+///
+/// This includes:
 /// - account: Account that the transaction is being executed against.
 /// - account_seed: An optional account seed used to create a new account.
 /// - block_header: The header of the latest known block.
-/// - block_chain: The chain mmr associated with the latest known block.
+/// - block_chain: The chain MMR associated with the latest known block.
 /// - consumed_notes: A vector of consumed notes.
 /// - tx_script: An optional transaction script.
 /// - tx_program: The transaction program.
@@ -28,28 +31,25 @@ pub struct PreparedTransaction {
 }
 
 impl PreparedTransaction {
-    #[allow(clippy::too_many_arguments)]
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns a new [PreparedTransaction] instantiated from the provided executable transaction
+    /// program and inputs required to execute this program.
     pub fn new(
-        account: Account,
-        // TODO: Move this to auxiliary data
-        account_seed: Option<Word>,
-        block_header: BlockHeader,
-        block_chain: ChainMmr,
-        consumed_notes: Vec<RecordedNote>,
+        program: Program,
         tx_script: Option<TransactionScript>,
-        tx_program: Program,
-        auxiliary_data: AdviceInputs,
+        tx_inputs: TransactionInputs,
     ) -> Result<Self, PreparedTransactionError> {
-        Self::validate_new_account_seed(&account, account_seed)?;
+        Self::validate_new_account_seed(&tx_inputs.account, tx_inputs.account_seed)?;
         Ok(Self {
-            account,
-            account_seed,
-            block_header,
-            block_chain,
-            consumed_notes: ConsumedNotes::new(consumed_notes),
+            account: tx_inputs.account,
+            account_seed: tx_inputs.account_seed,
+            block_header: tx_inputs.block_header,
+            block_chain: tx_inputs.block_chain,
+            consumed_notes: ConsumedNotes::new(tx_inputs.input_notes),
             tx_script,
-            tx_program,
-            auxiliary_data,
+            tx_program: program,
+            auxiliary_data: tx_inputs.aux_data,
         })
     }
 
