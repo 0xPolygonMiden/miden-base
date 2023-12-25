@@ -127,7 +127,7 @@ pub fn test_account_type() {
         ("is_immutable_account", AccountType::RegularAccountImmutableCode),
     ];
 
-    let test_cases = vec![
+    let test_cases = [
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -233,7 +233,7 @@ fn test_get_item() {
 
         let _process = run_tx(
             transaction.tx_program().clone(),
-            StackInputs::from(transaction.stack_inputs()),
+            transaction.stack_inputs(),
             MemAdviceProvider::from(transaction.advice_provider_inputs()),
         )
         .unwrap();
@@ -288,7 +288,7 @@ fn test_get_child_tree_item() {
 
     let _process = run_tx(
         transaction.tx_program().clone(),
-        StackInputs::from(transaction.stack_inputs()),
+        transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
@@ -357,7 +357,7 @@ fn test_set_item() {
 
     let _process = run_tx(
         transaction.tx_program().clone(),
-        StackInputs::from(transaction.stack_inputs()),
+        transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();
@@ -365,7 +365,7 @@ fn test_set_item() {
 
 #[test]
 fn test_is_faucet_procedure() {
-    let test_cases = vec![
+    let test_cases = [
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -455,7 +455,7 @@ fn test_authenticate_procedure() {
 
         let process = run_tx(
             transaction.tx_program().clone(),
-            StackInputs::from(transaction.stack_inputs()),
+            transaction.stack_inputs(),
             MemAdviceProvider::from(transaction.advice_provider_inputs()),
         );
 
@@ -504,7 +504,7 @@ fn test_get_vault_commitment() {
 
     let _process = run_tx(
         transaction.tx_program().clone(),
-        StackInputs::from(transaction.stack_inputs()),
+        transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
     .unwrap();

@@ -19,7 +19,7 @@ pub use fungible_asset::FungibleAssetBuilder;
 pub use nonfungible_asset::{NonFungibleAssetBuilder, NonFungibleAssetDetailsBuilder};
 pub use note::NoteBuilder;
 
-pub fn str_to_accountcode(source: &str) -> Result<AccountCode, AccountError> {
+pub fn str_to_account_code(source: &str) -> Result<AccountCode, AccountError> {
     let assembler = assembler();
     let account_module_ast = ModuleAst::parse(source).unwrap();
     AccountCode::new(account_module_ast, &assembler)

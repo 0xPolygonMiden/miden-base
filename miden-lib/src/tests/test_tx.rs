@@ -209,12 +209,12 @@ fn test_get_output_notes_hash() {
         push.{expected} assert_eqw
     end
     ",
-        recipient_1 = prepare_word(&*output_note_1.recipient()),
+        recipient_1 = prepare_word(&output_note_1.recipient()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
             **output_note_1.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&*output_note_2.recipient()),
+        recipient_2 = prepare_word(&output_note_2.recipient()),
         tag_2 = output_note_2.metadata().tag(),
         asset_2 = prepare_word(&Word::from(
             **output_note_2.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()

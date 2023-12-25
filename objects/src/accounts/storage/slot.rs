@@ -14,6 +14,7 @@ const DEFAULT_SLOT_TYPE: StorageSlotType = StorageSlotType::Value { value_arity:
 // ================================================================================================
 
 /// An object that represents the type of a storage slot.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StorageSlotType {
     /// Represents a slot that contains a value with the specified arity.

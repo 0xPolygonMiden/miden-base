@@ -33,24 +33,21 @@ fn test_p2idr_script() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account =
-        get_account_with_default_account_code(sender_account_id, sender_pub_key.clone(), None);
+        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
+        get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
-    let malicious_account = get_account_with_default_account_code(
-        malicious_account_id,
-        malicious_pub_key.clone(),
-        None,
-    );
+    let malicious_account =
+        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     // --------------------------------------------------------------------------------------------
     // Create notes
@@ -107,16 +104,13 @@ fn test_p2idr_script() {
         data_store_1.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+        "
         use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
         end
-        "
-        )
-        .as_str(),
+        ",
     )
     .unwrap();
     let tx_script_target = executor_1
@@ -140,7 +134,7 @@ fn test_p2idr_script() {
     // Assert that the target_account received the funds and the nonce increased by 1
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        AccountVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -245,7 +239,7 @@ fn test_p2idr_script() {
     // Vault delta
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        AccountVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -279,7 +273,7 @@ fn test_p2idr_script() {
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
         sender_account_id,
-        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        AccountVault::new(&[fungible_asset]).unwrap(),
         sender_account.storage().clone(),
         sender_account.code().clone(),
         Felt::new(2),

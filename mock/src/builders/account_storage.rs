@@ -9,7 +9,7 @@ pub struct AccountStorageBuilder {
     items: Vec<SlotItem>,
 }
 
-/// Builder for an `AccountStorage`, the builder can be configured and used multipled times.
+/// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
 impl AccountStorageBuilder {
     pub fn new() -> Self {
         Self { items: vec![] }

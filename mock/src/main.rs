@@ -142,7 +142,7 @@ fn seed_to_word(seed: &str) -> Word {
 
 #[cfg(test)]
 mod test {
-    use miden_mock::chain::{from_file, MockChain};
+    use miden_mock::mock::chain::{from_file, MockChain};
     use rand_pcg::Pcg64;
 
     #[test]

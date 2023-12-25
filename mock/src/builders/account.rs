@@ -10,7 +10,7 @@ use miden_objects::{
 use rand::Rng;
 
 use crate::{
-    builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
+    builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
     constants::DEFAULT_ACCOUNT_CODE,
 };
 
@@ -86,7 +86,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.build()?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -98,7 +98,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -122,7 +122,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 }

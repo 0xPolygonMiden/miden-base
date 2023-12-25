@@ -13,6 +13,7 @@ use crate::utils::string::String;
 // ================================================================================================
 
 /// Specifies the account type.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountType {
     FungibleFaucet,

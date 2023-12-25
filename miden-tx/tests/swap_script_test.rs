@@ -39,18 +39,18 @@ fn test_swap_script() {
     let (target_pub_key, target_sk_felt) = get_new_key_pair_with_advice_map();
     let target_account = get_account_with_default_account_code(
         target_account_id,
-        target_pub_key.clone(),
+        target_pub_key,
         Some(non_fungible_asset),
     );
 
     // Create the note
-    let aswap_script = Script::SWAP {
+    let swap_script = Script::SWAP {
         asset: non_fungible_asset,
         serial_num: [Felt::new(6), Felt::new(7), Felt::new(8), Felt::new(9)],
     };
 
     let note = create_note(
-        aswap_script,
+        swap_script,
         vec![fungible_asset],
         sender_account_id,
         None,
@@ -71,16 +71,13 @@ fn test_swap_script() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+        "
             use.miden::auth::basic->auth_tx
     
             begin
                 call.auth_tx::auth_tx_rpo_falcon512
             end
-            "
-        )
-        .as_str(),
+            ",
     )
     .unwrap();
     let tx_script_target = executor
@@ -95,7 +92,7 @@ fn test_swap_script() {
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        AccountVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),

@@ -11,11 +11,9 @@ use super::{AccountId, ModuleAst, ProgramAst, ScriptTarget, TransactionCompiler}
 // ================================================================================================
 
 // Mast roots of account procedures:
-const ACCT_PROC_1: &'static str =
-    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794";
-const ACCT_PROC_2: &'static str =
-    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5";
-const ACCOUNT_CODE_MASM: &'static str = "\
+const ACCT_PROC_1: &str = "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794";
+const ACCT_PROC_2: &str = "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5";
+const ACCOUNT_CODE_MASM: &str = "\
 export.account_procedure_1
     push.1.2
     add
@@ -28,11 +26,9 @@ end
 ";
 
 // Mast roots of additional procedures:
-const ADD_PROC_1: &'static str =
-    "0x5b6f7afcde4aaf538519c3bf5bb9321fac83cd769a3100c0b1225c9a6d75c9a1";
-const ADD_PROC_2: &'static str =
-    "0xd4b1f9fbad5d0e6d2386509eab6a865298db20095d7315226dfa513ce017c990";
-const ADDITIONAL_PROCEDURES: &'static str = "\
+const ADD_PROC_1: &str = "0x5b6f7afcde4aaf538519c3bf5bb9321fac83cd769a3100c0b1225c9a6d75c9a1";
+const ADD_PROC_2: &str = "0xd4b1f9fbad5d0e6d2386509eab6a865298db20095d7315226dfa513ce017c990";
+const ADDITIONAL_PROCEDURES: &str = "\
 export.additional_procedure_1
     push.3.4
     add

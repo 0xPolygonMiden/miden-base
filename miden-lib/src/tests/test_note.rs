@@ -43,7 +43,7 @@ fn test_get_sender_no_sender() {
         notes,
         None,
         auxiliary_data,
-        &code,
+        code,
         "",
         None,
     );
@@ -83,7 +83,7 @@ fn test_get_sender() {
         notes,
         None,
         auxiliary_data,
-        &code,
+        code,
         "",
         None,
     );
@@ -262,8 +262,8 @@ fn test_get_assets() {
         ",
         note_0_num_assets = notes[0].note().vault().num_assets(),
         note_1_num_assets = notes[1].note().vault().num_assets(),
-        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(&notes[0].note()),
-        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(&notes[1].note()),
+        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes[0].note()),
+        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes[1].note()),
     );
 
     let inputs = prepare_transaction(
@@ -346,7 +346,7 @@ fn test_get_inputs() {
             call.process_note_0
         end
         ",
-        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(&notes[0].note()),
+        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(notes[0].note()),
     );
 
     let inputs = prepare_transaction(
@@ -393,7 +393,7 @@ fn test_note_setup() {
         notes,
         None,
         auxiliary_data,
-        &code,
+        code,
         "",
         None,
     );
@@ -427,6 +427,6 @@ fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<DefaultHost
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
         process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
-        Felt::try_from(consumed_note_data_ptr(0)).unwrap()
+        Felt::from(consumed_note_data_ptr(0))
     );
 }

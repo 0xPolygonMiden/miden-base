@@ -112,6 +112,6 @@ fn test_token_symbol_decoding_encoding() {
     let symbol = "ABCDEF";
     let token_symbol = TokenSymbol::try_from(symbol);
     assert!(token_symbol.is_ok());
-    let token_symbol_felt: Felt = TokenSymbol::from(token_symbol.unwrap()).into();
+    let token_symbol_felt: Felt = token_symbol.unwrap().into();
     assert_eq!(token_symbol_felt, encode_symbol_to_felt(symbol).unwrap());
 }

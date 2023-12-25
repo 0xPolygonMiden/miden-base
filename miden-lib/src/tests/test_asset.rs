@@ -95,7 +95,7 @@ fn test_create_non_fungible_asset_succeeds() {
             assert_eqw
         end
         ",
-        non_fungible_asset_data_hash = prepare_word(&*Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
+        non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
         expected_non_fungible_asset = prepare_word(&Word::from(non_fungible_asset))
     );
 

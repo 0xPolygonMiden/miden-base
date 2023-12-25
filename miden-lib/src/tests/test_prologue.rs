@@ -57,7 +57,7 @@ fn test_transaction_prologue() {
         notes,
         Some(tx_script),
         auxiliary_data,
-        &code,
+        code,
         "",
         Some(assembly_file),
     );
@@ -248,7 +248,7 @@ fn account_data_memory_assertions<A: AdviceProvider>(
     {
         assert_eq!(
             process.get_mem_value(ContextId::root(), types_ptr).unwrap(),
-            Word::try_from(types.into_iter().map(Felt::from).collect::<Vec<_>>()).unwrap()
+            Word::try_from(types.iter().map(Felt::from).collect::<Vec<_>>()).unwrap()
         );
     }
 }

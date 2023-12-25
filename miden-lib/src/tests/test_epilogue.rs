@@ -52,7 +52,7 @@ fn test_epilogue() {
         executed_transaction
             .tx_script()
             .as_ref()
-            .map_or_else(|| Word::default(), |s| **s.hash())
+            .map_or_else(Word::default, |s| **s.hash())
     );
 
     // assert created notes commitment is correct

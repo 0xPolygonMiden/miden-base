@@ -83,8 +83,7 @@ fn test_transaction_result_account_delta() {
     end
     ";
     let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
-    let new_acct_code =
-        AccountCode::new(new_acct_code_ast.clone(), &mut Assembler::default()).unwrap();
+    let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
 
     // removed assets
     let removed_asset_1 = Asset::Fungible(
@@ -102,7 +101,7 @@ fn test_transaction_result_account_delta() {
         .expect("asset is valid"),
     );
     let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    let removed_assets = vec![removed_asset_1, removed_asset_2, removed_asset_3];
+    let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
     let account_procedure_incr_nonce_mast_root = to_hex(
         &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX].as_bytes(),
@@ -212,7 +211,7 @@ fn test_transaction_result_account_delta() {
             push.1 exec.incr_nonce
         end
     ",
-        NEW_ACCOUNT_ROOT = prepare_word(&*new_acct_code.root()),
+        NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
@@ -240,7 +239,7 @@ fn test_transaction_result_account_delta() {
     assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
     assert_eq!(
         transaction_result.account_delta().storage().updated_items[0].0,
-        CHILD_ROOT_PARENT_LEAF_INDEX as u8
+        CHILD_ROOT_PARENT_LEAF_INDEX
     );
 
     // vault delta
