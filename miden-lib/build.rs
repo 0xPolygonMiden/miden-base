@@ -1,12 +1,13 @@
-use assembly::{
-    ast::{AstSerdeOptions, ProgramAst},
-    LibraryNamespace, MaslLibrary, Version,
-};
 use std::{
     env, fs,
     fs::File,
     io::{self, BufRead, BufReader, Write},
     path::{Path, PathBuf},
+};
+
+use assembly::{
+    ast::{AstSerdeOptions, ProgramAst},
+    LibraryNamespace, MaslLibrary, Version,
 };
 
 // CONSTANTS
@@ -101,15 +102,14 @@ fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
                             );
                             let note_script_ast =
                                 ProgramAst::parse(&fs::read_to_string(file_path)?)?;
-                            let note_script_bytes = note_script_ast.to_bytes(AstSerdeOptions {
-                                serialize_imports: true,
-                            });
+                            let note_script_bytes = note_script_ast
+                                .to_bytes(AstSerdeOptions { serialize_imports: true });
                             fs::write(dst.join(ASL_DIR_PATH).join(file_name), note_script_bytes)?;
-                        }
+                        },
                         Err(e) => println!("Error reading directory entry: {}", e),
                     }
                 }
-            }
+            },
             Err(e) => println!("Error reading directory: {}", e),
         }
     } else {
@@ -156,7 +156,7 @@ fn main() -> io::Result<()> {
 
             fs::remove_file(&constants).unwrap();
             fs::rename(&patched, &constants).unwrap();
-        }
+        },
         _ => (),
     }
 

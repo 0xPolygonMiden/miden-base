@@ -42,10 +42,7 @@ impl NoteInclusionProof {
         let node_index = NodeIndex::new(NOTE_TREE_DEPTH, index)
             .map_err(|e| NoteError::invalid_origin_index(e.to_string()))?;
         Ok(Self {
-            origin: NoteOrigin {
-                block_num,
-                node_index,
-            },
+            origin: NoteOrigin { block_num, node_index },
             sub_hash,
             note_root,
             note_path,
@@ -92,10 +89,7 @@ impl Deserializable for NoteOrigin {
         let block_num = source.read_u32()?;
         let node_index = NodeIndex::read_from(source)?;
 
-        Ok(Self {
-            block_num,
-            node_index,
-        })
+        Ok(Self { block_num, node_index })
     }
 }
 
@@ -115,11 +109,6 @@ impl Deserializable for NoteInclusionProof {
         let note_root = Digest::read_from(source)?;
         let note_path = MerklePath::read_from(source)?;
 
-        Ok(Self {
-            origin,
-            sub_hash,
-            note_root,
-            note_path,
-        })
+        Ok(Self { origin, sub_hash, note_root, note_path })
     }
 }

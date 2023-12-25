@@ -1,8 +1,7 @@
 use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
-    assembly::ModuleAst,
-    assembly::ProgramAst,
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteOrigin, NoteScript, RecordedNote},
@@ -12,9 +11,11 @@ use miden_objects::{
 use miden_tx::{DataStore, DataStoreError};
 use mock::{
     constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE},
-    mock::account::MockAccountType,
-    mock::notes::AssetPreservationStatus,
-    mock::transaction::{mock_inputs, mock_inputs_with_existing},
+    mock::{
+        account::MockAccountType,
+        notes::AssetPreservationStatus,
+        transaction::{mock_inputs, mock_inputs_with_existing},
+    },
 };
 use vm_processor::AdviceInputs;
 

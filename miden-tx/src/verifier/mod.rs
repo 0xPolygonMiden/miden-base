@@ -1,5 +1,5 @@
-use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
 use core::ops::Range;
+
 use miden_lib::outputs::{
     CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
@@ -10,6 +10,8 @@ use miden_objects::{
 };
 use miden_verifier::verify;
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackInputs, StackOutputs};
+
+use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
 
 /// The [TransactionVerifier] is used to verify a [ProvenTransaction].
 ///
@@ -26,10 +28,7 @@ impl TransactionVerifier {
     pub fn new(proof_security_level: u32) -> Self {
         // TODO: create program info at build time?
         let tx_program_info = TransactionCompiler::new().build_program_info();
-        Self {
-            tx_program_info,
-            proof_security_level,
-        }
+        Self { tx_program_info, proof_security_level }
     }
 
     /// Verifies the provided [ProvenTransaction] against the kernel.

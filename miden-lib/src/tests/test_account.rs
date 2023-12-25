@@ -1,5 +1,3 @@
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 use miden_objects::accounts::{
     AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
@@ -11,13 +9,17 @@ use mock::{
         CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
     },
     mock::{
-        account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_executed_tx,
-        transaction::mock_inputs,
+        account::MockAccountType,
+        notes::AssetPreservationStatus,
+        transaction::{mock_executed_tx, mock_inputs},
     },
     prepare_transaction,
     procedures::{created_notes_data_procedure, prepare_word},
     run_tx, run_within_tx_kernel,
 };
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
 // TESTS
 // ================================================================================================
@@ -406,7 +408,7 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let (account, _, _, _, _) =
+    let (account, ..) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let test_cases = vec![

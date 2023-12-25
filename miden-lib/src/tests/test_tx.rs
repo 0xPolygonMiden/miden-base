@@ -1,8 +1,3 @@
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
-};
 use miden_objects::{notes::Note, transaction::utils::generate_created_notes_commitment};
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -10,6 +5,12 @@ use mock::{
     prepare_transaction,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel,
+};
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
 
 #[test]

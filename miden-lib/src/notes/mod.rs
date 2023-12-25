@@ -1,8 +1,3 @@
-use crate::assembler::assembler;
-use crate::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
-    CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
-};
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -12,18 +7,22 @@ use miden_objects::{
     Digest, Felt, Hasher, NoteError, StarkField, Word, WORD_SIZE, ZERO,
 };
 
+use crate::{
+    assembler::assembler,
+    memory::{
+        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
+        CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+        CREATED_NOTE_VAULT_HASH_OFFSET,
+    },
+};
+
+// STANDARDIZED SCRIPTS
+// ================================================================================================
+
 pub enum Script {
-    P2ID {
-        target: AccountId,
-    },
-    P2IDR {
-        target: AccountId,
-        recall_height: u32,
-    },
-    SWAP {
-        asset: Asset,
-        serial_num: Word,
-    },
+    P2ID { target: AccountId },
+    P2IDR { target: AccountId, recall_height: u32 },
+    SWAP { asset: Asset, serial_num: Word },
 }
 
 /// Users can create notes with a standard script. Atm we provide three standard scripts:
@@ -49,10 +48,7 @@ pub fn create_note(
             ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), ZERO, ZERO, ZERO],
         ),
-        Script::P2IDR {
-            target,
-            recall_height,
-        } => (
+        Script::P2IDR { target, recall_height } => (
             ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
             vec![target.into(), recall_height.into(), ZERO, ZERO],
         ),
@@ -76,7 +72,7 @@ pub fn create_note(
                     ZERO,
                 ],
             )
-        }
+        },
     };
 
     let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;

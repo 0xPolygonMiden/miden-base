@@ -1,9 +1,10 @@
+use vm_core::utils::IntoBytes;
+
 use super::{
     Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
     Note, RecordedNote, StackInputs, StackOutputs, ToAdviceInputs, TransactionScript, Vec, Word,
     ZERO,
 };
-use vm_core::utils::IntoBytes;
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, an optional account seed (required for new accounts), the

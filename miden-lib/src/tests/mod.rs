@@ -1,9 +1,11 @@
-use super::Library;
 use std::path::PathBuf;
+
 use vm_core::{crypto::hash::Rpo256 as Hasher, Felt, StackInputs, Word, ONE, ZERO};
 use vm_processor::{
     AdviceProvider, ContextId, DefaultHost, MemAdviceProvider, Process, ProcessState,
 };
+
+use super::Library;
 
 mod test_account;
 mod test_asset;

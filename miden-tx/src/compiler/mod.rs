@@ -1,7 +1,3 @@
-use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program, SatKernel,
-    TransactionCompilerError,
-};
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
     notes::RecordedNote,
@@ -9,6 +5,11 @@ use miden_objects::{
     Felt, TransactionScriptError, Word,
 };
 use vm_processor::ProgramInfo;
+
+use super::{
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program, SatKernel,
+    TransactionCompilerError,
+};
 
 #[cfg(test)]
 mod tests;
@@ -114,7 +115,7 @@ impl TransactionCompiler {
                 |e| match e {
                     TransactionScriptError::ScriptCompilationError(asm_error) => {
                         TransactionCompilerError::CompileTxScriptFailed(asm_error)
-                    }
+                    },
                 },
             )?;
         for target in target_account_proc.into_iter() {
@@ -325,7 +326,7 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
         CodeBlock::Join(block) => {
             recursively_collect_call_branches(block.first(), branches);
             recursively_collect_call_branches(block.second(), branches);
-        }
+        },
         CodeBlock::Split(block) => {
             let current_len = branches.last().expect("at least one execution branch").len();
             recursively_collect_call_branches(block.on_false(), branches);
@@ -338,10 +339,10 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
             }
 
             recursively_collect_call_branches(block.on_true(), branches);
-        }
+        },
         CodeBlock::Loop(block) => {
             recursively_collect_call_branches(block.body(), branches);
-        }
+        },
         CodeBlock::Call(block) => {
             if block.is_syscall() {
                 return;
@@ -351,10 +352,10 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
                 .last_mut()
                 .expect("at least one execution branch")
                 .push(block.fn_hash());
-        }
-        CodeBlock::Span(_) => {}
-        CodeBlock::Proxy(_) => {}
-        CodeBlock::Dyn(_) => {}
+        },
+        CodeBlock::Span(_) => {},
+        CodeBlock::Proxy(_) => {},
+        CodeBlock::Dyn(_) => {},
     }
 }
 

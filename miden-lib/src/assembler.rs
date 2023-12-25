@@ -1,6 +1,7 @@
-use crate::{MidenLib, SatKernel};
 use assembly::Assembler;
 use miden_stdlib::StdLibrary;
+
+use crate::{MidenLib, SatKernel};
 
 pub fn assembler() -> Assembler {
     assembly::Assembler::default()

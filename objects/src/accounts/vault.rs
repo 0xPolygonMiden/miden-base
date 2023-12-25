@@ -108,7 +108,7 @@ impl AccountVault {
             current => {
                 let current = FungibleAsset::new_unchecked(current);
                 current.add(asset).map_err(AccountError::AddFungibleAssetBalanceError)?
-            }
+            },
         };
         self.asset_tree.insert(new.vault_key().into(), new.into());
 
@@ -163,7 +163,7 @@ impl AccountVault {
         let mut current = match self.asset_tree.get_value(asset.vault_key().into()) {
             current if current == TieredSmt::EMPTY_VALUE => {
                 return Err(AccountError::FungibleAssetNotFound(asset))
-            }
+            },
             current => FungibleAsset::new_unchecked(current),
         };
 

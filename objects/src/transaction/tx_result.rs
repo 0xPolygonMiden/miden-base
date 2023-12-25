@@ -1,9 +1,10 @@
+use vm_processor::{AdviceInputs, Program};
+
 use crate::{
     accounts::{Account, AccountDelta, AccountId},
     transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub, TransactionWitness},
     Digest, TransactionResultError,
 };
-use vm_processor::{AdviceInputs, Program};
 
 /// [TransactionResult] represents the result of the execution of the transaction kernel.
 ///

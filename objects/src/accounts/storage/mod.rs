@@ -231,13 +231,7 @@ mod tests {
             (2, (StorageSlotType::Map { value_arity: 2 }, [ONE, ONE, ZERO, ZERO])),
             (
                 3,
-                (
-                    StorageSlotType::Array {
-                        depth: 4,
-                        value_arity: 3,
-                    },
-                    [ONE, ZERO, ZERO, ZERO],
-                ),
+                (StorageSlotType::Array { depth: 4, value_arity: 3 }, [ONE, ZERO, ZERO, ZERO]),
             ),
         ])
         .unwrap();

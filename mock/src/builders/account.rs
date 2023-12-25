@@ -1,7 +1,3 @@
-use crate::{
-    builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
-    constants::DEFAULT_ACCOUNT_CODE,
-};
 use miden_objects::{
     accounts::{Account, AccountStorage, AccountType, AccountVault, SlotItem},
     assets::Asset,
@@ -12,6 +8,11 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use rand::Rng;
+
+use crate::{
+    builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
+    constants::DEFAULT_ACCOUNT_CODE,
+};
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each
 /// account needs a unique builder.

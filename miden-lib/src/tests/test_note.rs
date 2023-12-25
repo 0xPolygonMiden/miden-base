@@ -1,7 +1,3 @@
-use super::{
-    AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO,
-};
-use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{notes::Note, transaction::PreparedTransaction};
 use mock::{
     consumed_note_data_ptr,
@@ -11,6 +7,11 @@ use mock::{
     run_tx,
 };
 use vm_core::WORD_SIZE;
+
+use super::{
+    AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO,
+};
+use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 
 #[test]
 fn test_get_sender_no_sender() {

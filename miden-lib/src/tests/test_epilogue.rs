@@ -1,3 +1,9 @@
+use mock::{
+    mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
+    procedures::created_notes_data_procedure,
+    run_within_tx_kernel,
+};
+
 use super::{
     build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
 };
@@ -6,11 +12,6 @@ use crate::{
     outputs::{
         CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
     },
-};
-use mock::{
-    mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
-    procedures::created_notes_data_procedure,
-    run_within_tx_kernel,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";

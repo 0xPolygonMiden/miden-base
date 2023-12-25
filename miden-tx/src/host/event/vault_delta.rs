@@ -52,10 +52,10 @@ impl AccountVaultDeltaHandler {
                     asset.faucet_id().into(),
                     asset.amount() as i128,
                 );
-            }
+            },
             Asset::NonFungible(asset) => {
                 update_asset_delta(&mut self.non_fungible_assets, asset.vault_key().into(), 1)
-            }
+            },
         };
 
         Ok(HostResponse::None)
@@ -88,10 +88,10 @@ impl AccountVaultDeltaHandler {
                     asset.faucet_id().into(),
                     -(asset.amount() as i128),
                 );
-            }
+            },
             Asset::NonFungible(asset) => {
                 update_asset_delta(&mut self.non_fungible_assets, asset.vault_key().into(), -1)
-            }
+            },
         };
 
         Ok(HostResponse::None)
@@ -134,20 +134,17 @@ impl AccountVaultDeltaHandler {
                     added_assets.push(Asset::NonFungible(unsafe {
                         NonFungibleAsset::new_unchecked(*non_fungible_asset)
                     }));
-                }
+                },
                 -1 => {
                     removed_assets.push(Asset::NonFungible(unsafe {
                         NonFungibleAsset::new_unchecked(*non_fungible_asset)
                     }));
-                }
+                },
                 _ => unreachable!("non-fungible asset amount must be 1 or -1"),
             }
         }
 
-        AccountVaultDelta {
-            added_assets,
-            removed_assets,
-        }
+        AccountVaultDelta { added_assets, removed_assets }
     }
 }
 
@@ -170,9 +167,9 @@ where
             } else {
                 *entry.get_mut() += amount;
             }
-        }
+        },
         Entry::Vacant(entry) => {
             entry.insert(amount);
-        }
+        },
     }
 }

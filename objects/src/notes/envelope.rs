@@ -1,7 +1,8 @@
-use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::StarkField;
 use vm_processor::DeserializationError;
+
+use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
 
 // NOTE ENVELOPE
 // ================================================================================================
@@ -25,10 +26,7 @@ pub struct NoteEnvelope {
 impl NoteEnvelope {
     /// Creates a new [NoteEnvelope] object.
     pub fn new(note_hash: Digest, note_metadata: NoteMetadata) -> Self {
-        Self {
-            note_hash,
-            note_metadata,
-        }
+        Self { note_hash, note_metadata }
     }
 
     /// Returns the hash of the note that was created.
@@ -121,9 +119,6 @@ impl Deserializable for NoteEnvelope {
         let note_hash = Digest::read_from(source)?;
         let note_metadata = NoteMetadata::read_from(source)?;
 
-        Ok(Self {
-            note_hash,
-            note_metadata,
-        })
+        Ok(Self { note_hash, note_metadata })
     }
 }

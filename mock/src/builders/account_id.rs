@@ -1,11 +1,14 @@
-use crate::builders::{str_to_accountcode, AccountBuilderError};
-use crate::constants::DEFAULT_ACCOUNT_CODE;
 use miden_objects::{
     accounts::{AccountId, AccountType},
     utils::string::{String, ToString},
     Digest, Word,
 };
 use rand::Rng;
+
+use crate::{
+    builders::{str_to_accountcode, AccountBuilderError},
+    constants::DEFAULT_ACCOUNT_CODE,
+};
 
 /// Builder for an `AccountId`, the builder can be configured and used multipled times.
 #[derive(Debug, Clone)]

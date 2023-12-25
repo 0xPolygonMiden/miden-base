@@ -37,9 +37,7 @@ fn test_p2id_script() {
         get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
-    let p2id_script = Script::P2ID {
-        target: target_account_id,
-    };
+    let p2id_script = Script::P2ID { target: target_account_id };
     let note = create_note(
         p2id_script,
         vec![fungible_asset],
@@ -162,9 +160,7 @@ fn test_p2id_script_multiple_assets() {
         get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
 
     // Create the note
-    let p2id_script = Script::P2ID {
-        target: target_account_id,
-    };
+    let p2id_script = Script::P2ID { target: target_account_id };
     let note = create_note(
         p2id_script,
         vec![fungible_asset_1, fungible_asset_2],

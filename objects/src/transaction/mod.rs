@@ -1,3 +1,5 @@
+use vm_core::{Program, StackInputs, StackOutputs};
+
 use super::{
     accounts::{Account, AccountId},
     notes::{Note, NoteEnvelope, Nullifier, RecordedNote},
@@ -5,7 +7,6 @@ use super::{
     AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, PreparedTransactionError,
     StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
 };
-use vm_core::{Program, StackInputs, StackOutputs};
 
 mod account_stub;
 mod chain_mmr;

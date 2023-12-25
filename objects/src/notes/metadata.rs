@@ -19,11 +19,7 @@ impl NoteMetadata {
     /// Returns a new note metadata object created with the specified parameters.
     pub fn new(sender: AccountId, tag: Felt, num_assets: Felt) -> Self {
         // TODO: Assert num assets is valid
-        Self {
-            sender,
-            tag,
-            num_assets,
-        }
+        Self { sender, tag, num_assets }
     }
 
     /// Returns the account which created the note.
@@ -88,10 +84,6 @@ impl Deserializable for NoteMetadata {
         let tag = Felt::read_from(source)?;
         let num_assets = Felt::read_from(source)?;
 
-        Ok(Self {
-            sender,
-            tag,
-            num_assets,
-        })
+        Ok(Self { sender, tag, num_assets })
     }
 }

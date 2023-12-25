@@ -1,3 +1,5 @@
+use vm_core::StackOutputs;
+
 use super::TransactionScript;
 use crate::{
     accounts::validate_account_seed,
@@ -7,7 +9,6 @@ use crate::{
     },
     ExecutedTransactionError,
 };
-use vm_core::StackOutputs;
 
 #[derive(Debug)]
 pub struct ExecutedTransaction {

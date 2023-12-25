@@ -1,10 +1,12 @@
+use core::cell::OnceCell;
+
+use assembly::ast::AstSerdeOptions;
+
 use super::{
     AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, ModuleAst, Serializable, Vec,
 };
 use crate::crypto::merkle::SimpleSmt;
-use assembly::ast::AstSerdeOptions;
-use core::cell::OnceCell;
 
 // CONSTANTS
 // ================================================================================================

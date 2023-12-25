@@ -1,3 +1,12 @@
+use miden_objects::{
+    accounts::AccountId,
+    assembly::{Assembler, ProgramAst},
+    assets::{Asset, FungibleAsset},
+    notes::{Note, NoteScript},
+    utils::collections::Vec,
+    Felt, Word, ZERO,
+};
+
 use crate::{
     constants::{
         non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
@@ -6,14 +15,6 @@ use crate::{
         CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
     },
     utils::{prepare_assets, prepare_word},
-};
-use miden_objects::{
-    accounts::AccountId,
-    assembly::{Assembler, ProgramAst},
-    assets::{Asset, FungibleAsset},
-    notes::{Note, NoteScript},
-    utils::collections::Vec,
-    Felt, Word, ZERO,
 };
 
 pub enum AssetPreservationStatus {
@@ -227,16 +228,16 @@ pub fn mock_notes(
         AssetPreservationStatus::TooFewInput => vec![consumed_note_1],
         AssetPreservationStatus::Preserved => {
             vec![consumed_note_1, consumed_note_2]
-        }
+        },
         AssetPreservationStatus::PreservedWithAccountVaultDelta => {
             vec![consumed_note_1, consumed_note_2, consumed_note_5]
-        }
+        },
         AssetPreservationStatus::TooManyFungibleInput => {
             vec![consumed_note_1, consumed_note_2, consumed_note_3]
-        }
+        },
         AssetPreservationStatus::TooManyNonFungibleInput => {
             vec![consumed_note_1, consumed_note_2, consumed_note_4]
-        }
+        },
     };
 
     (consumed_notes, created_notes)

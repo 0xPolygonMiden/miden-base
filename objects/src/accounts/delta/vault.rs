@@ -118,10 +118,7 @@ impl Deserializable for AccountVaultDelta {
             removed_assets.push(asset);
         }
 
-        Ok(Self {
-            added_assets,
-            removed_assets,
-        })
+        Ok(Self { added_assets, removed_assets })
     }
 }
 

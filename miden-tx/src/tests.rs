@@ -1,7 +1,3 @@
-use super::{
-    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, NoteOrigin,
-    TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier, TryFromVmResult,
-};
 use miden_objects::{
     accounts::AccountCode,
     assembly::{Assembler, ModuleAst, ProgramAst},
@@ -24,6 +20,11 @@ use mock::{
 };
 use vm_core::utils::to_hex;
 use vm_processor::{AdviceInputs, MemAdviceProvider};
+
+use super::{
+    Account, AccountId, BlockHeader, ChainMmr, DataStore, DataStoreError, NoteOrigin,
+    TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier, TryFromVmResult,
+};
 
 // TESTS
 // ================================================================================================

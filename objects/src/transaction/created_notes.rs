@@ -1,9 +1,10 @@
+use core::iter::FromIterator;
+
 use crate::{
     notes::{Note, NoteEnvelope, NoteStub},
     utils::collections::Vec,
     Digest, Felt, Hasher, Word,
 };
-use core::iter::FromIterator;
 
 // CREATED NOTES
 // ================================================================================================

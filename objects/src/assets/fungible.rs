@@ -1,7 +1,8 @@
+use core::fmt;
+
 use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, StarkField, ToString, Word, ZERO,
 };
-use core::fmt;
 
 // FUNGIBLE ASSET
 // ================================================================================================
@@ -93,10 +94,7 @@ impl FungibleAsset {
             return Err(AssetError::amount_too_big(amount));
         }
 
-        Ok(Self {
-            faucet_id: self.faucet_id,
-            amount,
-        })
+        Ok(Self { faucet_id: self.faucet_id, amount })
     }
 
     /// Subtracts the specified amount from this asset and returns the resulting asset.
@@ -109,10 +107,7 @@ impl FungibleAsset {
             .checked_sub(amount)
             .ok_or(AssetError::AssetAmountNotSufficient(self.amount, amount))?;
 
-        Ok(FungibleAsset {
-            faucet_id: self.faucet_id,
-            amount,
-        })
+        Ok(FungibleAsset { faucet_id: self.faucet_id, amount })
     }
 
     // HELPER FUNCTIONS

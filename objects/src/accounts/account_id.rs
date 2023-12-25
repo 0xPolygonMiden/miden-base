@@ -1,3 +1,5 @@
+use core::fmt;
+
 use miden_crypto::utils::{ByteReader, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
@@ -6,7 +8,6 @@ use super::{
     ToString, Vec, Word,
 };
 use crate::utils::string::String;
-use core::fmt;
 
 // ACCOUNT ID
 // ================================================================================================

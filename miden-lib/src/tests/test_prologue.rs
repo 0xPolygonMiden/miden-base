@@ -1,3 +1,12 @@
+use assembly::ast::ProgramAst;
+use miden_objects::transaction::{PreparedTransaction, TransactionScript};
+use mock::{
+    constants::{generate_account_seed, AccountSeedType},
+    consumed_note_data_ptr,
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    prepare_transaction, run_tx,
+};
+
 use super::{
     build_module_path, AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process,
     ProcessState, Word, TX_KERNEL_DIR, ZERO,
@@ -13,14 +22,6 @@ use crate::{
         NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
         PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
     },
-};
-use assembly::ast::ProgramAst;
-use miden_objects::transaction::{PreparedTransaction, TransactionScript};
-use mock::{
-    constants::{generate_account_seed, AccountSeedType},
-    consumed_note_data_ptr,
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
-    prepare_transaction, run_tx,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";

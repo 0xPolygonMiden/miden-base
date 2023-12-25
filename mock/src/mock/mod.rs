@@ -5,5 +5,4 @@ pub mod mmr_peaks;
 pub mod notes;
 pub mod transaction;
 
-use super::builders;
-use super::constants;
+use super::{builders, constants};

@@ -50,11 +50,7 @@ impl AccountDelta {
         // nonce must be updated if and only if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 
-        Ok(Self {
-            storage,
-            vault,
-            nonce,
-        })
+        Ok(Self { storage, vault, nonce })
     }
 
     // PUBLIC ACCESSORS
@@ -103,11 +99,7 @@ impl Deserializable for AccountDelta {
         validate_nonce(nonce, &storage, &vault)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
 
-        Ok(Self {
-            storage,
-            vault,
-            nonce,
-        })
+        Ok(Self { storage, vault, nonce })
     }
 }
 
@@ -133,12 +125,12 @@ fn validate_nonce(
                         "zero nonce for a non-empty account delta".to_string(),
                     ));
                 }
-            }
+            },
             None => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(
                     "nonce not updated for non-empty account delta".to_string(),
                 ))
-            }
+            },
         }
     } else if nonce.is_some() {
         return Err(AccountDeltaError::InconsistentNonceUpdate(

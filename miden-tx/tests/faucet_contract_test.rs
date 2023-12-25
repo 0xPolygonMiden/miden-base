@@ -220,9 +220,7 @@ fn test_faucet_contract_creation() {
     // we need a Falcon Public Key to create the wallet account
     let key_pair: KeyPair = KeyPair::new().unwrap();
     let pub_key: PublicKey = key_pair.public_key();
-    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 {
-        pub_key: pub_key.into(),
-    };
+    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key: pub_key.into() };
 
     // we need to use an initial seed to create the wallet account
     let init_seed: [u8; 32] = [

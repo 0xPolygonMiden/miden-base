@@ -20,10 +20,7 @@ impl FungibleAssetBuilder {
             return Err(AssetError::not_a_fungible_faucet_id(faucet_id));
         }
 
-        Ok(Self {
-            faucet_id,
-            amount: Self::DEFAULT_AMOUNT,
-        })
+        Ok(Self { faucet_id, amount: Self::DEFAULT_AMOUNT })
     }
 
     pub fn amount(&mut self, amount: u64) -> Result<&mut Self, AssetError> {

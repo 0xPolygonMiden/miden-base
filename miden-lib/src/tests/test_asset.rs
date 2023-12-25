@@ -1,4 +1,3 @@
-use super::{Hasher, MemAdviceProvider, Word, ONE};
 use mock::{
     constants::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -9,6 +8,8 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
+
+use super::{Hasher, MemAdviceProvider, Word, ONE};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {

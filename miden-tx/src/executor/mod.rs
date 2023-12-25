@@ -1,9 +1,3 @@
-use super::{
-    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, PreparedTransaction,
-    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
-    TransactionHost, TransactionResult,
-};
-use crate::{host::EventHandler, TryFromVmResult};
 use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
 use miden_objects::{
     accounts::{Account, AccountDelta},
@@ -12,6 +6,13 @@ use miden_objects::{
     Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
+
+use super::{
+    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, PreparedTransaction,
+    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
+    TransactionHost, TransactionResult,
+};
+use crate::{host::EventHandler, TryFromVmResult};
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
@@ -37,10 +38,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
         let compiler = TransactionCompiler::new();
-        Self {
-            compiler,
-            data_store,
-        }
+        Self { compiler, data_store }
     }
 
     // MODIFIERS
