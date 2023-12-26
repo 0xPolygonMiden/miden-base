@@ -1,7 +1,6 @@
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
     crypto::merkle::{merkle_tree_delta, MerkleStore},
-    transaction::FinalAccountStub,
     AccountError, TransactionResultError, Word,
 };
 
@@ -33,12 +32,12 @@ pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, Accoun
 pub fn extract_account_storage_delta(
     store: &MerkleStore,
     initial_account: &Account,
-    final_account_stub: &FinalAccountStub,
+    final_account_stub: &AccountStub,
 ) -> Result<AccountStorageDelta, TransactionResultError> {
     // extract storage slots delta
     let tree_delta = merkle_tree_delta(
         initial_account.storage().root(),
-        final_account_stub.0.storage_root(),
+        final_account_stub.storage_root(),
         AccountStorage::STORAGE_TREE_DEPTH,
         store,
     )

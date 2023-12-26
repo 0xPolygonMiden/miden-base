@@ -2,7 +2,7 @@ use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_s
 use miden_objects::{
     accounts::AccountDelta,
     assembly::ProgramAst,
-    transaction::{FinalAccountStub, OutputNotes, TransactionInputs, TransactionScript},
+    transaction::{TransactionInputs, TransactionOutputs, TransactionScript},
     Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
@@ -199,9 +199,8 @@ pub fn create_transaction_result(
     let (advice_witness, stack, map, store) = advice_provider.finalize();
 
     // parse transaction results
-    let final_account_stub =
-        FinalAccountStub::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
-    let output_notes = OutputNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+    let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+    let final_account = &tx_outputs.account;
 
     // assert the tx_script_root is consistent with the output stack
     debug_assert_eq!(
@@ -218,12 +217,11 @@ pub fn create_transaction_result(
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
-    let storage_delta =
-        extract_account_storage_delta(&store, initial_account, &final_account_stub)?;
+    let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)?;
 
     // extract the nonce delta
-    let nonce_delta = if initial_account.nonce() != final_account_stub.0.nonce() {
-        Some(final_account_stub.0.nonce())
+    let nonce_delta = if initial_account.nonce() != final_account.nonce() {
+        Some(final_account.nonce())
     } else {
         None
     };
@@ -237,9 +235,8 @@ pub fn create_transaction_result(
 
     TransactionResult::new(
         tx_inputs,
-        final_account_stub,
+        tx_outputs,
         account_delta,
-        output_notes,
         program,
         tx_script_root,
         advice_witness,

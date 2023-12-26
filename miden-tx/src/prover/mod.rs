@@ -1,5 +1,5 @@
 use miden_objects::transaction::{
-    FinalAccountStub, OutputNotes, PreparedTransaction, ProvenTransaction, TransactionWitness,
+    PreparedTransaction, ProvenTransaction, TransactionOutputs, TransactionWitness,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -47,10 +47,7 @@ impl TransactionProver {
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();
         let (stack, map, store) = advice_provider.into_parts();
-        let final_account_stub =
-            FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
-                .map_err(TransactionProverError::TransactionResultError)?;
-        let output_notes = OutputNotes::try_from_vm_result(&outputs, &stack, &map, &store)
+        let tx_outputs = TransactionOutputs::try_from_vm_result(&outputs, &stack, &map, &store)
             .map_err(TransactionProverError::TransactionResultError)?;
 
         let (_tx_program, tx_script, tx_inputs) = transaction.into_parts();
@@ -58,9 +55,9 @@ impl TransactionProver {
         Ok(ProvenTransaction::new(
             tx_inputs.account.id(),
             tx_inputs.account.hash(),
-            final_account_stub.0.hash(),
+            tx_outputs.account.hash(),
             tx_inputs.input_notes.nullifiers().collect(),
-            output_notes.envelopes().collect(),
+            tx_outputs.output_notes.envelopes().collect(),
             tx_script.map(|tx_script| *tx_script.hash()),
             tx_inputs.block_header.hash(),
             proof,
@@ -101,18 +98,15 @@ impl TransactionProver {
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();
         let (stack, map, store) = advice_provider.into_parts();
-        let final_account_stub =
-            FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
-                .map_err(TransactionProverError::TransactionResultError)?;
-        let output_notes = OutputNotes::try_from_vm_result(&outputs, &stack, &map, &store)
+        let tx_outputs = TransactionOutputs::try_from_vm_result(&outputs, &stack, &map, &store)
             .map_err(TransactionProverError::TransactionResultError)?;
 
         Ok(ProvenTransaction::new(
             account_id,
             initial_account_hash,
-            final_account_stub.0.hash(),
+            tx_outputs.account.hash(),
             consumed_notes_info,
-            output_notes.envelopes().collect(),
+            tx_outputs.output_notes.envelopes().collect(),
             tx_script_root,
             block_hash,
             proof,

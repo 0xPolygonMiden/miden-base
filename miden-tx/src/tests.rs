@@ -3,7 +3,7 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    transaction::{ChainMmr, FinalAccountStub, InputNote, InputNotes, OutputNotes},
+    transaction::{ChainMmr, InputNote, InputNotes, TransactionOutputs},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -59,13 +59,12 @@ fn test_transaction_executor_witness() {
 
     let (advice_provider, _event_handler) = host.into_parts();
     let (stack, map, store) = advice_provider.into_parts();
-    let final_account_stub =
-        FinalAccountStub::try_from_vm_result(result.stack_outputs(), &stack, &map, &store).unwrap();
-    let created_notes =
-        OutputNotes::try_from_vm_result(result.stack_outputs(), &stack, &map, &store).unwrap();
 
-    assert_eq!(transaction_result.final_account_hash(), final_account_stub.0.hash());
-    assert_eq!(transaction_result.output_notes(), &created_notes);
+    let tx_outputs =
+        TransactionOutputs::try_from_vm_result(result.stack_outputs(), &stack, &map, &store)
+            .unwrap();
+    assert_eq!(transaction_result.final_account_hash(), tx_outputs.account.hash());
+    assert_eq!(transaction_result.output_notes(), &tx_outputs.output_notes);
 }
 
 #[test]

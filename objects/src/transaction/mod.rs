@@ -8,7 +8,6 @@ use super::{
     StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
 };
 
-mod account_stub;
 mod chain_mmr;
 mod event;
 mod executed_tx;
@@ -23,12 +22,11 @@ mod tx_witness;
 #[cfg(not(feature = "testing"))]
 mod utils;
 
-pub use account_stub::FinalAccountStub;
 pub use chain_mmr::ChainMmr;
 pub use event::Event;
 pub use executed_tx::ExecutedTransaction;
 pub use inputs::{InputNote, InputNotes, TransactionInputs};
-pub use outputs::{OutputNote, OutputNotes};
+pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
 pub use script::TransactionScript;

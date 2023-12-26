@@ -3,7 +3,7 @@ use vm_processor::{AdviceInputs, Program};
 use crate::{
     accounts::{AccountDelta, AccountId},
     transaction::{
-        FinalAccountStub, InputNotes, OutputNotes, TransactionInputs, TransactionWitness,
+        InputNotes, OutputNotes, TransactionInputs, TransactionOutputs, TransactionWitness,
     },
     Digest, TransactionResultError,
 };
@@ -44,9 +44,8 @@ impl TransactionResult {
     /// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
     pub fn new(
         tx_inputs: TransactionInputs,
-        final_account_stub: FinalAccountStub,
+        tx_outputs: TransactionOutputs,
         account_delta: AccountDelta,
-        output_notes: OutputNotes,
         program: Program,
         tx_script_root: Option<Digest>,
         advice_witness: AdviceInputs,
@@ -54,10 +53,10 @@ impl TransactionResult {
         Ok(Self {
             account_id: tx_inputs.account.id(),
             initial_account_hash: tx_inputs.account.hash(),
-            final_account_hash: final_account_stub.0.hash(),
+            final_account_hash: tx_outputs.account.hash(),
             account_delta,
             input_notes: tx_inputs.input_notes,
-            output_notes,
+            output_notes: tx_outputs.output_notes,
             block_hash: tx_inputs.block_header.hash(),
             program,
             tx_script_root,

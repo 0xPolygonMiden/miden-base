@@ -2,10 +2,21 @@ use core::cell::OnceCell;
 
 use super::MAX_OUTPUT_NOTES_PER_TRANSACTION;
 use crate::{
+    accounts::AccountStub,
     notes::{Note, NoteEnvelope, NoteMetadata, NoteVault},
     utils::collections::{self, BTreeSet, Vec},
     Digest, Felt, Hasher, StarkField, TransactionResultError, Word,
 };
+
+// TRANSACTION OUTPUTS
+// ================================================================================================
+
+/// Describes the result of executing a transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionOutputs {
+    pub account: AccountStub,
+    pub output_notes: OutputNotes,
+}
 
 // OUTPUT NOTES
 // ================================================================================================
