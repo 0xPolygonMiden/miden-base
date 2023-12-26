@@ -40,7 +40,7 @@ fn test_get_balance() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -74,7 +74,7 @@ fn test_get_balance_non_fungible_fails() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -106,7 +106,7 @@ fn test_has_non_fungible_asset() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        inputs.tx_program().clone(),
+        inputs.program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )
@@ -144,7 +144,7 @@ fn test_add_fungible_asset_success() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -190,7 +190,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -231,7 +231,7 @@ fn test_add_non_fungible_asset_success() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -278,7 +278,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -316,7 +316,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -361,7 +361,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -397,7 +397,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -444,7 +444,7 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -483,7 +483,7 @@ fn test_remove_non_fungible_asset_success() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )

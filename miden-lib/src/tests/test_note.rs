@@ -39,7 +39,7 @@ fn test_get_sender_no_sender() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -69,7 +69,7 @@ fn test_get_sender() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -128,7 +128,7 @@ fn test_get_vault_data() {
 
     // run to ensure success
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -249,7 +249,7 @@ fn test_get_assets() {
     );
 
     let _process = run_tx(
-        inputs.tx_program().clone(),
+        inputs.program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )
@@ -331,7 +331,7 @@ fn test_get_inputs() {
     );
 
     let _process = run_tx(
-        inputs.tx_program().clone(),
+        inputs.program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )
@@ -357,7 +357,7 @@ fn test_note_setup() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        inputs.tx_program().clone(),
+        inputs.program().clone(),
         inputs.stack_inputs(),
         MemAdviceProvider::from(inputs.advice_provider_inputs()),
     )

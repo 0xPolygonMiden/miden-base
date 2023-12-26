@@ -48,11 +48,8 @@ fn test_create_fungible_asset_succeeds() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        &mut advice_provider,
-    );
+    let _process =
+        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
 }
 
 #[test]
@@ -93,10 +90,7 @@ fn test_create_non_fungible_asset_succeeds() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        &mut advice_provider,
-    )
-    .unwrap();
+    let _process =
+        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
+            .unwrap();
 }

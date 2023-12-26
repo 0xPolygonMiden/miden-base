@@ -18,6 +18,7 @@ use crate::{
 // ================================================================================================
 
 /// Contains the data required to execute a transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionInputs {
     pub account: Account,
     pub account_seed: Option<Word>,

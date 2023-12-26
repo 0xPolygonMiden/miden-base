@@ -37,7 +37,7 @@ impl TransactionProver {
         let advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
         let mut host = TransactionHost::new(advice_provider);
         let (outputs, proof) = prove(
-            transaction.tx_program(),
+            transaction.program(),
             transaction.stack_inputs(),
             &mut host,
             self.proof_options.clone(),

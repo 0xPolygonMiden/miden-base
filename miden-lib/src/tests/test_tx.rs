@@ -47,7 +47,7 @@ fn test_create_note() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -216,7 +216,7 @@ fn test_get_output_notes_hash() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )

@@ -61,7 +61,7 @@ fn test_transaction_prologue() {
         Some(assembly_file),
     );
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -363,7 +363,7 @@ pub fn test_prologue_create_account() {
     );
 
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -404,7 +404,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     );
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -445,7 +445,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     );
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -486,7 +486,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     );
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -527,7 +527,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     );
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     );
@@ -570,7 +570,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .unwrap();
 
     let process =
-        run_tx(transaction.tx_program().clone(), transaction.stack_inputs(), advice_provider);
+        run_tx(transaction.program().clone(), transaction.stack_inputs(), advice_provider);
     assert!(process.is_err());
 }
 
@@ -592,7 +592,7 @@ fn test_get_blk_version() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -619,7 +619,7 @@ fn test_get_blk_timestamp() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )

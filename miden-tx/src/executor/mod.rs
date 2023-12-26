@@ -131,7 +131,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
         let mut host = TransactionHost::new(advice_recorder);
         let result = vm_processor::execute(
-            transaction.tx_program(),
+            transaction.program(),
             transaction.stack_inputs(),
             &mut host,
             Default::default(),

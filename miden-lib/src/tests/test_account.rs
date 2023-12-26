@@ -43,7 +43,7 @@ pub fn test_set_code_is_not_immediate() {
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -261,7 +261,7 @@ fn test_get_item() {
             prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
         let _process = run_tx(
-            transaction.tx_program().clone(),
+            transaction.program().clone(),
             transaction.stack_inputs(),
             MemAdviceProvider::from(transaction.advice_provider_inputs()),
         )
@@ -321,7 +321,7 @@ fn test_set_item() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -376,7 +376,7 @@ fn test_get_map_item() {
     );
 
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -413,7 +413,7 @@ fn test_get_vault_commitment() {
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
-        transaction.tx_program().clone(),
+        transaction.program().clone(),
         transaction.stack_inputs(),
         MemAdviceProvider::from(transaction.advice_provider_inputs()),
     )
@@ -461,7 +461,7 @@ fn test_authenticate_procedure() {
             prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
         let process = run_tx(
-            transaction.tx_program().clone(),
+            transaction.program().clone(),
             transaction.stack_inputs(),
             MemAdviceProvider::from(transaction.advice_provider_inputs()),
         );
