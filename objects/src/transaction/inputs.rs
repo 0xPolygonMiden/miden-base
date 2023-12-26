@@ -217,7 +217,7 @@ pub fn build_input_notes_commitment<I: Iterator<Item = Nullifier>>(nullifiers: I
     Hasher::hash_elements(&elements)
 }
 
-// RECORDED NOTE
+// INPUT NOTE
 // ================================================================================================
 
 /// An input note for a transaction.
@@ -229,22 +229,22 @@ pub struct InputNote {
 }
 
 impl InputNote {
-    /// Returns a new instance of a [RecordedNote] with the specified note and origin.
+    /// Returns a new instance of an [InputNote] with the specified note and proof.
     pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
         Self { note, proof }
     }
 
-    /// Returns a reference to the note which was recorded.
+    /// Returns a reference to the underlying note.
     pub fn note(&self) -> &Note {
         &self.note
     }
 
-    /// Returns a reference to the inclusion proof of the recorded note.
+    /// Returns a reference to the inclusion proof of the note.
     pub fn proof(&self) -> &NoteInclusionProof {
         &self.proof
     }
 
-    /// Returns a reference to the origin of the recorded note.
+    /// Returns a reference to the origin of the note.
     pub fn origin(&self) -> &NoteOrigin {
         self.proof.origin()
     }

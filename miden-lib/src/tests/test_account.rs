@@ -67,7 +67,7 @@ pub fn test_set_code_succeeds() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+        created_notes_data_procedure(executed_transaction.output_notes());
 
     let code = format!(
         "

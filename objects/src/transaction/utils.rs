@@ -1,9 +1,12 @@
 use vm_core::utils::IntoBytes;
 
 use super::{
-    Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, Digest, Felt, Hasher, InputNotes,
-    Note, StackInputs, StackOutputs, ToAdviceInputs, TransactionScript, Vec, Word, ZERO,
+    AdviceInputs, Digest, Felt, Hasher, Note, StackInputs, StackOutputs, ToAdviceInputs,
+    TransactionInputs, TransactionScript, Vec, Word, ZERO,
 };
+
+// ADVICE INPUT CONSTRUCTORS
+// ================================================================================================
 
 /// Returns the advice inputs required when executing a transaction.
 /// This includes the initial account, an optional account seed (required for new accounts), the
@@ -46,26 +49,22 @@ use super::{
 /// - PEAK_N is the n'th peak in the block chain MMR from the last known block.
 /// - ACT_ID_SEED3..0 is the account id seed.
 pub fn generate_advice_provider_inputs(
-    account: &Account,
-    account_id_seed: Option<Word>,
-    block_header: &BlockHeader,
-    block_chain: &ChainMmr,
-    notes: &InputNotes,
+    tx_inputs: &TransactionInputs,
     tx_script: &Option<TransactionScript>,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
 
     // insert block data
-    block_header.to_advice_inputs(&mut advice_inputs);
+    (&tx_inputs.block_header).to_advice_inputs(&mut advice_inputs);
 
     // insert block chain mmr
-    block_chain.to_advice_inputs(&mut advice_inputs);
+    (&tx_inputs.block_chain).to_advice_inputs(&mut advice_inputs);
 
     // insert account data
-    account.to_advice_inputs(&mut advice_inputs);
+    tx_inputs.account.to_advice_inputs(&mut advice_inputs);
 
     // insert consumed notes data to advice stack
-    notes.to_advice_inputs(&mut advice_inputs);
+    (tx_inputs.input_notes).to_advice_inputs(&mut advice_inputs);
 
     if let Some(tx_script) = tx_script.as_ref() {
         // populate the advice inputs with the transaction script data
@@ -77,9 +76,9 @@ pub fn generate_advice_provider_inputs(
     }
 
     // insert account id seed into advice map
-    if let Some(seed) = account_id_seed {
+    if let Some(seed) = tx_inputs.account_seed {
         advice_inputs.extend_map(vec![(
-            [account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
+            [tx_inputs.account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
             seed.to_vec(),
         )]);
     }
@@ -87,9 +86,12 @@ pub fn generate_advice_provider_inputs(
     advice_inputs
 }
 
+// INPUT STACK CONSTRUCTOR
+// ================================================================================================
+
 /// Returns the stack inputs required when executing a transaction.
-/// This includes the consumed notes commitment, the account hash, the account id, and the block
-/// reference.
+///
+/// This includes the input notes commitment, the account hash, the account id, and the block hash.
 ///
 /// Stack: [BH, acct_id, IAH, NC]
 ///
@@ -97,20 +99,24 @@ pub fn generate_advice_provider_inputs(
 /// - acct_id is the account id of the account that the transaction is being executed against.
 /// - IAH is the initial account hash of the account that the transaction is being executed against.
 /// - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-///   (nullifier, script_root) pairs for the notes consumed in the transaction.
-pub fn generate_stack_inputs(
-    account_id: &AccountId,
-    account_hash: Digest,
-    consumed_notes_commitment: Digest,
-    block_header: &BlockHeader,
-) -> StackInputs {
+///   (nullifier, ZERO) tuples for the notes consumed in the transaction.
+pub fn generate_stack_inputs(tx_inputs: &TransactionInputs) -> StackInputs {
+    let initial_acct_hash = if tx_inputs.account.is_new() {
+        Digest::default()
+    } else {
+        tx_inputs.account.hash()
+    };
+
     let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-    inputs.extend(*consumed_notes_commitment);
-    inputs.extend_from_slice(account_hash.as_elements());
-    inputs.push((*account_id).into());
-    inputs.extend_from_slice(block_header.hash().as_elements());
+    inputs.extend(tx_inputs.input_notes.commitment());
+    inputs.extend_from_slice(initial_acct_hash.as_elements());
+    inputs.push((tx_inputs.account.id()).into());
+    inputs.extend_from_slice(tx_inputs.block_header.hash().as_elements());
     StackInputs::new(inputs)
 }
+
+// OUTPUT STACK CONSTRUCTOR
+// ================================================================================================
 
 /// Returns the stack outputs produced as a result of executing a transaction. This includes the
 /// final account hash and created notes commitment.

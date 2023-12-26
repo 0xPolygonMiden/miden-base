@@ -21,7 +21,7 @@ fn test_epilogue() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+        created_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
@@ -81,9 +81,9 @@ fn test_compute_created_note_hash() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+        created_notes_data_procedure(executed_transaction.output_notes());
 
-    for (note, i) in executed_transaction.created_notes().iter().zip(0u32..) {
+    for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
         let imports = "use.miden::sat::internal::prologue\n";
         let test = format!(
             "
@@ -132,7 +132,7 @@ fn test_epilogue_asset_preservation_violation() {
         let executed_transaction = mock_executed_tx(asset_preservation);
 
         let created_notes_data_procedure =
-            created_notes_data_procedure(executed_transaction.created_notes());
+            created_notes_data_procedure(executed_transaction.output_notes());
 
         let imports = "use.miden::sat::internal::prologue\n";
         let code = format!(
@@ -166,7 +166,7 @@ fn test_epilogue_increment_nonce_success() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+        created_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
@@ -198,7 +198,7 @@ fn test_epilogue_increment_nonce_violation() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+        created_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(

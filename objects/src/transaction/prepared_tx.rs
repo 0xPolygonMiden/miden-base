@@ -1,6 +1,6 @@
 use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, InputNotes,
-    PreparedTransactionError, Program, StackInputs, TransactionInputs, TransactionScript, Word,
+    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, PreparedTransactionError,
+    Program, StackInputs, TransactionInputs, TransactionScript, Word,
 };
 use crate::accounts::validate_account_seed;
 
@@ -69,29 +69,12 @@ impl PreparedTransaction {
 
     /// Returns the stack inputs required when executing the transaction.
     pub fn stack_inputs(&self) -> StackInputs {
-        let initial_acct_hash = if self.account().is_new() {
-            Digest::default()
-        } else {
-            self.account().hash()
-        };
-        utils::generate_stack_inputs(
-            &self.account().id(),
-            initial_acct_hash,
-            self.input_notes().commitment(),
-            self.block_header(),
-        )
+        utils::generate_stack_inputs(&self.tx_inputs)
     }
 
     /// Returns the advice inputs required when executing the transaction.
     pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(
-            self.account(),
-            self.tx_inputs.account_seed,
-            self.block_header(),
-            self.block_chain(),
-            self.input_notes(),
-            &self.tx_script,
-        )
+        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
     }
 
     // CONSUMERS

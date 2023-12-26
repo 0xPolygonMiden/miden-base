@@ -1,56 +1,43 @@
 use vm_core::StackOutputs;
 
-use super::TransactionScript;
+use super::{TransactionInputs, TransactionScript};
 use crate::{
     accounts::validate_account_seed,
-    transaction::{
-        utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, InputNote, InputNotes, Note,
-        StackInputs, Vec, Word,
-    },
+    transaction::{utils, Account, AdviceInputs, Digest, InputNotes, Note, StackInputs, Vec, Word},
     ExecutedTransactionError,
 };
 
+// EXECUTED TRANSACTION
+// ================================================================================================
+
 #[derive(Debug)]
 pub struct ExecutedTransaction {
-    initial_account: Account,
-    initial_account_seed: Option<Word>,
+    tx_inputs: TransactionInputs,
     final_account: Account,
-    consumed_notes: InputNotes,
     created_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
-    block_header: BlockHeader,
-    block_chain: ChainMmr,
 }
 
 impl ExecutedTransaction {
     /// Constructs a new [ExecutedTransaction] instance.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        initial_account: Account,
-        initial_account_seed: Option<Word>,
+        tx_inputs: TransactionInputs,
         final_account: Account,
-        consumed_notes: Vec<InputNote>,
         created_notes: Vec<Note>,
         tx_script: Option<TransactionScript>,
-        block_header: BlockHeader,
-        block_chain: ChainMmr,
     ) -> Result<Self, ExecutedTransactionError> {
-        Self::validate_new_account_seed(&initial_account, initial_account_seed)?;
+        Self::validate_new_account_seed(&tx_inputs.account, tx_inputs.account_seed)?;
         Ok(Self {
-            initial_account,
-            initial_account_seed,
+            tx_inputs,
             final_account,
-            consumed_notes: InputNotes::new(consumed_notes).unwrap(),
             created_notes,
             tx_script,
-            block_header,
-            block_chain,
         })
     }
 
     /// Returns the initial account.
     pub fn initial_account(&self) -> &Account {
-        &self.initial_account
+        &self.tx_inputs.account
     }
 
     /// Returns the final account.
@@ -59,12 +46,12 @@ impl ExecutedTransaction {
     }
 
     /// Returns the consumed notes.
-    pub fn consumed_notes(&self) -> &InputNotes {
-        &self.consumed_notes
+    pub fn input_notes(&self) -> &InputNotes {
+        &self.tx_inputs.input_notes
     }
 
     /// Returns the created notes.
-    pub fn created_notes(&self) -> &[Note] {
+    pub fn output_notes(&self) -> &[Note] {
         &self.created_notes
     }
 
@@ -75,39 +62,22 @@ impl ExecutedTransaction {
 
     /// Returns the block hash.
     pub fn block_hash(&self) -> Digest {
-        self.block_header.hash()
+        self.tx_inputs.block_header.hash()
     }
 
     /// Returns the stack inputs required when executing the transaction.
     pub fn stack_inputs(&self) -> StackInputs {
-        let initial_acct_hash = if self.initial_account.is_new() {
-            Digest::default()
-        } else {
-            self.initial_account.hash()
-        };
-        utils::generate_stack_inputs(
-            &self.initial_account.id(),
-            initial_acct_hash,
-            self.consumed_notes.commitment(),
-            &self.block_header,
-        )
+        utils::generate_stack_inputs(&self.tx_inputs)
     }
 
     /// Returns the consumed notes commitment.
     pub fn consumed_notes_commitment(&self) -> Digest {
-        self.consumed_notes.commitment()
+        self.input_notes().commitment()
     }
 
     /// Returns the advice inputs required when executing the transaction.
     pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(
-            &self.initial_account,
-            self.initial_account_seed,
-            &self.block_header,
-            &self.block_chain,
-            &self.consumed_notes,
-            &self.tx_script,
-        )
+        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
     }
 
     /// Returns the stack outputs produced as a result of executing a transaction.
