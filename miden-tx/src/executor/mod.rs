@@ -2,7 +2,7 @@ use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_s
 use miden_objects::{
     accounts::{Account, AccountDelta},
     assembly::ProgramAst,
-    transaction::{CreatedNotes, FinalAccountStub, InputNotes, TransactionScript},
+    transaction::{FinalAccountStub, InputNotes, OutputNotes, TransactionScript},
     Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
@@ -193,7 +193,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 /// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
 pub fn create_transaction_result(
     initial_account: Account,
-    consumed_notes: InputNotes,
+    input_notes: InputNotes,
     block_hash: Digest,
     program: Program,
     tx_script_root: Option<Digest>,
@@ -207,7 +207,7 @@ pub fn create_transaction_result(
     // parse transaction results
     let final_account_stub =
         FinalAccountStub::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
-    let created_notes = CreatedNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+    let output_notes = OutputNotes::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
 
     // assert the tx_script_root is consistent with the output stack
     debug_assert_eq!(
@@ -243,8 +243,8 @@ pub fn create_transaction_result(
         initial_account,
         final_account_stub,
         account_delta,
-        consumed_notes,
-        created_notes,
+        input_notes,
+        output_notes,
         block_hash,
         program,
         tx_script_root,

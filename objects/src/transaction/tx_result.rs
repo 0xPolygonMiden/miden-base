@@ -2,9 +2,12 @@ use vm_processor::{AdviceInputs, Program};
 
 use crate::{
     accounts::{Account, AccountDelta, AccountId},
-    transaction::{CreatedNotes, FinalAccountStub, InputNotes, TransactionWitness},
+    transaction::{FinalAccountStub, InputNotes, OutputNotes, TransactionWitness},
     Digest, TransactionResultError,
 };
+
+// TRANSACTION RESULT
+// ================================================================================================
 
 /// [TransactionResult] represents the result of the execution of the transaction kernel.
 ///
@@ -25,8 +28,8 @@ pub struct TransactionResult {
     initial_account_hash: Digest,
     final_account_hash: Digest,
     account_delta: AccountDelta,
-    consumed_notes: InputNotes,
-    created_notes: CreatedNotes,
+    input_notes: InputNotes,
+    output_notes: OutputNotes,
     block_hash: Digest,
     program: Program,
     tx_script_root: Option<Digest>,
@@ -42,8 +45,8 @@ impl TransactionResult {
         initial_account: Account,
         final_account_stub: FinalAccountStub,
         account_delta: AccountDelta,
-        consumed_notes: InputNotes,
-        created_notes: CreatedNotes,
+        input_notes: InputNotes,
+        output_notes: OutputNotes,
         block_hash: Digest,
         program: Program,
         tx_script_root: Option<Digest>,
@@ -54,8 +57,8 @@ impl TransactionResult {
             initial_account_hash: initial_account.hash(),
             final_account_hash: final_account_stub.0.hash(),
             account_delta,
-            consumed_notes,
-            created_notes,
+            input_notes,
+            output_notes,
             block_hash,
             program,
             tx_script_root,
@@ -87,13 +90,13 @@ impl TransactionResult {
     }
 
     /// Returns a reference to the consumed notes.
-    pub fn consumed_notes(&self) -> &InputNotes {
-        &self.consumed_notes
+    pub fn input_notes(&self) -> &InputNotes {
+        &self.input_notes
     }
 
     /// Returns a reference to the created notes.
-    pub fn created_notes(&self) -> &CreatedNotes {
-        &self.created_notes
+    pub fn output_notes(&self) -> &OutputNotes {
+        &self.output_notes
     }
 
     /// Returns the block hash the transaction was executed against.
@@ -123,7 +126,7 @@ impl TransactionResult {
             self.account_id,
             self.initial_account_hash,
             self.block_hash,
-            self.consumed_notes.commitment(),
+            self.input_notes.commitment(),
             self.tx_script_root,
             self.program,
             self.advice_witness,

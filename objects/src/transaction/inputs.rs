@@ -2,12 +2,12 @@ use core::cell::OnceCell;
 
 use super::{
     Account, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, Note, Nullifier,
-    ToAdviceInputs, Vec, Word, MAX_NOTES_PER_TRANSACTION,
+    ToAdviceInputs, Word, MAX_INPUT_NOTES_PER_TRANSACTION,
 };
 use crate::{
     notes::{NoteInclusionProof, NoteOrigin},
     utils::{
-        collections::{self, BTreeSet},
+        collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
@@ -41,16 +41,16 @@ pub struct InputNotes {
 impl InputNotes {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [InputNotes] instantiated from the provided vector of notes.
+    /// Returns new [InputNotes] instantiated from the provided vector of notes.
     ///
     /// # Errors
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<InputNote>) -> Result<Self, TransactionInputsError> {
-        if notes.len() > MAX_NOTES_PER_TRANSACTION {
+        if notes.len() > MAX_INPUT_NOTES_PER_TRANSACTION {
             return Err(TransactionInputsError::TooManyInputNotes {
-                max: MAX_NOTES_PER_TRANSACTION,
+                max: MAX_INPUT_NOTES_PER_TRANSACTION,
                 actual: notes.len(),
             });
         }

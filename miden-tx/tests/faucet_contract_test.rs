@@ -7,7 +7,8 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
-    notes::{NoteMetadata, NoteStub, NoteVault},
+    notes::{NoteMetadata, NoteVault},
+    transaction::OutputNote,
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -76,14 +77,13 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
 
-    let expected_note = NoteStub::new(
+    let expected_note = OutputNote::new(
         recipient.into(),
         NoteVault::new(&[fungible_asset]).unwrap(),
         NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
-    )
-    .unwrap();
+    );
 
-    let created_note = transaction_result.created_notes().notes()[0].clone();
+    let created_note = transaction_result.output_notes().get_note(0).clone();
     assert_eq!(created_note.recipient(), expected_note.recipient());
     assert_eq!(created_note.vault(), expected_note.vault());
     assert_eq!(created_note.metadata(), expected_note.metadata());
@@ -206,7 +206,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 
     // check that the account burned the asset
     assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
-    assert_eq!(transaction_result.consumed_notes().get_note(0).note().hash(), note.hash());
+    assert_eq!(transaction_result.input_notes().get_note(0).note().hash(), note.hash());
 }
 
 #[test]

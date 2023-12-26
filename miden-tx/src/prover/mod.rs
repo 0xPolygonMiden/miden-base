@@ -1,5 +1,5 @@
 use miden_objects::transaction::{
-    CreatedNotes, FinalAccountStub, PreparedTransaction, ProvenTransaction, TransactionWitness,
+    FinalAccountStub, OutputNotes, PreparedTransaction, ProvenTransaction, TransactionWitness,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -50,7 +50,7 @@ impl TransactionProver {
         let final_account_stub =
             FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
                 .map_err(TransactionProverError::TransactionResultError)?;
-        let created_notes = CreatedNotes::try_from_vm_result(&outputs, &stack, &map, &store)
+        let created_notes = OutputNotes::try_from_vm_result(&outputs, &stack, &map, &store)
             .map_err(TransactionProverError::TransactionResultError)?;
 
         let (account, block_header, _chain, input_notes, _tx_program, tx_script) =
@@ -61,7 +61,7 @@ impl TransactionProver {
             account.hash(),
             final_account_stub.0.hash(),
             input_notes.nullifiers().collect(),
-            created_notes.into(),
+            created_notes.envelopes().collect(),
             tx_script.map(|tx_script| *tx_script.hash()),
             block_header.hash(),
             proof,
@@ -81,7 +81,7 @@ impl TransactionProver {
         // extract required data from the transaction witness
         let stack_inputs = tx_witness.get_stack_inputs();
         let consumed_notes_info = tx_witness
-            .consumed_notes_info()
+            .input_notes_info()
             .map_err(TransactionProverError::CorruptTransactionWitnessConsumedNoteData)?;
         let (
             account_id,
@@ -105,7 +105,7 @@ impl TransactionProver {
         let final_account_stub =
             FinalAccountStub::try_from_vm_result(&outputs, &stack, &map, &store)
                 .map_err(TransactionProverError::TransactionResultError)?;
-        let created_notes = CreatedNotes::try_from_vm_result(&outputs, &stack, &map, &store)
+        let created_notes = OutputNotes::try_from_vm_result(&outputs, &stack, &map, &store)
             .map_err(TransactionProverError::TransactionResultError)?;
 
         Ok(ProvenTransaction::new(
@@ -113,7 +113,7 @@ impl TransactionProver {
             initial_account_hash,
             final_account_stub.0.hash(),
             consumed_notes_info,
-            created_notes.into(),
+            created_notes.envelopes().collect(),
             tx_script_root,
             block_hash,
             proof,

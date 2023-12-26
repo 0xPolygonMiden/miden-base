@@ -25,9 +25,6 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
-mod stub;
-pub use stub::NoteStub;
-
 mod vault;
 pub use vault::NoteVault;
 use vm_processor::DeserializationError;

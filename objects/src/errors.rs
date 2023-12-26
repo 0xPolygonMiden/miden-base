@@ -346,15 +346,17 @@ impl std::error::Error for ExecutedTransactionError {}
 // ================================================================================================
 #[derive(Debug)]
 pub enum TransactionResultError {
-    CreatedNoteDataNotFound,
-    CreatedNoteDataInvalid(NoteError),
-    CreatedNotesCommitmentInconsistent(Digest, Digest),
+    OutputNoteDataNotFound,
+    OutputNoteDataInvalid(NoteError),
+    OutputNotesCommitmentInconsistent(Digest, Digest),
+    DuplicateOutputNote(Digest),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),
     InconsistentAccountCodeHash(Digest, Digest),
     ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     ExtractAccountStorageStoreDeltaFailed(MerkleError),
     ExtractAccountVaultLeavesDeltaFailed(MerkleError),
+    TooManyOutputNotes { max: usize, actual: usize },
     UpdatedAccountCodeInvalid(AccountError),
 }
 

@@ -10,10 +10,10 @@ use super::{
 
 mod account_stub;
 mod chain_mmr;
-mod created_notes;
 mod event;
 mod executed_tx;
 mod inputs;
+mod outputs;
 mod prepared_tx;
 mod proven_tx;
 mod script;
@@ -25,10 +25,10 @@ mod utils;
 
 pub use account_stub::FinalAccountStub;
 pub use chain_mmr::ChainMmr;
-pub use created_notes::CreatedNotes;
 pub use event::Event;
 pub use executed_tx::ExecutedTransaction;
 pub use inputs::{InputNote, InputNotes, TransactionInputs};
+pub use outputs::{OutputNote, OutputNotes};
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
 pub use script::TransactionScript;
@@ -42,4 +42,8 @@ pub mod utils;
 // CONSTANTS
 // ================================================================================================
 
-const MAX_NOTES_PER_TRANSACTION: usize = 1024;
+/// Maximum number of notes consumed in a single transaction.
+const MAX_INPUT_NOTES_PER_TRANSACTION: usize = 1024;
+
+/// Maximum number of notes created in a single transaction.
+const MAX_OUTPUT_NOTES_PER_TRANSACTION: usize = 1024;

@@ -11,7 +11,7 @@ use super::{
 /// - initial_account_hash: the hash of the initial state of the account the transaction is being
 ///   executed against.
 /// - block_hash: the block hash of the latest known block.
-/// - consumed_notes_hash: a commitment to the consumed notes of the transaction.
+/// - input_notes_hash: a commitment to the consumed notes of the transaction.
 /// - tx_script_root: an optional transaction script root.
 /// - program: the transaction [Program]
 /// - advice_witness: the advice inputs for the transaction
@@ -19,7 +19,7 @@ pub struct TransactionWitness {
     account_id: AccountId,
     initial_account_hash: Digest,
     block_hash: Digest,
-    consumed_notes_hash: Digest,
+    input_notes_hash: Digest,
     tx_script_root: Option<Digest>,
     program: Program,
     advice_witness: AdviceInputs,
@@ -32,7 +32,7 @@ impl TransactionWitness {
         account_id: AccountId,
         initial_account_hash: Digest,
         block_hash: Digest,
-        consumed_notes_hash: Digest,
+        input_notes_hash: Digest,
         tx_script_root: Option<Digest>,
         program: Program,
         advice_witness: AdviceInputs,
@@ -41,7 +41,7 @@ impl TransactionWitness {
             account_id,
             initial_account_hash,
             block_hash,
-            consumed_notes_hash,
+            input_notes_hash,
             tx_script_root,
             program,
             advice_witness,
@@ -63,9 +63,9 @@ impl TransactionWitness {
         &self.block_hash
     }
 
-    /// Returns the consumed notes hash.
-    pub fn consumed_notes_hash(&self) -> &Digest {
-        &self.consumed_notes_hash
+    /// Returns the hash of input notes.
+    pub fn input_notes_hash(&self) -> &Digest {
+        &self.input_notes_hash
     }
 
     /// Returns a vector of [Nullifier] for all consumed notes in the transaction.
@@ -73,17 +73,16 @@ impl TransactionWitness {
     /// # Errors
     /// - If the consumed notes data is not found in the advice map.
     /// - If the consumed notes data is not well formed.
-    pub fn consumed_notes_info(&self) -> Result<Vec<Nullifier>, TransactionWitnessError> {
-        // fetch consumed notes data from the advice map
+    pub fn input_notes_info(&self) -> Result<Vec<Nullifier>, TransactionWitnessError> {
+        // fetch input notes data from the advice map
         let notes_data = self
             .advice_witness
-            .mapped_values(&self.consumed_notes_hash.as_bytes())
+            .mapped_values(&self.input_notes_hash.as_bytes())
             .ok_or(TransactionWitnessError::ConsumedNoteDataNotFound)?;
 
-        // extract the notes from the first fetch and instantiate a vector to hold
-        // [ConsumedNoteInfo].
+        // extract the notes from the first fetch and instantiate a vector to hold nullifiers
         let num_notes = notes_data[0].as_int();
-        let mut consumed_notes_info = Vec::with_capacity(num_notes as usize);
+        let mut input_notes_info = Vec::with_capacity(num_notes as usize);
 
         // iterate over the notes and extract the nullifier and script root
         let mut note_ptr = 1;
@@ -97,7 +96,7 @@ impl TransactionWitness {
             let (nullifier, num_assets) = extract_note_data(&notes_data[note_ptr..]);
 
             // push the [ConsumedNoteInfo] to the vector
-            consumed_notes_info.push(nullifier.into());
+            input_notes_info.push(nullifier.into());
 
             // round up the number of assets to the next multiple of 2 to account for asset padding
             let num_assets = (num_assets + 1) & !1;
@@ -107,9 +106,9 @@ impl TransactionWitness {
         }
 
         debug_assert_eq!(
-            self.consumed_notes_hash,
+            self.input_notes_hash,
             Hasher::hash_elements(
-                &consumed_notes_info
+                &input_notes_info
                     .iter()
                     .flat_map(|info| {
                         let mut elements = Word::from(info).to_vec();
@@ -120,7 +119,7 @@ impl TransactionWitness {
             )
         );
 
-        Ok(consumed_notes_info)
+        Ok(input_notes_info)
     }
 
     /// Returns the transaction script root.
@@ -136,7 +135,7 @@ impl TransactionWitness {
     /// Returns the stack inputs for the transaction.
     pub fn get_stack_inputs(&self) -> StackInputs {
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-        inputs.extend(*self.consumed_notes_hash);
+        inputs.extend(*self.input_notes_hash);
         inputs.extend(*self.initial_account_hash);
         inputs.push(self.account_id.into());
         inputs.extend(*self.block_hash);
@@ -158,7 +157,7 @@ impl TransactionWitness {
             self.account_id,
             self.initial_account_hash,
             self.block_hash,
-            self.consumed_notes_hash,
+            self.input_notes_hash,
             self.tx_script_root,
             self.program,
             self.advice_witness,

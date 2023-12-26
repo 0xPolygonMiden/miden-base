@@ -2,7 +2,8 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    notes::{Note, NoteMetadata, NoteScript, NoteVault},
+    transaction::OutputNote,
     utils::{collections::Vec, vec},
     Digest, Felt, Hasher, NoteError, StarkField, Word, WORD_SIZE, ZERO,
 };
@@ -80,7 +81,7 @@ pub fn create_note(
     Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
 }
 
-pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {
+pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteError> {
     if elements.len() < CREATED_NOTE_CORE_DATA_SIZE {
         return Err(NoteError::InvalidStubDataLen(elements.len()));
     }
@@ -104,7 +105,7 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError>
         return Err(NoteError::InconsistentStubVaultHash(vault_hash, vault.hash()));
     }
 
-    let stub = NoteStub::new(recipient, vault, metadata)?;
+    let stub = OutputNote::new(recipient, vault, metadata);
     if stub.hash() != hash {
         return Err(NoteError::InconsistentStubHash(stub.hash(), hash));
     }

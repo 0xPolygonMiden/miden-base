@@ -6,8 +6,7 @@ use miden_lib::{
 };
 use miden_objects::{
     crypto::merkle::MerkleStore,
-    notes::NoteStub,
-    transaction::{CreatedNotes, FinalAccountStub},
+    transaction::{FinalAccountStub, OutputNote, OutputNotes},
     utils::collections::{BTreeMap, Vec},
     Digest, Felt, TransactionResultError, Word, WORD_SIZE,
 };
@@ -27,7 +26,7 @@ pub trait TryFromVmResult: Sized {
     ) -> Result<Self, Self::Error>;
 }
 
-impl TryFromVmResult for CreatedNotes {
+impl TryFromVmResult for OutputNotes {
     type Error = TransactionResultError;
 
     fn try_from_vm_result(
@@ -50,22 +49,22 @@ impl TryFromVmResult for CreatedNotes {
         let created_notes_data = group_slice_elements::<Felt, WORD_SIZE>(
             advice_map
                 .get(&created_notes_commitment.as_bytes())
-                .ok_or(TransactionResultError::CreatedNoteDataNotFound)?,
+                .ok_or(TransactionResultError::OutputNoteDataNotFound)?,
         );
 
         let mut created_notes = Vec::new();
         let mut created_note_ptr = 0;
         while created_note_ptr < created_notes_data.len() {
-            let note_stub: NoteStub =
+            let note_stub: OutputNote =
                 notes_try_from_elements(&created_notes_data[created_note_ptr..])
-                    .map_err(TransactionResultError::CreatedNoteDataInvalid)?;
+                    .map_err(TransactionResultError::OutputNoteDataInvalid)?;
             created_notes.push(note_stub);
             created_note_ptr += NOTE_MEM_SIZE as usize;
         }
 
-        let created_notes = Self::new(created_notes);
+        let created_notes = Self::new(created_notes)?;
         if created_notes_commitment != created_notes.commitment() {
-            return Err(TransactionResultError::CreatedNotesCommitmentInconsistent(
+            return Err(TransactionResultError::OutputNotesCommitmentInconsistent(
                 created_notes_commitment,
                 created_notes.commitment(),
             ));
