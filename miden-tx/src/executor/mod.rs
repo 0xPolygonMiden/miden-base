@@ -1,8 +1,8 @@
 use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
 use miden_objects::{
-    accounts::{Account, AccountDelta},
+    accounts::AccountDelta,
     assembly::ProgramAst,
-    transaction::{FinalAccountStub, InputNotes, OutputNotes, TransactionScript},
+    transaction::{FinalAccountStub, OutputNotes, TransactionInputs, TransactionScript},
     Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
@@ -138,16 +138,13 @@ impl<D: DataStore> TransactionExecutor<D> {
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
-        let (account, block_header, _block_chain, consumed_notes, tx_program, tx_script) =
-            transaction.into_parts();
+        let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
 
         let (advice_recorder, event_handler) = host.into_parts();
         create_transaction_result(
-            account,
-            consumed_notes,
-            block_header.hash(),
             tx_program,
             tx_script.map(|s| *s.hash()),
+            tx_inputs,
             advice_recorder,
             result.stack_outputs().clone(),
             event_handler,
@@ -189,14 +186,11 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
 pub fn create_transaction_result(
-    initial_account: Account,
-    input_notes: InputNotes,
-    block_hash: Digest,
     program: Program,
     tx_script_root: Option<Digest>,
+    tx_inputs: TransactionInputs,
     advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
     event_handler: EventHandler,
@@ -220,10 +214,12 @@ pub fn create_transaction_result(
             [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
     );
 
+    let initial_account = &tx_inputs.account;
+
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
     let storage_delta =
-        extract_account_storage_delta(&store, &initial_account, &final_account_stub)?;
+        extract_account_storage_delta(&store, initial_account, &final_account_stub)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account_stub.0.nonce() {
@@ -240,12 +236,10 @@ pub fn create_transaction_result(
         AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
 
     TransactionResult::new(
-        initial_account,
+        tx_inputs,
         final_account_stub,
         account_delta,
-        input_notes,
         output_notes,
-        block_hash,
         program,
         tx_script_root,
         advice_witness,

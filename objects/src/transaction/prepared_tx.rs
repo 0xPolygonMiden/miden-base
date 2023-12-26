@@ -81,17 +81,8 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (Account, BlockHeader, ChainMmr, InputNotes, Program, Option<TransactionScript>) {
-        (
-            self.tx_inputs.account,
-            self.tx_inputs.block_header,
-            self.tx_inputs.block_chain,
-            self.tx_inputs.input_notes,
-            self.program,
-            self.tx_script,
-        )
+    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
+        (self.program, self.tx_script, self.tx_inputs)
     }
 }
 

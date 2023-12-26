@@ -1,8 +1,10 @@
 use vm_processor::{AdviceInputs, Program};
 
 use crate::{
-    accounts::{Account, AccountDelta, AccountId},
-    transaction::{FinalAccountStub, InputNotes, OutputNotes, TransactionWitness},
+    accounts::{AccountDelta, AccountId},
+    transaction::{
+        FinalAccountStub, InputNotes, OutputNotes, TransactionInputs, TransactionWitness,
+    },
     Digest, TransactionResultError,
 };
 
@@ -40,26 +42,23 @@ impl TransactionResult {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        initial_account: Account,
+        tx_inputs: TransactionInputs,
         final_account_stub: FinalAccountStub,
         account_delta: AccountDelta,
-        input_notes: InputNotes,
         output_notes: OutputNotes,
-        block_hash: Digest,
         program: Program,
         tx_script_root: Option<Digest>,
         advice_witness: AdviceInputs,
     ) -> Result<Self, TransactionResultError> {
         Ok(Self {
-            account_id: initial_account.id(),
-            initial_account_hash: initial_account.hash(),
+            account_id: tx_inputs.account.id(),
+            initial_account_hash: tx_inputs.account.hash(),
             final_account_hash: final_account_stub.0.hash(),
             account_delta,
-            input_notes,
+            input_notes: tx_inputs.input_notes,
             output_notes,
-            block_hash,
+            block_hash: tx_inputs.block_header.hash(),
             program,
             tx_script_root,
             advice_witness,
