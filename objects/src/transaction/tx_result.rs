@@ -2,7 +2,7 @@ use vm_processor::{AdviceInputs, Program};
 
 use crate::{
     accounts::{Account, AccountDelta, AccountId},
-    transaction::{ConsumedNotes, CreatedNotes, FinalAccountStub, TransactionWitness},
+    transaction::{CreatedNotes, FinalAccountStub, InputNotes, TransactionWitness},
     Digest, TransactionResultError,
 };
 
@@ -25,7 +25,7 @@ pub struct TransactionResult {
     initial_account_hash: Digest,
     final_account_hash: Digest,
     account_delta: AccountDelta,
-    consumed_notes: ConsumedNotes,
+    consumed_notes: InputNotes,
     created_notes: CreatedNotes,
     block_hash: Digest,
     program: Program,
@@ -42,7 +42,7 @@ impl TransactionResult {
         initial_account: Account,
         final_account_stub: FinalAccountStub,
         account_delta: AccountDelta,
-        consumed_notes: ConsumedNotes,
+        consumed_notes: InputNotes,
         created_notes: CreatedNotes,
         block_hash: Digest,
         program: Program,
@@ -87,7 +87,7 @@ impl TransactionResult {
     }
 
     /// Returns a reference to the consumed notes.
-    pub fn consumed_notes(&self) -> &ConsumedNotes {
+    pub fn consumed_notes(&self) -> &InputNotes {
         &self.consumed_notes
     }
 

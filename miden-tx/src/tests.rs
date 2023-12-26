@@ -3,8 +3,7 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::RecordedNote,
-    transaction::{ChainMmr, CreatedNotes, FinalAccountStub},
+    transaction::{ChainMmr, CreatedNotes, FinalAccountStub, InputNote, InputNotes},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -378,7 +377,7 @@ struct MockDataStore {
     pub account: Account,
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
-    pub notes: Vec<RecordedNote>,
+    pub notes: Vec<InputNote>,
 }
 
 impl MockDataStore {
@@ -417,7 +416,7 @@ impl DataStore for MockDataStore {
             account_seed: None,
             block_header: self.block_header,
             block_chain: self.block_chain.clone(),
-            input_notes: self.notes.clone(),
+            input_notes: InputNotes::new(self.notes.clone()).unwrap(),
         })
     }
 

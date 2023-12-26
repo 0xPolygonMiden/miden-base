@@ -1,5 +1,5 @@
 use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
+    utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, InputNotes,
     PreparedTransactionError, Program, StackInputs, TransactionInputs, TransactionScript, Word,
 };
 use crate::accounts::validate_account_seed;
@@ -14,7 +14,7 @@ use crate::accounts::validate_account_seed;
 /// - account_seed: An optional account seed used to create a new account.
 /// - block_header: The header of the latest known block.
 /// - block_chain: The chain MMR associated with the latest known block.
-/// - consumed_notes: A vector of consumed notes.
+/// - input_notes: A vector of notes consumed by the transaction.
 /// - tx_script: An optional transaction script.
 /// - tx_program: The transaction program.
 #[derive(Debug)]
@@ -23,7 +23,7 @@ pub struct PreparedTransaction {
     account_seed: Option<Word>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
-    consumed_notes: ConsumedNotes,
+    input_notes: InputNotes,
     tx_script: Option<TransactionScript>,
     tx_program: Program,
 }
@@ -44,7 +44,7 @@ impl PreparedTransaction {
             account_seed: tx_inputs.account_seed,
             block_header: tx_inputs.block_header,
             block_chain: tx_inputs.block_chain,
-            consumed_notes: ConsumedNotes::new(tx_inputs.input_notes),
+            input_notes: tx_inputs.input_notes,
             tx_script,
             tx_program: program,
         })
@@ -68,9 +68,9 @@ impl PreparedTransaction {
         &self.block_chain
     }
 
-    /// Returns the consumed notes.
-    pub fn consumed_notes(&self) -> &ConsumedNotes {
-        &self.consumed_notes
+    /// Returns the input notes.
+    pub fn input_notes(&self) -> &InputNotes {
+        &self.input_notes
     }
 
     /// Return a reference the transaction script.
@@ -93,7 +93,7 @@ impl PreparedTransaction {
         utils::generate_stack_inputs(
             &self.account.id(),
             initial_acct_hash,
-            self.consumed_notes.commitment(),
+            self.input_notes.commitment(),
             &self.block_header,
         )
     }
@@ -105,18 +105,14 @@ impl PreparedTransaction {
             self.account_seed,
             &self.block_header,
             &self.block_chain,
-            &self.consumed_notes,
+            &self.input_notes,
             &self.tx_script,
         )
     }
 
-    /// Returns the consumed notes commitment.
-    pub fn consumed_notes_commitment(&self) -> Digest {
-        self.consumed_notes.commitment()
-    }
-
     // HELPERS
     // --------------------------------------------------------------------------------------------
+
     /// Validates that a valid account seed has been provided if the account the transaction is
     /// being executed against is new.
     fn validate_new_account_seed(
@@ -133,22 +129,16 @@ impl PreparedTransaction {
 
     // CONSUMERS
     // --------------------------------------------------------------------------------------------
+
     /// Consumes the prepared transaction and returns its parts.
     pub fn into_parts(
         self,
-    ) -> (
-        Account,
-        BlockHeader,
-        ChainMmr,
-        ConsumedNotes,
-        Program,
-        Option<TransactionScript>,
-    ) {
+    ) -> (Account, BlockHeader, ChainMmr, InputNotes, Program, Option<TransactionScript>) {
         (
             self.account,
             self.block_header,
             self.block_chain,
-            self.consumed_notes,
+            self.input_notes,
             self.tx_program,
             self.tx_script,
         )

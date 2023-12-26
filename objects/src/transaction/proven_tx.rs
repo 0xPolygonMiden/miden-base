@@ -10,7 +10,7 @@ use super::{AccountId, Digest, NoteEnvelope, Nullifier, TransactionId, Vec};
 /// - account_id: the account that the transaction was executed against.
 /// - initial_account_hash: the hash of the account before the transaction was executed.
 /// - final_account_hash: the hash of the account after the transaction was executed.
-/// - consumed_notes: a list of consumed notes defined by their nullifiers.
+/// - input_notes: a list of nullifier for all notes consumed by the transaction.
 /// - created_notes: a list of created notes.
 /// - tx_script_root: the script root of the transaction.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
@@ -20,7 +20,7 @@ pub struct ProvenTransaction {
     account_id: AccountId,
     initial_account_hash: Digest,
     final_account_hash: Digest,
-    consumed_notes: Vec<Nullifier>,
+    input_note_nullifiers: Vec<Nullifier>,
     created_notes: Vec<NoteEnvelope>,
     tx_script_root: Option<Digest>,
     block_ref: Digest,
@@ -34,7 +34,7 @@ impl ProvenTransaction {
         account_id: AccountId,
         initial_account_hash: Digest,
         final_account_hash: Digest,
-        consumed_notes: Vec<Nullifier>,
+        input_note_nullifiers: Vec<Nullifier>,
         created_notes: Vec<NoteEnvelope>,
         tx_script_root: Option<Digest>,
         block_ref: Digest,
@@ -44,7 +44,7 @@ impl ProvenTransaction {
             account_id,
             initial_account_hash,
             final_account_hash,
-            consumed_notes,
+            input_note_nullifiers,
             created_notes,
             tx_script_root,
             block_ref,
@@ -76,8 +76,8 @@ impl ProvenTransaction {
     }
 
     /// Returns the nullifiers of consumed notes.
-    pub fn consumed_notes(&self) -> &[Nullifier] {
-        &self.consumed_notes
+    pub fn input_note_nullifiers(&self) -> &[Nullifier] {
+        &self.input_note_nullifiers
     }
 
     /// Returns the created notes.
@@ -109,8 +109,8 @@ impl Serializable for ProvenTransaction {
         self.account_id.write_into(target);
         self.initial_account_hash.write_into(target);
         self.final_account_hash.write_into(target);
-        target.write_u64(self.consumed_notes.len() as u64);
-        self.consumed_notes.write_into(target);
+        target.write_u64(self.input_note_nullifiers.len() as u64);
+        self.input_note_nullifiers.write_into(target);
         target.write_u64(self.created_notes.len() as u64);
         self.created_notes.write_into(target);
         self.tx_script_root.write_into(target);
@@ -125,11 +125,11 @@ impl Deserializable for ProvenTransaction {
         let initial_account_hash = Digest::read_from(source)?;
         let final_account_hash = Digest::read_from(source)?;
 
-        let count = source.read_u64()?;
-        let consumed_notes = Nullifier::read_batch_from(source, count as usize)?;
+        let num_input_notes = source.read_u64()?;
+        let input_notes = Nullifier::read_batch_from(source, num_input_notes as usize)?;
 
-        let count = source.read_u64()?;
-        let created_notes = NoteEnvelope::read_batch_from(source, count as usize)?;
+        let num_output_notes = source.read_u64()?;
+        let created_notes = NoteEnvelope::read_batch_from(source, num_output_notes as usize)?;
 
         let tx_script_root = Deserializable::read_from(source)?;
 
@@ -140,7 +140,7 @@ impl Deserializable for ProvenTransaction {
             account_id,
             initial_account_hash,
             final_account_hash,
-            consumed_notes,
+            input_note_nullifiers: input_notes,
             created_notes,
             tx_script_root,
             block_ref,

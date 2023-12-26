@@ -1,8 +1,8 @@
 use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::Account,
-    notes::{Note, RecordedNote},
-    transaction::{ChainMmr, ExecutedTransaction},
+    notes::Note,
+    transaction::{ChainMmr, ExecutedTransaction, InputNote},
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
 };
@@ -21,7 +21,7 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
-) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>) {
+) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>) {
     // Create assembler and assembler context
     let assembler = assembler();
 
@@ -56,7 +56,7 @@ pub fn mock_inputs_with_existing(
     asset_preservation: AssetPreservationStatus,
     account: Option<Account>,
     consumed_notes_from: Option<Vec<Note>>,
-) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs) {
+) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>, AdviceInputs) {
     // create auxiliary data object
     let auxiliary_data = AdviceInputs::default();
 

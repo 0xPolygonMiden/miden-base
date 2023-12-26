@@ -53,14 +53,14 @@ impl TransactionProver {
         let created_notes = CreatedNotes::try_from_vm_result(&outputs, &stack, &map, &store)
             .map_err(TransactionProverError::TransactionResultError)?;
 
-        let (account, block_header, _chain, consumed_notes, _tx_program, tx_script) =
+        let (account, block_header, _chain, input_notes, _tx_program, tx_script) =
             transaction.into_parts();
 
         Ok(ProvenTransaction::new(
             account.id(),
             account.hash(),
             final_account_stub.0.hash(),
-            consumed_notes.into(),
+            input_notes.nullifiers().collect(),
             created_notes.into(),
             tx_script.map(|tx_script| *tx_script.hash()),
             block_header.hash(),

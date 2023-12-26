@@ -99,7 +99,7 @@ fn global_input_memory_assertions<A: AdviceProvider>(
     // The nullifier commitment should be stored at the NULLIFIER_COM_PTR
     assert_eq!(
         process.get_mem_value(ContextId::root(), NULLIFIER_COM_PTR).unwrap(),
-        inputs.consumed_notes_commitment().as_elements()
+        inputs.input_notes().commitment().as_elements()
     );
 
     // The initial nonce should be stored at the INIT_NONCE_PTR
@@ -259,10 +259,10 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
         process.get_mem_value(ContextId::root(), CONSUMED_NOTE_SECTION_OFFSET).unwrap()[0],
-        Felt::new(inputs.consumed_notes().notes().len() as u64)
+        Felt::new(inputs.input_notes().num_notes() as u64)
     );
 
-    for (note, note_idx) in inputs.consumed_notes().notes().iter().zip(0u32..) {
+    for (note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
         // The note nullifier should be computer and stored at (CONSUMED_NOTES_OFFSET + 1 + note_idx)
         assert_eq!(
             process

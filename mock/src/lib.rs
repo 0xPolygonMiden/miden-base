@@ -3,8 +3,10 @@ use std::{fs::File, io::Read, path::PathBuf};
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account,
-    notes::{Note, NoteVault, RecordedNote},
-    transaction::{ChainMmr, PreparedTransaction, TransactionInputs, TransactionScript},
+    notes::{Note, NoteVault},
+    transaction::{
+        ChainMmr, InputNote, InputNotes, PreparedTransaction, TransactionInputs, TransactionScript,
+    },
     BlockHeader, Felt, StarkField,
 };
 use vm_processor::{
@@ -92,7 +94,7 @@ pub fn prepare_transaction(
     account_seed: Option<Word>,
     block_header: BlockHeader,
     chain: ChainMmr,
-    notes: Vec<RecordedNote>,
+    notes: Vec<InputNote>,
     tx_script: Option<TransactionScript>,
     code: &str,
     imports: &str,
@@ -112,7 +114,7 @@ pub fn prepare_transaction(
         account_seed,
         block_header,
         block_chain: chain,
-        input_notes: notes,
+        input_notes: InputNotes::new(notes).unwrap(),
     };
 
     PreparedTransaction::new(program, tx_script, tx_inputs).unwrap()

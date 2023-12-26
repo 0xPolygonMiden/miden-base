@@ -4,8 +4,8 @@ use super::TransactionScript;
 use crate::{
     accounts::validate_account_seed,
     transaction::{
-        utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Note,
-        RecordedNote, StackInputs, Vec, Word,
+        utils, Account, AdviceInputs, BlockHeader, ChainMmr, Digest, InputNote, InputNotes, Note,
+        StackInputs, Vec, Word,
     },
     ExecutedTransactionError,
 };
@@ -15,7 +15,7 @@ pub struct ExecutedTransaction {
     initial_account: Account,
     initial_account_seed: Option<Word>,
     final_account: Account,
-    consumed_notes: ConsumedNotes,
+    consumed_notes: InputNotes,
     created_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
     block_header: BlockHeader,
@@ -29,7 +29,7 @@ impl ExecutedTransaction {
         initial_account: Account,
         initial_account_seed: Option<Word>,
         final_account: Account,
-        consumed_notes: Vec<RecordedNote>,
+        consumed_notes: Vec<InputNote>,
         created_notes: Vec<Note>,
         tx_script: Option<TransactionScript>,
         block_header: BlockHeader,
@@ -40,7 +40,7 @@ impl ExecutedTransaction {
             initial_account,
             initial_account_seed,
             final_account,
-            consumed_notes: ConsumedNotes::new(consumed_notes),
+            consumed_notes: InputNotes::new(consumed_notes).unwrap(),
             created_notes,
             tx_script,
             block_header,
@@ -59,7 +59,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns the consumed notes.
-    pub fn consumed_notes(&self) -> &ConsumedNotes {
+    pub fn consumed_notes(&self) -> &InputNotes {
         &self.consumed_notes
     }
 

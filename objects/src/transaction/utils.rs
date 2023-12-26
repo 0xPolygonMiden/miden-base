@@ -1,9 +1,8 @@
 use vm_core::utils::IntoBytes;
 
 use super::{
-    Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest, Felt, Hasher,
-    Note, RecordedNote, StackInputs, StackOutputs, ToAdviceInputs, TransactionScript, Vec, Word,
-    ZERO,
+    Account, AccountId, AdviceInputs, BlockHeader, ChainMmr, Digest, Felt, Hasher, InputNotes,
+    Note, StackInputs, StackOutputs, ToAdviceInputs, TransactionScript, Vec, Word, ZERO,
 };
 
 /// Returns the advice inputs required when executing a transaction.
@@ -51,7 +50,7 @@ pub fn generate_advice_provider_inputs(
     account_id_seed: Option<Word>,
     block_header: &BlockHeader,
     block_chain: &ChainMmr,
-    notes: &ConsumedNotes,
+    notes: &InputNotes,
     tx_script: &Option<TransactionScript>,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
@@ -86,19 +85,6 @@ pub fn generate_advice_provider_inputs(
     }
 
     advice_inputs
-}
-
-/// Returns the consumed notes commitment.
-///
-/// This is a sequential hash of all (nullifier, ZERO) pairs for the notes consumed in the
-/// transaction.
-pub fn generate_consumed_notes_commitment(recorded_notes: &[RecordedNote]) -> Digest {
-    let mut elements: Vec<Felt> = Vec::with_capacity(recorded_notes.len() * 8);
-    for recorded_note in recorded_notes.iter() {
-        elements.extend_from_slice(recorded_note.note().nullifier().as_elements());
-        elements.extend_from_slice(&Word::default());
-    }
-    Hasher::hash_elements(&elements)
 }
 
 /// Returns the stack inputs required when executing a transaction.

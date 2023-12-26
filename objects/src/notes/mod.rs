@@ -185,43 +185,6 @@ impl Note {
     }
 }
 
-// RECORDED NOTE
-// ================================================================================================
-
-/// Represents a note which has been recorded in the Miden notes database.
-///
-/// This struct is composed:
-/// - A note which has been recorded.
-/// - The inclusion proof of the note.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct RecordedNote {
-    note: Note,
-    proof: NoteInclusionProof,
-}
-
-impl RecordedNote {
-    /// Returns a new instance of a [RecordedNote] with the specified note and origin.
-    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
-        Self { note, proof }
-    }
-
-    /// Returns a reference to the note which was recorded.
-    pub fn note(&self) -> &Note {
-        &self.note
-    }
-
-    /// Returns a reference to the inclusion proof of the recorded note.
-    pub fn proof(&self) -> &NoteInclusionProof {
-        &self.proof
-    }
-
-    /// Returns a reference to the origin of the recorded note.
-    pub fn origin(&self) -> &NoteOrigin {
-        self.proof.origin()
-    }
-}
-
 // SERIALIZATION
 // ================================================================================================
 
@@ -250,22 +213,6 @@ impl Deserializable for Note {
             serial_num,
             metadata,
         })
-    }
-}
-
-impl Serializable for RecordedNote {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.note.write_into(target);
-        self.proof.write_into(target);
-    }
-}
-
-impl Deserializable for RecordedNote {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let note = Note::read_from(source)?;
-        let proof = NoteInclusionProof::read_from(source)?;
-
-        Ok(Self { note, proof })
     }
 }
 

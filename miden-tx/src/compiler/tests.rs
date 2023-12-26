@@ -1,7 +1,8 @@
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteInclusionProof, RecordedNote},
+    notes::{Note, NoteInclusionProof},
+    transaction::{InputNote, InputNotes},
     Felt, FieldElement, Word,
 };
 
@@ -196,8 +197,10 @@ fn test_transaction_compilation_succeeds() {
     .unwrap();
     let notes = notes
         .into_iter()
-        .map(|note| RecordedNote::new(note, mock_inclusion_proof.clone()))
+        .map(|note| InputNote::new(note, mock_inclusion_proof.clone()))
         .collect::<Vec<_>>();
+
+    let notes = InputNotes::new(notes).unwrap();
 
     let tx_script_src = format!("begin call.{ACCT_PROC_2} end");
     let tx_script_ast = ProgramAst::parse(tx_script_src.as_str()).unwrap();

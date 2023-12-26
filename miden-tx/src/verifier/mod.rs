@@ -82,7 +82,7 @@ impl TransactionVerifier {
     fn build_stack_inputs(transaction: &ProvenTransaction) -> StackInputs {
         let mut stack_inputs: Vec<Felt> = Vec::with_capacity(13);
         stack_inputs.extend_from_slice(
-            Self::compute_consumed_notes_hash(transaction.consumed_notes()).as_elements(),
+            Self::compute_consumed_notes_hash(transaction.input_note_nullifiers()).as_elements(),
         );
         stack_inputs.extend_from_slice(transaction.initial_account_hash().as_elements());
         stack_inputs.push(transaction.account_id().into());

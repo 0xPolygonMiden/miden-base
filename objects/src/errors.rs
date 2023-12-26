@@ -269,10 +269,28 @@ impl fmt::Display for ChainMmrError {
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
 
+// TRANSACTION INPUTS ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone)]
+pub enum TransactionInputsError {
+    DuplicateInputNote(Digest),
+    TooManyInputNotes { max: usize, actual: usize },
+}
+
+impl fmt::Display for TransactionInputsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionInputsError {}
+
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TransactionScriptError {
     ScriptCompilationError(AssemblyError),
 }

@@ -75,7 +75,7 @@ fn test_get_sender() {
     )
     .unwrap();
 
-    let sender = transaction.consumed_notes().notes()[0].note().metadata().sender().into();
+    let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
 
@@ -373,7 +373,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.consumed_notes().notes()[0].note().script().hash();
+    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().hash();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 

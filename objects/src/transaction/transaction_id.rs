@@ -54,8 +54,8 @@ impl From<&ProvenTransaction> for TransactionId {
     fn from(tx: &ProvenTransaction) -> Self {
         // TODO: move input/output note hash computations into a more central location
         let input_notes_hash = {
-            let mut elements: Vec<Felt> = Vec::with_capacity(tx.consumed_notes().len() * 8);
-            for nullifier in tx.consumed_notes().iter() {
+            let mut elements: Vec<Felt> = Vec::with_capacity(tx.input_note_nullifiers().len() * 8);
+            for nullifier in tx.input_note_nullifiers().iter() {
                 elements.extend_from_slice(nullifier.as_elements());
                 elements.extend_from_slice(&Word::default());
             }

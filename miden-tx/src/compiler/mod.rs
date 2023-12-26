@@ -1,7 +1,6 @@
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
-    notes::RecordedNote,
-    transaction::TransactionScript,
+    transaction::{InputNotes, TransactionScript},
     Felt, TransactionScriptError, Word,
 };
 use vm_processor::ProgramInfo;
@@ -138,7 +137,7 @@ impl TransactionCompiler {
     pub fn compile_transaction(
         &mut self,
         account_id: AccountId,
-        notes: &[RecordedNote],
+        notes: &InputNotes,
         tx_script: Option<&ProgramAst>,
     ) -> Result<Program, TransactionCompilerError> {
         // Fetch the account interface from the `account_procedures` map. Return an error if the
@@ -212,7 +211,7 @@ impl TransactionCompiler {
     fn compile_notes(
         &mut self,
         target_account_interface: &[Digest],
-        notes: &[RecordedNote],
+        notes: &InputNotes,
         assembly_context: &mut AssemblyContext,
     ) -> Result<Vec<CodeBlock>, TransactionCompilerError> {
         let mut note_programs = Vec::new();
