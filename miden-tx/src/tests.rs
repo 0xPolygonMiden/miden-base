@@ -13,14 +13,13 @@ use mock::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0, FUNGIBLE_ASSET_AMOUNT,
+        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, FUNGIBLE_ASSET_AMOUNT, STORAGE_INDEX_0,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
 use vm_core::utils::to_hex;
-use vm_processor::{AdviceInputs, MemAdviceProvider};
+use vm_processor::MemAdviceProvider;
 
 use super::{
     AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
@@ -85,6 +84,9 @@ fn test_transaction_result_account_delta() {
     ";
     let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
     let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+
+    // updated storage
+    let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
 
     // removed assets
     let removed_asset_1 = Asset::Fungible(
@@ -152,34 +154,18 @@ fn test_transaction_result_account_delta() {
         ## TRANSACTION SCRIPT
         ## ========================================================================================
         begin
-            ## Update account storage child tree
+            ## Update account storage item
             ## ------------------------------------------------------------------------------------
-            # get the current child tree root from account storage slot
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
-            # => [idx]
+            # push a new value for the storage slot onto the stack
+            push.{UPDATED_SLOT_VALUE}
+            # => [13, 11, 9, 7]
 
-            # get the child root
-            exec.account::get_item
-            # => [CHILD_ROOT]
+            # get the index of account storage slot
+            push.{STORAGE_INDEX_0}
+            # => [idx, 13, 11, 9, 7]
 
-            # prepare the stack to remove in the child tree
-            padw swapw push.0 push.{CHILD_SMT_DEPTH}
-            # => [depth, idx(push.0), CHILD_ROOT, NEW_VALUE (padw)]
-
-            # set new value and drop old value
-            mtree_set dropw
-            # => [NEW_CHILD_ROOT]
-
-            # prepare stack to delete existing child tree value (replace with empty word)
-            padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH}
-            # => [depth, idx, NEW_CHILD_ROOT, EMPTY_WORD]
-
-            # set existing value to empty word
-            mtree_set dropw
-            # => [NEW_CHILD_ROOT]
-
-            # store the new child root in account storage slot
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX} exec.set_item dropw dropw
+            # update the storage value
+            exec.set_item dropw dropw
             # => []
 
             ## Send some assets from the account vault
@@ -213,6 +199,7 @@ fn test_transaction_result_account_delta() {
         end
     ",
         NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
+        UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
@@ -238,9 +225,10 @@ fn test_transaction_result_account_delta() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
+    assert_eq!(transaction_result.account_delta().storage().updated_items[0].0, STORAGE_INDEX_0);
     assert_eq!(
-        transaction_result.account_delta().storage().updated_items[0].0,
-        CHILD_ROOT_PARENT_LEAF_INDEX
+        transaction_result.account_delta().storage().updated_items[0].1,
+        updated_slot_value
     );
 
     // vault delta
@@ -391,19 +379,17 @@ struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<RecordedNote>,
-    pub auxiliary_data: AdviceInputs,
 }
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, block_header, block_chain, consumed_notes, auxiliary_data) =
+        let (account, block_header, block_chain, consumed_notes) =
             mock_inputs(MockAccountType::StandardExisting, asset_preservation);
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
-            auxiliary_data,
         }
     }
 }
@@ -432,7 +418,6 @@ impl DataStore for MockDataStore {
             block_header: self.block_header,
             block_chain: self.block_chain.clone(),
             input_notes: self.notes.clone(),
-            aux_data: self.auxiliary_data.clone(),
         })
     }
 

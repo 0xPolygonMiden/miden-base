@@ -4,7 +4,6 @@ use miden_objects::{
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt, FieldElement, Word, ZERO,
 };
-use vm_processor::AdviceInputs;
 
 use super::mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet};
 pub use super::mock::account::{
@@ -129,7 +128,6 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ZERO,
                 false,
                 &assembler,
-                &mut AdviceInputs::default(),
             ),
             AccountType::NonFungibleFaucet,
         ),
@@ -139,12 +137,11 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ZERO,
                 true,
                 &assembler,
-                &mut AdviceInputs::default(),
             ),
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            mock_account(None, Felt::ONE, None, &assembler, &mut AdviceInputs::default()),
+            mock_account(None, Felt::ONE, None, &assembler),
             AccountType::RegularAccountUpdatableCode,
         ),
     };

@@ -28,7 +28,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -56,7 +56,6 @@ fn test_transaction_prologue() {
         chain,
         notes,
         Some(tx_script),
-        auxiliary_data,
         code,
         "",
         Some(assembly_file),
@@ -341,7 +340,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
 pub fn test_prologue_create_account() {
     let (_acct_id, account_seed) =
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::prologue
@@ -358,7 +357,6 @@ pub fn test_prologue_create_account() {
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -377,7 +375,7 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::FungibleFaucetValidInitialBalance);
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
@@ -400,7 +398,6 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -419,7 +416,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::FungibleFaucetInvalidInitialBalance);
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
@@ -442,7 +439,6 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -461,7 +457,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::NonFungibleFaucetValidReservedSlot);
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
@@ -484,7 +480,6 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -503,7 +498,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::NonFungibleFaucetInvalidReservedSlot);
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
@@ -526,7 +521,6 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -545,7 +539,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (_acct_id, account_seed) =
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let account_seed_key = [account.id().into(), ZERO, ZERO, ZERO];
 
@@ -564,7 +558,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         chain,
         notes,
         None,
-        auxiliary_data,
         code,
         "",
         None,
@@ -583,7 +576,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::layout
@@ -595,18 +588,8 @@ fn test_get_blk_version() {
     end
     ";
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        code,
-        "",
-        None,
-    );
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -620,7 +603,7 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::sat::internal::layout
@@ -632,18 +615,8 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        code,
-        "",
-        None,
-    );
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),

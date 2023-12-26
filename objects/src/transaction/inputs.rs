@@ -1,4 +1,4 @@
-use super::{Account, AdviceInputs, BlockHeader, ChainMmr, RecordedNote, Vec, Word};
+use super::{Account, BlockHeader, ChainMmr, RecordedNote, Vec, Word};
 
 // TRANSACTION INPUTS
 // ================================================================================================
@@ -10,5 +10,4 @@ pub struct TransactionInputs {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub input_notes: Vec<RecordedNote>,
-    pub aux_data: AdviceInputs,
 }

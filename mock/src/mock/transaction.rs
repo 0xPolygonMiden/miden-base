@@ -21,30 +21,19 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
-) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs) {
-    // create auxiliary data object
-    let mut auxiliary_data = AdviceInputs::default();
-
+) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>) {
     // Create assembler and assembler context
     let assembler = assembler();
 
     // Create an account with storage items
     let account = match account_type {
-        MockAccountType::StandardNew => mock_new_account(&assembler, &mut auxiliary_data),
-        MockAccountType::StandardExisting => {
-            mock_account(None, Felt::ONE, None, &assembler, &mut auxiliary_data)
-        },
+        MockAccountType::StandardNew => mock_new_account(&assembler),
+        MockAccountType::StandardExisting => mock_account(None, Felt::ONE, None, &assembler),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
         MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            mock_non_fungible_faucet(
-                acct_id,
-                nonce,
-                empty_reserved_slot,
-                &assembler,
-                &mut auxiliary_data,
-            )
+            mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
     };
 
@@ -59,7 +48,7 @@ pub fn mock_inputs(
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
     // Transaction inputs
-    (account, block_header, chain_mmr, recorded_notes, auxiliary_data)
+    (account, block_header, chain_mmr, recorded_notes)
 }
 
 pub fn mock_inputs_with_existing(
@@ -69,7 +58,7 @@ pub fn mock_inputs_with_existing(
     consumed_notes_from: Option<Vec<Note>>,
 ) -> (Account, BlockHeader, ChainMmr, Vec<RecordedNote>, AdviceInputs) {
     // create auxiliary data object
-    let mut auxiliary_data = AdviceInputs::default();
+    let auxiliary_data = AdviceInputs::default();
 
     // Create assembler and assembler context
     let assembler = assembler();
@@ -77,21 +66,15 @@ pub fn mock_inputs_with_existing(
     // Create an account with storage items
 
     let account = match account_type {
-        MockAccountType::StandardNew => mock_new_account(&assembler, &mut auxiliary_data),
+        MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => {
-            account.unwrap_or(mock_account(None, Felt::ONE, None, &assembler, &mut auxiliary_data))
+            account.unwrap_or(mock_account(None, Felt::ONE, None, &assembler))
         },
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler))
         },
         MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            mock_non_fungible_faucet(
-                acct_id,
-                nonce,
-                empty_reserved_slot,
-                &assembler,
-                &mut auxiliary_data,
-            )
+            mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
     };
 
@@ -115,20 +98,12 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     // Create assembler and assembler context
     let assembler = assembler();
 
-    // TODO: update
-    let mut auxiliary_data = AdviceInputs::default();
-
     // Initial Account
-    let initial_account = mock_account(None, Felt::ONE, None, &assembler, &mut auxiliary_data);
+    let initial_account = mock_account(None, Felt::ONE, None, &assembler);
 
     // Finial Account (nonce incremented by 1)
-    let final_account = mock_account(
-        None,
-        Felt::new(2),
-        Some(initial_account.code().clone()),
-        &assembler,
-        &mut auxiliary_data,
-    );
+    let final_account =
+        mock_account(None, Felt::new(2), Some(initial_account.code().clone()), &assembler);
 
     // mock notes
     let (consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
@@ -154,7 +129,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         None,
         block_header,
         chain_mmr,
-        auxiliary_data,
     )
     .unwrap()
 }

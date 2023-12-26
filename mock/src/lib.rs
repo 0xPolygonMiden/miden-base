@@ -8,8 +8,8 @@ use miden_objects::{
     BlockHeader, Felt, StarkField,
 };
 use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program,
-    StackInputs, Word,
+    AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program, StackInputs,
+    Word,
 };
 
 pub mod builders;
@@ -94,7 +94,6 @@ pub fn prepare_transaction(
     chain: ChainMmr,
     notes: Vec<RecordedNote>,
     tx_script: Option<TransactionScript>,
-    auxiliary_data: AdviceInputs,
     code: &str,
     imports: &str,
     file_path: Option<PathBuf>,
@@ -114,7 +113,6 @@ pub fn prepare_transaction(
         block_header,
         block_chain: chain,
         input_notes: notes,
-        aux_data: auxiliary_data,
     };
 
     PreparedTransaction::new(program, tx_script, tx_inputs).unwrap()

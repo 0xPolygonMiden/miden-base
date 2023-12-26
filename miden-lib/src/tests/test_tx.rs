@@ -15,7 +15,7 @@ use crate::memory::{
 
 #[test]
 fn test_create_note() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account_id = account.id();
 
@@ -43,18 +43,8 @@ fn test_create_note() {
         asset = prepare_word(&asset)
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        &code,
-        "",
-        None,
-    );
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let process = run_tx(
         transaction.tx_program().clone(),
@@ -143,7 +133,7 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
@@ -222,18 +212,8 @@ fn test_get_output_notes_hash() {
         expected = prepare_word(&expected_output_notes_hash)
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        &code,
-        "",
-        None,
-    );
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
 
     let _process = run_tx(
         transaction.tx_program().clone(),
