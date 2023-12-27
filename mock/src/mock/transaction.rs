@@ -1,6 +1,6 @@
 use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::Account,
+    accounts::{Account, AccountDelta},
     notes::Note,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
@@ -9,7 +9,7 @@ use miden_objects::{
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
 };
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, Operation, Program};
 
 use super::{
     account::{
@@ -137,6 +137,21 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
+    // dummy components
+    let program = build_dummy_tx_program();
+    let account_delta = AccountDelta::default();
+    let advice_witness = AdviceInputs::default();
+
     // Executed Transaction
-    ExecutedTransaction::new(tx_inputs, tx_outputs, None).unwrap()
+    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, advice_witness)
+        .unwrap()
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn build_dummy_tx_program() -> Program {
+    let operations = vec![Operation::Push(Felt::ZERO), Operation::Drop];
+    let span = miden_objects::assembly::CodeBlock::new_span(operations);
+    Program::new(span)
 }

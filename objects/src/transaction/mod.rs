@@ -2,7 +2,7 @@ use vm_core::{Program, StackInputs};
 
 use super::{
     accounts::{Account, AccountId},
-    notes::{Note, NoteEnvelope, Nullifier},
+    notes::{NoteEnvelope, Nullifier},
     utils::collections::Vec,
     AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, PreparedTransactionError,
     StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
@@ -17,7 +17,6 @@ mod prepared_tx;
 mod proven_tx;
 mod script;
 mod transaction_id;
-mod tx_result;
 mod tx_witness;
 #[cfg(not(feature = "testing"))]
 mod utils;
@@ -31,7 +30,6 @@ pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
 pub use script::TransactionScript;
 pub use transaction_id::TransactionId;
-pub use tx_result::TransactionResult;
 pub use tx_witness::TransactionWitness;
 
 #[cfg(feature = "testing")]

@@ -4,9 +4,9 @@ use miden_objects::{
     accounts::{AccountCode, AccountId},
     assembly::CodeBlock,
     notes::{NoteOrigin, NoteScript},
-    transaction::{PreparedTransaction, TransactionResult},
+    transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
-    AccountError, Digest, Hasher, TransactionResultError,
+    AccountError, Digest, Hasher,
 };
 use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};

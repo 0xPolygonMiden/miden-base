@@ -27,7 +27,6 @@ pub struct TransactionWitness {
 
 impl TransactionWitness {
     /// Creates a new [TransactionWitness] from the provided data.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         account_id: AccountId,
         initial_account_hash: Digest,

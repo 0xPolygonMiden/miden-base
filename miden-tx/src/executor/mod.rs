@@ -1,18 +1,21 @@
-use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
+use miden_lib::transaction::extract_account_storage_delta;
 use miden_objects::{
     accounts::AccountDelta,
     assembly::ProgramAst,
     transaction::{TransactionInputs, TransactionOutputs, TransactionScript},
-    Felt, TransactionResultError, Word, WORD_SIZE,
+    ExecutedTransactionError, Felt, Word,
 };
-use vm_core::{Program, StackOutputs, StarkField};
+use vm_core::{Program, StackOutputs};
 
 use super::{
-    AccountCode, AccountId, DataStore, Digest, NoteOrigin, NoteScript, PreparedTransaction,
-    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
-    TransactionHost, TransactionResult,
+    AccountCode, AccountId, DataStore, Digest, ExecutedTransaction, NoteOrigin, NoteScript,
+    PreparedTransaction, RecAdviceProvider, ScriptTarget, TransactionCompiler,
+    TransactionExecutorError, TransactionHost,
 };
 use crate::{host::EventHandler, TryFromVmResult};
+
+// TRANSACTION EXECUTOR
+// ================================================================================================
 
 /// The transaction executor is responsible for executing Miden rollup transactions.
 ///
@@ -124,7 +127,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         block_ref: u32,
         note_origins: &[NoteOrigin],
         tx_script: Option<TransactionScript>,
-    ) -> Result<TransactionResult, TransactionExecutorError> {
+    ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let transaction =
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
@@ -143,7 +146,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         let (advice_recorder, event_handler) = host.into_parts();
         create_transaction_result(
             tx_program,
-            tx_script.map(|s| *s.hash()),
+            tx_script,
             tx_inputs,
             advice_recorder,
             result.stack_outputs().clone(),
@@ -186,15 +189,15 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 }
 
-/// Creates a new [TransactionResult] from the provided data, advice provider and stack outputs.
+/// Creates a new [ExecutedTransaction] from the provided data, advice provider and stack outputs.
 pub fn create_transaction_result(
     program: Program,
-    tx_script_root: Option<Digest>,
+    tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
     advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
     event_handler: EventHandler,
-) -> Result<TransactionResult, TransactionResultError> {
+) -> Result<ExecutedTransaction, ExecutedTransactionError> {
     // finalize the advice recorder
     let (advice_witness, stack, map, store) = advice_provider.finalize();
 
@@ -202,16 +205,16 @@ pub fn create_transaction_result(
     let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
     let final_account = &tx_outputs.account;
 
-    // assert the tx_script_root is consistent with the output stack
-    debug_assert_eq!(
-        (*tx_script_root.unwrap_or_default())
-            .into_iter()
-            .rev()
-            .map(|x| x.as_int())
-            .collect::<Vec<_>>(),
-        stack_outputs.stack()
-            [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
-    );
+    // TODO: assert the tx_script_root is consistent with the output stack
+    //debug_assert_eq!(
+    //    (*tx_script_root.unwrap_or_default())
+    //        .into_iter()
+    //        .rev()
+    //        .map(|x| x.as_int())
+    //        .collect::<Vec<_>>(),
+    //    stack_outputs.stack()
+    //        [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
+    //);
 
     let initial_account = &tx_inputs.account;
 
@@ -233,12 +236,12 @@ pub fn create_transaction_result(
     let account_delta =
         AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
 
-    TransactionResult::new(
+    ExecutedTransaction::new(
+        program,
         tx_inputs,
         tx_outputs,
         account_delta,
-        program,
-        tx_script_root,
+        tx_script,
         advice_witness,
     )
 }

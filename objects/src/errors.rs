@@ -274,7 +274,10 @@ impl std::error::Error for ChainMmrError {}
 
 #[derive(Debug, Clone)]
 pub enum TransactionInputsError {
+    AccountSeedNoteProvidedForNewAccount,
+    AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InvalidAccountSeed(AccountError),
     TooManyInputNotes { max: usize, actual: usize },
 }
 
@@ -286,6 +289,24 @@ impl fmt::Display for TransactionInputsError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionInputsError {}
+
+// TRANSACTION OUTPUTS ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone)]
+pub enum TransactionOutputsError {
+    DuplicateOutputNote(Digest),
+    TooManyOutputNotes { max: usize, actual: usize },
+}
+
+impl fmt::Display for TransactionOutputsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionOutputsError {}
 
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
@@ -310,10 +331,9 @@ impl std::error::Error for TransactionScriptError {}
 
 // PREPARED TRANSACTION ERROR
 // ===============================================================================================
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PreparedTransactionError {
-    InvalidAccountIdSeedError(AccountError),
-    AccountIdSeedNoteProvided,
+    AccountSeedError(TransactionInputsError),
 }
 
 impl fmt::Display for PreparedTransactionError {
@@ -327,10 +347,24 @@ impl std::error::Error for PreparedTransactionError {}
 
 // EXECUTED TRANSACTION ERROR
 // ===============================================================================================
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExecutedTransactionError {
-    InvalidAccountIdSeedError(AccountError),
-    AccountIdSeedNoteProvided,
+    AccountSeedError(TransactionInputsError),
+    ExtractAccountStorageSlotsDeltaFailed(MerkleError),
+    ExtractAccountStorageStoreDeltaFailed(MerkleError),
+    ExtractAccountVaultLeavesDeltaFailed(MerkleError),
+    FinalAccountDataNotFound,
+    FinalAccountStubDataInvalid(AccountError),
+    InconsistentAccountCodeHash(Digest, Digest),
+    InconsistentAccountId {
+        input_id: AccountId,
+        output_id: AccountId,
+    },
+    OutputNoteDataNotFound,
+    OutputNoteDataInvalid(NoteError),
+    OutputNotesCommitmentInconsistent(Digest, Digest),
+    OutputNotesError(TransactionOutputsError),
+    UpdatedAccountCodeInvalid(AccountError),
 }
 
 impl fmt::Display for ExecutedTransactionError {
@@ -341,33 +375,6 @@ impl fmt::Display for ExecutedTransactionError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for ExecutedTransactionError {}
-
-// TRANSACTION RESULT ERROR
-// ================================================================================================
-#[derive(Debug)]
-pub enum TransactionResultError {
-    OutputNoteDataNotFound,
-    OutputNoteDataInvalid(NoteError),
-    OutputNotesCommitmentInconsistent(Digest, Digest),
-    DuplicateOutputNote(Digest),
-    FinalAccountDataNotFound,
-    FinalAccountStubDataInvalid(AccountError),
-    InconsistentAccountCodeHash(Digest, Digest),
-    ExtractAccountStorageSlotsDeltaFailed(MerkleError),
-    ExtractAccountStorageStoreDeltaFailed(MerkleError),
-    ExtractAccountVaultLeavesDeltaFailed(MerkleError),
-    TooManyOutputNotes { max: usize, actual: usize },
-    UpdatedAccountCodeInvalid(AccountError),
-}
-
-impl fmt::Display for TransactionResultError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionResultError {}
 
 // TRANSACTION WITNESS ERROR
 // ================================================================================================

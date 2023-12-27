@@ -1,11 +1,12 @@
 use core::cell::OnceCell;
 
 use super::{
-    Account, AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, Note, Nullifier,
-    ToAdviceInputs, Word, MAX_INPUT_NOTES_PER_TRANSACTION,
+    AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, ToAdviceInputs, Word,
+    MAX_INPUT_NOTES_PER_TRANSACTION,
 };
 use crate::{
-    notes::{NoteInclusionProof, NoteOrigin},
+    accounts::{validate_account_seed, Account},
+    notes::{Note, NoteInclusionProof, NoteOrigin, Nullifier},
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -25,6 +26,24 @@ pub struct TransactionInputs {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub input_notes: InputNotes,
+}
+
+impl TransactionInputs {
+    /// Validates that a valid account seed has been provided for new accounts.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - For a new account, account seed is not provided or the provided seed is invalid.
+    /// - For an existing account, account seed was provided.
+    pub fn validate_new_account_seed(&self) -> Result<(), TransactionInputsError> {
+        match (self.account.is_new(), self.account_seed) {
+            (true, Some(seed)) => validate_account_seed(&self.account, seed)
+                .map_err(TransactionInputsError::InvalidAccountSeed),
+            (true, None) => Err(TransactionInputsError::AccountSeedNoteProvidedForNewAccount),
+            (false, Some(_)) => Err(TransactionInputsError::AccountSeedProvidedForExistingAccount),
+            (false, None) => Ok(()),
+        }
+    }
 }
 
 // INPUT NOTES

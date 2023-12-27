@@ -100,7 +100,7 @@ fn test_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
     assert_eq!(transaction_result.output_notes().num_notes(), 1);

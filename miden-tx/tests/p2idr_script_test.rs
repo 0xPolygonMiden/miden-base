@@ -139,7 +139,7 @@ fn test_p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_1.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result_1.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Sender Account Execution Failure)
     // --------------------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ fn test_p2idr_script() {
         Some(tx_script_sender.clone()),
     );
 
-    // Check that we got the expected result - TransactionExecutorError and not TransactionResult
+    // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Second transaction should not work (sender consumes too early), we expect an error
     assert!(transaction_result_2.is_err());
 
@@ -203,7 +203,7 @@ fn test_p2idr_script() {
         Some(tx_script_malicious.clone()),
     );
 
-    // Check that we got the expected result - TransactionExecutorError and not TransactionResult
+    // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Third transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_3.is_err());
 
@@ -231,7 +231,7 @@ fn test_p2idr_script() {
         )
         .unwrap();
 
-    // Check that we got the expected result - TransactionResult
+    // Check that we got the expected result - ExecutedTransaction
     // Assert that the target_account received the funds and the nonce increased by 1
     // Nonce delta
     assert_eq!(transaction_result_4.account_delta().nonce(), Some(Felt::new(2)));
@@ -244,7 +244,7 @@ fn test_p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_4.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result_4.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
@@ -278,7 +278,7 @@ fn test_p2idr_script() {
         sender_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_5.final_account_hash(), sender_account_after.hash());
+    assert_eq!(transaction_result_5.final_account().hash(), sender_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
@@ -303,7 +303,7 @@ fn test_p2idr_script() {
         Some(tx_script_malicious),
     );
 
-    // Check that we got the expected result - TransactionExecutorError and not TransactionResult
+    // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Sixth transaction should not work (malicious account can never consume), we expect an error
     assert!(transaction_result_6.is_err())
 }

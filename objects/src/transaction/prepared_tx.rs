@@ -1,8 +1,7 @@
 use super::{
     utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, PreparedTransactionError,
-    Program, StackInputs, TransactionInputs, TransactionScript, Word,
+    Program, StackInputs, TransactionInputs, TransactionScript,
 };
-use crate::accounts::validate_account_seed;
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -25,12 +24,18 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [PreparedTransaction] instantiated from the provided executable transaction
     /// program and inputs required to execute this program.
+    ///
+    /// # Returns an error if:
+    /// - For a new account, account seed is not provided or the provided seed is invalid.
+    /// - For an existing account, account seed was provided.
     pub fn new(
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
     ) -> Result<Self, PreparedTransactionError> {
-        validate_new_account_seed(&tx_inputs.account, tx_inputs.account_seed)?;
+        tx_inputs
+            .validate_new_account_seed()
+            .map_err(PreparedTransactionError::AccountSeedError)?;
         Ok(Self { program, tx_script, tx_inputs })
     }
 
@@ -83,22 +88,5 @@ impl PreparedTransaction {
     /// Consumes the prepared transaction and returns its parts.
     pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
         (self.program, self.tx_script, self.tx_inputs)
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Validates that a valid account seed has been provided if the account the transaction is
-/// being executed against is new.
-fn validate_new_account_seed(
-    account: &Account,
-    seed: Option<Word>,
-) -> Result<(), PreparedTransactionError> {
-    match (account.is_new(), seed) {
-        (true, Some(seed)) => validate_account_seed(account, seed)
-            .map_err(PreparedTransactionError::InvalidAccountIdSeedError),
-        (true, None) => Err(PreparedTransactionError::AccountIdSeedNoteProvided),
-        _ => Ok(()),
     }
 }

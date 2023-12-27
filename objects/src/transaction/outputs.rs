@@ -5,7 +5,7 @@ use crate::{
     accounts::AccountStub,
     notes::{Note, NoteEnvelope, NoteMetadata, NoteVault},
     utils::collections::{self, BTreeSet, Vec},
-    Digest, Felt, Hasher, StarkField, TransactionResultError, Word,
+    Digest, Felt, Hasher, StarkField, TransactionOutputsError, Word,
 };
 
 // TRANSACTION OUTPUTS
@@ -37,9 +37,9 @@ impl OutputNotes {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<OutputNote>) -> Result<Self, TransactionResultError> {
+    pub fn new(notes: Vec<OutputNote>) -> Result<Self, TransactionOutputsError> {
         if notes.len() > MAX_OUTPUT_NOTES_PER_TRANSACTION {
-            return Err(TransactionResultError::TooManyOutputNotes {
+            return Err(TransactionOutputsError::TooManyOutputNotes {
                 max: MAX_OUTPUT_NOTES_PER_TRANSACTION,
                 actual: notes.len(),
             });
@@ -48,7 +48,7 @@ impl OutputNotes {
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
             if !seen_notes.insert(note.hash()) {
-                return Err(TransactionResultError::DuplicateOutputNote(note.hash()));
+                return Err(TransactionOutputsError::DuplicateOutputNote(note.hash()));
             }
         }
 

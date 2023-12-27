@@ -1,5 +1,5 @@
 use super::{
-    Digest, Felt, Hasher, ProvenTransaction, TransactionResult, Vec, Word, WORD_SIZE, ZERO,
+    Digest, ExecutedTransaction, Felt, Hasher, ProvenTransaction, Vec, Word, WORD_SIZE, ZERO,
 };
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
@@ -78,13 +78,13 @@ impl From<&ProvenTransaction> for TransactionId {
     }
 }
 
-impl From<&TransactionResult> for TransactionId {
-    fn from(tx: &TransactionResult) -> Self {
+impl From<&ExecutedTransaction> for TransactionId {
+    fn from(tx: &ExecutedTransaction) -> Self {
         let input_notes_hash = tx.input_notes().commitment();
         let output_notes_hash = tx.output_notes().commitment();
         Self::new(
-            tx.initial_account_hash(),
-            tx.final_account_hash(),
+            tx.initial_account().hash(),
+            tx.final_account().hash(),
             input_notes_hash,
             output_notes_hash,
         )

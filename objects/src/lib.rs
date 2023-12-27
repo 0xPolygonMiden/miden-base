@@ -21,7 +21,7 @@ pub mod transaction;
 mod errors;
 pub use errors::{
     AccountDeltaError, AccountError, AssetError, ChainMmrError, ExecutedTransactionError,
-    NoteError, PreparedTransactionError, TransactionInputsError, TransactionResultError,
+    NoteError, PreparedTransactionError, TransactionInputsError, TransactionOutputsError,
     TransactionScriptError, TransactionWitnessError,
 };
 // RE-EXPORTS
@@ -34,7 +34,7 @@ pub mod assembly {
         ast::{AstSerdeOptions, ModuleAst, ProgramAst},
         Assembler, AssemblyContext, AssemblyError,
     };
-    pub use vm_core::code_blocks::CodeBlock;
+    pub use vm_core::{code_blocks::CodeBlock, Program};
 }
 
 pub mod crypto {

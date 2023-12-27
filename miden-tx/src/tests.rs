@@ -63,7 +63,7 @@ fn test_transaction_executor_witness() {
     let tx_outputs =
         TransactionOutputs::try_from_vm_result(result.stack_outputs(), &stack, &map, &store)
             .unwrap();
-    assert_eq!(transaction_result.final_account_hash(), tx_outputs.account.hash());
+    assert_eq!(transaction_result.final_account().hash(), tx_outputs.account.hash());
     assert_eq!(transaction_result.output_notes(), &tx_outputs.output_notes);
 }
 
