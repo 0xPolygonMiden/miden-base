@@ -7,16 +7,22 @@ use super::{
 use crate::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
     assembly::Program,
-    BlockHeader, ExecutedTransactionError,
+    BlockHeader, TransactionError,
 };
 
 // EXECUTED TRANSACTION
 // ================================================================================================
 
-/// Describes the result of executing a transaction program.
+/// Describes the result of executing a transaction program for the Miden rollup.
 ///
-/// Executed transaction contains the following data:
-/// -
+/// Executed transaction serves two primary purposes:
+/// - It contains a complete description of the effects of the transaction. Specifically, it
+///   contains all output notes created as the result of the transaction and describes all the
+///   changes make to the involved account (i.e., the account delta).
+/// - It contains all the information required to re-execute and prove the transaction in a
+///   stateless manner. This includes all public transaction inputs, but also all nondeterministic
+///   inputs that the host provided to Miden VM while executing the transaction (i.e., advice
+///   witness).
 #[derive(Debug, Clone)]
 pub struct ExecutedTransaction {
     id: TransactionId,
@@ -46,19 +52,17 @@ impl ExecutedTransaction {
         account_delta: AccountDelta,
         tx_script: Option<TransactionScript>,
         advice_witness: AdviceInputs,
-    ) -> Result<Self, ExecutedTransactionError> {
+    ) -> Result<Self, TransactionError> {
         // make sure account IDs are consistent across transaction inputs and outputs
         if tx_inputs.account.id() != tx_inputs.account.id() {
-            return Err(ExecutedTransactionError::InconsistentAccountId {
+            return Err(TransactionError::InconsistentAccountId {
                 input_id: tx_inputs.account.id(),
                 output_id: tx_outputs.account.id(),
             });
         }
 
         // if this transaction was executed against a new account, validate the account seed
-        tx_inputs
-            .validate_new_account_seed()
-            .map_err(ExecutedTransactionError::AccountSeedError)?;
+        tx_inputs.validate_new_account_seed()?;
 
         // build transaction ID
         let id = TransactionId::new(

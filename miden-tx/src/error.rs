@@ -1,8 +1,8 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, ExecutedTransactionError,
-    PreparedTransactionError, TransactionWitnessError,
+    assembly::AssemblyError, crypto::merkle::NodeIndex, TransactionResultError,
+    TransactionWitnessError,
 };
 use miden_verifier::VerificationError;
 
@@ -38,6 +38,7 @@ pub enum TransactionCompilerError {
     TxScriptIncompatibleWithAccountInterface(Digest),
     CompileNoteScriptFailed,
     CompileTxScriptFailed(AssemblyError),
+    CompileTxScriptFailedUnknown,
     BuildCodeBlockTableFailed(AssemblyError),
 }
 
@@ -57,12 +58,13 @@ pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
     CompileTransactionScriptFailed(TransactionCompilerError),
     CompileTransactionError(TransactionCompilerError),
-    ConstructPreparedTransactionFailed(PreparedTransactionError),
+    ConstructPreparedTransactionFailed(miden_objects::TransactionError),
     ExecuteTransactionProgramFailed(ExecutionError),
+    ExecutedTransactionConstructionFailed(miden_objects::TransactionError),
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
     LoadAccountFailed(TransactionCompilerError),
-    TransactionResultError(ExecutedTransactionError),
+    TransactionResultError(TransactionResultError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -79,7 +81,7 @@ impl std::error::Error for TransactionExecutorError {}
 #[derive(Debug)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
-    TransactionResultError(ExecutedTransactionError),
+    TransactionResultError(TransactionResultError),
     CorruptTransactionWitnessConsumedNoteData(TransactionWitnessError),
 }
 

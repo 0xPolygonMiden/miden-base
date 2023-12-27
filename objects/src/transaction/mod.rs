@@ -4,8 +4,8 @@ use super::{
     accounts::{Account, AccountId},
     notes::{NoteEnvelope, Nullifier},
     utils::collections::Vec,
-    AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, PreparedTransactionError,
-    StarkField, ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
+    AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, StarkField,
+    ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
 };
 
 mod chain_mmr;
@@ -15,8 +15,8 @@ mod inputs;
 mod outputs;
 mod prepared_tx;
 mod proven_tx;
-mod script;
 mod transaction_id;
+mod tx_script;
 mod tx_witness;
 #[cfg(not(feature = "testing"))]
 mod utils;
@@ -28,8 +28,8 @@ pub use inputs::{InputNote, InputNotes, TransactionInputs};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
-pub use script::TransactionScript;
 pub use transaction_id::TransactionId;
+pub use tx_script::TransactionScript;
 pub use tx_witness::TransactionWitness;
 
 #[cfg(feature = "testing")]

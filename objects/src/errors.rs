@@ -269,112 +269,66 @@ impl fmt::Display for ChainMmrError {
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
 
-// TRANSACTION INPUTS ERROR
+// TRANSACTION ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone)]
-pub enum TransactionInputsError {
+pub enum TransactionError {
     AccountSeedNoteProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
-    InvalidAccountSeed(AccountError),
-    TooManyInputNotes { max: usize, actual: usize },
-}
-
-impl fmt::Display for TransactionInputsError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionInputsError {}
-
-// TRANSACTION OUTPUTS ERROR
-// ================================================================================================
-
-#[derive(Debug, Clone)]
-pub enum TransactionOutputsError {
     DuplicateOutputNote(Digest),
-    TooManyOutputNotes { max: usize, actual: usize },
-}
-
-impl fmt::Display for TransactionOutputsError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionOutputsError {}
-
-// TRANSACTION SCRIPT ERROR
-// ================================================================================================
-
-#[derive(Debug, Clone)]
-pub enum TransactionScriptError {
+    InconsistentAccountId {
+        input_id: AccountId,
+        output_id: AccountId,
+    },
+    InvalidAccountSeed(AccountError),
     ScriptCompilationError(AssemblyError),
+    TooManyInputNotes {
+        max: usize,
+        actual: usize,
+    },
+    TooManyOutputNotes {
+        max: usize,
+        actual: usize,
+    },
 }
 
-impl fmt::Display for TransactionScriptError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ScriptCompilationError(err) => {
-                write!(f, "transaction script compilation error: {}", err)
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionScriptError {}
-
-// PREPARED TRANSACTION ERROR
-// ===============================================================================================
-#[derive(Debug, Clone)]
-pub enum PreparedTransactionError {
-    AccountSeedError(TransactionInputsError),
-}
-
-impl fmt::Display for PreparedTransactionError {
+impl fmt::Display for TransactionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for PreparedTransactionError {}
+impl std::error::Error for TransactionError {}
 
-// EXECUTED TRANSACTION ERROR
+// TRANSACTION RESULT ERROR
 // ===============================================================================================
+
 #[derive(Debug, Clone)]
-pub enum ExecutedTransactionError {
-    AccountSeedError(TransactionInputsError),
+pub enum TransactionResultError {
     ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     ExtractAccountStorageStoreDeltaFailed(MerkleError),
     ExtractAccountVaultLeavesDeltaFailed(MerkleError),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),
     InconsistentAccountCodeHash(Digest, Digest),
-    InconsistentAccountId {
-        input_id: AccountId,
-        output_id: AccountId,
-    },
     OutputNoteDataNotFound,
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
-    OutputNotesError(TransactionOutputsError),
+    OutputNotesError(TransactionError),
     UpdatedAccountCodeInvalid(AccountError),
 }
 
-impl fmt::Display for ExecutedTransactionError {
+impl fmt::Display for TransactionResultError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for ExecutedTransactionError {}
+impl std::error::Error for TransactionResultError {}
 
 // TRANSACTION WITNESS ERROR
 // ================================================================================================

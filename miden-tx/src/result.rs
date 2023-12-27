@@ -9,7 +9,7 @@ use miden_objects::{
     crypto::merkle::MerkleStore,
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
     utils::collections::{BTreeMap, Vec},
-    Digest, ExecutedTransactionError, Felt, Word, WORD_SIZE,
+    Digest, Felt, TransactionResultError, Word, WORD_SIZE,
 };
 use vm_core::utils::group_slice_elements;
 use vm_processor::StackOutputs;
@@ -28,7 +28,7 @@ pub trait TryFromVmResult: Sized {
 }
 
 impl TryFromVmResult for TransactionOutputs {
-    type Error = ExecutedTransactionError;
+    type Error = TransactionResultError;
 
     fn try_from_vm_result(
         stack_outputs: &StackOutputs,
@@ -45,7 +45,7 @@ impl TryFromVmResult for TransactionOutputs {
 }
 
 impl TryFromVmResult for OutputNotes {
-    type Error = ExecutedTransactionError;
+    type Error = TransactionResultError;
 
     fn try_from_vm_result(
         stack_outputs: &StackOutputs,
@@ -67,7 +67,7 @@ impl TryFromVmResult for OutputNotes {
         let created_notes_data = group_slice_elements::<Felt, WORD_SIZE>(
             advice_map
                 .get(&created_notes_commitment.as_bytes())
-                .ok_or(ExecutedTransactionError::OutputNoteDataNotFound)?,
+                .ok_or(TransactionResultError::OutputNoteDataNotFound)?,
         );
 
         let mut created_notes = Vec::new();
@@ -75,15 +75,15 @@ impl TryFromVmResult for OutputNotes {
         while created_note_ptr < created_notes_data.len() {
             let note_stub: OutputNote =
                 notes_try_from_elements(&created_notes_data[created_note_ptr..])
-                    .map_err(ExecutedTransactionError::OutputNoteDataInvalid)?;
+                    .map_err(TransactionResultError::OutputNoteDataInvalid)?;
             created_notes.push(note_stub);
             created_note_ptr += NOTE_MEM_SIZE as usize;
         }
 
         let created_notes =
-            Self::new(created_notes).map_err(ExecutedTransactionError::OutputNotesError)?;
+            Self::new(created_notes).map_err(TransactionResultError::OutputNotesError)?;
         if created_notes_commitment != created_notes.commitment() {
-            return Err(ExecutedTransactionError::OutputNotesCommitmentInconsistent(
+            return Err(TransactionResultError::OutputNotesCommitmentInconsistent(
                 created_notes_commitment,
                 created_notes.commitment(),
             ));
@@ -99,7 +99,7 @@ impl TryFromVmResult for OutputNotes {
 fn extract_final_account_stub(
     stack_outputs: &StackOutputs,
     advice_map: &BTreeMap<[u8; 32], Vec<Felt>>,
-) -> Result<AccountStub, ExecutedTransactionError> {
+) -> Result<AccountStub, TransactionResultError> {
     let final_account_hash: Word = stack_outputs.stack()
         [FINAL_ACCOUNT_HASH_WORD_IDX * WORD_SIZE..(FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE]
         .iter()
@@ -114,10 +114,10 @@ fn extract_final_account_stub(
     let final_account_data = group_slice_elements::<Felt, WORD_SIZE>(
         advice_map
             .get(&final_account_hash.as_bytes())
-            .ok_or(ExecutedTransactionError::FinalAccountDataNotFound)?,
+            .ok_or(TransactionResultError::FinalAccountDataNotFound)?,
     );
     let stub = parse_final_account_stub(final_account_data)
-        .map_err(ExecutedTransactionError::FinalAccountStubDataInvalid)?;
+        .map_err(TransactionResultError::FinalAccountStubDataInvalid)?;
 
     Ok(stub)
 }

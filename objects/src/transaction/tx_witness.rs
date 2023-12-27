@@ -3,6 +3,9 @@ use super::{
     TransactionWitnessError, Vec, Word, WORD_SIZE,
 };
 
+// TRANSACTION WITNESS
+// ================================================================================================
+
 /// A [TransactionWitness] is the minimum required data required to execute and prove a Miden rollup
 /// transaction.
 ///

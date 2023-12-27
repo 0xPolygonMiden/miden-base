@@ -1,7 +1,7 @@
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
     crypto::merkle::{merkle_tree_delta, MerkleStore},
-    AccountError, ExecutedTransactionError, Word,
+    AccountError, TransactionResultError, Word,
 };
 
 use crate::memory::{
@@ -33,7 +33,7 @@ pub fn extract_account_storage_delta(
     store: &MerkleStore,
     initial_account: &Account,
     final_account_stub: &AccountStub,
-) -> Result<AccountStorageDelta, ExecutedTransactionError> {
+) -> Result<AccountStorageDelta, TransactionResultError> {
     // extract storage slots delta
     let tree_delta = merkle_tree_delta(
         initial_account.storage().root(),
@@ -41,7 +41,7 @@ pub fn extract_account_storage_delta(
         AccountStorage::STORAGE_TREE_DEPTH,
         store,
     )
-    .map_err(ExecutedTransactionError::ExtractAccountStorageSlotsDeltaFailed)?;
+    .map_err(TransactionResultError::ExtractAccountStorageSlotsDeltaFailed)?;
 
     // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
     // the number of storage slots cannot be greater than 256

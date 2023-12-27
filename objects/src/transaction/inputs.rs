@@ -12,7 +12,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    TransactionInputsError,
+    TransactionError,
 };
 
 // TRANSACTION INPUTS
@@ -35,12 +35,12 @@ impl TransactionInputs {
     /// Returns an error if:
     /// - For a new account, account seed is not provided or the provided seed is invalid.
     /// - For an existing account, account seed was provided.
-    pub fn validate_new_account_seed(&self) -> Result<(), TransactionInputsError> {
+    pub fn validate_new_account_seed(&self) -> Result<(), TransactionError> {
         match (self.account.is_new(), self.account_seed) {
             (true, Some(seed)) => validate_account_seed(&self.account, seed)
-                .map_err(TransactionInputsError::InvalidAccountSeed),
-            (true, None) => Err(TransactionInputsError::AccountSeedNoteProvidedForNewAccount),
-            (false, Some(_)) => Err(TransactionInputsError::AccountSeedProvidedForExistingAccount),
+                .map_err(TransactionError::InvalidAccountSeed),
+            (true, None) => Err(TransactionError::AccountSeedNoteProvidedForNewAccount),
+            (false, Some(_)) => Err(TransactionError::AccountSeedProvidedForExistingAccount),
             (false, None) => Ok(()),
         }
     }
@@ -67,9 +67,9 @@ impl InputNotes {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<InputNote>) -> Result<Self, TransactionInputsError> {
+    pub fn new(notes: Vec<InputNote>) -> Result<Self, TransactionError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TRANSACTION {
-            return Err(TransactionInputsError::TooManyInputNotes {
+            return Err(TransactionError::TooManyInputNotes {
                 max: MAX_INPUT_NOTES_PER_TRANSACTION,
                 actual: notes.len(),
             });
@@ -78,7 +78,7 @@ impl InputNotes {
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
             if !seen_notes.insert(note.note().hash()) {
-                return Err(TransactionInputsError::DuplicateInputNote(note.note().hash()));
+                return Err(TransactionError::DuplicateInputNote(note.note().hash()));
             }
         }
 

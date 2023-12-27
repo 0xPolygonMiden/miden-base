@@ -1,7 +1,7 @@
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
     transaction::{InputNotes, TransactionScript},
-    Felt, TransactionScriptError, Word,
+    Felt, TransactionError, Word,
 };
 use vm_processor::ProgramInfo;
 
@@ -112,9 +112,10 @@ impl TransactionCompiler {
         let (tx_script, code_block) =
             TransactionScript::new(tx_script_ast, tx_script_inputs, &mut self.assembler).map_err(
                 |e| match e {
-                    TransactionScriptError::ScriptCompilationError(asm_error) => {
+                    TransactionError::ScriptCompilationError(asm_error) => {
                         TransactionCompilerError::CompileTxScriptFailed(asm_error)
                     },
+                    _ => TransactionCompilerError::CompileTxScriptFailedUnknown,
                 },
             )?;
         for target in target_account_proc.into_iter() {

@@ -1,11 +1,11 @@
-use miden_lib::transaction::extract_account_storage_delta;
+use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
 use miden_objects::{
     accounts::AccountDelta,
     assembly::ProgramAst,
     transaction::{TransactionInputs, TransactionOutputs, TransactionScript},
-    ExecutedTransactionError, Felt, Word,
+    Felt, Word, WORD_SIZE,
 };
-use vm_core::{Program, StackOutputs};
+use vm_core::{Program, StackOutputs, StarkField};
 
 use super::{
     AccountCode, AccountId, DataStore, Digest, ExecutedTransaction, NoteOrigin, NoteScript,
@@ -21,14 +21,14 @@ use crate::{host::EventHandler, TryFromVmResult};
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a program using the [TransactionComplier].
-/// - Execute the transaction program and create a [TransactionWitness].
+/// - Compile the transaction into a program using the [TransactionComplier](crate::TransactionCompiler).
+/// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The [TransactionExecutor] is generic over the [DataStore] which allows it to be used with
 /// different data backend implementations.
 ///
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
-/// executor and produces a [TransactionWitness] for the transaction. The TransactionWitness can
+/// executor and produces a [ExecutedTransaction] for the transaction. The executed transaction can
 /// then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
     compiler: TransactionCompiler,
@@ -44,7 +44,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         Self { compiler, data_store }
     }
 
-    // MODIFIERS
+    // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
     /// Fetches the account code from the [DataStore], compiles it, and loads the compiled code
@@ -109,12 +109,15 @@ impl<D: DataStore> TransactionExecutor<D> {
             .map_err(TransactionExecutorError::CompileTransactionScriptFailed)
     }
 
-    /// Prepares and executes a transaction specified by the provided arguments and returns a
-    /// [TransactionWitness].
+    // TRANSACTION EXECUTION
+    // --------------------------------------------------------------------------------------------
+
+    /// Prepares and executes a transaction specified by the provided arguments and returns an
+    /// [ExecutedTransaction].
     ///
     /// The method first fetches the data required to execute the transaction from the [DataStore]
     /// and compile the transaction into an executable program. Then it executes the transaction
-    /// program and creates a [TransactionWitness].
+    /// program and creates an [ExecutedTransaction] object.
     ///
     /// # Errors:
     /// Returns an error if:
@@ -144,7 +147,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
 
         let (advice_recorder, event_handler) = host.into_parts();
-        create_transaction_result(
+        build_executed_transaction(
             tx_program,
             tx_script,
             tx_inputs,
@@ -152,8 +155,10 @@ impl<D: DataStore> TransactionExecutor<D> {
             result.stack_outputs().clone(),
             event_handler,
         )
-        .map_err(TransactionExecutorError::TransactionResultError)
     }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
 
     /// Fetches the data required to execute the transaction from the [DataStore], compiles the
     /// transaction into an executable program using the [TransactionComplier], and returns a
@@ -163,7 +168,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    pub fn prepare_transaction(
+    pub(crate) fn prepare_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,
@@ -189,38 +194,43 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
 /// Creates a new [ExecutedTransaction] from the provided data, advice provider and stack outputs.
-pub fn create_transaction_result(
+pub fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
     advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
     event_handler: EventHandler,
-) -> Result<ExecutedTransaction, ExecutedTransactionError> {
+) -> Result<ExecutedTransaction, TransactionExecutorError> {
     // finalize the advice recorder
     let (advice_witness, stack, map, store) = advice_provider.finalize();
 
     // parse transaction results
-    let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)?;
+    let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)
+        .map_err(TransactionExecutorError::TransactionResultError)?;
     let final_account = &tx_outputs.account;
 
-    // TODO: assert the tx_script_root is consistent with the output stack
-    //debug_assert_eq!(
-    //    (*tx_script_root.unwrap_or_default())
-    //        .into_iter()
-    //        .rev()
-    //        .map(|x| x.as_int())
-    //        .collect::<Vec<_>>(),
-    //    stack_outputs.stack()
-    //        [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
-    //);
+    // assert the tx_script_root is consistent with the output stack
+    debug_assert_eq!(
+        (*tx_script.clone().map(|s| *s.hash()).unwrap_or_default())
+            .into_iter()
+            .rev()
+            .map(|x| x.as_int())
+            .collect::<Vec<_>>(),
+        stack_outputs.stack()
+            [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
+    );
 
     let initial_account = &tx_inputs.account;
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
-    let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)?;
+    let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
+        .map_err(TransactionExecutorError::TransactionResultError)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account.nonce() {
@@ -244,4 +254,5 @@ pub fn create_transaction_result(
         tx_script,
         advice_witness,
     )
+    .map_err(TransactionExecutorError::ExecutedTransactionConstructionFailed)
 }

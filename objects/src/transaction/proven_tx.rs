@@ -4,6 +4,9 @@ use vm_processor::DeserializationError;
 
 use super::{AccountId, Digest, NoteEnvelope, Nullifier, TransactionId, Vec};
 
+// PROVEN TRANSACTION
+// ================================================================================================
+
 /// Resultant object of executing and proving a transaction. It contains the minimal
 /// amount of data needed to verify that the transaction was executed correctly.
 /// Contains:

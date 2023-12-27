@@ -1,7 +1,8 @@
 use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, PreparedTransactionError,
-    Program, StackInputs, TransactionInputs, TransactionScript,
+    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, Program, StackInputs,
+    TransactionInputs, TransactionScript,
 };
+use crate::TransactionError;
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -32,10 +33,8 @@ impl PreparedTransaction {
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
-    ) -> Result<Self, PreparedTransactionError> {
-        tx_inputs
-            .validate_new_account_seed()
-            .map_err(PreparedTransactionError::AccountSeedError)?;
+    ) -> Result<Self, TransactionError> {
+        tx_inputs.validate_new_account_seed()?;
         Ok(Self { program, tx_script, tx_inputs })
     }
 

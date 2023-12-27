@@ -2,7 +2,7 @@ use super::{Digest, Felt, Word};
 use crate::{
     advice::{AdviceInputsBuilder, ToAdviceInputs},
     assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
-    errors::TransactionScriptError,
+    errors::TransactionError,
     utils::collections::{BTreeMap, Vec},
 };
 
@@ -39,10 +39,10 @@ impl TransactionScript {
         code: ProgramAst,
         inputs: T,
         assembler: &mut Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
+    ) -> Result<(Self, CodeBlock), TransactionError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(TransactionScriptError::ScriptCompilationError)?;
+            .map_err(TransactionError::ScriptCompilationError)?;
         Ok((
             Self {
                 code,
@@ -61,7 +61,7 @@ impl TransactionScript {
         code: ProgramAst,
         hash: Digest,
         inputs: T,
-    ) -> Result<Self, TransactionScriptError> {
+    ) -> Result<Self, TransactionError> {
         Ok(Self {
             code,
             hash,
