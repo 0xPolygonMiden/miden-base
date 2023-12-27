@@ -1,3 +1,4 @@
+use miden_lib::transaction::ToTransactionKernelInputs;
 use miden_objects::transaction::{
     PreparedTransaction, ProvenTransaction, TransactionOutputs, TransactionWitness,
 };
@@ -33,16 +34,13 @@ impl TransactionProver {
         &self,
         transaction: PreparedTransaction,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        // prove transaction program
-        let advice_provider: MemAdviceProvider = transaction.advice_provider_inputs().into();
+        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
+        let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_provider);
-        let (outputs, proof) = prove(
-            transaction.program(),
-            transaction.stack_inputs(),
-            &mut host,
-            self.proof_options.clone(),
-        )
-        .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
+
+        let (outputs, proof) =
+            prove(transaction.program(), stack_inputs, &mut host, self.proof_options.clone())
+                .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();

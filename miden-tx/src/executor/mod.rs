@@ -1,4 +1,7 @@
-use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
+use miden_lib::{
+    outputs::TX_SCRIPT_ROOT_WORD_IDX,
+    transaction::{extract_account_storage_delta, ToTransactionKernelInputs},
+};
 use miden_objects::{
     accounts::AccountDelta,
     assembly::ProgramAst,
@@ -6,6 +9,7 @@ use miden_objects::{
     Felt, Word, WORD_SIZE,
 };
 use vm_core::{Program, StackOutputs, StarkField};
+use vm_processor::ExecutionOptions;
 
 use super::{
     AccountCode, AccountId, DataStore, Digest, ExecutedTransaction, NoteOrigin, NoteScript,
@@ -33,6 +37,7 @@ use crate::{host::EventHandler, TryFromVmResult};
 pub struct TransactionExecutor<D: DataStore> {
     compiler: TransactionCompiler,
     data_store: D,
+    exec_options: ExecutionOptions,
 }
 
 impl<D: DataStore> TransactionExecutor<D> {
@@ -40,8 +45,11 @@ impl<D: DataStore> TransactionExecutor<D> {
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
-        let compiler = TransactionCompiler::new();
-        Self { compiler, data_store }
+        Self {
+            compiler: TransactionCompiler::new(),
+            data_store,
+            exec_options: ExecutionOptions::default(),
+        }
     }
 
     // STATE MUTATORS
@@ -134,13 +142,15 @@ impl<D: DataStore> TransactionExecutor<D> {
         let transaction =
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
-        let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
+        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_recorder);
+
         let result = vm_processor::execute(
             transaction.program(),
-            transaction.stack_inputs(),
+            stack_inputs,
             &mut host,
-            Default::default(),
+            self.exec_options,
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 

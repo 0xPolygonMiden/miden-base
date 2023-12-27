@@ -1,6 +1,5 @@
 use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, Program, StackInputs,
-    TransactionInputs, TransactionScript,
+    Account, BlockHeader, ChainMmr, InputNotes, Program, TransactionInputs, TransactionScript,
 };
 use crate::TransactionError;
 
@@ -67,21 +66,16 @@ impl PreparedTransaction {
     }
 
     /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> &Option<TransactionScript> {
-        &self.tx_script
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
     }
 
-    /// Returns the stack inputs required when executing the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
-        utils::generate_stack_inputs(&self.tx_inputs)
+    /// Returns a reference to the inputs for this transaction.
+    pub fn tx_inputs(&self) -> &TransactionInputs {
+        &self.tx_inputs
     }
 
-    /// Returns the advice inputs required when executing the transaction.
-    pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
-    }
-
-    // CONSUMERS
+    // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.

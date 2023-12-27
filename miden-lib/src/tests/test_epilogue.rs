@@ -12,6 +12,7 @@ use crate::{
     outputs::{
         CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
     },
+    transaction::ToTransactionKernelInputs,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
@@ -36,12 +37,13 @@ fn test_epilogue() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     )
     .unwrap();
@@ -96,12 +98,13 @@ fn test_compute_created_note_hash() {
         "
         );
 
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
             &test,
-            executed_transaction.stack_inputs(),
-            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+            stack_inputs,
+            MemAdviceProvider::from(advice_inputs),
             Some(assembly_file),
         )
         .unwrap();
@@ -147,12 +150,13 @@ fn test_epilogue_asset_preservation_violation() {
         "
         );
 
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
             &code,
-            executed_transaction.stack_inputs(),
-            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+            stack_inputs,
+            MemAdviceProvider::from(advice_inputs),
             Some(assembly_file),
         );
 
@@ -182,12 +186,13 @@ fn test_epilogue_increment_nonce_success() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let _process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     )
     .unwrap();
@@ -213,12 +218,13 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     );
 

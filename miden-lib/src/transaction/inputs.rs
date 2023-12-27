@@ -1,11 +1,63 @@
-use vm_core::utils::IntoBytes;
-
-use super::{
-    AdviceInputs, Digest, Felt, StackInputs, ToAdviceInputs, TransactionInputs, TransactionScript,
-    Vec, Word, ZERO,
+use miden_objects::{
+    transaction::{ExecutedTransaction, PreparedTransaction, TransactionInputs, TransactionScript},
+    AdviceInputs, BlockHeader, Digest, Felt, ToAdviceInputs, Word, ZERO,
 };
+use vm_core::{utils::IntoBytes, StackInputs};
 
-// ADVICE INPUT CONSTRUCTORS
+// TRANSACTION KERNEL INPUTS
+// ================================================================================================
+
+pub trait ToTransactionKernelInputs {
+    /// TODO: add comments
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
+}
+
+impl ToTransactionKernelInputs for PreparedTransaction {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+        let stack_inputs = build_stack_inputs(self.tx_inputs());
+        let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
+        (stack_inputs, advice_inputs)
+    }
+}
+
+impl ToTransactionKernelInputs for ExecutedTransaction {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+        let stack_inputs = build_stack_inputs(self.tx_inputs());
+        let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
+        (stack_inputs, advice_inputs)
+    }
+}
+
+// STACK INPUTS
+// ================================================================================================
+
+/// Returns the input stack required when executing a transaction.
+///
+/// This includes the input notes commitment, the account hash, the account id, and the block hash.
+///
+/// Stack: [BH, acct_id, IAH, NC]
+///
+/// - BH is the latest known block hash at the time of transaction execution.
+/// - acct_id is the account id of the account that the transaction is being executed against.
+/// - IAH is the initial account hash of the account that the transaction is being executed against.
+/// - NC is the nullifier commitment of the transaction. This is a sequential hash of all
+///   (nullifier, ZERO) tuples for the notes consumed in the transaction.
+fn build_stack_inputs(tx_inputs: &TransactionInputs) -> StackInputs {
+    let initial_acct_hash = if tx_inputs.account.is_new() {
+        Digest::default()
+    } else {
+        tx_inputs.account.hash()
+    };
+
+    let mut inputs: Vec<Felt> = Vec::with_capacity(13);
+    inputs.extend(tx_inputs.input_notes.commitment());
+    inputs.extend_from_slice(initial_acct_hash.as_elements());
+    inputs.push((tx_inputs.account.id()).into());
+    inputs.extend_from_slice(tx_inputs.block_header.hash().as_elements());
+    StackInputs::new(inputs)
+}
+
+// ADVICE INPUTS
 // ================================================================================================
 
 /// Returns the advice inputs required when executing a transaction.
@@ -48,14 +100,14 @@ use super::{
 /// - PEAK_0 is the first peak in the block chain MMR from the last known block.
 /// - PEAK_N is the n'th peak in the block chain MMR from the last known block.
 /// - ACT_ID_SEED3..0 is the account id seed.
-pub fn generate_advice_provider_inputs(
+fn build_advice_inputs(
     tx_inputs: &TransactionInputs,
-    tx_script: &Option<TransactionScript>,
+    tx_script: Option<&TransactionScript>,
 ) -> AdviceInputs {
     let mut advice_inputs = AdviceInputs::default();
 
     // insert block data
-    (&tx_inputs.block_header).to_advice_inputs(&mut advice_inputs);
+    add_block_header_advice(&tx_inputs.block_header, &mut advice_inputs);
 
     // insert block chain mmr
     (&tx_inputs.block_chain).to_advice_inputs(&mut advice_inputs);
@@ -86,31 +138,14 @@ pub fn generate_advice_provider_inputs(
     advice_inputs
 }
 
-// INPUT STACK CONSTRUCTOR
-// ================================================================================================
-
-/// Returns the stack inputs required when executing a transaction.
-///
-/// This includes the input notes commitment, the account hash, the account id, and the block hash.
-///
-/// Stack: [BH, acct_id, IAH, NC]
-///
-/// - BH is the latest known block hash at the time of transaction execution.
-/// - acct_id is the account id of the account that the transaction is being executed against.
-/// - IAH is the initial account hash of the account that the transaction is being executed against.
-/// - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-///   (nullifier, ZERO) tuples for the notes consumed in the transaction.
-pub fn generate_stack_inputs(tx_inputs: &TransactionInputs) -> StackInputs {
-    let initial_acct_hash = if tx_inputs.account.is_new() {
-        Digest::default()
-    } else {
-        tx_inputs.account.hash()
-    };
-
-    let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-    inputs.extend(tx_inputs.input_notes.commitment());
-    inputs.extend_from_slice(initial_acct_hash.as_elements());
-    inputs.push((tx_inputs.account.id()).into());
-    inputs.extend_from_slice(tx_inputs.block_header.hash().as_elements());
-    StackInputs::new(inputs)
+fn add_block_header_advice(header: &BlockHeader, inputs: &mut AdviceInputs) {
+    inputs.extend_stack(Word::from(header.prev_hash()));
+    inputs.extend_stack(Word::from(header.chain_root()));
+    inputs.extend_stack(Word::from(header.account_root()));
+    inputs.extend_stack(Word::from(header.nullifier_root()));
+    inputs.extend_stack(Word::from(header.batch_root()));
+    inputs.extend_stack(Word::from(header.proof_hash()));
+    inputs.extend_stack([header.block_num().into(), header.version(), header.timestamp(), ZERO]);
+    inputs.extend_stack([ZERO; 4]);
+    inputs.extend_stack(Word::from(header.note_root()));
 }

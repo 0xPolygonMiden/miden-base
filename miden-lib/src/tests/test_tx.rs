@@ -7,7 +7,9 @@ use mock::{
     run_tx, run_within_tx_kernel,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use super::{
+    build_tx_inputs, ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
+};
 use crate::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
     CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
@@ -45,13 +47,8 @@ fn test_create_note() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     // assert the number of created notes has been incremented to 1.
     assert_eq!(
@@ -216,11 +213,6 @@ fn test_get_output_notes_hash() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let _process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }

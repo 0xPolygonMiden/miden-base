@@ -9,7 +9,7 @@ use mock::{
 use vm_core::WORD_SIZE;
 
 use super::{
-    AdviceProvider, ContextId, DefaultHost, Felt, MemAdviceProvider, Process, ProcessState, ZERO,
+    build_tx_inputs, AdviceProvider, ContextId, DefaultHost, Felt, Process, ProcessState, ZERO,
 };
 use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
 
@@ -37,12 +37,9 @@ fn test_get_sender_no_sender() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
     assert!(process.is_err());
 }
 
@@ -67,13 +64,8 @@ fn test_get_sender() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
@@ -125,14 +117,8 @@ fn test_get_vault_data() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    // run to ensure success
-    let _process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -236,7 +222,7 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes[1].note()),
     );
 
-    let inputs = prepare_transaction(
+    let transaction = prepare_transaction(
         account,
         None,
         block_header,
@@ -247,13 +233,8 @@ fn test_get_assets() {
         "",
         None,
     );
-
-    let _process = run_tx(
-        inputs.program().clone(),
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -318,7 +299,7 @@ fn test_get_inputs() {
         NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(notes[0].note()),
     );
 
-    let inputs = prepare_transaction(
+    let transaction = prepare_transaction(
         account,
         None,
         block_header,
@@ -329,13 +310,8 @@ fn test_get_inputs() {
         "",
         None,
     );
-
-    let _process = run_tx(
-        inputs.program().clone(),
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -353,16 +329,12 @@ fn test_note_setup() {
         end
         ";
 
-    let inputs =
+    let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
-    let process = run_tx(
-        inputs.program().clone(),
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-    )
-    .unwrap();
-    note_setup_stack_assertions(&process, &inputs);
+    note_setup_stack_assertions(&process, &transaction);
     note_setup_memory_assertions(&process);
 }
 

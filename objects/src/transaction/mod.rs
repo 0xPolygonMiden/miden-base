@@ -18,8 +18,6 @@ mod proven_tx;
 mod transaction_id;
 mod tx_script;
 mod tx_witness;
-#[cfg(not(feature = "testing"))]
-mod utils;
 
 pub use chain_mmr::ChainMmr;
 pub use event::Event;
@@ -31,9 +29,6 @@ pub use proven_tx::ProvenTransaction;
 pub use transaction_id::TransactionId;
 pub use tx_script::TransactionScript;
 pub use tx_witness::TransactionWitness;
-
-#[cfg(feature = "testing")]
-pub mod utils;
 
 // CONSTANTS
 // ================================================================================================

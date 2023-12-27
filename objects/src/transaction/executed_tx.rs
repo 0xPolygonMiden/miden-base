@@ -1,8 +1,6 @@
-use vm_core::StackInputs;
-
 use super::{
-    utils, AdviceInputs, InputNotes, OutputNotes, TransactionId, TransactionInputs,
-    TransactionOutputs, TransactionScript, TransactionWitness,
+    AdviceInputs, InputNotes, OutputNotes, TransactionId, TransactionInputs, TransactionOutputs,
+    TransactionScript, TransactionWitness,
 };
 use crate::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
@@ -136,14 +134,9 @@ impl ExecutedTransaction {
         &self.account_delta
     }
 
-    /// Returns the stack inputs required when executing the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
-        utils::generate_stack_inputs(&self.tx_inputs)
-    }
-
-    /// Returns the advice inputs required when executing the transaction.
-    pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
+    /// Returns a reference to the inputs for this transaction.
+    pub fn tx_inputs(&self) -> &TransactionInputs {
+        &self.tx_inputs
     }
 
     // CONVERSIONS
