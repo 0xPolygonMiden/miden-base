@@ -1,10 +1,9 @@
 use super::{
-    AdviceInputs, InputNotes, OutputNotes, TransactionId, TransactionInputs, TransactionOutputs,
-    TransactionScript, TransactionWitness,
+    AdviceInputs, InputNotes, OutputNotes, Program, TransactionId, TransactionInputs,
+    TransactionOutputs, TransactionScript, TransactionWitness,
 };
 use crate::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
-    assembly::Program,
     BlockHeader, TransactionError,
 };
 

@@ -1,4 +1,4 @@
-use miden_objects::{notes::Note, transaction::PreparedTransaction};
+use miden_objects::{notes::Note, transaction::PreparedTransaction, WORD_SIZE};
 use mock::{
     consumed_note_data_ptr,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -6,7 +6,6 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
-use vm_core::WORD_SIZE;
 
 use super::{
     build_tx_inputs, AdviceProvider, ContextId, DefaultHost, Felt, Process, ProcessState, ZERO,

@@ -2,10 +2,10 @@ use miden_lib::SatKernel;
 pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
-    assembly::CodeBlock,
     notes::{NoteOrigin, NoteScript},
     transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
+    vm::CodeBlock,
     AccountError, Digest, Hasher,
 };
 use vm_core::Program;

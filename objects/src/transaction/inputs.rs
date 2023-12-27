@@ -1,9 +1,6 @@
 use core::cell::OnceCell;
 
-use super::{
-    AdviceInputsBuilder, BlockHeader, ChainMmr, Digest, Felt, Hasher, ToAdviceInputs, Word,
-    MAX_INPUT_NOTES_PER_TRANSACTION,
-};
+use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
 use crate::{
     accounts::{validate_account_seed, Account},
     notes::{Note, NoteInclusionProof, NoteOrigin, Nullifier},
@@ -138,67 +135,6 @@ impl PartialEq for InputNotes {
 }
 
 impl Eq for InputNotes {}
-
-// ADVICE INPUTS
-// --------------------------------------------------------------------------------------------
-
-impl ToAdviceInputs for InputNotes {
-    /// Populates the advice inputs for all consumed notes.
-    ///
-    /// For each note the authentication path is populated into the Merkle store, the note inputs
-    /// and vault assets are populated in the advice map.  A combined note data vector is also
-    /// constructed that holds core data for all notes. This combined vector is added to the advice
-    /// map against the consumed notes commitment. For each note the following data items are added
-    /// to the vector:
-    ///     out[0..4]    = serial num
-    ///     out[4..8]    = script root
-    ///     out[8..12]   = input root
-    ///     out[12..16]  = vault_hash
-    ///     out[16..20]  = metadata
-    ///     out[20..24]  = asset_1
-    ///     out[24..28]  = asset_2
-    ///     ...
-    ///     out[20 + num_assets * 4..] = Word::default() (this is conditional padding only applied
-    ///                                                   if the number of assets is odd)
-    ///     out[-10]      = origin.block_number
-    ///     out[-9..-5]   = origin.SUB_HASH
-    ///     out[-5..-1]   = origin.NOTE_ROOT
-    ///     out[-1]       = origin.node_index
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        let mut note_data: Vec<Felt> = Vec::new();
-
-        note_data.push(Felt::from(self.notes.len() as u64));
-
-        for recorded_note in &self.notes {
-            let note = recorded_note.note();
-            let proof = recorded_note.proof();
-
-            note_data.extend(note.serial_num());
-            note_data.extend(*note.script().hash());
-            note_data.extend(*note.inputs().hash());
-            note_data.extend(*note.vault().hash());
-            note_data.extend(Word::from(note.metadata()));
-
-            note_data.extend(note.vault().to_padded_assets());
-            target.insert_into_map(note.vault().hash().into(), note.vault().to_padded_assets());
-
-            note_data.push(proof.origin().block_num.into());
-            note_data.extend(*proof.sub_hash());
-            note_data.extend(*proof.note_root());
-            note_data.push(Felt::from(proof.origin().node_index.value()));
-            target.add_merkle_nodes(
-                proof
-                    .note_path()
-                    .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
-                    .unwrap(),
-            );
-
-            target.insert_into_map(note.inputs().hash().into(), note.inputs().inputs().to_vec());
-        }
-
-        target.insert_into_map(self.commitment().into(), note_data);
-    }
-}
 
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------

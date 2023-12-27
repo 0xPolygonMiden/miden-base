@@ -152,6 +152,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
 
 fn build_dummy_tx_program() -> Program {
     let operations = vec![Operation::Push(Felt::ZERO), Operation::Drop];
-    let span = miden_objects::assembly::CodeBlock::new_span(operations);
+    let span = miden_objects::vm::CodeBlock::new_span(operations);
     Program::new(span)
 }

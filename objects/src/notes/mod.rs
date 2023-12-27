@@ -1,8 +1,9 @@
 use super::{
     accounts::AccountId,
-    assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
+    assembly::{Assembler, AssemblyContext, ProgramAst},
     assets::Asset,
     utils::{collections::Vec, string::ToString},
+    vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, WORD_SIZE, ZERO,
 };
 

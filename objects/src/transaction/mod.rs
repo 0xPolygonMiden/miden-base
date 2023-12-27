@@ -1,11 +1,9 @@
-use vm_core::{Program, StackInputs};
-
 use super::{
     accounts::{Account, AccountId},
     notes::{NoteEnvelope, Nullifier},
     utils::collections::Vec,
-    AdviceInputs, AdviceInputsBuilder, BlockHeader, Digest, Felt, Hasher, StarkField,
-    ToAdviceInputs, TransactionWitnessError, Word, WORD_SIZE, ZERO,
+    vm::{AdviceInputs, Program, StackInputs},
+    BlockHeader, Digest, Felt, Hasher, StarkField, TransactionWitnessError, Word, WORD_SIZE, ZERO,
 };
 
 mod chain_mmr;

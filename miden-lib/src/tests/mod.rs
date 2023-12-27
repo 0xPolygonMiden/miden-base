@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
-use miden_objects::transaction::PreparedTransaction;
-use vm_core::{crypto::hash::Rpo256 as Hasher, Felt, Program, StackInputs, Word, ONE, ZERO};
+use miden_objects::{
+    transaction::PreparedTransaction,
+    vm::{Program, StackInputs},
+    Felt, Hasher, Word, ONE, ZERO,
+};
 use vm_processor::{
     AdviceProvider, ContextId, DefaultHost, MemAdviceProvider, Process, ProcessState,
 };
