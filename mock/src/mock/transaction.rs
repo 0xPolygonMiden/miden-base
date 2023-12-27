@@ -2,7 +2,10 @@ use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::Account,
     notes::Note,
-    transaction::{ChainMmr, ExecutedTransaction, InputNote, InputNotes, TransactionInputs},
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
+        TransactionInputs, TransactionOutputs,
+    },
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
 };
@@ -106,10 +109,12 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         mock_account(None, Felt::new(2), Some(initial_account.code().clone()), &assembler);
 
     // mock notes
-    let (consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
+
+    let output_notes = output_notes.into_iter().map(OutputNote::from).collect::<Vec<_>>();
 
     // Chain data
-    let (block_chain, input_notes) = mock_chain_data(consumed_notes);
+    let (block_chain, input_notes) = mock_chain_data(input_notes);
 
     // Block header
     let block_header = mock_block_header(
@@ -127,6 +132,11 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         input_notes: InputNotes::new(input_notes).unwrap(),
     };
 
+    let tx_outputs = TransactionOutputs {
+        account: final_account.into(),
+        output_notes: OutputNotes::new(output_notes).unwrap(),
+    };
+
     // Executed Transaction
-    ExecutedTransaction::new(tx_inputs, final_account, created_notes, None).unwrap()
+    ExecutedTransaction::new(tx_inputs, tx_outputs, None).unwrap()
 }

@@ -14,7 +14,7 @@ use mock::{
         transaction::{mock_executed_tx, mock_inputs},
     },
     prepare_transaction,
-    procedures::{created_notes_data_procedure, prepare_word},
+    procedures::{output_notes_data_procedure, prepare_word},
     run_tx, run_within_tx_kernel,
 };
 
@@ -66,8 +66,8 @@ pub fn test_set_code_is_not_immediate() {
 pub fn test_set_code_succeeds() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let code = format!(
         "
@@ -75,7 +75,7 @@ pub fn test_set_code_succeeds() {
         use.miden::sat::internal::prologue
         use.miden::sat::internal::epilogue
 
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
 

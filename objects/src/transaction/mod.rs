@@ -1,4 +1,4 @@
-use vm_core::{Program, StackInputs, StackOutputs};
+use vm_core::{Program, StackInputs};
 
 use super::{
     accounts::{Account, AccountId},

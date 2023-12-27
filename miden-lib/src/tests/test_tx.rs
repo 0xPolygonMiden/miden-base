@@ -1,4 +1,4 @@
-use miden_objects::{notes::Note, transaction::utils::generate_created_notes_commitment};
+use miden_objects::{notes::Note, transaction::OutputNotes};
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -170,7 +170,9 @@ fn test_get_output_notes_hash() {
 
     // compute expected output notes hash
     let expected_output_notes_hash =
-        generate_created_notes_commitment(&[output_note_1.clone(), output_note_2.clone()]);
+        OutputNotes::new(vec![output_note_1.clone().into(), output_note_2.clone().into()])
+            .unwrap()
+            .commitment();
 
     let code = format!(
         "

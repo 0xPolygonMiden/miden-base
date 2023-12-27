@@ -91,7 +91,7 @@ impl TransactionScript {
 impl ToAdviceInputs for TransactionScript {
     fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
         // insert the transaction script hash into the advice stack
-        target.push_onto_stack(&**self.hash());
+        target.push_onto_stack(self.hash().as_elements());
 
         // insert map inputs into the advice map
         for (hash, input) in self.inputs.iter() {

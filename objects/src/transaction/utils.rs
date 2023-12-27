@@ -1,8 +1,8 @@
 use vm_core::utils::IntoBytes;
 
 use super::{
-    AdviceInputs, Digest, Felt, Hasher, Note, StackInputs, StackOutputs, ToAdviceInputs,
-    TransactionInputs, TransactionScript, Vec, Word, ZERO,
+    AdviceInputs, Digest, Felt, StackInputs, ToAdviceInputs, TransactionInputs, TransactionScript,
+    Vec, Word, ZERO,
 };
 
 // ADVICE INPUT CONSTRUCTORS
@@ -113,34 +113,4 @@ pub fn generate_stack_inputs(tx_inputs: &TransactionInputs) -> StackInputs {
     inputs.push((tx_inputs.account.id()).into());
     inputs.extend_from_slice(tx_inputs.block_header.hash().as_elements());
     StackInputs::new(inputs)
-}
-
-// OUTPUT STACK CONSTRUCTOR
-// ================================================================================================
-
-/// Returns the stack outputs produced as a result of executing a transaction. This includes the
-/// final account hash and created notes commitment.
-///
-/// Output: [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
-///
-/// - CREATED_NOTES_COMMITMENT is the commitment of the created notes
-/// - FINAL_ACCOUNT_HASH is the final account hash
-pub fn generate_stack_outputs(created_notes: &[Note], final_account_hash: &Digest) -> StackOutputs {
-    let mut outputs: Vec<Felt> = Vec::with_capacity(8);
-    outputs.extend_from_slice(generate_created_notes_commitment(created_notes).as_elements());
-    outputs.extend_from_slice(final_account_hash.as_elements());
-    outputs.reverse();
-    StackOutputs::from_elements(outputs, Default::default()).expect("stack outputs are valid")
-}
-
-/// Returns the created notes commitment.
-/// This is a sequential hash of all (hash, metadata) pairs for the notes created in the transaction.
-pub fn generate_created_notes_commitment(notes: &[Note]) -> Digest {
-    let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 8);
-    for note in notes.iter() {
-        elements.extend_from_slice(note.hash().as_elements());
-        elements.extend_from_slice(&Word::from(note.metadata()));
-    }
-
-    Hasher::hash_elements(&elements)
 }

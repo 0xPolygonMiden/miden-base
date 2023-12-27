@@ -3,9 +3,10 @@ use std::{fs::File, io::Read, path::PathBuf};
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account,
-    notes::{Note, NoteVault},
+    notes::NoteVault,
     transaction::{
-        ChainMmr, InputNote, InputNotes, PreparedTransaction, TransactionInputs, TransactionScript,
+        ChainMmr, InputNote, InputNotes, OutputNotes, PreparedTransaction, TransactionInputs,
+        TransactionScript,
     },
     BlockHeader, Felt, StarkField,
 };

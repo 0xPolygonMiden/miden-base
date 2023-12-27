@@ -1,6 +1,6 @@
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
-    procedures::created_notes_data_procedure,
+    procedures::output_notes_data_procedure,
     run_within_tx_kernel,
 };
 
@@ -20,13 +20,13 @@ const EPILOGUE_FILE: &str = "epilogue.masm";
 fn test_epilogue() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -58,7 +58,7 @@ fn test_epilogue() {
     // assert created notes commitment is correct
     assert_eq!(
         process.stack.get_word(CREATED_NOTES_COMMITMENT_WORD_IDX),
-        executed_transaction.created_notes_commitment().as_elements()
+        executed_transaction.output_notes().commitment().as_elements()
     );
 
     // assert final account hash is correct
@@ -80,14 +80,14 @@ fn test_epilogue() {
 fn test_compute_created_note_hash() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
         let imports = "use.miden::sat::internal::prologue\n";
         let test = format!(
             "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -131,13 +131,13 @@ fn test_epilogue_asset_preservation_violation() {
     ] {
         let executed_transaction = mock_executed_tx(asset_preservation);
 
-        let created_notes_data_procedure =
-            created_notes_data_procedure(executed_transaction.output_notes());
+        let output_notes_data_procedure =
+            output_notes_data_procedure(executed_transaction.output_notes());
 
         let imports = "use.miden::sat::internal::prologue\n";
         let code = format!(
             "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -165,13 +165,13 @@ fn test_epilogue_asset_preservation_violation() {
 fn test_epilogue_increment_nonce_success() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -197,13 +197,13 @@ fn test_epilogue_increment_nonce_success() {
 fn test_epilogue_increment_nonce_violation() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
