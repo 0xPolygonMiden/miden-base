@@ -1,5 +1,6 @@
 use miden_lib::{
-    assembler::assembler, faucets::create_basic_fungible_faucet, memory::FAUCET_STORAGE_DATA_SLOT,
+    accounts::faucets::create_basic_fungible_faucet,
+    transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
     AuthScheme,
 };
 use miden_objects::{
@@ -242,7 +243,7 @@ fn test_faucet_contract_creation() {
     let exp_faucet_account_code_src =
         include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
 
     let exp_faucet_account_code =
         AccountCode::new(exp_faucet_account_code_ast.clone(), &account_assembler).unwrap();
@@ -259,7 +260,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_code_src =
         include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
 
     let faucet_account_code =
         AccountCode::new(faucet_account_code_ast.clone(), &account_assembler).unwrap();

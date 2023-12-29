@@ -13,7 +13,7 @@ use mock::{
 };
 
 use super::{build_tx_inputs, ONE};
-use crate::memory::FAUCET_STORAGE_DATA_SLOT;
+use crate::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================

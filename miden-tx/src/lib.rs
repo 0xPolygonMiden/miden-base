@@ -1,4 +1,4 @@
-use miden_lib::SatKernel;
+use miden_lib::transaction::TransactionKernel;
 pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},

@@ -1,7 +1,7 @@
 use core::ops::Range;
 
-use miden_lib::outputs::{
-    CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
+use miden_lib::transaction::{
+    FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
 use miden_objects::{
     notes::{NoteEnvelope, Nullifier},
@@ -97,8 +97,8 @@ impl TransactionVerifier {
             end: STACK_TOP_SIZE - (TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE),
         };
         const CREATED_NOTES_COMMITMENT_RANGE: Range<usize> = Range {
-            start: STACK_TOP_SIZE - ((CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE),
-            end: STACK_TOP_SIZE - (CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE),
+            start: STACK_TOP_SIZE - ((OUTPUT_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE),
+            end: STACK_TOP_SIZE - (OUTPUT_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE),
         };
         const FINAL_ACCOUNT_HASH_RANGE: Range<usize> = Range {
             start: STACK_TOP_SIZE - ((FINAL_ACCOUNT_HASH_WORD_IDX + 1) * WORD_SIZE),

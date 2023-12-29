@@ -6,8 +6,8 @@ use miden_objects::{
 use vm_processor::ProgramInfo;
 
 use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program, SatKernel,
-    TransactionCompilerError,
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program,
+    TransactionCompilerError, TransactionKernel,
 };
 
 #[cfg(test)]
@@ -35,10 +35,10 @@ impl TransactionCompiler {
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of the [TransactionComplier].
     pub fn new() -> TransactionCompiler {
-        let assembler = miden_lib::assembler::assembler();
+        let assembler = TransactionKernel::assembler();
 
         // compile transaction kernel main
-        let main_ast = ProgramAst::parse(SatKernel::main()).expect("main is well formed");
+        let main_ast = TransactionKernel::main().expect("main is well formed");
         let kernel_main = assembler
             .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
             .expect("main is well formed");

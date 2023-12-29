@@ -1,6 +1,5 @@
-use miden_lib::{
-    outputs::TX_SCRIPT_ROOT_WORD_IDX,
-    transaction::{extract_account_storage_delta, ToTransactionKernelInputs},
+use miden_lib::transaction::{
+    extract_account_storage_delta, ToTransactionKernelInputs, TX_SCRIPT_ROOT_WORD_IDX,
 };
 use miden_objects::{
     accounts::AccountDelta,

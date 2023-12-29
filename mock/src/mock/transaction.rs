@@ -1,4 +1,3 @@
-use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::{Account, AccountDelta},
     notes::Note,
@@ -12,6 +11,7 @@ use miden_objects::{
 use vm_processor::{AdviceInputs, Operation, Program};
 
 use super::{
+    super::TransactionKernel,
     account::{
         mock_account, mock_fungible_faucet, mock_new_account, mock_non_fungible_faucet,
         MockAccountType,
@@ -26,7 +26,7 @@ pub fn mock_inputs(
     asset_preservation: AssetPreservationStatus,
 ) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>) {
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Create an account with storage items
     let account = match account_type {
@@ -64,7 +64,7 @@ pub fn mock_inputs_with_existing(
     let auxiliary_data = AdviceInputs::default();
 
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Create an account with storage items
 
@@ -99,7 +99,7 @@ pub fn mock_inputs_with_existing(
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Initial Account
     let initial_account = mock_account(None, Felt::ONE, None, &assembler);

@@ -1,4 +1,4 @@
-use miden_lib::assembler::assembler;
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
@@ -120,7 +120,7 @@ pub fn get_account_with_default_account_code(
 ) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
     let account_storage =
@@ -140,7 +140,7 @@ pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
     note_script: ProgramAst,
 ) -> Note {
-    let note_assembler = assembler();
+    let note_assembler = TransactionKernel::assembler();
     let (note_script, _) = NoteScript::new(note_script, &note_assembler).unwrap();
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();

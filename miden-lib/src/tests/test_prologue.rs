@@ -11,8 +11,7 @@ use super::{
     build_module_path, build_tx_inputs, AdviceProvider, ContextId, DefaultHost, Felt, Process,
     ProcessState, Word, TX_KERNEL_DIR, ZERO,
 };
-use crate::{
-    assembler::assembler,
+use crate::transaction::{
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
@@ -22,6 +21,7 @@ use crate::{
         NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
         PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
     },
+    TransactionKernel,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
@@ -46,7 +46,8 @@ fn test_transaction_prologue() {
     )
     .unwrap();
     let (tx_script, _) =
-        TransactionScript::new(mock_tx_script_code, vec![], &mut assembler()).unwrap();
+        TransactionScript::new(mock_tx_script_code, vec![], &mut TransactionKernel::assembler())
+            .unwrap();
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
     let transaction = prepare_transaction(

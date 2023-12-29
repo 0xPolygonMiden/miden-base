@@ -1,8 +1,6 @@
-use miden_lib::{
-    memory::NOTE_MEM_SIZE,
-    notes::notes_try_from_elements,
-    outputs::{CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX},
-    transaction::parse_final_account_stub,
+use miden_lib::transaction::{
+    memory::NOTE_MEM_SIZE, notes_try_from_elements, parse_final_account_stub,
+    FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
 };
 use miden_objects::{
     accounts::AccountStub,
@@ -53,15 +51,15 @@ impl TryFromVmResult for OutputNotes {
         advice_map: &BTreeMap<[u8; 32], Vec<Felt>>,
         _merkle_store: &MerkleStore,
     ) -> Result<Self, Self::Error> {
-        let created_notes_commitment: Word =
-            stack_outputs.stack()[CREATED_NOTES_COMMITMENT_WORD_IDX * WORD_SIZE
-                ..(CREATED_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE]
-                .iter()
-                .rev()
-                .map(|x| Felt::from(*x))
-                .collect::<Vec<_>>()
-                .try_into()
-                .expect("word size is correct");
+        let created_notes_commitment: Word = stack_outputs.stack()[OUTPUT_NOTES_COMMITMENT_WORD_IDX
+            * WORD_SIZE
+            ..(OUTPUT_NOTES_COMMITMENT_WORD_IDX + 1) * WORD_SIZE]
+            .iter()
+            .rev()
+            .map(|x| Felt::from(*x))
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("word size is correct");
         let created_notes_commitment: Digest = created_notes_commitment.into();
 
         let created_notes_data = group_slice_elements::<Felt, WORD_SIZE>(

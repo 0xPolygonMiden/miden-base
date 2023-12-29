@@ -11,7 +11,10 @@ use miden_objects::{
     AccountError, Word, ZERO,
 };
 
-use crate::{assembler::assembler, auth::AuthScheme};
+use super::{AuthScheme, TransactionKernel};
+
+// BASIC WALLET
+// ================================================================================================
 
 /// Creates a new account with basic wallet interface and the specified authentication scheme.
 /// Basic wallets can be specified to have either mutable or immutable code.
@@ -54,7 +57,7 @@ pub fn create_basic_wallet(
 
     let account_code_ast = ModuleAst::parse(account_code_src)
         .map_err(|e| AccountError::AccountCodeAssemblerError(e.into()))?;
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler)?;
 
     let account_storage = AccountStorage::new(vec![(

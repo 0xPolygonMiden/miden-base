@@ -22,7 +22,7 @@ use super::{
     super::transaction::ToTransactionKernelInputs, build_tx_inputs, ContextId, Felt,
     MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
 };
-use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================

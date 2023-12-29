@@ -1,14 +1,16 @@
-use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::{AccountId, AccountType, SlotItem, StorageSlotType},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt, FieldElement, Word, ZERO,
 };
 
-use super::mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet};
 pub use super::mock::account::{
     ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
     ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
+};
+use super::{
+    mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet},
+    TransactionKernel,
 };
 
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
@@ -100,7 +102,7 @@ pub enum AccountSeedType {
 
 /// Returns the account id and seed for the specified account type.
 pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, Word) {
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
     let init_seed: [u8; 32] = Default::default();
 
     let (account, account_type) = match account_seed_type {
