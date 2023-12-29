@@ -6,7 +6,7 @@ use miden_objects::{
     transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
     vm::CodeBlock,
-    AccountError, Digest, Hasher,
+    AccountError, Digest,
 };
 use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};

@@ -1,6 +1,6 @@
 use miden_lib::transaction::ToTransactionKernelInputs;
 use miden_objects::transaction::{
-    PreparedTransaction, ProvenTransaction, TransactionOutputs, TransactionWitness,
+    InputNotes, PreparedTransaction, ProvenTransaction, TransactionOutputs, TransactionWitness,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -54,8 +54,8 @@ impl TransactionProver {
             tx_inputs.account.id(),
             tx_inputs.account.hash(),
             tx_outputs.account.hash(),
-            tx_inputs.input_notes.nullifiers().collect(),
-            tx_outputs.output_notes.envelopes().collect(),
+            tx_inputs.input_notes.into(),
+            tx_outputs.output_notes.into(),
             tx_script.map(|tx_script| *tx_script.hash()),
             tx_inputs.block_header.hash(),
             proof,
@@ -103,8 +103,8 @@ impl TransactionProver {
             account_id,
             initial_account_hash,
             tx_outputs.account.hash(),
-            consumed_notes_info,
-            tx_outputs.output_notes.envelopes().collect(),
+            InputNotes::new(consumed_notes_info).unwrap(),
+            tx_outputs.output_notes.into(),
             tx_script_root,
             block_hash,
             proof,

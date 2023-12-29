@@ -3,15 +3,11 @@ use core::ops::Range;
 use miden_lib::transaction::{
     FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
-use miden_objects::{
-    notes::{NoteEnvelope, Nullifier},
-    transaction::ProvenTransaction,
-    Felt, Word, WORD_SIZE, ZERO,
-};
+use miden_objects::{transaction::ProvenTransaction, Felt, WORD_SIZE, ZERO};
 use miden_verifier::verify;
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackInputs, StackOutputs};
 
-use super::{Digest, Hasher, TransactionCompiler, TransactionVerifierError};
+use super::{TransactionCompiler, TransactionVerifierError};
 
 /// The [TransactionVerifier] is used to verify a [ProvenTransaction].
 ///
@@ -58,32 +54,10 @@ impl TransactionVerifier {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the consumed notes commitment.
-    fn compute_consumed_notes_hash(consumed_notes: &[Nullifier]) -> Digest {
-        let mut elements: Vec<Felt> = Vec::with_capacity(consumed_notes.len() * 8);
-        for nullifier in consumed_notes.iter() {
-            elements.extend_from_slice(nullifier.inner().as_elements());
-            elements.extend_from_slice(&Word::default());
-        }
-        Hasher::hash_elements(&elements)
-    }
-
-    /// Returns the created notes commitment.
-    fn compute_created_notes_commitment(created_notes: &[NoteEnvelope]) -> Digest {
-        let mut elements: Vec<Felt> = Vec::with_capacity(created_notes.len() * 8);
-        for note in created_notes.iter() {
-            elements.extend_from_slice(note.note_hash().as_elements());
-            elements.extend_from_slice(&Word::from(note.metadata()));
-        }
-        Hasher::hash_elements(&elements)
-    }
-
     /// Returns the stack inputs for the transaction.
     fn build_stack_inputs(transaction: &ProvenTransaction) -> StackInputs {
         let mut stack_inputs: Vec<Felt> = Vec::with_capacity(13);
-        stack_inputs.extend_from_slice(
-            Self::compute_consumed_notes_hash(transaction.input_note_nullifiers()).as_elements(),
-        );
+        stack_inputs.extend_from_slice(transaction.input_notes().commitment().as_elements());
         stack_inputs.extend_from_slice(transaction.initial_account_hash().as_elements());
         stack_inputs.push(transaction.account_id().into());
         stack_inputs.extend_from_slice(transaction.block_ref().as_elements());
@@ -108,9 +82,8 @@ impl TransactionVerifier {
         let mut stack_outputs: Vec<Felt> = vec![ZERO; STACK_TOP_SIZE];
         stack_outputs[TX_SCRIPT_ROOT_RANGE]
             .copy_from_slice(transaction.tx_script_root().unwrap_or_default().as_elements());
-        stack_outputs[CREATED_NOTES_COMMITMENT_RANGE].copy_from_slice(
-            Self::compute_created_notes_commitment(transaction.created_notes()).as_elements(),
-        );
+        stack_outputs[CREATED_NOTES_COMMITMENT_RANGE]
+            .copy_from_slice(transaction.output_notes().commitment().as_elements());
         stack_outputs[FINAL_ACCOUNT_HASH_RANGE]
             .copy_from_slice(transaction.final_account_hash().as_elements());
         stack_outputs.reverse();

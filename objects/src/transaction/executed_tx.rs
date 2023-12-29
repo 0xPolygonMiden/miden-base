@@ -1,3 +1,5 @@
+use core::cell::OnceCell;
+
 use super::{
     AdviceInputs, InputNotes, OutputNotes, Program, TransactionId, TransactionInputs,
     TransactionOutputs, TransactionScript, TransactionWitness,
@@ -22,7 +24,7 @@ use crate::{
 ///   witness).
 #[derive(Debug, Clone)]
 pub struct ExecutedTransaction {
-    id: TransactionId,
+    id: OnceCell<TransactionId>,
     program: Program,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
@@ -61,16 +63,8 @@ impl ExecutedTransaction {
         // if this transaction was executed against a new account, validate the account seed
         tx_inputs.validate_new_account_seed()?;
 
-        // build transaction ID
-        let id = TransactionId::new(
-            tx_inputs.account.hash(),
-            tx_outputs.account.hash(),
-            tx_inputs.input_notes.commitment(),
-            tx_outputs.output_notes.commitment(),
-        );
-
         Ok(Self {
-            id,
+            id: OnceCell::new(),
             program,
             tx_inputs,
             tx_outputs,
@@ -85,7 +79,7 @@ impl ExecutedTransaction {
 
     /// Returns a unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
-        self.id
+        *self.id.get_or_init(|| self.into())
     }
 
     /// Returns a reference the program defining this transaction.

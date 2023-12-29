@@ -1,4 +1,4 @@
-use core::cell::OnceCell;
+use core::{cell::OnceCell, fmt::Debug};
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
 use crate::{
@@ -43,19 +43,56 @@ impl TransactionInputs {
     }
 }
 
+// TO NULLIFIER TRAIT
+// ================================================================================================
+
+/// Defines how a note object can be reduced to a nullifier.
+///
+/// This trait is implemented on both [InputNote] and [Nullifier] so that we can treat them
+/// generically as [InputNotes].
+pub trait ToNullifier:
+    Debug + Clone + PartialEq + Eq + Serializable + Deserializable + Sized
+{
+    fn nullifier(&self) -> Nullifier;
+}
+
+impl ToNullifier for InputNote {
+    fn nullifier(&self) -> Nullifier {
+        self.note.nullifier()
+    }
+}
+
+impl ToNullifier for Nullifier {
+    fn nullifier(&self) -> Nullifier {
+        *self
+    }
+}
+
+impl From<InputNotes> for InputNotes<Nullifier> {
+    fn from(value: InputNotes) -> Self {
+        Self {
+            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
+            commitment: OnceCell::new(),
+        }
+    }
+}
+
 // INPUT NOTES
 // ================================================================================================
 
-/// Contains a list of input notes for a transaction.
+/// Contains a list of input notes for a transaction. The list can be empty if the transaction does
+/// not consume any notes.
 ///
-/// The list can be empty if the transaction does not consume any notes.
+/// For the purposes of this struct, anything that can be reduced to a [Nullifier] can be an input
+/// note. However, [ToNullifier] trait is currently implemented only for [InputNote] and [Nullifier],
+/// and so these are the only two allowed input note types.
 #[derive(Debug, Clone)]
-pub struct InputNotes {
-    notes: Vec<InputNote>,
+pub struct InputNotes<T: ToNullifier = InputNote> {
+    notes: Vec<T>,
     commitment: OnceCell<Digest>,
 }
 
-impl InputNotes {
+impl<T: ToNullifier> InputNotes<T> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns new [InputNotes] instantiated from the provided vector of notes.
@@ -64,7 +101,7 @@ impl InputNotes {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<InputNote>) -> Result<Self, TransactionError> {
+    pub fn new(notes: Vec<T>) -> Result<Self, TransactionError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TRANSACTION {
             return Err(TransactionError::TooManyInputNotes {
                 max: MAX_INPUT_NOTES_PER_TRANSACTION,
@@ -74,8 +111,8 @@ impl InputNotes {
 
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
-            if !seen_notes.insert(note.note().hash()) {
-                return Err(TransactionError::DuplicateInputNote(note.note().hash()));
+            if !seen_notes.insert(note.nullifier().inner()) {
+                return Err(TransactionError::DuplicateInputNote(note.nullifier().inner()));
             }
         }
 
@@ -87,7 +124,7 @@ impl InputNotes {
 
     /// Returns a commitment to these input notes.
     pub fn commitment(&self) -> Digest {
-        *self.commitment.get_or_init(|| build_input_notes_commitment(self.nullifiers()))
+        *self.commitment.get_or_init(|| build_input_notes_commitment(&self.notes))
     }
 
     /// Returns total number of input notes.
@@ -100,8 +137,8 @@ impl InputNotes {
         self.notes.is_empty()
     }
 
-    /// Returns a reference to the [InputNote] located at the specified index.
-    pub fn get_note(&self, idx: usize) -> &InputNote {
+    /// Returns a reference to the note located at the specified index.
+    pub fn get_note(&self, idx: usize) -> &T {
         &self.notes[idx]
     }
 
@@ -109,18 +146,13 @@ impl InputNotes {
     // --------------------------------------------------------------------------------------------
 
     /// Returns an iterator over notes in this [InputNotes].
-    pub fn iter(&self) -> impl Iterator<Item = &InputNote> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.notes.iter()
-    }
-
-    /// Returns an iterator over nullifiers of all notes in this [InputNotes].
-    pub fn nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
-        self.notes.iter().map(|note| note.note().nullifier())
     }
 }
 
-impl IntoIterator for InputNotes {
-    type Item = InputNote;
+impl<T: ToNullifier> IntoIterator for InputNotes<T> {
+    type Item = T;
     type IntoIter = collections::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -128,18 +160,18 @@ impl IntoIterator for InputNotes {
     }
 }
 
-impl PartialEq for InputNotes {
+impl<T: ToNullifier> PartialEq for InputNotes<T> {
     fn eq(&self, other: &Self) -> bool {
         self.notes == other.notes
     }
 }
 
-impl Eq for InputNotes {}
+impl<T: ToNullifier> Eq for InputNotes<T> {}
 
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
-impl Serializable for InputNotes {
+impl<T: ToNullifier> Serializable for InputNotes<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // assert is OK here because we enforce max number of notes in the constructor
         assert!(self.notes.len() <= u16::MAX.into());
@@ -148,10 +180,10 @@ impl Serializable for InputNotes {
     }
 }
 
-impl Deserializable for InputNotes {
+impl<T: ToNullifier> Deserializable for InputNotes<T> {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_notes = source.read_u16()?;
-        let notes = InputNote::read_batch_from(source, num_notes.into())?;
+        let notes = T::read_batch_from(source, num_notes.into())?;
         Self::new(notes).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
@@ -163,10 +195,10 @@ impl Deserializable for InputNotes {
 ///
 /// This is a sequential hash of all (nullifier, ZERO) pairs for the notes consumed in the
 /// transaction.
-pub fn build_input_notes_commitment<I: Iterator<Item = Nullifier>>(nullifiers: I) -> Digest {
+pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
     let mut elements: Vec<Felt> = Vec::new();
-    for nullifier in nullifiers {
-        elements.extend_from_slice(nullifier.as_elements());
+    for note in notes {
+        elements.extend_from_slice(note.nullifier().as_elements());
         elements.extend_from_slice(&Word::default());
     }
     Hasher::hash_elements(&elements)

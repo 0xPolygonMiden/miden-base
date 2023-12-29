@@ -29,6 +29,8 @@ pub struct TransactionWitness {
 }
 
 impl TransactionWitness {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionWitness] from the provided data.
     pub fn new(
         account_id: AccountId,
@@ -50,24 +52,26 @@ impl TransactionWitness {
         }
     }
 
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns the account id of the account the transaction is executed against.
-    pub fn account_id(&self) -> &AccountId {
-        &self.account_id
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
     }
 
     /// Returns the initial account hash of the account the transaction is executed against.
-    pub fn initial_account_hash(&self) -> &Digest {
-        &self.initial_account_hash
+    pub fn initial_account_hash(&self) -> Digest {
+        self.initial_account_hash
+    }
+    /// Returns a commitment to the notes consumed by the transaction.
+    pub fn input_notes_hash(&self) -> Digest {
+        self.input_notes_hash
     }
 
     /// Returns the block hash of the latest known block.
     pub fn block_hash(&self) -> &Digest {
         &self.block_hash
-    }
-
-    /// Returns the hash of input notes.
-    pub fn input_notes_hash(&self) -> &Digest {
-        &self.input_notes_hash
     }
 
     /// Returns a vector of [Nullifier] for all consumed notes in the transaction.
