@@ -2,12 +2,14 @@ use miden_objects::{
     accounts::Account,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
-        TransactionScript,
+        TransactionScript, TransactionWitness,
     },
     utils::{collections::Vec, vec, IntoBytes},
     vm::{AdviceInputs, StackInputs},
-    Digest, Felt, Word, ZERO,
+    Felt, Word, ZERO,
 };
+
+use super::TransactionKernel;
 
 // TRANSACTION KERNEL INPUTS
 // ================================================================================================
@@ -20,7 +22,13 @@ pub trait ToTransactionKernelInputs {
 
 impl ToTransactionKernelInputs for PreparedTransaction {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let stack_inputs = build_stack_inputs(self.tx_inputs());
+        let account = self.account();
+        let stack_inputs = TransactionKernel::build_input_stack(
+            account.id(),
+            if account.is_new() { None } else { Some(account.hash()) },
+            self.input_notes().commitment(),
+            self.block_header().hash(),
+        );
         let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
         (stack_inputs, advice_inputs)
     }
@@ -28,39 +36,29 @@ impl ToTransactionKernelInputs for PreparedTransaction {
 
 impl ToTransactionKernelInputs for ExecutedTransaction {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let stack_inputs = build_stack_inputs(self.tx_inputs());
+        let account = self.initial_account();
+        let stack_inputs = TransactionKernel::build_input_stack(
+            account.id(),
+            if account.is_new() { None } else { Some(account.hash()) },
+            self.input_notes().commitment(),
+            self.block_header().hash(),
+        );
         let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
         (stack_inputs, advice_inputs)
     }
 }
 
-// STACK INPUTS
-// ================================================================================================
+impl ToTransactionKernelInputs for TransactionWitness {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+        let stack_inputs = TransactionKernel::build_input_stack(
+            self.account_id(),
+            Some(self.initial_account_hash()), // TODO
+            self.input_notes_hash(),
+            self.block_hash(),
+        );
 
-/// Returns the input stack required for executing a transaction with the specified inputs.
-///
-/// This includes the input notes commitment, the account hash, the account id, and the block hash.
-///
-/// Stack: [BH, acct_id, IAH, NC]
-///
-/// - BH is the latest known block hash at the time of transaction execution.
-/// - acct_id is the account id of the account that the transaction is being executed against.
-/// - IAH is the initial account hash of the account that the transaction is being executed against.
-/// - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-///   (nullifier, ZERO) tuples for the notes consumed in the transaction.
-fn build_stack_inputs(tx_inputs: &TransactionInputs) -> StackInputs {
-    let initial_acct_hash = if tx_inputs.account.is_new() {
-        Digest::default()
-    } else {
-        tx_inputs.account.hash()
-    };
-
-    let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-    inputs.extend(tx_inputs.input_notes.commitment());
-    inputs.extend_from_slice(initial_acct_hash.as_elements());
-    inputs.push((tx_inputs.account.id()).into());
-    inputs.extend_from_slice(tx_inputs.block_header.hash().as_elements());
-    StackInputs::new(inputs)
+        (stack_inputs, self.advice_inputs().clone())
+    }
 }
 
 // ADVICE INPUTS
@@ -81,10 +79,9 @@ fn build_advice_inputs(
 
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(&tx_inputs.block_chain, &mut advice_inputs);
-    add_account_to_advice_inputs(&tx_inputs.account, &mut advice_inputs);
+    add_account_to_advice_inputs(&tx_inputs.account, tx_inputs.account_seed, &mut advice_inputs);
     add_input_notes_to_advice_inputs(&tx_inputs.input_notes, &mut advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, &mut advice_inputs);
-    add_account_seed_to_advice_map(tx_inputs, &mut advice_inputs);
 
     advice_inputs
 }
@@ -144,6 +141,9 @@ fn build_advice_stack(
     }
 }
 
+// CHAIN MMR INJECTOR
+// ------------------------------------------------------------------------------------------------
+
 /// Inserts the chain MMR data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
@@ -167,6 +167,9 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
     inputs.extend_map([(peaks.hash_peaks().into(), elements)]);
 }
 
+// ACCOUNT DATA INJECTOR
+// ------------------------------------------------------------------------------------------------
+
 /// Inserts core account data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
@@ -178,7 +181,12 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// - The storage types commitment |-> storage slot types vector.
 /// - The account procedure root |-> procedure index, for each account procedure.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault TSMT.
-fn add_account_to_advice_inputs(account: &Account, inputs: &mut AdviceInputs) {
+/// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
+fn add_account_to_advice_inputs(
+    account: &Account,
+    account_seed: Option<Word>,
+    inputs: &mut AdviceInputs,
+) {
     // --- account storage ----------------------------------------------------
     let storage = account.storage();
 
@@ -218,7 +226,18 @@ fn add_account_to_advice_inputs(account: &Account, inputs: &mut AdviceInputs) {
             .leaves()
             .map(|(idx, leaf)| (leaf.into_bytes(), vec![idx.into()])),
     );
+
+    // --- account seed -------------------------------------------------------
+    if let Some(account_seed) = account_seed {
+        inputs.extend_map(vec![(
+            [account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
+            account_seed.to_vec(),
+        )]);
+    }
 }
+
+// INPUT NOTE INJECTOR
+// ------------------------------------------------------------------------------------------------
 
 /// Populates the advice inputs for all input notes.
 ///
@@ -249,7 +268,7 @@ fn add_account_to_advice_inputs(account: &Account, inputs: &mut AdviceInputs) {
 /// Inserts the following entries into the advice map:
 /// - inputs_hash |-> inputs
 /// - vault_hash |-> assets
-/// - note_hash |-> combined note data
+/// - notes_hash |-> combined note data
 fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInputs) {
     let mut note_data: Vec<Felt> = Vec::new();
 
@@ -272,23 +291,15 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         );
 
         // add the note elements to the combined vector of note data
-        note_data.extend(note.serial_num());
-        note_data.extend(*note.script().hash());
-        note_data.extend(*note.inputs().hash());
-        note_data.extend(*note.vault().hash());
-        note_data.extend(Word::from(note.metadata()));
-
-        note_data.extend(note.vault().to_padded_assets());
-
-        note_data.push(proof.origin().block_num.into());
-        note_data.extend(*proof.sub_hash());
-        note_data.extend(*proof.note_root());
-        note_data.push(proof.origin().node_index.value().into());
+        TransactionKernel::write_input_note_into(input_note, &mut note_data);
     }
 
     // insert the combined note data into the advice map
     inputs.extend_map([(notes.commitment().into(), note_data)]);
 }
+
+// TRANSACTION SCRIPT INJECTOR
+// ------------------------------------------------------------------------------------------------
 
 /// Inserts the following entries into the advice map:
 /// - input_hash |-> input, for each tx_script input
@@ -300,16 +311,5 @@ fn add_tx_script_inputs_to_advice_map(
         inputs.extend_map(
             tx_script.inputs().iter().map(|(hash, input)| (hash.into(), input.clone())),
         );
-    }
-}
-
-/// Inserts the following entries into the advice map:
-/// - [account_id, 0, 0, 0] |-> account_seed
-fn add_account_seed_to_advice_map(tx_inputs: &TransactionInputs, inputs: &mut AdviceInputs) {
-    if let Some(account_seed) = tx_inputs.account_seed {
-        inputs.extend_map(vec![(
-            [tx_inputs.account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
-            account_seed.to_vec(),
-        )]);
     }
 }

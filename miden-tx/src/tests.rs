@@ -1,9 +1,10 @@
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    transaction::{ChainMmr, InputNote, InputNotes, TransactionOutputs},
+    transaction::{ChainMmr, InputNote, InputNotes},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -22,7 +23,7 @@ use vm_processor::MemAdviceProvider;
 
 use super::{
     AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
-    TransactionInputs, TransactionProver, TransactionVerifier, TryFromVmResult,
+    TransactionInputs, TransactionProver, TransactionVerifier,
 };
 
 // TESTS
@@ -47,22 +48,17 @@ fn test_transaction_executor_witness() {
     let witness = transaction_result.clone().into_witness();
 
     // use the witness to execute the transaction again
-    let mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let (stack_inputs, advice_inputs) = witness.get_kernel_inputs();
+    let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let mut host = TransactionHost::new(mem_advice_provider);
-    let result = vm_processor::execute(
-        witness.program(),
-        witness.get_stack_inputs(),
-        &mut host,
-        Default::default(),
-    )
-    .unwrap();
+    let result =
+        vm_processor::execute(witness.program(), stack_inputs, &mut host, Default::default())
+            .unwrap();
 
     let (advice_provider, _event_handler) = host.into_parts();
-    let (stack, map, store) = advice_provider.into_parts();
+    let (_, map, _) = advice_provider.into_parts();
+    let tx_outputs = TransactionKernel::parse_outputs(result.stack_outputs(), &map.into()).unwrap();
 
-    let tx_outputs =
-        TransactionOutputs::try_from_vm_result(result.stack_outputs(), &stack, &map, &store)
-            .unwrap();
     assert_eq!(transaction_result.final_account().hash(), tx_outputs.account.hash());
     assert_eq!(transaction_result.output_notes(), &tx_outputs.output_notes);
 }

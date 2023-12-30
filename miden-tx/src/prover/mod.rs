@@ -1,13 +1,12 @@
-use miden_lib::transaction::ToTransactionKernelInputs;
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::transaction::{
-    InputNotes, PreparedTransaction, ProvenTransaction, TransactionOutputs, TransactionWitness,
+    InputNotes, PreparedTransaction, ProvenTransaction, TransactionWitness,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::TryFromVmResult;
 
 /// The [TransactionProver] is a stateless component which is responsible for proving transactions.
 ///
@@ -38,14 +37,15 @@ impl TransactionProver {
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_provider);
 
-        let (outputs, proof) =
+        let (stack_outputs, proof) =
             prove(transaction.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();
-        let (stack, map, store) = advice_provider.into_parts();
-        let tx_outputs = TransactionOutputs::try_from_vm_result(&outputs, &stack, &map, &store)
+        let (_, map, _) = advice_provider.into_parts();
+        let adv_map = map.into();
+        let tx_outputs = TransactionKernel::parse_outputs(&stack_outputs, &adv_map)
             .map_err(TransactionProverError::TransactionResultError)?;
 
         let (_tx_program, tx_script, tx_inputs) = transaction.into_parts();
@@ -73,37 +73,39 @@ impl TransactionProver {
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         // extract required data from the transaction witness
-        let stack_inputs = tx_witness.get_stack_inputs();
-        let consumed_notes_info = tx_witness
-            .input_notes_info()
-            .map_err(TransactionProverError::CorruptTransactionWitnessConsumedNoteData)?;
-        let (
-            account_id,
-            initial_account_hash,
-            block_hash,
-            _consumed_notes_hash,
-            tx_script_root,
-            tx_program,
-            advice_witness,
-        ) = tx_witness.into_parts();
+        let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
 
-        let advice_provider: MemAdviceProvider = advice_witness.into();
+        let input_notes = match tx_witness.input_note_data() {
+            Some(input_note_data) => {
+                let nullifiers =
+                    TransactionKernel::read_input_nullifiers_from(input_note_data).unwrap();
+                InputNotes::new(nullifiers).unwrap()
+            },
+            None => InputNotes::default(),
+        };
+
+        let account_id = tx_witness.account_id();
+        let initial_account_hash = tx_witness.initial_account_hash();
+        let block_hash = tx_witness.block_hash();
+        let tx_script_root = tx_witness.tx_script_root();
+
+        let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_provider);
-        let (outputs, proof) =
-            prove(&tx_program, stack_inputs, &mut host, self.proof_options.clone())
+        let (stack_outputs, proof) =
+            prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();
-        let (stack, map, store) = advice_provider.into_parts();
-        let tx_outputs = TransactionOutputs::try_from_vm_result(&outputs, &stack, &map, &store)
+        let (_, map, _) = advice_provider.into_parts();
+        let tx_outputs = TransactionKernel::parse_outputs(&stack_outputs, &map.into())
             .map_err(TransactionProverError::TransactionResultError)?;
 
         Ok(ProvenTransaction::new(
             account_id,
             initial_account_hash,
             tx_outputs.account.hash(),
-            InputNotes::new(consumed_notes_info).unwrap(),
+            input_notes,
             tx_outputs.output_notes.into(),
             tx_script_root,
             block_hash,

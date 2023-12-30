@@ -283,6 +283,7 @@ pub enum TransactionError {
         output_id: AccountId,
     },
     InvalidAccountSeed(AccountError),
+    InvalidInputNoteDataLength,
     ScriptCompilationError(AssemblyError),
     TooManyInputNotes {
         max: usize,

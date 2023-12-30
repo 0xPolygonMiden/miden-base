@@ -37,7 +37,7 @@ pub mod crypto {
 
 pub mod utils {
     pub use miden_crypto::utils::{format, vec};
-    pub use vm_core::utils::{collections, string, IntoBytes};
+    pub use vm_core::utils::{collections, group_slice_elements, string, IntoBytes};
 
     pub mod serde {
         pub use miden_crypto::utils::{
@@ -48,5 +48,5 @@ pub mod utils {
 
 pub mod vm {
     pub use vm_core::{code_blocks::CodeBlock, Program};
-    pub use vm_processor::{AdviceInputs, StackInputs};
+    pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }

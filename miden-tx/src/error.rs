@@ -8,24 +8,6 @@ use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
 
-// TRANSACTION ERROR
-// ================================================================================================
-#[derive(Debug)]
-pub enum TransactionError {
-    TransactionCompilerError(TransactionCompilerError),
-    TransactionExecutorError(TransactionExecutorError),
-    DataStoreError(DataStoreError),
-}
-
-impl fmt::Display for TransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionError {}
-
 // TRANSACTION COMPILER ERROR
 // ================================================================================================
 #[derive(Debug)]

@@ -1,13 +1,12 @@
-use miden_lib::transaction::{
-    extract_account_storage_delta, ToTransactionKernelInputs, TX_SCRIPT_ROOT_WORD_IDX,
-};
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    accounts::AccountDelta,
+    accounts::{Account, AccountDelta, AccountStorage, AccountStorageDelta, AccountStub},
     assembly::ProgramAst,
-    transaction::{TransactionInputs, TransactionOutputs, TransactionScript},
-    Felt, Word, WORD_SIZE,
+    crypto::merkle::{merkle_tree_delta, MerkleStore},
+    transaction::{TransactionInputs, TransactionScript},
+    vm::{Program, StackOutputs},
+    Felt, TransactionResultError, Word,
 };
-use vm_core::{Program, StackOutputs, StarkField};
 use vm_processor::ExecutionOptions;
 
 use super::{
@@ -15,7 +14,7 @@ use super::{
     PreparedTransaction, RecAdviceProvider, ScriptTarget, TransactionCompiler,
     TransactionExecutorError, TransactionHost,
 };
-use crate::{host::EventHandler, TryFromVmResult};
+use crate::host::EventHandler;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -207,7 +206,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 // ================================================================================================
 
 /// Creates a new [ExecutedTransaction] from the provided data, advice provider and stack outputs.
-pub fn build_executed_transaction(
+fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
@@ -216,25 +215,16 @@ pub fn build_executed_transaction(
     event_handler: EventHandler,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     // finalize the advice recorder
-    let (advice_witness, stack, map, store) = advice_provider.finalize();
+    let (advice_witness, _, map, store) = advice_provider.finalize();
 
     // parse transaction results
-    let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)
+    let tx_outputs = TransactionKernel::parse_outputs(&stack_outputs, &map.into())
         .map_err(TransactionExecutorError::TransactionResultError)?;
     let final_account = &tx_outputs.account;
 
-    // assert the tx_script_root is consistent with the output stack
-    debug_assert_eq!(
-        (*tx_script.clone().map(|s| *s.hash()).unwrap_or_default())
-            .into_iter()
-            .rev()
-            .map(|x| x.as_int())
-            .collect::<Vec<_>>(),
-        stack_outputs.stack()
-            [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
-    );
-
     let initial_account = &tx_inputs.account;
+
+    // build account delta
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
@@ -264,4 +254,35 @@ pub fn build_executed_transaction(
         advice_witness,
     )
     .map_err(TransactionExecutorError::ExecutedTransactionConstructionFailed)
+}
+
+/// Extracts account storage delta between the `initial_account` and `final_account_stub` from the
+/// provided `MerkleStore`
+fn extract_account_storage_delta(
+    store: &MerkleStore,
+    initial_account: &Account,
+    final_account_stub: &AccountStub,
+) -> Result<AccountStorageDelta, TransactionResultError> {
+    // extract storage slots delta
+    let tree_delta = merkle_tree_delta(
+        initial_account.storage().root(),
+        final_account_stub.storage_root(),
+        AccountStorage::STORAGE_TREE_DEPTH,
+        store,
+    )
+    .map_err(TransactionResultError::ExtractAccountStorageSlotsDeltaFailed)?;
+
+    // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
+    // the number of storage slots cannot be greater than 256
+    let cleared_items = tree_delta.cleared_slots().iter().map(|idx| *idx as u8).collect();
+    let updated_items = tree_delta
+        .updated_slots()
+        .iter()
+        .map(|(idx, value)| (*idx as u8, *value))
+        .collect();
+
+    // construct storage delta
+    let storage_delta = AccountStorageDelta { cleared_items, updated_items };
+
+    Ok(storage_delta)
 }

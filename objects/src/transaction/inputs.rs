@@ -168,6 +168,15 @@ impl<T: ToNullifier> PartialEq for InputNotes<T> {
 
 impl<T: ToNullifier> Eq for InputNotes<T> {}
 
+impl<T: ToNullifier> Default for InputNotes<T> {
+    fn default() -> Self {
+        Self {
+            notes: Vec::new(),
+            commitment: OnceCell::new(),
+        }
+    }
+}
+
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
