@@ -77,6 +77,15 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     }
 }
 
+impl From<&InputNotes> for InputNotes<Nullifier> {
+    fn from(value: &InputNotes) -> Self {
+        Self {
+            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
+            commitment: OnceCell::new(),
+        }
+    }
+}
+
 // INPUT NOTES
 // ================================================================================================
 

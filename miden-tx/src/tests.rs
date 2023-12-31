@@ -57,7 +57,8 @@ fn test_transaction_executor_witness() {
 
     let (advice_provider, _event_handler) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
-    let tx_outputs = TransactionKernel::parse_outputs(result.stack_outputs(), &map.into()).unwrap();
+    let tx_outputs =
+        TransactionKernel::parse_transaction_outputs(result.stack_outputs(), &map.into()).unwrap();
 
     assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);

@@ -1,15 +1,18 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
-use miden_objects::transaction::{InputNotes, ProvenTransaction, TransactionWitness};
+use miden_objects::{
+    notes::Nullifier,
+    transaction::{InputNotes, ProvenTransaction, TransactionWitness},
+};
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
 
-/// The [TransactionProver] is a stateless component which is responsible for proving transactions.
+/// Transaction prover is a stateless component which is responsible for proving transactions.
 ///
-/// The [TransactionProver] exposes the `prove_transaction` method which takes a [TransactionWitness] and
-/// produces a [ProvenTransaction].
+/// Transaction prover exposes the `prove_transaction` method which takes a [TransactionWitness],
+/// or anything that can be converted into a [TransactionWitness], and returns a [ProvenTransaction].
 pub struct TransactionProver {
     proof_options: ProvingOptions,
 }
@@ -25,7 +28,7 @@ impl TransactionProver {
     // TRANSACTION PROVER
     // --------------------------------------------------------------------------------------------
 
-    /// Proves the provided [TransactionWitness] and returns a [ProvenTransaction].
+    /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
     /// # Errors
     /// - If the consumed note data in the transaction witness is corrupt.
@@ -40,19 +43,12 @@ impl TransactionProver {
         // extract required data from the transaction witness
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
 
-        let input_notes = match tx_witness.input_note_data() {
-            Some(input_note_data) => {
-                let nullifiers =
-                    TransactionKernel::read_input_nullifiers_from(input_note_data).unwrap();
-                InputNotes::new(nullifiers).unwrap()
-            },
-            None => InputNotes::default(),
-        };
+        let input_notes: InputNotes<Nullifier> = (&tx_witness.tx_inputs().input_notes).into();
 
-        let account_id = tx_witness.account_id();
-        let initial_account_hash = tx_witness.initial_account_hash();
-        let block_hash = tx_witness.block_hash();
-        let tx_script_root = tx_witness.tx_script_root();
+        let account_id = tx_witness.account().id();
+        let initial_account_hash = tx_witness.account().hash();
+        let block_hash = tx_witness.block_header().hash();
+        let tx_script_root = tx_witness.tx_script().map(|script| *script.hash());
 
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_provider);
@@ -63,7 +59,7 @@ impl TransactionProver {
         // extract transaction outputs and process transaction data
         let (advice_provider, _event_handler) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
-        let tx_outputs = TransactionKernel::parse_outputs(&stack_outputs, &map.into())
+        let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
             .map_err(TransactionProverError::TransactionResultError)?;
 
         Ok(ProvenTransaction::new(

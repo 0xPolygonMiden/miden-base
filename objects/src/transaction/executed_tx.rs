@@ -1,13 +1,11 @@
 use core::cell::OnceCell;
 
 use super::{
-    AdviceInputs, InputNotes, OutputNotes, Program, TransactionId, TransactionInputs,
-    TransactionOutputs, TransactionScript, TransactionWitness,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
+    OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
+    TransactionWitness,
 };
-use crate::{
-    accounts::{Account, AccountDelta, AccountId, AccountStub},
-    BlockHeader, TransactionError,
-};
+use crate::TransactionError;
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -17,7 +15,7 @@ use crate::{
 /// Executed transaction serves two primary purposes:
 /// - It contains a complete description of the effects of the transaction. Specifically, it
 ///   contains all output notes created as the result of the transaction and describes all the
-///   changes make to the involved account (i.e., the account delta).
+///   changes made to the involved account (i.e., the account delta).
 /// - It contains all the information required to re-execute and prove the transaction in a
 ///   stateless manner. This includes all public transaction inputs, but also all nondeterministic
 ///   inputs that the host provided to Miden VM while executing the transaction (i.e., advice
@@ -131,18 +129,32 @@ impl ExecutedTransaction {
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
     }
+
+    /// Returns all the data requested by the VM from the advice provider while executing the
+    /// transaction program.
+    pub fn advice_witness(&self) -> &AdviceInputs {
+        &self.advice_witness
+    }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns individual components of this transaction.
+    pub fn into_parts(self) -> (AccountDelta, TransactionOutputs, TransactionWitness) {
+        let tx_witness = TransactionWitness::new(
+            self.program,
+            self.tx_inputs,
+            self.tx_script,
+            self.advice_witness,
+        );
+
+        (self.account_delta, self.tx_outputs, tx_witness)
+    }
 }
 
 impl From<ExecutedTransaction> for TransactionWitness {
     fn from(tx: ExecutedTransaction) -> Self {
-        Self::new(
-            tx.initial_account().id(),
-            tx.initial_account().hash(),
-            tx.block_header().hash(),
-            tx.input_notes().commitment(),
-            tx.tx_script().map(|s| *s.hash()),
-            tx.program,
-            tx.advice_witness,
-        )
+        let (_, _, tx_witness) = tx.into_parts();
+        tx_witness
     }
 }

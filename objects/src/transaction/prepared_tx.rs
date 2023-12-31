@@ -1,6 +1,4 @@
-use super::{
-    Account, BlockHeader, ChainMmr, InputNotes, Program, TransactionInputs, TransactionScript,
-};
+use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
 use crate::TransactionError;
 
 // PREPARED TRANSACTION
@@ -45,22 +43,17 @@ impl PreparedTransaction {
         &self.program
     }
 
-    /// Returns the account.
+    /// Returns the account for this transaction.
     pub fn account(&self) -> &Account {
         &self.tx_inputs.account
     }
 
-    /// Returns the block header.
+    /// Returns the block header for this transaction.
     pub fn block_header(&self) -> &BlockHeader {
         &self.tx_inputs.block_header
     }
 
-    /// Returns the block chain.
-    pub fn block_chain(&self) -> &ChainMmr {
-        &self.tx_inputs.block_chain
-    }
-
-    /// Returns the input notes.
+    /// Returns the notes to be consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
         &self.tx_inputs.input_notes
     }

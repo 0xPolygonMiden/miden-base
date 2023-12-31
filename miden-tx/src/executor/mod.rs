@@ -219,7 +219,7 @@ fn build_executed_transaction(
     let (advice_witness, _, map, store) = advice_provider.finalize();
 
     // parse transaction results
-    let tx_outputs = TransactionKernel::parse_outputs(&stack_outputs, &map.into())
+    let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
         .map_err(TransactionExecutorError::TransactionResultError)?;
     let final_account = &tx_outputs.account;
 

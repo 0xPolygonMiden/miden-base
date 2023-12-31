@@ -29,7 +29,10 @@ impl ToTransactionKernelInputs for PreparedTransaction {
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
-        let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
+
+        let mut advice_inputs = AdviceInputs::default();
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+
         (stack_inputs, advice_inputs)
     }
 }
@@ -43,47 +46,53 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
-        let advice_inputs = build_advice_inputs(self.tx_inputs(), self.tx_script());
+
+        let mut advice_inputs = self.advice_witness().clone();
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+
         (stack_inputs, advice_inputs)
     }
 }
 
 impl ToTransactionKernelInputs for TransactionWitness {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+        let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
-            self.account_id(),
-            Some(self.initial_account_hash()), // TODO
-            self.input_notes_hash(),
-            self.block_hash(),
+            account.id(),
+            if account.is_new() { None } else { Some(account.hash()) },
+            self.input_notes().commitment(),
+            self.block_header().hash(),
         );
 
-        (stack_inputs, self.advice_inputs().clone())
+        let mut advice_inputs = self.advice_witness().clone();
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+
+        (stack_inputs, advice_inputs)
     }
 }
 
 // ADVICE INPUTS
 // ================================================================================================
 
-/// Returns the advice inputs required for executing a transaction with the specified inputs.
+/// Extends the provided advice inputs with the data required for executing a transaction with the
+/// specified inputs.
 ///
-/// This includes the initial account, an optional account seed (required for new accounts), the
-/// number of consumed notes, the core consumed note data, and the consumed note inputs.
-fn build_advice_inputs(
+/// This includes the initial account, an optional account seed (required for new accounts), and
+/// the input note data, including core note data + authentication paths all the way to the root
+/// of one of chain MMR peaks.
+fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
-) -> AdviceInputs {
-    let mut advice_inputs = AdviceInputs::default();
-
+    advice_inputs: &mut AdviceInputs,
+) {
     // build the advice stack
-    build_advice_stack(tx_inputs, tx_script, &mut advice_inputs);
+    build_advice_stack(tx_inputs, tx_script, advice_inputs);
 
     // build the advice map and Merkle store for relevant components
-    add_chain_mmr_to_advice_inputs(&tx_inputs.block_chain, &mut advice_inputs);
-    add_account_to_advice_inputs(&tx_inputs.account, tx_inputs.account_seed, &mut advice_inputs);
-    add_input_notes_to_advice_inputs(&tx_inputs.input_notes, &mut advice_inputs);
-    add_tx_script_inputs_to_advice_map(tx_script, &mut advice_inputs);
-
-    advice_inputs
+    add_chain_mmr_to_advice_inputs(&tx_inputs.block_chain, advice_inputs);
+    add_account_to_advice_inputs(&tx_inputs.account, tx_inputs.account_seed, advice_inputs);
+    add_input_notes_to_advice_inputs(&tx_inputs.input_notes, advice_inputs);
+    add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
 }
 
 // ADVICE STACK BUILDER
@@ -291,7 +300,18 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         );
 
         // add the note elements to the combined vector of note data
-        TransactionKernel::write_input_note_into(input_note, &mut note_data);
+        note_data.extend(note.serial_num());
+        note_data.extend(*note.script().hash());
+        note_data.extend(*note.inputs().hash());
+        note_data.extend(*note.vault().hash());
+        note_data.extend(Word::from(note.metadata()));
+
+        note_data.extend(note.vault().to_padded_assets());
+
+        note_data.push(proof.origin().block_num.into());
+        note_data.extend(*proof.sub_hash());
+        note_data.extend(*proof.note_root());
+        note_data.push(proof.origin().node_index.value().into());
     }
 
     // insert the combined note data into the advice map

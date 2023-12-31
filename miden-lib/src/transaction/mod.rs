@@ -1,14 +1,13 @@
 use assembly::{ast::ProgramAst, utils::DeserializationError, Assembler, AssemblyContext};
 use miden_objects::{
     accounts::AccountId,
-    notes::Nullifier,
-    transaction::{InputNote, OutputNotes, TransactionOutputs},
+    transaction::{OutputNotes, TransactionOutputs},
     utils::{
         collections::{BTreeMap, Vec},
         group_slice_elements,
     },
     vm::{ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, Hasher, StarkField, TransactionError, TransactionResultError, Word, WORD_SIZE,
+    Digest, Felt, TransactionResultError, Word,
 };
 use miden_stdlib::StdLibrary;
 
@@ -122,7 +121,9 @@ impl TransactionKernel {
         StackOutputs::from_elements(outputs, Vec::new()).unwrap()
     }
 
-    /// TODO: finish description
+    /// Extracts transaction output data from the provided stack outputs.
+    ///
+    /// The data on the stack is expected to be arranged as follows:
     ///
     /// Stack: [TXSR, CNC, FAH]
     ///
@@ -133,18 +134,31 @@ impl TransactionKernel {
     ///   executed against.
     pub fn parse_output_stack(stack: &StackOutputs) -> (Digest, Digest, Digest) {
         // TODO: use constants
-        let tx_script_root = stack.get_stack_word(0).expect("msg").into();
-        let output_notes_hash = stack.get_stack_word(4).expect("msg").into();
-        let final_account_hash = stack.get_stack_word(8).expect("msg").into();
+        let tx_script_root = stack.get_stack_word(0).expect("first word missing").into();
+        let output_notes_hash = stack.get_stack_word(4).expect("second word missing").into();
+        let final_account_hash = stack.get_stack_word(8).expect("third word missing").into();
 
         (final_account_hash, output_notes_hash, tx_script_root)
     }
 
-    // ADVICE MAP EXTRACTORS
+    // TRANSACTION OUTPUT PARSER
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add comments
-    pub fn parse_outputs(
+    /// Returns [TransactionOutputs] constructed from the provided output stack and advice map.
+    ///
+    /// The output stack is expected to be arrange as follows:
+    ///
+    /// Stack: [TXSR, CNC, FAH]
+    ///
+    /// Where:
+    /// - TXSR is the transaction script root.
+    /// - CNC is the commitment to the notes created by the transaction.
+    /// - FAH is the final account hash of the account that the transaction is being
+    ///   executed against.
+    ///
+    /// The actual data describing the new account state and output notes is expected to be located
+    /// in the provided advice map under keys CNC and FAH.
+    pub fn parse_transaction_outputs(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
     ) -> Result<TransactionOutputs, TransactionResultError> {
@@ -187,102 +201,6 @@ impl TransactionKernel {
 
         Ok(TransactionOutputs { account, output_notes })
     }
-
-    // NOTE DATA BUILDER
-    // --------------------------------------------------------------------------------------------
-
-    /// TODO
-    pub fn write_input_note_into(input_note: &InputNote, target: &mut Vec<Felt>) {
-        let note = input_note.note();
-        let proof = input_note.proof();
-
-        // write the note info; 20 elements
-        target.extend(note.serial_num());
-        target.extend(*note.script().hash());
-        target.extend(*note.inputs().hash());
-        target.extend(*note.vault().hash());
-        target.extend(Word::from(note.metadata()));
-
-        // write asset vault; 4 * num_assets elements
-        target.extend(note.vault().to_padded_assets());
-
-        // write note location info; 10 elements
-        target.push(proof.origin().block_num.into());
-        target.extend(*proof.sub_hash());
-        target.extend(*proof.note_root());
-        target.push(proof.origin().node_index.value().into());
-    }
-
-    /// Returns a vectors of nullifiers read from the provided note data stream.
-    ///
-    /// Notes are expected to be arranged in the stream as follows:
-    ///
-    ///   [n, note_1_data, ... note_n_data]
-    ///
-    /// where n is the number of notes in the stream. Each note is expected to be arranged as
-    /// follows:
-    ///
-    ///   [serial_num, script_hash, input_hash, vault_hash, metadata, asset_1 ... asset_k,
-    ///    block_num, sub_hash, notes_root, note_index]
-    ///
-    /// Thus, the number of elements
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The stream does not contain at least one note.
-    /// - The stream does not have enough data to read the specified number of notes.
-    /// - The stream is not fully consumed after all notes have been processed.
-    pub fn read_input_nullifiers_from(source: &[Felt]) -> Result<Vec<Nullifier>, TransactionError> {
-        // extract the notes from the first fetch and instantiate a vector to hold nullifiers
-        let num_notes = source[0].as_int();
-        let mut nullifiers = Vec::with_capacity(num_notes as usize);
-
-        // iterate over the notes and extract the nullifier and script root
-        let mut note_ptr = 1;
-        while note_ptr < source.len() {
-            // make sure there is enough data to read (note data is well formed)
-            if note_ptr + 5 * WORD_SIZE > source.len() {
-                return Err(TransactionError::InvalidInputNoteDataLength);
-            }
-
-            // compute the nullifier and extract script root and number of assets
-            let (nullifier, num_assets) = extract_note_data(&source[note_ptr..]);
-
-            // push the [ConsumedNoteInfo] to the vector
-            nullifiers.push(nullifier.into());
-
-            // round up the number of assets to the next multiple of 2 to account for asset padding
-            let num_assets = (num_assets + 1) & !1;
-
-            // increment note pointer
-            note_ptr += (num_assets as usize * WORD_SIZE) + 30;
-        }
-
-        Ok(nullifiers)
-    }
-}
-
-// HELPERS
-// ================================================================================================
-
-/// Extracts and returns the nullifier and the number of assets from the provided note data.
-///
-/// Expects the note data to be organized as follows:
-/// [CN_SN, CN_SR, CN_IR, CN_VR, CN_M]
-///
-/// - CN_SN is the serial number of the consumed note.
-/// - CN_SR is the script root of the consumed note.
-/// - CN_IR is the inputs root of the consumed note.
-/// - CN_VR is the vault root of the consumed note.
-/// - CN1_M is the metadata of the consumed note.
-fn extract_note_data(note_data: &[Felt]) -> (Digest, u64) {
-    // compute the nullifier
-    let nullifier = Hasher::hash_elements(&note_data[..4 * WORD_SIZE]);
-
-    // extract the number of assets
-    let num_assets = note_data[4 * WORD_SIZE].as_int();
-
-    (nullifier, num_assets)
 }
 
 // ADVICE MAP
