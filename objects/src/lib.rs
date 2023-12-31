@@ -47,6 +47,6 @@ pub mod utils {
 }
 
 pub mod vm {
-    pub use vm_core::{code_blocks::CodeBlock, Program};
+    pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }

@@ -3,7 +3,6 @@ use miden_objects::{
     transaction::{InputNotes, TransactionScript},
     Felt, TransactionError, Word,
 };
-use vm_processor::ProgramInfo;
 
 use super::{
     AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program,
@@ -196,11 +195,6 @@ impl TransactionCompiler {
 
         // Create compiled transaction
         Ok(program)
-    }
-
-    /// Returns a [ProgramInfo] associated with the transaction kernel program.
-    pub fn build_program_info(&self) -> ProgramInfo {
-        ProgramInfo::new(self.kernel_main.hash(), self.assembler.kernel().clone())
     }
 
     // HELPER METHODS

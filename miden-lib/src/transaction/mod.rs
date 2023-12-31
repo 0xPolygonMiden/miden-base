@@ -1,4 +1,4 @@
-use assembly::{ast::ProgramAst, utils::DeserializationError, Assembler};
+use assembly::{ast::ProgramAst, utils::DeserializationError, Assembler, AssemblyContext};
 use miden_objects::{
     accounts::AccountId,
     notes::Nullifier,
@@ -7,7 +7,7 @@ use miden_objects::{
         collections::{BTreeMap, Vec},
         group_slice_elements,
     },
-    vm::{StackInputs, StackOutputs},
+    vm::{ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, Hasher, StarkField, TransactionError, TransactionResultError, Word, WORD_SIZE,
 };
 use miden_stdlib::StdLibrary;
@@ -48,6 +48,21 @@ impl TransactionKernel {
         ProgramAst::from_bytes(kernel_bytes)
     }
 
+    /// Returns [ProgramInfo] for the main executable of the transaction kernel.
+    ///
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
+    pub fn program_info() -> ProgramInfo {
+        // TODO: construct kernel_main and kernel using lazy static or at build time
+        let assembler = Self::assembler();
+        let main_ast = TransactionKernel::main().expect("main is well formed");
+        let kernel_main = assembler
+            .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
+            .expect("main is well formed");
+
+        ProgramInfo::new(kernel_main.hash(), assembler.kernel().clone())
+    }
+
     // ASSEMBLER CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
@@ -63,7 +78,7 @@ impl TransactionKernel {
             .expect("kernel is well formed")
     }
 
-    // INPUT / OUTPUT STACK BUILDERS
+    // STACK INPUTS / OUTPUTS
     // --------------------------------------------------------------------------------------------
 
     /// Returns the input stack required to execute the transaction kernel.
@@ -92,6 +107,19 @@ impl TransactionKernel {
         inputs.push(acct_id.into());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
+    }
+
+    pub fn build_output_stack(
+        final_acct_hash: Digest,
+        output_notes_hash: Digest,
+        tx_script_root: Option<Digest>,
+    ) -> StackOutputs {
+        let mut outputs: Vec<Felt> = Vec::with_capacity(9);
+        outputs.extend(final_acct_hash);
+        outputs.extend(output_notes_hash);
+        outputs.extend(tx_script_root.unwrap_or_default());
+        outputs.reverse();
+        StackOutputs::from_elements(outputs, Vec::new()).unwrap()
     }
 
     /// TODO: finish description
