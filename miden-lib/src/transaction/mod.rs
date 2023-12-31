@@ -48,7 +48,7 @@ impl TransactionKernel {
         ProgramAst::from_bytes(kernel_bytes)
     }
 
-    /// Returns [ProgramInfo] for the main executable of the transaction kernel.
+    /// Returns [ProgramInfo] for the transaction kernel executable program.
     ///
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.

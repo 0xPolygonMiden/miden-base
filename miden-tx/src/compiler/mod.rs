@@ -32,7 +32,7 @@ pub struct TransactionCompiler {
 impl TransactionCompiler {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of the [TransactionComplier].
+    /// Returns a new [TransactionCompiler].
     pub fn new() -> TransactionCompiler {
         let assembler = TransactionKernel::assembler();
 
@@ -357,8 +357,10 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
 // ================================================================================================
 
 /// The [ScriptTarget] enum is used to specify the target account interface for note and
-/// transaction scripts. This is specified as an account ID (for which the interface should be
-/// fetched) or a vector of procedure digests which represents the account interface.
+/// transaction scripts.
+///
+/// This is specified as an account ID (for which the interface should be fetched) or a vector of
+/// procedure digests which represents the account interface.
 #[derive(Clone)]
 pub enum ScriptTarget {
     AccountId(AccountId),

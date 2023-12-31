@@ -131,20 +131,18 @@ impl ExecutedTransaction {
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
     }
+}
 
-    // CONVERSIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Converts this transaction into a [TransactionWitness].
-    pub fn into_witness(self) -> TransactionWitness {
-        TransactionWitness::new(
-            self.initial_account().id(),
-            self.initial_account().hash(),
-            self.block_header().hash(),
-            self.input_notes().commitment(),
-            self.tx_script().map(|s| *s.hash()),
-            self.program,
-            self.advice_witness,
+impl From<ExecutedTransaction> for TransactionWitness {
+    fn from(tx: ExecutedTransaction) -> Self {
+        Self::new(
+            tx.initial_account().id(),
+            tx.initial_account().hash(),
+            tx.block_header().hash(),
+            tx.input_notes().commitment(),
+            tx.tx_script().map(|s| *s.hash()),
+            tx.program,
+            tx.advice_witness,
         )
     }
 }

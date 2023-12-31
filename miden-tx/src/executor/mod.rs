@@ -26,12 +26,12 @@ use crate::host::EventHandler;
 /// - Compile the transaction into a program using the [TransactionComplier](crate::TransactionCompiler).
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
-/// The [TransactionExecutor] is generic over the [DataStore] which allows it to be used with
+/// The transaction executor is generic over the [DataStore] which allows it to be used with
 /// different data backend implementations.
 ///
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
-/// executor and produces a [ExecutedTransaction] for the transaction. The executed transaction can
-/// then be used to by the prover to generate a proof transaction execution.
+/// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
+/// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
     compiler: TransactionCompiler,
     data_store: D,
@@ -75,9 +75,9 @@ impl<D: DataStore> TransactionExecutor<D> {
             .map_err(TransactionExecutorError::LoadAccountFailed)
     }
 
-    /// Loads the provided account interface (vector of procedure digests) into the the compiler.
+    /// Loads the provided account interface (vector of procedure digests) into the compiler.
     ///
-    /// Returns the old account interface if it previously existed.
+    /// Returns the old interface for the specified account ID if it previously existed.
     pub fn load_account_interface(
         &mut self,
         account_id: AccountId,
@@ -86,8 +86,9 @@ impl<D: DataStore> TransactionExecutor<D> {
         self.compiler.load_account_interface(account_id, procedures)
     }
 
-    /// Compiles the provided program into the [NoteScript] and checks (to the extent possible)
-    /// if a note could be executed against all accounts with the specified interfaces.
+    /// Compiles the provided program into a [NoteScript] and checks (to the extent possible) if
+    /// the specified note program could be executed against all accounts with the specified
+    /// interfaces.
     pub fn compile_note_script(
         &mut self,
         note_script_ast: ProgramAst,
@@ -176,7 +177,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    pub(crate) fn prepare_transaction(
+    fn prepare_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,
