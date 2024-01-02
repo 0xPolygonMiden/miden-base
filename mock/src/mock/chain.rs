@@ -4,8 +4,8 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
     crypto::merkle::{Mmr, NodeIndex, PartialMmr, SimpleSmt, TieredSmt},
-    notes::{Note, NoteInclusionProof, RecordedNote, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
-    transaction::ChainMmr,
+    notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    transaction::{ChainMmr, InputNote},
     utils::collections::{BTreeMap, Vec},
     BlockHeader, Digest, Felt, FieldElement, StarkField, Word,
 };
@@ -33,7 +33,7 @@ pub struct Objects<R> {
     fungible_faucets: Vec<(AccountId, FungibleAssetBuilder)>,
     nonfungible_faucets: Vec<(AccountId, NonFungibleAssetBuilder<R>)>,
     notes: Vec<Note>,
-    recorded_notes: Vec<RecordedNote>,
+    recorded_notes: Vec<InputNote>,
     nullifiers: Vec<Digest>,
 }
 
@@ -94,7 +94,7 @@ impl<R: Rng> Objects<R> {
     /// Given the [BlockHeader] and its notedb's [SimpleSmt], set all the [Note]'s proof.
     ///
     /// Update the [Note]'s proof once the [BlockHeader] has been created.
-    fn finalize_notes(&mut self, header: BlockHeader, notes: &SimpleSmt) -> Vec<RecordedNote> {
+    fn finalize_notes(&mut self, header: BlockHeader, notes: &SimpleSmt) -> Vec<InputNote> {
         self.notes
             .drain(..)
             .enumerate()
@@ -103,7 +103,7 @@ impl<R: Rng> Objects<R> {
                     NodeIndex::new(NOTE_TREE_DEPTH, index as u64).expect("index bigger than 2**20");
                 let note_path =
                     notes.get_path(auth_index).expect("auth_index outside of SimpleSmt range");
-                RecordedNote::new(
+                InputNote::new(
                     note.clone(),
                     NoteInclusionProof::new(
                         header.block_num(),
@@ -600,7 +600,7 @@ where
     Ok(data)
 }
 
-pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote>) {
+pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) {
     let mut note_trees = Vec::new();
 
     // TODO: Consider how to better represent note authentication data.
@@ -639,7 +639,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<RecordedNote
         .map(|(index, note)| {
             let block_header = &block_chain[index];
             let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
-            RecordedNote::new(
+            InputNote::new(
                 note,
                 NoteInclusionProof::new(
                     block_header.block_num(),

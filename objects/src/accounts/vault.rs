@@ -1,7 +1,7 @@
 use super::{
-    AccountError, AccountId, AccountType, AdviceInputsBuilder, Asset, ByteReader, ByteWriter,
-    Deserializable, DeserializationError, Digest, FungibleAsset, NonFungibleAsset, Serializable,
-    TieredSmt, ToAdviceInputs, ToString, Vec, ZERO,
+    AccountError, AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, FungibleAsset, NonFungibleAsset, Serializable, TieredSmt,
+    ToString, Vec, ZERO,
 };
 
 // ACCOUNT VAULT
@@ -77,6 +77,11 @@ impl AccountVault {
     /// Returns an iterator over the assets stored in the vault.
     pub fn assets(&self) -> impl Iterator<Item = Asset> + '_ {
         self.asset_tree.iter().map(|x| Asset::new_unchecked(x.1))
+    }
+
+    /// Returns a reference to the Sparse Merkle tree underling this account vault.
+    pub fn asset_tree(&self) -> &TieredSmt {
+        &self.asset_tree
     }
 
     // PUBLIC MODIFIERS
@@ -228,20 +233,5 @@ impl Deserializable for AccountVault {
         let num_assets = source.read_u32()? as usize;
         let assets = Asset::read_batch_from(source, num_assets)?;
         Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
-    }
-}
-
-// ADVICE INPUTS INJECTION
-// ================================================================================================
-
-impl ToAdviceInputs for AccountVault {
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // extend the merkle store with account vault data
-        target.add_merkle_nodes(self.asset_tree.inner_nodes());
-
-        // populate advice map with tiered merkle tree leaf nodes
-        self.asset_tree.upper_leaves().for_each(|(node, key, value)| {
-            target.insert_into_map(*node, (*key).into_iter().chain(value).collect());
-        })
     }
 }

@@ -1,8 +1,4 @@
-use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, ConsumedNotes, Digest,
-    PreparedTransactionError, Program, StackInputs, TransactionInputs, TransactionScript, Word,
-};
-use crate::accounts::validate_account_seed;
+use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -10,22 +6,14 @@ use crate::accounts::validate_account_seed;
 /// A struct that contains all of the data required to execute a transaction.
 ///
 /// This includes:
-/// - account: Account that the transaction is being executed against.
-/// - account_seed: An optional account seed used to create a new account.
-/// - block_header: The header of the latest known block.
-/// - block_chain: The chain MMR associated with the latest known block.
-/// - consumed_notes: A vector of consumed notes.
-/// - tx_script: An optional transaction script.
-/// - tx_program: The transaction program.
+/// - A an executable program which defines the transaction.
+/// - An optional transaction script.
+/// - A set of inputs against which the transaction program should be executed.
 #[derive(Debug)]
 pub struct PreparedTransaction {
-    account: Account,
-    account_seed: Option<Word>,
-    block_header: BlockHeader,
-    block_chain: ChainMmr,
-    consumed_notes: ConsumedNotes,
+    program: Program,
     tx_script: Option<TransactionScript>,
-    tx_program: Program,
+    tx_inputs: TransactionInputs,
 }
 
 impl PreparedTransaction {
@@ -37,120 +25,48 @@ impl PreparedTransaction {
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
-    ) -> Result<Self, PreparedTransactionError> {
-        Self::validate_new_account_seed(&tx_inputs.account, tx_inputs.account_seed)?;
-        Ok(Self {
-            account: tx_inputs.account,
-            account_seed: tx_inputs.account_seed,
-            block_header: tx_inputs.block_header,
-            block_chain: tx_inputs.block_chain,
-            consumed_notes: ConsumedNotes::new(tx_inputs.input_notes),
-            tx_script,
-            tx_program: program,
-        })
+    ) -> Self {
+        Self { program, tx_script, tx_inputs }
     }
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the account.
+    /// Returns the transaction program.
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
+
+    /// Returns the account for this transaction.
     pub fn account(&self) -> &Account {
-        &self.account
+        self.tx_inputs.account()
     }
 
-    /// Returns the block header.
+    /// Returns the block header for this transaction.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.block_header
+        self.tx_inputs.block_header()
     }
 
-    /// Returns the block chain.
-    pub fn block_chain(&self) -> &ChainMmr {
-        &self.block_chain
-    }
-
-    /// Returns the consumed notes.
-    pub fn consumed_notes(&self) -> &ConsumedNotes {
-        &self.consumed_notes
+    /// Returns the notes to be consumed in this transaction.
+    pub fn input_notes(&self) -> &InputNotes {
+        self.tx_inputs.input_notes()
     }
 
     /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> &Option<TransactionScript> {
-        &self.tx_script
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
     }
 
-    /// Returns the transaction program.
-    pub fn tx_program(&self) -> &Program {
-        &self.tx_program
+    /// Returns a reference to the inputs for this transaction.
+    pub fn tx_inputs(&self) -> &TransactionInputs {
+        &self.tx_inputs
     }
 
-    /// Returns the stack inputs required when executing the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
-        let initial_acct_hash = if self.account.is_new() {
-            Digest::default()
-        } else {
-            self.account.hash()
-        };
-        utils::generate_stack_inputs(
-            &self.account.id(),
-            initial_acct_hash,
-            self.consumed_notes.commitment(),
-            &self.block_header,
-        )
-    }
-
-    /// Returns the advice inputs required when executing the transaction.
-    pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(
-            &self.account,
-            self.account_seed,
-            &self.block_header,
-            &self.block_chain,
-            &self.consumed_notes,
-            &self.tx_script,
-        )
-    }
-
-    /// Returns the consumed notes commitment.
-    pub fn consumed_notes_commitment(&self) -> Digest {
-        self.consumed_notes.commitment()
-    }
-
-    // HELPERS
+    // CONVERSIONS
     // --------------------------------------------------------------------------------------------
-    /// Validates that a valid account seed has been provided if the account the transaction is
-    /// being executed against is new.
-    fn validate_new_account_seed(
-        account: &Account,
-        seed: Option<Word>,
-    ) -> Result<(), PreparedTransactionError> {
-        match (account.is_new(), seed) {
-            (true, Some(seed)) => validate_account_seed(account, seed)
-                .map_err(PreparedTransactionError::InvalidAccountIdSeedError),
-            (true, None) => Err(PreparedTransactionError::AccountIdSeedNoteProvided),
-            _ => Ok(()),
-        }
-    }
 
-    // CONSUMERS
-    // --------------------------------------------------------------------------------------------
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (
-        Account,
-        BlockHeader,
-        ChainMmr,
-        ConsumedNotes,
-        Program,
-        Option<TransactionScript>,
-    ) {
-        (
-            self.account,
-            self.block_header,
-            self.block_chain,
-            self.consumed_notes,
-            self.tx_program,
-            self.tx_script,
-        )
+    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
+        (self.program, self.tx_script, self.tx_inputs)
     }
 }

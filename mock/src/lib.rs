@@ -1,10 +1,13 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use miden_lib::{assembler::assembler, memory};
+use miden_lib::transaction::{memory, TransactionKernel};
 use miden_objects::{
     accounts::Account,
-    notes::{Note, NoteVault, RecordedNote},
-    transaction::{ChainMmr, PreparedTransaction, TransactionInputs, TransactionScript},
+    notes::NoteVault,
+    transaction::{
+        ChainMmr, InputNote, InputNotes, OutputNotes, PreparedTransaction, TransactionInputs,
+        TransactionScript,
+    },
     BlockHeader, Felt, StarkField,
 };
 use vm_processor::{
@@ -64,7 +67,7 @@ where
     // mock account method for testing from root context
     adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
 
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
@@ -92,13 +95,13 @@ pub fn prepare_transaction(
     account_seed: Option<Word>,
     block_header: BlockHeader,
     chain: ChainMmr,
-    notes: Vec<RecordedNote>,
+    notes: Vec<InputNote>,
     tx_script: Option<TransactionScript>,
     code: &str,
     imports: &str,
     file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
@@ -107,13 +110,14 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    let tx_inputs = TransactionInputs {
+    let tx_inputs = TransactionInputs::new(
         account,
         account_seed,
         block_header,
-        block_chain: chain,
-        input_notes: notes,
-    };
+        chain,
+        InputNotes::new(notes).unwrap(),
+    )
+    .unwrap();
 
-    PreparedTransaction::new(program, tx_script, tx_inputs).unwrap()
+    PreparedTransaction::new(program, tx_script, tx_inputs)
 }

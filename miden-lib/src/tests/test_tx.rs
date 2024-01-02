@@ -1,4 +1,7 @@
-use miden_objects::{notes::Note, transaction::utils::generate_created_notes_commitment};
+use miden_objects::{
+    notes::Note,
+    transaction::{OutputNote, OutputNotes},
+};
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -7,8 +10,10 @@ use mock::{
     run_tx, run_within_tx_kernel,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{
+use super::{
+    build_tx_inputs, ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
+};
+use crate::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
     CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
@@ -45,13 +50,8 @@ fn test_create_note() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     // assert the number of created notes has been incremented to 1.
     assert_eq!(
@@ -169,8 +169,12 @@ fn test_get_output_notes_hash() {
     .unwrap();
 
     // compute expected output notes hash
-    let expected_output_notes_hash =
-        generate_created_notes_commitment(&[output_note_1.clone(), output_note_2.clone()]);
+    let expected_output_notes_hash = OutputNotes::new(vec![
+        OutputNote::from(output_note_1.clone()),
+        OutputNote::from(output_note_2.clone()),
+    ])
+    .unwrap()
+    .commitment();
 
     let code = format!(
         "
@@ -214,11 +218,6 @@ fn test_get_output_notes_hash() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }

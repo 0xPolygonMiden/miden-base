@@ -1,4 +1,3 @@
-use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -11,6 +10,8 @@ use miden_objects::{
     Felt, NoteError, Word,
 };
 use rand::Rng;
+
+use super::TransactionKernel;
 
 const DEFAULT_NOTE_CODE: &str = "\
 begin
@@ -76,7 +77,7 @@ impl NoteBuilder {
     }
 
     pub fn build(self) -> Result<Note, NoteError> {
-        let assembler = assembler();
+        let assembler = TransactionKernel::assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
         Note::new(note_script, &self.inputs, &self.assets, self.serial_num, self.sender, self.tag)
