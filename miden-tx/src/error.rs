@@ -1,45 +1,27 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, TransactionResultError,
-    TransactionWitnessError,
+    assembly::AssemblyError, crypto::merkle::NodeIndex, NoteError, TransactionInputError,
+    TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
 
-// TRANSACTION ERROR
-// ================================================================================================
-#[derive(Debug)]
-pub enum TransactionError {
-    TransactionCompilerError(TransactionCompilerError),
-    TransactionExecutorError(TransactionExecutorError),
-    DataStoreError(DataStoreError),
-}
-
-impl fmt::Display for TransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionError {}
-
 // TRANSACTION COMPILER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionCompilerError {
-    InvalidTransactionInputs,
-    LoadAccountFailed(AccountError),
     AccountInterfaceNotFound(AccountId),
-    ProgramIncompatibleWithAccountInterface(Digest),
-    NoteIncompatibleWithAccountInterface(Digest),
-    TxScriptIncompatibleWithAccountInterface(Digest),
-    CompileNoteScriptFailed,
-    CompileTxScriptFailed(AssemblyError),
-    CompileTxScriptFailedUnknown,
     BuildCodeBlockTableFailed(AssemblyError),
+    CompileNoteScriptFailed(AssemblyError),
+    CompileTxScriptFailed(AssemblyError),
+    LoadAccountFailed(AccountError),
+    NoteIncompatibleWithAccountInterface(Digest),
+    NoteScriptError(NoteError),
+    NoTransactionDriver,
+    TxScriptIncompatibleWithAccountInterface(Digest),
 }
 
 impl fmt::Display for TransactionCompilerError {
@@ -53,18 +35,21 @@ impl std::error::Error for TransactionCompilerError {}
 
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
     CompileTransactionScriptFailed(TransactionCompilerError),
-    CompileTransactionError(TransactionCompilerError),
-    ConstructPreparedTransactionFailed(miden_objects::TransactionError),
+    CompileTransactionFiled(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
-    ExecutedTransactionConstructionFailed(miden_objects::TransactionError),
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
+    InconsistentAccountId {
+        input_id: AccountId,
+        output_id: AccountId,
+    },
     LoadAccountFailed(TransactionCompilerError),
-    TransactionResultError(TransactionResultError),
+    InvalidTransactionOutput(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -78,11 +63,11 @@ impl std::error::Error for TransactionExecutorError {}
 
 // TRANSACTION PROVER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
-    TransactionResultError(TransactionResultError),
-    CorruptTransactionWitnessConsumedNoteData(TransactionWitnessError),
+    InvalidTransactionOutput(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionProverError {
@@ -96,6 +81,7 @@ impl std::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionVerifierError {
     TransactionVerificationFailed(VerificationError),
@@ -113,9 +99,13 @@ impl std::error::Error for TransactionVerifierError {}
 
 // DATA STORE ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum DataStoreError {
     AccountNotFound(AccountId),
+    BlockNotFound(u32),
+    InvalidTransactionInput(TransactionInputError),
+    InternalError(String),
     NoteNotFound(u32, NodeIndex),
 }
 

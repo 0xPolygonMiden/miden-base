@@ -1,9 +1,9 @@
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    errors::TransactionError,
     utils::collections::{BTreeMap, Vec},
     vm::CodeBlock,
+    TransactionScriptError,
 };
 
 // TRANSACTION SCRIPT
@@ -39,10 +39,10 @@ impl TransactionScript {
         code: ProgramAst,
         inputs: T,
         assembler: &mut Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionError> {
+    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(TransactionError::ScriptCompilationError)?;
+            .map_err(TransactionScriptError::ScriptCompilationError)?;
         Ok((
             Self {
                 code,
@@ -61,7 +61,7 @@ impl TransactionScript {
         code: ProgramAst,
         hash: Digest,
         inputs: T,
-    ) -> Result<Self, TransactionError> {
+    ) -> Result<Self, TransactionScriptError> {
         Ok(Self {
             code,
             hash,

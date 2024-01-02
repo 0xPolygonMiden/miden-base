@@ -1,6 +1,4 @@
-use super::{
-    Digest, ExecutedTransaction, Felt, Hasher, ProvenTransaction, Vec, Word, WORD_SIZE, ZERO,
-};
+use super::{Digest, ExecutedTransaction, Felt, Hasher, ProvenTransaction, Word, WORD_SIZE, ZERO};
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
@@ -52,28 +50,11 @@ impl TransactionId {
 
 impl From<&ProvenTransaction> for TransactionId {
     fn from(tx: &ProvenTransaction) -> Self {
-        // TODO: move input/output note hash computations into a more central location
-        let input_notes_hash = {
-            let mut elements: Vec<Felt> = Vec::with_capacity(tx.input_note_nullifiers().len() * 8);
-            for nullifier in tx.input_note_nullifiers().iter() {
-                elements.extend_from_slice(nullifier.as_elements());
-                elements.extend_from_slice(&Word::default());
-            }
-            Hasher::hash_elements(&elements)
-        };
-        let output_notes_hash = {
-            let mut elements: Vec<Felt> = Vec::with_capacity(tx.created_notes().len() * 8);
-            for note in tx.created_notes().iter() {
-                elements.extend_from_slice(note.note_hash().as_elements());
-                elements.extend_from_slice(&Word::from(note.metadata()));
-            }
-            Hasher::hash_elements(&elements)
-        };
         Self::new(
             tx.initial_account_hash(),
             tx.final_account_hash(),
-            input_notes_hash,
-            output_notes_hash,
+            tx.input_notes().commitment(),
+            tx.output_notes().commitment(),
         )
     }
 }
