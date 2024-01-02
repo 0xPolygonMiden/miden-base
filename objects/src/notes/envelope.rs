@@ -16,7 +16,7 @@ use super::{Digest, Felt, Note, NoteMetadata, Vec, Word};
 ///     - tag
 ///     - num assets
 ///     - ZERO
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
     note_hash: Digest,

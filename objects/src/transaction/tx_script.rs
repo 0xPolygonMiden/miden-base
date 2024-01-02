@@ -1,9 +1,9 @@
 use super::{Digest, Felt, Word};
 use crate::{
-    advice::{AdviceInputsBuilder, ToAdviceInputs},
-    assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
-    errors::TransactionError,
+    assembly::{Assembler, AssemblyContext, ProgramAst},
     utils::collections::{BTreeMap, Vec},
+    vm::CodeBlock,
+    TransactionScriptError,
 };
 
 // TRANSACTION SCRIPT
@@ -39,10 +39,10 @@ impl TransactionScript {
         code: ProgramAst,
         inputs: T,
         assembler: &mut Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionError> {
+    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(TransactionError::ScriptCompilationError)?;
+            .map_err(TransactionScriptError::ScriptCompilationError)?;
         Ok((
             Self {
                 code,
@@ -61,7 +61,7 @@ impl TransactionScript {
         code: ProgramAst,
         hash: Digest,
         inputs: T,
-    ) -> Result<Self, TransactionError> {
+    ) -> Result<Self, TransactionScriptError> {
         Ok(Self {
             code,
             hash,
@@ -85,17 +85,5 @@ impl TransactionScript {
     /// Returns a reference to the inputs.
     pub fn inputs(&self) -> &BTreeMap<Digest, Vec<Felt>> {
         &self.inputs
-    }
-}
-
-impl ToAdviceInputs for TransactionScript {
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // insert the transaction script hash into the advice stack
-        target.push_onto_stack(self.hash().as_elements());
-
-        // insert map inputs into the advice map
-        for (hash, input) in self.inputs.iter() {
-            target.insert_into_map(**hash, input.clone());
-        }
     }
 }

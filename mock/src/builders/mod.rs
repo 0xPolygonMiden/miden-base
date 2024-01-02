@@ -1,5 +1,6 @@
-use miden_lib::assembler::assembler;
 use miden_objects::{accounts::AccountCode, assembly::ModuleAst, AccountError};
+
+use super::TransactionKernel;
 
 mod account;
 mod account_id;
@@ -20,7 +21,7 @@ pub use nonfungible_asset::{NonFungibleAssetBuilder, NonFungibleAssetDetailsBuil
 pub use note::NoteBuilder;
 
 pub fn str_to_account_code(source: &str) -> Result<AccountCode, AccountError> {
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
     let account_module_ast = ModuleAst::parse(source).unwrap();
     AccountCode::new(account_module_ast, &assembler)
 }

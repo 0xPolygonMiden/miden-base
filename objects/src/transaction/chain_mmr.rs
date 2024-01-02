@@ -1,6 +1,6 @@
-use super::{AdviceInputsBuilder, Digest, ToAdviceInputs};
+use super::Digest;
 use crate::{
-    crypto::merkle::{MmrPeaks, PartialMmr},
+    crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     utils::collections::{BTreeMap, Vec},
     ChainMmrError,
 };
@@ -59,16 +59,13 @@ impl ChainMmr {
     pub fn chain_length(&self) -> usize {
         self.mmr.forest()
     }
-}
 
-impl ToAdviceInputs for &ChainMmr {
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // Add the Mmr nodes to the merkle store
-        target.add_merkle_nodes(self.mmr.inner_nodes(self.blocks.iter()));
+    // ITERATORS
+    // --------------------------------------------------------------------------------------------
 
-        // Extract Mmr accumulator
-        let peaks = self.mmr.peaks();
-
-        peaks.to_advice_inputs(target);
+    /// Returns an iterator over the inner nodes of authentication paths contained in this chain
+    /// MMR.
+    pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
+        self.mmr.inner_nodes(self.blocks.iter())
     }
 }

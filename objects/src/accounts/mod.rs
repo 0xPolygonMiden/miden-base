@@ -7,8 +7,7 @@ use super::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::{String, ToString},
     },
-    AccountError, AdviceInputsBuilder, Digest, Felt, FieldElement, Hasher, StarkField,
-    ToAdviceInputs, Word, ZERO,
+    AccountError, Digest, Felt, FieldElement, Hasher, StarkField, Word, ZERO,
 };
 
 mod account_id;
@@ -172,54 +171,6 @@ impl Account {
     /// Returns true if the account is new (i.e. it has not been initialized yet).
     pub fn is_new(&self) -> bool {
         self.nonce == ZERO
-    }
-}
-
-impl ToAdviceInputs for Account {
-    /// Pushes account data required for transaction execution into the advice inputs target.
-    ///
-    /// Pushes an array of field elements representing this account onto the advice stack.
-    /// The array (elements) is in the following format:
-    ///    elements[0]       = account id
-    ///    elements[2..3]    = padding ([Felt::ZERO; 2])
-    ///    elements[3]       = account nonce
-    ///    elements[4..8]    = account vault root
-    ///    elements[8..12]   = storage root
-    ///    elements[12..16]  = code root
-    ///
-    /// Pushes the following items into the Merkle store:
-    ///  - The Merkle nodes associated with the storage slots tree.
-    ///  - The Merkle nodes associated with the account code procedures tree.
-    ///
-    /// Pushes the following items into the advice map:
-    /// - The storage types commitment -> storage slot types vector
-    /// - The account code procedure root -> procedure leaf index
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // push core items onto the stack
-        target.push_onto_stack(&[self.id.into(), ZERO, ZERO, self.nonce]);
-        target.push_onto_stack(self.vault.commitment().as_elements());
-        target.push_onto_stack(&*self.storage.root());
-        target.push_onto_stack(self.code.root().as_elements());
-
-        // extend the merkle store with the storage items
-        target.add_merkle_nodes(self.storage.slots().inner_nodes());
-
-        // extend advice map with storage types commitment -> storage types
-        target.insert_into_map(
-            *self.storage().slot_types_commitment(),
-            self.storage.slot_types().iter().map(Felt::from).collect(),
-        );
-
-        // extend the merkle store with account code tree
-        target.add_merkle_nodes(self.code.procedure_tree().inner_nodes());
-
-        // extend advice map with (account proc root -> method tree index)
-        for (idx, leaf) in self.code.procedure_tree().leaves() {
-            target.insert_into_map(*leaf, vec![idx.into()]);
-        }
-
-        // extend the advice provider with [AccountVault] inputs
-        self.vault.to_advice_inputs(target);
     }
 }
 

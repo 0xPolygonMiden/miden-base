@@ -218,5 +218,5 @@ pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
 pub const CREATED_NOTE_VAULT_HASH_OFFSET: MemoryOffset = 3;
 pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 4;
 
-/// The maximum number of created notes that can be prodcued in a single transaction.
+/// The maximum number of created notes that can be produced in a single transaction.
 pub const MAX_NUM_CREATED_NOTES: u32 = 4096;

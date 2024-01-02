@@ -1,18 +1,20 @@
-use miden_lib::{outputs::TX_SCRIPT_ROOT_WORD_IDX, transaction::extract_account_storage_delta};
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    accounts::AccountDelta,
+    accounts::{Account, AccountDelta, AccountStorage, AccountStorageDelta, AccountStub},
     assembly::ProgramAst,
-    transaction::{TransactionInputs, TransactionOutputs, TransactionScript},
-    Felt, Word, WORD_SIZE,
+    crypto::merkle::{merkle_tree_delta, MerkleStore},
+    transaction::{TransactionInputs, TransactionScript},
+    vm::{Program, StackOutputs},
+    Felt, TransactionOutputError, Word,
 };
-use vm_core::{Program, StackOutputs, StarkField};
+use vm_processor::ExecutionOptions;
 
 use super::{
     AccountCode, AccountId, DataStore, Digest, ExecutedTransaction, NoteOrigin, NoteScript,
     PreparedTransaction, RecAdviceProvider, ScriptTarget, TransactionCompiler,
     TransactionExecutorError, TransactionHost,
 };
-use crate::{host::EventHandler, TryFromVmResult};
+use crate::host::EventHandler;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -21,18 +23,19 @@ use crate::{host::EventHandler, TryFromVmResult};
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a program using the [TransactionComplier](crate::TransactionCompiler).
+/// - Compile the transaction into a program using the [TransactionCompiler](crate::TransactionCompiler).
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
-/// The [TransactionExecutor] is generic over the [DataStore] which allows it to be used with
+/// The transaction executor is generic over the [DataStore] which allows it to be used with
 /// different data backend implementations.
 ///
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
-/// executor and produces a [ExecutedTransaction] for the transaction. The executed transaction can
-/// then be used to by the prover to generate a proof transaction execution.
+/// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
+/// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
     compiler: TransactionCompiler,
     data_store: D,
+    exec_options: ExecutionOptions,
 }
 
 impl<D: DataStore> TransactionExecutor<D> {
@@ -40,8 +43,11 @@ impl<D: DataStore> TransactionExecutor<D> {
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
-        let compiler = TransactionCompiler::new();
-        Self { compiler, data_store }
+        Self {
+            compiler: TransactionCompiler::new(),
+            data_store,
+            exec_options: ExecutionOptions::default(),
+        }
     }
 
     // STATE MUTATORS
@@ -69,9 +75,9 @@ impl<D: DataStore> TransactionExecutor<D> {
             .map_err(TransactionExecutorError::LoadAccountFailed)
     }
 
-    /// Loads the provided account interface (vector of procedure digests) into the the compiler.
+    /// Loads the provided account interface (vector of procedure digests) into the compiler.
     ///
-    /// Returns the old account interface if it previously existed.
+    /// Returns the old interface for the specified account ID if it previously existed.
     pub fn load_account_interface(
         &mut self,
         account_id: AccountId,
@@ -80,8 +86,9 @@ impl<D: DataStore> TransactionExecutor<D> {
         self.compiler.load_account_interface(account_id, procedures)
     }
 
-    /// Compiles the provided program into the [NoteScript] and checks (to the extent possible)
-    /// if a note could be executed against all accounts with the specified interfaces.
+    /// Compiles the provided program into a [NoteScript] and checks (to the extent possible) if
+    /// the specified note program could be executed against all accounts with the specified
+    /// interfaces.
     pub fn compile_note_script(
         &mut self,
         note_script_ast: ProgramAst,
@@ -134,13 +141,15 @@ impl<D: DataStore> TransactionExecutor<D> {
         let transaction =
             self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
 
-        let advice_recorder: RecAdviceProvider = transaction.advice_provider_inputs().into();
+        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(advice_recorder);
+
         let result = vm_processor::execute(
             transaction.program(),
-            transaction.stack_inputs(),
+            stack_inputs,
             &mut host,
-            Default::default(),
+            self.exec_options,
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
@@ -161,14 +170,14 @@ impl<D: DataStore> TransactionExecutor<D> {
     // --------------------------------------------------------------------------------------------
 
     /// Fetches the data required to execute the transaction from the [DataStore], compiles the
-    /// transaction into an executable program using the [TransactionComplier], and returns a
+    /// transaction into an executable program using the [TransactionCompiler], and returns a
     /// [PreparedTransaction].
     ///
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    pub(crate) fn prepare_transaction(
+    fn prepare_transaction(
         &mut self,
         account_id: AccountId,
         block_ref: u32,
@@ -184,13 +193,12 @@ impl<D: DataStore> TransactionExecutor<D> {
             .compiler
             .compile_transaction(
                 account_id,
-                &tx_inputs.input_notes,
+                tx_inputs.input_notes(),
                 tx_script.as_ref().map(|x| x.code()),
             )
-            .map_err(TransactionExecutorError::CompileTransactionError)?;
+            .map_err(TransactionExecutorError::CompileTransactionFiled)?;
 
-        PreparedTransaction::new(tx_program, tx_script, tx_inputs)
-            .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
+        Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs))
     }
 }
 
@@ -198,7 +206,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 // ================================================================================================
 
 /// Creates a new [ExecutedTransaction] from the provided data, advice provider and stack outputs.
-pub fn build_executed_transaction(
+fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
@@ -207,30 +215,28 @@ pub fn build_executed_transaction(
     event_handler: EventHandler,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     // finalize the advice recorder
-    let (advice_witness, stack, map, store) = advice_provider.finalize();
+    let (advice_witness, _, map, store) = advice_provider.finalize();
 
     // parse transaction results
-    let tx_outputs = TransactionOutputs::try_from_vm_result(&stack_outputs, &stack, &map, &store)
-        .map_err(TransactionExecutorError::TransactionResultError)?;
+    let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
+        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
     let final_account = &tx_outputs.account;
 
-    // assert the tx_script_root is consistent with the output stack
-    debug_assert_eq!(
-        (*tx_script.clone().map(|s| *s.hash()).unwrap_or_default())
-            .into_iter()
-            .rev()
-            .map(|x| x.as_int())
-            .collect::<Vec<_>>(),
-        stack_outputs.stack()
-            [TX_SCRIPT_ROOT_WORD_IDX * WORD_SIZE..(TX_SCRIPT_ROOT_WORD_IDX + 1) * WORD_SIZE]
-    );
+    let initial_account = tx_inputs.account();
 
-    let initial_account = &tx_inputs.account;
+    if initial_account.id() != final_account.id() {
+        return Err(TransactionExecutorError::InconsistentAccountId {
+            input_id: initial_account.id(),
+            output_id: final_account.id(),
+        });
+    }
+
+    // build account delta
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
     let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
-        .map_err(TransactionExecutorError::TransactionResultError)?;
+        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account.nonce() {
@@ -246,13 +252,43 @@ pub fn build_executed_transaction(
     let account_delta =
         AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
 
-    ExecutedTransaction::new(
+    Ok(ExecutedTransaction::new(
         program,
         tx_inputs,
         tx_outputs,
         account_delta,
         tx_script,
         advice_witness,
+    ))
+}
+
+/// Extracts account storage delta between the `initial_account` and `final_account_stub` from the
+/// provided `MerkleStore`
+fn extract_account_storage_delta(
+    store: &MerkleStore,
+    initial_account: &Account,
+    final_account_stub: &AccountStub,
+) -> Result<AccountStorageDelta, TransactionOutputError> {
+    // extract storage slots delta
+    let tree_delta = merkle_tree_delta(
+        initial_account.storage().root(),
+        final_account_stub.storage_root(),
+        AccountStorage::STORAGE_TREE_DEPTH,
+        store,
     )
-    .map_err(TransactionExecutorError::ExecutedTransactionConstructionFailed)
+    .map_err(TransactionOutputError::ExtractAccountStorageSlotsDeltaFailed)?;
+
+    // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
+    // the number of storage slots cannot be greater than 256
+    let cleared_items = tree_delta.cleared_slots().iter().map(|idx| *idx as u8).collect();
+    let updated_items = tree_delta
+        .updated_slots()
+        .iter()
+        .map(|(idx, value)| (*idx as u8, *value))
+        .collect();
+
+    // construct storage delta
+    let storage_delta = AccountStorageDelta { cleared_items, updated_items };
+
+    Ok(storage_delta)
 }

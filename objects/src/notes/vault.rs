@@ -92,6 +92,10 @@ impl NoteVault {
         self.assets.iter()
     }
 
+    /// Returns all assets represented as a vector of field elements.
+    ///
+    /// The vector is padded with ZEROs so that its length is a multiple of 8. This is useful
+    /// because hashing the returned elements results in the note vault commitment.
     pub fn to_padded_assets(&self) -> Vec<Felt> {
         // if we have an odd number of assets with pad with a single word.
         let padded_len = if self.assets.len() % 2 == 0 {

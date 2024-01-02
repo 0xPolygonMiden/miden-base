@@ -12,8 +12,8 @@ use mock::{
     run_tx,
 };
 
-use super::{MemAdviceProvider, ONE};
-use crate::memory::FAUCET_STORAGE_DATA_SLOT;
+use super::{build_tx_inputs, ONE};
+use crate::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
@@ -65,11 +65,8 @@ fn test_mint_fungible_asset_succeeds() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
-            .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -93,10 +90,8 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
     assert!(process.is_err());
 }
 
@@ -127,10 +122,9 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -162,10 +156,9 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -226,11 +219,8 @@ fn test_mint_non_fungible_asset_succeeds() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
-            .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -256,10 +246,9 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -286,10 +275,9 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -322,10 +310,9 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -380,11 +367,8 @@ fn test_burn_fungible_asset_succeeds() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
-            .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -408,10 +392,9 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -442,10 +425,8 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
     assert!(process.is_err());
 }
 
@@ -477,10 +458,9 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -541,11 +521,8 @@ fn test_burn_non_fungible_asset_succeeds() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
-            .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 #[test]
@@ -582,10 +559,9 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -619,10 +595,9 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -660,10 +635,9 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider);
     assert!(process.is_err());
 }
 
@@ -703,8 +677,6 @@ fn test_get_total_issuance_succeeds() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process =
-        run_tx(transaction.program().clone(), transaction.stack_inputs(), &mut advice_provider)
-            .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }

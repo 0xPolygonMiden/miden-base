@@ -1,9 +1,10 @@
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    transaction::{ChainMmr, InputNote, InputNotes, TransactionOutputs},
+    transaction::{ChainMmr, InputNote, InputNotes, TransactionWitness},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -22,7 +23,7 @@ use vm_processor::MemAdviceProvider;
 
 use super::{
     AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
-    TransactionInputs, TransactionProver, TransactionVerifier, TryFromVmResult,
+    TransactionInputs, TransactionProver, TransactionVerifier,
 };
 
 // TESTS
@@ -41,30 +42,26 @@ fn test_transaction_executor_witness() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
-    let witness = transaction_result.clone().into_witness();
+    let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
-    let mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
+    let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let mut host = TransactionHost::new(mem_advice_provider);
-    let result = vm_processor::execute(
-        witness.program(),
-        witness.get_stack_inputs(),
-        &mut host,
-        Default::default(),
-    )
-    .unwrap();
+    let result =
+        vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
+            .unwrap();
 
     let (advice_provider, _event_handler) = host.into_parts();
-    let (stack, map, store) = advice_provider.into_parts();
-
+    let (_, map, _) = advice_provider.into_parts();
     let tx_outputs =
-        TransactionOutputs::try_from_vm_result(result.stack_outputs(), &stack, &map, &store)
-            .unwrap();
-    assert_eq!(transaction_result.final_account().hash(), tx_outputs.account.hash());
-    assert_eq!(transaction_result.output_notes(), &tx_outputs.output_notes);
+        TransactionKernel::parse_transaction_outputs(result.stack_outputs(), &map.into()).unwrap();
+
+    assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
+    assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 
 #[test]
@@ -278,41 +275,14 @@ fn test_prove_witness_and_verify() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
-    let witness = transaction_result.clone().into_witness();
 
     // prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction_witness(witness).unwrap();
-
-    let verifier = TransactionVerifier::new(96);
-    assert!(verifier.verify(proven_transaction).is_ok());
-}
-
-#[test]
-fn test_prove_and_verify_with_tx_executor() {
-    let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
-
-    let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
-
-    let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
-
-    // prove the transaction with the executor
-    let prepared_transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_origins, None)
-        .unwrap();
-
-    // prove transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_prepared_transaction(prepared_transaction).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
     let verifier = TransactionVerifier::new(96);
     assert!(verifier.verify(proven_transaction).is_ok());
@@ -410,13 +380,14 @@ impl DataStore for MockDataStore {
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
-        Ok(TransactionInputs {
-            account: self.account.clone(),
-            account_seed: None,
-            block_header: self.block_header,
-            block_chain: self.block_chain.clone(),
-            input_notes: InputNotes::new(self.notes.clone()).unwrap(),
-        })
+        Ok(TransactionInputs::new(
+            self.account.clone(),
+            None,
+            self.block_header,
+            self.block_chain.clone(),
+            InputNotes::new(self.notes.clone()).unwrap(),
+        )
+        .unwrap())
     }
 
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {

@@ -1,8 +1,4 @@
-use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, Program, StackInputs,
-    TransactionInputs, TransactionScript,
-};
-use crate::TransactionError;
+use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -25,17 +21,12 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [PreparedTransaction] instantiated from the provided executable transaction
     /// program and inputs required to execute this program.
-    ///
-    /// # Returns an error if:
-    /// - For a new account, account seed is not provided or the provided seed is invalid.
-    /// - For an existing account, account seed was provided.
     pub fn new(
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
-    ) -> Result<Self, TransactionError> {
-        tx_inputs.validate_new_account_seed()?;
-        Ok(Self { program, tx_script, tx_inputs })
+    ) -> Self {
+        Self { program, tx_script, tx_inputs }
     }
 
     // ACCESSORS
@@ -46,42 +37,32 @@ impl PreparedTransaction {
         &self.program
     }
 
-    /// Returns the account.
+    /// Returns the account for this transaction.
     pub fn account(&self) -> &Account {
-        &self.tx_inputs.account
+        self.tx_inputs.account()
     }
 
-    /// Returns the block header.
+    /// Returns the block header for this transaction.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.tx_inputs.block_header
+        self.tx_inputs.block_header()
     }
 
-    /// Returns the block chain.
-    pub fn block_chain(&self) -> &ChainMmr {
-        &self.tx_inputs.block_chain
-    }
-
-    /// Returns the input notes.
+    /// Returns the notes to be consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
-        &self.tx_inputs.input_notes
+        self.tx_inputs.input_notes()
     }
 
     /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> &Option<TransactionScript> {
-        &self.tx_script
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
     }
 
-    /// Returns the stack inputs required when executing the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
-        utils::generate_stack_inputs(&self.tx_inputs)
+    /// Returns a reference to the inputs for this transaction.
+    pub fn tx_inputs(&self) -> &TransactionInputs {
+        &self.tx_inputs
     }
 
-    /// Returns the advice inputs required when executing the transaction.
-    pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
-    }
-
-    // CONSUMERS
+    // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
