@@ -5,7 +5,7 @@ use miden_objects::{
     crypto::merkle::{merkle_tree_delta, MerkleStore},
     transaction::{TransactionInputs, TransactionScript},
     vm::{Program, StackOutputs},
-    Felt, TransactionResultError, Word,
+    Felt, TransactionOutputError, Word,
 };
 use vm_processor::ExecutionOptions;
 
@@ -220,7 +220,7 @@ fn build_executed_transaction(
 
     // parse transaction results
     let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-        .map_err(TransactionExecutorError::TransactionResultError)?;
+        .map_err(TransactionExecutorError::TransactionOutputError)?;
     let final_account = &tx_outputs.account;
 
     let initial_account = &tx_inputs.account;
@@ -230,7 +230,7 @@ fn build_executed_transaction(
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
     let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
-        .map_err(TransactionExecutorError::TransactionResultError)?;
+        .map_err(TransactionExecutorError::TransactionOutputError)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account.nonce() {
@@ -263,7 +263,7 @@ fn extract_account_storage_delta(
     store: &MerkleStore,
     initial_account: &Account,
     final_account_stub: &AccountStub,
-) -> Result<AccountStorageDelta, TransactionResultError> {
+) -> Result<AccountStorageDelta, TransactionOutputError> {
     // extract storage slots delta
     let tree_delta = merkle_tree_delta(
         initial_account.storage().root(),
@@ -271,7 +271,7 @@ fn extract_account_storage_delta(
         AccountStorage::STORAGE_TREE_DEPTH,
         store,
     )
-    .map_err(TransactionResultError::ExtractAccountStorageSlotsDeltaFailed)?;
+    .map_err(TransactionOutputError::ExtractAccountStorageSlotsDeltaFailed)?;
 
     // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
     // the number of storage slots cannot be greater than 256

@@ -51,7 +51,7 @@ impl ExecutedTransaction {
         advice_witness: AdviceInputs,
     ) -> Result<Self, TransactionError> {
         // make sure account IDs are consistent across transaction inputs and outputs
-        if tx_inputs.account.id() != tx_inputs.account.id() {
+        if tx_inputs.account.id() != tx_outputs.account.id() {
             return Err(TransactionError::InconsistentAccountId {
                 input_id: tx_inputs.account.id(),
                 output_id: tx_outputs.account.id(),

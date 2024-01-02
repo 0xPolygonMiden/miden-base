@@ -1,9 +1,6 @@
 use core::fmt;
 
-use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, TransactionResultError,
-    TransactionWitnessError,
-};
+use miden_objects::{assembly::AssemblyError, crypto::merkle::NodeIndex, TransactionOutputError};
 use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
@@ -46,7 +43,7 @@ pub enum TransactionExecutorError {
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
     LoadAccountFailed(TransactionCompilerError),
-    TransactionResultError(TransactionResultError),
+    TransactionOutputError(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -63,8 +60,7 @@ impl std::error::Error for TransactionExecutorError {}
 #[derive(Debug)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
-    TransactionResultError(TransactionResultError),
-    CorruptTransactionWitnessConsumedNoteData(TransactionWitnessError),
+    TransactionOutputError(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionProverError {

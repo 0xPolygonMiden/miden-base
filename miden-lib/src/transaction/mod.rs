@@ -7,7 +7,7 @@ use miden_objects::{
         group_slice_elements,
     },
     vm::{ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionResultError, Word,
+    Digest, Felt, TransactionOutputError, Word,
 };
 use miden_stdlib::StdLibrary;
 
@@ -161,39 +161,38 @@ impl TransactionKernel {
     pub fn parse_transaction_outputs(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
-    ) -> Result<TransactionOutputs, TransactionResultError> {
+    ) -> Result<TransactionOutputs, TransactionOutputError> {
         let (final_acct_hash, output_notes_hash, _tx_script_root) = Self::parse_output_stack(stack);
 
         // --- parse final account state --------------------------------------
         let final_account_data: &[Word] = group_slice_elements(
             adv_map
                 .get(final_acct_hash)
-                .ok_or(TransactionResultError::FinalAccountDataNotFound)?,
+                .ok_or(TransactionOutputError::FinalAccountDataNotFound)?,
         );
         let account = parse_final_account_stub(final_account_data)
-            .map_err(TransactionResultError::FinalAccountStubDataInvalid)?;
+            .map_err(TransactionOutputError::FinalAccountStubDataInvalid)?;
 
         // --- parse output notes ---------------------------------------------
 
         let output_notes_data: &[Word] = group_slice_elements(
             adv_map
                 .get(output_notes_hash)
-                .ok_or(TransactionResultError::OutputNoteDataNotFound)?,
+                .ok_or(TransactionOutputError::OutputNoteDataNotFound)?,
         );
 
         let mut output_notes = Vec::new();
         let mut output_note_ptr = 0;
         while output_note_ptr < output_notes_data.len() {
             let output_note = notes_try_from_elements(&output_notes_data[output_note_ptr..])
-                .map_err(TransactionResultError::OutputNoteDataInvalid)?;
+                .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
             output_notes.push(output_note);
             output_note_ptr += memory::NOTE_MEM_SIZE as usize;
         }
 
-        let output_notes =
-            OutputNotes::new(output_notes).map_err(TransactionResultError::OutputNotesError)?;
+        let output_notes = OutputNotes::new(output_notes)?;
         if output_notes_hash != output_notes.commitment() {
-            return Err(TransactionResultError::OutputNotesCommitmentInconsistent(
+            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
                 output_notes_hash,
                 output_notes.commitment(),
             ));

@@ -60,7 +60,7 @@ impl TransactionProver {
         let (advice_provider, _event_handler) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-            .map_err(TransactionProverError::TransactionResultError)?;
+            .map_err(TransactionProverError::TransactionOutputError)?;
 
         Ok(ProvenTransaction::new(
             account_id,

@@ -36,7 +36,7 @@ impl TransactionInputs {
         match (self.account.is_new(), self.account_seed) {
             (true, Some(seed)) => validate_account_seed(&self.account, seed)
                 .map_err(TransactionError::InvalidAccountSeed),
-            (true, None) => Err(TransactionError::AccountSeedNoteProvidedForNewAccount),
+            (true, None) => Err(TransactionError::AccountSeedNotProvidedForNewAccount),
             (false, Some(_)) => Err(TransactionError::AccountSeedProvidedForExistingAccount),
             (false, None) => Ok(()),
         }
