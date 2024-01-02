@@ -1,9 +1,8 @@
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
-    crypto::merkle::{merkle_tree_delta, MerkleStore},
+    accounts::{AccountId, AccountStub},
     notes::{NoteMetadata, NoteVault},
     transaction::OutputNote,
-    AccountError, Digest, NoteError, StarkField, TransactionResultError, Word, WORD_SIZE,
+    AccountError, Digest, NoteError, StarkField, Word, WORD_SIZE,
 };
 
 use super::memory::{
@@ -42,40 +41,6 @@ pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, Accoun
     let code_root = elements[ACCT_CODE_ROOT_OFFSET as usize].into();
 
     Ok(AccountStub::new(id, nonce, vault_root, storage_root, code_root))
-}
-
-// ACCOUNT STORAGE DELTA EXTRACTOR
-// ================================================================================================
-
-/// Extracts account storage delta between the `initial_account` and `final_account_stub` from the
-/// provided `MerkleStore`
-pub fn extract_account_storage_delta(
-    store: &MerkleStore,
-    initial_account: &Account,
-    final_account_stub: &AccountStub,
-) -> Result<AccountStorageDelta, TransactionResultError> {
-    // extract storage slots delta
-    let tree_delta = merkle_tree_delta(
-        initial_account.storage().root(),
-        final_account_stub.storage_root(),
-        AccountStorage::STORAGE_TREE_DEPTH,
-        store,
-    )
-    .map_err(TransactionResultError::ExtractAccountStorageSlotsDeltaFailed)?;
-
-    // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
-    // the number of storage slots cannot be greater than 256
-    let cleared_items = tree_delta.cleared_slots().iter().map(|idx| *idx as u8).collect();
-    let updated_items = tree_delta
-        .updated_slots()
-        .iter()
-        .map(|(idx, value)| (*idx as u8, *value))
-        .collect();
-
-    // construct storage delta
-    let storage_delta = AccountStorageDelta { cleared_items, updated_items };
-
-    Ok(storage_delta)
 }
 
 // NOTES EXTRACTOR

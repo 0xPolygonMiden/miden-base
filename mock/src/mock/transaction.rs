@@ -124,13 +124,14 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         &[initial_account.clone()],
     );
 
-    let tx_inputs = TransactionInputs {
-        account: initial_account,
-        account_seed: None,
+    let tx_inputs = TransactionInputs::new(
+        initial_account,
+        None,
         block_header,
         block_chain,
-        input_notes: InputNotes::new(input_notes).unwrap(),
-    };
+        InputNotes::new(input_notes).unwrap(),
+    )
+    .unwrap();
 
     let tx_outputs = TransactionOutputs {
         account: final_account.into(),
@@ -144,7 +145,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
 
     // Executed Transaction
     ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, advice_witness)
-        .unwrap()
 }
 
 // HELPER FUNCTIONS

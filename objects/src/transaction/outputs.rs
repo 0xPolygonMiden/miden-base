@@ -9,7 +9,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    Digest, Felt, Hasher, StarkField, TransactionError, Word,
+    Digest, Felt, Hasher, StarkField, TransactionOutputError, Word,
 };
 
 // TRANSACTION OUTPUTS
@@ -89,9 +89,9 @@ impl<T: ToEnvelope> OutputNotes<T> {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<T>) -> Result<Self, TransactionError> {
+    pub fn new(notes: Vec<T>) -> Result<Self, TransactionOutputError> {
         if notes.len() > MAX_OUTPUT_NOTES_PER_TRANSACTION {
-            return Err(TransactionError::TooManyOutputNotes {
+            return Err(TransactionOutputError::TooManyOutputNotes {
                 max: MAX_OUTPUT_NOTES_PER_TRANSACTION,
                 actual: notes.len(),
             });
@@ -100,7 +100,7 @@ impl<T: ToEnvelope> OutputNotes<T> {
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
             if !seen_notes.insert(note.hash()) {
-                return Err(TransactionError::DuplicateOutputNote(note.hash()));
+                return Err(TransactionOutputError::DuplicateOutputNote(note.hash()));
             }
         }
 

@@ -26,16 +26,13 @@ pub use host::TransactionHost;
 mod prover;
 pub use prover::{ProvingOptions, TransactionProver};
 
-mod result;
-pub use result::TryFromVmResult;
-
 mod verifier;
 pub use verifier::TransactionVerifier;
 
 mod error;
 pub use error::{
-    DataStoreError, TransactionCompilerError, TransactionError, TransactionExecutorError,
-    TransactionProverError, TransactionVerifierError,
+    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
+    TransactionVerifierError,
 };
 
 #[cfg(test)]

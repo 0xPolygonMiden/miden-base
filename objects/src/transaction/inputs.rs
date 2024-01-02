@@ -9,7 +9,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    TransactionError,
+    TransactionInputError,
 };
 
 // TRANSACTION INPUTS
@@ -18,28 +18,75 @@ use crate::{
 /// Contains the data required to execute a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionInputs {
-    pub account: Account,
-    pub account_seed: Option<Word>,
-    pub block_header: BlockHeader,
-    pub block_chain: ChainMmr,
-    pub input_notes: InputNotes,
+    account: Account,
+    account_seed: Option<Word>,
+    block_header: BlockHeader,
+    block_chain: ChainMmr,
+    input_notes: InputNotes,
 }
 
 impl TransactionInputs {
-    /// Validates that a valid account seed has been provided for new accounts.
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns new [TransactionInputs] instantiated with the specified parameters.
     ///
     /// # Errors
     /// Returns an error if:
     /// - For a new account, account seed is not provided or the provided seed is invalid.
     /// - For an existing account, account seed was provided.
-    pub fn validate_new_account_seed(&self) -> Result<(), TransactionError> {
-        match (self.account.is_new(), self.account_seed) {
-            (true, Some(seed)) => validate_account_seed(&self.account, seed)
-                .map_err(TransactionError::InvalidAccountSeed),
-            (true, None) => Err(TransactionError::AccountSeedNoteProvidedForNewAccount),
-            (false, Some(_)) => Err(TransactionError::AccountSeedProvidedForExistingAccount),
+    pub fn new(
+        account: Account,
+        account_seed: Option<Word>,
+        block_header: BlockHeader,
+        block_chain: ChainMmr,
+        input_notes: InputNotes,
+    ) -> Result<Self, TransactionInputError> {
+        match (account.is_new(), account_seed) {
+            (true, Some(seed)) => validate_account_seed(&account, seed)
+                .map_err(TransactionInputError::InvalidAccountSeed),
+            (true, None) => Err(TransactionInputError::AccountSeedNotProvidedForNewAccount),
+            (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
             (false, None) => Ok(()),
-        }
+        }?;
+
+        // TODO: check if block_chain has authentication paths for all input notes
+
+        Ok(Self {
+            account,
+            account_seed,
+            block_header,
+            block_chain,
+            input_notes,
+        })
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns account against which the transaction is to be executed.
+    pub fn account(&self) -> &Account {
+        &self.account
+    }
+
+    /// For newly-created accounts, returns the account seed; for existing accounts, returns None.
+    pub fn account_seed(&self) -> Option<Word> {
+        self.account_seed
+    }
+
+    /// Returns block header for the block referenced by the transaction.
+    pub fn block_header(&self) -> &BlockHeader {
+        &self.block_header
+    }
+
+    /// Returns chain MMR containing authentication paths for all notes consumed by the
+    /// transaction.
+    pub fn block_chain(&self) -> &ChainMmr {
+        &self.block_chain
+    }
+
+    /// Returns the notes to be consumed in the transaction.
+    pub fn input_notes(&self) -> &InputNotes {
+        &self.input_notes
     }
 }
 
@@ -77,6 +124,15 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     }
 }
 
+impl From<&InputNotes> for InputNotes<Nullifier> {
+    fn from(value: &InputNotes) -> Self {
+        Self {
+            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
+            commitment: OnceCell::new(),
+        }
+    }
+}
+
 // INPUT NOTES
 // ================================================================================================
 
@@ -101,9 +157,9 @@ impl<T: ToNullifier> InputNotes<T> {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<T>) -> Result<Self, TransactionError> {
+    pub fn new(notes: Vec<T>) -> Result<Self, TransactionInputError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TRANSACTION {
-            return Err(TransactionError::TooManyInputNotes {
+            return Err(TransactionInputError::TooManyInputNotes {
                 max: MAX_INPUT_NOTES_PER_TRANSACTION,
                 actual: notes.len(),
             });
@@ -112,7 +168,7 @@ impl<T: ToNullifier> InputNotes<T> {
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
             if !seen_notes.insert(note.nullifier().inner()) {
-                return Err(TransactionError::DuplicateInputNote(note.nullifier().inner()));
+                return Err(TransactionInputError::DuplicateInputNote(note.nullifier().inner()));
             }
         }
 
@@ -167,6 +223,15 @@ impl<T: ToNullifier> PartialEq for InputNotes<T> {
 }
 
 impl<T: ToNullifier> Eq for InputNotes<T> {}
+
+impl<T: ToNullifier> Default for InputNotes<T> {
+    fn default() -> Self {
+        Self {
+            notes: Vec::new(),
+            commitment: OnceCell::new(),
+        }
+    }
+}
 
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
