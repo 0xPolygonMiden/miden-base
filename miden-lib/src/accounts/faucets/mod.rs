@@ -8,8 +8,10 @@ use miden_objects::{
     AccountError, Felt, StarkField, Word, ZERO,
 };
 
-use super::Library;
-use crate::{assembler::assembler, auth::AuthScheme};
+use super::{AuthScheme, Library, MidenLib, TransactionKernel};
+
+// FUNGIBLE FAUCET
+// ================================================================================================
 
 const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
@@ -40,13 +42,13 @@ pub fn create_basic_fungible_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
 
-    let miden = super::MidenLib::default();
+    let miden = MidenLib::default();
     let path = "miden::faucets::basic_fungible";
     let faucet_code_ast = miden
         .get_module_ast(&LibraryPath::new(path).unwrap())
         .expect("Getting module AST failed");
 
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
     let account_code = AccountCode::new(faucet_code_ast.clone(), &account_assembler)?;
 
     // First check that the metadata is valid.

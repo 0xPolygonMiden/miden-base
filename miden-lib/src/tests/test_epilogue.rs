@@ -7,12 +7,10 @@ use mock::{
 use super::{
     build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
 };
-use crate::{
+use crate::transaction::{
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
-    outputs::{
-        CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
-    },
-    transaction::ToTransactionKernelInputs,
+    ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    TX_SCRIPT_ROOT_WORD_IDX,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
@@ -59,7 +57,7 @@ fn test_epilogue() {
 
     // assert created notes commitment is correct
     assert_eq!(
-        process.stack.get_word(CREATED_NOTES_COMMITMENT_WORD_IDX),
+        process.stack.get_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX),
         executed_transaction.output_notes().commitment().as_elements()
     );
 

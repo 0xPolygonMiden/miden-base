@@ -1,10 +1,9 @@
+use core::cell::OnceCell;
+
 use super::{
-    AdviceInputs, InputNotes, OutputNotes, Program, TransactionId, TransactionInputs,
-    TransactionOutputs, TransactionScript, TransactionWitness,
-};
-use crate::{
-    accounts::{Account, AccountDelta, AccountId, AccountStub},
-    BlockHeader, TransactionError,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
+    OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
+    TransactionWitness,
 };
 
 // EXECUTED TRANSACTION
@@ -15,14 +14,14 @@ use crate::{
 /// Executed transaction serves two primary purposes:
 /// - It contains a complete description of the effects of the transaction. Specifically, it
 ///   contains all output notes created as the result of the transaction and describes all the
-///   changes make to the involved account (i.e., the account delta).
+///   changes made to the involved account (i.e., the account delta).
 /// - It contains all the information required to re-execute and prove the transaction in a
 ///   stateless manner. This includes all public transaction inputs, but also all nondeterministic
 ///   inputs that the host provided to Miden VM while executing the transaction (i.e., advice
 ///   witness).
 #[derive(Debug, Clone)]
 pub struct ExecutedTransaction {
-    id: TransactionId,
+    id: OnceCell<TransactionId>,
     program: Program,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
@@ -37,11 +36,8 @@ impl ExecutedTransaction {
 
     /// Returns a new [ExecutedTransaction] instantiated from the provided data.
     ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Input and output account IDs are not the same.
-    /// - For a new account, account seed is not provided or the provided seed is invalid.
-    /// - For an existing account, account seed was provided.
+    /// # Panics
+    /// Panics if input and output account IDs are not the same.
     pub fn new(
         program: Program,
         tx_inputs: TransactionInputs,
@@ -49,35 +45,19 @@ impl ExecutedTransaction {
         account_delta: AccountDelta,
         tx_script: Option<TransactionScript>,
         advice_witness: AdviceInputs,
-    ) -> Result<Self, TransactionError> {
+    ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
-        if tx_inputs.account.id() != tx_inputs.account.id() {
-            return Err(TransactionError::InconsistentAccountId {
-                input_id: tx_inputs.account.id(),
-                output_id: tx_outputs.account.id(),
-            });
-        }
+        assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
 
-        // if this transaction was executed against a new account, validate the account seed
-        tx_inputs.validate_new_account_seed()?;
-
-        // build transaction ID
-        let id = TransactionId::new(
-            tx_inputs.account.hash(),
-            tx_outputs.account.hash(),
-            tx_inputs.input_notes.commitment(),
-            tx_outputs.output_notes.commitment(),
-        );
-
-        Ok(Self {
-            id,
+        Self {
+            id: OnceCell::new(),
             program,
             tx_inputs,
             tx_outputs,
             account_delta,
             tx_script,
             advice_witness,
-        })
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -85,7 +65,7 @@ impl ExecutedTransaction {
 
     /// Returns a unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
-        self.id
+        *self.id.get_or_init(|| self.into())
     }
 
     /// Returns a reference the program defining this transaction.
@@ -100,7 +80,7 @@ impl ExecutedTransaction {
 
     /// Returns the description of the account before the transaction was executed.
     pub fn initial_account(&self) -> &Account {
-        &self.tx_inputs.account
+        self.tx_inputs.account()
     }
 
     /// Returns description of the account after the transaction was executed.
@@ -110,7 +90,7 @@ impl ExecutedTransaction {
 
     /// Returns the notes consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
-        &self.tx_inputs.input_notes
+        self.tx_inputs.input_notes()
     }
 
     /// Returns the notes created in this transaction.
@@ -125,7 +105,7 @@ impl ExecutedTransaction {
 
     /// Returns the block header for the block against which the transaction was executed.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.tx_inputs.block_header
+        self.tx_inputs.block_header()
     }
 
     /// Returns a description of changes between the initial and final account states.
@@ -138,19 +118,31 @@ impl ExecutedTransaction {
         &self.tx_inputs
     }
 
+    /// Returns all the data requested by the VM from the advice provider while executing the
+    /// transaction program.
+    pub fn advice_witness(&self) -> &AdviceInputs {
+        &self.advice_witness
+    }
+
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Converts this transaction into a [TransactionWitness].
-    pub fn into_witness(self) -> TransactionWitness {
-        TransactionWitness::new(
-            self.initial_account().id(),
-            self.initial_account().hash(),
-            self.block_header().hash(),
-            self.input_notes().commitment(),
-            self.tx_script().map(|s| *s.hash()),
+    /// Returns individual components of this transaction.
+    pub fn into_parts(self) -> (AccountDelta, TransactionOutputs, TransactionWitness) {
+        let tx_witness = TransactionWitness::new(
             self.program,
+            self.tx_inputs,
+            self.tx_script,
             self.advice_witness,
-        )
+        );
+
+        (self.account_delta, self.tx_outputs, tx_witness)
+    }
+}
+
+impl From<ExecutedTransaction> for TransactionWitness {
+    fn from(tx: ExecutedTransaction) -> Self {
+        let (_, _, tx_witness) = tx.into_parts();
+        tx_witness
     }
 }

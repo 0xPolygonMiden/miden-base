@@ -10,7 +10,7 @@ use mock::{
 use super::{
     build_tx_inputs, AdviceProvider, ContextId, DefaultHost, Felt, Process, ProcessState, ZERO,
 };
-use crate::memory::CURRENT_CONSUMED_NOTE_PTR;
+use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 
 #[test]
 fn test_get_sender_no_sender() {

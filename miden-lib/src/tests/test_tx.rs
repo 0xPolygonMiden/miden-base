@@ -1,4 +1,7 @@
-use miden_objects::{notes::Note, transaction::OutputNotes};
+use miden_objects::{
+    notes::Note,
+    transaction::{OutputNote, OutputNotes},
+};
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
@@ -10,7 +13,7 @@ use mock::{
 use super::{
     build_tx_inputs, ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
 };
-use crate::memory::{
+use crate::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
     CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
@@ -166,10 +169,12 @@ fn test_get_output_notes_hash() {
     .unwrap();
 
     // compute expected output notes hash
-    let expected_output_notes_hash =
-        OutputNotes::new(vec![output_note_1.clone().into(), output_note_2.clone().into()])
-            .unwrap()
-            .commitment();
+    let expected_output_notes_hash = OutputNotes::new(vec![
+        OutputNote::from(output_note_1.clone()),
+        OutputNote::from(output_note_2.clone()),
+    ])
+    .unwrap()
+    .commitment();
 
     let code = format!(
         "

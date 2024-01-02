@@ -15,7 +15,7 @@ use mock::{
 };
 
 use super::{build_tx_inputs, ContextId, Felt, ProcessState, Word, ONE, ZERO};
-use crate::memory;
+use crate::transaction::memory;
 
 #[test]
 fn test_get_balance() {
