@@ -1,9 +1,9 @@
 use super::{Digest, Felt, Word};
 use crate::{
-    advice::{AdviceInputsBuilder, ToAdviceInputs},
-    assembly::{Assembler, AssemblyContext, CodeBlock, ProgramAst},
-    errors::TransactionScriptError,
+    assembly::{Assembler, AssemblyContext, ProgramAst},
     utils::collections::{BTreeMap, Vec},
+    vm::CodeBlock,
+    TransactionScriptError,
 };
 
 // TRANSACTION SCRIPT
@@ -85,17 +85,5 @@ impl TransactionScript {
     /// Returns a reference to the inputs.
     pub fn inputs(&self) -> &BTreeMap<Digest, Vec<Felt>> {
         &self.inputs
-    }
-}
-
-impl ToAdviceInputs for TransactionScript {
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // insert the transaction script hash into the advice stack
-        target.push_onto_stack(&**self.hash());
-
-        // insert map inputs into the advice map
-        for (hash, input) in self.inputs.iter() {
-            target.insert_into_map(**hash, input.clone());
-        }
     }
 }

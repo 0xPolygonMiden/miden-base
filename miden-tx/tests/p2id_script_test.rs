@@ -90,7 +90,7 @@ fn test_p2id_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ fn test_p2id_script_multiple_assets() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------

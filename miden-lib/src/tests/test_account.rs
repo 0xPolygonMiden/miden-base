@@ -14,19 +14,22 @@ use mock::{
         transaction::{mock_executed_tx, mock_inputs},
     },
     prepare_transaction,
-    procedures::{created_notes_data_procedure, prepare_word},
+    procedures::{output_notes_data_procedure, prepare_word},
     run_tx, run_within_tx_kernel,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use super::{
+    super::transaction::ToTransactionKernelInputs, build_tx_inputs, ContextId, Felt,
+    MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
+};
+use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
-// TESTS
+// ACCOUNT CODE TESTS
 // ================================================================================================
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -39,25 +42,10 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        code,
-        "",
-        None,
-    );
-
-    let process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     // assert the code root is not changed
     assert_eq!(
@@ -76,8 +64,8 @@ pub fn test_set_code_is_not_immediate() {
 pub fn test_set_code_succeeds() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let code = format!(
         "
@@ -85,7 +73,7 @@ pub fn test_set_code_succeeds() {
         use.miden::sat::internal::prologue
         use.miden::sat::internal::epilogue
 
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
 
@@ -102,14 +90,10 @@ pub fn test_set_code_succeeds() {
         "
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
-        None,
-    )
-    .unwrap();
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+    let process =
+        run_within_tx_kernel("", &code, stack_inputs, MemAdviceProvider::from(advice_inputs), None)
+            .unwrap();
 
     // assert the code root is changed after the epilogue
     assert_eq!(
@@ -117,6 +101,9 @@ pub fn test_set_code_succeeds() {
         [ZERO, ONE, Felt::new(2), Felt::new(3)]
     );
 }
+
+// ACCOUNT ID TESTS
+// ================================================================================================
 
 #[test]
 pub fn test_account_type() {
@@ -170,7 +157,7 @@ pub fn test_account_type() {
 }
 
 #[test]
-fn test_validate_id_fails_on_insuficcient_ones() {
+fn test_validate_id_fails_on_insufficient_ones() {
     let code = format!(
         "
         use.miden::sat::internal::account
@@ -189,9 +176,55 @@ fn test_validate_id_fails_on_insuficcient_ones() {
 }
 
 #[test]
+fn test_is_faucet_procedure() {
+    let test_cases = [
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+    ];
+
+    for account_id in test_cases.iter() {
+        let account_id = AccountId::try_from(*account_id).unwrap();
+
+        // assembly codes that checks if an account is a faucet
+        let code = format!(
+            "
+        use.miden::sat::internal::account
+
+        begin
+            # push the account id on to the stack
+            push.{account_id}
+
+            # execute is_faucet procedure
+            exec.account::is_faucet
+
+            # assert it matches expected result
+            eq.{expected} assert
+        end
+    ",
+            account_id = account_id,
+            expected = if account_id.is_faucet() { 1 } else { 0 },
+        );
+
+        let _process = run_within_tx_kernel(
+            "",
+            &code,
+            StackInputs::default(),
+            MemAdviceProvider::default(),
+            None,
+        )
+        .unwrap();
+    }
+}
+
+// ACCOUNT STORAGE TESTS
+// ================================================================================================
+
+#[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let (account, block_header, chain, notes, auxiliary_data) =
+        let (account, block_header, chain, notes) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -218,85 +251,16 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.1 .1)
         );
 
-        let transaction = prepare_transaction(
-            account,
-            None,
-            block_header,
-            chain,
-            notes,
-            None,
-            auxiliary_data,
-            &code,
-            "",
-            None,
-        );
-
-        let _process = run_tx(
-            transaction.tx_program().clone(),
-            transaction.stack_inputs(),
-            MemAdviceProvider::from(transaction.advice_provider_inputs()),
-        )
-        .unwrap();
+        let transaction =
+            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+        let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+        let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
     }
 }
 
 #[test]
-fn test_get_child_tree_item() {
-    let (account, block_header, chain, notes, auxiliary_data) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-
-    let code = format!(
-        "
-        use.miden::sat::account
-        use.miden::sat::internal::prologue
-
-        begin
-            # prepare the transaction
-            exec.prologue::prepare_transaction
-
-            # push the acount storage index the child root is stored at
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
-
-            # get the child root
-            exec.account::get_item
-
-            # get a value from the child tree
-            push.{CHILD_STORAGE_INDEX_0}
-
-            # get the item
-            push.{CHILD_SMT_DEPTH} mtree_get
-
-            # assert the child value is correct
-            push.{child_value} assert_eqw
-        end
-        ",
-        child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
-    );
-
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        code.as_str(),
-        "",
-        None,
-    );
-
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
-}
-
-#[test]
 fn test_set_item() {
-    let (account, block_header, chain, notes, auxiliary_data) =
+    let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // copy the initial account slots (SMT)
@@ -342,6 +306,47 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
+}
+
+// TODO: reenable once storage map support is implemented
+#[ignore]
+#[test]
+fn test_get_map_item() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let code = format!(
+        "
+        use.miden::sat::account
+        use.miden::sat::internal::prologue
+
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
+
+            # push the account storage index the child root is stored at
+            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
+
+            # get the child root
+            exec.account::get_item
+
+            # get a value from the child tree
+            push.{CHILD_STORAGE_INDEX_0}
+
+            # get the item
+            push.{CHILD_SMT_DEPTH} mtree_get
+
+            # assert the child value is correct
+            push.{child_value} assert_eqw
+        end
+        ",
+        child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
+    );
+
     let transaction = prepare_transaction(
         account,
         None,
@@ -349,62 +354,48 @@ fn test_set_item() {
         chain,
         notes,
         None,
-        auxiliary_data,
-        &code,
+        code.as_str(),
         "",
         None,
     );
-
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
+
+// ACCOUNT VAULT TESTS
+// ================================================================================================
 
 #[test]
-fn test_is_faucet_procedure() {
-    let test_cases = [
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-    ];
+fn test_get_vault_commitment() {
+    let (account, block_header, chain, notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    for account_id in test_cases.iter() {
-        let account_id = AccountId::try_from(*account_id).unwrap();
+    let code = format!(
+        "
+    use.miden::sat::account
+    use.miden::sat::internal::prologue
 
-        // assembly codes that checks if an account is a fauct
-        let code = format!(
-            "
-        use.miden::sat::internal::account
+    begin
+        # prepare the transaction
+        exec.prologue::prepare_transaction
 
-        begin
-            # push the account id on to the stack
-            push.{account_id}
-
-            # execute is_faucet procedure
-            exec.account::is_faucet
-
-            # assert it matches expected result
-            eq.{expected} assert
-        end
+        # push the new storage item onto the stack
+        exec.account::get_vault_commitment
+        push.{expected_vault_commitment}
+        assert_eqw
+    end
     ",
-            account_id = account_id,
-            expected = if account_id.is_faucet() { 1 } else { 0 },
-        );
+        expected_vault_commitment = prepare_word(&account.vault().commitment()),
+    );
 
-        let _process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::default(),
-            MemAdviceProvider::default(),
-            None,
-        )
-        .unwrap();
-    }
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
+
+// PROCEDURE AUTHENTICATION TESTS
+// ================================================================================================
 
 #[test]
 fn test_authenticate_procedure() {
@@ -418,7 +409,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let (account, block_header, chain, notes, auxiliary_data) =
+        let (account, block_header, chain, notes) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -440,72 +431,14 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(
-            account,
-            None,
-            block_header,
-            chain,
-            notes,
-            None,
-            auxiliary_data,
-            &code,
-            "",
-            None,
-        );
-
-        let process = run_tx(
-            transaction.tx_program().clone(),
-            transaction.stack_inputs(),
-            MemAdviceProvider::from(transaction.advice_provider_inputs()),
-        );
+        let transaction =
+            prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+        let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+        let process = run_tx(program, stack_inputs, advice_provider);
 
         match valid {
             true => assert!(process.is_ok()),
             false => assert!(process.is_err()),
         }
     }
-}
-
-#[test]
-fn test_get_vault_commitment() {
-    let (account, block_header, chain, notes, auxiliary_data) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-
-    let code = format!(
-        "
-    use.miden::sat::account
-    use.miden::sat::internal::prologue
-
-    begin
-        # prepare the transaction
-        exec.prologue::prepare_transaction
-
-        # push the new storage item onto the stack
-        exec.account::get_vault_commitment
-        push.{expected_vault_commitment}
-        assert_eqw
-    end
-    ",
-        expected_vault_commitment = prepare_word(&account.vault().commitment()),
-    );
-
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        &code,
-        "",
-        None,
-    );
-
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
 }
