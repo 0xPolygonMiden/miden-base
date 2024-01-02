@@ -14,8 +14,8 @@ use mock::{
     run_tx,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
-use crate::memory;
+use super::{build_tx_inputs, ContextId, Felt, ProcessState, Word, ONE, ZERO};
+use crate::transaction::memory;
 
 #[test]
 fn test_get_balance() {
@@ -38,13 +38,8 @@ fn test_get_balance() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
@@ -72,12 +67,8 @@ fn test_get_balance_non_fungible_fails() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
     assert!(process.is_err());
 }
@@ -102,15 +93,10 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let inputs =
+    let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        inputs.program().clone(),
-        inputs.stack_inputs(),
-        MemAdviceProvider::from(inputs.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(process.stack.get(0), ONE);
 }
@@ -142,13 +128,8 @@ fn test_add_fungible_asset_success() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -188,12 +169,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
@@ -229,13 +206,8 @@ fn test_add_non_fungible_asset_success() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -276,12 +248,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
@@ -314,13 +282,8 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -359,12 +322,9 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
     assert!(process.is_err());
 }
 
@@ -395,13 +355,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -442,12 +397,8 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    );
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider);
 
     assert!(process.is_err());
     assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
@@ -481,13 +432,8 @@ fn test_remove_non_fungible_asset_success() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),

@@ -1,13 +1,12 @@
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
     transaction::{InputNotes, TransactionScript},
-    Felt, TransactionScriptError, Word,
+    Felt, NoteError, TransactionScriptError, Word,
 };
-use vm_processor::ProgramInfo;
 
 use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program, SatKernel,
-    TransactionCompilerError,
+    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program,
+    TransactionCompilerError, TransactionKernel,
 };
 
 #[cfg(test)]
@@ -33,12 +32,12 @@ pub struct TransactionCompiler {
 impl TransactionCompiler {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of the [TransactionComplier].
+    /// Returns a new [TransactionCompiler].
     pub fn new() -> TransactionCompiler {
-        let assembler = miden_lib::assembler::assembler();
+        let assembler = TransactionKernel::assembler();
 
         // compile transaction kernel main
-        let main_ast = ProgramAst::parse(SatKernel::main()).expect("main is well formed");
+        let main_ast = TransactionKernel::main().expect("main is well formed");
         let kernel_main = assembler
             .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
             .expect("main is well formed");
@@ -83,16 +82,19 @@ impl TransactionCompiler {
         note_script_ast: ProgramAst,
         target_account_proc: Vec<ScriptTarget>,
     ) -> Result<NoteScript, TransactionCompilerError> {
-        let (note_script, code_block) = NoteScript::new(note_script_ast, &self.assembler)
-            .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
+        let (note_script, code_block) =
+            NoteScript::new(note_script_ast, &self.assembler).map_err(|err| match err {
+                NoteError::ScriptCompilationError(err) => {
+                    TransactionCompilerError::CompileNoteScriptFailed(err)
+                },
+                _ => TransactionCompilerError::NoteScriptError(err),
+            })?;
         for note_target in target_account_proc.into_iter() {
             verify_program_account_compatibility(
                 &code_block,
                 &self.get_target_interface(note_target)?,
-            )
-            .map_err(|_| {
-                TransactionCompilerError::NoteIncompatibleWithAccountInterface(code_block.hash())
-            })?;
+                ScriptType::NoteScript,
+            )?;
         }
 
         Ok(note_script)
@@ -118,12 +120,11 @@ impl TransactionCompiler {
                 },
             )?;
         for target in target_account_proc.into_iter() {
-            verify_program_account_compatibility(&code_block, &self.get_target_interface(target)?)
-                .map_err(|_| {
-                    TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(
-                        code_block.hash(),
-                    )
-                })?;
+            verify_program_account_compatibility(
+                &code_block,
+                &self.get_target_interface(target)?,
+                ScriptType::TransactionScript,
+            )?;
         }
         Ok(tx_script)
     }
@@ -150,7 +151,7 @@ impl TransactionCompiler {
 
         // Transaction must contain at least one input note or a transaction script
         if notes.is_empty() && tx_script.is_none() {
-            return Err(TransactionCompilerError::InvalidTransactionInputs);
+            return Err(TransactionCompilerError::NoTransactionDriver);
         }
 
         // Create the [AssemblyContext] for compilation of notes scripts and the transaction script
@@ -197,11 +198,6 @@ impl TransactionCompiler {
         Ok(program)
     }
 
-    /// Returns a [ProgramInfo] associated with the transaction kernel program.
-    pub fn build_program_info(&self) -> ProgramInfo {
-        ProgramInfo::new(self.kernel_main.hash(), self.assembler.kernel().clone())
-    }
-
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -221,13 +217,11 @@ impl TransactionCompiler {
             let note_program = self
                 .assembler
                 .compile_in_context(recorded_note.note().script().code(), assembly_context)
-                .map_err(|_| TransactionCompilerError::CompileNoteScriptFailed)?;
-            verify_program_account_compatibility(&note_program, target_account_interface).map_err(
-                |_| {
-                    TransactionCompilerError::NoteIncompatibleWithAccountInterface(
-                        note_program.hash(),
-                    )
-                },
+                .map_err(TransactionCompilerError::CompileNoteScriptFailed)?;
+            verify_program_account_compatibility(
+                &note_program,
+                target_account_interface,
+                ScriptType::NoteScript,
             )?;
             note_programs.push(note_program);
         }
@@ -248,12 +242,11 @@ impl TransactionCompiler {
             .assembler
             .compile_in_context(tx_script, assembly_context)
             .map_err(TransactionCompilerError::CompileTxScriptFailed)?;
-        verify_program_account_compatibility(&tx_script_code_block, &target_account_interface)
-            .map_err(|_| {
-                TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(
-                    tx_script_code_block.hash(),
-                )
-            })?;
+        verify_program_account_compatibility(
+            &tx_script_code_block,
+            &target_account_interface,
+            ScriptType::TransactionScript,
+        )?;
         Ok(tx_script_code_block)
     }
 
@@ -287,14 +280,16 @@ impl Default for TransactionCompiler {
 // ------------------------------------------------------------------------------------------------
 
 /// Verifies that the provided program is compatible with the target account interface.
+///
 /// This is achieved by checking that at least one execution branch in the program is compatible
 /// with the target account interface.
 ///
 /// # Errors
-/// Returns an error if the note script is not compatible with the target account interface.
+/// Returns an error if the program is not compatible with the target account interface.
 fn verify_program_account_compatibility(
     program: &CodeBlock,
     target_account_interface: &[Digest],
+    script_type: ScriptType,
 ) -> Result<(), TransactionCompilerError> {
     // collect call branches
     let branches = collect_call_branches(program);
@@ -303,9 +298,14 @@ fn verify_program_account_compatibility(
     if !branches.iter().any(|call_targets| {
         call_targets.iter().all(|target| target_account_interface.contains(target))
     }) {
-        return Err(TransactionCompilerError::ProgramIncompatibleWithAccountInterface(
-            program.hash(),
-        ));
+        return match script_type {
+            ScriptType::NoteScript => {
+                Err(TransactionCompilerError::NoteIncompatibleWithAccountInterface(program.hash()))
+            },
+            ScriptType::TransactionScript => Err(
+                TransactionCompilerError::TxScriptIncompatibleWithAccountInterface(program.hash()),
+            ),
+        };
     }
 
     Ok(())
@@ -362,10 +362,20 @@ fn recursively_collect_call_branches(code_block: &CodeBlock, branches: &mut Vec<
 // ================================================================================================
 
 /// The [ScriptTarget] enum is used to specify the target account interface for note and
-/// transaction scripts. This is specified as an account ID (for which the interface should be
-/// fetched) or a vector of procedure digests which represents the account interface.
+/// transaction scripts.
+///
+/// This is specified as an account ID (for which the interface should be fetched) or a vector of
+/// procedure digests which represents the account interface.
 #[derive(Clone)]
 pub enum ScriptTarget {
     AccountId(AccountId),
     Procedures(Vec<Digest>),
+}
+
+// SCRIPT TYPE
+// ================================================================================================
+
+enum ScriptType {
+    NoteScript,
+    TransactionScript,
 }

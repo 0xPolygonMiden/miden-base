@@ -14,12 +14,15 @@ use mock::{
         transaction::{mock_executed_tx, mock_inputs},
     },
     prepare_transaction,
-    procedures::{created_notes_data_procedure, prepare_word},
+    procedures::{output_notes_data_procedure, prepare_word},
     run_tx, run_within_tx_kernel,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use super::{
+    super::transaction::ToTransactionKernelInputs, build_tx_inputs, ContextId, Felt,
+    MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
+};
+use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
@@ -41,13 +44,8 @@ pub fn test_set_code_is_not_immediate() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
-
-    let process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
 
     // assert the code root is not changed
     assert_eq!(
@@ -66,8 +64,8 @@ pub fn test_set_code_is_not_immediate() {
 pub fn test_set_code_succeeds() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let code = format!(
         "
@@ -75,7 +73,7 @@ pub fn test_set_code_succeeds() {
         use.miden::sat::internal::prologue
         use.miden::sat::internal::epilogue
 
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
 
@@ -92,14 +90,10 @@ pub fn test_set_code_succeeds() {
         "
     );
 
-    let process = run_within_tx_kernel(
-        "",
-        &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
-        None,
-    )
-    .unwrap();
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+    let process =
+        run_within_tx_kernel("", &code, stack_inputs, MemAdviceProvider::from(advice_inputs), None)
+            .unwrap();
 
     // assert the code root is changed after the epilogue
     assert_eq!(
@@ -259,13 +253,8 @@ fn test_get_item() {
 
         let transaction =
             prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-        let _process = run_tx(
-            transaction.program().clone(),
-            transaction.stack_inputs(),
-            MemAdviceProvider::from(transaction.advice_provider_inputs()),
-        )
-        .unwrap();
+        let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+        let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
     }
 }
 
@@ -319,13 +308,8 @@ fn test_set_item() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let _process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 // TODO: reenable once storage map support is implemented
@@ -374,13 +358,8 @@ fn test_get_map_item() {
         "",
         None,
     );
-
-    let _process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 // ACCOUNT VAULT TESTS
@@ -411,13 +390,8 @@ fn test_get_vault_commitment() {
 
     let transaction =
         prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-    let _process = run_tx(
-        transaction.program().clone(),
-        transaction.stack_inputs(),
-        MemAdviceProvider::from(transaction.advice_provider_inputs()),
-    )
-    .unwrap();
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }
 
 // PROCEDURE AUTHENTICATION TESTS
@@ -459,12 +433,8 @@ fn test_authenticate_procedure() {
 
         let transaction =
             prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-
-        let process = run_tx(
-            transaction.program().clone(),
-            transaction.stack_inputs(),
-            MemAdviceProvider::from(transaction.advice_provider_inputs()),
-        );
+        let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+        let process = run_tx(program, stack_inputs, advice_provider);
 
         match valid {
             true => assert!(process.is_ok()),

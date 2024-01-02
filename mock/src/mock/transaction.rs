@@ -1,14 +1,17 @@
-use miden_lib::assembler::assembler;
 use miden_objects::{
-    accounts::Account,
+    accounts::{Account, AccountDelta},
     notes::Note,
-    transaction::{ChainMmr, ExecutedTransaction, InputNote, InputNotes, TransactionInputs},
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
+        TransactionInputs, TransactionOutputs,
+    },
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
 };
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, Operation, Program};
 
 use super::{
+    super::TransactionKernel,
     account::{
         mock_account, mock_fungible_faucet, mock_new_account, mock_non_fungible_faucet,
         MockAccountType,
@@ -23,7 +26,7 @@ pub fn mock_inputs(
     asset_preservation: AssetPreservationStatus,
 ) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>) {
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Create an account with storage items
     let account = match account_type {
@@ -61,7 +64,7 @@ pub fn mock_inputs_with_existing(
     let auxiliary_data = AdviceInputs::default();
 
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Create an account with storage items
 
@@ -96,7 +99,7 @@ pub fn mock_inputs_with_existing(
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
     // Create assembler and assembler context
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     // Initial Account
     let initial_account = mock_account(None, Felt::ONE, None, &assembler);
@@ -106,10 +109,12 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         mock_account(None, Felt::new(2), Some(initial_account.code().clone()), &assembler);
 
     // mock notes
-    let (consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
+
+    let output_notes = output_notes.into_iter().map(OutputNote::from).collect::<Vec<_>>();
 
     // Chain data
-    let (block_chain, input_notes) = mock_chain_data(consumed_notes);
+    let (block_chain, input_notes) = mock_chain_data(input_notes);
 
     // Block header
     let block_header = mock_block_header(
@@ -119,14 +124,34 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         &[initial_account.clone()],
     );
 
-    let tx_inputs = TransactionInputs {
-        account: initial_account,
-        account_seed: None,
+    let tx_inputs = TransactionInputs::new(
+        initial_account,
+        None,
         block_header,
         block_chain,
-        input_notes: InputNotes::new(input_notes).unwrap(),
+        InputNotes::new(input_notes).unwrap(),
+    )
+    .unwrap();
+
+    let tx_outputs = TransactionOutputs {
+        account: final_account.into(),
+        output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
+    // dummy components
+    let program = build_dummy_tx_program();
+    let account_delta = AccountDelta::default();
+    let advice_witness = AdviceInputs::default();
+
     // Executed Transaction
-    ExecutedTransaction::new(tx_inputs, final_account, created_notes, None).unwrap()
+    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, advice_witness)
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn build_dummy_tx_program() -> Program {
+    let operations = vec![Operation::Push(Felt::ZERO), Operation::Drop];
+    let span = miden_objects::vm::CodeBlock::new_span(operations);
+    Program::new(span)
 }

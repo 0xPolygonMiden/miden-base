@@ -14,7 +14,7 @@ rust-version = "1.67"
 [features]
 concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
-std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "vm-core/std"]
+std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
 
@@ -22,8 +22,6 @@ testing = ["miden-objects/testing"]
 assembly = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-stdlib = { workspace = true }
-vm-core = { workspace = true }
-vm-processor = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = [

@@ -6,10 +6,6 @@ extern crate alloc;
 
 pub mod accounts;
 
-mod advice;
-use advice::AdviceInputsBuilder;
-pub use advice::{AdviceInputs, ToAdviceInputs};
-
 pub mod assets;
 pub mod notes;
 
@@ -20,9 +16,8 @@ pub mod transaction;
 
 mod errors;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, ChainMmrError, ExecutedTransactionError,
-    NoteError, PreparedTransactionError, TransactionInputsError, TransactionResultError,
-    TransactionScriptError, TransactionWitnessError,
+    AccountDeltaError, AccountError, AssetError, ChainMmrError, NoteError, TransactionInputError,
+    TransactionOutputError, TransactionScriptError,
 };
 // RE-EXPORTS
 // ================================================================================================
@@ -34,7 +29,6 @@ pub mod assembly {
         ast::{AstSerdeOptions, ModuleAst, ProgramAst},
         Assembler, AssemblyContext, AssemblyError,
     };
-    pub use vm_core::code_blocks::CodeBlock;
 }
 
 pub mod crypto {
@@ -43,11 +37,16 @@ pub mod crypto {
 
 pub mod utils {
     pub use miden_crypto::utils::{format, vec};
-    pub use vm_core::utils::{collections, string};
+    pub use vm_core::utils::{collections, group_slice_elements, string, IntoBytes};
 
     pub mod serde {
         pub use miden_crypto::utils::{
             ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         };
     }
+}
+
+pub mod vm {
+    pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
+    pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }

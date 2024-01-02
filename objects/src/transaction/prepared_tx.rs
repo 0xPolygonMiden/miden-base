@@ -1,8 +1,4 @@
-use super::{
-    utils, Account, AdviceInputs, BlockHeader, ChainMmr, InputNotes, PreparedTransactionError,
-    Program, StackInputs, TransactionInputs, TransactionScript, Word,
-};
-use crate::accounts::validate_account_seed;
+use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -29,9 +25,8 @@ impl PreparedTransaction {
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
-    ) -> Result<Self, PreparedTransactionError> {
-        validate_new_account_seed(&tx_inputs.account, tx_inputs.account_seed)?;
-        Ok(Self { program, tx_script, tx_inputs })
+    ) -> Self {
+        Self { program, tx_script, tx_inputs }
     }
 
     // ACCESSORS
@@ -42,63 +37,36 @@ impl PreparedTransaction {
         &self.program
     }
 
-    /// Returns the account.
+    /// Returns the account for this transaction.
     pub fn account(&self) -> &Account {
-        &self.tx_inputs.account
+        self.tx_inputs.account()
     }
 
-    /// Returns the block header.
+    /// Returns the block header for this transaction.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.tx_inputs.block_header
+        self.tx_inputs.block_header()
     }
 
-    /// Returns the block chain.
-    pub fn block_chain(&self) -> &ChainMmr {
-        &self.tx_inputs.block_chain
-    }
-
-    /// Returns the input notes.
+    /// Returns the notes to be consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
-        &self.tx_inputs.input_notes
+        self.tx_inputs.input_notes()
     }
 
     /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> &Option<TransactionScript> {
-        &self.tx_script
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
     }
 
-    /// Returns the stack inputs required when executing the transaction.
-    pub fn stack_inputs(&self) -> StackInputs {
-        utils::generate_stack_inputs(&self.tx_inputs)
+    /// Returns a reference to the inputs for this transaction.
+    pub fn tx_inputs(&self) -> &TransactionInputs {
+        &self.tx_inputs
     }
 
-    /// Returns the advice inputs required when executing the transaction.
-    pub fn advice_provider_inputs(&self) -> AdviceInputs {
-        utils::generate_advice_provider_inputs(&self.tx_inputs, &self.tx_script)
-    }
-
-    // CONSUMERS
+    // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
     pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
         (self.program, self.tx_script, self.tx_inputs)
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Validates that a valid account seed has been provided if the account the transaction is
-/// being executed against is new.
-fn validate_new_account_seed(
-    account: &Account,
-    seed: Option<Word>,
-) -> Result<(), PreparedTransactionError> {
-    match (account.is_new(), seed) {
-        (true, Some(seed)) => validate_account_seed(account, seed)
-            .map_err(PreparedTransactionError::InvalidAccountIdSeedError),
-        (true, None) => Err(PreparedTransactionError::AccountIdSeedNoteProvided),
-        _ => Ok(()),
     }
 }

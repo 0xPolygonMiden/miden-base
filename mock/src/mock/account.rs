@@ -1,4 +1,4 @@
-use miden_lib::memory::FAUCET_STORAGE_DATA_SLOT;
+use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::{Assembler, ModuleAst},
