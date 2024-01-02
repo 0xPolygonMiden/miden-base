@@ -67,7 +67,7 @@ impl NoteInputs {
 
 impl PartialEq for NoteInputs {
     fn eq(&self, other: &Self) -> bool {
-        let NoteInputs { inputs, hash: _hash } = self;
+        let NoteInputs { inputs, hash: _ } = self;
 
         inputs == &other.inputs
     }
