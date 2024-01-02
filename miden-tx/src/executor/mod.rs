@@ -23,7 +23,7 @@ use crate::host::EventHandler;
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a program using the [TransactionComplier](crate::TransactionCompiler).
+/// - Compile the transaction into a program using the [TransactionCompiler](crate::TransactionCompiler).
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The transaction executor is generic over the [DataStore] which allows it to be used with
@@ -170,7 +170,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     // --------------------------------------------------------------------------------------------
 
     /// Fetches the data required to execute the transaction from the [DataStore], compiles the
-    /// transaction into an executable program using the [TransactionComplier], and returns a
+    /// transaction into an executable program using the [TransactionCompiler], and returns a
     /// [PreparedTransaction].
     ///
     /// # Errors:
@@ -219,7 +219,7 @@ fn build_executed_transaction(
 
     // parse transaction results
     let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-        .map_err(TransactionExecutorError::OutputConstructionFailed)?;
+        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
     let final_account = &tx_outputs.account;
 
     let initial_account = tx_inputs.account();
@@ -236,7 +236,7 @@ fn build_executed_transaction(
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
     let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
-        .map_err(TransactionExecutorError::OutputConstructionFailed)?;
+        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account.nonce() {

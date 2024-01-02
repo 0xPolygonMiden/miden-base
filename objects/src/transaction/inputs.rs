@@ -49,6 +49,8 @@ impl TransactionInputs {
             (false, None) => Ok(()),
         }?;
 
+        // TODO: check if block_chain has authentication paths for all input notes
+
         Ok(Self {
             account,
             account_seed,

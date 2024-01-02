@@ -1,7 +1,8 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, NoteError, TransactionOutputError,
+    assembly::AssemblyError, crypto::merkle::NodeIndex, NoteError, TransactionInputError,
+    TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
@@ -9,6 +10,7 @@ use super::{AccountError, AccountId, Digest, ExecutionError};
 
 // TRANSACTION COMPILER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionCompilerError {
     AccountInterfaceNotFound(AccountId),
@@ -33,6 +35,7 @@ impl std::error::Error for TransactionCompilerError {}
 
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
@@ -46,7 +49,7 @@ pub enum TransactionExecutorError {
         output_id: AccountId,
     },
     LoadAccountFailed(TransactionCompilerError),
-    OutputConstructionFailed(TransactionOutputError),
+    InvalidTransactionOutput(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -60,10 +63,11 @@ impl std::error::Error for TransactionExecutorError {}
 
 // TRANSACTION PROVER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
-    OutputConstructionFailed(TransactionOutputError),
+    InvalidTransactionOutput(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionProverError {
@@ -77,6 +81,7 @@ impl std::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum TransactionVerifierError {
     TransactionVerificationFailed(VerificationError),
@@ -94,9 +99,13 @@ impl std::error::Error for TransactionVerifierError {}
 
 // DATA STORE ERROR
 // ================================================================================================
+
 #[derive(Debug)]
 pub enum DataStoreError {
     AccountNotFound(AccountId),
+    BlockNotFound(u32),
+    InvalidTransactionInput(TransactionInputError),
+    InternalError(String),
     NoteNotFound(u32, NodeIndex),
 }
 
