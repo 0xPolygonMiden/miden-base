@@ -153,10 +153,7 @@ impl Deserializable for AccountStorageDelta {
             updated_items.push((idx, value));
         }
 
-        Ok(Self {
-            cleared_items,
-            updated_items,
-        })
+        Ok(Self { cleared_items, updated_items })
     }
 }
 

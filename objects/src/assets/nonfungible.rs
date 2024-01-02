@@ -1,8 +1,9 @@
+use core::fmt;
+
 use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, StarkField, ToString, Vec,
     Word,
 };
-use core::fmt;
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -176,10 +177,7 @@ impl NonFungibleAssetDetails {
             return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
         }
 
-        Ok(Self {
-            faucet_id,
-            asset_data,
-        })
+        Ok(Self { faucet_id, asset_data })
     }
 
     /// Returns ID of the faucet which issued this asset.

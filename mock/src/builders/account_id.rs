@@ -1,5 +1,3 @@
-use crate::builders::{str_to_accountcode, AccountBuilderError};
-use crate::constants::DEFAULT_ACCOUNT_CODE;
 use miden_objects::{
     accounts::{AccountId, AccountType},
     utils::string::{String, ToString},
@@ -7,7 +5,12 @@ use miden_objects::{
 };
 use rand::Rng;
 
-/// Builder for an `AccountId`, the builder can be configured and used multipled times.
+use crate::{
+    builders::{str_to_account_code, AccountBuilderError},
+    constants::DEFAULT_ACCOUNT_CODE,
+};
+
+/// Builder for an `AccountId`, the builder can be configured and used multiple times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountIdBuilder<T> {
@@ -63,7 +66,7 @@ impl<T: Rng> AccountIdBuilder<T> {
     }
 
     pub fn with_seed(&mut self, seed: Word) -> Result<AccountId, AccountBuilderError> {
-        let code = str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+        let code = str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         let code_root = code.root();
 
         let account_id = AccountId::new(seed, code_root, self.storage_root)
@@ -95,7 +98,7 @@ pub fn accountid_build_details<T: Rng>(
     storage_root: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
-    let code = str_to_accountcode(code).map_err(AccountBuilderError::AccountError)?;
+    let code = str_to_account_code(code).map_err(AccountBuilderError::AccountError)?;
     let code_root = code.root();
     let seed =
         AccountId::get_account_seed(init_seed, account_type, on_chain, code_root, storage_root)

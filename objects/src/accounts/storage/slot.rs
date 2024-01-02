@@ -14,6 +14,7 @@ const DEFAULT_SLOT_TYPE: StorageSlotType = StorageSlotType::Value { value_arity:
 // ================================================================================================
 
 /// An object that represents the type of a storage slot.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StorageSlotType {
     /// Represents a slot that contains a value with the specified arity.
@@ -39,7 +40,7 @@ impl StorageSlotType {
                 *value_arity < MAX_VALUE_ARITY
                     && *depth >= MIN_ARRAY_DEPTH
                     && *depth <= MAX_ARRAY_DEPTH
-            }
+            },
         }
     }
 
@@ -75,10 +76,7 @@ impl TryFrom<u16> for StorageSlotType {
         match data_type {
             0 => Ok(StorageSlotType::Value { value_arity }),
             1 => Ok(StorageSlotType::Map { value_arity }),
-            2..=MAX_ARRAY_DEPTH => Ok(StorageSlotType::Array {
-                depth: data_type,
-                value_arity,
-            }),
+            2..=MAX_ARRAY_DEPTH => Ok(StorageSlotType::Array { depth: data_type, value_arity }),
             _ => Err("invalid slot data type".to_string()),
         }
     }
@@ -99,7 +97,7 @@ impl From<StorageSlotType> for u16 {
             StorageSlotType::Map { value_arity } => ((value_arity as u16) << 8) | 1_u16,
             StorageSlotType::Array { depth, value_arity } => {
                 ((value_arity as u16) << 8) | (depth as u16)
-            }
+            },
         }
     }
 }
@@ -121,15 +119,15 @@ impl From<StorageSlotType> for Felt {
             StorageSlotType::Value { value_arity } => {
                 let type_value = (value_arity as u64) << 32;
                 Felt::from(type_value)
-            }
+            },
             StorageSlotType::Map { value_arity } => {
                 let type_value = ((value_arity as u64) << 32) | 1_u64;
                 Felt::from(type_value)
-            }
+            },
             StorageSlotType::Array { depth, value_arity } => {
                 let type_value = ((value_arity as u64) << 32) | (depth as u64);
                 Felt::from(type_value)
-            }
+            },
         }
     }
 }

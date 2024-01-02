@@ -1,10 +1,12 @@
-use super::{AccountError, AccountId, Digest, ExecutionError, TransactionResultError};
 use core::fmt;
+
 use miden_objects::{
     assembly::AssemblyError, crypto::merkle::NodeIndex, PreparedTransactionError,
     TransactionWitnessError,
 };
 use miden_verifier::VerificationError;
+
+use super::{AccountError, AccountId, Digest, ExecutionError, TransactionResultError};
 
 // TRANSACTION ERROR
 // ================================================================================================

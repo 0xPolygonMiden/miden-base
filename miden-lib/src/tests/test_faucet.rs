@@ -1,5 +1,3 @@
-use super::{MemAdviceProvider, ONE};
-use crate::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::assets::FungibleAsset;
 use mock::{
     constants::{
@@ -13,6 +11,9 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
+
+use super::{MemAdviceProvider, ONE};
+use crate::memory::FAUCET_STORAGE_DATA_SLOT;
 
 #[test]
 fn test_mint_fungible_asset_succeeds() {

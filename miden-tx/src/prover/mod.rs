@@ -1,10 +1,12 @@
-use super::{TransactionHost, TransactionProverError};
-use crate::TryFromVmResult;
-use miden_objects::transaction::{CreatedNotes, FinalAccountStub};
-use miden_objects::transaction::{PreparedTransaction, ProvenTransaction, TransactionWitness};
+use miden_objects::transaction::{
+    CreatedNotes, FinalAccountStub, PreparedTransaction, ProvenTransaction, TransactionWitness,
+};
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
+
+use super::{TransactionHost, TransactionProverError};
+use crate::TryFromVmResult;
 
 /// The [TransactionProver] is a stateless component which is responsible for proving transactions.
 ///

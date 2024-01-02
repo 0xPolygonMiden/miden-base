@@ -1,3 +1,8 @@
+use core::fmt;
+
+use assembly::AssemblyError;
+use vm_processor::DeserializationError;
+
 use super::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
@@ -5,9 +10,6 @@ use super::{
     utils::string::String,
     Digest, Word,
 };
-use assembly::AssemblyError;
-use core::fmt;
-use vm_processor::DeserializationError;
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -16,10 +18,7 @@ use vm_processor::DeserializationError;
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures {
-        max: usize,
-        actual: usize,
-    },
+    AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
     AddFungibleAssetBalanceError(AssetError),
@@ -32,28 +31,16 @@ pub enum AccountError {
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
-    InconsistentAccountIdSeed {
-        expected: AccountId,
-        actual: AccountId,
-    },
+    InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
     NonceMustBeMonotonicallyIncreasing(u64, u64),
     NonFungibleAssetNotFound(NonFungibleAsset),
     NotAFungibleFaucetId(AccountId),
     NotANonFungibleAsset(Asset),
-    SeedDigestTooFewTrailingZeros {
-        expected: u32,
-        actual: u32,
-    },
+    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     SetStoreNodeFailed(MerkleError),
     StorageArrayRequiresMoreThanOneElement,
-    StorageArrayTooLong {
-        actual: usize,
-        max: usize,
-    },
-    StorageSlotArrayTooSmall {
-        actual: u8,
-        min: u8,
-    },
+    StorageArrayTooLong { actual: usize, max: usize },
+    StorageSlotArrayTooSmall { actual: u8, min: u8 },
     StorageSlotIsReserved(u8),
     StubDataIncorrectLength(usize, usize),
     SubtractFungibleAssetBalanceError(AssetError),
@@ -264,18 +251,12 @@ impl std::error::Error for NoteError {}
 
 #[derive(Debug, Clone)]
 pub enum ChainMmrError {
-    BlockNumTooBig {
-        chain_length: usize,
-        block_num: usize,
-    },
+    BlockNumTooBig { chain_length: usize, block_num: usize },
 }
 
 impl ChainMmrError {
     pub fn block_num_too_big(chain_length: usize, block_num: usize) -> Self {
-        Self::BlockNumTooBig {
-            chain_length,
-            block_num,
-        }
+        Self::BlockNumTooBig { chain_length, block_num }
     }
 }
 
@@ -301,7 +282,7 @@ impl fmt::Display for TransactionScriptError {
         match self {
             Self::ScriptCompilationError(err) => {
                 write!(f, "transaction script compilation error: {}", err)
-            }
+            },
         }
     }
 }

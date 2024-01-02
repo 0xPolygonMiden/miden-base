@@ -93,13 +93,7 @@ impl Account {
         code: AccountCode,
         nonce: Felt,
     ) -> Self {
-        Self {
-            id,
-            vault,
-            storage,
-            code,
-            nonce,
-        }
+        Self { id, vault, storage, code, nonce }
     }
 
     // PUBLIC ACCESSORS

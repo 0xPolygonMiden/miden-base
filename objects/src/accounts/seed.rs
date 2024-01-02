@@ -1,5 +1,3 @@
-use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, Vec, Word};
-
 #[cfg(feature = "concurrent")]
 use std::{
     sync::{
@@ -8,6 +6,8 @@ use std::{
     },
     thread::{self, spawn},
 };
+
+use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, Vec, Word};
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ pub fn get_account_seed_inner(
         // check if the seed satisfies the specified account type
         if AccountId::validate_seed_digest(&current_digest).is_ok() {
             // `validate_seed_digest` already validated it
-            let account_id = unsafe { AccountId::new_unchecked(current_digest[0]) };
+            let account_id = AccountId::new_unchecked(current_digest[0]);
             if account_id.account_type() == account_type && account_id.is_on_chain() == on_chain {
                 #[cfg(feature = "log")]
                 log.done(current_digest, current_seed, account_id);
@@ -161,12 +161,13 @@ pub fn get_account_seed(
 
 #[cfg(feature = "log")]
 mod log {
+    use assembly::utils::to_hex;
+
     use super::{
         super::{digest_pow, Digest, FieldElement, Word},
         AccountId, AccountType,
     };
     use crate::utils::string::String;
-    use assembly::utils::to_hex;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.
     pub struct Log {
@@ -202,12 +203,7 @@ mod log {
                 on_chain,
             );
 
-            Self {
-                digest,
-                seed,
-                count: 0,
-                pow: 0,
-            }
+            Self { digest, seed, count: 0, pow: 0 }
         }
 
         pub fn iteration(&mut self, digest: Digest, seed: Word) {

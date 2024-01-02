@@ -1,8 +1,3 @@
-use super::mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet};
-pub use super::mock::account::{
-    ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-    ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
-};
 use miden_lib::assembler::assembler;
 use miden_objects::{
     accounts::{AccountId, AccountType, SlotItem, StorageSlotType},
@@ -10,6 +5,12 @@ use miden_objects::{
     Felt, FieldElement, Word, ZERO,
 };
 use vm_processor::AdviceInputs;
+
+use super::mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet};
+pub use super::mock::account::{
+    ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
+    ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
+};
 
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
 

@@ -156,7 +156,7 @@ fn test_send_asset_via_wallet() {
         ",
             recipient = prepare_word(&recipient),
             tag = tag,
-            asset = prepare_word(&fungible_asset_1.try_into().unwrap())
+            asset = prepare_word(&fungible_asset_1.into())
         )
         .as_str(),
     )
@@ -179,7 +179,7 @@ fn test_send_asset_via_wallet() {
     // vault delta
     let sender_account_after: Account = Account::new(
         data_store.account.id(),
-        AccountVault::new(&vec![]).unwrap(),
+        AccountVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),

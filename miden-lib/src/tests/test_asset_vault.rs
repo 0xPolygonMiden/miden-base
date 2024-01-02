@@ -1,11 +1,8 @@
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
-use crate::memory;
 use miden_objects::{
-    accounts::AccountId,
-    assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
+    accounts::{AccountId, AccountVault},
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     StarkField,
 };
-use miden_objects::{accounts::AccountVault, assets::FungibleAsset};
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -16,6 +13,9 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
+use crate::memory;
 
 #[test]
 fn test_get_balance() {

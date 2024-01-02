@@ -44,10 +44,7 @@ impl NoteInputs {
         // compute hash from padded inputs.
         let hash = Hasher::hash_elements(&padded_inputs);
 
-        Ok(Self {
-            inputs: padded_inputs,
-            hash,
-        })
+        Ok(Self { inputs: padded_inputs, hash })
     }
 
     // PUBLIC ACCESSORS

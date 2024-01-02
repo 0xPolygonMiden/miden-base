@@ -1,5 +1,3 @@
-use super::Library;
-use crate::{assembler::assembler, auth::AuthScheme};
 use assembly::LibraryPath;
 use miden_objects::{
     accounts::{
@@ -9,6 +7,9 @@ use miden_objects::{
     utils::{string::ToString, vec},
     AccountError, Felt, StarkField, Word, ZERO,
 };
+
+use super::Library;
+use crate::{assembler::assembler, auth::AuthScheme};
 
 const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;

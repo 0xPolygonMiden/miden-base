@@ -4,20 +4,73 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened, repoened, synchronize]
+    types: [opened, reopened, synchronize]
 
 jobs:
+  rustfmt:
+    name: rustfmt ${{matrix.toolchain}} on ${{matrix.os}}
+    runs-on: ${{matrix.os}}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [nightly]
+        os: [ubuntu]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal Rust with rustfmt
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{matrix.toolchain}}
+          components: rustfmt
+          override: true
+      - name: fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: clippy ${{matrix.toolchain}} on ${{matrix.os}}
+    runs-on: ${{matrix.os}}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [nightly]
+        os: [ubuntu]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install minimal Rust with clippy
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{matrix.toolchain}}
+          components: clippy
+          override: true
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets -- -D clippy::all -D warnings
+      - name: Clippy all features
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets --all-features -- -D clippy::all -D warnings
+
   test:
-    name: Test Rust ${{matrix.toolchain}} on ${{matrix.os}}
+    name: test ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
     runs-on: ${{matrix.os}}-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
+        args: [--release --features testing]
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@main
-      - name: Install rust
+      - uses: actions/checkout@v4
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{matrix.toolchain}}
@@ -28,56 +81,18 @@ jobs:
           RUSTFLAGS: -C debug-assertions
         with:
           command: test
-          args: --release --features testing
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@main
-      - name: Install minimal stable with clippy
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: clippy
-          override: true
-
-      - name: Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all -- -D clippy::all -D warnings
-
-  rustfmt:
-    name: rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@main
-      - name: Install minimal stable with rustfmt
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: rustfmt
-          override: true
-
-      - name: rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+          args: ${{matrix.args}}
 
   no-std:
-    name: no-std
+    name: build ${{matrix.toolchain}} no-std for wasm32-unknown-unknown 
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
     steps:
-      - uses: actions/checkout@main
-      - name: Install rust
+      - uses: actions/checkout@v4
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{matrix.toolchain}}
@@ -87,4 +102,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --verbose --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock
+          args: --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock

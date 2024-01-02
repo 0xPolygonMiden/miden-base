@@ -35,12 +35,10 @@ fn test_p2id_script() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
+        get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let p2id_script = Script::P2ID {
-        target: target_account_id,
-    };
+    let p2id_script = Script::P2ID { target: target_account_id };
     let note = create_note(
         p2id_script,
         vec![fungible_asset],
@@ -63,16 +61,13 @@ fn test_p2id_script() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+        "
         use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
         end
-        "
-        )
-        .as_str(),
+        ",
     )
     .unwrap();
     let tx_script_target = executor
@@ -91,7 +86,7 @@ fn test_p2id_script() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&vec![fungible_asset]).unwrap(),
+        AccountVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -105,11 +100,8 @@ fn test_p2id_script() {
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
-    let malicious_account = get_account_with_default_account_code(
-        malicious_account_id,
-        malicious_pub_key.clone(),
-        None,
-    );
+    let malicious_account =
+        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);
@@ -160,12 +152,10 @@ fn test_p2id_script_multiple_assets() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key.clone(), None);
+        get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let p2id_script = Script::P2ID {
-        target: target_account_id,
-    };
+    let p2id_script = Script::P2ID { target: target_account_id };
     let note = create_note(
         p2id_script,
         vec![fungible_asset_1, fungible_asset_2],
@@ -188,16 +178,13 @@ fn test_p2id_script_multiple_assets() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+        "
         use.miden::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
         end
-        "
-        )
-        .as_str(),
+        ",
     )
     .unwrap();
     let tx_script_target = executor
@@ -216,7 +203,7 @@ fn test_p2id_script_multiple_assets() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&vec![fungible_asset_1, fungible_asset_2]).unwrap(),
+        AccountVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -230,11 +217,8 @@ fn test_p2id_script_multiple_assets() {
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
-    let malicious_account = get_account_with_default_account_code(
-        malicious_account_id,
-        malicious_pub_key.clone(),
-        None,
-    );
+    let malicious_account =
+        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);

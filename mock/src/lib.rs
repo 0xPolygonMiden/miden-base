@@ -1,3 +1,5 @@
+use std::{fs::File, io::Read, path::PathBuf};
+
 use miden_lib::{assembler::assembler, memory};
 use miden_objects::{
     accounts::Account,
@@ -5,7 +7,6 @@ use miden_objects::{
     transaction::{ChainMmr, PreparedTransaction, TransactionScript},
     BlockHeader, Felt, StarkField,
 };
-use std::{fs::File, io::Read, path::PathBuf};
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program,
     StackInputs, Word,

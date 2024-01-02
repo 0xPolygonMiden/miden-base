@@ -1,8 +1,9 @@
+use assembly::ast::AstSerdeOptions;
+
 use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
-use assembly::ast::AstSerdeOptions;
 
 // CONSTANTS
 // ================================================================================================
@@ -24,13 +25,7 @@ impl NoteScript {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
             .map_err(NoteError::ScriptCompilationError)?;
-        Ok((
-            Self {
-                hash: code_block.hash(),
-                code,
-            },
-            code_block,
-        ))
+        Ok((Self { hash: code_block.hash(), code }, code_block))
     }
 
     pub fn hash(&self) -> Digest {

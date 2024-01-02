@@ -1,3 +1,5 @@
+use core::fmt;
+
 use miden_crypto::utils::{ByteReader, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
@@ -6,12 +8,12 @@ use super::{
     ToString, Vec, Word,
 };
 use crate::utils::string::String;
-use core::fmt;
 
 // ACCOUNT ID
 // ================================================================================================
 
 /// Specifies the account type.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountType {
     FungibleFaucet,

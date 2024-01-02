@@ -1,8 +1,3 @@
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
-};
 use miden_objects::{notes::Note, transaction::utils::generate_created_notes_commitment};
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -10,6 +5,12 @@ use mock::{
     prepare_transaction,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel,
+};
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
 
 #[test]
@@ -208,12 +209,12 @@ fn test_get_output_notes_hash() {
         push.{expected} assert_eqw
     end
     ",
-        recipient_1 = prepare_word(&*output_note_1.recipient()),
+        recipient_1 = prepare_word(&output_note_1.recipient()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
             **output_note_1.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&*output_note_2.recipient()),
+        recipient_2 = prepare_word(&output_note_2.recipient()),
         tag_2 = output_note_2.metadata().tag(),
         asset_2 = prepare_word(&Word::from(
             **output_note_2.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()

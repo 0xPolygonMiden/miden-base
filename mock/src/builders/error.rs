@@ -1,4 +1,5 @@
 use core::fmt::Display;
+
 use miden_objects::{crypto::merkle::MerkleError, AccountError};
 
 #[derive(Debug)]

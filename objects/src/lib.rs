@@ -24,10 +24,8 @@ pub use errors::{
     NoteError, PreparedTransactionError, TransactionResultError, TransactionScriptError,
     TransactionWitnessError,
 };
-
 // RE-EXPORTS
 // ================================================================================================
-
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 

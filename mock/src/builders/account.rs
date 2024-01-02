@@ -1,7 +1,3 @@
-use crate::{
-    builders::{str_to_accountcode, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
-    constants::DEFAULT_ACCOUNT_CODE,
-};
 use miden_objects::{
     accounts::{Account, AccountStorage, AccountType, AccountVault, SlotItem},
     assets::Asset,
@@ -12,6 +8,11 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use rand::Rng;
+
+use crate::{
+    builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
+    constants::DEFAULT_ACCOUNT_CODE,
+};
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each
 /// account needs a unique builder.
@@ -85,7 +86,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.build()?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -97,7 +98,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -121,7 +122,7 @@ impl<T: Rng> AccountBuilder<T> {
         self.account_id_builder.storage_root(storage.root());
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
-            str_to_accountcode(&self.code).map_err(AccountBuilderError::AccountError)?;
+            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
     }
 }

@@ -1,12 +1,5 @@
-use super::{
-    block::mock_block_header,
-    builders::{
-        accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuilder,
-        FungibleAssetBuilder, NonFungibleAssetBuilder,
-    },
-    constants::DEFAULT_ACCOUNT_CODE,
-};
 use core::fmt;
+
 use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
@@ -17,6 +10,15 @@ use miden_objects::{
     BlockHeader, Digest, Felt, FieldElement, StarkField, Word,
 };
 use rand::{Rng, SeedableRng};
+
+use super::{
+    block::mock_block_header,
+    builders::{
+        accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuilder,
+        FungibleAssetBuilder, NonFungibleAssetBuilder,
+    },
+    constants::DEFAULT_ACCOUNT_CODE,
+};
 
 /// Initial timestamp value
 const TIMESTAMP_START: Felt = Felt::new(1693348223);

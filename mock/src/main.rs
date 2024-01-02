@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write, path::PathBuf, time::Instant};
+
 use clap::Parser;
 use miden_mock::{
     constants::DEFAULT_ACCOUNT_CODE,
@@ -6,7 +8,6 @@ use miden_mock::{
 use miden_objects::{Digest, FieldElement, Word};
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
-use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -141,7 +142,7 @@ fn seed_to_word(seed: &str) -> Word {
 
 #[cfg(test)]
 mod test {
-    use miden_mock::chain::{from_file, MockChain};
+    use miden_mock::mock::chain::{from_file, MockChain};
     use rand_pcg::Pcg64;
 
     #[test]

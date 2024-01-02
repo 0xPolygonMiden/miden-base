@@ -5,8 +5,8 @@ use crate::utils::string::String;
 pub struct TokenSymbol(Felt);
 
 impl TokenSymbol {
-    pub const MAX_SYMBOL_LENGHT: usize = 6;
-    pub const MAX_ENCODED_VALUE: u64 = 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGHT as u32);
+    pub const MAX_SYMBOL_LENGTH: usize = 6;
+    pub const MAX_ENCODED_VALUE: u64 = 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGTH as u32);
 
     pub fn new(symbol: &str) -> Result<Self, AssetError> {
         let felt = encode_symbol_to_felt(symbol)?;
@@ -49,7 +49,7 @@ impl TryFrom<Felt> for TokenSymbol {
 // Utils to encode and decode the token symbol as a Felt. Token Symbols can consists of up to 6 characters
 // , e.g., A = 0, ...
 fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
-    if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGHT {
+    if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGTH {
         return Err(AssetError::TokenSymbolError(
             "Token symbol must be between 1 and 6 characters long.".to_string(),
         ));
@@ -71,7 +71,7 @@ fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
 
 fn decode_felt_to_symbol(encoded_felt: Felt) -> String {
     let encoded_value = encoded_felt.as_int();
-    assert!(encoded_value < 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGHT as u32));
+    assert!(encoded_value < 26u64.pow(TokenSymbol::MAX_SYMBOL_LENGTH as u32));
 
     let mut decoded_string = String::new();
     let mut remaining_value = encoded_value;
@@ -112,6 +112,6 @@ fn test_token_symbol_decoding_encoding() {
     let symbol = "ABCDEF";
     let token_symbol = TokenSymbol::try_from(symbol);
     assert!(token_symbol.is_ok());
-    let token_symbol_felt: Felt = TokenSymbol::from(token_symbol.unwrap()).into();
+    let token_symbol_felt: Felt = token_symbol.unwrap().into();
     assert_eq!(token_symbol_felt, encode_symbol_to_felt(symbol).unwrap());
 }

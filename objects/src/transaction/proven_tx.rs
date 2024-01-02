@@ -1,7 +1,8 @@
-use super::{AccountId, Digest, NoteEnvelope, Nullifier, TransactionId, Vec};
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
 use vm_processor::DeserializationError;
+
+use super::{AccountId, Digest, NoteEnvelope, Nullifier, TransactionId, Vec};
 
 /// Resultant object of executing and proving a transaction. It contains the minimal
 /// amount of data needed to verify that the transaction was executed correctly.
@@ -83,6 +84,7 @@ impl ProvenTransaction {
     pub fn created_notes(&self) -> &[NoteEnvelope] {
         &self.created_notes
     }
+
     /// Returns the script root of the transaction.
     pub fn tx_script_root(&self) -> Option<Digest> {
         self.tx_script_root

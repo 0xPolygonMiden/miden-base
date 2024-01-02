@@ -31,7 +31,7 @@ impl EventHandler {
             Event::AddAssetToAccountVault => self.acct_vault_delta_handler.add_asset(process),
             Event::RemoveAssetFromAccountVault => {
                 self.acct_vault_delta_handler.remove_asset(process)
-            }
+            },
         }
     }
 

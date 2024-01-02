@@ -1,12 +1,13 @@
-use crate::memory::{
-    ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
-    ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
-};
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountStorageDelta, AccountStub},
     crypto::merkle::{merkle_tree_delta, MerkleStore},
     transaction::FinalAccountStub,
     AccountError, TransactionResultError, Word,
+};
+
+use crate::memory::{
+    ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
+    ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
 
 /// Parses the stub account data returned by the VM into individual account component commitments.
@@ -53,10 +54,7 @@ pub fn extract_account_storage_delta(
         .collect();
 
     // construct storage delta
-    let storage_delta = AccountStorageDelta {
-        cleared_items,
-        updated_items,
-    };
+    let storage_delta = AccountStorageDelta { cleared_items, updated_items };
 
     Ok(storage_delta)
 }

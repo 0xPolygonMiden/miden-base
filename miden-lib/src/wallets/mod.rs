@@ -1,4 +1,3 @@
-use crate::{assembler::assembler, auth::AuthScheme};
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
@@ -11,6 +10,8 @@ use miden_objects::{
     },
     AccountError, Word, ZERO,
 };
+
+use crate::{assembler::assembler, auth::AuthScheme};
 
 /// Creates a new account with basic wallet interface and the specified authentication scheme.
 /// Basic wallets can be specified to have either mutable or immutable code.
