@@ -89,9 +89,9 @@ fn extend_advice_inputs(
     build_advice_stack(tx_inputs, tx_script, advice_inputs);
 
     // build the advice map and Merkle store for relevant components
-    add_chain_mmr_to_advice_inputs(&tx_inputs.block_chain, advice_inputs);
-    add_account_to_advice_inputs(&tx_inputs.account, tx_inputs.account_seed, advice_inputs);
-    add_input_notes_to_advice_inputs(&tx_inputs.input_notes, advice_inputs);
+    add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
+    add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
 }
 
@@ -121,7 +121,7 @@ fn build_advice_stack(
     inputs: &mut AdviceInputs,
 ) {
     // push block header info into the stack
-    let header = &tx_inputs.block_header;
+    let header = tx_inputs.block_header();
     inputs.extend_stack(header.prev_hash());
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
@@ -133,7 +133,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.note_root());
 
     // push core account items onto the stack
-    let account = &tx_inputs.account;
+    let account = tx_inputs.account();
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());

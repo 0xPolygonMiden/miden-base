@@ -193,13 +193,12 @@ impl<D: DataStore> TransactionExecutor<D> {
             .compiler
             .compile_transaction(
                 account_id,
-                &tx_inputs.input_notes,
+                tx_inputs.input_notes(),
                 tx_script.as_ref().map(|x| x.code()),
             )
-            .map_err(TransactionExecutorError::CompileTransactionError)?;
+            .map_err(TransactionExecutorError::CompileTransactionFiled)?;
 
-        PreparedTransaction::new(tx_program, tx_script, tx_inputs)
-            .map_err(TransactionExecutorError::ConstructPreparedTransactionFailed)
+        Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs))
     }
 }
 
@@ -220,17 +219,24 @@ fn build_executed_transaction(
 
     // parse transaction results
     let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-        .map_err(TransactionExecutorError::TransactionOutputError)?;
+        .map_err(TransactionExecutorError::OutputConstructionFailed)?;
     let final_account = &tx_outputs.account;
 
-    let initial_account = &tx_inputs.account;
+    let initial_account = tx_inputs.account();
+
+    if initial_account.id() != final_account.id() {
+        return Err(TransactionExecutorError::InconsistentAccountId {
+            input_id: initial_account.id(),
+            output_id: final_account.id(),
+        });
+    }
 
     // build account delta
 
     // TODO: Fix delta extraction for new account creation
     // extract the account storage delta
     let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
-        .map_err(TransactionExecutorError::TransactionOutputError)?;
+        .map_err(TransactionExecutorError::OutputConstructionFailed)?;
 
     // extract the nonce delta
     let nonce_delta = if initial_account.nonce() != final_account.nonce() {
@@ -246,15 +252,14 @@ fn build_executed_transaction(
     let account_delta =
         AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
 
-    ExecutedTransaction::new(
+    Ok(ExecutedTransaction::new(
         program,
         tx_inputs,
         tx_outputs,
         account_delta,
         tx_script,
         advice_witness,
-    )
-    .map_err(TransactionExecutorError::ExecutedTransactionConstructionFailed)
+    ))
 }
 
 /// Extracts account storage delta between the `initial_account` and `final_account_stub` from the

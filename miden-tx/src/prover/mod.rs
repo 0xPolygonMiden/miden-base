@@ -43,7 +43,7 @@ impl TransactionProver {
         // extract required data from the transaction witness
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
 
-        let input_notes: InputNotes<Nullifier> = (&tx_witness.tx_inputs().input_notes).into();
+        let input_notes: InputNotes<Nullifier> = (tx_witness.tx_inputs().input_notes()).into();
 
         let account_id = tx_witness.account().id();
         let initial_account_hash = tx_witness.account().hash();
@@ -60,7 +60,7 @@ impl TransactionProver {
         let (advice_provider, _event_handler) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-            .map_err(TransactionProverError::TransactionOutputError)?;
+            .map_err(TransactionProverError::OutputConstructionFailed)?;
 
         Ok(ProvenTransaction::new(
             account_id,

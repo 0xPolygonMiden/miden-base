@@ -1,6 +1,8 @@
 use core::fmt;
 
-use miden_objects::{assembly::AssemblyError, crypto::merkle::NodeIndex, TransactionOutputError};
+use miden_objects::{
+    assembly::AssemblyError, crypto::merkle::NodeIndex, NoteError, TransactionOutputError,
+};
 use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
@@ -9,16 +11,15 @@ use super::{AccountError, AccountId, Digest, ExecutionError};
 // ================================================================================================
 #[derive(Debug)]
 pub enum TransactionCompilerError {
-    InvalidTransactionInputs,
-    LoadAccountFailed(AccountError),
     AccountInterfaceNotFound(AccountId),
-    ProgramIncompatibleWithAccountInterface(Digest),
-    NoteIncompatibleWithAccountInterface(Digest),
-    TxScriptIncompatibleWithAccountInterface(Digest),
-    CompileNoteScriptFailed,
-    CompileTxScriptFailed(AssemblyError),
-    CompileTxScriptFailedUnknown,
     BuildCodeBlockTableFailed(AssemblyError),
+    CompileNoteScriptFailed(AssemblyError),
+    CompileTxScriptFailed(AssemblyError),
+    LoadAccountFailed(AccountError),
+    NoteIncompatibleWithAccountInterface(Digest),
+    NoteScriptError(NoteError),
+    NoTransactionDriver,
+    TxScriptIncompatibleWithAccountInterface(Digest),
 }
 
 impl fmt::Display for TransactionCompilerError {
@@ -36,14 +37,16 @@ impl std::error::Error for TransactionCompilerError {}
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
     CompileTransactionScriptFailed(TransactionCompilerError),
-    CompileTransactionError(TransactionCompilerError),
-    ConstructPreparedTransactionFailed(miden_objects::TransactionError),
+    CompileTransactionFiled(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
-    ExecutedTransactionConstructionFailed(miden_objects::TransactionError),
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
+    InconsistentAccountId {
+        input_id: AccountId,
+        output_id: AccountId,
+    },
     LoadAccountFailed(TransactionCompilerError),
-    TransactionOutputError(TransactionOutputError),
+    OutputConstructionFailed(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -60,7 +63,7 @@ impl std::error::Error for TransactionExecutorError {}
 #[derive(Debug)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
-    TransactionOutputError(TransactionOutputError),
+    OutputConstructionFailed(TransactionOutputError),
 }
 
 impl fmt::Display for TransactionProverError {

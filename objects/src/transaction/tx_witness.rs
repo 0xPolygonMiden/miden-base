@@ -57,17 +57,17 @@ impl TransactionWitness {
 
     /// Returns the account state before the transaction was executed.
     pub fn account(&self) -> &Account {
-        &self.tx_inputs.account
+        self.tx_inputs.account()
     }
 
     /// Returns the notes consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
-        &self.tx_inputs.input_notes
+        self.tx_inputs.input_notes()
     }
 
     /// Returns the block header for the block against which the transaction was executed.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.tx_inputs.block_header
+        self.tx_inputs.block_header()
     }
 
     /// Returns a reference to the transaction script.

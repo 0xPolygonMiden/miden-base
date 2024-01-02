@@ -16,8 +16,8 @@ pub mod transaction;
 
 mod errors;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, ChainMmrError, NoteError, TransactionError,
-    TransactionOutputError,
+    AccountDeltaError, AccountError, AssetError, ChainMmrError, NoteError, TransactionInputError,
+    TransactionOutputError, TransactionScriptError,
 };
 // RE-EXPORTS
 // ================================================================================================

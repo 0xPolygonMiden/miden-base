@@ -380,13 +380,14 @@ impl DataStore for MockDataStore {
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
-        Ok(TransactionInputs {
-            account: self.account.clone(),
-            account_seed: None,
-            block_header: self.block_header,
-            block_chain: self.block_chain.clone(),
-            input_notes: InputNotes::new(self.notes.clone()).unwrap(),
-        })
+        Ok(TransactionInputs::new(
+            self.account.clone(),
+            None,
+            self.block_header,
+            self.block_chain.clone(),
+            InputNotes::new(self.notes.clone()).unwrap(),
+        )
+        .unwrap())
     }
 
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {

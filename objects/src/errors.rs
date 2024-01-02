@@ -269,34 +269,43 @@ impl fmt::Display for ChainMmrError {
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
 
-// TRANSACTION ERROR
+// TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone)]
-pub enum TransactionError {
-    AccountSeedNotProvidedForNewAccount,
-    AccountSeedProvidedForExistingAccount,
-    DuplicateInputNote(Digest),
-    InconsistentAccountId {
-        input_id: AccountId,
-        output_id: AccountId,
-    },
-    InvalidAccountSeed(AccountError),
+pub enum TransactionScriptError {
     ScriptCompilationError(AssemblyError),
-    TooManyInputNotes {
-        max: usize,
-        actual: usize,
-    },
 }
 
-impl fmt::Display for TransactionError {
+impl fmt::Display for TransactionScriptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for TransactionError {}
+impl std::error::Error for TransactionScriptError {}
+
+// TRANSACTION INPUT ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone)]
+pub enum TransactionInputError {
+    AccountSeedNotProvidedForNewAccount,
+    AccountSeedProvidedForExistingAccount,
+    DuplicateInputNote(Digest),
+    InvalidAccountSeed(AccountError),
+    TooManyInputNotes { max: usize, actual: usize },
+}
+
+impl fmt::Display for TransactionInputError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionInputError {}
 
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================

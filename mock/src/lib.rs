@@ -110,13 +110,14 @@ pub fn prepare_transaction(
 
     let program = assembler.compile(code).unwrap();
 
-    let tx_inputs = TransactionInputs {
+    let tx_inputs = TransactionInputs::new(
         account,
         account_seed,
         block_header,
-        block_chain: chain,
-        input_notes: InputNotes::new(notes).unwrap(),
-    };
+        chain,
+        InputNotes::new(notes).unwrap(),
+    )
+    .unwrap();
 
-    PreparedTransaction::new(program, tx_script, tx_inputs).unwrap()
+    PreparedTransaction::new(program, tx_script, tx_inputs)
 }

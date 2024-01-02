@@ -5,7 +5,6 @@ use super::{
     OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
     TransactionWitness,
 };
-use crate::TransactionError;
 
 // EXECUTED TRANSACTION
 // ================================================================================================
@@ -37,11 +36,8 @@ impl ExecutedTransaction {
 
     /// Returns a new [ExecutedTransaction] instantiated from the provided data.
     ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Input and output account IDs are not the same.
-    /// - For a new account, account seed is not provided or the provided seed is invalid.
-    /// - For an existing account, account seed was provided.
+    /// # Panics
+    /// Panics if input and output account IDs are not the same.
     pub fn new(
         program: Program,
         tx_inputs: TransactionInputs,
@@ -49,19 +45,11 @@ impl ExecutedTransaction {
         account_delta: AccountDelta,
         tx_script: Option<TransactionScript>,
         advice_witness: AdviceInputs,
-    ) -> Result<Self, TransactionError> {
+    ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
-        if tx_inputs.account.id() != tx_outputs.account.id() {
-            return Err(TransactionError::InconsistentAccountId {
-                input_id: tx_inputs.account.id(),
-                output_id: tx_outputs.account.id(),
-            });
-        }
+        assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
 
-        // if this transaction was executed against a new account, validate the account seed
-        tx_inputs.validate_new_account_seed()?;
-
-        Ok(Self {
+        Self {
             id: OnceCell::new(),
             program,
             tx_inputs,
@@ -69,7 +57,7 @@ impl ExecutedTransaction {
             account_delta,
             tx_script,
             advice_witness,
-        })
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -92,7 +80,7 @@ impl ExecutedTransaction {
 
     /// Returns the description of the account before the transaction was executed.
     pub fn initial_account(&self) -> &Account {
-        &self.tx_inputs.account
+        self.tx_inputs.account()
     }
 
     /// Returns description of the account after the transaction was executed.
@@ -102,7 +90,7 @@ impl ExecutedTransaction {
 
     /// Returns the notes consumed in this transaction.
     pub fn input_notes(&self) -> &InputNotes {
-        &self.tx_inputs.input_notes
+        self.tx_inputs.input_notes()
     }
 
     /// Returns the notes created in this transaction.
@@ -117,7 +105,7 @@ impl ExecutedTransaction {
 
     /// Returns the block header for the block against which the transaction was executed.
     pub fn block_header(&self) -> &BlockHeader {
-        &self.tx_inputs.block_header
+        self.tx_inputs.block_header()
     }
 
     /// Returns a description of changes between the initial and final account states.
