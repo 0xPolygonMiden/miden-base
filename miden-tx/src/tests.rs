@@ -1,10 +1,10 @@
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::RecordedNote,
-    transaction::{ChainMmr, CreatedNotes, FinalAccountStub},
+    transaction::{ChainMmr, InputNote, InputNotes, TransactionWitness},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -13,18 +13,17 @@ use mock::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0, FUNGIBLE_ASSET_AMOUNT,
+        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, FUNGIBLE_ASSET_AMOUNT, STORAGE_INDEX_0,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
 use vm_core::utils::to_hex;
-use vm_processor::{AdviceInputs, MemAdviceProvider};
+use vm_processor::MemAdviceProvider;
 
 use super::{
     AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
-    TransactionInputs, TransactionProver, TransactionVerifier, TryFromVmResult,
+    TransactionInputs, TransactionProver, TransactionVerifier,
 };
 
 // TESTS
@@ -43,31 +42,26 @@ fn test_transaction_executor_witness() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
-    let witness = transaction_result.clone().into_witness();
+    let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
-    let mem_advice_provider: MemAdviceProvider = witness.advice_inputs().clone().into();
+    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
+    let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let mut host = TransactionHost::new(mem_advice_provider);
-    let result = vm_processor::execute(
-        witness.program(),
-        witness.get_stack_inputs(),
-        &mut host,
-        Default::default(),
-    )
-    .unwrap();
+    let result =
+        vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
+            .unwrap();
 
     let (advice_provider, _event_handler) = host.into_parts();
-    let (stack, map, store) = advice_provider.into_parts();
-    let final_account_stub =
-        FinalAccountStub::try_from_vm_result(result.stack_outputs(), &stack, &map, &store).unwrap();
-    let created_notes =
-        CreatedNotes::try_from_vm_result(result.stack_outputs(), &stack, &map, &store).unwrap();
+    let (_, map, _) = advice_provider.into_parts();
+    let tx_outputs =
+        TransactionKernel::parse_transaction_outputs(result.stack_outputs(), &map.into()).unwrap();
 
-    assert_eq!(transaction_result.final_account_hash(), final_account_stub.0.hash());
-    assert_eq!(transaction_result.created_notes(), &created_notes);
+    assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
+    assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 
 #[test]
@@ -85,6 +79,9 @@ fn test_transaction_result_account_delta() {
     ";
     let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
     let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+
+    // updated storage
+    let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
 
     // removed assets
     let removed_asset_1 = Asset::Fungible(
@@ -152,34 +149,18 @@ fn test_transaction_result_account_delta() {
         ## TRANSACTION SCRIPT
         ## ========================================================================================
         begin
-            ## Update account storage child tree
+            ## Update account storage item
             ## ------------------------------------------------------------------------------------
-            # get the current child tree root from account storage slot
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
-            # => [idx]
+            # push a new value for the storage slot onto the stack
+            push.{UPDATED_SLOT_VALUE}
+            # => [13, 11, 9, 7]
 
-            # get the child root
-            exec.account::get_item
-            # => [CHILD_ROOT]
+            # get the index of account storage slot
+            push.{STORAGE_INDEX_0}
+            # => [idx, 13, 11, 9, 7]
 
-            # prepare the stack to remove in the child tree
-            padw swapw push.0 push.{CHILD_SMT_DEPTH}
-            # => [depth, idx(push.0), CHILD_ROOT, NEW_VALUE (padw)]
-
-            # set new value and drop old value
-            mtree_set dropw
-            # => [NEW_CHILD_ROOT]
-
-            # prepare stack to delete existing child tree value (replace with empty word)
-            padw swapw push.{CHILD_STORAGE_INDEX_0} push.{CHILD_SMT_DEPTH}
-            # => [depth, idx, NEW_CHILD_ROOT, EMPTY_WORD]
-
-            # set existing value to empty word
-            mtree_set dropw
-            # => [NEW_CHILD_ROOT]
-
-            # store the new child root in account storage slot
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX} exec.set_item dropw dropw
+            # update the storage value
+            exec.set_item dropw dropw
             # => []
 
             ## Send some assets from the account vault
@@ -213,6 +194,7 @@ fn test_transaction_result_account_delta() {
         end
     ",
         NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
+        UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
@@ -238,9 +220,10 @@ fn test_transaction_result_account_delta() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
+    assert_eq!(transaction_result.account_delta().storage().updated_items[0].0, STORAGE_INDEX_0);
     assert_eq!(
-        transaction_result.account_delta().storage().updated_items[0].0,
-        CHILD_ROOT_PARENT_LEAF_INDEX
+        transaction_result.account_delta().storage().updated_items[0].1,
+        updated_slot_value
     );
 
     // vault delta
@@ -292,41 +275,14 @@ fn test_prove_witness_and_verify() {
         data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_origins, None)
         .unwrap();
-    let witness = transaction_result.clone().into_witness();
 
     // prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction_witness(witness).unwrap();
-
-    let verifier = TransactionVerifier::new(96);
-    assert!(verifier.verify(proven_transaction).is_ok());
-}
-
-#[test]
-fn test_prove_and_verify_with_tx_executor() {
-    let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
-
-    let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
-
-    let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
-
-    // prove the transaction with the executor
-    let prepared_transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_origins, None)
-        .unwrap();
-
-    // prove transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_prepared_transaction(prepared_transaction).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
     let verifier = TransactionVerifier::new(96);
     assert!(verifier.verify(proven_transaction).is_ok());
@@ -390,20 +346,18 @@ struct MockDataStore {
     pub account: Account,
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
-    pub notes: Vec<RecordedNote>,
-    pub auxiliary_data: AdviceInputs,
+    pub notes: Vec<InputNote>,
 }
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, block_header, block_chain, consumed_notes, auxiliary_data) =
+        let (account, block_header, block_chain, consumed_notes) =
             mock_inputs(MockAccountType::StandardExisting, asset_preservation);
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
-            auxiliary_data,
         }
     }
 }
@@ -426,14 +380,14 @@ impl DataStore for MockDataStore {
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
-        Ok(TransactionInputs {
-            account: self.account.clone(),
-            account_seed: None,
-            block_header: self.block_header,
-            block_chain: self.block_chain.clone(),
-            input_notes: self.notes.clone(),
-            aux_data: self.auxiliary_data.clone(),
-        })
+        Ok(TransactionInputs::new(
+            self.account.clone(),
+            None,
+            self.block_header,
+            self.block_chain.clone(),
+            InputNotes::new(self.notes.clone()).unwrap(),
+        )
+        .unwrap())
     }
 
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {

@@ -1,11 +1,11 @@
-use miden_lib::assembler::assembler;
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteOrigin, NoteScript, RecordedNote},
-    transaction::{ChainMmr, TransactionInputs},
+    notes::{Note, NoteOrigin, NoteScript},
+    transaction::{ChainMmr, InputNote, InputNotes, TransactionInputs},
     BlockHeader, Felt, Word,
 };
 use miden_tx::{DataStore, DataStoreError};
@@ -27,20 +27,18 @@ pub struct MockDataStore {
     pub account: Account,
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
-    pub notes: Vec<RecordedNote>,
-    pub auxiliary_data: AdviceInputs,
+    pub notes: Vec<InputNote>,
 }
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, consumed_notes, auxiliary_data) =
+        let (account, block_header, block_chain, consumed_notes) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
-            auxiliary_data,
         }
     }
 
@@ -64,7 +62,6 @@ impl MockDataStore {
             block_header,
             block_chain,
             notes: consumed_notes,
-            auxiliary_data: auxiliary_data_inputs,
         }
     }
 }
@@ -87,14 +84,14 @@ impl DataStore for MockDataStore {
         assert_eq!(notes.len(), self.notes.len());
         let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
         notes.iter().all(|note| origins.contains(&note));
-        Ok(TransactionInputs {
-            account: self.account.clone(),
-            account_seed: None,
-            block_header: self.block_header,
-            block_chain: self.block_chain.clone(),
-            input_notes: self.notes.clone(),
-            aux_data: self.auxiliary_data.clone(),
-        })
+        Ok(TransactionInputs::new(
+            self.account.clone(),
+            None,
+            self.block_header,
+            self.block_chain.clone(),
+            InputNotes::new(self.notes.clone()).unwrap(),
+        )
+        .unwrap())
     }
 
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
@@ -124,7 +121,7 @@ pub fn get_account_with_default_account_code(
 ) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let account_assembler = assembler();
+    let account_assembler = TransactionKernel::assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
     let account_storage =
@@ -144,7 +141,7 @@ pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
     note_script: ProgramAst,
 ) -> Note {
-    let note_assembler = assembler();
+    let note_assembler = TransactionKernel::assembler();
     let (note_script, _) = NoteScript::new(note_script, &note_assembler).unwrap();
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();

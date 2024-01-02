@@ -1,11 +1,15 @@
 use std::path::PathBuf;
 
-use vm_core::{crypto::hash::Rpo256 as Hasher, Felt, StackInputs, Word, ONE, ZERO};
+use miden_objects::{
+    transaction::PreparedTransaction,
+    vm::{Program, StackInputs},
+    Felt, Hasher, Word, ONE, ZERO,
+};
 use vm_processor::{
     AdviceProvider, ContextId, DefaultHost, MemAdviceProvider, Process, ProcessState,
 };
 
-use super::Library;
+use super::{transaction::ToTransactionKernelInputs, Library};
 
 mod test_account;
 mod test_asset;
@@ -41,6 +45,12 @@ fn test_compile() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+fn build_tx_inputs(tx: &PreparedTransaction) -> (Program, StackInputs, MemAdviceProvider) {
+    let (stack_inputs, advice_inputs) = tx.get_kernel_inputs();
+    let advice_provider = MemAdviceProvider::from(advice_inputs);
+    (tx.program().clone(), stack_inputs, advice_provider)
+}
 
 fn build_module_path(dir: &str, file: &str) -> PathBuf {
     [env!("CARGO_MANIFEST_DIR"), "asm", dir, file].iter().collect()

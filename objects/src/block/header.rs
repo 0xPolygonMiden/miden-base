@@ -1,4 +1,4 @@
-use super::{AdviceInputsBuilder, Digest, Felt, Hasher, ToAdviceInputs, Vec, ZERO};
+use super::{Digest, Felt, Hasher, Vec, ZERO};
 
 /// The header of a block. It contains metadata about the block, commitments to the current
 /// state of the chain and the hash of the proof that attests to the integrity of the chain.
@@ -179,20 +179,5 @@ impl BlockHeader {
         elements.extend([block_num.into(), version, timestamp, ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
-    }
-}
-
-impl ToAdviceInputs for &BlockHeader {
-    fn to_advice_inputs<T: AdviceInputsBuilder>(&self, target: &mut T) {
-        // push header data onto the stack
-        target.push_onto_stack(self.prev_hash.as_elements());
-        target.push_onto_stack(self.chain_root.as_elements());
-        target.push_onto_stack(self.account_root.as_elements());
-        target.push_onto_stack(self.nullifier_root.as_elements());
-        target.push_onto_stack(self.batch_root.as_elements());
-        target.push_onto_stack(self.proof_hash.as_elements());
-        target.push_onto_stack(&[self.block_num.into(), self.version, self.timestamp, ZERO]);
-        target.push_onto_stack(&[ZERO; 4]);
-        target.push_onto_stack(self.note_root.as_elements());
     }
 }

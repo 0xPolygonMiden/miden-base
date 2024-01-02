@@ -1,4 +1,4 @@
-use miden_lib::{wallets::create_basic_wallet, AuthScheme};
+use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, AccountVault, StorageSlotType},
     assembly::ProgramAst,
@@ -105,7 +105,7 @@ fn test_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 }
 
 #[test]
@@ -184,7 +184,7 @@ fn test_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account_hash(), sender_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]
