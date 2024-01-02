@@ -203,7 +203,6 @@ fn build_output_notes_commitment<T: ToEnvelope>(notes: &[T]) -> Digest {
 /// When a note is produced in a transaction, the note's recipient, vault and metadata must be
 /// known. However, other information about the note may or may not be know to the note's producer.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct OutputNote {
     envelope: NoteEnvelope,
     recipient: Digest,

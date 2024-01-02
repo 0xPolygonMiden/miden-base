@@ -14,6 +14,10 @@ const CODE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 // NOTE SCRIPT
 // ================================================================================================
 
+/// An executable program of a note.
+///
+/// A note's script represents a program which must be executed for a note to be consumed. As such
+/// it defines the rules and side effects of consuming a given note.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoteScript {
     hash: Digest,
@@ -21,6 +25,14 @@ pub struct NoteScript {
 }
 
 impl NoteScript {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a new [NoteScript] instantiated from the provided program and compiled with the
+    /// provided assembler. The compiled code block is also returned.
+    ///
+    /// # Errors
+    /// Returns an error if the compilation of the provided program fails.
     pub fn new(code: ProgramAst, assembler: &Assembler) -> Result<(Self, CodeBlock), NoteError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
@@ -28,10 +40,23 @@ impl NoteScript {
         Ok((Self { hash: code_block.hash(), code }, code_block))
     }
 
+    /// Returns a new [NoteScript] instantiated from the provided components.
+    ///
+    /// **Note**: this function assumes that the specified hash results from the compilation of the
+    /// provided program, but this is not checked.
+    pub fn from_parts(code: ProgramAst, hash: Digest) -> Self {
+        Self { code, hash }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns MAST root of this note script.
     pub fn hash(&self) -> Digest {
         self.hash
     }
 
+    /// Returns the AST of this note script.
     pub fn code(&self) -> &ProgramAst {
         &self.code
     }
@@ -52,6 +77,6 @@ impl Deserializable for NoteScript {
         let hash = Digest::read_from(source)?;
         let code = ProgramAst::read_from(source)?;
 
-        Ok(Self { hash, code })
+        Ok(Self::from_parts(code, hash))
     }
 }

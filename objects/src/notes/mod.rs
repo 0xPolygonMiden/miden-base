@@ -60,9 +60,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
-    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     script: NoteScript,
     inputs: NoteInputs,
     vault: NoteVault,
@@ -188,11 +186,19 @@ impl Note {
 
 impl Serializable for Note {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.script.write_into(target);
-        self.inputs.write_into(target);
-        self.vault.write_into(target);
-        self.serial_num.write_into(target);
-        self.metadata.write_into(target);
+        let Note {
+            script,
+            inputs,
+            vault,
+            serial_num,
+            metadata,
+        } = self;
+
+        script.write_into(target);
+        inputs.write_into(target);
+        vault.write_into(target);
+        serial_num.write_into(target);
+        metadata.write_into(target);
     }
 }
 
@@ -215,24 +221,17 @@ impl Deserializable for Note {
 }
 
 #[cfg(feature = "serde")]
-mod serialization {
-    use super::NoteScript;
-    use crate::utils::serde::{Deserializable, Serializable};
-
-    pub fn serialize<S>(code: &NoteScript, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = code.to_bytes();
+impl serde::Serialize for Note {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let bytes = self.to_bytes();
         serializer.serialize_bytes(&bytes)
     }
+}
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<NoteScript, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Note {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-
-        NoteScript::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }
