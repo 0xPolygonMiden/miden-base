@@ -1,4 +1,4 @@
-use core::{cell::OnceCell, fmt::Debug};
+use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
 use crate::{
@@ -119,7 +119,7 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     fn from(value: InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment(&value.notes),
         }
     }
 }
@@ -128,7 +128,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
     fn from(value: &InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment(&value.notes),
         }
     }
 }
@@ -145,7 +145,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
 #[derive(Debug, Clone)]
 pub struct InputNotes<T: ToNullifier = InputNote> {
     notes: Vec<T>,
-    commitment: OnceCell<Digest>,
+    commitment: Digest,
 }
 
 impl<T: ToNullifier> InputNotes<T> {
@@ -172,7 +172,9 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        Ok(Self { notes, commitment: OnceCell::new() })
+        let commitment = build_input_notes_commitment(&notes);
+
+        Ok(Self { notes, commitment })
     }
 
     // PUBLIC ACCESSORS
@@ -180,7 +182,7 @@ impl<T: ToNullifier> InputNotes<T> {
 
     /// Returns a commitment to these input notes.
     pub fn commitment(&self) -> Digest {
-        *self.commitment.get_or_init(|| build_input_notes_commitment(&self.notes))
+        self.commitment
     }
 
     /// Returns total number of input notes.
@@ -228,7 +230,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment::<T>(&[]),
         }
     }
 }
