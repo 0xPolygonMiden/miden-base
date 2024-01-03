@@ -10,11 +10,14 @@ use miden_objects::{
 use vm_processor::ExecutionOptions;
 
 use super::{
-    AccountCode, AccountId, DataStore, Digest, ExecutedTransaction, NoteOrigin, NoteScript,
-    PreparedTransaction, RecAdviceProvider, ScriptTarget, TransactionCompiler,
-    TransactionExecutorError, TransactionHost,
+    AccountCode, AccountId, Digest, ExecutedTransaction, NoteId, NoteScript, PreparedTransaction,
+    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
+    TransactionHost,
 };
 use crate::host::EventHandler;
+
+mod data;
+pub use data::DataStore;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -33,8 +36,8 @@ use crate::host::EventHandler;
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D: DataStore> {
-    compiler: TransactionCompiler,
     data_store: D,
+    compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
 }
 
@@ -44,8 +47,8 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
         Self {
-            compiler: TransactionCompiler::new(),
             data_store,
+            compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
         }
     }
@@ -123,7 +126,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// [ExecutedTransaction].
     ///
     /// The method first fetches the data required to execute the transaction from the [DataStore]
-    /// and compile the transaction into an executable program. Then it executes the transaction
+    /// and compile the transaction into an executable program. Then, it executes the transaction
     /// program and creates an [ExecutedTransaction] object.
     ///
     /// # Errors:
@@ -135,11 +138,10 @@ impl<D: DataStore> TransactionExecutor<D> {
         &mut self,
         account_id: AccountId,
         block_ref: u32,
-        note_origins: &[NoteOrigin],
+        notes: &[NoteId],
         tx_script: Option<TransactionScript>,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction =
-            self.prepare_transaction(account_id, block_ref, note_origins, tx_script)?;
+        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_script)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
@@ -181,12 +183,12 @@ impl<D: DataStore> TransactionExecutor<D> {
         &mut self,
         account_id: AccountId,
         block_ref: u32,
-        note_origins: &[NoteOrigin],
+        notes: &[NoteId],
         tx_script: Option<TransactionScript>,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
         let tx_inputs = self
             .data_store
-            .get_transaction_inputs(account_id, block_ref, note_origins)
+            .get_transaction_inputs(account_id, block_ref, notes)
             .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let tx_program = self

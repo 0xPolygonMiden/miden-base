@@ -34,8 +34,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -72,7 +71,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     let fungible_asset: Asset =
@@ -104,8 +103,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -141,12 +139,8 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor.execute_transaction(
-        faucet_account.id(),
-        block_ref,
-        &note_origins,
-        Some(tx_script),
-    );
+    let transaction_result =
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script));
 
     assert!(transaction_result.is_err());
 }
@@ -197,17 +191,16 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_origins, None)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
     // check that the account burned the asset
     assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
-    assert_eq!(transaction_result.input_notes().get_note(0).note().id(), note.id());
+    assert_eq!(transaction_result.input_notes().get_note(0).id(), note.id());
 }
 
 #[test]

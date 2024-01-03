@@ -273,7 +273,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx))
                 .unwrap(),
-            note.note().id().as_elements()
+            note.id().as_elements()
         );
 
         // The note serial num should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 1)

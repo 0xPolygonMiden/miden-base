@@ -506,7 +506,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         // The check below works because the notes can not be added directly to the
         // [BlockHeader], so we don't have to iterate over the known headers and check for
         // inclusion proofs.
-        if self.objects.recorded_notes.iter().any(|e| e.note().id() == note.id()) {
+        if self.objects.recorded_notes.iter().any(|e| e.id() == note.id()) {
             return Err(MockError::DuplicatedNote);
         }
 

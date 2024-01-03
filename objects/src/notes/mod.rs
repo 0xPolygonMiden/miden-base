@@ -191,6 +191,9 @@ impl Serializable for Note {
             vault,
             serial_num,
             metadata,
+
+            id: _,
+            nullifier: _,
         } = self;
 
         script.write_into(target);

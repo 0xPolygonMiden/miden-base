@@ -68,8 +68,7 @@ fn test_swap_script() {
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
@@ -87,7 +86,7 @@ fn test_swap_script() {
 
     // Execute the transaction
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
     // target account vault delta

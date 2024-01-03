@@ -10,17 +10,15 @@ use crate::utils::serde::{
 ///
 /// Note ID is computed as:
 ///
-/// hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash).
+///   hash(recipient, vault_hash),
+///
+/// where `recipient` is defined as:
+///   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
 /// - To compute a note ID, we do not need to know the note's serial_num. Knowing the hash
 ///   of the serial_num (as well as script hash, input hash, and note vault) is sufficient.
-/// - Moreover, we define `recipient` as:
-///     `hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)`
-///   This allows computing note ID from recipient and note vault.
-/// - We compute hash of serial_num as hash(serial_num, [0; 4]) to simplify processing within
-///   the VM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NoteId(Digest);
 
