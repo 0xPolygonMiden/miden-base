@@ -1,5 +1,5 @@
-use.miden::sat::note
-use.miden::wallets::basic->wallet
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
 
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
@@ -15,8 +15,8 @@ use.miden::wallets::basic->wallet
 # - TAG = [tag, 0, 0, 0]
 #
 # FAILS if:
-# - Account does not expose miden::wallets::basic::receive_asset procedure
-# - Account does not expose miden::wallets::basic::send_asset procedure
+# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure
+# - Account does not expose miden::contracts::wallets::basic::send_asset procedure
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63

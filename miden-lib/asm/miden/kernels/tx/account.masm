@@ -1,5 +1,5 @@
-use.miden::sat::internal::constants
-use.miden::sat::internal::layout
+use.miden::kernels::tx::constants
+use.miden::kernels::tx::memory
 
 # CONSTANTS
 # =================================================================================================
@@ -83,7 +83,7 @@ end
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_hash
     # prepare the stack for computing the account hash
-    exec.layout::get_acct_data_ptr padw padw padw
+    exec.memory::get_acct_data_ptr padw padw padw
 
     # stream account data and compute sequential hash. We perform two `mem_stream` operations
     # because account data consists of exactly 4 words.
@@ -105,8 +105,8 @@ end
 #!   procedure panics.
 export.incr_nonce
     u32assert
-    exec.layout::get_acct_nonce add
-    exec.layout::set_acct_nonce
+    exec.memory::get_acct_nonce add
+    exec.memory::set_acct_nonce
 end
 
 #! Returns the account id.
@@ -115,7 +115,7 @@ end
 #! Output: [acct_id]
 #!
 #! - acct_id is the account id.
-export.layout::get_acct_id->get_id
+export.memory::get_acct_id->get_id
 
 #! Returns the account nonce.
 #!
@@ -123,7 +123,7 @@ export.layout::get_acct_id->get_id
 #! Output: [nonce]
 #!
 #! - nonce is the account nonce.
-export.layout::get_acct_nonce->get_nonce
+export.memory::get_acct_nonce->get_nonce
 
 #! Returns the initial account hash.
 #!
@@ -131,7 +131,7 @@ export.layout::get_acct_nonce->get_nonce
 #! Output: [H]
 #!
 #! - H is the initial account hash.
-export.layout::get_init_acct_hash->get_initial_hash
+export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns the account type of the account id provided via the stack.
 #!
@@ -276,7 +276,7 @@ end
 #! - CODE_ROOT is the hash of the code to set.
 export.set_code
     # get the account id
-    exec.layout::get_acct_id
+    exec.memory::get_acct_id
     # => [acct_id, CODE_ROOT]
 
     # assert the account is an updatable regular account
@@ -284,7 +284,7 @@ export.set_code
     # => [CODE_ROOT]
 
     # set the code root
-    exec.layout::set_new_acct_code_root
+    exec.memory::set_new_acct_code_root
     # => []
 end
 
@@ -297,7 +297,7 @@ end
 #! - slot_type is the type of the slot.
 #! - entry_arity is the arity of the slot.
 export.get_storage_slot_type_info
-    exec.layout::get_acct_storage_slot_type_data u32split
+    exec.memory::get_acct_storage_slot_type_data u32split
 end
 
 #! Gets an item from the account storage. Panics if the index is out of bounds.
@@ -309,7 +309,7 @@ end
 #! - VALUE is the value of the item.
 export.get_item
     # get the storage root
-    exec.layout::get_acct_storage_root
+    exec.memory::get_acct_storage_root
     # => [storage_root, index]
 
     # get the item from storage
@@ -331,7 +331,7 @@ end
 #! - V is the previous value of the item.
 export.set_item
     # get the storage root
-    exec.layout::get_acct_storage_root
+    exec.memory::get_acct_storage_root
     # => [R, index, V']
 
     # set the item in storage
@@ -339,7 +339,7 @@ export.set_item
     # => [V, R']
 
     # set the new storage root
-    swapw exec.layout::set_acct_storage_root
+    swapw exec.memory::set_acct_storage_root
     # => [V]
 end
 
@@ -352,7 +352,7 @@ end
 #! - PROC_ROOT is the hash of the procedure to authenticate.
 export.authenticate_procedure.1
     # load the account code root onto the stack
-    exec.layout::get_acct_code_root swapw
+    exec.memory::get_acct_code_root swapw
     # => [PROC_ROOT, CODE_ROOT]
 
     # load the index of the procedure root onto the advice stack
@@ -385,11 +385,11 @@ end
 #! Output: []
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.layout::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
+        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
         # populate last four elements of the hasher rate with the code root
-        exec.layout::get_acct_code_root
+        exec.memory::get_acct_code_root
         # => [CODE_ROOT, SEED, 0, 0, 0, 0]
 
         # perform first permutation of seed and code_root (from advice stack) perm(seed, code_root)
@@ -401,7 +401,7 @@ export.validate_seed
         # => [PERM]
 
         # perform second permutation perm(storage_root, 0, 0, 0, 0)
-        exec.layout::get_acct_storage_root padw hperm
+        exec.memory::get_acct_storage_root padw hperm
         # => [RATE, RATE, CAP]
 
         # extract digest
@@ -410,14 +410,14 @@ export.validate_seed
 
         # assert the account id matches the account id of the new account and extract pow
         # element
-        movdn.3 drop drop exec.layout::get_acct_id eq assert
+        movdn.3 drop drop exec.memory::get_acct_id eq assert
         # => [pow]
 
         # get acct and facuet modulus to check the min number of trailing zeros required in the pow
         exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
         # => [faucet_modulus, acct_modulus, pow]
 
-        exec.layout::get_acct_id
+        exec.memory::get_acct_id
         # => [acct_id, faucet_modulus, acct_modulus, pow]
 
         exec.is_faucet

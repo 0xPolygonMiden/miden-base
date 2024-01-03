@@ -30,8 +30,8 @@ fn test_create_note() {
 
     let code = format!(
         "
-    use.miden::sat::internal::prologue
-    use.miden::sat::tx
+    use.miden::kernels::tx::prologue
+    use.miden::tx
 
     begin
         exec.prologue::prepare_transaction
@@ -104,13 +104,13 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-    use.miden::sat::internal::constants
-    use.miden::sat::internal::layout
-    use.miden::sat::tx
+    use.miden::kernels::tx::constants
+    use.miden::kernels::tx::memory
+    use.miden::tx
 
     begin
         exec.constants::get_max_num_created_notes
-        exec.layout::set_num_created_notes
+        exec.memory::set_num_created_notes
 
         push.{recipient}
         push.{tag}
@@ -178,8 +178,8 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
-    use.miden::sat::internal::prologue
-    use.miden::sat::tx
+    use.miden::kernels::tx::prologue
+    use.miden::tx
 
     begin
         exec.prologue::prepare_transaction

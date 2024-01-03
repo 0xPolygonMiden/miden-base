@@ -22,7 +22,7 @@ fn test_epilogue() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}
@@ -84,7 +84,7 @@ fn test_compute_created_note_id() {
         output_notes_data_procedure(executed_transaction.output_notes());
 
     for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
-        let imports = "use.miden::sat::internal::prologue\n";
+        let imports = "use.miden::kernels::tx::prologue\n";
         let test = format!(
             "
         {output_notes_data_procedure}
@@ -135,7 +135,7 @@ fn test_epilogue_asset_preservation_violation() {
         let output_notes_data_procedure =
             output_notes_data_procedure(executed_transaction.output_notes());
 
-        let imports = "use.miden::sat::internal::prologue\n";
+        let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
             "
         {output_notes_data_procedure}
@@ -170,7 +170,7 @@ fn test_epilogue_increment_nonce_success() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}
@@ -203,7 +203,7 @@ fn test_epilogue_increment_nonce_violation() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}

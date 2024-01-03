@@ -1,7 +1,7 @@
-use.miden::sat::internal::constants
-use.miden::sat::internal::layout
-use.miden::sat::internal::account
-use.miden::sat::internal::asset_vault
+use.miden::kernels::tx::constants
+use.miden::kernels::tx::memory
+use.miden::kernels::tx::account
+use.miden::kernels::tx::asset_vault
 
 # CONSTANTS
 # =================================================================================================
@@ -24,7 +24,7 @@ const.CREATED_NOTE_HASHING_MEM_DIFF=1022
 #! - VAULT_HASH is the vault hash of the created note with index i.
 proc.compute_created_note_vault_hash
     # duplicate note pointer and fetch num_assets
-    dup dup exec.layout::get_created_note_num_assets
+    dup dup exec.memory::get_created_note_num_assets
     # => [num_assets, note_data_ptr, note_data_ptr]
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
@@ -36,7 +36,7 @@ proc.compute_created_note_vault_hash
     # => [asset_counter, num_asset_pairs, note_data_ptr, note_data_ptr]
 
     # prepare address and stack for reading assets
-    movup.2 exec.layout::get_created_note_asset_data_ptr padw padw padw
+    movup.2 exec.memory::get_created_note_asset_data_ptr padw padw padw
     # => [PAD, PAD, PAD, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
 
     # check if we should loop
@@ -68,7 +68,7 @@ proc.compute_created_note_vault_hash
     # => [VAULT_HASH, note_data_ptr]
 
     # save vault hash to memory
-    movup.4 exec.layout::set_created_note_vault_hash
+    movup.4 exec.memory::set_created_note_vault_hash
     # => []
 end
 
@@ -88,7 +88,7 @@ proc.compute_created_note_hash
     padw
 
     # insert created note recipient into the first four elements of the hasher rate
-    dup.4 exec.layout::get_created_note_recipient
+    dup.4 exec.memory::get_created_note_recipient
 
     # populate the last four elements of the hasher rate with the created note vault hash
     dup.8 exec.compute_created_note_vault_hash
@@ -109,13 +109,13 @@ end
 #! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
 export.compute_output_notes_hash
     # get the number of created notes from memory
-    exec.layout::get_num_created_notes
+    exec.memory::get_num_created_notes
 
     # calculate the address at which we should stop looping
-    exec.layout::get_created_note_ptr
+    exec.memory::get_created_note_ptr
 
     # compute pointer for first address
-    push.0 exec.layout::get_created_note_ptr
+    push.0 exec.memory::get_created_note_ptr
 
     # prepare stack for hashing
     padw padw padw
@@ -160,19 +160,19 @@ end
 #! Output: []
 proc.build_output_vault
     # copy final account vault root to output account vault root
-    exec.layout::get_acct_vault_root exec.layout::set_output_vault_root
+    exec.memory::get_acct_vault_root exec.memory::set_output_vault_root
     # => []
 
     # get the number of created notes from memory
-    exec.layout::get_num_created_notes
+    exec.memory::get_num_created_notes
     # => [num_created_notes]
 
     # calculate the address at which we should stop looping
-    exec.layout::get_created_note_ptr
+    exec.memory::get_created_note_ptr
     # => [created_notes_end_ptr]
 
     # compute pointer for the first created note
-    push.0 exec.layout::get_created_note_ptr
+    push.0 exec.memory::get_created_note_ptr
     # => [created_note_ptr, created_notes_end_ptr]
 
     # check if the number of created notes is greater then 0. Conditional for the while loop.
@@ -182,11 +182,11 @@ proc.build_output_vault
     # loop over created notes and add assets to output vault
     while.true
         # get the number of assets for the created note from memory
-        dup exec.layout::get_created_note_num_assets
+        dup exec.memory::get_created_note_num_assets
         # => [num_assets, note_data_ptr, created_notes_end_ptr]
 
         # prepare stack for reading created note assets
-        exec.layout::get_output_vault_root_ptr dup.2 exec.layout::get_created_note_asset_data_ptr dup
+        exec.memory::get_output_vault_root_ptr dup.2 exec.memory::get_created_note_asset_data_ptr dup
         # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr.
         #     created_notes_end_ptr]
 
@@ -249,11 +249,11 @@ end
 #! Output: []
 proc.update_account_code
     # check if the account code root has been updated
-    exec.layout::get_new_acct_code_root
+    exec.memory::get_new_acct_code_root
     # => [NEW_ACCT_CODE_ROOT]
 
     # set the account code root to the new account code root (may not have changed)
-    exec.layout::set_acct_code_root
+    exec.memory::set_acct_code_root
     # => []
 end
 
@@ -279,15 +279,15 @@ export.finalize_transaction
     # => []
 
     # get the initial account hash
-    exec.layout::get_init_acct_hash
+    exec.memory::get_init_acct_hash
     # => [INIT_ACCT_HASH]
 
     # get the offset for the end of the account data section
-    exec.layout::get_core_acct_data_end_ptr
+    exec.memory::get_core_acct_data_end_ptr
     # => [acct_data_end_ptr, INIT_ACCT_HASH]
 
     # get the offset for the start of the account data section
-    exec.layout::get_acct_data_ptr
+    exec.memory::get_acct_data_ptr
     # => [acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # compute the final account hash
@@ -309,11 +309,11 @@ export.finalize_transaction
     # if the account has changed then apply nonce checks
     if.true
         # get initial nonce from memory
-        exec.layout::get_init_nonce
+        exec.memory::get_init_nonce
         # => [init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
         # get current nonce from memory
-        exec.layout::get_acct_nonce
+        exec.memory::get_acct_nonce
         # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
         # assert that initial nonce is less than current nonce
@@ -334,11 +334,11 @@ export.finalize_transaction
     # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # compute the end boundary of the created notes section
-    exec.layout::get_num_created_notes exec.layout::get_created_note_ptr movdn.4
+    exec.memory::get_num_created_notes exec.memory::get_created_note_ptr movdn.4
     # => [CREATED_NOTES_COMMITMENT, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
 
     # compute the start boundary of the created notes section
-    exec.layout::get_created_note_data_offset movdn.4
+    exec.memory::get_created_note_data_offset movdn.4
     # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
 
     # insert created data into the advice map
@@ -350,7 +350,7 @@ export.finalize_transaction
     # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # load the transaction script root on to the top of the stack
-    exec.layout::get_tx_script_root
+    exec.memory::get_tx_script_root
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # truncate stack
@@ -358,6 +358,6 @@ export.finalize_transaction
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
-    exec.layout::get_input_vault_root exec.layout::get_output_vault_root assert_eqw
+    exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

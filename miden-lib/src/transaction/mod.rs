@@ -35,7 +35,7 @@ impl TransactionKernel {
 
     /// Returns MASM source code which encodes the transaction kernel system procedures.
     pub fn kernel() -> &'static str {
-        include_str!("../../asm/miden/sat/kernel.masm")
+        include_str!("../../asm/miden/kernels/tx/mod.masm")
     }
 
     /// Returns an AST of the transaction kernel executable program.

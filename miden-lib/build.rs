@@ -16,7 +16,7 @@ use assembly::{
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
-const ASM_SCRIPTS_DIR: &str = "scripts";
+const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
 const ASM_KERNELS_DIR: &str = "kernels";
 
 // PRE-PROCESSING
@@ -49,7 +49,7 @@ fn main() -> io::Result<()> {
 
     // compile kernel and note scripts
     compile_executable_modules(&source_dir.join(ASM_KERNELS_DIR), &target_dir)?;
-    compile_executable_modules(&source_dir.join(ASM_SCRIPTS_DIR), &target_dir)?;
+    compile_executable_modules(&source_dir.join(ASM_NOTE_SCRIPTS_DIR), &target_dir)?;
 
     Ok(())
 }
@@ -63,8 +63,8 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
-            let constants = source_dir.join("sat/internal/constants.masm");
-            let patched = source_dir.join("sat/internal/constants.masm.patched");
+            let constants = source_dir.join("kernels/tx/constants.masm");
+            let patched = source_dir.join("kernels/tx/constants.masm.patched");
 
             // scope for file handlers
             {

@@ -340,7 +340,7 @@ pub fn test_prologue_create_account() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardNew, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -376,7 +376,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -414,7 +414,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -452,7 +452,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -490,7 +490,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         AssetPreservationStatus::Preserved,
     );
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -524,7 +524,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     let account_seed_key = [account.id().into(), ZERO, ZERO, ZERO];
 
     let code = "
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -558,12 +558,12 @@ fn test_get_blk_version() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::sat::internal::layout
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::memory
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
-        exec.layout::get_blk_version
+        exec.memory::get_blk_version
     end
     ";
 
@@ -580,12 +580,12 @@ fn test_get_blk_timestamp() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
-    use.miden::sat::internal::layout
-    use.miden::sat::internal::prologue
+    use.miden::kernels::tx::memory
+    use.miden::kernels::tx::prologue
 
     begin
         exec.prologue::prepare_transaction
-        exec.layout::get_blk_timestamp
+        exec.memory::get_blk_timestamp
     end
     ";
 

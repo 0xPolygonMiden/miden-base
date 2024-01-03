@@ -1,7 +1,7 @@
-use.miden::sat::account
-use.miden::sat::note
-use.miden::sat::tx
-use.miden::wallets::basic->wallet
+use.miden::account
+use.miden::note
+use.miden::tx
+use.miden::contracts::wallets::basic->wallet
 
 #! Helper procedure to add all assets of a note to an account.
 #!
@@ -56,7 +56,7 @@ end
 # - reclaim_block_height is the block height at which the note can be reclaimed by the sender.
 #
 # FAILS if:
-# - Account does not expose miden::wallets::basic::receive_asset procedure.
+# - Account does not expose miden::contracts::wallets::basic::receive_asset procedure.
 # - Before reclaim block height: account ID of executing account is not equal to specified
 #   account ID.
 # - At and after reclaim block height: account ID of executing account is not equal to

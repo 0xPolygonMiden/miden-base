@@ -44,8 +44,8 @@ pub fn create_basic_wallet(
 
     let account_code_string: String = format!(
         "
-    use.miden::wallets::basic->basic_wallet
-    use.miden::auth::basic
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic
 
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset

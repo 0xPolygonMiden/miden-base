@@ -25,8 +25,8 @@ fn test_get_balance() {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -54,8 +54,8 @@ fn test_get_balance_non_fungible_fails() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -81,8 +81,8 @@ fn test_has_non_fungible_asset() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -114,8 +114,8 @@ fn test_add_fungible_asset_success() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -155,8 +155,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -192,8 +192,8 @@ fn test_add_non_fungible_asset_success() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -234,8 +234,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -268,8 +268,8 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -308,8 +308,8 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -341,8 +341,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -383,8 +383,8 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction
@@ -418,8 +418,8 @@ fn test_remove_non_fungible_asset_success() {
 
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
 
         begin
             exec.prologue::prepare_transaction

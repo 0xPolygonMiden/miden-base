@@ -49,9 +49,9 @@ pub const ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX: usize = 4;
 
 pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
-            use.miden::sat::account
-            use.miden::sat::tx
-            use.miden::wallets::basic->wallet
+            use.miden::account
+            use.miden::tx
+            use.miden::contracts::wallets::basic->wallet
 
             # acct proc 0
             export.wallet::receive_asset
