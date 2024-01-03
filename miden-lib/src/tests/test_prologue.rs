@@ -300,12 +300,12 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             note.note().inputs().hash().as_elements()
         );
 
-        // The note vault hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 4)
+        // The note asset hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 4)
         assert_eq!(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 4)
                 .unwrap(),
-            note.note().vault().hash().as_elements()
+            note.note().assets().commitment().as_elements()
         );
 
         // The number of assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 5)
@@ -317,7 +317,7 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
         );
 
         // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)
-        for (asset, asset_idx) in note.note().vault().iter().cloned().zip(0u32..) {
+        for (asset, asset_idx) in note.note().assets().iter().cloned().zip(0u32..) {
             let word: Word = asset.into();
             assert_eq!(
                 process

@@ -1,8 +1,8 @@
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteId, NoteScript},
     transaction::{ChainMmr, InputNote, InputNotes, TransactionInputs},
@@ -135,8 +135,8 @@ pub fn get_account_with_default_account_code(
             .unwrap();
 
     let account_vault = match assets {
-        Some(asset) => AccountVault::new(&[asset]).unwrap(),
-        None => AccountVault::new(&[]).unwrap(),
+        Some(asset) => AssetVault::new(&[asset]).unwrap(),
+        None => AssetVault::new(&[]).unwrap(),
     };
 
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))

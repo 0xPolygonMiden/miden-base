@@ -22,21 +22,15 @@ pub enum AccountError {
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
-    AddFungibleAssetBalanceError(AssetError),
     ApplyStorageSlotsDiffFailed(MerkleError),
     ApplyStorageStoreDiffFailed(MerkleError),
-    DuplicateAsset(MerkleError),
-    DuplicateNonFungibleAsset(NonFungibleAsset),
+    AssetVaultError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
-    FungibleAssetNotFound(FungibleAsset),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
     NonceMustBeMonotonicallyIncreasing(u64, u64),
-    NonFungibleAssetNotFound(NonFungibleAsset),
-    NotAFungibleFaucetId(AccountId),
-    NotANonFungibleAsset(Asset),
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     SetStoreNodeFailed(MerkleError),
     StorageArrayRequiresMoreThanOneElement,
@@ -44,7 +38,6 @@ pub enum AccountError {
     StorageSlotArrayTooSmall { actual: u8, min: u8 },
     StorageSlotIsReserved(u8),
     StubDataIncorrectLength(usize, usize),
-    SubtractFungibleAssetBalanceError(AssetError),
 }
 
 impl AccountError {
@@ -62,14 +55,6 @@ impl AccountError {
 
     pub fn fungible_faucet_id_invalid_first_bit() -> Self {
         Self::FungibleFaucetIdInvalidFirstBit
-    }
-
-    pub fn not_a_fungible_faucet_id(account_id: AccountId) -> Self {
-        Self::NotAFungibleFaucetId(account_id)
-    }
-
-    pub fn not_a_non_fungible_asset(asset: Asset) -> Self {
-        Self::NotANonFungibleAsset(asset)
     }
 }
 
@@ -190,22 +175,44 @@ impl fmt::Display for AssetError {
 #[cfg(feature = "std")]
 impl std::error::Error for AssetError {}
 
+// ASSET VAULT ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AssetVaultError {
+    AddFungibleAssetBalanceError(AssetError),
+    DuplicateAsset(MerkleError),
+    DuplicateNonFungibleAsset(NonFungibleAsset),
+    FungibleAssetNotFound(FungibleAsset),
+    NotANonFungibleAsset(Asset),
+    NotAFungibleFaucetId(AccountId),
+    NonFungibleAssetNotFound(NonFungibleAsset),
+    SubtractFungibleAssetBalanceError(AssetError),
+}
+
+impl fmt::Display for AssetVaultError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AssetVaultError {}
+
 // NOTE ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum NoteError {
-    NoteDeserializationError(DeserializationError),
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
     InconsistentStubId(NoteId, NoteId),
-    InconsistentStubNumAssets(u64, u64),
-    InconsistentStubVaultHash(Digest, Digest),
+    InconsistentStubAssetHash(Digest, Digest),
     InvalidStubDataLen(usize),
     InvalidOriginIndex(String),
-    InvalidVaultDataLen(usize),
-    InvalidVaultAssetData(AssetError),
+    InvalidAssetData(AssetError),
+    NoteDeserializationError(DeserializationError),
     NoteMetadataSenderInvalid(AccountError),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),

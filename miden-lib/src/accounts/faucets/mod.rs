@@ -1,9 +1,7 @@
 use assembly::LibraryPath;
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
-    },
-    assets::TokenSymbol,
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
+    assets::{AssetVault, TokenSymbol},
     utils::{string::ToString, vec},
     AccountError, Felt, StarkField, Word, ZERO,
 };
@@ -72,7 +70,7 @@ pub fn create_basic_fungible_faucet(
         (0, (StorageSlotType::Value { value_arity: 0 }, auth_data)),
         (1, (StorageSlotType::Value { value_arity: 0 }, metadata)),
     ])?;
-    let account_vault = AccountVault::new(&[])?;
+    let account_vault = AssetVault::new(&[]).map_err(AccountError::AssetVaultError)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

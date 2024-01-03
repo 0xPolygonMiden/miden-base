@@ -1,5 +1,5 @@
 use miden_objects::{
-    accounts::{AccountId, AccountVault},
+    accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     StarkField,
 };
@@ -105,7 +105,7 @@ fn test_has_non_fungible_asset() {
 fn test_add_fungible_asset_success() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault: AccountVault = account.vault().clone();
+    let mut account_vault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
@@ -146,7 +146,7 @@ fn test_add_fungible_asset_success() {
 fn test_add_non_fungible_asset_fail_overflow() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault: AccountVault = account.vault().clone();
+    let mut account_vault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT + 1;
@@ -259,7 +259,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 fn test_remove_fungible_asset_success_no_balance_remaining() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault: AccountVault = account.vault().clone();
+    let mut account_vault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT;
@@ -332,7 +332,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 fn test_remove_fungible_asset_success_balance_remaining() {
     let (account, block_header, chain, notes) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault: AccountVault = account.vault().clone();
+    let mut account_vault = account.vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT - 1;

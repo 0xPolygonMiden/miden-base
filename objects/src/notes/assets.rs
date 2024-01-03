@@ -5,19 +5,23 @@ use vm_processor::DeserializationError;
 
 use super::{Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 
-// NOTE VAULT
+// NOTE ASSETS
 // ================================================================================================
 /// An asset container for a note.
 ///
-/// A note vault can contain up to 255 assets. The entire vault can be reduced to a single hash
-/// which is computed by sequentially hashing the list of the vault's assets.
+/// A note can contain up to 255 assets. No duplicates are allowed, but the order of assets is
+/// unspecified.
+///
+/// All the assets in a note can be reduced to a single commitment which is computed by
+/// sequentially hashing the assets. Note that the same list of assets can result in two different
+/// commitments if the asset ordering is different.
 #[derive(Debug, Clone)]
-pub struct NoteVault {
+pub struct NoteAssets {
     assets: Vec<Asset>,
     hash: OnceCell<Digest>,
 }
 
-impl NoteVault {
+impl NoteAssets {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
     /// The maximum number of assets which can be carried by a single note.
@@ -25,7 +29,7 @@ impl NoteVault {
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns an note asset vault constructed from the provided list of assets.
+    /// Returns new [NoteAssets] constructed from the provided list of assets.
     ///
     /// # Errors
     /// Returns an error if:
@@ -60,17 +64,17 @@ impl NoteVault {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a commitment to this vault.
-    pub fn hash(&self) -> Digest {
-        *self.hash.get_or_init(|| compute_vault_commitment(&self.assets))
+    /// Returns a commitment to the note's assets.
+    pub fn commitment(&self) -> Digest {
+        *self.hash.get_or_init(|| compute_asset_commitment(&self.assets))
     }
 
-    /// Returns the number of assets in this vault.
+    /// Returns the number of assets.
     pub fn num_assets(&self) -> usize {
         self.assets.len()
     }
 
-    /// Returns an iterator over the assets of this vault.
+    /// Returns an iterator over all assets.
     pub fn iter(&self) -> core::slice::Iter<Asset> {
         self.assets.iter()
     }
@@ -78,7 +82,7 @@ impl NoteVault {
     /// Returns all assets represented as a vector of field elements.
     ///
     /// The vector is padded with ZEROs so that its length is a multiple of 8. This is useful
-    /// because hashing the returned elements results in the note vault commitment.
+    /// because hashing the returned elements results in the note asset commitment.
     pub fn to_padded_assets(&self) -> Vec<Felt> {
         // if we have an odd number of assets with pad with a single word.
         let padded_len = if self.assets.len() % 2 == 0 {
@@ -100,42 +104,22 @@ impl NoteVault {
     }
 }
 
-impl TryFrom<&[Word]> for NoteVault {
-    type Error = NoteError;
-
-    fn try_from(value: &[Word]) -> Result<Self, Self::Error> {
-        if value.is_empty() {
-            return Err(NoteError::EmptyAssetList);
-        } else if value.len() > Self::MAX_NUM_ASSETS {
-            return Err(NoteError::too_many_assets(value.len()));
-        }
-
-        let assets = value
-            .iter()
-            .map(|word| (*word).try_into())
-            .collect::<Result<Vec<Asset>, _>>()
-            .map_err(NoteError::InvalidVaultAssetData)?;
-
-        Self::new(&assets)
-    }
-}
-
-impl PartialEq for NoteVault {
+impl PartialEq for NoteAssets {
     fn eq(&self, other: &Self) -> bool {
         self.assets == other.assets
     }
 }
 
-impl Eq for NoteVault {}
+impl Eq for NoteAssets {}
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Returns a commitment to a note's asset vault.
+/// Returns a commitment to a note's assets.
 ///
 /// The commitment is computed as a sequential hash of all assets (each asset represented by 4
 /// field elements), padded to the next multiple of 2.
-fn compute_vault_commitment(assets: &[Asset]) -> Digest {
+fn compute_asset_commitment(assets: &[Asset]) -> Digest {
     // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
     // ensure the number of elements is a multiple of 8 - the size of the hasher rate.
     let word_capacity = if assets.len() % 2 == 0 {
@@ -153,7 +137,7 @@ fn compute_vault_commitment(assets: &[Asset]) -> Digest {
 
     // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
     // ensure the number of elements is a multiple of 8 - the size of the hasher rate. This
-    // simplifies hashing inside of the virtual machine when ingesting assets from the vault.
+    // simplifies hashing inside of the virtual machine when ingesting assets from a note.
     if assets.len() % 2 == 1 {
         asset_elements.extend_from_slice(&Word::default());
     }
@@ -164,15 +148,15 @@ fn compute_vault_commitment(assets: &[Asset]) -> Digest {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for NoteVault {
+impl Serializable for NoteAssets {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.assets.len() <= NoteVault::MAX_NUM_ASSETS);
+        debug_assert!(self.assets.len() <= NoteAssets::MAX_NUM_ASSETS);
         target.write_u8((self.assets.len() - 1) as u8);
         self.assets.write_into(target);
     }
 }
 
-impl Deserializable for NoteVault {
+impl Deserializable for NoteAssets {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u8()? + 1;
         let assets = Asset::read_batch_from(source, count.into())?;

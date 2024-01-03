@@ -3,10 +3,10 @@ use common::{
 };
 use miden_lib::notes::{create_note, Script};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    notes::{NoteMetadata, NoteVault},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt,
 };
@@ -92,7 +92,7 @@ fn test_swap_script() {
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -115,9 +115,9 @@ fn test_swap_script() {
     let note_metadata =
         NoteMetadata::new(target_account_id, sender_account_id.into(), Felt::new(1));
 
-    let note_vault = NoteVault::new(&[non_fungible_asset]).unwrap();
+    let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
 
-    let requested_note = OutputNote::new(recipient, note_vault, note_metadata);
+    let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
 
     let created_note = transaction_result.output_notes().get_note(0);
 

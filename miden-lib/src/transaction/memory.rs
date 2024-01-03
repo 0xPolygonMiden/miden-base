@@ -195,7 +195,7 @@ pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
 pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
-pub const CONSUMED_NOTE_VAULT_ROOT_OFFSET: MemoryOffset = 4;
+pub const CONSUMED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
 pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 6;
 
@@ -215,7 +215,7 @@ pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 10000;
 pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
-pub const CREATED_NOTE_VAULT_HASH_OFFSET: MemoryOffset = 3;
+pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
 pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 4;
 
 /// The maximum number of created notes that can be produced in a single transaction.

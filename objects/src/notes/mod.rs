@@ -1,5 +1,7 @@
 use core::cell::OnceCell;
 
+use vm_processor::DeserializationError;
+
 use super::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -31,9 +33,8 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
-mod vault;
-pub use vault::NoteVault;
-use vm_processor::DeserializationError;
+mod assets;
+pub use assets::NoteAssets;
 
 // CONSTANTS
 // ================================================================================================
@@ -57,8 +58,8 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// Core on-chain data which is used to execute a note:
 /// - A script which must be executed in a context of some account to claim the assets.
 /// - A set of inputs which can be read to memory during script execution via the invocation of the
-///   `note::get_inputs` in the kernel api.
-/// - A set of assets stored in a vault.
+///   `note::get_inputs` in the kernel API.
+/// - A set of assets stored in the note.
 /// - A serial number which can be used to break linkability between note hash and note nullifier.
 ///
 /// Auxiliary data which is used to verify authenticity and signal additional information:
@@ -68,7 +69,7 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 pub struct Note {
     script: NoteScript,
     inputs: NoteInputs,
-    vault: NoteVault,
+    assets: NoteAssets,
     serial_num: Word,
     metadata: NoteMetadata,
 
@@ -94,12 +95,12 @@ impl Note {
         sender: AccountId,
         tag: Felt,
     ) -> Result<Self, NoteError> {
-        let vault = NoteVault::new(assets)?;
-        let num_assets = vault.num_assets();
+        let assets = NoteAssets::new(assets)?;
+        let num_assets = assets.num_assets();
         Ok(Self {
             script,
             inputs: NoteInputs::new(inputs)?,
-            vault,
+            assets,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
             id: OnceCell::new(),
@@ -111,14 +112,14 @@ impl Note {
     pub fn from_parts(
         script: NoteScript,
         inputs: NoteInputs,
-        vault: NoteVault,
+        assets: NoteAssets,
         serial_num: Word,
         metadata: NoteMetadata,
     ) -> Self {
         Self {
             script,
             inputs,
-            vault,
+            assets,
             serial_num,
             metadata,
             id: OnceCell::new(),
@@ -139,9 +140,9 @@ impl Note {
         &self.inputs
     }
 
-    /// Returns a reference to the asset vault of this note.
-    pub fn vault(&self) -> &NoteVault {
-        &self.vault
+    /// Returns a reference to the asset of this note.
+    pub fn assets(&self) -> &NoteAssets {
+        &self.assets
     }
 
     /// Returns a serial number of this note.
@@ -188,7 +189,7 @@ impl Serializable for Note {
         let Note {
             script,
             inputs,
-            vault,
+            assets,
             serial_num,
             metadata,
 
@@ -198,7 +199,7 @@ impl Serializable for Note {
 
         script.write_into(target);
         inputs.write_into(target);
-        vault.write_into(target);
+        assets.write_into(target);
         serial_num.write_into(target);
         metadata.write_into(target);
     }
@@ -208,14 +209,14 @@ impl Deserializable for Note {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let script = NoteScript::read_from(source)?;
         let inputs = NoteInputs::read_from(source)?;
-        let vault = NoteVault::read_from(source)?;
+        let assets = NoteAssets::read_from(source)?;
         let serial_num = Word::read_from(source)?;
         let metadata = NoteMetadata::read_from(source)?;
 
         Ok(Self {
             script,
             inputs,
-            vault,
+            assets,
             serial_num,
             metadata,
             id: OnceCell::new(),

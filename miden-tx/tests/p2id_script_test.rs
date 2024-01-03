@@ -1,8 +1,8 @@
 use miden_lib::notes::{create_note, Script};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault},
+    accounts::{Account, AccountId},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     utils::collections::Vec,
     Felt,
 };
@@ -84,7 +84,7 @@ fn test_p2id_script() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -200,7 +200,7 @@ fn test_p2id_script_multiple_assets() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
+        AssetVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
