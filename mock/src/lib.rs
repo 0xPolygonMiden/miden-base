@@ -3,7 +3,7 @@ use std::{fs::File, io::Read, path::PathBuf};
 use miden_lib::transaction::{memory, TransactionKernel};
 use miden_objects::{
     accounts::Account,
-    notes::NoteVault,
+    notes::NoteAssets,
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNotes, PreparedTransaction, TransactionInputs,
         TransactionScript,

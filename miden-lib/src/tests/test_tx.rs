@@ -138,9 +138,9 @@ fn test_get_output_notes_hash() {
 
     // extract input note data
     let input_note_1 = notes.first().unwrap().note();
-    let input_asset_1 = **input_note_1.vault().iter().take(1).collect::<Vec<_>>().first().unwrap();
+    let input_asset_1 = **input_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
     let input_note_2 = notes.last().unwrap().note();
-    let input_asset_2 = **input_note_2.vault().iter().take(1).collect::<Vec<_>>().first().unwrap();
+    let input_asset_2 = **input_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
@@ -206,12 +206,12 @@ fn test_get_output_notes_hash() {
         recipient_1 = prepare_word(&output_note_1.recipient()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
-            **output_note_1.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()
+            **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
         recipient_2 = prepare_word(&output_note_2.recipient()),
         tag_2 = output_note_2.metadata().tag(),
         asset_2 = prepare_word(&Word::from(
-            **output_note_2.vault().iter().take(1).collect::<Vec<_>>().first().unwrap()
+            **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
         expected = prepare_word(&expected_output_notes_hash)
     );

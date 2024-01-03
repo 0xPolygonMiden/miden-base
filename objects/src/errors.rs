@@ -195,17 +195,15 @@ impl std::error::Error for AssetError {}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum NoteError {
-    NoteDeserializationError(DeserializationError),
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
     InconsistentStubId(NoteId, NoteId),
-    InconsistentStubNumAssets(u64, u64),
-    InconsistentStubVaultHash(Digest, Digest),
+    InconsistentStubAssetHash(Digest, Digest),
     InvalidStubDataLen(usize),
     InvalidOriginIndex(String),
-    InvalidVaultDataLen(usize),
-    InvalidVaultAssetData(AssetError),
+    InvalidAssetData(AssetError),
+    NoteDeserializationError(DeserializationError),
     NoteMetadataSenderInvalid(AccountError),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),

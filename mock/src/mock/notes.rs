@@ -105,10 +105,10 @@ pub fn mock_notes(
     ",
         created_note_0_recipient = prepare_word(&created_notes[0].recipient()),
         created_note_0_tag = created_notes[0].metadata().tag(),
-        created_note_0_asset = prepare_assets(created_notes[0].vault())[0],
+        created_note_0_asset = prepare_assets(created_notes[0].assets())[0],
         created_note_1_recipient = prepare_word(&created_notes[1].recipient()),
         created_note_1_tag = created_notes[1].metadata().tag(),
-        created_note_1_asset = prepare_assets(created_notes[1].vault())[0],
+        created_note_1_asset = prepare_assets(created_notes[1].assets())[0],
     );
     let note_1_script_ast = ProgramAst::parse(&note_1_script_src).unwrap();
     let (note_1_script, _) = NoteScript::new(note_1_script_ast, assembler).unwrap();
@@ -128,7 +128,7 @@ pub fn mock_notes(
         ",
         created_note_2_recipient = prepare_word(&created_notes[2].recipient()),
         created_note_2_tag = created_notes[2].metadata().tag(),
-        created_note_2_asset = prepare_assets(created_notes[2].vault())[0],
+        created_note_2_asset = prepare_assets(created_notes[2].assets())[0],
     );
     let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
     let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();

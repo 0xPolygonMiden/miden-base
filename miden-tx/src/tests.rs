@@ -232,7 +232,7 @@ fn test_transaction_result_account_delta() {
         .last()
         .unwrap()
         .note()
-        .vault()
+        .assets()
         .iter()
         .cloned()
         .collect::<Vec<_>>();

@@ -91,7 +91,7 @@ fn test_get_vault_data() {
             exec.note::get_vault_info
 
             # assert the vault data is correct
-            push.{note_0_vault_root} assert_eqw
+            push.{note_0_asset_hash} assert_eqw
             push.{note_0_num_assets} assert_eq
 
             # increment current consumed note pointer
@@ -104,14 +104,14 @@ fn test_get_vault_data() {
             exec.note::get_vault_info
 
             # assert the vault data is correct
-            push.{note_1_vault_root} assert_eqw
+            push.{note_1_asset_hash} assert_eqw
             push.{note_1_num_assets} assert_eq
         end
         ",
-        note_0_vault_root = prepare_word(&notes[0].note().vault().hash()),
-        note_0_num_assets = notes[0].note().vault().num_assets(),
-        note_1_vault_root = prepare_word(&notes[1].note().vault().hash()),
-        note_1_num_assets = notes[1].note().vault().num_assets(),
+        note_0_asset_hash = prepare_word(&notes[0].note().assets().commitment()),
+        note_0_num_assets = notes[0].note().assets().num_assets(),
+        note_1_asset_hash = prepare_word(&notes[1].note().assets().commitment()),
+        note_1_num_assets = notes[1].note().assets().num_assets(),
     );
 
     let transaction =
@@ -130,7 +130,7 @@ fn test_get_assets() {
 
     fn construct_asset_assertions(note: &Note) -> String {
         let mut code = String::new();
-        for asset in note.vault().iter() {
+        for asset in note.assets().iter() {
             code += &format!(
                 "
                 # assert the asset is correct
@@ -215,8 +215,8 @@ fn test_get_assets() {
             call.process_note_1
         end
         ",
-        note_0_num_assets = notes[0].note().vault().num_assets(),
-        note_1_num_assets = notes[1].note().vault().num_assets(),
+        note_0_num_assets = notes[0].note().assets().num_assets(),
+        note_1_num_assets = notes[1].note().assets().num_assets(),
         NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes[0].note()),
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes[1].note()),
     );

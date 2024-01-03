@@ -10,7 +10,7 @@ use crate::utils::serde::{
 ///
 /// Note ID is computed as:
 ///
-///   hash(recipient, vault_hash),
+///   hash(recipient, asset_hash),
 ///
 /// where `recipient` is defined as:
 ///   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
@@ -18,14 +18,14 @@ use crate::utils::serde::{
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
 /// - To compute a note ID, we do not need to know the note's serial_num. Knowing the hash
-///   of the serial_num (as well as script hash, input hash, and note vault) is sufficient.
+///   of the serial_num (as well as script hash, input hash, and note assets) is sufficient.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NoteId(Digest);
 
 impl NoteId {
     /// Returns a new [NoteId] instantiated from the provided note components.
-    pub fn new(recipient: Digest, vault_commitment: Digest) -> Self {
-        Self(Hasher::merge(&[recipient, vault_commitment]))
+    pub fn new(recipient: Digest, asset_commitment: Digest) -> Self {
+        Self(Hasher::merge(&[recipient, asset_commitment]))
     }
 
     /// Returns the elements representation of this note ID.
@@ -49,7 +49,7 @@ impl NoteId {
 
 impl From<&Note> for NoteId {
     fn from(note: &Note) -> Self {
-        Self::new(note.recipient(), note.vault().hash())
+        Self::new(note.recipient(), note.assets().commitment())
     }
 }
 

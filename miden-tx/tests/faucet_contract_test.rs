@@ -8,7 +8,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
-    notes::{NoteMetadata, NoteVault},
+    notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt, Word, ZERO,
 };
@@ -79,13 +79,13 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     let expected_note = OutputNote::new(
         recipient.into(),
-        NoteVault::new(&[fungible_asset]).unwrap(),
+        NoteAssets::new(&[fungible_asset]).unwrap(),
         NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
     );
 
     let created_note = transaction_result.output_notes().get_note(0).clone();
     assert_eq!(created_note.recipient(), expected_note.recipient());
-    assert_eq!(created_note.vault(), expected_note.vault());
+    assert_eq!(created_note.assets(), expected_note.assets());
     assert_eq!(created_note.metadata(), expected_note.metadata());
 }
 

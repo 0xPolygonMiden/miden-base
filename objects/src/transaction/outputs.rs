@@ -3,7 +3,7 @@ use core::{cell::OnceCell, fmt::Debug};
 use super::MAX_OUTPUT_NOTES_PER_TRANSACTION;
 use crate::{
     accounts::AccountStub,
-    notes::{Note, NoteEnvelope, NoteId, NoteMetadata, NoteVault},
+    notes::{Note, NoteAssets, NoteEnvelope, NoteId, NoteMetadata},
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -200,28 +200,28 @@ fn build_output_notes_commitment<T: ToEnvelope>(notes: &[T]) -> Digest {
 
 /// An note create during a transaction.
 ///
-/// When a note is produced in a transaction, the note's recipient, vault and metadata must be
+/// When a note is produced in a transaction, the note's recipient, assets, and metadata must be
 /// known. However, other information about the note may or may not be know to the note's producer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutputNote {
     envelope: NoteEnvelope,
     recipient: Digest,
-    vault: NoteVault,
+    assets: NoteAssets,
 }
 
 impl OutputNote {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [OutputNote] instantiated from the provided parameters.
-    pub fn new(recipient: Digest, vault: NoteVault, metadata: NoteMetadata) -> Self {
+    pub fn new(recipient: Digest, assets: NoteAssets, metadata: NoteMetadata) -> Self {
         // assert is OK here because we'll eventually remove `num_assets` from the metadata
-        assert_eq!(vault.num_assets() as u64, metadata.num_assets().as_int());
+        assert_eq!(assets.num_assets() as u64, metadata.num_assets().as_int());
 
-        let note_id = NoteId::new(recipient, vault.hash());
+        let note_id = NoteId::new(recipient, assets.commitment());
         Self {
             envelope: NoteEnvelope::new(note_id, metadata),
             recipient,
-            vault,
+            assets,
         }
     }
 
@@ -233,9 +233,9 @@ impl OutputNote {
         &self.recipient
     }
 
-    /// Returns a reference to the asset vault of this note.
-    pub fn vault(&self) -> &NoteVault {
-        &self.vault
+    /// Returns a reference to the asset of this note.
+    pub fn assets(&self) -> &NoteAssets {
+        &self.assets
     }
 
     /// Returns the metadata associated with this note.
@@ -270,7 +270,7 @@ impl From<Note> for OutputNote {
 impl From<&Note> for OutputNote {
     fn from(note: &Note) -> Self {
         let recipient = note.recipient();
-        Self::new(recipient, note.vault().clone(), *note.metadata())
+        Self::new(recipient, note.assets().clone(), *note.metadata())
     }
 }
 
@@ -280,7 +280,7 @@ impl From<&Note> for OutputNote {
 impl Serializable for OutputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.recipient.write_into(target);
-        self.vault.write_into(target);
+        self.assets.write_into(target);
         self.envelope.metadata().write_into(target);
     }
 }
@@ -288,9 +288,9 @@ impl Serializable for OutputNote {
 impl Deserializable for OutputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let recipient = Digest::read_from(source)?;
-        let vault = NoteVault::read_from(source)?;
+        let assets = NoteAssets::read_from(source)?;
         let metadata = NoteMetadata::read_from(source)?;
 
-        Ok(Self::new(recipient, vault, metadata))
+        Ok(Self::new(recipient, assets, metadata))
     }
 }
