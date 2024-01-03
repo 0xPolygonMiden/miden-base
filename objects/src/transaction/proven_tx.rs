@@ -49,13 +49,15 @@ impl ProvenTransaction {
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
+        let id = TransactionId::new(
+            initial_account_hash,
+            final_account_hash,
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
         Self {
-            id: TransactionId::new(
-                initial_account_hash,
-                final_account_hash,
-                input_notes.commitment(),
-                output_notes.commitment(),
-            ),
+            id,
             account_id,
             initial_account_hash,
             final_account_hash,
@@ -146,13 +148,15 @@ impl Deserializable for ProvenTransaction {
         let block_ref = Digest::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
+        let id = TransactionId::new(
+            initial_account_hash,
+            final_account_hash,
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
         Ok(Self {
-            id: TransactionId::new(
-                initial_account_hash,
-                final_account_hash,
-                input_notes.commitment(),
-                output_notes.commitment(),
-            ),
+            id,
             account_id,
             initial_account_hash,
             final_account_hash,
