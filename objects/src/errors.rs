@@ -7,6 +7,7 @@ use super::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
+    notes::NoteId,
     utils::string::String,
     Digest, Word,
 };
@@ -198,7 +199,7 @@ pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
-    InconsistentStubHash(Digest, Digest),
+    InconsistentStubId(NoteId, NoteId),
     InconsistentStubNumAssets(u64, u64),
     InconsistentStubVaultHash(Digest, Digest),
     InvalidStubDataLen(usize),
@@ -312,7 +313,7 @@ impl std::error::Error for TransactionInputError {}
 
 #[derive(Debug, Clone)]
 pub enum TransactionOutputError {
-    DuplicateOutputNote(Digest),
+    DuplicateOutputNote(NoteId),
     ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),

@@ -4,7 +4,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteOrigin, NoteScript},
+    notes::{Note, NoteId, NoteScript},
     transaction::{ChainMmr, InputNote, InputNotes, TransactionInputs},
     BlockHeader, Felt, Word,
 };
@@ -77,19 +77,25 @@ impl DataStore for MockDataStore {
         &self,
         account_id: AccountId,
         block_num: u32,
-        notes: &[NoteOrigin],
+        notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
-        let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
-        notes.iter().all(|note| origins.contains(&note));
+
+        let notes = self
+            .notes
+            .iter()
+            .filter(|note| notes.contains(&note.id()))
+            .cloned()
+            .collect::<Vec<_>>();
+
         Ok(TransactionInputs::new(
             self.account.clone(),
             None,
             self.block_header,
             self.block_chain.clone(),
-            InputNotes::new(self.notes.clone()).unwrap(),
+            InputNotes::new(notes).unwrap(),
         )
         .unwrap())
     }

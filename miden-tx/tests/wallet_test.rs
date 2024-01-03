@@ -65,8 +65,7 @@ fn test_receive_asset_via_wallet() {
     executor.load_account(target_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
@@ -86,7 +85,7 @@ fn test_receive_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // nonce delta
@@ -133,8 +132,7 @@ fn test_send_asset_via_wallet() {
     executor.load_account(sender_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -167,7 +165,7 @@ fn test_send_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // clones account info

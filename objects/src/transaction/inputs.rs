@@ -3,7 +3,7 @@ use core::{cell::OnceCell, fmt::Debug};
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
 use crate::{
     accounts::{validate_account_seed, Account},
-    notes::{Note, NoteInclusionProof, NoteOrigin, Nullifier},
+    notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -284,6 +284,11 @@ impl InputNote {
     /// Returns a new instance of an [InputNote] with the specified note and proof.
     pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
         Self { note, proof }
+    }
+
+    /// Returns the ID of the note.
+    pub fn id(&self) -> NoteId {
+        self.note.id()
     }
 
     /// Returns a reference to the underlying note.

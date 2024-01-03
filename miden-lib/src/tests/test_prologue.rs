@@ -268,12 +268,12 @@ fn consumed_notes_memory_assertions<A: AdviceProvider>(
             note.note().nullifier().as_elements()
         );
 
-        // The note hash should be computed and stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024)
+        // The ID hash should be computed and stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024)
         assert_eq!(
             process
                 .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx))
                 .unwrap(),
-            note.note().hash().as_elements()
+            note.id().as_elements()
         );
 
         // The note serial num should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 1)

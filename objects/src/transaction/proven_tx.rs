@@ -17,7 +17,7 @@ use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes,
 /// - initial_account_hash: the hash of the account before the transaction was executed.
 /// - final_account_hash: the hash of the account after the transaction was executed.
 /// - input_notes: a list of nullifier for all notes consumed by the transaction.
-/// - output_notes: a list of (note_hash, metadata) tuples for all notes created by the
+/// - output_notes: a list of (note_id, metadata) tuples for all notes created by the
 ///   transaction.
 /// - tx_script_root: the script root of the transaction, if one was used.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.

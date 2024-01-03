@@ -2,7 +2,7 @@ use miden_lib::transaction::TransactionKernel;
 pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
-    notes::{NoteOrigin, NoteScript},
+    notes::{NoteId, NoteScript},
     transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
     vm::CodeBlock,
@@ -14,11 +14,8 @@ use vm_processor::{ExecutionError, RecAdviceProvider};
 mod compiler;
 pub use compiler::{ScriptTarget, TransactionCompiler};
 
-mod data;
-pub use data::DataStore;
-
 mod executor;
-pub use executor::TransactionExecutor;
+pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
 pub use host::TransactionHost;

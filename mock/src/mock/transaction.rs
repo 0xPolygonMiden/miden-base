@@ -41,10 +41,10 @@ pub fn mock_inputs(
     };
 
     // mock notes
-    let (consumed_notes, _created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (input_notes, _output_notes) = mock_notes(&assembler, &asset_preservation);
 
     // Chain data
-    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
 
     // Block header
     let block_header =
