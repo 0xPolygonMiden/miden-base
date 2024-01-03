@@ -1,8 +1,8 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountId, AccountStorage, StorageSlotType},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     Felt, Word, ONE, ZERO,
 };
@@ -99,7 +99,7 @@ fn test_receive_asset_via_wallet() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset_1.into()]).unwrap(),
+        AssetVault::new(&[fungible_asset_1.into()]).unwrap(),
         account_storage,
         account_code,
         Felt::new(2),
@@ -177,7 +177,7 @@ fn test_send_asset_via_wallet() {
     // vault delta
     let sender_account_after: Account = Account::new(
         data_store.account.id(),
-        AccountVault::new(&[]).unwrap(),
+        AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),

@@ -3,9 +3,9 @@ use common::{
 };
 use miden_lib::notes::{create_note, Script};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt,
@@ -92,7 +92,7 @@ fn test_swap_script() {
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),

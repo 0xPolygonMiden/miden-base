@@ -4,9 +4,9 @@ use miden_lib::{
     AuthScheme,
 };
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset, TokenSymbol},
+    assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
@@ -273,7 +273,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 
     Account::new(
         faucet_account_id,
-        AccountVault::new(&[]).unwrap(),
+        AssetVault::new(&[]).unwrap(),
         faucet_account_storage.clone(),
         faucet_account_code.clone(),
         Felt::new(1),

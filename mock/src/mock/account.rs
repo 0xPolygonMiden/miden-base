@@ -1,8 +1,8 @@
 use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{Assembler, ModuleAst},
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::merkle::TieredSmt,
     Felt, FieldElement, Word, ZERO,
 };
@@ -15,7 +15,7 @@ use crate::constants::{
     FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
 };
 
-fn mock_account_vault() -> AccountVault {
+fn mock_account_vault() -> AssetVault {
     // prepare fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let fungible_asset =
@@ -33,7 +33,7 @@ fn mock_account_vault() -> AccountVault {
 
     // prepare non fungible asset
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    AccountVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
+    AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
         .unwrap()
 }
 
@@ -118,7 +118,7 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
-    Account::new(acct_id, AccountVault::default(), account_storage, account_code, Felt::ZERO)
+    Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
 pub fn mock_account(
@@ -163,7 +163,7 @@ pub fn mock_fungible_faucet(
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AccountVault::default(), account_storage, account_code, nonce)
+    Account::new(account_id, AssetVault::default(), account_storage, account_code, nonce)
 }
 
 pub fn mock_non_fungible_faucet(
@@ -192,7 +192,7 @@ pub fn mock_non_fungible_faucet(
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AccountVault::default(), account_storage, account_code, nonce)
+    Account::new(account_id, AssetVault::default(), account_storage, account_code, nonce)
 }
 
 #[derive(Debug, PartialEq)]

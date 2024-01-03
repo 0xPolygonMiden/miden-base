@@ -1,7 +1,6 @@
 use super::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::merkle::TieredSmt,
+    assets::AssetVault,
     utils::{
         collections::{BTreeMap, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -27,9 +26,6 @@ pub use storage::{AccountStorage, SlotItem, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;
-
-mod vault;
-pub use vault::AccountVault;
 
 // TESTING CONSTANTS
 // ================================================================================================
@@ -70,7 +66,7 @@ pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
     id: AccountId,
-    vault: AccountVault,
+    vault: AssetVault,
     storage: AccountStorage,
     code: AccountCode,
     nonce: Felt,
@@ -83,7 +79,7 @@ impl Account {
     /// and nonce.
     pub fn new(
         id: AccountId,
-        vault: AccountVault,
+        vault: AssetVault,
         storage: AccountStorage,
         code: AccountCode,
         nonce: Felt,
@@ -119,13 +115,13 @@ impl Account {
     }
 
     /// Returns a reference to the vault of this account.
-    pub fn vault(&self) -> &AccountVault {
+    pub fn vault(&self) -> &AssetVault {
         &self.vault
     }
 
     #[cfg(test)]
     /// Returns a mutable reference to the vault of this account.
-    pub fn vault_mut(&mut self) -> &mut AccountVault {
+    pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault
     }
 
@@ -188,7 +184,7 @@ impl Serializable for Account {
 impl Deserializable for Account {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let id = AccountId::read_from(source)?;
-        let vault = AccountVault::read_from(source)?;
+        let vault = AssetVault::read_from(source)?;
         let storage = AccountStorage::read_from(source)?;
         let code = AccountCode::read_from(source)?;
         let nonce = Felt::read_from(source)?;

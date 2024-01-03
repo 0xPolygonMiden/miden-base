@@ -1,3 +1,5 @@
+use vm_processor::DeserializationError;
+
 use super::{
     accounts::{AccountId, AccountType},
     utils::{collections::Vec, string::ToString},
@@ -13,7 +15,9 @@ pub use nonfungible::{NonFungibleAsset, NonFungibleAssetDetails};
 
 mod token_symbol;
 pub use token_symbol::TokenSymbol;
-use vm_processor::DeserializationError;
+
+mod vault;
+pub use vault::AssetVault;
 
 // ASSET
 // ================================================================================================

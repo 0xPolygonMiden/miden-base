@@ -1,8 +1,8 @@
 use miden_lib::notes::{create_note, Script};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault},
+    accounts::{Account, AccountId},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     utils::collections::Vec,
     Felt,
 };
@@ -133,7 +133,7 @@ fn test_p2idr_script() {
     // Assert that the target_account received the funds and the nonce increased by 1
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -230,7 +230,7 @@ fn test_p2idr_script() {
     // Vault delta
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -263,7 +263,7 @@ fn test_p2idr_script() {
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
         sender_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         sender_account.storage().clone(),
         sender_account.code().clone(),
         Felt::new(2),
