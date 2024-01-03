@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::{AccountId, AccountStub},
-    notes::{NoteMetadata, NoteVault},
+    notes::{NoteId, NoteMetadata, NoteVault},
     transaction::OutputNote,
     AccountError, Digest, NoteError, StarkField, Word, WORD_SIZE,
 };
@@ -8,7 +8,7 @@ use miden_objects::{
 use super::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET, CREATED_NOTE_ASSETS_OFFSET,
-    CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET, CREATED_NOTE_METADATA_OFFSET,
+    CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_ID_OFFSET, CREATED_NOTE_METADATA_OFFSET,
     CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
 };
 
@@ -51,7 +51,7 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteErro
         return Err(NoteError::InvalidStubDataLen(elements.len()));
     }
 
-    let hash: Digest = elements[CREATED_NOTE_HASH_OFFSET as usize].into();
+    let note_id: NoteId = elements[CREATED_NOTE_ID_OFFSET as usize].into();
     let metadata: NoteMetadata = elements[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
     let recipient = elements[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
     let vault_hash: Digest = elements[CREATED_NOTE_VAULT_HASH_OFFSET as usize].into();
@@ -71,8 +71,8 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteErro
     }
 
     let stub = OutputNote::new(recipient, vault, metadata);
-    if stub.hash() != hash {
-        return Err(NoteError::InconsistentStubHash(stub.hash(), hash));
+    if stub.id() != note_id {
+        return Err(NoteError::InconsistentStubId(stub.id(), note_id));
     }
 
     Ok(stub)

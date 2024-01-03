@@ -77,7 +77,7 @@ fn test_epilogue() {
 }
 
 #[test]
-fn test_compute_created_note_hash() {
+fn test_compute_created_note_id() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let output_notes_data_procedure =
@@ -115,12 +115,12 @@ fn test_compute_created_note_hash() {
             process.get_mem_value(ContextId::root(), vault_hash_memory_address).unwrap();
         assert_eq!(expected_vault_hash.as_elements(), actual_vault_hash);
 
-        // assert the note hash is correct
-        let expected_hash = note.hash();
-        let note_hash_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
-        let actual_note_hash =
-            process.get_mem_value(ContextId::root(), note_hash_memory_address).unwrap();
-        assert_eq!(&actual_note_hash, expected_hash.as_elements());
+        // assert the note ID is correct
+        let expected_id = note.id();
+        let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
+        let actual_note_id =
+            process.get_mem_value(ContextId::root(), note_id_memory_address).unwrap();
+        assert_eq!(&actual_note_id, expected_id.as_elements());
     }
 }
 

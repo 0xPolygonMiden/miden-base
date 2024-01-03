@@ -207,7 +207,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
 
     // check that the account burned the asset
     assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
-    assert_eq!(transaction_result.input_notes().get_note(0).note().hash(), note.hash());
+    assert_eq!(transaction_result.input_notes().get_note(0).note().id(), note.id());
 }
 
 #[test]

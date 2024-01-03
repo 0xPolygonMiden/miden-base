@@ -3,7 +3,7 @@ use core::{cell::OnceCell, fmt::Debug};
 use super::MAX_OUTPUT_NOTES_PER_TRANSACTION;
 use crate::{
     accounts::AccountStub,
-    notes::{Note, NoteEnvelope, NoteMetadata, NoteVault},
+    notes::{Note, NoteEnvelope, NoteId, NoteMetadata, NoteVault},
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -25,20 +25,20 @@ pub struct TransactionOutputs {
 // TO ENVELOPE TRAIT
 // ================================================================================================
 
-/// Defines how a note object can be reduced to a note envelope (i.e., (hash, metadata) tuple).
+/// Defines how a note object can be reduced to a note envelope (i.e., (ID, metadata) tuple).
 ///
 /// This trait is implemented on both [OutputNote] and [NoteEnvelope] so that we can treat them
 /// generically as [OutputNotes].
 pub trait ToEnvelope:
     Debug + Clone + PartialEq + Eq + Serializable + Deserializable + Sized
 {
-    fn hash(&self) -> Digest;
+    fn id(&self) -> NoteId;
     fn metadata(&self) -> NoteMetadata;
 }
 
 impl ToEnvelope for OutputNote {
-    fn hash(&self) -> Digest {
-        self.hash()
+    fn id(&self) -> NoteId {
+        self.id()
     }
 
     fn metadata(&self) -> NoteMetadata {
@@ -47,8 +47,8 @@ impl ToEnvelope for OutputNote {
 }
 
 impl ToEnvelope for NoteEnvelope {
-    fn hash(&self) -> Digest {
-        self.note_hash()
+    fn id(&self) -> NoteId {
+        self.note_id()
     }
 
     fn metadata(&self) -> NoteMetadata {
@@ -99,8 +99,8 @@ impl<T: ToEnvelope> OutputNotes<T> {
 
         let mut seen_notes = BTreeSet::new();
         for note in notes.iter() {
-            if !seen_notes.insert(note.hash()) {
-                return Err(TransactionOutputError::DuplicateOutputNote(note.hash()));
+            if !seen_notes.insert(note.id()) {
+                return Err(TransactionOutputError::DuplicateOutputNote(note.id()));
             }
         }
 
@@ -188,7 +188,7 @@ impl<T: ToEnvelope> Deserializable for OutputNotes<T> {
 fn build_output_notes_commitment<T: ToEnvelope>(notes: &[T]) -> Digest {
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 8);
     for note in notes.iter() {
-        elements.extend_from_slice(note.hash().as_elements());
+        elements.extend_from_slice(note.id().as_elements());
         elements.extend_from_slice(&Word::from(note.metadata()));
     }
 
@@ -217,9 +217,9 @@ impl OutputNote {
         // assert is OK here because we'll eventually remove `num_assets` from the metadata
         assert_eq!(vault.num_assets() as u64, metadata.num_assets().as_int());
 
-        let hash = Hasher::merge(&[recipient, vault.hash()]);
+        let note_id = NoteId::new(recipient, vault.hash());
         Self {
-            envelope: NoteEnvelope::new(hash, metadata),
+            envelope: NoteEnvelope::new(note_id, metadata),
             recipient,
             vault,
         }
@@ -243,9 +243,9 @@ impl OutputNote {
         self.envelope.metadata()
     }
 
-    /// Returns the hash of this note stub.
-    pub fn hash(&self) -> Digest {
-        self.envelope.note_hash()
+    /// Return the unique ID of this note.
+    pub fn id(&self) -> NoteId {
+        self.envelope.note_id()
     }
 }
 

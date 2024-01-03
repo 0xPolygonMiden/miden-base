@@ -81,7 +81,7 @@ impl<R: Rng> Objects<R> {
 
         entries.extend(self.notes.iter().enumerate().map(|(index, note)| {
             let tree_index = (index * 2) as u64;
-            (tree_index, note.hash().into())
+            (tree_index, note.id().into())
         }));
         entries.extend(self.notes.iter().enumerate().map(|(index, note)| {
             let tree_index = (index * 2 + 1) as u64;
@@ -499,14 +499,14 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
     /// Mark a [Note] as produced by inserting into the block.
     pub fn add_note(&mut self, note: Note) -> Result<(), MockError> {
-        if self.pending_objects.notes.iter().any(|e| e.hash() == note.hash()) {
+        if self.pending_objects.notes.iter().any(|e| e.id() == note.id()) {
             return Err(MockError::DuplicatedNote);
         }
 
         // The check below works because the notes can not be added directly to the
         // [BlockHeader], so we don't have to iterate over the known headers and check for
         // inclusion proofs.
-        if self.objects.recorded_notes.iter().any(|e| e.note().hash() == note.hash()) {
+        if self.objects.recorded_notes.iter().any(|e| e.note().id() == note.id()) {
             return Err(MockError::DuplicatedNote);
         }
 
@@ -608,7 +608,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
     for (index, note) in consumed_notes.iter().enumerate() {
         let tree_index = 2 * index;
         let smt_entries = vec![
-            (tree_index as u64, note.hash().into()),
+            (tree_index as u64, note.id().into()),
             ((tree_index + 1) as u64, note.metadata().into()),
         ];
         let smt = SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, smt_entries).unwrap();

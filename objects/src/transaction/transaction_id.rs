@@ -15,7 +15,7 @@ use crate::utils::serde::{
 /// This achieves the following properties:
 /// - Transactions are identical if and only if they have the same ID.
 /// - Computing transaction ID can be done solely from public transaction data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TransactionId(Digest);
 
 impl TransactionId {
@@ -34,9 +34,14 @@ impl TransactionId {
         Self(Hasher::hash_elements(&elements))
     }
 
-    /// Returns the elements of this transaction ID.
+    /// Returns the elements representation of this transaction ID.
     pub fn as_elements(&self) -> &[Felt] {
         self.0.as_elements()
+    }
+
+    /// Returns the byte representation of this transaction ID.
+    pub fn as_bytes(&self) -> [u8; 32] {
+        self.0.as_bytes()
     }
 
     /// Returns the digest defining this transaction ID.

@@ -1,3 +1,5 @@
+use core::cell::OnceCell;
+
 use super::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -15,6 +17,9 @@ pub use inputs::NoteInputs;
 
 mod metadata;
 pub use metadata::NoteMetadata;
+
+mod note_id;
+pub use note_id::NoteId;
 
 mod nullifier;
 pub use nullifier::Nullifier;
@@ -66,6 +71,9 @@ pub struct Note {
     vault: NoteVault,
     serial_num: Word,
     metadata: NoteMetadata,
+
+    id: OnceCell<NoteId>,
+    nullifier: OnceCell<Nullifier>,
 }
 
 impl Note {
@@ -94,6 +102,8 @@ impl Note {
             vault,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         })
     }
 
@@ -111,6 +121,8 @@ impl Note {
             vault,
             serial_num,
             metadata,
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         }
     }
 
@@ -151,33 +163,20 @@ impl Note {
         Hasher::merge(&[merge_script, self.inputs.hash()])
     }
 
-    /// Returns a commitment to this note.
-    ///
-    /// The note hash is computed as:
-    ///   hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash).
-    /// This achieves the following properties:
-    /// - Every note can be reduced to a single unique hash.
-    /// - To compute a note's hash, we do not need to know the note's serial_num. Knowing the hash
-    ///   of the serial_num (as well as script hash, input hash and note vault) is sufficient.
-    /// - Moreover, we define `recipient` as:
-    ///     `hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)`
-    ///  This allows computing note hash from recipient and note vault.
-    /// - We compute hash of serial_num as hash(serial_num, [0; 4]) to simplify processing within
-    ///   the VM.
-    pub fn hash(&self) -> Digest {
-        let recipient = self.recipient();
-        Hasher::merge(&[recipient, self.vault.hash()])
+    /// Returns a unique identifier of this note, which is simultaneously a commitment to the note.
+    pub fn id(&self) -> NoteId {
+        *self.id.get_or_init(|| self.into())
     }
 
     /// Returns the value used to authenticate a notes existence in the note tree. This is computed
-    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_hash, note_metadata)]
+    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_id, note_metadata)]
     pub fn authentication_hash(&self) -> Digest {
-        Hasher::merge(&[self.hash(), Word::from(self.metadata()).into()])
+        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
     }
 
     /// Returns the nullifier for this note.
     pub fn nullifier(&self) -> Nullifier {
-        self.into()
+        *self.nullifier.get_or_init(|| self.into())
     }
 }
 
@@ -216,6 +215,8 @@ impl Deserializable for Note {
             vault,
             serial_num,
             metadata,
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         })
     }
 }
