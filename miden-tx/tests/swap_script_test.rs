@@ -1,7 +1,7 @@
 use common::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
-use miden_lib::notes::{create_note, Script};
+use miden_lib::notes::create_swap_note;
 use miden_objects::{
     accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
@@ -45,25 +45,22 @@ fn test_swap_script() {
         Some(non_fungible_asset),
     );
 
-    // Create the note
-    let swap_script = Script::SWAP {
-        asset: non_fungible_asset,
-        serial_num: [Felt::new(6), Felt::new(7), Felt::new(8), Felt::new(9)],
-    };
-
-    let note = create_note(
-        swap_script,
-        vec![fungible_asset],
+    // Create the note containing the SWAP script
+    let note = create_swap_note(
         sender_account_id,
-        None,
+        fungible_asset,
+        non_fungible_asset,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
+    let data_store = MockDataStore::with_existing(
+        Some(target_account.clone()),
+        Some(vec![note.0.clone()]),
+        None,
+    );
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();

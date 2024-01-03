@@ -1,4 +1,4 @@
-use miden_lib::notes::{create_note, Script};
+use miden_lib::notes::create_p2id_note;
 use miden_objects::{
     accounts::{Account, AccountId, AccountVault},
     assembly::ProgramAst,
@@ -38,12 +38,10 @@ fn test_p2id_script() {
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let p2id_script = Script::P2ID { target: target_account_id };
-    let note = create_note(
-        p2id_script,
-        vec![fungible_asset],
+    let note = create_p2id_note(
         sender_account_id,
-        None,
+        target_account_id,
+        vec![fungible_asset],
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
@@ -155,12 +153,10 @@ fn test_p2id_script_multiple_assets() {
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let p2id_script = Script::P2ID { target: target_account_id };
-    let note = create_note(
-        p2id_script,
-        vec![fungible_asset_1, fungible_asset_2],
+    let note = create_p2id_note(
         sender_account_id,
-        None,
+        target_account_id,
+        vec![fungible_asset_1, fungible_asset_2],
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();

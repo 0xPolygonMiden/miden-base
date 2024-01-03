@@ -4,99 +4,104 @@ use miden_objects::{
     assets::Asset,
     notes::{Note, NoteScript},
     utils::{collections::Vec, vec},
-    Digest, Felt, Hasher, NoteError, Word, ZERO,
+    Felt, NoteError, Word, ZERO,
 };
 
 use miden_objects::crypto::rand::FeltRng;
 
 use super::transaction::TransactionKernel;
 
-// STANDARDIZED SCRIPTS
+mod utils;
+
+// STANDARDIZED SCRIPTS NOTE GENERATORS
 // ================================================================================================
 
-pub enum Script {
-    P2ID { target: AccountId },
-    P2IDR { target: AccountId, recall_height: u32 },
-    SWAP { asset: Asset, serial_num: Word },
-}
-
-/// Users can create notes with a standard script. Atm we provide three standard scripts:
-/// 1. P2ID - pay to id.
-/// 2. P2IDR - pay to id with recall after a certain block height.
-/// 3. SWAP - swap of assets between two accounts.
-pub fn create_note<R: FeltRng>(
-    script: Script,
-    assets: Vec<Asset>,
+/// Generates a P2ID - pay to id note.
+pub fn create_p2id_note<R: FeltRng>(
     sender: AccountId,
-    tag: Option<Felt>,
+    target: AccountId,
+    assets: Vec<Asset>,
     mut rng: R,
 ) -> Result<Note, NoteError> {
-    let note_assembler = TransactionKernel::assembler();
-
-    // Include the binary version of the scripts into the source file at compile time
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
-    let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
-    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/SWAP.masb"));
-
-    let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
-        Script::P2ID { target } => (
-            ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?,
-            vec![target.into(), ZERO, ZERO, ZERO],
-        ),
-        Script::P2IDR { target, recall_height } => (
-            ProgramAst::from_bytes(p2idr_bytes).map_err(NoteError::NoteDeserializationError)?,
-            vec![target.into(), recall_height.into(), ZERO, ZERO],
-        ),
-        Script::SWAP { asset, serial_num } => {
-            let recipient = build_p2id_recipient(sender, serial_num)?;
-            let asset_word: Word = asset.into();
-            (
-                ProgramAst::from_bytes(swap_bytes).map_err(NoteError::NoteDeserializationError)?,
-                vec![
-                    recipient[0],
-                    recipient[1],
-                    recipient[2],
-                    recipient[3],
-                    asset_word[0],
-                    asset_word[1],
-                    asset_word[2],
-                    asset_word[3],
-                    sender.into(),
-                    ZERO,
-                    ZERO,
-                    ZERO,
-                ],
-            )
-        },
-    };
-
-    let (note_script, _) = NoteScript::new(note_script_ast, &note_assembler)?;
-
+    let assembler = TransactionKernel::assembler();
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let script_ast = ProgramAst::from_bytes(bytes).map_err(NoteError::NoteDeserializationError)?;
+    let inputs = vec![target.into(), ZERO, ZERO, ZERO];
+    let (note_script, _) = NoteScript::new(script_ast, &assembler)?;
+    let tag: Felt = target.into();
     let serial_num = rng.draw_word();
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag)
 }
 
-/// Utility function generating RECIPIENT for the P2ID note script created by the SWAP script
-fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
-    // TODO: add lazy_static initialization or compile-time optimization instead of re-generating
-    // the script hash every time we call the SWAP script
+/// Generates a P2IDR - pay to id with recall after a certain block height.
+pub fn create_p2idr_note<R: FeltRng>(
+    sender: AccountId,
+    target: AccountId,
+    assets: Vec<Asset>,
+    recall_height: u32,
+    mut rng: R,
+) -> Result<Note, NoteError> {
+    let assembler = TransactionKernel::assembler();
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
+    let script_ast = ProgramAst::from_bytes(bytes).map_err(NoteError::NoteDeserializationError)?;
+    let inputs = vec![target.into(), recall_height.into(), ZERO, ZERO];
+    let (note_script, _) = NoteScript::new(script_ast, &assembler)?;
+    let tag: Felt = target.into();
+    let serial_num = rng.draw_word();
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag)
+}
+
+/// Generates a SWAP - swap of assets between two accounts.
+pub fn create_swap_note<R: FeltRng>(
+    sender: AccountId,
+    offered_asset: Asset,
+    requested_asset: Asset,
+    mut rng: R,
+) -> Result<(Note, Note), NoteError> {
     let assembler = TransactionKernel::assembler();
 
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/SWAP.masb"));
 
-    let note_script_ast =
-        ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?;
+    let swap_script_ast =
+        ProgramAst::from_bytes(swap_bytes).map_err(NoteError::NoteDeserializationError)?;
 
-    let (note_script, _) = NoteScript::new(note_script_ast, &assembler)?;
+    let requested_serial_num = rng.draw_word();
 
-    let script_hash = note_script.hash();
+    let recipient = utils::build_p2id_recipient(sender, requested_serial_num.clone())?;
 
-    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
+    let asset_word: Word = requested_asset.into();
 
-    let merge_script = Hasher::merge(&[serial_num_hash, script_hash]);
+    let swap_inputs = vec![
+        recipient[0],
+        recipient[1],
+        recipient[2],
+        recipient[3],
+        asset_word[0],
+        asset_word[1],
+        asset_word[2],
+        asset_word[3],
+        sender.into(),
+        ZERO,
+        ZERO,
+        ZERO,
+    ];
 
-    Ok(Hasher::merge(&[
-        merge_script,
-        Hasher::hash_elements(&[target.into(), ZERO, ZERO, ZERO]),
-    ]))
+    let (note_script, _) = NoteScript::new(swap_script_ast, &assembler)?;
+
+    let tag: Felt = Felt::new(0);
+
+    let serial_num = rng.draw_word();
+
+    let swap_note = Note::new(
+        note_script.clone(),
+        &swap_inputs,
+        &vec![offered_asset],
+        serial_num,
+        sender,
+        tag,
+    )?;
+
+    let p2id_note = create_p2id_note(sender, sender, vec![requested_asset], rng)?;
+
+    Ok((swap_note, p2id_note))
 }
