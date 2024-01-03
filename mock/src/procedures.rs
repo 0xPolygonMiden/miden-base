@@ -3,21 +3,21 @@ use super::{
         CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET,
         NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
     },
-    Note, NoteVault, StarkField, Word,
+    NoteVault, OutputNotes, StarkField, Word,
 };
 
-pub fn created_notes_data_procedure(notes: &[Note]) -> String {
-    let note_0_metadata = prepare_word(&notes[0].metadata().into());
-    let note_0_recipient = prepare_word(&notes[0].recipient());
-    let note_0_assets = prepare_assets(notes[0].vault());
+pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
+    let note_0_metadata = prepare_word(&notes.get_note(0).metadata().into());
+    let note_0_recipient = prepare_word(notes.get_note(0).recipient());
+    let note_0_assets = prepare_assets(notes.get_note(0).vault());
 
-    let note_1_metadata = prepare_word(&notes[1].metadata().into());
-    let note_1_recipient = prepare_word(&notes[1].recipient());
-    let note_1_assets = prepare_assets(notes[1].vault());
+    let note_1_metadata = prepare_word(&notes.get_note(1).metadata().into());
+    let note_1_recipient = prepare_word(notes.get_note(1).recipient());
+    let note_1_assets = prepare_assets(notes.get_note(1).vault());
 
-    let note_2_metadata = prepare_word(&notes[2].metadata().into());
-    let note_2_recipient = prepare_word(&notes[2].recipient());
-    let note_2_assets = prepare_assets(notes[2].vault());
+    let note_2_metadata = prepare_word(&notes.get_note(2).metadata().into());
+    let note_2_recipient = prepare_word(notes.get_note(2).recipient());
+    let note_2_assets = prepare_assets(notes.get_note(2).vault());
 
     const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
     const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
@@ -65,7 +65,7 @@ pub fn created_notes_data_procedure(notes: &[Note]) -> String {
         note_0_assets[0],
         note_1_assets[0],
         note_2_assets[0],
-        notes.len()
+        notes.num_notes()
     )
 }
 

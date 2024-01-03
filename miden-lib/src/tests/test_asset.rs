@@ -9,11 +9,11 @@ use mock::{
     run_tx,
 };
 
-use super::{Hasher, MemAdviceProvider, Word, ONE};
+use super::{build_tx_inputs, Hasher, Word, ONE};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
@@ -44,30 +44,15 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        &code,
-        "",
-        None,
-    );
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        &mut advice_provider,
-    );
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider);
 }
 
 #[test]
 fn test_create_non_fungible_asset_succeeds() {
-    let (account, block_header, chain, notes, auxiliary_data) = mock_inputs(
+    let (account, block_header, chain, notes) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
@@ -99,24 +84,8 @@ fn test_create_non_fungible_asset_succeeds() {
         expected_non_fungible_asset = prepare_word(&Word::from(non_fungible_asset))
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes,
-        None,
-        auxiliary_data,
-        &code,
-        "",
-        None,
-    );
-
-    let mut advice_provider = MemAdviceProvider::from(transaction.advice_provider_inputs());
-    let _process = run_tx(
-        transaction.tx_program().clone(),
-        transaction.stack_inputs(),
-        &mut advice_provider,
-    )
-    .unwrap();
+    let transaction =
+        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
+    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
+    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
 }

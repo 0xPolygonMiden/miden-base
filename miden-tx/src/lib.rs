@@ -1,11 +1,12 @@
-use miden_lib::SatKernel;
+use miden_lib::transaction::TransactionKernel;
+pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId},
-    assembly::CodeBlock,
+    accounts::{AccountCode, AccountId},
     notes::{NoteOrigin, NoteScript},
-    transaction::{ChainMmr, PreparedTransaction, TransactionResult},
+    transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
-    AccountError, BlockHeader, Digest, Hasher, TransactionResultError,
+    vm::CodeBlock,
+    AccountError, Digest,
 };
 use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};
@@ -25,16 +26,13 @@ pub use host::TransactionHost;
 mod prover;
 pub use prover::{ProvingOptions, TransactionProver};
 
-mod result;
-pub use result::TryFromVmResult;
-
 mod verifier;
 pub use verifier::TransactionVerifier;
 
 mod error;
 pub use error::{
-    DataStoreError, TransactionCompilerError, TransactionError, TransactionExecutorError,
-    TransactionProverError, TransactionVerifierError,
+    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
+    TransactionVerifierError,
 };
 
 #[cfg(test)]

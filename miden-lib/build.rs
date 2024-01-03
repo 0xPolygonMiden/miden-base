@@ -12,12 +12,124 @@ use assembly::{
 
 // CONSTANTS
 // ================================================================================================
-const ASL_DIR_PATH: &str = "assets";
-const ASM_DIR_PATH: &str = "asm";
-const ASM_MIDEN_DIR_PATH: &str = "asm/miden";
-const ASM_SCRIPTS_DIR_PATH: &str = "asm/scripts";
+
+const ASSETS_DIR: &str = "assets";
+const ASM_DIR: &str = "asm";
+const ASM_MIDEN_DIR: &str = "miden";
+const ASM_SCRIPTS_DIR: &str = "scripts";
+const ASM_KERNELS_DIR: &str = "kernels";
 
 // PRE-PROCESSING
+// ================================================================================================
+
+/// Read and parse the contents from `./asm`.
+/// - Compiles contents of asm/miden directory into a Miden library file (.masl) under
+///   miden namespace.
+/// - Compiles contents of asm/scripts directory into individual .masb files.
+#[cfg(not(feature = "docs-rs"))]
+fn main() -> io::Result<()> {
+    // re-build when the MASM code changes
+    println!("cargo:rerun-if-changed=asm");
+
+    // Copies the MASM code to the build directory
+    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let build_dir = env::var("OUT_DIR").unwrap();
+    let src = Path::new(&crate_dir).join(ASM_DIR);
+    let dst = Path::new(&build_dir).to_path_buf();
+    copy_directory(src, &dst);
+
+    // set source directory to {OUT_DIR}/asm
+    let source_dir = dst.join(ASM_DIR);
+
+    // set target directory to {OUT_DIR}/assets
+    let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
+
+    // compile miden library
+    compile_miden_lib(&source_dir, &target_dir)?;
+
+    // compile kernel and note scripts
+    compile_executable_modules(&source_dir.join(ASM_KERNELS_DIR), &target_dir)?;
+    compile_executable_modules(&source_dir.join(ASM_SCRIPTS_DIR), &target_dir)?;
+
+    Ok(())
+}
+
+// COMPILE MIDEN LIB
+// ================================================================================================
+
+fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+    let source_dir = source_dir.join(ASM_MIDEN_DIR);
+
+    // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
+    match env::var("CARGO_FEATURE_TESTING") {
+        Ok(ref s) if s == "1" => {
+            let constants = source_dir.join("sat/internal/constants.masm");
+            let patched = source_dir.join("sat/internal/constants.masm.patched");
+
+            // scope for file handlers
+            {
+                let read = File::open(&constants).unwrap();
+                let mut write = File::create(&patched).unwrap();
+                let modified = BufReader::new(read).lines().map(decrease_pow);
+
+                for line in modified {
+                    write.write_all(line.unwrap().as_bytes()).unwrap();
+                    write.write_all(&[b'\n']).unwrap();
+                }
+                write.flush().unwrap();
+            }
+
+            fs::remove_file(&constants).unwrap();
+            fs::rename(&patched, &constants).unwrap();
+        },
+        _ => (),
+    }
+
+    let ns = LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
+    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
+    let miden_lib = MaslLibrary::read_from_dir(source_dir, ns, true, version)?;
+
+    miden_lib.write_to_dir(target_dir)?;
+
+    Ok(())
+}
+
+fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
+    let mut line = line?;
+    if line.starts_with("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS") {
+        line.clear();
+        // 2**5
+        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs");
+    } else if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
+        line.clear();
+        // 2**6
+        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
+    }
+    Ok(line)
+}
+
+// COMPILE EXECUTABLE MODULES
+// ================================================================================================
+
+fn compile_executable_modules(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+    for masm_file_path in get_masm_files(source_dir)? {
+        // read the MASM file, parse it, and serialize the parsed AST to bytes
+        let ast = ProgramAst::parse(&fs::read_to_string(masm_file_path.clone())?)?;
+        let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
+
+        // TODO: get rid of unwraps
+        let masb_file_name = masm_file_path.file_name().unwrap().to_str().unwrap();
+        let mut masb_file_path = target_dir.join(masb_file_name);
+
+        // write the binary MASM to the output dir
+        masb_file_path.set_extension("masb");
+        fs::write(masb_file_path, bytes)?;
+    }
+
+    Ok(())
+}
+
+// HELPER FUNCTIONS
 // ================================================================================================
 
 /// Recursively copies `src` into `dst`.
@@ -31,7 +143,7 @@ fn copy_directory<T: AsRef<Path>, R: AsRef<Path>>(src: T, dst: R) {
     // keep all the files inside the `asm` folder
     prefix.pop();
 
-    let target_dir = dst.as_ref().join(ASM_DIR_PATH);
+    let target_dir = dst.as_ref().join(ASM_DIR);
     if !target_dir.exists() {
         fs::create_dir_all(target_dir).unwrap();
     }
@@ -57,36 +169,13 @@ fn copy_directory<T: AsRef<Path>, R: AsRef<Path>>(src: T, dst: R) {
     }
 }
 
-fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
-    let mut line = line?;
-    if line.starts_with("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS") {
-        line.clear();
-        // 2**5
-        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs");
-    } else if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
-        line.clear();
-        // 2**6
-        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
-    }
-    Ok(line)
-}
+/// Returns a vector with paths to all MASM files in the specified directory.
+///
+/// All non-MASM files are skipped.
+fn get_masm_files<P: AsRef<Path>>(dir_path: P) -> io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
 
-fn compile_miden_lib(build_dir: &String, dst: PathBuf) -> io::Result<()> {
-    let namespace =
-        LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
-    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let midenlib =
-        MaslLibrary::read_from_dir(dst.join(ASM_MIDEN_DIR_PATH), namespace, true, version)?;
-
-    midenlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
-
-    Ok(())
-}
-
-fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
-    let binding = dst.join(ASM_SCRIPTS_DIR_PATH);
-    let path = Path::new(&binding);
-
+    let path = dir_path.as_ref();
     if path.is_dir() {
         match fs::read_dir(path) {
             Ok(entries) => {
@@ -94,17 +183,9 @@ fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
                     match entry {
                         Ok(file) => {
                             let file_path = file.path();
-                            let file_path_str =
-                                file_path.to_str().unwrap_or("<invalid UTF-8 filename>");
-                            let file_name = format!(
-                                "{}.masb",
-                                file_path_str.split('/').last().unwrap().trim_end_matches(".masm")
-                            );
-                            let note_script_ast =
-                                ProgramAst::parse(&fs::read_to_string(file_path)?)?;
-                            let note_script_bytes = note_script_ast
-                                .to_bytes(AstSerdeOptions { serialize_imports: true });
-                            fs::write(dst.join(ASL_DIR_PATH).join(file_name), note_script_bytes)?;
+                            if is_masm_file(&file_path)? {
+                                files.push(file_path);
+                            }
                         },
                         Err(e) => println!("Error reading directory entry: {}", e),
                     }
@@ -116,55 +197,21 @@ fn compile_note_scripts(dst: PathBuf) -> io::Result<()> {
         println!("cargo:rerun-The specified path is not a directory.");
     }
 
-    Ok(())
+    Ok(files)
 }
 
-/// Read and parse the contents from `./asm`.
-/// - Compiles contents of asm/miden directory into a Miden library file (.masl) under
-/// miden namespace.
-/// - Compiles contents of asm/scripts directory into individual .masb files.
-#[cfg(not(feature = "docs-rs"))]
-fn main() -> io::Result<()> {
-    // re-build when the masm code changes.
-    println!("cargo:rerun-if-changed=asm");
-
-    // Copies the Masm code to the build directory
-    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let build_dir: String = env::var("OUT_DIR").unwrap();
-    let src = Path::new(&crate_dir).join(ASM_DIR_PATH);
-    let dst = Path::new(&build_dir).to_path_buf();
-    copy_directory(src, &dst);
-
-    // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
-    match env::var("CARGO_FEATURE_TESTING") {
-        Ok(ref s) if s == "1" => {
-            let constants = dst.join(ASM_MIDEN_DIR_PATH).join("sat/internal/constants.masm");
-            let patched = dst.join(ASM_MIDEN_DIR_PATH).join("sat/internal/constants.masm.patched");
-
-            // scope for file handlers
-            {
-                let read = File::open(&constants).unwrap();
-                let mut write = File::create(&patched).unwrap();
-                let modified = BufReader::new(read).lines().map(decrease_pow);
-
-                for line in modified {
-                    write.write_all(line.unwrap().as_bytes()).unwrap();
-                    write.write_all(&[b'\n']).unwrap();
-                }
-                write.flush().unwrap();
-            }
-
-            fs::remove_file(&constants).unwrap();
-            fs::rename(&patched, &constants).unwrap();
-        },
-        _ => (),
+/// Returns true if the provided path resolves to a file with `.masm` extension.
+///
+/// # Errors
+/// Returns an error if the path could not be converted to a UTF-8 string.
+fn is_masm_file(path: &Path) -> io::Result<bool> {
+    if let Some(extension) = path.extension() {
+        let extension = extension
+            .to_str()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "invalid UTF-8 filename"))?
+            .to_lowercase();
+        Ok(extension == "masm")
+    } else {
+        Ok(false)
     }
-
-    // compile the stdlib
-    compile_miden_lib(&build_dir, dst.clone())?;
-
-    // compile the note scripts separately because they are not part of the stdlib
-    compile_note_scripts(dst)?;
-
-    Ok(())
 }

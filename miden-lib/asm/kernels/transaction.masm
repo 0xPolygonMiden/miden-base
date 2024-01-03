@@ -59,7 +59,7 @@ use.miden::sat::internal::prologue
 #! - CNC is the commitment to the notes created by the transaction.
 #! - FAH is the final account hash of the account that the transaction is being
 #!   executed against.
-export.main.1
+proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
 
@@ -138,4 +138,8 @@ export.main.1
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+end
+
+begin
+    exec.main
 end

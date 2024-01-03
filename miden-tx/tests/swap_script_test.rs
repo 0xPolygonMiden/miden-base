@@ -7,7 +7,8 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteMetadata, NoteStub, NoteVault},
+    notes::{NoteMetadata, NoteVault},
+    transaction::OutputNote,
     Felt,
 };
 use miden_tx::TransactionExecutor;
@@ -100,10 +101,10 @@ fn test_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert_eq!(transaction_result.final_account_hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
-    assert_eq!(transaction_result.created_notes().notes().len(), 1);
+    assert_eq!(transaction_result.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
     let recipient = Digest::new([
@@ -118,9 +119,9 @@ fn test_swap_script() {
 
     let note_vault = NoteVault::new(&[non_fungible_asset]).unwrap();
 
-    let requested_note = NoteStub::new(recipient, note_vault, note_metadata).unwrap();
+    let requested_note = OutputNote::new(recipient, note_vault, note_metadata);
 
-    let created_note = &transaction_result.created_notes().notes()[0];
+    let created_note = transaction_result.output_notes().get_note(0);
 
     assert_eq!(created_note, &requested_note);
 }

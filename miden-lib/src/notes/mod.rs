@@ -1,18 +1,15 @@
-use crate::assembler::assembler;
-use crate::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET,
-    CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
-};
-use miden_objects::crypto::rand::FeltRng;
-
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteMetadata, NoteScript, NoteStub, NoteVault},
+    notes::{Note, NoteScript},
     utils::{collections::Vec, vec},
-    Digest, Felt, Hasher, NoteError, StarkField, Word, WORD_SIZE, ZERO,
+    Digest, Felt, Hasher, NoteError, Word, ZERO,
 };
+
+use miden_objects::crypto::rand::FeltRng;
+
+use super::transaction::TransactionKernel;
 
 // STANDARDIZED SCRIPTS
 // ================================================================================================
@@ -34,7 +31,7 @@ pub fn create_note<R: FeltRng>(
     tag: Option<Felt>,
     mut rng: R,
 ) -> Result<Note, NoteError> {
-    let note_assembler = assembler();
+    let note_assembler = TransactionKernel::assembler();
 
     // Include the binary version of the scripts into the source file at compile time
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
@@ -79,43 +76,11 @@ pub fn create_note<R: FeltRng>(
     Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag.unwrap_or(ZERO))
 }
 
-pub fn notes_try_from_elements(elements: &[Word]) -> Result<NoteStub, NoteError> {
-    if elements.len() < CREATED_NOTE_CORE_DATA_SIZE {
-        return Err(NoteError::InvalidStubDataLen(elements.len()));
-    }
-
-    let hash: Digest = elements[CREATED_NOTE_HASH_OFFSET as usize].into();
-    let metadata: NoteMetadata = elements[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
-    let recipient = elements[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
-    let vault_hash: Digest = elements[CREATED_NOTE_VAULT_HASH_OFFSET as usize].into();
-
-    if elements.len()
-        < (CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)
-            * WORD_SIZE
-    {
-        return Err(NoteError::InvalidStubDataLen(elements.len()));
-    }
-
-    let vault: NoteVault = elements[CREATED_NOTE_ASSETS_OFFSET as usize
-        ..(CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)]
-        .try_into()?;
-    if vault.hash() != vault_hash {
-        return Err(NoteError::InconsistentStubVaultHash(vault_hash, vault.hash()));
-    }
-
-    let stub = NoteStub::new(recipient, vault, metadata)?;
-    if stub.hash() != hash {
-        return Err(NoteError::InconsistentStubHash(stub.hash(), hash));
-    }
-
-    Ok(stub)
-}
-
 /// Utility function generating RECIPIENT for the P2ID note script created by the SWAP script
 fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
     // TODO: add lazy_static initialization or compile-time optimization instead of re-generating
     // the script hash every time we call the SWAP script
-    let assembler = assembler();
+    let assembler = TransactionKernel::assembler();
 
     let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
 

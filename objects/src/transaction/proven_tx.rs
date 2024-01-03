@@ -1,88 +1,100 @@
+use core::cell::OnceCell;
+
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
 use vm_processor::DeserializationError;
 
-use super::{AccountId, Digest, NoteEnvelope, Nullifier, TransactionId, Vec};
+use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
 
-/// Resultant object of executing and proving a transaction. It contains the minimal
-/// amount of data needed to verify that the transaction was executed correctly.
-/// Contains:
-/// - account_id: the account that the transaction was executed against.
+// PROVEN TRANSACTION
+// ================================================================================================
+
+/// The result of executing and proving a transaction.
+///
+/// This struct contains all the data required to verify that a transaction was executed correctly.
+/// Specifically:
+/// - account_id: ID of the account that the transaction was executed against.
 /// - initial_account_hash: the hash of the account before the transaction was executed.
 /// - final_account_hash: the hash of the account after the transaction was executed.
-/// - consumed_notes: a list of consumed notes defined by their nullifiers.
-/// - created_notes: a list of created notes.
-/// - tx_script_root: the script root of the transaction.
+/// - input_notes: a list of nullifier for all notes consumed by the transaction.
+/// - output_notes: a list of (note_hash, metadata) tuples for all notes created by the
+///   transaction.
+/// - tx_script_root: the script root of the transaction, if one was used.
 /// - block_ref: the block hash of the last known block at the time the transaction was executed.
-/// - proof: the proof of the transaction.
+/// - proof: a STARK proof that attests to the correct execution of the transaction.
 #[derive(Clone, Debug)]
 pub struct ProvenTransaction {
+    id: OnceCell<TransactionId>,
     account_id: AccountId,
     initial_account_hash: Digest,
     final_account_hash: Digest,
-    consumed_notes: Vec<Nullifier>,
-    created_notes: Vec<NoteEnvelope>,
+    input_notes: InputNotes<Nullifier>,
+    output_notes: OutputNotes<NoteEnvelope>,
     tx_script_root: Option<Digest>,
     block_ref: Digest,
     proof: ExecutionProof,
 }
 
 impl ProvenTransaction {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a new [ProvenTransaction] instantiated from the provided parameters.
     #[allow(clippy::too_many_arguments)]
-    /// Creates a new ProvenTransaction object.
     pub fn new(
         account_id: AccountId,
         initial_account_hash: Digest,
         final_account_hash: Digest,
-        consumed_notes: Vec<Nullifier>,
-        created_notes: Vec<NoteEnvelope>,
+        input_notes: InputNotes<Nullifier>,
+        output_notes: OutputNotes<NoteEnvelope>,
         tx_script_root: Option<Digest>,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
         Self {
+            id: OnceCell::new(),
             account_id,
             initial_account_hash,
             final_account_hash,
-            consumed_notes,
-            created_notes,
+            input_notes,
+            output_notes,
             tx_script_root,
             block_ref,
             proof,
         }
     }
 
-    // ACCESSORS
+    // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
-        self.into()
+        *self.id.get_or_init(|| self.into())
     }
 
-    /// Returns the account ID.
+    /// Returns ID of the account against which this transaction was executed.
     pub fn account_id(&self) -> AccountId {
         self.account_id
     }
 
-    /// Returns the initial account hash.
+    /// Returns the initial account state hash.
     pub fn initial_account_hash(&self) -> Digest {
         self.initial_account_hash
     }
 
-    /// Returns the final account hash.
+    /// Returns the final account state hash.
     pub fn final_account_hash(&self) -> Digest {
         self.final_account_hash
     }
 
-    /// Returns the nullifiers of consumed notes.
-    pub fn consumed_notes(&self) -> &[Nullifier] {
-        &self.consumed_notes
+    /// Returns a reference to the notes consumed by the transaction.
+    pub fn input_notes(&self) -> &InputNotes<Nullifier> {
+        &self.input_notes
     }
 
-    /// Returns the created notes.
-    pub fn created_notes(&self) -> &[NoteEnvelope] {
-        &self.created_notes
+    /// Returns a reference to the notes produced by the transaction.
+    pub fn output_notes(&self) -> &OutputNotes<NoteEnvelope> {
+        &self.output_notes
     }
 
     /// Returns the script root of the transaction.
@@ -109,10 +121,8 @@ impl Serializable for ProvenTransaction {
         self.account_id.write_into(target);
         self.initial_account_hash.write_into(target);
         self.final_account_hash.write_into(target);
-        target.write_u64(self.consumed_notes.len() as u64);
-        self.consumed_notes.write_into(target);
-        target.write_u64(self.created_notes.len() as u64);
-        self.created_notes.write_into(target);
+        self.input_notes.write_into(target);
+        self.output_notes.write_into(target);
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
         self.proof.write_into(target);
@@ -125,11 +135,8 @@ impl Deserializable for ProvenTransaction {
         let initial_account_hash = Digest::read_from(source)?;
         let final_account_hash = Digest::read_from(source)?;
 
-        let count = source.read_u64()?;
-        let consumed_notes = Nullifier::read_batch_from(source, count as usize)?;
-
-        let count = source.read_u64()?;
-        let created_notes = NoteEnvelope::read_batch_from(source, count as usize)?;
+        let input_notes = InputNotes::<Nullifier>::read_from(source)?;
+        let output_notes = OutputNotes::<NoteEnvelope>::read_from(source)?;
 
         let tx_script_root = Deserializable::read_from(source)?;
 
@@ -137,11 +144,12 @@ impl Deserializable for ProvenTransaction {
         let proof = ExecutionProof::read_from(source)?;
 
         Ok(Self {
+            id: OnceCell::new(),
             account_id,
             initial_account_hash,
             final_account_hash,
-            consumed_notes,
-            created_notes,
+            input_notes,
+            output_notes,
             tx_script_root,
             block_ref,
             proof,

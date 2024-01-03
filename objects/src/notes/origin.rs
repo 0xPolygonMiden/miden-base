@@ -9,7 +9,7 @@ use crate::crypto::merkle::{MerklePath, NodeIndex};
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteOrigin {
     pub block_num: u32,
-    pub node_index: NodeIndex,
+    pub node_index: NodeIndex, // TODO: should be a u32 because the depth is always the same
 }
 
 /// Contains the data required to prove inclusion of a note in the canonical chain.

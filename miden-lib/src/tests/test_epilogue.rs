@@ -1,17 +1,16 @@
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
-    procedures::created_notes_data_procedure,
+    procedures::output_notes_data_procedure,
     run_within_tx_kernel,
 };
 
 use super::{
     build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
 };
-use crate::{
+use crate::transaction::{
     memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
-    outputs::{
-        CREATED_NOTES_COMMITMENT_WORD_IDX, FINAL_ACCOUNT_HASH_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
-    },
+    ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    TX_SCRIPT_ROOT_WORD_IDX,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
@@ -20,13 +19,13 @@ const EPILOGUE_FILE: &str = "epilogue.masm";
 fn test_epilogue() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -36,12 +35,13 @@ fn test_epilogue() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     )
     .unwrap();
@@ -57,8 +57,8 @@ fn test_epilogue() {
 
     // assert created notes commitment is correct
     assert_eq!(
-        process.stack.get_word(CREATED_NOTES_COMMITMENT_WORD_IDX),
-        executed_transaction.created_notes_commitment().as_elements()
+        process.stack.get_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX),
+        executed_transaction.output_notes().commitment().as_elements()
     );
 
     // assert final account hash is correct
@@ -80,14 +80,14 @@ fn test_epilogue() {
 fn test_compute_created_note_hash() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
-    for (note, i) in executed_transaction.created_notes().iter().zip(0u32..) {
+    for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
         let imports = "use.miden::sat::internal::prologue\n";
         let test = format!(
             "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -96,12 +96,13 @@ fn test_compute_created_note_hash() {
         "
         );
 
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
             &test,
-            executed_transaction.stack_inputs(),
-            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+            stack_inputs,
+            MemAdviceProvider::from(advice_inputs),
             Some(assembly_file),
         )
         .unwrap();
@@ -131,13 +132,13 @@ fn test_epilogue_asset_preservation_violation() {
     ] {
         let executed_transaction = mock_executed_tx(asset_preservation);
 
-        let created_notes_data_procedure =
-            created_notes_data_procedure(executed_transaction.created_notes());
+        let output_notes_data_procedure =
+            output_notes_data_procedure(executed_transaction.output_notes());
 
         let imports = "use.miden::sat::internal::prologue\n";
         let code = format!(
             "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -147,12 +148,13 @@ fn test_epilogue_asset_preservation_violation() {
         "
         );
 
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
             &code,
-            executed_transaction.stack_inputs(),
-            MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+            stack_inputs,
+            MemAdviceProvider::from(advice_inputs),
             Some(assembly_file),
         );
 
@@ -165,13 +167,13 @@ fn test_epilogue_asset_preservation_violation() {
 fn test_epilogue_increment_nonce_success() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -182,12 +184,13 @@ fn test_epilogue_increment_nonce_success() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let _process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     )
     .unwrap();
@@ -197,13 +200,13 @@ fn test_epilogue_increment_nonce_success() {
 fn test_epilogue_increment_nonce_violation() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let created_notes_data_procedure =
-        created_notes_data_procedure(executed_transaction.created_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(executed_transaction.output_notes());
 
     let imports = "use.miden::sat::internal::prologue\n";
     let code = format!(
         "
-        {created_notes_data_procedure}
+        {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
             exec.create_mock_notes
@@ -213,12 +216,13 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,
         &code,
-        executed_transaction.stack_inputs(),
-        MemAdviceProvider::from(executed_transaction.advice_provider_inputs()),
+        stack_inputs,
+        MemAdviceProvider::from(advice_inputs),
         Some(assembly_file),
     );
 
