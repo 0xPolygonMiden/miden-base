@@ -1,17 +1,21 @@
+use core::cell::OnceCell;
+
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use super::{Digest, Felt, Hasher, NoteError, Vec, ZERO};
 
+// NOTE INPUTS
+// ================================================================================================
+
 /// Holds the inputs which are placed onto the stack before a note's script is executed.
 /// - inputs are stored in reverse stack order such that when they are pushed onto stack they are
 ///   in the correct order
 /// - hash is computed from inputs in the order they are stored (reverse stack order)
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, Debug)]
 pub struct NoteInputs {
     inputs: [Felt; 16],
-    hash: Digest,
+    hash: OnceCell<Digest>,
 }
 
 impl NoteInputs {
@@ -41,10 +45,10 @@ impl NoteInputs {
             .try_into()
             .expect("padded are of the correct length");
 
-        // compute hash from padded inputs.
-        let hash = Hasher::hash_elements(&padded_inputs);
-
-        Ok(Self { inputs: padded_inputs, hash })
+        Ok(Self {
+            inputs: padded_inputs,
+            hash: OnceCell::new(),
+        })
     }
 
     // PUBLIC ACCESSORS
@@ -55,18 +59,30 @@ impl NoteInputs {
         &self.inputs
     }
 
-    /// Returns a hash digest of the inputs. Computed as a linear hash of the inputs.
+    /// Returns a commitment to these inputs.
     pub fn hash(&self) -> Digest {
-        self.hash
+        *self.hash.get_or_init(|| Hasher::hash_elements(&self.inputs))
     }
 }
+
+impl PartialEq for NoteInputs {
+    fn eq(&self, other: &Self) -> bool {
+        let NoteInputs { inputs, hash: _hash } = self;
+
+        inputs == &other.inputs
+    }
+}
+
+impl Eq for NoteInputs {}
 
 // SERIALIZATION
 // ================================================================================================
 
 impl Serializable for NoteInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.inputs.write_into(target);
+        let NoteInputs { inputs, hash: _hash } = self;
+
+        inputs.write_into(target);
     }
 }
 
@@ -80,32 +96,37 @@ impl Deserializable for NoteInputs {
 // TESTS
 // ================================================================================================
 
-#[test]
-fn test_input_ordering() {
-    use super::Vec;
+#[cfg(test)]
+mod tests {
+    use super::{Felt, NoteInputs, ZERO};
 
-    // inputs are provided in reverse stack order
-    let inputs = Vec::from([Felt::new(1), Felt::new(2), Felt::new(3)]);
-    // we expect the inputs to be padded to length 16 and to remain in reverse stack order.
-    let expected_ordering = Vec::from([
-        Felt::new(1),
-        Felt::new(2),
-        Felt::new(3),
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-        ZERO,
-    ]);
+    #[test]
+    fn test_input_ordering() {
+        use super::Vec;
 
-    let note_inputs = NoteInputs::new(&inputs).expect("note created should succeed");
-    assert_eq!(&expected_ordering, note_inputs.inputs());
+        // inputs are provided in reverse stack order
+        let inputs = Vec::from([Felt::new(1), Felt::new(2), Felt::new(3)]);
+        // we expect the inputs to be padded to length 16 and to remain in reverse stack order.
+        let expected_ordering = Vec::from([
+            Felt::new(1),
+            Felt::new(2),
+            Felt::new(3),
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ]);
+
+        let note_inputs = NoteInputs::new(&inputs).expect("note created should succeed");
+        assert_eq!(&expected_ordering, note_inputs.inputs());
+    }
 }

@@ -23,7 +23,7 @@ const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 // ACCOUNT CODE
 // ================================================================================================
 
-/// Describes the public interface of an account.
+/// A public interface of an account.
 ///
 /// Account's public interface consists of a set of account procedures, each procedure being a Miden
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
@@ -71,7 +71,7 @@ impl AccountCode {
     /// Returns a new definition of an account's interface instantiated from the provided
     /// module and list of procedure digests.
     ///
-    /// **Note**: This function assumes that the list of provided procedure digests resulted from
+    /// **Note**: this function assumes that the list of provided procedure digests results from
     /// the compilation of the provided module, but this is not checked.
     ///
     /// # Panics

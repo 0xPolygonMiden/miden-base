@@ -1,3 +1,5 @@
+use core::cell::OnceCell;
+
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
@@ -9,11 +11,10 @@ use super::{Asset, Digest, Felt, Hasher, NoteError, Vec, Word, WORD_SIZE, ZERO};
 ///
 /// A note vault can contain up to 255 assets. The entire vault can be reduced to a single hash
 /// which is computed by sequentially hashing the list of the vault's assets.
-#[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Clone)]
 pub struct NoteVault {
     assets: Vec<Asset>,
-    hash: Digest,
+    hash: OnceCell<Digest>,
 }
 
 impl NoteVault {
@@ -38,15 +39,7 @@ impl NoteVault {
             return Err(NoteError::too_many_assets(assets.len()));
         }
 
-        // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
-        // ensure the number of elements is a multiple of 8 - the size of the hasher rate.
-        let word_capacity = if assets.len() % 2 == 0 {
-            assets.len()
-        } else {
-            assets.len() + 1
-        };
-        let mut asset_elements = Vec::with_capacity(word_capacity * WORD_SIZE);
-
+        // make sure all provided assets are unique
         for (i, asset) in assets.iter().enumerate() {
             // for all assets except the last one, check if the asset is the same as any other
             // asset in the list, and if so return an error
@@ -56,21 +49,11 @@ impl NoteVault {
                     Asset::NonFungible(a) => NoteError::duplicate_non_fungible_asset(*a),
                 });
             }
-            // convert the asset into field elements and add them to the list elements
-            let asset_word: Word = (*asset).into();
-            asset_elements.extend_from_slice(&asset_word);
-        }
-
-        // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
-        // ensure the number of elements is a multiple of 8 - the size of the hasher rate. This
-        // simplifies hashing inside of the virtual machine when ingesting assets from the vault.
-        if assets.len() % 2 == 1 {
-            asset_elements.extend_from_slice(&Word::default());
         }
 
         Ok(Self {
             assets: assets.to_vec(),
-            hash: Hasher::hash_elements(&asset_elements),
+            hash: OnceCell::new(),
         })
     }
 
@@ -79,7 +62,7 @@ impl NoteVault {
 
     /// Returns a commitment to this vault.
     pub fn hash(&self) -> Digest {
-        self.hash
+        *self.hash.get_or_init(|| compute_vault_commitment(&self.assets))
     }
 
     /// Returns the number of assets in this vault.
@@ -135,6 +118,47 @@ impl TryFrom<&[Word]> for NoteVault {
 
         Self::new(&assets)
     }
+}
+
+impl PartialEq for NoteVault {
+    fn eq(&self, other: &Self) -> bool {
+        self.assets == other.assets
+    }
+}
+
+impl Eq for NoteVault {}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Returns a commitment to a note's asset vault.
+///
+/// The commitment is computed as a sequential hash of all assets (each asset represented by 4
+/// field elements), padded to the next multiple of 2.
+fn compute_vault_commitment(assets: &[Asset]) -> Digest {
+    // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
+    // ensure the number of elements is a multiple of 8 - the size of the hasher rate.
+    let word_capacity = if assets.len() % 2 == 0 {
+        assets.len()
+    } else {
+        assets.len() + 1
+    };
+    let mut asset_elements = Vec::with_capacity(word_capacity * WORD_SIZE);
+
+    for asset in assets.iter() {
+        // convert the asset into field elements and add them to the list elements
+        let asset_word: Word = (*asset).into();
+        asset_elements.extend_from_slice(&asset_word);
+    }
+
+    // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
+    // ensure the number of elements is a multiple of 8 - the size of the hasher rate. This
+    // simplifies hashing inside of the virtual machine when ingesting assets from the vault.
+    if assets.len() % 2 == 1 {
+        asset_elements.extend_from_slice(&Word::default());
+    }
+
+    Hasher::hash_elements(&asset_elements)
 }
 
 // SERIALIZATION
