@@ -250,7 +250,7 @@ impl std::error::Error for NoteError {}
 // CHAIN MMR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChainMmrError {
     BlockNumTooBig { chain_length: usize, block_num: usize },
 }
@@ -273,7 +273,7 @@ impl std::error::Error for ChainMmrError {}
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TransactionScriptError {
     ScriptCompilationError(AssemblyError),
 }
@@ -290,7 +290,7 @@ impl std::error::Error for TransactionScriptError {}
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
@@ -311,7 +311,7 @@ impl std::error::Error for TransactionInputError {}
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
     ExtractAccountStorageSlotsDeltaFailed(MerkleError),
