@@ -1,4 +1,4 @@
-use core::{cell::OnceCell, fmt::Debug};
+use core::fmt::Debug;
 
 use super::MAX_OUTPUT_NOTES_PER_TRANSACTION;
 use crate::{
@@ -60,7 +60,7 @@ impl From<OutputNotes> for OutputNotes<NoteEnvelope> {
     fn from(notes: OutputNotes) -> Self {
         Self {
             notes: notes.notes.iter().map(|note| note.envelope).collect(),
-            commitment: OnceCell::new(),
+            commitment: build_output_notes_commitment(&notes.notes),
         }
     }
 }
@@ -77,7 +77,7 @@ impl From<OutputNotes> for OutputNotes<NoteEnvelope> {
 #[derive(Debug, Clone)]
 pub struct OutputNotes<T: ToEnvelope = OutputNote> {
     notes: Vec<T>,
-    commitment: OnceCell<Digest>,
+    commitment: Digest,
 }
 
 impl<T: ToEnvelope> OutputNotes<T> {
@@ -104,7 +104,9 @@ impl<T: ToEnvelope> OutputNotes<T> {
             }
         }
 
-        Ok(Self { notes, commitment: OnceCell::new() })
+        let commitment = build_output_notes_commitment(&notes);
+
+        Ok(Self { notes, commitment })
     }
 
     // PUBLIC ACCESSORS
@@ -115,7 +117,7 @@ impl<T: ToEnvelope> OutputNotes<T> {
     /// The commitment is computed as a sequential hash of (hash, metadata) tuples for the notes
     /// created in a transaction.
     pub fn commitment(&self) -> Digest {
-        *self.commitment.get_or_init(|| build_output_notes_commitment(&self.notes))
+        self.commitment
     }
     /// Returns total number of output notes.
     pub fn num_notes(&self) -> usize {

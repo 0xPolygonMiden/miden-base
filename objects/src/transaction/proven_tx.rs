@@ -1,5 +1,3 @@
-use core::cell::OnceCell;
-
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
 use vm_processor::DeserializationError;
@@ -24,7 +22,7 @@ use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes,
 /// - proof: a STARK proof that attests to the correct execution of the transaction.
 #[derive(Clone, Debug)]
 pub struct ProvenTransaction {
-    id: OnceCell<TransactionId>,
+    id: TransactionId,
     account_id: AccountId,
     initial_account_hash: Digest,
     final_account_hash: Digest,
@@ -51,8 +49,15 @@ impl ProvenTransaction {
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
+        let id = TransactionId::new(
+            initial_account_hash,
+            final_account_hash,
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
         Self {
-            id: OnceCell::new(),
+            id,
             account_id,
             initial_account_hash,
             final_account_hash,
@@ -69,7 +74,7 @@ impl ProvenTransaction {
 
     /// Returns unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
-        *self.id.get_or_init(|| self.into())
+        self.id
     }
 
     /// Returns ID of the account against which this transaction was executed.
@@ -143,8 +148,15 @@ impl Deserializable for ProvenTransaction {
         let block_ref = Digest::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
+        let id = TransactionId::new(
+            initial_account_hash,
+            final_account_hash,
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
         Ok(Self {
-            id: OnceCell::new(),
+            id,
             account_id,
             initial_account_hash,
             final_account_hash,
