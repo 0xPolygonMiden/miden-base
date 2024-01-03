@@ -118,9 +118,10 @@ end
 #! 2. Loading the note script root onto the stack.
 #!
 #! Stack: []
-#! Output: [NSR, note_args]
+#! Output: [NSR, NOTE_ARGS]
 #!
 #! - NSR is the note script root of the note currently being executed.
+#! - NOTE_ARGS are the note args of the note currently being executed.
 export.prepare_note
     # convert the index of the consumed note being executed to a pointer and store in memory
     exec.memory::get_current_consumed_note_ptr
