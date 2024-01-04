@@ -181,8 +181,8 @@ pub fn mock_notes(
     // note that changes the account vault
     let note_5_script_ast = ProgramAst::parse(
         "\
-                    use.miden::sat::note
-                    use.miden::wallets::basic->wallet
+                    use.miden::note
+                    use.miden::contracts::wallets::basic->wallet
 
                     begin
                         # read the assets to memory

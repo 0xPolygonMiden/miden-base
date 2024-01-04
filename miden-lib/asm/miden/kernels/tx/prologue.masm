@@ -1,11 +1,11 @@
 use.std::collections::smt
 use.std::collections::mmr
 
-use.miden::sat::internal::account
-use.miden::sat::internal::asset_vault
-use.miden::sat::internal::constants
-use.miden::sat::internal::layout
-use.miden::sat::internal::utils
+use.miden::kernels::tx::account
+use.miden::kernels::tx::asset_vault
+use.miden::kernels::tx::constants
+use.miden::kernels::tx::memory
+use.miden::kernels::tx::utils
 
 
 # PUBLIC INPUTS
@@ -24,19 +24,19 @@ use.miden::sat::internal::utils
 #!   (nullifier, script_root) pairs for the notes consumed in the transaction.
 proc.process_global_inputs
     # store the block hash
-    exec.layout::set_blk_hash
+    exec.memory::set_blk_hash
     # => [acct_id, IAH, NC]
 
     # store the account id
-    exec.layout::set_global_acct_id
+    exec.memory::set_global_acct_id
     # => [IAH, NC]
 
     # store the initial account hash
-    exec.layout::set_init_acct_hash
+    exec.memory::set_init_acct_hash
     # => [NC]
 
     # store the nullifier commitment
-    exec.layout::set_nullifier_com
+    exec.memory::set_nullifier_com
     # => []
 end
 
@@ -62,7 +62,7 @@ end
 #! - block_number is the block number of the last known block.
 proc.process_block_data
     # address to store the block data
-    exec.layout::get_block_data_ptr
+    exec.memory::get_block_data_ptr
     # => [block_data_ptr]
 
     # prepare the stack for reading block data
@@ -82,7 +82,7 @@ proc.process_block_data
     # => [NR, DIG, block_data_ptr']
 
     # store the note root in memory
-    dupw exec.layout::set_note_root
+    dupw exec.memory::set_note_root
     # => [NR, DIG, block_data_ptr']
 
     # merge the note root with the block data digest
@@ -90,7 +90,7 @@ proc.process_block_data
     # => [BH, block_data_ptr']
 
     # assert that the block hash matches the hash in global inputs
-    exec.layout::get_blk_hash assert_eqw
+    exec.memory::get_blk_hash assert_eqw
     # => [block_data_ptr']
 
     # clear the stack
@@ -119,11 +119,11 @@ end
 #! - P1, P2, ... are the MMR peaks.
 proc.process_chain_data
     # get a pointer to the chain mmr data
-    exec.layout::get_chain_mmr_ptr
+    exec.memory::get_chain_mmr_ptr
     # => [chain_mmr_ptr]
 
     # get the chain root
-    exec.layout::get_chain_root
+    exec.memory::get_chain_root
     # => [CHAIN_ROOT, chain_mmr_ptr]
 
     # unpack mmr
@@ -155,7 +155,7 @@ proc.ingest_acct_storage_types
     # => [TYPES_COM]
 
     # get the storage slot types data pointer
-    exec.layout::get_acct_storage_slot_type_data_ptr
+    exec.memory::get_acct_storage_slot_type_data_ptr
     # => [slot_type_data_ptr, TYPES_COM]
 
     # prepare the stack for reading storage slot types
@@ -186,7 +186,7 @@ end
 #! Output: []
 proc.validate_storage_slot_types
     # get the pointer at which the storage slot type data begins
-    exec.layout::get_acct_storage_slot_type_data_ptr
+    exec.memory::get_acct_storage_slot_type_data_ptr
     # => [slot_type_data_ptr]
 
     repeat.32
@@ -233,17 +233,17 @@ end
 #!   * read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
     # Assert the account id of the account is valid
-    exec.layout::get_acct_id exec.account::validate_id
+    exec.memory::get_acct_id exec.account::validate_id
     # => []
 
     # Assert the account nonce is 0
-    exec.layout::get_acct_nonce eq.0 assert
+    exec.memory::get_acct_nonce eq.0 assert
     # => []
 
     # Assert the initial vault is empty
     # -----------------------------------------------------------------------------------------
     # get the account vault root
-    exec.layout::get_acct_vault_root
+    exec.memory::get_acct_vault_root
     # => [ACCT_VAULT_ROOT]
 
     # push empty vault root onto stack
@@ -343,7 +343,7 @@ end
 #! - ACR is the account code root.
 proc.process_acct_data
     # address to store the account data
-    exec.layout::get_acct_data_ptr
+    exec.memory::get_acct_data_ptr
     # => [acct_data_ptr]
 
     # prepare the stack for reading account data
@@ -359,7 +359,7 @@ proc.process_acct_data
     # => [ACCT_HASH]
 
     # check if the account is new
-    padw exec.layout::get_init_acct_hash eqw movdn.8 dropw dropw
+    padw exec.memory::get_init_acct_hash eqw movdn.8 dropw dropw
     # => [is_new, ACCT_HASH]
 
     # ingest storage slot type data
@@ -369,7 +369,7 @@ proc.process_acct_data
     # process conditional logic depending on whether the account is new or existing
     if.true
         # set the initial account hash
-        exec.layout::set_init_acct_hash
+        exec.memory::set_init_acct_hash
         # => []
 
         # validate the new account
@@ -377,30 +377,30 @@ proc.process_acct_data
         # => []
     else
         # assert that the existing account hash matches the hash in global inputs
-        exec.layout::get_init_acct_hash assert_eqw
+        exec.memory::get_init_acct_hash assert_eqw
         # => []
     end
 
     # assert the account id matches the account id in global inputs
-    exec.layout::get_global_acct_id
-    exec.layout::get_acct_id
+    exec.memory::get_global_acct_id
+    exec.memory::get_acct_id
     assert_eq
     # => []
 
     # store a copy of the initial nonce in global inputs
-    exec.layout::get_acct_nonce
-    exec.layout::set_init_nonce
+    exec.memory::get_acct_nonce
+    exec.memory::set_init_nonce
     # => []
 
     # set the new account code root to the initial account code root
     # this is used for managing code root updates
-    exec.layout::get_acct_code_root
-    exec.layout::set_new_acct_code_root
+    exec.memory::get_acct_code_root
+    exec.memory::set_new_acct_code_root
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset
     # invariant checking
-    exec.layout::get_acct_vault_root exec.layout::set_input_vault_root
+    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root
     # => []
 end
 
@@ -426,7 +426,7 @@ end
 #! - note_index is the index of the note in the note Merkle tree.
 proc.authenticate_note.2
     # load data required for MMR get operation
-    exec.layout::get_chain_mmr_ptr adv_push.1
+    exec.memory::get_chain_mmr_ptr adv_push.1
     # => [leaf_pos, chain_mmr_ptr, AUTH_DIGEST]
 
     # get the chain MMR leaf associated with the block the note was created in
@@ -494,11 +494,11 @@ proc.process_consumed_note
     # => [i, i]
 
     # compute address to store note hash
-    exec.layout::get_consumed_note_ptr
+    exec.memory::get_consumed_note_ptr
     # => [note_ptr, i]
 
     # compute address to store core note data
-    dup exec.layout::get_consumed_note_core_ptr
+    dup exec.memory::get_consumed_note_core_ptr
     # => [note_data_ptr, note_ptr, i]
 
     # read note data from the advice provider
@@ -511,7 +511,7 @@ proc.process_consumed_note
     # => [DIG, note_ptr, i]
 
     # compute address for nullifier
-    movup.6 exec.layout::get_consumed_note_nullifier_ptr
+    movup.6 exec.memory::get_consumed_note_nullifier_ptr
     # => [nullifier_ptr, DIG, note_ptr]
 
     # store nullifier in memory and drop from stack
@@ -525,11 +525,11 @@ proc.process_consumed_note
     padw adv_loadw dup.4
     # => [note_ptr, NOTE_META, note_ptr]
 
-    exec.layout::set_consumed_note_metadata
+    exec.memory::set_consumed_note_metadata
     # => [note_ptr]
 
     # get the number of assets
-    dup exec.layout::get_consumed_note_num_assets
+    dup exec.memory::get_consumed_note_num_assets
     # => [num_assets, note_ptr]
 
     # assert the number of assets is within limits
@@ -545,7 +545,7 @@ proc.process_consumed_note
     # => [counter, rounded_num_assets, note_ptr]
 
     # prepare address and stack for reading assets
-    dup.2 exec.layout::get_consumed_note_assets_ptr padw padw padw
+    dup.2 exec.memory::get_consumed_note_assets_ptr padw padw padw
     # => [PAD, PAD, PADW, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # check if the number of assets is greater then 0
@@ -573,7 +573,7 @@ proc.process_consumed_note
     # => [note_ptr, DIG, note_ptr]
 
     # get expected note vault from memory
-    exec.layout::get_consumed_note_vault_root
+    exec.memory::get_consumed_note_vault_root
     # => [V, DIG, note_ptr]
 
     # assert that the computed hash matches the expected hash
@@ -583,11 +583,11 @@ proc.process_consumed_note
     # insert note assets into the input vault
     # ---------------------------------------------------------------------------------------------
     # prepare stack for iteration over note assets
-    exec.layout::get_input_vault_root_ptr dup.1 exec.layout::get_consumed_note_assets_ptr
+    exec.memory::get_input_vault_root_ptr dup.1 exec.memory::get_consumed_note_assets_ptr
     # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
 
     # calculate assets end ptr
-    dup dup.3 exec.layout::get_consumed_note_num_assets add swap
+    dup dup.3 exec.memory::get_consumed_note_num_assets add swap
     # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
 
     # loop over assets and insert them into input vault
@@ -623,27 +623,27 @@ proc.process_consumed_note
     # TODO: This should be optimized using the `hperm` operation
 
     # serial number hash - serial_hash = hmerge(serial_number, 0)
-    dup exec.layout::get_consumed_note_serial_num padw hmerge
+    dup exec.memory::get_consumed_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
     # hash serial_hash with script hash - merge_script = hmerge(serial_hash, script_hash)
-    dup.4 exec.layout::get_consumed_note_script_root hmerge
+    dup.4 exec.memory::get_consumed_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
     # hash merge_script with inputs hash - recipient = hmerge(merge_script, inputs_hash)
-    dup.4 exec.layout::get_consumed_note_inputs_hash hmerge
+    dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
     # => [RECIPIENT, note_ptr]
 
     # hash recipient with vault hash - note_hash = hmerge(recipient, vault_hash)
-    dup.4 exec.layout::get_consumed_note_vault_root hmerge
+    dup.4 exec.memory::get_consumed_note_vault_root hmerge
     # => [NOTE_HASH, note_ptr]
 
     # store note hash in memory and clear stack
-    dup.4 exec.layout::set_consumed_note_hash
+    dup.4 exec.memory::set_consumed_note_hash
     # => [NOTE_HASH]
 
     # load the note metadata
-    movup.4 exec.layout::get_consumed_note_metadata
+    movup.4 exec.memory::get_consumed_note_metadata
     # => [NOTE_META, NOTE_HASH]
 
     # merge the note hash with the note metadata to compute authentication digest
@@ -678,7 +678,7 @@ end
 #! - CN1_A2 is the second asset of consumed note 1.
 proc.process_consumed_notes_data
     # load the consumed notes data onto the advice stack
-    exec.layout::get_nullifier_com adv.push_mapval dropw
+    exec.memory::get_nullifier_com adv.push_mapval dropw
     # => [...]
 
     # read the number of consumed notes from the advice provider
@@ -686,7 +686,7 @@ proc.process_consumed_notes_data
     # => [num_notes, ...]
 
     # store the number of consumed notes
-    dup exec.layout::set_total_num_consumed_notes
+    dup exec.memory::set_total_num_consumed_notes
     # => [num_notes, ...]
 
     # assert the number of consumed notes is within limits; since max number of consumed notes is
@@ -741,7 +741,7 @@ proc.process_consumed_notes_data
         # => [CAP, num_processed_notes, num_notes, ...]
 
         # get consumed note nullifier
-        dup.4 exec.layout::get_consumed_note_nullifier
+        dup.4 exec.memory::get_consumed_note_nullifier
         # => [NULLIFIER, CAP, num_processed_notes, num_notes, ...]
 
         # pad the stack
@@ -762,7 +762,7 @@ proc.process_consumed_notes_data
     # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect
-    exec.layout::get_nullifier_com assert_eqw
+    exec.memory::get_nullifier_com assert_eqw
     # => [num_processed_notes + 1, num_notes, ...]
 
     # clear stack
@@ -770,7 +770,7 @@ proc.process_consumed_notes_data
     # => [...]
 
     # set the current consumed note pointer to the first consumed note
-    push.0 exec.layout::get_consumed_note_ptr exec.layout::set_current_consumed_note_ptr
+    push.0 exec.memory::get_consumed_note_ptr exec.memory::set_current_consumed_note_ptr
     # => [...]
 end
 
@@ -791,7 +791,7 @@ proc.process_tx_script_root
     # => [TXSR]
 
     # store the transaction script root in memory
-    exec.layout::set_tx_script_root
+    exec.memory::set_tx_script_root
     # => []
 end
 

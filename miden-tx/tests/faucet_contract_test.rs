@@ -43,8 +43,8 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic_fungible->faucet
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::faucets::basic_fungible->faucet
+            use.miden::contracts::auth::basic->auth_tx
 
             begin
 
@@ -112,8 +112,8 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic_fungible->faucet
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::faucets::basic_fungible->faucet
+            use.miden::contracts::auth::basic->auth_tx
 
             begin
 
@@ -166,8 +166,8 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // need to create a note with the fungible asset to be burned
     let note_script = ProgramAst::parse(
         "
-        use.miden::faucets::basic_fungible->faucet_contract
-        use.miden::sat::note
+        use.miden::contracts::faucets::basic_fungible->faucet_contract
+        use.miden::note
 
         # burn the asset
         begin
@@ -234,7 +234,7 @@ fn test_faucet_contract_creation() {
     assert!(faucet_account.is_faucet());
 
     let exp_faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
+        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 
@@ -251,7 +251,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
+        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 

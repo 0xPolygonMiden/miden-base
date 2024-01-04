@@ -1,9 +1,9 @@
-use.miden::sat::internal::account
-use.miden::sat::internal::asset_vault
-use.miden::sat::internal::faucet
-use.miden::sat::internal::layout
-use.miden::sat::internal::note
-use.miden::sat::internal::tx
+use.miden::kernels::tx::account
+use.miden::kernels::tx::asset_vault
+use.miden::kernels::tx::faucet
+use.miden::kernels::tx::memory
+use.miden::kernels::tx::note
+use.miden::kernels::tx::tx
 
 # EVENTS
 # =================================================================================================
@@ -201,7 +201,7 @@ end
 #! - balance is the vault balance of the fungible asset.
 export.account_vault_get_balance
     # get the vault root
-    exec.layout::get_acct_vault_root_ptr swap
+    exec.memory::get_acct_vault_root_ptr swap
     # => [faucet_id, acct_vault_root_ptr]
 
     # get the asset balance
@@ -219,7 +219,7 @@ end
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.account_vault_has_non_fungible_asset
     # arrange stack and get the vault root
-    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.layout::get_acct_vault_root_ptr movdn.4
+    push.0 movdn.4 push.0 movdn.4 push.0 movdn.4 exec.memory::get_acct_vault_root_ptr movdn.4
     # => [ASSET, 0, 0, 0]
 
     # check if the account vault has the non-fungible asset
@@ -253,7 +253,7 @@ export.account_vault_add_asset
     # => [ASSET]
 
     # fetch the vault root
-    exec.layout::get_acct_vault_root_ptr movdn.4
+    exec.memory::get_acct_vault_root_ptr movdn.4
     # => [ASSET, acct_vault_root_ptr]
 
     # add the asset to the account vault
@@ -283,7 +283,7 @@ export.account_vault_remove_asset
     # => [ASSET]
 
     # fetch the vault root
-    exec.layout::get_acct_vault_root_ptr movdn.4
+    exec.memory::get_acct_vault_root_ptr movdn.4
     # => [ASSET, acct_vault_root_ptr]
 
     # remove the asset from the account vault
@@ -437,7 +437,7 @@ end
 #! - COM is the commitment to the account vault.
 export.get_account_vault_commitment
     # fetch the account vault root
-    exec.layout::get_acct_vault_root
+    exec.memory::get_acct_vault_root
     # => [COM, 0, 0, 0, 0]
 
     # organize the stack for return

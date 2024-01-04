@@ -115,8 +115,8 @@ fn test_transaction_result_account_delta() {
 
     let tx_script = format!(
         "\
-        use.miden::sat::account
-        use.miden::wallets::basic->wallet
+        use.miden::account
+        use.miden::contracts::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================

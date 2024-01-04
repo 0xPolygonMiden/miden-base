@@ -72,7 +72,7 @@ fn test_swap_script() {
 
     let tx_script_code = ProgramAst::parse(
         "
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::auth::basic->auth_tx
     
             begin
                 call.auth_tx::auth_tx_rpo_falcon512

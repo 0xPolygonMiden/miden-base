@@ -41,7 +41,7 @@ pub fn create_basic_fungible_faucet(
     };
 
     let miden = MidenLib::default();
-    let path = "miden::faucets::basic_fungible";
+    let path = "miden::contracts::faucets::basic_fungible";
     let faucet_code_ast = miden
         .get_module_ast(&LibraryPath::new(path).unwrap())
         .expect("Getting module AST failed");

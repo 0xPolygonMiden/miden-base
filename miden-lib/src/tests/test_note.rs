@@ -19,15 +19,15 @@ fn test_get_sender_no_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::sat::internal::layout
-        use.miden::sat::internal::prologue
-        use.miden::sat::note
+        use.miden::kernels::tx::memory
+        use.miden::kernels::tx::prologue
+        use.miden::note
 
         begin
             exec.prologue::prepare_transaction
 
             # force the current consumed note pointer to 0
-            push.0 exec.layout::set_current_consumed_note_ptr
+            push.0 exec.memory::set_current_consumed_note_ptr
 
             # get the sender
             exec.note::get_sender
@@ -49,9 +49,9 @@ fn test_get_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::note->note_internal
-        use.miden::sat::note
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note->note_internal
+        use.miden::note
 
         begin
             exec.prologue::prepare_transaction
@@ -78,8 +78,8 @@ fn test_get_vault_data() {
     // calling get_vault_info should return vault info
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::note
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note
 
         begin
             exec.prologue::prepare_transaction
@@ -145,9 +145,9 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::note->note_internal
-        use.miden::sat::note
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note->note_internal
+        use.miden::note
 
         proc.process_note_0
             # drop the note inputs
@@ -260,9 +260,9 @@ fn test_get_inputs() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::note->note_internal
-        use.miden::sat::note
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note->note_internal
+        use.miden::note
 
         proc.process_note_0
             # drop the note inputs
@@ -319,8 +319,8 @@ fn test_note_setup() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::note
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note
 
         begin
             exec.prologue::prepare_transaction

@@ -1,9 +1,9 @@
 use.std::utils
 
-use.miden::sat::internal::epilogue
-use.miden::sat::internal::layout
-use.miden::sat::internal::note
-use.miden::sat::internal::prologue
+use.miden::kernels::tx::epilogue
+use.miden::kernels::tx::memory
+use.miden::kernels::tx::note
+use.miden::kernels::tx::prologue
 
 #! This is the entrypoint for the transaction kernel program. It is composed of the following
 #! program sections:
@@ -71,12 +71,12 @@ proc.main.1
     # ---------------------------------------------------------------------------------------------
 
     # get the total number of consumed notes
-    exec.layout::get_total_num_consumed_notes
+    exec.memory::get_total_num_consumed_notes
     # => [num_consumed_notes]
 
     # compute the pointer to the consumed note after the last consumed note (i.e. the pointer at
     # which the looping should terminate)
-    dup exec.layout::get_consumed_note_ptr loc_store.0
+    dup exec.memory::get_consumed_note_ptr loc_store.0
     # => [num_consumed_notes]
 
     # check if we have any notes to consume
@@ -112,7 +112,7 @@ proc.main.1
     # ---------------------------------------------------------------------------------------------
 
     # execute the transaction script
-    exec.layout::get_tx_script_root
+    exec.memory::get_tx_script_root
     # => [TX_SCRIPT_ROOT]
 
     exec.utils::is_empty_word not

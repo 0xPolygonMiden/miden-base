@@ -33,8 +33,8 @@ pub fn test_set_code_is_not_immediate() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
-        use.miden::sat::internal::prologue
-        use.miden::sat::account
+        use.miden::kernels::tx::prologue
+        use.miden::account
         begin
             exec.prologue::prepare_transaction
             push.1.2.3.4
@@ -69,9 +69,9 @@ pub fn test_set_code_succeeds() {
 
     let code = format!(
         "
-        use.miden::sat::account
-        use.miden::sat::internal::prologue
-        use.miden::sat::internal::epilogue
+        use.miden::account
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::epilogue
 
         {output_notes_data_procedure}
         begin
@@ -127,8 +127,8 @@ pub fn test_account_type() {
 
             let code = format!(
                 "
-                use.miden::sat::internal::layout
-                use.miden::sat::internal::account
+                use.miden::kernels::tx::memory
+                use.miden::kernels::tx::account
 
                 begin
                     exec.account::{}
@@ -160,7 +160,7 @@ pub fn test_account_type() {
 fn test_validate_id_fails_on_insufficient_ones() {
     let code = format!(
         "
-        use.miden::sat::internal::account
+        use.miden::kernels::tx::account
 
         begin
             push.{ACCOUNT_ID_INSUFFICIENT_ONES}
@@ -190,7 +190,7 @@ fn test_is_faucet_procedure() {
         // assembly codes that checks if an account is a faucet
         let code = format!(
             "
-        use.miden::sat::internal::account
+        use.miden::kernels::tx::account
 
         begin
             # push the account id on to the stack
@@ -229,8 +229,8 @@ fn test_get_item() {
 
         let code = format!(
             "
-        use.miden::sat::account
-        use.miden::sat::internal::prologue
+        use.miden::account
+        use.miden::kernels::tx::prologue
 
 
         begin
@@ -275,9 +275,9 @@ fn test_set_item() {
 
     let code = format!(
         "
-    use.miden::sat::account
-    use.miden::sat::internal::layout
-    use.miden::sat::internal::prologue
+    use.miden::account
+    use.miden::kernels::tx::memory
+    use.miden::kernels::tx::prologue
 
     begin
         # prepare the transaction
@@ -296,7 +296,7 @@ fn test_set_item() {
         padw assert_eqw
 
         # get the new storage root
-        exec.layout::get_acct_storage_root
+        exec.memory::get_acct_storage_root
 
         # assert the item value is correct
         push.{new_root} assert_eqw
@@ -321,8 +321,8 @@ fn test_get_map_item() {
 
     let code = format!(
         "
-        use.miden::sat::account
-        use.miden::sat::internal::prologue
+        use.miden::account
+        use.miden::kernels::tx::prologue
 
         begin
             # prepare the transaction
@@ -372,8 +372,8 @@ fn test_get_vault_commitment() {
 
     let code = format!(
         "
-    use.miden::sat::account
-    use.miden::sat::internal::prologue
+    use.miden::account
+    use.miden::kernels::tx::prologue
 
     begin
         # prepare the transaction
@@ -414,8 +414,8 @@ fn test_authenticate_procedure() {
 
         let code = format!(
             "\
-            use.miden::sat::internal::account
-            use.miden::sat::internal::prologue
+            use.miden::kernels::tx::account
+            use.miden::kernels::tx::prologue
 
             begin
                 # prepare the transaction

@@ -23,14 +23,14 @@ mod test_tx;
 // CONSTANTS
 // ================================================================================================
 
-const TX_KERNEL_DIR: &str = "miden/sat/internal";
+const TX_KERNEL_DIR: &str = "miden/kernels/tx";
 
 // TESTS
 // ================================================================================================
 
 #[test]
 fn test_compile() {
-    let path = "miden::sat::internal::layout::get_consumed_note_ptr";
+    let path = "miden::kernels::tx::memory::get_consumed_note_ptr";
     let miden = super::MidenLib::default();
     let exists = miden.modules().any(|module| {
         module
