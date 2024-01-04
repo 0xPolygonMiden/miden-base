@@ -32,9 +32,9 @@ pub fn create_note(
     let note_assembler = TransactionKernel::assembler();
 
     // Include the binary version of the scripts into the source file at compile time
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
-    let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
-    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/SWAP.masb"));
+    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
+    let p2idr_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
+    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
 
     let (note_script_ast, inputs): (ProgramAst, Vec<Felt>) = match script {
         Script::P2ID { target } => (
@@ -79,7 +79,7 @@ fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, N
     // the script hash every time we call the SWAP script
     let assembler = TransactionKernel::assembler();
 
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
 
     let note_script_ast =
         ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?;
