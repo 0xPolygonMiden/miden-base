@@ -35,7 +35,7 @@ impl TransactionKernel {
 
     /// Returns MASM source code which encodes the transaction kernel system procedures.
     pub fn kernel() -> &'static str {
-        include_str!("../../asm/miden/kernels/tx/mod.masm")
+        include_str!("../../asm/kernels/transaction/api.masm")
     }
 
     /// Returns an AST of the transaction kernel executable program.
@@ -43,7 +43,8 @@ impl TransactionKernel {
     /// # Errors
     /// Returns an error if deserialization of the binary fails.
     pub fn main() -> Result<ProgramAst, DeserializationError> {
-        let kernel_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/transaction.masb"));
+        let kernel_bytes =
+            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/transaction.masb"));
         ProgramAst::from_bytes(kernel_bytes)
     }
 
