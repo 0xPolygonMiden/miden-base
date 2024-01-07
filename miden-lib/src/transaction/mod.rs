@@ -27,6 +27,9 @@ pub use outputs::{
     OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
 
+mod errors;
+pub use errors::TransactionEventParsingError;
+
 // TRANSACTION KERNEL
 // ================================================================================================
 

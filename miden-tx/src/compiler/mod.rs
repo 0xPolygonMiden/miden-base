@@ -65,7 +65,7 @@ impl TransactionCompiler {
         Ok(account_code)
     }
 
-    /// Loads the provided account interface (vector of procedure digests) into the this compiler.
+    /// Loads the provided account interface (vector of procedure digests) into this compiler.
     /// Returns the old account interface if it previously existed.
     pub fn load_account_interface(
         &mut self,

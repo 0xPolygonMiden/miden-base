@@ -22,7 +22,6 @@ testing = ["miden-objects/testing"]
 assembly = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-stdlib = { workspace = true }
-vm-processor = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = [

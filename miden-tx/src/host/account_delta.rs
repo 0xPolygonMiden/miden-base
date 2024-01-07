@@ -4,41 +4,37 @@ use miden_objects::{
     utils::collections::{btree_map::Entry, BTreeMap},
     Digest,
 };
-use vm_processor::{ContextId, ExecutionError, HostResponse, ProcessState};
+use vm_processor::{ExecutionError, HostResponse, ProcessState};
 
-/// The [AccountVaultDeltaHandler] is responsible for tracking changes to the vault of the account
+// ACCOUNT VAULT DELTA TRACKER
+// ================================================================================================
+
+/// The account vault delta tracker is responsible for tracking changes to the vault of the account
 /// the transaction is being executed against.
 ///
 /// It is composed of two maps:
-/// - [AccountVaultDeltaHandler::fungible_assets] - tracks changes to the vault's fungible assets,
-/// where the key is the faucet ID of the asset, and the value is the amount of the asset being
-/// added or removed from the vault.
-/// - [AccountVaultDeltaHandler::non_fungible_assets] - tracks changes to the vault's non-fungible
-/// assets, where the key is the non-fungible asset, and the value is either 1 or -1 depending
-/// on whether the asset is being added or removed from the vault.
+/// - Fungible asset map: tracks changes to the vault's fungible assets, where the key is the
+///   faucet ID of the asset, and the value is the amount of the asset being added or removed from
+///   the vault (positive value for added assets, negative value for removed assets).
+/// - Non-fungible asset map: tracks changes to the vault's non-fungible assets, where the key is
+///   the non-fungible asset, and the value is either 1 or -1 depending on whether the asset is
+///   being added or removed from the vault.
 #[derive(Default, Debug)]
-pub struct AccountVaultDeltaHandler {
-    fungible_assets: BTreeMap<u64, i128>,
+pub struct AccountVaultDeltaTracker {
+    fungible_assets: BTreeMap<AccountId, i128>,
     non_fungible_assets: BTreeMap<Digest, i8>,
 }
 
-impl AccountVaultDeltaHandler {
+impl AccountVaultDeltaTracker {
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
 
     /// Extracts the asset that is being added to the account's vault from the process state and
-    /// updates the appropriate [AccountVaultDeltaHandler::fungible_assets] or
-    /// [AccountVaultDeltaHandler::non_fungible_assets] map.
+    /// updates the appropriate fungible or non-fungible asset map.
     pub fn add_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<HostResponse, ExecutionError> {
-        if process.ctx() != ContextId::root() {
-            return Err(ExecutionError::EventError(
-                "AddAssetToAccountVault event can only be emitted from the root context".into(),
-            ));
-        }
-
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|err| {
             ExecutionError::EventError(format!(
                 "Failed to apply account vault delta - asset is malformed - {err}"
@@ -49,7 +45,7 @@ impl AccountVaultDeltaHandler {
             Asset::Fungible(asset) => {
                 update_asset_delta(
                     &mut self.fungible_assets,
-                    asset.faucet_id().into(),
+                    asset.faucet_id(),
                     asset.amount() as i128,
                 );
             },
@@ -68,13 +64,6 @@ impl AccountVaultDeltaHandler {
         &mut self,
         process: &S,
     ) -> Result<HostResponse, ExecutionError> {
-        if process.ctx() != ContextId::root() {
-            return Err(ExecutionError::EventError(
-                "RemoveAssetFromAccountVault event can only be emitted from the root context"
-                    .into(),
-            ));
-        }
-
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|err| {
             ExecutionError::EventError(format!(
                 "Failed to apply account vault delta - asset is malformed - {err}"
@@ -85,7 +74,7 @@ impl AccountVaultDeltaHandler {
             Asset::Fungible(asset) => {
                 update_asset_delta(
                     &mut self.fungible_assets,
-                    asset.faucet_id().into(),
+                    asset.faucet_id(),
                     -(asset.amount() as i128),
                 );
             },
@@ -97,12 +86,12 @@ impl AccountVaultDeltaHandler {
         Ok(HostResponse::None)
     }
 
-    // CONSUMERS
+    // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Consumes the [AccountVaultDeltaHandler] and returns the [AccountVaultDelta] that represents the
-    /// changes to the account's vault.
-    pub fn finalize(self) -> AccountVaultDelta {
+    /// Consumes this delta tracker and returns the [AccountVaultDelta] that represents the changes
+    /// to the account's vault.
+    pub fn into_vault_delta(self) -> AccountVaultDelta {
         let mut added_assets = Vec::new();
         let mut removed_assets = Vec::new();
 
@@ -148,8 +137,9 @@ impl AccountVaultDeltaHandler {
     }
 }
 
-// HELPERS
+// HELPER FUNCTIONS
 // ================================================================================================
+
 /// Updates the provided map with the provided key and amount. If the final amount is 0, the entry
 /// is removed from the map.
 fn update_asset_delta<K, V>(delta_map: &mut BTreeMap<K, V>, key: K, amount: V)
