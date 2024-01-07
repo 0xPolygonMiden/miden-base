@@ -47,6 +47,7 @@ pub mod utils {
 }
 
 pub mod vm {
+    pub use miden_verifier::ExecutionProof;
     pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }

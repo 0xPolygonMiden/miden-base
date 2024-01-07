@@ -6,7 +6,6 @@ use super::{
 };
 
 mod chain_mmr;
-mod event;
 mod executed_tx;
 mod inputs;
 mod outputs;
@@ -17,7 +16,6 @@ mod tx_script;
 mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
-pub use event::Event;
 pub use executed_tx::ExecutedTransaction;
 pub use inputs::{InputNote, InputNotes, TransactionInputs};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};

@@ -22,13 +22,13 @@ testing = ["miden-objects/testing"]
 assembly = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
 miden-stdlib = { workspace = true }
+vm-processor = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = [
     "testing",
 ] }
 miden-stdlib = { workspace = true }
-miden-tx = { package = "miden-tx", path = "../miden-tx", default-features = false }
 mock = { package = "miden-mock", path = "../mock", default-features = false }
 vm-processor = { workspace = true, features = ["internals"] }
 

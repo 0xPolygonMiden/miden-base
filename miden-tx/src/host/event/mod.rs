@@ -1,4 +1,5 @@
-use miden_objects::{accounts::AccountVaultDelta, transaction::Event};
+use miden_lib::transaction::TransactionEvent;
+use miden_objects::accounts::AccountVaultDelta;
 use vm_processor::{ExecutionError, HostResponse, ProcessState};
 
 mod vault_delta;
@@ -27,9 +28,11 @@ impl EventHandler {
         process: &S,
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
-        match Event::try_from(event_id)? {
-            Event::AddAssetToAccountVault => self.acct_vault_delta_handler.add_asset(process),
-            Event::RemoveAssetFromAccountVault => {
+        match TransactionEvent::try_from(event_id)? {
+            TransactionEvent::AddAssetToAccountVault => {
+                self.acct_vault_delta_handler.add_asset(process)
+            },
+            TransactionEvent::RemoveAssetFromAccountVault => {
                 self.acct_vault_delta_handler.remove_asset(process)
             },
         }

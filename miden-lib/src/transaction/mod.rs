@@ -15,6 +15,9 @@ use super::MidenLib;
 
 pub mod memory;
 
+mod events;
+pub use events::TransactionEvent;
+
 mod inputs;
 pub use inputs::ToTransactionKernelInputs;
 
