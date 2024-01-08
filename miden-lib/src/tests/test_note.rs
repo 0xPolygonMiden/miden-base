@@ -1,20 +1,21 @@
 use miden_objects::{notes::Note, transaction::PreparedTransaction, WORD_SIZE};
 use mock::{
     consumed_note_data_ptr,
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    mock::{
+        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
+        transaction::mock_inputs,
+    },
     prepare_transaction,
     procedures::prepare_word,
     run_tx,
 };
 
-use super::{
-    build_tx_inputs, AdviceProvider, ContextId, DefaultHost, Felt, Process, ProcessState, ZERO,
-};
+use super::{ContextId, Felt, Process, ProcessState, ZERO};
 use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
@@ -34,17 +35,15 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
 }
 
 #[test]
 fn test_get_sender() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
@@ -61,10 +60,8 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
@@ -72,8 +69,10 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let notes = tx_inputs.input_notes();
 
     // calling get_vault_info should return vault info
     let code = format!(
@@ -108,22 +107,21 @@ fn test_get_vault_data() {
             push.{note_1_num_assets} assert_eq
         end
         ",
-        note_0_asset_hash = prepare_word(&notes[0].note().assets().commitment()),
-        note_0_num_assets = notes[0].note().assets().num_assets(),
-        note_1_asset_hash = prepare_word(&notes[1].note().assets().commitment()),
-        note_1_num_assets = notes[1].note().assets().num_assets(),
+        note_0_asset_hash = prepare_word(&notes.get_note(0).note().assets().commitment()),
+        note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
+        note_1_asset_hash = prepare_word(&notes.get_note(1).note().assets().commitment()),
+        note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_get_assets() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
     const DEST_POINTER_NOTE_1: u32 = 200000000;
@@ -215,31 +213,21 @@ fn test_get_assets() {
             call.process_note_1
         end
         ",
-        note_0_num_assets = notes[0].note().assets().num_assets(),
-        note_1_num_assets = notes[1].note().assets().num_assets(),
-        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes[0].note()),
-        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes[1].note()),
+        note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
+        note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
+        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(0).note()),
+        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes.clone(),
-        None,
-        &code,
-        "",
-        None,
-    );
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_get_inputs() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
 
@@ -295,27 +283,16 @@ fn test_get_inputs() {
             call.process_note_0
         end
         ",
-        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(notes[0].note()),
+        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(notes.get_note(0).note()),
     );
 
-    let transaction = prepare_transaction(
-        account,
-        None,
-        block_header,
-        chain,
-        notes.clone(),
-        None,
-        &code,
-        "",
-        None,
-    );
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_note_setup() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -328,19 +305,14 @@ fn test_note_setup() {
         end
         ";
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction).unwrap();
 
     note_setup_stack_assertions(&process, &transaction);
     note_setup_memory_assertions(&process);
 }
 
-fn note_setup_stack_assertions<A: AdviceProvider>(
-    process: &Process<DefaultHost<A>>,
-    inputs: &PreparedTransaction,
-) {
+fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
@@ -352,7 +324,7 @@ fn note_setup_stack_assertions<A: AdviceProvider>(
     assert_eq!(process.stack.trace_state(), expected_stack)
 }
 
-fn note_setup_memory_assertions<A: AdviceProvider>(process: &Process<DefaultHost<A>>) {
+fn note_setup_memory_assertions(process: &Process<MockHost>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
         process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],

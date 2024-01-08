@@ -346,13 +346,14 @@ struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, block_header, block_chain, input_notes) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation).into_parts();
+
         Self {
             account,
             block_header,
             block_chain,
-            notes: input_notes,
+            notes: notes.into_vec(),
         }
     }
 }

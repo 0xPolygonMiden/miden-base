@@ -39,8 +39,8 @@ const.MAX_SLOT_TYPE=64
 # EVENTS
 # =================================================================================================
 
-# Event emitted to push index of the account procedure at the top of the operand stack onto the
-# advice stack.
+# Event emitted to push the index of the account procedure at the top of the operand stack onto
+# the advice stack.
 const.PUSH_ACCOUNT_PROCEDURE_INDEX_EVENT=131074
 
 # CONSTANT ACCESSORS
@@ -350,7 +350,7 @@ export.set_item
     # => [V]
 end
 
-#! Authenticates the procedure root is part of the account code Merkle tree. Panics if the
+#! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
 #! procedure root is not part of the account code Merkle tree.
 #!
 #! Stack: [PROC_ROOT]
