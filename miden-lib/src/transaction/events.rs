@@ -17,6 +17,7 @@ use super::TransactionEventParsingError;
 pub enum TransactionEvent {
     AddAssetToAccountVault = 0x2_0000,      // 131072
     RemoveAssetFromAccountVault = 0x2_0001, // 131073
+    PushAccountProcedureIndex = 0x2_0002,   // 131074
 }
 
 impl TransactionEvent {
@@ -41,6 +42,7 @@ impl TryFrom<u32> for TransactionEvent {
         match value {
             0x2_0000 => Ok(TransactionEvent::AddAssetToAccountVault),
             0x2_0001 => Ok(TransactionEvent::RemoveAssetFromAccountVault),
+            0x2_0002 => Ok(TransactionEvent::PushAccountProcedureIndex),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

@@ -88,6 +88,20 @@ impl TransactionInputs {
     pub fn input_notes(&self) -> &InputNotes {
         &self.input_notes
     }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes these transaction inputs and returns their underlying components.
+    pub fn into_parts(self) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes) {
+        (
+            self.account,
+            self.account_seed,
+            self.block_header,
+            self.block_chain,
+            self.input_notes,
+        )
+    }
 }
 
 // TO NULLIFIER TRAIT
@@ -206,6 +220,14 @@ impl<T: ToNullifier> InputNotes<T> {
     /// Returns an iterator over notes in this [InputNotes].
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.notes.iter()
+    }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Converts self into a vector of input notes.
+    pub fn into_vec(self) -> Vec<T> {
+        self.notes
     }
 }
 

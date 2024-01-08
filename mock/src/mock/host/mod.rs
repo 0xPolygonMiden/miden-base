@@ -5,46 +5,39 @@ use miden_objects::{
     Digest,
 };
 use vm_processor::{
-    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, ProcessState,
+    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource,
+    ContextId, ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
 };
-
-mod account_delta;
-use account_delta::AccountVaultDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
-// TRANSACTION HOST
+// MOCK HOST
 // ================================================================================================
 
-/// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-///
-/// Transaction host is composed of two components:
-/// - An advice provider which is used to provide non-deterministic inputs to the transaction
-///   runtime.
-/// - An account vault delta tracker which is used to keep track of changes made to the asset
-///   of the account the transaction is being executed against.
-pub struct TransactionHost<A> {
-    adv_provider: A,
-    acct_vault_delta_tracker: AccountVaultDeltaTracker,
+/// This is very similar to the TransactionHost in miden-tx. The differences include:
+/// - We do not track account delta here.
+/// - There is special handling of EMPTY_DIGEST in account procedure index map.
+/// - This host uses `MemAdviceProvider` which is instantiated from the passed in advice inputs.
+pub struct MockHost {
+    adv_provider: MemAdviceProvider,
     acct_procedure_index_map: AccountProcedureIndexMap,
 }
 
-impl<A: AdviceProvider> TransactionHost<A> {
-    /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A) -> Self {
+impl MockHost {
+    /// Returns a new [MockHost] instance with the provided [AdviceInputs].
+    pub fn new(account: AccountStub, advice_inputs: AdviceInputs) -> Self {
+        let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         Self {
             adv_provider,
-            acct_vault_delta_tracker: AccountVaultDeltaTracker::default(),
             acct_procedure_index_map: proc_index_map,
         }
     }
 
     /// Consumes this transaction host and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountVaultDelta) {
-        (self.adv_provider, self.acct_vault_delta_tracker.into_vault_delta())
+    pub fn into_parts(self) -> (MemAdviceProvider, AccountVaultDelta) {
+        (self.adv_provider, AccountVaultDelta::default())
     }
 
     // EVENT HANDLERS
@@ -63,7 +56,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for TransactionHost<A> {
+impl Host for MockHost {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,
@@ -96,8 +89,8 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
 
         use TransactionEvent::*;
         match event {
-            AddAssetToAccountVault => self.acct_vault_delta_tracker.add_asset(process),
-            RemoveAssetFromAccountVault => self.acct_vault_delta_tracker.remove_asset(process),
+            AddAssetToAccountVault => Ok(()),
+            RemoveAssetFromAccountVault => Ok(()),
             PushAccountProcedureIndex => self.on_push_account_procedure_index(process),
         }?;
 

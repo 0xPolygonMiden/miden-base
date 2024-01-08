@@ -28,7 +28,7 @@ pub use outputs::{
 };
 
 mod errors;
-pub use errors::TransactionEventParsingError;
+pub use errors::{TransactionEventParsingError, TransactionKernelError};
 
 // TRANSACTION KERNEL
 // ================================================================================================

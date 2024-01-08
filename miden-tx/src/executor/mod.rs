@@ -144,7 +144,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-        let mut host = TransactionHost::new(advice_recorder);
+        let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
 
         let result = vm_processor::execute(
             transaction.program(),

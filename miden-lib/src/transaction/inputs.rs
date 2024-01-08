@@ -229,13 +229,6 @@ fn add_account_to_advice_inputs(
     // extend the merkle store with account code tree
     inputs.extend_merkle_store(code.procedure_tree().inner_nodes());
 
-    // extend advice map with account proc root |-> proc index
-    inputs.extend_map(
-        code.procedure_tree()
-            .leaves()
-            .map(|(idx, leaf)| (leaf.into_bytes(), vec![idx.into()])),
-    );
-
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
         inputs.extend_map(vec![(

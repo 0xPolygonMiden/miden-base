@@ -14,7 +14,6 @@ const.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT=131072
 # Event emitted to signal that an asset is being removed from the account vault.
 const.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT=131073
 
-
 # AUTHENTICATION
 # =================================================================================================
 

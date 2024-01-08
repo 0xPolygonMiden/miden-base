@@ -10,9 +10,7 @@ use mock::{
     run_tx, run_within_tx_kernel,
 };
 
-use super::{
-    build_tx_inputs, ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO,
-};
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
     CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
@@ -20,9 +18,9 @@ use crate::transaction::memory::{
 
 #[test]
 fn test_create_note() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let account_id = account.id();
+    let account_id = tx_inputs.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -48,10 +46,8 @@ fn test_create_note() {
         asset = prepare_word(&asset)
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     // assert the number of created notes has been incremented to 1.
     assert_eq!(
@@ -133,13 +129,13 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
-    let input_note_1 = notes.first().unwrap().note();
+    let input_note_1 = tx_inputs.input_notes().get_note(0).note();
     let input_asset_1 = **input_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
-    let input_note_2 = notes.last().unwrap().note();
+    let input_note_2 = tx_inputs.input_notes().get_note(1).note();
     let input_asset_2 = **input_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
     // create output note 1
@@ -150,7 +146,7 @@ fn test_get_output_notes_hash() {
         &[],
         &[input_asset_1],
         output_serial_no_1,
-        account.id(),
+        tx_inputs.account().id(),
         output_tag_1,
     )
     .unwrap();
@@ -163,7 +159,7 @@ fn test_get_output_notes_hash() {
         &[],
         &[input_asset_2],
         output_serial_no_2,
-        account.id(),
+        tx_inputs.account().id(),
         output_tag_2,
     )
     .unwrap();
@@ -216,8 +212,6 @@ fn test_get_output_notes_hash() {
         expected = prepare_word(&expected_output_notes_hash)
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let _process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction).unwrap();
 }
