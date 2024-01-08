@@ -79,13 +79,19 @@ impl AccountStub {
 }
 
 impl From<Account> for AccountStub {
-    fn from(value: Account) -> Self {
+    fn from(account: Account) -> Self {
+        (&account).into()
+    }
+}
+
+impl From<&Account> for AccountStub {
+    fn from(account: &Account) -> Self {
         Self {
-            id: value.id(),
-            nonce: value.nonce(),
-            vault_root: value.vault().commitment(),
-            storage_root: value.storage().root(),
-            code_root: value.code().root(),
+            id: account.id(),
+            nonce: account.nonce(),
+            vault_root: account.vault().commitment(),
+            storage_root: account.storage().root(),
+            code_root: account.code().root(),
         }
     }
 }

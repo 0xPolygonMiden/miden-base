@@ -4,7 +4,7 @@ use miden_objects::{
     utils::collections::{btree_map::Entry, BTreeMap},
     Digest,
 };
-use vm_processor::{ExecutionError, HostResponse, ProcessState};
+use vm_processor::{ExecutionError, ProcessState};
 
 // ACCOUNT VAULT DELTA TRACKER
 // ================================================================================================
@@ -31,10 +31,7 @@ impl AccountVaultDeltaTracker {
 
     /// Extracts the asset that is being added to the account's vault from the process state and
     /// updates the appropriate fungible or non-fungible asset map.
-    pub fn add_asset<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<HostResponse, ExecutionError> {
+    pub fn add_asset<S: ProcessState>(&mut self, process: &S) -> Result<(), ExecutionError> {
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|err| {
             ExecutionError::EventError(format!(
                 "Failed to apply account vault delta - asset is malformed - {err}"
@@ -54,16 +51,13 @@ impl AccountVaultDeltaTracker {
             },
         };
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     /// Extracts the asset that is being removed from the account's vault from the process state
     /// and updates the appropriate [AccountVaultDeltaHandler::fungible_assets] or
     /// [AccountVaultDeltaHandler::non_fungible_assets] map.
-    pub fn remove_asset<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<HostResponse, ExecutionError> {
+    pub fn remove_asset<S: ProcessState>(&mut self, process: &S) -> Result<(), ExecutionError> {
         let asset: Asset = process.get_stack_word(0).try_into().map_err(|err| {
             ExecutionError::EventError(format!(
                 "Failed to apply account vault delta - asset is malformed - {err}"
@@ -83,7 +77,7 @@ impl AccountVaultDeltaTracker {
             },
         };
 
-        Ok(HostResponse::None)
+        Ok(())
     }
 
     // CONVERSIONS

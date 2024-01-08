@@ -49,7 +49,7 @@ fn test_transaction_executor_witness() {
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(mem_advice_provider);
+    let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider);
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();

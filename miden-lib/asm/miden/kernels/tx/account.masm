@@ -36,6 +36,13 @@ const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
 
+# EVENTS
+# =================================================================================================
+
+# Event emitted to push index of the account procedure at the top of the operand stack onto the
+# advice stack.
+const.PUSH_ACCOUNT_PROCEDURE_INDEX_EVENT=131074
+
 # CONSTANT ACCESSORS
 # =================================================================================================
 
@@ -343,7 +350,7 @@ export.set_item
     # => [V]
 end
 
-#! Authenticates the proedcure root is part of the account code Merkle treee. Panics if the
+#! Authenticates the procedure root is part of the account code Merkle tree. Panics if the
 #! procedure root is not part of the account code Merkle tree.
 #!
 #! Stack: [PROC_ROOT]
@@ -355,8 +362,8 @@ export.authenticate_procedure.1
     exec.memory::get_acct_code_root swapw
     # => [PROC_ROOT, CODE_ROOT]
 
-    # load the index of the procedure root onto the advice stack
-    adv.push_mapval adv_push.1 movdn.4
+    # load the index of the procedure root onto the advice stack, and move it to the operand stack
+    emit.PUSH_ACCOUNT_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
     # => [PROC_ROOT, index, CODE_ROOT]
 
     # push the depth of the code Merkle tree onto the stack

@@ -51,7 +51,7 @@ impl TransactionProver {
         let tx_script_root = tx_witness.tx_script().map(|script| *script.hash());
 
         let advice_provider: MemAdviceProvider = advice_inputs.into();
-        let mut host = TransactionHost::new(advice_provider);
+        let mut host = TransactionHost::new(tx_witness.account().into(), advice_provider);
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
