@@ -14,7 +14,6 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
-use crate::host::EventHandler;
 
 mod data;
 pub use data::DataStore;
@@ -157,14 +156,12 @@ impl<D: DataStore> TransactionExecutor<D> {
 
         let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
 
-        let (advice_recorder, event_handler) = host.into_parts();
         build_executed_transaction(
             tx_program,
             tx_script,
             tx_inputs,
-            advice_recorder,
             result.stack_outputs().clone(),
-            event_handler,
+            host,
         )
     }
 
@@ -212,12 +209,13 @@ fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
-    advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
-    event_handler: EventHandler,
+    host: TransactionHost<RecAdviceProvider>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
+    let (advice_recorder, vault_delta) = host.into_parts();
+
     // finalize the advice recorder
-    let (advice_witness, _, map, store) = advice_provider.finalize();
+    let (advice_witness, _, map, store) = advice_recorder.finalize();
 
     // parse transaction results
     let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
@@ -246,9 +244,6 @@ fn build_executed_transaction(
     } else {
         None
     };
-
-    // finalize the event handler
-    let vault_delta = event_handler.finalize();
 
     // construct the account delta
     let account_delta =

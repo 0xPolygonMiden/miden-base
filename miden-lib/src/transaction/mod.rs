@@ -15,6 +15,9 @@ use super::MidenLib;
 
 pub mod memory;
 
+mod events;
+pub use events::TransactionEvent;
+
 mod inputs;
 pub use inputs::ToTransactionKernelInputs;
 
@@ -23,6 +26,9 @@ pub use outputs::{
     notes_try_from_elements, parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX,
     OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
+
+mod errors;
+pub use errors::TransactionEventParsingError;
 
 // TRANSACTION KERNEL
 // ================================================================================================
