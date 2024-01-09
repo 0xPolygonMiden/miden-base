@@ -62,7 +62,7 @@ fn test_swap_script() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
