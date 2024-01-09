@@ -68,6 +68,7 @@ fn test_p2id_script() {
         ",
     )
     .unwrap();
+
     let tx_script_target = executor
         .compile_tx_script(
             tx_script_code.clone(),
@@ -77,7 +78,7 @@ fn test_p2id_script() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
@@ -89,7 +90,7 @@ fn test_p2id_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
