@@ -35,7 +35,7 @@ impl MockHost {
         }
     }
 
-    /// Consumes this transaction host and returns the advice provider and account vault delta.
+    /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (MemAdviceProvider, AccountVaultDelta) {
         (self.adv_provider, AccountVaultDelta::default())
     }
@@ -89,9 +89,8 @@ impl Host for MockHost {
 
         use TransactionEvent::*;
         match event {
-            AddAssetToAccountVault => Ok(()),
-            RemoveAssetFromAccountVault => Ok(()),
-            PushAccountProcedureIndex => self.on_push_account_procedure_index(process),
+            AccountPushProcedureIndex => self.on_push_account_procedure_index(process),
+            _ => Ok(()),
         }?;
 
         Ok(HostResponse::None)

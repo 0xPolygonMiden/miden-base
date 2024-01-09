@@ -1,6 +1,6 @@
-use miden_lib::transaction::TransactionEvent;
+use miden_lib::transaction::{TransactionEvent, TransactionKernelError};
 use miden_objects::{
-    accounts::{delta::AccountVaultDelta, AccountStub},
+    accounts::{AccountDelta, AccountStub},
     utils::{collections::BTreeMap, string::ToString},
     Digest,
 };
@@ -10,7 +10,7 @@ use vm_processor::{
 };
 
 mod account_delta;
-use account_delta::AccountVaultDeltaTracker;
+use account_delta::AccountDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
@@ -27,7 +27,7 @@ use account_procs::AccountProcedureIndexMap;
 ///   of the account the transaction is being executed against.
 pub struct TransactionHost<A> {
     adv_provider: A,
-    acct_vault_delta_tracker: AccountVaultDeltaTracker,
+    account_delta: AccountDeltaTracker,
     acct_procedure_index_map: AccountProcedureIndexMap,
 }
 
@@ -37,28 +37,27 @@ impl<A: AdviceProvider> TransactionHost<A> {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         Self {
             adv_provider,
-            acct_vault_delta_tracker: AccountVaultDeltaTracker::default(),
+            account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
         }
     }
 
-    /// Consumes this transaction host and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountVaultDelta) {
-        (self.adv_provider, self.acct_vault_delta_tracker.into_vault_delta())
+    /// Consumes `self` and returns the advice provider and account vault delta.
+    pub fn into_parts(self) -> (A, AccountDelta) {
+        (self.adv_provider, self.account_delta.into_delta())
     }
 
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    fn on_push_account_procedure_index<S: ProcessState>(
+    fn on_account_push_procedure_index<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<(), ExecutionError> {
-        let proc_idx = self
-            .acct_procedure_index_map
-            .get_proc_index(process)
-            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
-        self.adv_provider.push_stack(AdviceSource::Value(proc_idx.into()))?;
+    ) -> Result<(), TransactionKernelError> {
+        let proc_idx = self.acct_procedure_index_map.get_proc_index(process)?;
+        self.adv_provider
+            .push_stack(AdviceSource::Value(proc_idx.into()))
+            .expect("failed to push value onto advice stack");
         Ok(())
     }
 }
@@ -96,10 +95,13 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
 
         use TransactionEvent::*;
         match event {
-            AddAssetToAccountVault => self.acct_vault_delta_tracker.add_asset(process),
-            RemoveAssetFromAccountVault => self.acct_vault_delta_tracker.remove_asset(process),
-            PushAccountProcedureIndex => self.on_push_account_procedure_index(process),
-        }?;
+            AccountVaultAddAsset => self.on_account_vault_add_asset(process),
+            AccountVaultRemoveAsset => self.on_account_vault_remove_asset(process),
+            AccountStorageSetItem => self.on_account_storage_set_item(process),
+            AccountIncrementNonce => self.on_account_increment_nonce(process),
+            AccountPushProcedureIndex => self.on_account_push_procedure_index(process),
+        }
+        .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 
         Ok(HostResponse::None)
     }

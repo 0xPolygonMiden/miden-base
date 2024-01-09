@@ -46,6 +46,9 @@ impl AccountStorage {
     /// Depth of the storage tree.
     pub const STORAGE_TREE_DEPTH: u8 = 8;
 
+    /// Total number of storage slots.
+    pub const NUM_STORAGE_SLOTS: usize = 256;
+
     /// The storage slot at which the slot types commitment is stored.
     pub const SLOT_TYPES_COMMITMENT_INDEX: u8 = 255;
 
@@ -54,7 +57,7 @@ impl AccountStorage {
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
         // initialize slot types vector
-        let mut types = vec![StorageSlotType::default(); 256];
+        let mut types = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
 
         // set the slot type for the types commitment
         types[Self::SLOT_TYPES_COMMITMENT_INDEX as usize] =

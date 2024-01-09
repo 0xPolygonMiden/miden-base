@@ -15,9 +15,11 @@ use super::TransactionEventParsingError;
 #[repr(u32)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionEvent {
-    AddAssetToAccountVault = 0x2_0000,      // 131072
-    RemoveAssetFromAccountVault = 0x2_0001, // 131073
-    PushAccountProcedureIndex = 0x2_0002,   // 131074
+    AccountVaultAddAsset = 0x2_0000,      // 131072
+    AccountVaultRemoveAsset = 0x2_0001,   // 131073
+    AccountStorageSetItem = 0x2_0002,     // 131074
+    AccountIncrementNonce = 0x2_0003,     // 131075
+    AccountPushProcedureIndex = 0x2_0004, // 131076
 }
 
 impl TransactionEvent {
@@ -40,9 +42,11 @@ impl TryFrom<u32> for TransactionEvent {
         }
 
         match value {
-            0x2_0000 => Ok(TransactionEvent::AddAssetToAccountVault),
-            0x2_0001 => Ok(TransactionEvent::RemoveAssetFromAccountVault),
-            0x2_0002 => Ok(TransactionEvent::PushAccountProcedureIndex),
+            0x2_0000 => Ok(TransactionEvent::AccountVaultAddAsset),
+            0x2_0001 => Ok(TransactionEvent::AccountVaultRemoveAsset),
+            0x2_0002 => Ok(TransactionEvent::AccountStorageSetItem),
+            0x2_0003 => Ok(TransactionEvent::AccountIncrementNonce),
+            0x2_0004 => Ok(TransactionEvent::AccountPushProcedureIndex),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }
