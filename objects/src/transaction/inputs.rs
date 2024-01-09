@@ -282,9 +282,13 @@ impl<T: ToNullifier> Deserializable for InputNotes<T> {
 
 /// Returns the commitment to the input notes represented by the specified nullifiers.
 ///
-/// This is a sequential hash of all (nullifier, ZERO) pairs for the notes consumed in the
-/// transaction.
+/// For a non-empty list of notes, this is a sequential hash of all (nullifier, ZERO) pairs for
+/// the notes consumed in the transaction. For an empty list, [ZERO; 4] is returned.
 pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+    if notes.is_empty() {
+        return Digest::default();
+    }
+
     let mut elements: Vec<Felt> = Vec::new();
     for note in notes {
         elements.extend_from_slice(note.nullifier().as_elements());

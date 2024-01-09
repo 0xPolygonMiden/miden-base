@@ -404,21 +404,22 @@ proc.process_acct_data
     # => []
 end
 
-# CONSUMED NOTES DATA
+# INPUT NOTES DATA
 # =================================================================================================
 
-#! Authenticate the consumed note data provided via the advice provider is consistent with the
+#! Authenticate the input note data provided via the advice provider is consistent with the
 #! the chain history.  This is achieved by:
 #! - authenticating the MMR leaf associated with the block the note was created in.
 #! - authenticating the note root associated with the block the note was created in.
 #! - authenticating the note and its metadata in the note Merkle tree from the block the note was
 #!   created in.
 #!
-#! Stack: [AUTH_DIGEST]
-#! Advice Stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
+#! Operand stack: [AUTH_DIGEST]
+#! Advice stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
 #! Output: []
 #!
-#! - AUTH_DIGEST is the digest of the consumed note data computed as hash(NOTE_HASH, NOTE_METADATA)
+#! Where:
+#! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA)
 #! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created
 #!   in. This is equivalent to the block number.
 #! - SUB_HASH is the sub hash of the block the note was created in.
@@ -466,7 +467,7 @@ proc.authenticate_note.2
     # => []
 end
 
-#! Reads data for consumed note i from the advice provider and stores it in memory at the
+#! Reads data for the input note i from the advice provider and stores it in memory at the
 #! appropriate memory address. This includes computing and storing the nullifier and the
 #! note hash.
 #!
@@ -477,15 +478,16 @@ end
 #!
 #! Output: []
 #!
-#! - i is the index of the consumed note.
-#! - CN1_SN is the serial number of consumed note 1.
-#! - CN1_SR is the script root of consumed note 1.
-#! - CN1_IR is the inputs root of consumed note 1.
-#! - CN1_VR is the vault root of consumed note 1.
-#! - CN1_NA is the number of assets in consumed note 1.
-#! - CN1_A1 is the first asset of consumed note 1.
-#! - CN1_A2 is the second asset of consumed note 1.
-proc.process_consumed_note
+#! Where:
+#! - i is the index of the input note.
+#! - CN1_SN is the serial number of input note 1.
+#! - CN1_SR is the script root of input note 1.
+#! - CN1_IR is the inputs root of input note 1.
+#! - CN1_VR is the vault root of input note 1.
+#! - CN1_NA is the number of assets in input note 1.
+#! - CN1_A1 is the first asset of input note 1.
+#! - CN1_A2 is the second asset of input note 1.
+proc.process_input_note
     # read core note data
     # ---------------------------------------------------------------------------------------------
 
@@ -653,61 +655,68 @@ proc.process_consumed_note
     exec.authenticate_note
 end
 
-#! Process the consumed notes data provided via the advice provider. This involves reading the data
+#! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
-#! consumed its hash and nullifier is computed. The transaction nullifier commitment is computed
-#! via a sequential hash of all (nullifier, ZERO) pairs for all consumed notes.
+#! processed its hash and nullifier is computed. The transaction nullifier commitment is computed
+#! via a sequential hash of all (nullifier, ZERO) pairs for all input notes.
 #!
 #! Stack: []
-#! Advice stack: [num_cn,
-#!               CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
-#!               CN1_A1, CN1_A2, ...
+#! Advice stack: [num_cn, ...],
+#! Advice map: {
+#!               NC: [
+#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                  CN1_A1, CN1_A2, ...
 #!
-#!               CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
-#!               CN2_A1, CN2_A2, ...
-#!               ...]
+#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                  CN2_A1, CN2_A2, ...
+#!                  ...]
+#!              }
 #! Output: []
 #!
-#! - num_cn is the number of consumed notes.
-#! - CN1_SN is the serial number of consumed note 1.
-#! - CN1_SR is the script root of consumed note 1.
-#! - CN1_IR is the inputs root of consumed note 1.
-#! - CN1_VR is the vault root of consumed note 1.
-#! - CN1_M is the metadata of consumed note 1.
-#! - CN1_A1 is the first asset of consumed note 1.
-#! - CN1_A2 is the second asset of consumed note 1.
-proc.process_consumed_notes_data
-    # load the consumed notes data onto the advice stack
-    exec.memory::get_nullifier_com adv.push_mapval dropw
-    # => [...]
-
-    # read the number of consumed notes from the advice provider
+#! - num_cn is the number of input notes.
+#! - NC is the input note nullifier commitment.
+#! - CN1_SN is the serial number of input note 1.
+#! - CN1_SR is the script root of input note 1.
+#! - CN1_IR is the inputs root of input note 1.
+#! - CN1_VR is the vault root of input note 1.
+#! - CN1_M is the metadata of input note 1.
+#! - CN1_A1 is the first asset of input note 1.
+#! - CN1_A2 is the second asset of input note 1.
+proc.process_input_notes_data
+    # get the number of input notes from the advice stack
     adv_push.1
     # => [num_notes, ...]
 
-    # store the number of consumed notes
-    dup exec.memory::set_total_num_consumed_notes
-    # => [num_notes, ...]
-
-    # assert the number of consumed notes is within limits; since max number of consumed notes is
+    # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
     dup exec.constants::get_max_num_consumed_notes u32assert2 u32lte assert
     # => [num_notes, ...]
 
-    # loop over consumed notes and read data
+    # if there are input notes, load input notes data from the advice map onto the advice stack
+    dup neq.0
+    if.true
+        exec.memory::get_nullifier_com adv.push_mapval dropw
+    end
+    # => [num_notes, ...]
+
+    # store the number of input notes into kernel memory
+    dup exec.memory::set_total_num_consumed_notes
+    # => [num_notes, ...]
+
+    # loop over input notes and read data
     # ---------------------------------------------------------------------------------------------
 
     # initialize counter of already processed notes
     push.0
     # => [num_processed_notes = 0, num_notes, ...]
 
-    # check if the number of consumed notes is greater then 0. Conditional for the while loop.
+    # check if the number of input notes is greater then 0. Conditional for the while loop.
     dup.1 dup.1 neq
     # => [has_more_notes, num_processed_notes, num_notes, ...]
 
     # loop and read note data from the advice provider
     while.true
-        dup exec.process_consumed_note
+        dup exec.process_input_note
         # => [num_processed_notes, num_notes, ...]
 
         # increment processed note counter and check if we should loop again
@@ -730,17 +739,17 @@ proc.process_consumed_notes_data
     padw padw padw
     # => [R1, R0, CAP, num_processed_notes, num_notes, ...]
 
-    # check if the number of consumed notes is greater then 0. Conditional for the while loop.
+    # check if the number of input notes is greater then 0. Conditional for the while loop.
     dup.13 dup.13 neq
     # => [has_more_notes, R1, R0, CAP, num_processed_notes, num_notes, ...]
 
-    # loop and sequentially hash hperm(nullifier, ZERO) over all consumed notes
+    # loop and sequentially hash hperm(nullifier, ZERO) over all input notes
     while.true
         # clear hasher rate
         dropw dropw
         # => [CAP, num_processed_notes, num_notes, ...]
 
-        # get consumed note nullifier
+        # get input note nullifier
         dup.4 exec.memory::get_consumed_note_nullifier
         # => [NULLIFIER, CAP, num_processed_notes, num_notes, ...]
 
@@ -761,7 +770,9 @@ proc.process_consumed_notes_data
     dropw swapw dropw
     # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
 
-    # assert nullifier hash is what we would expect
+    # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
+    # hash should be [ZERO; 4] because the while loop above was not entered and, thus, hperm
+    # instruction was not executed.
     exec.memory::get_nullifier_com assert_eqw
     # => [num_processed_notes + 1, num_notes, ...]
 
@@ -769,7 +780,7 @@ proc.process_consumed_notes_data
     drop drop
     # => [...]
 
-    # set the current consumed note pointer to the first consumed note
+    # set the current input note pointer to the first input note
     push.0 exec.memory::get_consumed_note_ptr exec.memory::set_current_consumed_note_ptr
     # => [...]
 end
@@ -802,24 +813,22 @@ end
 #! 1. "Unhash" inputs, authenticate the data and store it in the root contexts memory.
 #! 2. Build a single vault containing assets of all inputs (input notes combined with current
 #!    account vault).
-#! 3. Verify that all consumed notes are present in the note db.
+#! 3. Verify that all input notes are present in the note db.
 #!
 #! Errors:
 #!  - If data provided by the advice provider does not match global inputs.
 #!  - The account data is invalid.
-#!  - Any of the consumed notes do note exist in the note db.
+#!  - Any of the input notes do note exist in the note db.
 #!
-#! Stack:        [BH, acct_id, IAH, NC]
-#! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
-#!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!                num_cn,
-#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
-#!                CN1_A1, CN1_A2, ...
-#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
-#!                CN2_A1, CN2_A2, ...,
-#!                ...,
-#!                TXSR]
-#! Output:       []
+#! Operand stack: [BH, acct_id, IAH, NC]
+#! Advice stack:  [NR, PH, CR, SR, BR, PH, BN,
+#!                  acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
+#!                  num_cn, TXSR
+#!                ]
+#! Advice map:  {
+#!                  NC: [NOTE_1_DATA, ..., NOTE_N_DATA],
+#!              }
+#! Output:      []
 #!
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
@@ -838,14 +847,8 @@ end
 #! - AVR is the account vault root.
 #! - ASR is the account storage root.
 #! - ACR is the account code root.
-#! - num_cn is the number of consumed notes.
-#! - CN1_SN is the serial number of consumed note 1.
-#! - CN1_SR is the script root of consumed note 1.
-#! - CN1_IR is the inputs root of consumed note 1.
-#! - CN1_VR is the vault root of consumed note 1.
-#! - CN1_M is the metadata of consumed note 1.
-#! - CN1_A1 is the first asset of consumed note 1.
-#! - CN1_A2 is the second asset of consumed note 1.
+#! - num_cn is the number of input notes.
+#! - NOTE_X_DATA is the data of the x'th note.
 #! - TXSR is the transaction script root.
 export.prepare_transaction
     # process global inputs
@@ -860,8 +863,8 @@ export.prepare_transaction
     # process account data
     exec.process_acct_data
 
-    # process consumed notes data
-    exec.process_consumed_notes_data
+    # process input notes data
+    exec.process_input_notes_data
 
     # process transaction script root
     exec.process_tx_script_root

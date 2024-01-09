@@ -20,6 +20,9 @@ use common::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script, MockDataStore,
 };
 
+// TESTS MINT FUNGIBLE ASSET
+// ================================================================================================
+
 #[test]
 fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
@@ -28,7 +31,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -59,12 +62,11 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
             end
             ",
             recipient = prepare_word(&recipient),
-            tag = tag,
-            amount = amount,
         )
         .as_str(),
     )
     .unwrap();
+
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
@@ -97,7 +99,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -128,8 +130,6 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             end
             ",
             recipient = prepare_word(&recipient),
-            tag = tag,
-            amount = amount,
         )
         .as_str(),
     )
@@ -144,6 +144,9 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     assert!(transaction_result.is_err());
 }
+
+// TESTS BURN FUNGIBLE ASSET
+// ================================================================================================
 
 #[test]
 fn test_faucet_contract_burn_fungible_asset_succeeds() {
@@ -185,7 +188,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]), None);
+        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
@@ -202,6 +205,9 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
     assert_eq!(transaction_result.input_notes().get_note(0).id(), note.id());
 }
+
+// TESTS FUNGIBLE CONTRACT CONSTRUCTION
+// ================================================================================================
 
 #[test]
 fn test_faucet_contract_creation() {
