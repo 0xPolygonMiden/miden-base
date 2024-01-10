@@ -15,4 +15,3 @@ For **network transactions**, the operator will execute the transaction and gene
 
 1. Clients may not have sufficient resources to generate ZK proofs.
 2. Executing many transactions against the same public account by different clients would be challenging as the account state would change after every transaction. In this case, the Miden Node / Operator acts as a "synchronizer" as they can execute transactions sequentially and feed the output of the previous transaction into the subsequent one.
-
