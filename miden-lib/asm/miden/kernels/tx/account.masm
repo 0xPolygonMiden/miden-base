@@ -39,9 +39,15 @@ const.MAX_SLOT_TYPE=64
 # EVENTS
 # =================================================================================================
 
+# Event emitted to signal that an account storage item is being updated.
+const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
+
+# Event emitted to signal that account nonce is being incremented.
+const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
+
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
-const.PUSH_ACCOUNT_PROCEDURE_INDEX_EVENT=131074
+const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131076
 
 # CONSTANT ACCESSORS
 # =================================================================================================
@@ -111,6 +117,9 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_nonce
+    # emit event to signal that account nonce is being incremented
+    emit.ACCOUNT_INCREMENT_NONCE_EVENT
+
     u32assert
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
@@ -337,6 +346,11 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an account storage item is being updated
+    push.1 drop emit.ACCOUNT_STORAGE_SET_ITEM_EVENT
+    
     # get the storage root
     exec.memory::get_acct_storage_root
     # => [R, index, V']
@@ -363,7 +377,7 @@ export.authenticate_procedure.1
     # => [PROC_ROOT, CODE_ROOT]
 
     # load the index of the procedure root onto the advice stack, and move it to the operand stack
-    emit.PUSH_ACCOUNT_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
+    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
     # => [PROC_ROOT, index, CODE_ROOT]
 
     # push the depth of the code Merkle tree onto the stack

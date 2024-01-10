@@ -9,10 +9,10 @@ use.miden::kernels::tx::tx
 # =================================================================================================
 
 # Event emitted to signal that an asset is being added to the account vault.
-const.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT=131072
+const.ACCOUNT_VAULT_ADD_ASSET_EVENT=131072
 
 # Event emitted to signal that an asset is being removed from the account vault.
-const.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT=131073
+const.ACCOUNT_VAULT_REMOVE_ASSET_EVENT=131073
 
 # AUTHENTICATION
 # =================================================================================================
@@ -245,7 +245,7 @@ export.account_vault_add_asset
     # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
     #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
     # emit event to signal that an asset is being added to the account vault
-    push.1 drop emit.ADD_ASSET_TO_ACCOUNT_VAULT_EVENT
+    push.1 drop emit.ACCOUNT_VAULT_ADD_ASSET_EVENT
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
@@ -275,7 +275,7 @@ export.account_vault_remove_asset
     # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
     #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
     # emit event to signal that an asset is being removed from the account vault
-    push.1 drop emit.REMOVE_ASSET_FROM_ACCOUNT_VAULT_EVENT
+    push.1 drop emit.ACCOUNT_VAULT_REMOVE_ASSET_EVENT
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
