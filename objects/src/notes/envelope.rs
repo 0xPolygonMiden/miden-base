@@ -1,8 +1,9 @@
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::StarkField;
-use vm_processor::DeserializationError;
 
-use super::{Felt, Note, NoteId, NoteMetadata, Vec, Word};
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
+    Serializable, Vec, Word,
+};
 
 // NOTE ENVELOPE
 // ================================================================================================

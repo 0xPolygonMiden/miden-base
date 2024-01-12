@@ -1,8 +1,9 @@
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use miden_verifier::ExecutionProof;
-use vm_processor::DeserializationError;
 
 use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
+use crate::utils::serde::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
 
 // PROVEN TRANSACTION
 // ================================================================================================

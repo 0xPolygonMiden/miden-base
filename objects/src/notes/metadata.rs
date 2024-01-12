@@ -1,7 +1,8 @@
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-use super::{AccountId, Felt, NoteError, Word};
+use super::{
+    AccountId, ByteReader, ByteWriter, Deserializable, Felt, NoteError, Serializable, Word,
+};
 
 /// Represents metadata associated with a note. This includes the sender, tag, and number of assets.
 /// - sender is the account which created the note.

@@ -36,7 +36,7 @@ pub mod crypto {
 }
 
 pub mod utils {
-    pub use miden_crypto::utils::{format, vec};
+    pub use miden_crypto::utils::{bytes_to_hex_string, format, hex_to_bytes, vec, HexParseError};
     pub use vm_core::utils::{collections, group_slice_elements, string, IntoBytes};
 
     pub mod serde {

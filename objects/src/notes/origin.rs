@@ -1,7 +1,7 @@
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
-use super::{Digest, NoteError, ToString, NOTE_TREE_DEPTH};
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, NoteError, Serializable,
+    ToString, NOTE_TREE_DEPTH,
+};
 use crate::crypto::merkle::{MerklePath, NodeIndex};
 
 /// Contains information about the origin of a note.

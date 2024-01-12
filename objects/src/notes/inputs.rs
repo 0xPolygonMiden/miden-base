@@ -1,9 +1,11 @@
 use core::cell::OnceCell;
 
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-use super::{Digest, Felt, Hasher, NoteError, Vec, ZERO};
+use super::{
+    ByteReader, ByteWriter, Deserializable, Digest, Felt, Hasher, NoteError, Serializable, Vec,
+    ZERO,
+};
 
 // NOTE INPUTS
 // ================================================================================================

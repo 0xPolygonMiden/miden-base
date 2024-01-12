@@ -1,7 +1,8 @@
-use super::{Digest, Felt, Hasher, Note, Word, WORD_SIZE, ZERO};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
+    Serializable, String, Word, WORD_SIZE, ZERO,
 };
+use crate::utils::{bytes_to_hex_string, hex_to_bytes, HexParseError};
 
 // NULLIFIER
 // ================================================================================================
@@ -42,6 +43,20 @@ impl Nullifier {
     /// Returns the digest defining this nullifier.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+
+    /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
+    /// that the hexadecimal characters are big-endian encoded.
+    pub fn from_hex(hex_value: &str) -> Result<Self, HexParseError> {
+        hex_to_bytes(hex_value).and_then(|bytes: [u8; 32]| {
+            let digest = Digest::try_from(bytes)?;
+            Ok(digest.into())
+        })
+    }
+
+    /// Returns a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        bytes_to_hex_string(self.0.as_bytes())
     }
 }
 
@@ -111,5 +126,21 @@ impl Deserializable for Nullifier {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let nullifier = Digest::read_from(source)?;
         Ok(Self(nullifier))
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use crate::notes::Nullifier;
+
+    #[test]
+    fn test_from_hex_and_back() {
+        let nullifier_hex = "0x41e7dbbc8ce63ec25cf2d76d76162f16ef8fd1195288171f5e5a3e178222f6d2";
+        let nullifier = Nullifier::from_hex(nullifier_hex).unwrap();
+
+        assert_eq!(nullifier_hex, nullifier.to_hex());
     }
 }
