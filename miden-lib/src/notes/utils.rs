@@ -19,14 +19,8 @@ pub fn build_note_script(bytes: &[u8]) -> Result<NoteScript, NoteError> {
 pub fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
     // TODO: add lazy_static initialization or compile-time optimization instead of re-generating
     // the script hash every time we call the SWAP script
-    let assembler = TransactionKernel::assembler();
-
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
-
-    let note_script_ast =
-        ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?;
-
-    let (note_script, _) = NoteScript::new(note_script_ast, &assembler)?;
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
+    let note_script = build_note_script(bytes)?;
 
     let script_hash = note_script.hash();
 
