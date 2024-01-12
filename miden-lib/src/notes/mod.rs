@@ -21,7 +21,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = vec![target.into(), ZERO, ZERO, ZERO];
+    let inputs = [target.into(), ZERO, ZERO, ZERO];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
@@ -42,7 +42,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = vec![target.into(), recall_height.into(), ZERO, ZERO];
+    let inputs = [target.into(), recall_height.into(), ZERO, ZERO];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
@@ -66,7 +66,7 @@ pub fn create_swap_note<R: FeltRng>(
     let recipient = utils::build_p2id_recipient(sender, repay_serial_num)?;
     let asset_word: Word = requested_asset.into();
 
-    let inputs = vec![
+    let inputs = [
         recipient[0],
         recipient[1],
         recipient[2],
