@@ -12,8 +12,11 @@ pub mod utils;
 
 /// Generates a P2ID note - pay to id note.
 ///
-/// This script enables the transfer of assets from the `sender` account to the `target` account.
-/// The passed-in `rng` is used to generate a serial number for the note.
+/// This script enables the transfer of assets from the `sender` account to the `target` account
+/// by specifying the target's account ID.
+///
+/// The passed-in `rng` is used to generate a serial number for the note. The returned note's tag
+/// is set to the target's account ID.
 ///
 /// # Errors
 /// Returns an error if deserialization or compilation of the `P2ID` script fails.
@@ -35,9 +38,13 @@ pub fn create_p2id_note<R: FeltRng>(
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
 ///
-/// This script enables the transfer of assets from one account `sender` to another account `target`
-/// additionally it adds the possibility of a recall window enabling reclaiming of assets if the
-/// note has not been consumed by the `target` in the inputed timeframe
+/// This script enables the transfer of assets from the sender `sender` account to the `target`
+/// account by specifying the target's account ID. Additionally it adds the possibility for the
+/// sender to reclaiming the assets if the note has not been consumed by the target within the
+/// specified timeframe.
+///
+/// The passed-in `rng` is used to generate a serial number for the note. The returned note's tag
+/// is set to the target's account ID.
 ///
 /// # Errors
 /// Returns an error if deserialization or compilation of the `P2IDR` script fails.
@@ -60,9 +67,9 @@ pub fn create_p2idr_note<R: FeltRng>(
 
 /// Generates a SWAP note - swap of assets between two accounts.
 ///
-/// This script enables a swap of 2 assets between one account `sender` and any other account that
+/// This script enables a swap of 2 assets between the `sender` account and any other account that
 /// is willing to consume the note. The consumer will receive the `offered_asset` and will create a
-/// new P2ID note with `sender` as target, containing the `requested_asset`
+/// new P2ID note with `sender` as target, containing the `requested_asset`.
 ///
 /// # Errors
 /// Returns an error if deserialization or compilation of the `SWAP` script fails.
