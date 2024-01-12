@@ -1,11 +1,9 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    accounts::{Account, AccountDelta, AccountStorage, AccountStorageDelta, AccountStub},
     assembly::ProgramAst,
-    crypto::merkle::{merkle_tree_delta, MerkleStore},
     transaction::{TransactionInputs, TransactionScript},
     vm::{Program, StackOutputs},
-    Felt, TransactionOutputError, Word,
+    Felt, Word, ZERO,
 };
 use vm_processor::ExecutionOptions;
 
@@ -14,7 +12,6 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
-use crate::host::EventHandler;
 
 mod data;
 pub use data::DataStore;
@@ -145,7 +142,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-        let mut host = TransactionHost::new(advice_recorder);
+        let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
 
         let result = vm_processor::execute(
             transaction.program(),
@@ -157,14 +154,12 @@ impl<D: DataStore> TransactionExecutor<D> {
 
         let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
 
-        let (advice_recorder, event_handler) = host.into_parts();
         build_executed_transaction(
             tx_program,
             tx_script,
             tx_inputs,
-            advice_recorder,
             result.stack_outputs().clone(),
-            event_handler,
+            host,
         )
     }
 
@@ -207,17 +202,18 @@ impl<D: DataStore> TransactionExecutor<D> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Creates a new [ExecutedTransaction] from the provided data, advice provider and stack outputs.
+/// Creates a new [ExecutedTransaction] from the provided data.
 fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
-    advice_provider: RecAdviceProvider,
     stack_outputs: StackOutputs,
-    event_handler: EventHandler,
+    host: TransactionHost<RecAdviceProvider>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
+    let (advice_recorder, account_delta) = host.into_parts();
+
     // finalize the advice recorder
-    let (advice_witness, _, map, store) = advice_provider.finalize();
+    let (advice_witness, _, map, _store) = advice_recorder.finalize();
 
     // parse transaction results
     let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
@@ -233,26 +229,21 @@ fn build_executed_transaction(
         });
     }
 
-    // build account delta
-
-    // TODO: Fix delta extraction for new account creation
-    // extract the account storage delta
-    let storage_delta = extract_account_storage_delta(&store, initial_account, final_account)
-        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
-
-    // extract the nonce delta
-    let nonce_delta = if initial_account.nonce() != final_account.nonce() {
-        Some(final_account.nonce())
-    } else {
-        None
-    };
-
-    // finalize the event handler
-    let vault_delta = event_handler.finalize();
-
-    // construct the account delta
-    let account_delta =
-        AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta");
+    // make sure nonce delta was computed correctly
+    let nonce_delta = final_account.nonce() - initial_account.nonce();
+    if nonce_delta == ZERO {
+        if account_delta.nonce().is_some() {
+            return Err(TransactionExecutorError::InconsistentAccountNonceDelta {
+                expected: None,
+                actual: account_delta.nonce(),
+            });
+        }
+    } else if final_account.nonce() != account_delta.nonce().unwrap_or_default() {
+        return Err(TransactionExecutorError::InconsistentAccountNonceDelta {
+            expected: Some(final_account.nonce()),
+            actual: account_delta.nonce(),
+        });
+    }
 
     Ok(ExecutedTransaction::new(
         program,
@@ -262,35 +253,4 @@ fn build_executed_transaction(
         tx_script,
         advice_witness,
     ))
-}
-
-/// Extracts account storage delta between the `initial_account` and `final_account_stub` from the
-/// provided `MerkleStore`
-fn extract_account_storage_delta(
-    store: &MerkleStore,
-    initial_account: &Account,
-    final_account_stub: &AccountStub,
-) -> Result<AccountStorageDelta, TransactionOutputError> {
-    // extract storage slots delta
-    let tree_delta = merkle_tree_delta(
-        initial_account.storage().root(),
-        final_account_stub.storage_root(),
-        AccountStorage::STORAGE_TREE_DEPTH,
-        store,
-    )
-    .map_err(TransactionOutputError::ExtractAccountStorageSlotsDeltaFailed)?;
-
-    // map tree delta to cleared/updated slots; we can cast indexes to u8 because the
-    // the number of storage slots cannot be greater than 256
-    let cleared_items = tree_delta.cleared_slots().iter().map(|idx| *idx as u8).collect();
-    let updated_items = tree_delta
-        .updated_slots()
-        .iter()
-        .map(|(idx, value)| (*idx as u8, *value))
-        .collect();
-
-    // construct storage delta
-    let storage_delta = AccountStorageDelta { cleared_items, updated_items };
-
-    Ok(storage_delta)
 }

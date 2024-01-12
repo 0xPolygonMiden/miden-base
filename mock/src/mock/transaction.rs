@@ -8,7 +8,7 @@ use miden_objects::{
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
 };
-use vm_processor::{AdviceInputs, Operation, Program};
+use vm_processor::{AdviceInputs, Operation, Program, Word};
 
 use super::{
     super::TransactionKernel,
@@ -24,7 +24,15 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
-) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>) {
+) -> TransactionInputs {
+    mock_inputs_with_account_seed(account_type, asset_preservation, None)
+}
+
+pub fn mock_inputs_with_account_seed(
+    account_type: MockAccountType,
+    asset_preservation: AssetPreservationStatus,
+    account_seed: Option<Word>,
+) -> TransactionInputs {
     // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
@@ -51,7 +59,8 @@ pub fn mock_inputs(
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
     // Transaction inputs
-    (account, block_header, chain_mmr, recorded_notes)
+    let input_notes = InputNotes::new(recorded_notes).unwrap();
+    TransactionInputs::new(account, account_seed, block_header, chain_mmr, input_notes).unwrap()
 }
 
 pub fn mock_inputs_with_existing(

@@ -160,6 +160,12 @@ impl<T: ToEnvelope> PartialEq for OutputNotes<T> {
 
 impl<T: ToEnvelope> Eq for OutputNotes<T> {}
 
+impl Default for OutputNotes {
+    fn default() -> Self {
+        OutputNotes::new(Vec::new()).expect("failed to create empty output notes")
+    }
+}
+
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
@@ -185,9 +191,13 @@ impl<T: ToEnvelope> Deserializable for OutputNotes<T> {
 
 /// Build a commitment to output notes.
 ///
-/// The commitment is computed as a sequential hash of (hash, metadata) tuples for the notes
-/// created in a transaction.
+/// For a non-empty list of notes, this is a sequential hash of (note_id, metadata) tuples for the
+/// notes created in a transaction. For an empty list, [ZERO; 4] is returned.
 fn build_output_notes_commitment<T: ToEnvelope>(notes: &[T]) -> Digest {
+    if notes.is_empty() {
+        return Digest::default();
+    }
+
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 8);
     for note in notes.iter() {
         elements.extend_from_slice(note.id().as_elements());

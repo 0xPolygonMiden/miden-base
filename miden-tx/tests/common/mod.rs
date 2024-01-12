@@ -17,7 +17,6 @@ use mock::{
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
 };
-use vm_processor::AdviceInputs;
 
 // MOCK DATA STORE
 // ================================================================================================
@@ -32,31 +31,25 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, consumed_notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
+                .into_parts();
         Self {
             account,
             block_header,
             block_chain,
-            notes: consumed_notes,
+            notes: notes.into_vec(),
         }
     }
 
-    pub fn with_existing(
-        account: Option<Account>,
-        consumed_notes: Option<Vec<Note>>,
-        auxiliary_data: Option<AdviceInputs>,
-    ) -> Self {
-        let (account, block_header, block_chain, consumed_notes, mut auxiliary_data_inputs) =
+    pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
+        let (account, block_header, block_chain, consumed_notes, _auxiliary_data_inputs) =
             mock_inputs_with_existing(
                 MockAccountType::StandardExisting,
                 AssetPreservationStatus::Preserved,
                 account,
-                consumed_notes,
+                input_notes,
             );
-        if let Some(auxiliary_data) = auxiliary_data {
-            auxiliary_data_inputs.extend(auxiliary_data);
-        }
         Self {
             account,
             block_header,

@@ -10,7 +10,7 @@ use.miden::kernels::tx::asset_vault
 # generating the consumed notes commitment.
 const.CREATED_NOTE_HASHING_MEM_DIFF=1022
 
-# CREATED NOTES PROCEDURES
+# OUTPUT NOTES PROCEDURES
 # =================================================================================================
 
 #! Computes the vault hash of the created note with index i. The hash is computed as a sequential
@@ -104,9 +104,9 @@ end
 #! (note_hash, note_metadata) tuples.
 #!
 #! Stack: []
-#! Output: [CREATED_NOTES_COMMITMENT]
+#! Output: [OUTPUT_NOTES_COMMITMENT]
 #!
-#! - CREATED_NOTES_COMMITMENT is the commitment of the created notes.
+#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.
 export.compute_output_notes_hash
     # get the number of created notes from memory
     exec.memory::get_num_created_notes
@@ -144,6 +144,40 @@ export.compute_output_notes_hash
     # drop accessory variables from stack
     movup.4 drop
     movup.4 drop
+end
+
+#! Copies output note data to the advice map. If no notes were created by a transaction, nothing
+#! is copied to the advice map.
+#!
+#! Stack: [OUTPUT_NOTES_COMMITMENT, ...]
+#! Output: [OUTPUT_NOTES_COMMITMENT, ...]
+proc.copy_output_notes_to_advice_map
+    # get the number of notes created by the transaction
+    exec.memory::get_num_created_notes
+    # => [num_notes, OUTPUT_NOTES_COMMITMENT, ...]
+    
+    # if there are created notes, add them to the advice map
+    dup eq.0
+    if.true
+        # drop num_notes
+        drop
+    else
+        # compute the end boundary of the created notes section
+        exec.memory::get_created_note_ptr movdn.4
+        # => [OUTPUT_NOTES_COMMITMENT, created_notes_end_ptr, ...]
+
+        # compute the start boundary of the created notes section
+        exec.memory::get_created_note_data_offset movdn.4
+        # => [OUTPUT_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, ...]
+
+        # insert created data into the advice map
+        adv.insert_mem
+        # => [OUTPUT_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, ...]
+
+        # drop created note pointers
+        movup.4 drop movup.4 drop
+    end
+    # => [OUTPUT_NOTES_COMMITMENT, ...]
 end
 
 # BUILD OUTPUT VAULT
@@ -268,10 +302,10 @@ end
 #! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
-#! Output: [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output: [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! - TX_SCRIPT_ROOT is the transaction script root
-#! - CREATED_NOTES_COMMITMENT is the commitment of the created notes
+#! - OUTPUT_NOTES_COMMITMENT is the commitment of the created notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
     # update account code
@@ -331,33 +365,21 @@ export.finalize_transaction
 
     # compute created note hash
     exec.compute_output_notes_hash
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    # compute the end boundary of the created notes section
-    exec.memory::get_num_created_notes exec.memory::get_created_note_ptr movdn.4
-    # => [CREATED_NOTES_COMMITMENT, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
-
-    # compute the start boundary of the created notes section
-    exec.memory::get_created_note_data_offset movdn.4
-    # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
-
-    # insert created data into the advice map
-    adv.insert_mem
-    # => [CREATED_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, FINAL_ACCOUNT_HASH]
-
-    # drop created note pointers
-    movup.4 drop movup.4 drop
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # copy output note data to the advice map
+    exec.copy_output_notes_to_advice_map
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # load the transaction script root on to the top of the stack
     exec.memory::get_tx_script_root
-    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # truncate stack
     swapw.3 dropw swapw.3 dropw swapw.3 dropw
-    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
     exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw
-    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

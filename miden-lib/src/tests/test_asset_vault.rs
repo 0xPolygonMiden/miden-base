@@ -14,12 +14,12 @@ use mock::{
     run_tx,
 };
 
-use super::{build_tx_inputs, ContextId, Felt, ProcessState, Word, ONE, ZERO};
+use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
 use crate::transaction::memory;
 
 #[test]
 fn test_get_balance() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -36,10 +36,8 @@ fn test_get_balance() {
     "
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
@@ -49,7 +47,7 @@ fn test_get_balance() {
 
 #[test]
 fn test_get_balance_non_fungible_fails() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
@@ -65,19 +63,17 @@ fn test_get_balance_non_fungible_fails() {
     "
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
 }
 
 #[test]
 fn test_has_non_fungible_asset() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let non_fungible_asset = account.vault().assets().next().unwrap();
+    let non_fungible_asset = tx_inputs.account().vault().assets().next().unwrap();
 
     let code = format!(
         "
@@ -93,19 +89,17 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), ONE);
 }
 
 #[test]
 fn test_add_fungible_asset_success() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
@@ -126,10 +120,8 @@ fn test_add_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -144,9 +136,9 @@ fn test_add_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_overflow() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT + 1;
@@ -167,10 +159,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
@@ -178,11 +168,11 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
 #[test]
 fn test_add_non_fungible_asset_success() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
     let add_non_fungible_asset = Asset::NonFungible(
         NonFungibleAsset::new(
             &NonFungibleAssetDetails::new(faucet_id, vec![1, 2, 3, 4, 5, 6, 7, 8]).unwrap(),
@@ -204,10 +194,8 @@ fn test_add_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -222,11 +210,11 @@ fn test_add_non_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_duplicate() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
     let non_fungible_asset_details =
         NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let non_fungible_asset =
@@ -246,10 +234,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
@@ -257,9 +243,9 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
 #[test]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT;
@@ -280,10 +266,8 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -298,7 +282,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
 #[test]
 fn test_remove_fungible_asset_fail_remove_too_much() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -320,19 +304,17 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
 }
 
 #[test]
 fn test_remove_fungible_asset_success_balance_remaining() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT - 1;
@@ -353,10 +335,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -371,11 +351,11 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
 #[test]
 fn test_remove_non_fungible_asset_fail_doesnt_exist() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN + 1).try_into().unwrap();
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
     let non_fungible_asset_details =
         NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let non_existent_non_fungible_asset =
@@ -395,10 +375,8 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
 
     assert!(process.is_err());
     assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
@@ -406,11 +384,11 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
 
 #[test]
 fn test_remove_non_fungible_asset_success() {
-    let (account, block_header, chain, notes) =
+    let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let mut account_vault = account.vault().clone();
+    let mut account_vault = tx_inputs.account().vault().clone();
     let non_fungible_asset_details =
         NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
     let non_fungible_asset =
@@ -430,10 +408,8 @@ fn test_remove_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction =
-        prepare_transaction(account, None, block_header, chain, notes, None, &code, "", None);
-    let (program, stack_inputs, advice_provider) = build_tx_inputs(&transaction);
-    let process = run_tx(program, stack_inputs, advice_provider).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),

@@ -28,7 +28,6 @@ miden-objects = { package = "miden-objects", path = "../objects", default-featur
     "testing",
 ] }
 miden-stdlib = { workspace = true }
-miden-tx = { package = "miden-tx", path = "../miden-tx", default-features = false }
 mock = { package = "miden-mock", path = "../mock", default-features = false }
 vm-processor = { workspace = true, features = ["internals"] }
 

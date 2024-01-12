@@ -93,7 +93,6 @@ fn test_p2idr_script() {
     let data_store_1 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_1 = TransactionExecutor::new(data_store_1.clone());
 
@@ -145,7 +144,6 @@ fn test_p2idr_script() {
     let data_store_2 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
     executor_2.load_account(sender_account_id).unwrap();
@@ -177,7 +175,6 @@ fn test_p2idr_script() {
     let data_store_3 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
     executor_3.load_account(malicious_account_id).unwrap();
@@ -209,7 +206,6 @@ fn test_p2idr_script() {
     let data_store_4 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
     executor_4.load_account(target_account_id).unwrap();
@@ -242,7 +238,6 @@ fn test_p2idr_script() {
     let data_store_5 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
 
@@ -275,7 +270,6 @@ fn test_p2idr_script() {
     let data_store_6 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
 
