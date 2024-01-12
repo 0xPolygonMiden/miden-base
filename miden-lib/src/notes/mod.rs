@@ -11,7 +11,12 @@ pub mod utils;
 // ================================================================================================
 
 /// Generates a P2ID note - pay to id note.
-/// This script enables the transfer of assets from one account `sender` to another account`target`
+///
+/// This script enables the transfer of assets from the `sender` account to the `target` account.
+/// The passed-in `rng` is used to generate a serial number for the note.
+///
+/// # Errors
+/// Returns an error if deserialization or compilation of the `P2ID` script fails.
 pub fn create_p2id_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
@@ -29,9 +34,13 @@ pub fn create_p2id_note<R: FeltRng>(
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
+///
 /// This script enables the transfer of assets from one account `sender` to another account `target`
 /// additionally it adds the possibility of a recall window enabling reclaiming of assets if the
 /// note has not been consumed by the `target` in the inputed timeframe
+///
+/// # Errors
+/// Returns an error if deserialization or compilation of the `P2IDR` script fails.
 pub fn create_p2idr_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
@@ -50,9 +59,13 @@ pub fn create_p2idr_note<R: FeltRng>(
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
+///
 /// This script enables a swap of 2 assets between one account `sender` and any other account that
 /// is willing to consume the note. The consumer will receive the `offered_asset` and will create a
 /// new P2ID note with `sender` as target, containing the `requested_asset`
+///
+/// # Errors
+/// Returns an error if deserialization or compilation of the `SWAP` script fails.
 pub fn create_swap_note<R: FeltRng>(
     sender: AccountId,
     offered_asset: Asset,
@@ -62,15 +75,15 @@ pub fn create_swap_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let repay_serial_num = rng.draw_word();
-    let recipient = utils::build_p2id_recipient(sender, repay_serial_num)?;
+    let payback_serial_num = rng.draw_word();
+    let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
     let asset_word: Word = requested_asset.into();
 
     let inputs = [
-        recipient[0],
-        recipient[1],
-        recipient[2],
-        recipient[3],
+        payback_recipient[0],
+        payback_recipient[1],
+        payback_recipient[2],
+        payback_recipient[3],
         asset_word[0],
         asset_word[1],
         asset_word[2],
@@ -86,5 +99,5 @@ pub fn create_swap_note<R: FeltRng>(
 
     let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, sender, tag)?;
 
-    Ok((note, repay_serial_num))
+    Ok((note, payback_serial_num))
 }
