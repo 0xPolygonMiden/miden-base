@@ -1,9 +1,8 @@
-use miden_crypto::utils::HexParseError;
-
-use super::{Digest, Felt, Hasher, Note, Word, WORD_SIZE, ZERO};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
+    Serializable, String, Word, WORD_SIZE, ZERO,
 };
+use crate::utils::{bytes_to_hex_string, hex_to_bytes, HexParseError};
 
 // NULLIFIER
 // ================================================================================================
@@ -49,7 +48,7 @@ impl Nullifier {
     /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<Self, HexParseError> {
-        miden_crypto::utils::hex_to_bytes(hex_value).and_then(|bytes: [u8; 32]| {
+        hex_to_bytes(hex_value).and_then(|bytes: [u8; 32]| {
             let digest = Digest::try_from(bytes)?;
             Ok(digest.into())
         })
@@ -57,11 +56,7 @@ impl Nullifier {
 
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
-        self.0.as_bytes().iter().fold(String::from("0x"), |mut acc, &byte| {
-            use std::fmt::Write;
-            write!(&mut acc, "{:02x}", byte).expect("Unable to write to string");
-            acc
-        })
+        bytes_to_hex_string(self.0.as_bytes())
     }
 }
 

@@ -1,8 +1,10 @@
-use vm_processor::DeserializationError;
-
 use super::{
     accounts::{AccountId, AccountType},
-    utils::{collections::Vec, string::ToString},
+    utils::{
+        collections::Vec,
+        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+        string::ToString,
+    },
     AssetError, Felt, Hasher, StarkField, Word, ZERO,
 };
 
@@ -10,7 +12,6 @@ mod fungible;
 pub use fungible::FungibleAsset;
 
 mod nonfungible;
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 pub use nonfungible::{NonFungibleAsset, NonFungibleAssetDetails};
 
 mod token_symbol;

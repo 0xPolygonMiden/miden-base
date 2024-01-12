@@ -1,12 +1,14 @@
 use core::cell::OnceCell;
 
-use vm_processor::DeserializationError;
-
 use super::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     assets::Asset,
-    utils::{collections::Vec, string::ToString},
+    utils::{
+        collections::Vec,
+        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+        string::{String, ToString},
+    },
     vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, WORD_SIZE, ZERO,
 };
@@ -27,7 +29,6 @@ mod nullifier;
 pub use nullifier::Nullifier;
 
 mod origin;
-use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 pub use origin::{NoteInclusionProof, NoteOrigin};
 
 mod script;

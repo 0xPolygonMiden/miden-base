@@ -1,13 +1,10 @@
 use core::fmt;
 
-use miden_crypto::utils::{ByteReader, Deserializable, Serializable};
-use vm_processor::DeserializationError;
-
 use super::{
-    get_account_seed, Account, AccountError, Digest, Felt, FieldElement, Hasher, StarkField,
-    ToString, Vec, Word,
+    get_account_seed, Account, AccountError, ByteReader, Deserializable, DeserializationError,
+    Digest, Felt, FieldElement, Hasher, Serializable, StarkField, String, ToString, Vec, Word,
 };
-use crate::utils::string::String;
+use crate::utils::hex_to_bytes;
 
 // ACCOUNT ID
 // ================================================================================================
@@ -212,7 +209,7 @@ impl AccountId {
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
     /// that the hexadecimal characters are big-endian encoded.
     pub fn from_hex(hex_value: &str) -> Result<AccountId, AccountError> {
-        miden_crypto::utils::hex_to_bytes(hex_value)
+        hex_to_bytes(hex_value)
             .map_err(|err| AccountError::HexParseError(err.to_string()))
             .and_then(|mut bytes: [u8; 8]| {
                 // `bytes` ends up being parsed as felt, and the input to that is assumed to be little-endian
