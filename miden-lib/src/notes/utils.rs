@@ -11,7 +11,7 @@ pub fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Diges
     // the script hash every time we call the SWAP script
     let assembler = TransactionKernel::assembler();
 
-    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
 
     let note_script_ast =
         ProgramAst::from_bytes(p2id_bytes).map_err(NoteError::NoteDeserializationError)?;

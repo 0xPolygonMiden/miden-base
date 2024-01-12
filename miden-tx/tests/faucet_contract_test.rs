@@ -4,11 +4,11 @@ use miden_lib::{
     AuthScheme,
 };
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset, TokenSymbol},
+    assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
-    notes::{NoteMetadata, NoteVault},
+    notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt, Word, ZERO,
 };
@@ -20,6 +20,9 @@ use common::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script, MockDataStore,
 };
 
+// TESTS MINT FUNGIBLE ASSET
+// ================================================================================================
+
 #[test]
 fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
@@ -28,14 +31,13 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -44,8 +46,8 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic_fungible->faucet
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::faucets::basic_fungible->faucet
+            use.miden::contracts::auth::basic->auth_tx
 
             begin
 
@@ -60,19 +62,18 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
             end
             ",
             recipient = prepare_word(&recipient),
-            tag = tag,
-            amount = amount,
         )
         .as_str(),
     )
     .unwrap();
+
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     let fungible_asset: Asset =
@@ -80,13 +81,13 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
 
     let expected_note = OutputNote::new(
         recipient.into(),
-        NoteVault::new(&[fungible_asset]).unwrap(),
+        NoteAssets::new(&[fungible_asset]).unwrap(),
         NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
     );
 
     let created_note = transaction_result.output_notes().get_note(0).clone();
     assert_eq!(created_note.recipient(), expected_note.recipient());
-    assert_eq!(created_note.vault(), expected_note.vault());
+    assert_eq!(created_note.assets(), expected_note.assets());
     assert_eq!(created_note.metadata(), expected_note.metadata());
 }
 
@@ -98,14 +99,13 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]), None);
+    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -114,8 +114,8 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-            use.miden::faucets::basic_fungible->faucet
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::faucets::basic_fungible->faucet
+            use.miden::contracts::auth::basic->auth_tx
 
             begin
 
@@ -130,8 +130,6 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             end
             ",
             recipient = prepare_word(&recipient),
-            tag = tag,
-            amount = amount,
         )
         .as_str(),
     )
@@ -141,15 +139,14 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor.execute_transaction(
-        faucet_account.id(),
-        block_ref,
-        &note_origins,
-        Some(tx_script),
-    );
+    let transaction_result =
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script));
 
     assert!(transaction_result.is_err());
 }
+
+// TESTS BURN FUNGIBLE ASSET
+// ================================================================================================
 
 #[test]
 fn test_faucet_contract_burn_fungible_asset_succeeds() {
@@ -172,8 +169,8 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // need to create a note with the fungible asset to be burned
     let note_script = ProgramAst::parse(
         "
-        use.miden::faucets::basic_fungible->faucet_contract
-        use.miden::sat::note
+        use.miden::contracts::faucets::basic_fungible->faucet_contract
+        use.miden::note
 
         # burn the asset
         begin
@@ -191,24 +188,26 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]), None);
+        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_origins, None)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
     // check that the account burned the asset
     assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
-    assert_eq!(transaction_result.input_notes().get_note(0).note().hash(), note.hash());
+    assert_eq!(transaction_result.input_notes().get_note(0).id(), note.id());
 }
+
+// TESTS FUNGIBLE CONTRACT CONSTRUCTION
+// ================================================================================================
 
 #[test]
 fn test_faucet_contract_creation() {
@@ -241,7 +240,7 @@ fn test_faucet_contract_creation() {
     assert!(faucet_account.is_faucet());
 
     let exp_faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
+        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 
@@ -258,7 +257,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/faucets/basic_fungible.masm");
+        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 
@@ -280,7 +279,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 
     Account::new(
         faucet_account_id,
-        AccountVault::new(&[]).unwrap(),
+        AssetVault::new(&[]).unwrap(),
         faucet_account_storage.clone(),
         faucet_account_code.clone(),
         Felt::new(1),

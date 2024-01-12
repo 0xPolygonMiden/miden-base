@@ -1,18 +1,15 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use miden_lib::transaction::{memory, TransactionKernel};
+use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    accounts::Account,
-    notes::NoteVault,
-    transaction::{
-        ChainMmr, InputNote, InputNotes, OutputNotes, PreparedTransaction, TransactionInputs,
-        TransactionScript,
-    },
-    BlockHeader, Felt, StarkField,
+    notes::NoteAssets,
+    transaction::{OutputNotes, PreparedTransaction, TransactionInputs, TransactionScript},
+    Felt, StarkField,
 };
+use mock::host::MockHost;
 use vm_processor::{
-    AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Process, Program, StackInputs,
-    Word,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
+    StackInputs, Word,
 };
 
 pub mod builders;
@@ -35,18 +32,18 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
 }
 
 /// Inject `code` along side the specified file and run it
-pub fn run_tx<A>(
-    program: Program,
-    stack_inputs: StackInputs,
-    mut adv: A,
-) -> Result<Process<DefaultHost<A>>, ExecutionError>
-where
-    A: AdviceProvider,
-{
-    // mock account method for testing from root context
-    adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
+pub fn run_tx(tx: &PreparedTransaction) -> Result<Process<MockHost>, ExecutionError> {
+    run_tx_with_inputs(tx, AdviceInputs::default())
+}
 
-    let host = DefaultHost::new(adv);
+pub fn run_tx_with_inputs(
+    tx: &PreparedTransaction,
+    inputs: AdviceInputs,
+) -> Result<Process<MockHost>, ExecutionError> {
+    let program = tx.program().clone();
+    let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
+    advice_inputs.extend(inputs);
+    let host = MockHost::new(tx.account().into(), advice_inputs);
     let mut process =
         Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
     process.execute(&program)?;
@@ -83,41 +80,46 @@ where
     Ok(process)
 }
 
-// TEST HELPERS
-// ================================================================================================
-pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
-    memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn prepare_transaction(
-    account: Account,
-    account_seed: Option<Word>,
-    block_header: BlockHeader,
-    chain: ChainMmr,
-    notes: Vec<InputNote>,
-    tx_script: Option<TransactionScript>,
-    code: &str,
+/// Inject `code` along side the specified file and run it
+pub fn run_within_host<H: Host>(
     imports: &str,
+    code: &str,
+    stack_inputs: StackInputs,
+    host: H,
     file_path: Option<PathBuf>,
-) -> PreparedTransaction {
+) -> Result<Process<H>, ExecutionError> {
     let assembler = TransactionKernel::assembler();
-
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
         None => format!("{imports}{code}"),
     };
 
     let program = assembler.compile(code).unwrap();
+    let mut process =
+        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    process.execute(&program)?;
+    Ok(process)
+}
 
-    let tx_inputs = TransactionInputs::new(
-        account,
-        account_seed,
-        block_header,
-        chain,
-        InputNotes::new(notes).unwrap(),
-    )
-    .unwrap();
+// TEST HELPERS
+// ================================================================================================
+pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
+    memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
+}
 
+pub fn prepare_transaction(
+    tx_inputs: TransactionInputs,
+    tx_script: Option<TransactionScript>,
+    code: &str,
+    file_path: Option<PathBuf>,
+) -> PreparedTransaction {
+    let assembler = TransactionKernel::assembler();
+
+    let code = match file_path {
+        Some(file_path) => load_file_with_code("", code, file_path),
+        None => code.to_string(),
+    };
+
+    let program = assembler.compile(code).unwrap();
     PreparedTransaction::new(program, tx_script, tx_inputs)
 }

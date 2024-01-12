@@ -1,8 +1,7 @@
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountType, AccountVault, StorageSlotType,
-    },
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
     assembly::ModuleAst,
+    assets::AssetVault,
     utils::{
         format,
         string::{String, ToString},
@@ -44,8 +43,8 @@ pub fn create_basic_wallet(
 
     let account_code_string: String = format!(
         "
-    use.miden::wallets::basic->basic_wallet
-    use.miden::auth::basic
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic
 
     export.basic_wallet::receive_asset
     export.basic_wallet::send_asset
@@ -64,7 +63,7 @@ pub fn create_basic_wallet(
         0,
         (StorageSlotType::Value { value_arity: 0 }, storage_slot_0_data),
     )])?;
-    let account_vault = AccountVault::new(&[])?;
+    let account_vault = AssetVault::new(&[]).map_err(AccountError::AssetVaultError)?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

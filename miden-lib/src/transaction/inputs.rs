@@ -114,7 +114,8 @@ fn extend_advice_inputs(
 ///  elements[40..43]  = account vault root
 ///  elements[44..47]  = account storage root
 ///  elements[48..51]  = account code root
-///  elements[42..56]  = account seed, if one was provided; otherwise [ZERO; 4]
+///  elements[52]      = number of input notes
+///  elements[53..57]  = account seed, if one was provided; otherwise [ZERO; 4]
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
@@ -138,6 +139,9 @@ fn build_advice_stack(
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());
     inputs.extend_stack(account.code().root());
+
+    // push the number of input notes onto the stack
+    inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
     if let Some(tx_script) = tx_script {
@@ -229,13 +233,6 @@ fn add_account_to_advice_inputs(
     // extend the merkle store with account code tree
     inputs.extend_merkle_store(code.procedure_tree().inner_nodes());
 
-    // extend advice map with account proc root |-> proc index
-    inputs.extend_map(
-        code.procedure_tree()
-            .leaves()
-            .map(|(idx, leaf)| (leaf.into_bytes(), vec![idx.into()])),
-    );
-
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
         inputs.extend_map(vec![(
@@ -251,7 +248,7 @@ fn add_account_to_advice_inputs(
 /// Populates the advice inputs for all input notes.
 ///
 /// For each note the authentication path is populated into the Merkle store, the note inputs
-/// and vault assets are populated in the advice map.
+/// and assets are populated in the advice map.
 ///
 /// A combined note data vector is also constructed that holds core data for all notes. This
 /// combined vector is added to the advice map against the input notes commitment. For each note
@@ -259,7 +256,7 @@ fn add_account_to_advice_inputs(
 ///   out[0..4]    = serial num
 ///   out[4..8]    = script root
 ///   out[8..12]   = input root
-///   out[12..16]  = vault_hash
+///   out[12..16]  = asset_hash
 ///   out[16..20]  = metadata
 ///   out[20..24]  = asset_1
 ///   out[24..28]  = asset_2
@@ -276,20 +273,22 @@ fn add_account_to_advice_inputs(
 ///
 /// Inserts the following entries into the advice map:
 /// - inputs_hash |-> inputs
-/// - vault_hash |-> assets
+/// - asset_hash |-> assets
 /// - notes_hash |-> combined note data
 fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInputs) {
-    let mut note_data: Vec<Felt> = Vec::new();
+    // if there are no input notes, nothing is added to the advice inputs
+    if notes.is_empty() {
+        return;
+    }
 
-    note_data.push(Felt::from(notes.num_notes() as u64));
-
+    let mut note_data = Vec::new();
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().hash().into(), note.inputs().inputs().to_vec())]);
-        inputs.extend_map([(note.vault().hash().into(), note.vault().to_padded_assets())]);
+        inputs.extend_map([(note.assets().commitment().into(), note.assets().to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
@@ -303,10 +302,10 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(note.serial_num());
         note_data.extend(*note.script().hash());
         note_data.extend(*note.inputs().hash());
-        note_data.extend(*note.vault().hash());
+        note_data.extend(*note.assets().commitment());
         note_data.extend(Word::from(note.metadata()));
 
-        note_data.extend(note.vault().to_padded_assets());
+        note_data.extend(note.assets().to_padded_assets());
 
         note_data.push(proof.origin().block_num.into());
         note_data.extend(*proof.sub_hash());

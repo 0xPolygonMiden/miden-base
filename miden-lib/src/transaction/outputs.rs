@@ -1,15 +1,17 @@
 use miden_objects::{
     accounts::{AccountId, AccountStub},
-    notes::{NoteMetadata, NoteVault},
+    assets::Asset,
+    notes::{NoteAssets, NoteId, NoteMetadata},
     transaction::OutputNote,
+    utils::collections::Vec,
     AccountError, Digest, NoteError, StarkField, Word, WORD_SIZE,
 };
 
 use super::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET, CREATED_NOTE_ASSETS_OFFSET,
-    CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_HASH_OFFSET, CREATED_NOTE_METADATA_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET,
+    CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_ID_OFFSET,
+    CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
 };
 
 // STACK OUTPUTS
@@ -51,10 +53,10 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteErro
         return Err(NoteError::InvalidStubDataLen(elements.len()));
     }
 
-    let hash: Digest = elements[CREATED_NOTE_HASH_OFFSET as usize].into();
+    let note_id: NoteId = elements[CREATED_NOTE_ID_OFFSET as usize].into();
     let metadata: NoteMetadata = elements[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
     let recipient = elements[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
-    let vault_hash: Digest = elements[CREATED_NOTE_VAULT_HASH_OFFSET as usize].into();
+    let asset_hash: Digest = elements[CREATED_NOTE_ASSET_HASH_OFFSET as usize].into();
 
     if elements.len()
         < (CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)
@@ -63,16 +65,21 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteErro
         return Err(NoteError::InvalidStubDataLen(elements.len()));
     }
 
-    let vault: NoteVault = elements[CREATED_NOTE_ASSETS_OFFSET as usize
+    let assets = elements[CREATED_NOTE_ASSETS_OFFSET as usize
         ..(CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)]
-        .try_into()?;
-    if vault.hash() != vault_hash {
-        return Err(NoteError::InconsistentStubVaultHash(vault_hash, vault.hash()));
+        .iter()
+        .map(|word| (*word).try_into())
+        .collect::<Result<Vec<Asset>, _>>()
+        .map_err(NoteError::InvalidAssetData)?;
+
+    let assets = NoteAssets::new(&assets)?;
+    if assets.commitment() != asset_hash {
+        return Err(NoteError::InconsistentStubAssetHash(asset_hash, assets.commitment()));
     }
 
-    let stub = OutputNote::new(recipient, vault, metadata);
-    if stub.hash() != hash {
-        return Err(NoteError::InconsistentStubHash(stub.hash(), hash));
+    let stub = OutputNote::new(recipient, assets, metadata);
+    if stub.id() != note_id {
+        return Err(NoteError::InconsistentStubId(stub.id(), note_id));
     }
 
     Ok(stub)

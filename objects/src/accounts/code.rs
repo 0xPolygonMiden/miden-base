@@ -11,19 +11,13 @@ use crate::crypto::merkle::SimpleSmt;
 // CONSTANTS
 // ================================================================================================
 
-/// The depth of the Merkle tree that is used to commit to the account's public interface.
-const ACCOUNT_CODE_TREE_DEPTH: u8 = 8;
-
-/// The maximum number of account interface procedures.
-const MAX_ACCOUNT_PROCEDURES: usize = 2_usize.pow(ACCOUNT_CODE_TREE_DEPTH as u32);
-
 /// Default serialization options for account code AST.
 const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 
 // ACCOUNT CODE
 // ================================================================================================
 
-/// Describes the public interface of an account.
+/// A public interface of an account.
 ///
 /// Account's public interface consists of a set of account procedures, each procedure being a Miden
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
@@ -36,6 +30,15 @@ pub struct AccountCode {
 }
 
 impl AccountCode {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// The depth of the Merkle tree that is used to commit to the account's public interface.
+    pub const PROCEDURE_TREE_DEPTH: u8 = 8;
+
+    /// The maximum number of account interface procedures.
+    pub const MAX_NUM_PROCEDURES: usize = 2_usize.pow(Self::PROCEDURE_TREE_DEPTH as u32);
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new definition of an account's interface compiled from the specified source code.
@@ -54,9 +57,9 @@ impl AccountCode {
         // make sure the number of procedures is between 1 and 256 (both inclusive)
         if procedures.is_empty() {
             return Err(AccountError::AccountCodeNoProcedures);
-        } else if procedures.len() > MAX_ACCOUNT_PROCEDURES {
+        } else if procedures.len() > Self::MAX_NUM_PROCEDURES {
             return Err(AccountError::AccountCodeTooManyProcedures {
-                max: MAX_ACCOUNT_PROCEDURES,
+                max: Self::MAX_NUM_PROCEDURES,
                 actual: procedures.len(),
             });
         }
@@ -71,14 +74,14 @@ impl AccountCode {
     /// Returns a new definition of an account's interface instantiated from the provided
     /// module and list of procedure digests.
     ///
-    /// **Note**: This function assumes that the list of provided procedure digests resulted from
+    /// **Note**: this function assumes that the list of provided procedure digests results from
     /// the compilation of the provided module, but this is not checked.
     ///
     /// # Panics
     /// Panics if the number of procedures is smaller than 1 or greater than 256.
     pub fn from_parts(module: ModuleAst, procedures: Vec<Digest>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
-        assert!(procedures.len() <= MAX_ACCOUNT_PROCEDURES, "too many account procedures");
+        assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
         Self {
             procedure_tree: OnceCell::new(),
             module,
@@ -184,7 +187,7 @@ fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt {
     };
 
     SimpleSmt::with_leaves(
-        ACCOUNT_CODE_TREE_DEPTH,
+        AccountCode::PROCEDURE_TREE_DEPTH,
         procedures
             .iter()
             .enumerate()

@@ -8,13 +8,13 @@ use crate::utils::serde::{
 
 /// A note's nullifier.
 ///
-/// A note's nullifier is computed as hash(serial_num, script_hash, input_hash, vault_hash).
+/// A note's nullifier is computed as hash(serial_num, script_hash, input_hash, asset_hash).
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique nullifier.
 /// - We cannot derive a note's hash from its nullifier, or a note's nullifier from its hash.
 /// - To compute the nullifier we must know all components of the note: serial_num, script_hash,
-///   input_hash and vault_hash.
+///   input_hash and asset_hash.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Nullifier(Digest);
 
@@ -23,14 +23,14 @@ impl Nullifier {
     pub fn new(
         script_hash: Digest,
         inputs_hash: Digest,
-        vault_hash: Digest,
+        asset_hash: Digest,
         serial_num: Word,
     ) -> Self {
         let mut elements = [ZERO; 4 * WORD_SIZE];
         elements[..4].copy_from_slice(&serial_num);
         elements[4..8].copy_from_slice(script_hash.as_elements());
         elements[8..12].copy_from_slice(inputs_hash.as_elements());
-        elements[12..].copy_from_slice(vault_hash.as_elements());
+        elements[12..].copy_from_slice(asset_hash.as_elements());
         Self(Hasher::hash_elements(&elements))
     }
 
@@ -50,7 +50,12 @@ impl Nullifier {
 
 impl From<&Note> for Nullifier {
     fn from(note: &Note) -> Self {
-        Self::new(note.script.hash(), note.inputs.hash(), note.vault.hash(), note.serial_num)
+        Self::new(
+            note.script.hash(),
+            note.inputs.hash(),
+            note.assets.commitment(),
+            note.serial_num,
+        )
     }
 }
 

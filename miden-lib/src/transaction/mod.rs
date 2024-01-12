@@ -15,6 +15,9 @@ use super::MidenLib;
 
 pub mod memory;
 
+mod events;
+pub use events::TransactionEvent;
+
 mod inputs;
 pub use inputs::ToTransactionKernelInputs;
 
@@ -23,6 +26,9 @@ pub use outputs::{
     notes_try_from_elements, parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX,
     OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
+
+mod errors;
+pub use errors::{TransactionEventParsingError, TransactionKernelError};
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -35,7 +41,7 @@ impl TransactionKernel {
 
     /// Returns MASM source code which encodes the transaction kernel system procedures.
     pub fn kernel() -> &'static str {
-        include_str!("../../asm/miden/sat/kernel.masm")
+        include_str!("../../asm/kernels/transaction/api.masm")
     }
 
     /// Returns an AST of the transaction kernel executable program.
@@ -43,7 +49,8 @@ impl TransactionKernel {
     /// # Errors
     /// Returns an error if deserialization of the binary fails.
     pub fn main() -> Result<ProgramAst, DeserializationError> {
-        let kernel_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/transaction.masb"));
+        let kernel_bytes =
+            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/transaction.masb"));
         ProgramAst::from_bytes(kernel_bytes)
     }
 
@@ -175,28 +182,34 @@ impl TransactionKernel {
 
         // --- parse output notes ---------------------------------------------
 
-        let output_notes_data: &[Word] = group_slice_elements(
-            adv_map
-                .get(output_notes_hash)
-                .ok_or(TransactionOutputError::OutputNoteDataNotFound)?,
-        );
+        // if output_notes_hash is an empty digest, no outputs notes have been created
+        let output_notes = if output_notes_hash == Digest::default() {
+            OutputNotes::default()
+        } else {
+            let output_notes_data: &[Word] = group_slice_elements(
+                adv_map
+                    .get(output_notes_hash)
+                    .ok_or(TransactionOutputError::OutputNoteDataNotFound)?,
+            );
 
-        let mut output_notes = Vec::new();
-        let mut output_note_ptr = 0;
-        while output_note_ptr < output_notes_data.len() {
-            let output_note = notes_try_from_elements(&output_notes_data[output_note_ptr..])
-                .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
-            output_notes.push(output_note);
-            output_note_ptr += memory::NOTE_MEM_SIZE as usize;
-        }
+            let mut output_notes = Vec::new();
+            let mut output_note_ptr = 0;
+            while output_note_ptr < output_notes_data.len() {
+                let output_note = notes_try_from_elements(&output_notes_data[output_note_ptr..])
+                    .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
+                output_notes.push(output_note);
+                output_note_ptr += memory::NOTE_MEM_SIZE as usize;
+            }
 
-        let output_notes = OutputNotes::new(output_notes)?;
-        if output_notes_hash != output_notes.commitment() {
-            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
-                output_notes_hash,
-                output_notes.commitment(),
-            ));
-        }
+            let output_notes = OutputNotes::new(output_notes)?;
+            if output_notes_hash != output_notes.commitment() {
+                return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
+                    output_notes_hash,
+                    output_notes.commitment(),
+                ));
+            }
+            output_notes
+        };
 
         Ok(TransactionOutputs { account, output_notes })
     }

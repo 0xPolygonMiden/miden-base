@@ -3,11 +3,11 @@ use common::{
 };
 use miden_lib::notes::create_swap_note;
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteMetadata, NoteVault},
+    notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt,
 };
@@ -56,22 +56,18 @@ fn test_swap_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(
-        Some(target_account.clone()),
-        Some(vec![note.0.clone()]),
-        None,
-    );
+    let data_store =
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
-            use.miden::auth::basic->auth_tx
+            use.miden::contracts::auth::basic->auth_tx
     
             begin
                 call.auth_tx::auth_tx_rpo_falcon512
@@ -85,13 +81,13 @@ fn test_swap_script() {
 
     // Execute the transaction
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
     // target account vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -114,9 +110,9 @@ fn test_swap_script() {
     let note_metadata =
         NoteMetadata::new(target_account_id, sender_account_id.into(), Felt::new(1));
 
-    let note_vault = NoteVault::new(&[non_fungible_asset]).unwrap();
+    let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
 
-    let requested_note = OutputNote::new(recipient, note_vault, note_metadata);
+    let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
 
     let created_note = transaction_result.output_notes().get_note(0);
 

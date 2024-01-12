@@ -1,8 +1,8 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountId, AccountStorage, StorageSlotType},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     Felt, Word, ONE, ZERO,
 };
@@ -37,8 +37,8 @@ fn test_receive_asset_via_wallet() {
     // Create the note
     let note_script_ast = ProgramAst::parse(
         "
-    use.miden::sat::note
-    use.miden::wallets::basic->wallet
+    use.miden::note
+    use.miden::contracts::wallets::basic->wallet
 
     # add the asset
     begin
@@ -58,19 +58,17 @@ fn test_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]), None);
+    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
-        use.miden::auth::basic->auth_tx
+        use.miden::contracts::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -86,7 +84,7 @@ fn test_receive_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // nonce delta
@@ -100,7 +98,7 @@ fn test_receive_asset_via_wallet() {
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset_1.into()]).unwrap(),
+        AssetVault::new(&[fungible_asset_1.into()]).unwrap(),
         account_storage,
         account_code,
         Felt::new(2),
@@ -127,14 +125,13 @@ fn test_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]), None);
+    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(sender_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -142,8 +139,8 @@ fn test_send_asset_via_wallet() {
     let tx_script_code = ProgramAst::parse(
         format!(
             "
-        use.miden::auth::basic->auth_tx
-        use.miden::wallets::basic->wallet
+        use.miden::contracts::auth::basic->auth_tx
+        use.miden::contracts::wallets::basic->wallet
 
         begin
             push.{recipient}
@@ -167,7 +164,7 @@ fn test_send_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // clones account info
@@ -179,7 +176,7 @@ fn test_send_asset_via_wallet() {
     // vault delta
     let sender_account_after: Account = Account::new(
         data_store.account.id(),
-        AccountVault::new(&[]).unwrap(),
+        AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,
         Felt::new(2),

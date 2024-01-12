@@ -8,7 +8,7 @@ use super::{
     build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
 };
 use crate::transaction::{
-    memory::{CREATED_NOTE_SECTION_OFFSET, CREATED_NOTE_VAULT_HASH_OFFSET, NOTE_MEM_SIZE},
+    memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
     ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
     TX_SCRIPT_ROOT_WORD_IDX,
 };
@@ -22,7 +22,7 @@ fn test_epilogue() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}
@@ -77,14 +77,14 @@ fn test_epilogue() {
 }
 
 #[test]
-fn test_compute_created_note_hash() {
+fn test_compute_created_note_id() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
     for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
-        let imports = "use.miden::sat::internal::prologue\n";
+        let imports = "use.miden::kernels::tx::prologue\n";
         let test = format!(
             "
         {output_notes_data_procedure}
@@ -107,20 +107,20 @@ fn test_compute_created_note_hash() {
         )
         .unwrap();
 
-        // assert the vault hash is correct
-        let expected_vault_hash = note.vault().hash();
-        let vault_hash_memory_address =
-            CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_VAULT_HASH_OFFSET;
-        let actual_vault_hash =
-            process.get_mem_value(ContextId::root(), vault_hash_memory_address).unwrap();
-        assert_eq!(expected_vault_hash.as_elements(), actual_vault_hash);
+        // assert the note asset hash is correct
+        let expected_asset_hash = note.assets().commitment();
+        let asset_hash_memory_address =
+            CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
+        let actual_asset_hash =
+            process.get_mem_value(ContextId::root(), asset_hash_memory_address).unwrap();
+        assert_eq!(expected_asset_hash.as_elements(), actual_asset_hash);
 
-        // assert the note hash is correct
-        let expected_hash = note.hash();
-        let note_hash_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
-        let actual_note_hash =
-            process.get_mem_value(ContextId::root(), note_hash_memory_address).unwrap();
-        assert_eq!(&actual_note_hash, expected_hash.as_elements());
+        // assert the note ID is correct
+        let expected_id = note.id();
+        let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
+        let actual_note_id =
+            process.get_mem_value(ContextId::root(), note_id_memory_address).unwrap();
+        assert_eq!(&actual_note_id, expected_id.as_elements());
     }
 }
 
@@ -135,7 +135,7 @@ fn test_epilogue_asset_preservation_violation() {
         let output_notes_data_procedure =
             output_notes_data_procedure(executed_transaction.output_notes());
 
-        let imports = "use.miden::sat::internal::prologue\n";
+        let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
             "
         {output_notes_data_procedure}
@@ -170,7 +170,7 @@ fn test_epilogue_increment_nonce_success() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}
@@ -203,7 +203,7 @@ fn test_epilogue_increment_nonce_violation() {
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
 
-    let imports = "use.miden::sat::internal::prologue\n";
+    let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
         "
         {output_notes_data_procedure}

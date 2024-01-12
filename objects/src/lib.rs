@@ -16,8 +16,8 @@ pub mod transaction;
 
 mod errors;
 pub use errors::{
-    AccountDeltaError, AccountError, AssetError, ChainMmrError, NoteError, TransactionInputError,
-    TransactionOutputError, TransactionScriptError,
+    AccountDeltaError, AccountError, AssetError, AssetVaultError, ChainMmrError, NoteError,
+    TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 // RE-EXPORTS
 // ================================================================================================
@@ -50,6 +50,7 @@ pub mod utils {
 }
 
 pub mod vm {
+    pub use miden_verifier::ExecutionProof;
     pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }

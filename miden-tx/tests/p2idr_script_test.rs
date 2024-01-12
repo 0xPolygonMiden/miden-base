@@ -1,8 +1,8 @@
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault},
+    accounts::{Account, AccountId},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     utils::collections::Vec,
     Felt,
@@ -88,19 +88,17 @@ fn test_p2idr_script() {
     let data_store_1 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_1 = TransactionExecutor::new(data_store_1.clone());
 
     executor_1.load_account(target_account_id).unwrap();
 
     let block_ref_1 = data_store_1.block_header.block_num();
-    let note_origins =
-        data_store_1.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
-        use.miden::auth::basic->auth_tx
+        use.miden::contracts::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -121,7 +119,7 @@ fn test_p2idr_script() {
         .execute_transaction(
             target_account_id,
             block_ref_1,
-            &note_origins,
+            &note_ids,
             Some(tx_script_target.clone()),
         )
         .unwrap();
@@ -129,7 +127,7 @@ fn test_p2idr_script() {
     // Assert that the target_account received the funds and the nonce increased by 1
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -141,7 +139,6 @@ fn test_p2idr_script() {
     let data_store_2 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
     executor_2.load_account(sender_account_id).unwrap();
@@ -154,14 +151,13 @@ fn test_p2idr_script() {
         .unwrap();
 
     let block_ref_2 = data_store_2.block_header.block_num();
-    let note_origins_2 =
-        data_store_2.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_2 = executor_2.execute_transaction(
         sender_account_id,
         block_ref_2,
-        &note_origins_2,
+        &note_ids_2,
         Some(tx_script_sender.clone()),
     );
 
@@ -174,7 +170,6 @@ fn test_p2idr_script() {
     let data_store_3 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_in_time.clone()]),
-        None,
     );
     let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
     executor_3.load_account(malicious_account_id).unwrap();
@@ -187,14 +182,13 @@ fn test_p2idr_script() {
         .unwrap();
 
     let block_ref_3 = data_store_3.block_header.block_num();
-    let note_origins_3 =
-        data_store_3.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_3 = executor_3.execute_transaction(
         malicious_account_id,
         block_ref_3,
-        &note_origins_3,
+        &note_ids_3,
         Some(tx_script_malicious.clone()),
     );
 
@@ -207,23 +201,16 @@ fn test_p2idr_script() {
     let data_store_4 = MockDataStore::with_existing(
         Some(target_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
     executor_4.load_account(target_account_id).unwrap();
 
     let block_ref_4 = data_store_4.block_header.block_num();
-    let note_origins_4 =
-        data_store_4.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_4 = executor_4
-        .execute_transaction(
-            target_account_id,
-            block_ref_4,
-            &note_origins_4,
-            Some(tx_script_target),
-        )
+        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_script_target))
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
@@ -234,7 +221,7 @@ fn test_p2idr_script() {
     // Vault delta
     let target_account_after: Account = Account::new(
         target_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -246,19 +233,17 @@ fn test_p2idr_script() {
     let data_store_5 = MockDataStore::with_existing(
         Some(sender_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
 
     executor_5.load_account(sender_account_id).unwrap();
 
     let block_ref_5 = data_store_5.block_header.block_num();
-    let note_origins =
-        data_store_5.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_origins, Some(tx_script_sender))
+        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_script_sender))
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -268,7 +253,7 @@ fn test_p2idr_script() {
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
         sender_account_id,
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         sender_account.storage().clone(),
         sender_account.code().clone(),
         Felt::new(2),
@@ -280,21 +265,19 @@ fn test_p2idr_script() {
     let data_store_6 = MockDataStore::with_existing(
         Some(malicious_account.clone()),
         Some(vec![note_reclaimable.clone()]),
-        None,
     );
     let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
 
     executor_6.load_account(malicious_account_id).unwrap();
 
     let block_ref_6 = data_store_6.block_header.block_num();
-    let note_origins_6 =
-        data_store_6.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids_6 = data_store_6.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_6 = executor_6.execute_transaction(
         malicious_account_id,
         block_ref_6,
-        &note_origins_6,
+        &note_ids_6,
         Some(tx_script_malicious),
     );
 

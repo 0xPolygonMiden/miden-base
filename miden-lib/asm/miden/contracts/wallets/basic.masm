@@ -1,0 +1,49 @@
+use.miden::account
+use.miden::tx
+
+#! Adds the provided asset to the current account.
+#!
+#! Inputs: [ASSET]
+#! Outputs: [0, 0, 0, 0, ...]
+#!
+#! - ASSET is the asset to be received, can be fungible or non-fungible
+#!
+#! FAILS if:
+#! - The same non-fungible asset already exists in the account.
+#! - Adding a fungible asset would result in amount overflow, i.e.,
+#!   the total amount would be greater than 2^63.
+export.receive_asset
+    exec.account::add_asset
+    padw swapw dropw
+end
+
+#! Creates a note which sends the specified asset out of the current account
+#! to the specified recipient.
+#!
+#! Inputs: [ASSET, tag, RECIPIENT, ...]
+#! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#!
+#! - ASSET is the non-fungible asset of interest.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT is the recipient of the note, i.e.,
+#!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+#! - note_ptr is the pointer to the memory address in the kernel.
+#!   This cannot directly be accessed from another context.
+#!
+#! Panics:
+#! - The fungible asset is not found in the vault.
+#! - The amount of the fungible asset in the vault is less than the amount to be removed.
+#! - The non-fungible asset is not found in the vault.
+export.send_asset.1
+    exec.account::remove_asset
+    # => [ASSET, tag, RECIPIENT, ...]
+
+    # insert 8 ZEROs into the stack right after recipient; we temporarily store one of the
+    # elements of ASSET in memory to make stack manipulation easier
+    push.0 swap loc_store.0 padw push.0.0.0 swapdw loc_load.0
+    # => [ASSET, tag, RECIPIENT, ZERO, ZERO, ...]
+
+
+    exec.tx::create_note
+    # => [note_ptr, ZERO, ZERO, ...]
+end

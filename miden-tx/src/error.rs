@@ -1,7 +1,7 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, NoteError, TransactionInputError,
+    assembly::AssemblyError, crypto::merkle::NodeIndex, Felt, NoteError, TransactionInputError,
     TransactionOutputError,
 };
 use miden_verifier::VerificationError;
@@ -48,8 +48,12 @@ pub enum TransactionExecutorError {
         input_id: AccountId,
         output_id: AccountId,
     },
-    LoadAccountFailed(TransactionCompilerError),
+    InconsistentAccountNonceDelta {
+        expected: Option<Felt>,
+        actual: Option<Felt>,
+    },
     InvalidTransactionOutput(TransactionOutputError),
+    LoadAccountFailed(TransactionCompilerError),
 }
 
 impl fmt::Display for TransactionExecutorError {

@@ -1,7 +1,6 @@
 use super::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::merkle::TieredSmt,
+    assets::AssetVault,
     utils::{
         collections::{BTreeMap, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -27,9 +26,6 @@ pub use storage::{AccountStorage, SlotItem, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;
-
-mod vault;
-pub use vault::AccountVault;
 
 // TESTING CONSTANTS
 // ================================================================================================
@@ -68,14 +64,10 @@ pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Account {
     id: AccountId,
-    #[cfg_attr(feature = "serde", serde(with = "vault_serialization"))]
-    vault: AccountVault,
-    #[cfg_attr(feature = "serde", serde(with = "storage_serialization"))]
+    vault: AssetVault,
     storage: AccountStorage,
-    #[cfg_attr(feature = "serde", serde(with = "code_serialization"))]
     code: AccountCode,
     nonce: Felt,
 }
@@ -87,7 +79,7 @@ impl Account {
     /// and nonce.
     pub fn new(
         id: AccountId,
-        vault: AccountVault,
+        vault: AssetVault,
         storage: AccountStorage,
         code: AccountCode,
         nonce: Felt,
@@ -123,13 +115,13 @@ impl Account {
     }
 
     /// Returns a reference to the vault of this account.
-    pub fn vault(&self) -> &AccountVault {
+    pub fn vault(&self) -> &AssetVault {
         &self.vault
     }
 
     #[cfg(test)]
     /// Returns a mutable reference to the vault of this account.
-    pub fn vault_mut(&mut self) -> &mut AccountVault {
+    pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault
     }
 
@@ -179,18 +171,20 @@ impl Account {
 
 impl Serializable for Account {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.id.write_into(target);
-        self.vault.write_into(target);
-        self.storage.write_into(target);
-        self.code.write_into(target);
-        self.nonce.write_into(target);
+        let Account { id, vault, storage, code, nonce } = self;
+
+        id.write_into(target);
+        vault.write_into(target);
+        storage.write_into(target);
+        code.write_into(target);
+        nonce.write_into(target);
     }
 }
 
 impl Deserializable for Account {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let id = AccountId::read_from(source)?;
-        let vault = AccountVault::read_from(source)?;
+        let vault = AssetVault::read_from(source)?;
         let storage = AccountStorage::read_from(source)?;
         let code = AccountCode::read_from(source)?;
         let nonce = Felt::read_from(source)?;
@@ -200,68 +194,18 @@ impl Deserializable for Account {
 }
 
 #[cfg(feature = "serde")]
-mod vault_serialization {
-    use super::AccountVault;
-    use crate::utils::serde::{Deserializable, Serializable};
-
-    pub fn serialize<S>(vault: &AccountVault, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = vault.to_bytes();
+impl serde::Serialize for Account {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let bytes = self.to_bytes();
         serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountVault, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        AccountVault::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(feature = "serde")]
-mod storage_serialization {
-    use super::AccountStorage;
-    use crate::utils::serde::{Deserializable, Serializable};
-
-    pub fn serialize<S>(storage: &AccountStorage, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = storage.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountStorage, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
+impl<'de> serde::Deserialize<'de> for Account {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        AccountStorage::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
-}
-
-#[cfg(feature = "serde")]
-mod code_serialization {
-    use super::AccountCode;
-    use crate::utils::serde::{Deserializable, Serializable};
-
-    pub fn serialize<S>(code: &AccountCode, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = code.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<AccountCode, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        AccountCode::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }
 

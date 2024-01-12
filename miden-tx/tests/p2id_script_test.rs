@@ -1,8 +1,8 @@
 use miden_lib::notes::create_p2id_note;
 use miden_objects::{
-    accounts::{Account, AccountId, AccountVault},
+    accounts::{Account, AccountId},
     assembly::ProgramAst,
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     utils::collections::Vec,
     Felt,
@@ -49,18 +49,17 @@ fn test_p2id_script() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
-        use.miden::auth::basic->auth_tx
+        use.miden::contracts::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -68,6 +67,7 @@ fn test_p2id_script() {
         ",
     )
     .unwrap();
+
     let tx_script_target = executor
         .compile_tx_script(
             tx_script_code.clone(),
@@ -77,19 +77,19 @@ fn test_p2id_script() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
+    let executed_transaction = executor
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset]).unwrap(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ fn test_p2id_script() {
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);
+        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
@@ -114,17 +114,17 @@ fn test_p2id_script() {
         .unwrap();
 
     let block_ref = data_store_malicious_account.block_header.block_num();
-    let note_origins = data_store_malicious_account
+    let note_ids = data_store_malicious_account
         .notes
         .iter()
-        .map(|note| note.origin().clone())
+        .map(|note| note.id())
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let transaction_result_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
-        &note_origins,
+        &note_ids,
         Some(tx_script_malicious),
     );
 
@@ -164,18 +164,17 @@ fn test_p2id_script_multiple_assets() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]), None);
+        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(
         "
-        use.miden::auth::basic->auth_tx
+        use.miden::contracts::auth::basic->auth_tx
 
         begin
             call.auth_tx::auth_tx_rpo_falcon512
@@ -193,13 +192,13 @@ fn test_p2id_script_multiple_assets() {
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_origins, Some(tx_script_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
     // vault delta
     let target_account_after: Account = Account::new(
         target_account.id(),
-        AccountVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
+        AssetVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
         target_account.storage().clone(),
         target_account.code().clone(),
         Felt::new(2),
@@ -217,7 +216,7 @@ fn test_p2id_script_multiple_assets() {
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]), None);
+        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
@@ -232,7 +231,7 @@ fn test_p2id_script_multiple_assets() {
     let note_origins = data_store_malicious_account
         .notes
         .iter()
-        .map(|note| note.origin().clone())
+        .map(|note| note.id())
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness

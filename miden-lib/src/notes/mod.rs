@@ -2,12 +2,11 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
+    crypto::rand::FeltRng,
     notes::{Note, NoteScript},
     utils::{collections::Vec, vec},
     Felt, NoteError, Word, ZERO,
 };
-
-use miden_objects::crypto::rand::FeltRng;
 
 use super::transaction::TransactionKernel;
 
@@ -24,7 +23,7 @@ pub fn create_p2id_note<R: FeltRng>(
     mut rng: R,
 ) -> Result<Note, NoteError> {
     let assembler = TransactionKernel::assembler();
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2ID.masb"));
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let script_ast = ProgramAst::from_bytes(bytes).map_err(NoteError::NoteDeserializationError)?;
     let inputs = vec![target.into(), ZERO, ZERO, ZERO];
     let (note_script, _) = NoteScript::new(script_ast, &assembler)?;
@@ -42,7 +41,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     mut rng: R,
 ) -> Result<Note, NoteError> {
     let assembler = TransactionKernel::assembler();
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/P2IDR.masb"));
+    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let script_ast = ProgramAst::from_bytes(bytes).map_err(NoteError::NoteDeserializationError)?;
     let inputs = vec![target.into(), recall_height.into(), ZERO, ZERO];
     let (note_script, _) = NoteScript::new(script_ast, &assembler)?;
@@ -60,7 +59,7 @@ pub fn create_swap_note<R: FeltRng>(
 ) -> Result<(Note, Note), NoteError> {
     let assembler = TransactionKernel::assembler();
 
-    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/SWAP.masb"));
+    let swap_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
 
     let swap_script_ast =
         ProgramAst::from_bytes(swap_bytes).map_err(NoteError::NoteDeserializationError)?;

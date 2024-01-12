@@ -16,8 +16,8 @@ use assembly::{
 const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
-const ASM_SCRIPTS_DIR: &str = "scripts";
-const ASM_KERNELS_DIR: &str = "kernels";
+const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
+const ASM_KERNELS_DIR: &str = "kernels/transaction";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -48,8 +48,11 @@ fn main() -> io::Result<()> {
     compile_miden_lib(&source_dir, &target_dir)?;
 
     // compile kernel and note scripts
-    compile_executable_modules(&source_dir.join(ASM_KERNELS_DIR), &target_dir)?;
-    compile_executable_modules(&source_dir.join(ASM_SCRIPTS_DIR), &target_dir)?;
+    compile_kernels(&source_dir.join(ASM_KERNELS_DIR), &target_dir.join("kernels"))?;
+    compile_note_scripts(
+        &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
+        &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
+    )?;
 
     Ok(())
 }
@@ -63,8 +66,8 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
-            let constants = source_dir.join("sat/internal/constants.masm");
-            let patched = source_dir.join("sat/internal/constants.masm.patched");
+            let constants = source_dir.join("kernels/tx/constants.masm");
+            let patched = source_dir.join("kernels/tx/constants.masm.patched");
 
             // scope for file handlers
             {
@@ -111,7 +114,11 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
 // COMPILE EXECUTABLE MODULES
 // ================================================================================================
 
-fn compile_executable_modules(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+fn compile_note_scripts(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+    if let Err(e) = fs::create_dir_all(target_dir) {
+        println!("Failed to create note_scripts directory: {}", e);
+    }
+
     for masm_file_path in get_masm_files(source_dir)? {
         // read the MASM file, parse it, and serialize the parsed AST to bytes
         let ast = ProgramAst::parse(&fs::read_to_string(masm_file_path.clone())?)?;
@@ -121,10 +128,31 @@ fn compile_executable_modules(source_dir: &Path, target_dir: &Path) -> io::Resul
         let masb_file_name = masm_file_path.file_name().unwrap().to_str().unwrap();
         let mut masb_file_path = target_dir.join(masb_file_name);
 
-        // write the binary MASM to the output dir
+        // write the binary MASB to the output dir
         masb_file_path.set_extension("masb");
         fs::write(masb_file_path, bytes)?;
     }
+    Ok(())
+}
+
+// COMPILE KERNELS
+// ================================================================================================
+
+fn compile_kernels(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+    // read the MASM file, parse it, and serialize the parsed AST to bytes
+    let ast = ProgramAst::parse(&fs::read_to_string(source_dir.join("main.masm").clone())?)?;
+    let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
+
+    // create the output file path
+    let masb_file_name = "transaction";
+    let mut masb_file_path = target_dir.join(masb_file_name);
+    if let Err(e) = fs::create_dir_all(masb_file_path.clone()) {
+        println!("Failed to create kernels directory: {}", e);
+    }
+
+    // write the binary MASB to the output dir
+    masb_file_path.set_extension("masb");
+    fs::write(masb_file_path.clone(), bytes)?;
 
     Ok(())
 }

@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
+    notes::NoteId,
     transaction::{ChainMmr, InputNote, InputNotes, TransactionWitness},
     Felt, Word,
 };
@@ -22,8 +23,8 @@ use vm_core::utils::to_hex;
 use vm_processor::MemAdviceProvider;
 
 use super::{
-    AccountId, DataStore, DataStoreError, NoteOrigin, TransactionExecutor, TransactionHost,
-    TransactionInputs, TransactionProver, TransactionVerifier,
+    AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
+    TransactionProver, TransactionVerifier,
 };
 
 // TESTS
@@ -38,19 +39,17 @@ fn test_transaction_executor_witness() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
-        .unwrap();
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(mem_advice_provider);
+    let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider);
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -116,8 +115,8 @@ fn test_transaction_result_account_delta() {
 
     let tx_script = format!(
         "\
-        use.miden::sat::account
-        use.miden::wallets::basic->wallet
+        use.miden::account
+        use.miden::contracts::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
@@ -203,14 +202,13 @@ fn test_transaction_result_account_delta() {
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(account_id, block_ref, &note_origins, Some(tx_script))
+        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // nonce delta
@@ -234,7 +232,7 @@ fn test_transaction_result_account_delta() {
         .last()
         .unwrap()
         .note()
-        .vault()
+        .assets()
         .iter()
         .cloned()
         .collect::<Vec<_>>();
@@ -271,13 +269,11 @@ fn test_prove_witness_and_verify() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_origins, None)
-        .unwrap();
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
 
     // prove the transaction with the witness
     let proof_options = ProvingOptions::default();
@@ -300,8 +296,7 @@ fn test_tx_script() {
     executor.load_account(account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
-    let note_origins =
-        data_store.notes.iter().map(|note| note.origin().clone()).collect::<Vec<_>>();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
@@ -332,7 +327,7 @@ fn test_tx_script() {
 
     // execute the transaction
     let transaction_result =
-        executor.execute_transaction(account_id, block_ref, &note_origins, Some(tx_script));
+        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script));
 
     // assert the transaction executed successfully
     assert!(transaction_result.is_ok());
@@ -351,13 +346,14 @@ struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, block_header, block_chain, consumed_notes) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation).into_parts();
+
         Self {
             account,
             block_header,
             block_chain,
-            notes: consumed_notes,
+            notes: notes.into_vec(),
         }
     }
 }
@@ -373,19 +369,25 @@ impl DataStore for MockDataStore {
         &self,
         account_id: AccountId,
         block_num: u32,
-        notes: &[NoteOrigin],
+        notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
-        let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
-        notes.iter().all(|note| origins.contains(&note));
+
+        let notes = self
+            .notes
+            .iter()
+            .filter(|note| notes.contains(&note.id()))
+            .cloned()
+            .collect::<Vec<_>>();
+
         Ok(TransactionInputs::new(
             self.account.clone(),
             None,
             self.block_header,
             self.block_chain.clone(),
-            InputNotes::new(self.notes.clone()).unwrap(),
+            InputNotes::new(notes).unwrap(),
         )
         .unwrap())
     }

@@ -1,10 +1,11 @@
 use core::fmt::Display;
 
-use miden_objects::{crypto::merkle::MerkleError, AccountError};
+use miden_objects::{crypto::merkle::MerkleError, AccountError, AssetVaultError};
 
 #[derive(Debug)]
 pub enum AccountBuilderError {
     AccountError(AccountError),
+    AssetVaultError(AssetVaultError),
     MerkleError(MerkleError),
 
     /// When the created [AccountId] doesn't match the builder's configured [AccountType].

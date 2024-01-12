@@ -1,9 +1,9 @@
-use core::{cell::OnceCell, fmt::Debug};
+use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
 use crate::{
     accounts::{validate_account_seed, Account},
-    notes::{Note, NoteInclusionProof, NoteOrigin, Nullifier},
+    notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -88,6 +88,20 @@ impl TransactionInputs {
     pub fn input_notes(&self) -> &InputNotes {
         &self.input_notes
     }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes these transaction inputs and returns their underlying components.
+    pub fn into_parts(self) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes) {
+        (
+            self.account,
+            self.account_seed,
+            self.block_header,
+            self.block_chain,
+            self.input_notes,
+        )
+    }
 }
 
 // TO NULLIFIER TRAIT
@@ -119,7 +133,7 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     fn from(value: InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment(&value.notes),
         }
     }
 }
@@ -128,7 +142,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
     fn from(value: &InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment(&value.notes),
         }
     }
 }
@@ -145,7 +159,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
 #[derive(Debug, Clone)]
 pub struct InputNotes<T: ToNullifier = InputNote> {
     notes: Vec<T>,
-    commitment: OnceCell<Digest>,
+    commitment: Digest,
 }
 
 impl<T: ToNullifier> InputNotes<T> {
@@ -172,7 +186,9 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        Ok(Self { notes, commitment: OnceCell::new() })
+        let commitment = build_input_notes_commitment(&notes);
+
+        Ok(Self { notes, commitment })
     }
 
     // PUBLIC ACCESSORS
@@ -180,7 +196,7 @@ impl<T: ToNullifier> InputNotes<T> {
 
     /// Returns a commitment to these input notes.
     pub fn commitment(&self) -> Digest {
-        *self.commitment.get_or_init(|| build_input_notes_commitment(&self.notes))
+        self.commitment
     }
 
     /// Returns total number of input notes.
@@ -205,6 +221,14 @@ impl<T: ToNullifier> InputNotes<T> {
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.notes.iter()
     }
+
+    // CONVERSIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Converts self into a vector of input notes.
+    pub fn into_vec(self) -> Vec<T> {
+        self.notes
+    }
 }
 
 impl<T: ToNullifier> IntoIterator for InputNotes<T> {
@@ -228,7 +252,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            commitment: OnceCell::new(),
+            commitment: build_input_notes_commitment::<T>(&[]),
         }
     }
 }
@@ -258,9 +282,13 @@ impl<T: ToNullifier> Deserializable for InputNotes<T> {
 
 /// Returns the commitment to the input notes represented by the specified nullifiers.
 ///
-/// This is a sequential hash of all (nullifier, ZERO) pairs for the notes consumed in the
-/// transaction.
+/// For a non-empty list of notes, this is a sequential hash of all (nullifier, ZERO) pairs for
+/// the notes consumed in the transaction. For an empty list, [ZERO; 4] is returned.
 pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+    if notes.is_empty() {
+        return Digest::default();
+    }
+
     let mut elements: Vec<Felt> = Vec::new();
     for note in notes {
         elements.extend_from_slice(note.nullifier().as_elements());
@@ -284,6 +312,11 @@ impl InputNote {
     /// Returns a new instance of an [InputNote] with the specified note and proof.
     pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
         Self { note, proof }
+    }
+
+    /// Returns the ID of the note.
+    pub fn id(&self) -> NoteId {
+        self.note.id()
     }
 
     /// Returns a reference to the underlying note.

@@ -1,10 +1,10 @@
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountVault, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{ModuleAst, ProgramAst},
-    assets::{Asset, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteOrigin, NoteScript},
+    notes::{Note, NoteId, NoteScript},
     transaction::{ChainMmr, InputNote, InputNotes, TransactionInputs},
     BlockHeader, Felt, Word,
 };
@@ -17,7 +17,6 @@ use mock::{
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
 };
-use vm_processor::AdviceInputs;
 
 // MOCK DATA STORE
 // ================================================================================================
@@ -32,31 +31,25 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, block_header, block_chain, consumed_notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
+                .into_parts();
         Self {
             account,
             block_header,
             block_chain,
-            notes: consumed_notes,
+            notes: notes.into_vec(),
         }
     }
 
-    pub fn with_existing(
-        account: Option<Account>,
-        consumed_notes: Option<Vec<Note>>,
-        auxiliary_data: Option<AdviceInputs>,
-    ) -> Self {
-        let (account, block_header, block_chain, consumed_notes, mut auxiliary_data_inputs) =
+    pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
+        let (account, block_header, block_chain, consumed_notes, _auxiliary_data_inputs) =
             mock_inputs_with_existing(
                 MockAccountType::StandardExisting,
                 AssetPreservationStatus::Preserved,
                 account,
-                consumed_notes,
+                input_notes,
             );
-        if let Some(auxiliary_data) = auxiliary_data {
-            auxiliary_data_inputs.extend(auxiliary_data);
-        }
         Self {
             account,
             block_header,
@@ -77,19 +70,25 @@ impl DataStore for MockDataStore {
         &self,
         account_id: AccountId,
         block_num: u32,
-        notes: &[NoteOrigin],
+        notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         assert_eq!(block_num, self.block_header.block_num());
         assert_eq!(notes.len(), self.notes.len());
-        let origins = self.notes.iter().map(|note| note.origin()).collect::<Vec<_>>();
-        notes.iter().all(|note| origins.contains(&note));
+
+        let notes = self
+            .notes
+            .iter()
+            .filter(|note| notes.contains(&note.id()))
+            .cloned()
+            .collect::<Vec<_>>();
+
         Ok(TransactionInputs::new(
             self.account.clone(),
             None,
             self.block_header,
             self.block_chain.clone(),
-            InputNotes::new(self.notes.clone()).unwrap(),
+            InputNotes::new(notes).unwrap(),
         )
         .unwrap())
     }
@@ -129,8 +128,8 @@ pub fn get_account_with_default_account_code(
             .unwrap();
 
     let account_vault = match assets {
-        Some(asset) => AccountVault::new(&[asset]).unwrap(),
-        None => AccountVault::new(&[]).unwrap(),
+        Some(asset) => AssetVault::new(&[asset]).unwrap(),
+        None => AssetVault::new(&[]).unwrap(),
     };
 
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))

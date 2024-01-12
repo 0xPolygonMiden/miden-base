@@ -191,11 +191,11 @@ pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1000;
 pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = 1000;
 
 /// The offsets at which data of a consumed note is stored relative to the start of its data segment.
-pub const CONSUMED_NOTE_HASH_OFFSET: MemoryOffset = 0;
+pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
 pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
-pub const CONSUMED_NOTE_VAULT_ROOT_OFFSET: MemoryOffset = 4;
+pub const CONSUMED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
 pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 6;
 
@@ -212,10 +212,10 @@ pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
 pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 10000;
 
 /// The offsets at which data of a created note is stored relative to the start of its data segment.
-pub const CREATED_NOTE_HASH_OFFSET: MemoryOffset = 0;
+pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
-pub const CREATED_NOTE_VAULT_HASH_OFFSET: MemoryOffset = 3;
+pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
 pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 4;
 
 /// The maximum number of created notes that can be produced in a single transaction.

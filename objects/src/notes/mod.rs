@@ -1,3 +1,7 @@
+use core::cell::OnceCell;
+
+use vm_processor::DeserializationError;
+
 use super::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -16,6 +20,9 @@ pub use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
+mod note_id;
+pub use note_id::NoteId;
+
 mod nullifier;
 pub use nullifier::Nullifier;
 
@@ -26,9 +33,8 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
-mod vault;
-pub use vault::NoteVault;
-use vm_processor::DeserializationError;
+mod assets;
+pub use assets::NoteAssets;
 
 // CONSTANTS
 // ================================================================================================
@@ -52,22 +58,23 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// Core on-chain data which is used to execute a note:
 /// - A script which must be executed in a context of some account to claim the assets.
 /// - A set of inputs which can be read to memory during script execution via the invocation of the
-///   `note::get_inputs` in the kernel api.
-/// - A set of assets stored in a vault.
+///   `note::get_inputs` in the kernel API.
+/// - A set of assets stored in the note.
 /// - A serial number which can be used to break linkability between note hash and note nullifier.
 ///
 /// Auxiliary data which is used to verify authenticity and signal additional information:
 /// - A metadata object which contains information about the sender, the tag and the number of
 ///   assets in the note.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
-    #[cfg_attr(feature = "serde", serde(with = "serialization"))]
     script: NoteScript,
     inputs: NoteInputs,
-    vault: NoteVault,
+    assets: NoteAssets,
     serial_num: Word,
     metadata: NoteMetadata,
+
+    id: OnceCell<NoteId>,
+    nullifier: OnceCell<Nullifier>,
 }
 
 impl Note {
@@ -88,14 +95,16 @@ impl Note {
         sender: AccountId,
         tag: Felt,
     ) -> Result<Self, NoteError> {
-        let vault = NoteVault::new(assets)?;
-        let num_assets = vault.num_assets();
+        let assets = NoteAssets::new(assets)?;
+        let num_assets = assets.num_assets();
         Ok(Self {
             script,
             inputs: NoteInputs::new(inputs)?,
-            vault,
+            assets,
             serial_num,
             metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         })
     }
 
@@ -103,16 +112,18 @@ impl Note {
     pub fn from_parts(
         script: NoteScript,
         inputs: NoteInputs,
-        vault: NoteVault,
+        assets: NoteAssets,
         serial_num: Word,
         metadata: NoteMetadata,
     ) -> Self {
         Self {
             script,
             inputs,
-            vault,
+            assets,
             serial_num,
             metadata,
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         }
     }
 
@@ -129,9 +140,9 @@ impl Note {
         &self.inputs
     }
 
-    /// Returns a reference to the asset vault of this note.
-    pub fn vault(&self) -> &NoteVault {
-        &self.vault
+    /// Returns a reference to the asset of this note.
+    pub fn assets(&self) -> &NoteAssets {
+        &self.assets
     }
 
     /// Returns a serial number of this note.
@@ -153,33 +164,20 @@ impl Note {
         Hasher::merge(&[merge_script, self.inputs.hash()])
     }
 
-    /// Returns a commitment to this note.
-    ///
-    /// The note hash is computed as:
-    ///   hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash).
-    /// This achieves the following properties:
-    /// - Every note can be reduced to a single unique hash.
-    /// - To compute a note's hash, we do not need to know the note's serial_num. Knowing the hash
-    ///   of the serial_num (as well as script hash, input hash and note vault) is sufficient.
-    /// - Moreover, we define `recipient` as:
-    ///     `hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)`
-    ///  This allows computing note hash from recipient and note vault.
-    /// - We compute hash of serial_num as hash(serial_num, [0; 4]) to simplify processing within
-    ///   the VM.
-    pub fn hash(&self) -> Digest {
-        let recipient = self.recipient();
-        Hasher::merge(&[recipient, self.vault.hash()])
+    /// Returns a unique identifier of this note, which is simultaneously a commitment to the note.
+    pub fn id(&self) -> NoteId {
+        *self.id.get_or_init(|| self.into())
     }
 
     /// Returns the value used to authenticate a notes existence in the note tree. This is computed
-    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_hash, note_metadata)]
+    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_id, note_metadata)]
     pub fn authentication_hash(&self) -> Digest {
-        Hasher::merge(&[self.hash(), Word::from(self.metadata()).into()])
+        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
     }
 
     /// Returns the nullifier for this note.
     pub fn nullifier(&self) -> Nullifier {
-        self.into()
+        *self.nullifier.get_or_init(|| self.into())
     }
 }
 
@@ -188,11 +186,22 @@ impl Note {
 
 impl Serializable for Note {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.script.write_into(target);
-        self.inputs.write_into(target);
-        self.vault.write_into(target);
-        self.serial_num.write_into(target);
-        self.metadata.write_into(target);
+        let Note {
+            script,
+            inputs,
+            assets,
+            serial_num,
+            metadata,
+
+            id: _,
+            nullifier: _,
+        } = self;
+
+        script.write_into(target);
+        inputs.write_into(target);
+        assets.write_into(target);
+        serial_num.write_into(target);
+        metadata.write_into(target);
     }
 }
 
@@ -200,39 +209,34 @@ impl Deserializable for Note {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let script = NoteScript::read_from(source)?;
         let inputs = NoteInputs::read_from(source)?;
-        let vault = NoteVault::read_from(source)?;
+        let assets = NoteAssets::read_from(source)?;
         let serial_num = Word::read_from(source)?;
         let metadata = NoteMetadata::read_from(source)?;
 
         Ok(Self {
             script,
             inputs,
-            vault,
+            assets,
             serial_num,
             metadata,
+            id: OnceCell::new(),
+            nullifier: OnceCell::new(),
         })
     }
 }
 
 #[cfg(feature = "serde")]
-mod serialization {
-    use super::NoteScript;
-    use crate::utils::serde::{Deserializable, Serializable};
-
-    pub fn serialize<S>(code: &NoteScript, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = code.to_bytes();
+impl serde::Serialize for Note {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let bytes = self.to_bytes();
         serializer.serialize_bytes(&bytes)
     }
+}
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<NoteScript, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Note {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-
-        NoteScript::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }
 }

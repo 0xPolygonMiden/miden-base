@@ -1,6 +1,6 @@
 use miden_objects::{
-    accounts::{Account, AccountStorage, AccountType, AccountVault, SlotItem},
-    assets::Asset,
+    accounts::{Account, AccountStorage, AccountType, SlotItem},
+    assets::{Asset, AssetVault},
     utils::{
         collections::Vec,
         string::{String, ToString},
@@ -80,7 +80,7 @@ impl<T: Rng> AccountBuilder<T> {
     }
 
     pub fn build(mut self) -> Result<Account, AccountBuilderError> {
-        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
+        let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
@@ -92,7 +92,7 @@ impl<T: Rng> AccountBuilder<T> {
 
     /// Build an account using the provided `seed`.
     pub fn with_seed(mut self, seed: Word) -> Result<Account, AccountBuilderError> {
-        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
+        let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
@@ -110,7 +110,7 @@ impl<T: Rng> AccountBuilder<T> {
         seed: Word,
         mut storage: AccountStorage,
     ) -> Result<Account, AccountBuilderError> {
-        let vault = AccountVault::new(&self.assets).map_err(AccountBuilderError::AccountError)?;
+        let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let inner_storage = self.storage_builder.build();
 
         let slots = storage.slots_mut();

@@ -1,0 +1,454 @@
+use.miden::kernels::tx::constants
+use.miden::kernels::tx::memory
+
+# CONSTANTS
+# =================================================================================================
+
+# An enum that represents a regular account with updatable code.
+const.REGULAR_ACCOUNT_UPDATABLE_CODE=0
+
+# An enum that represents a regular account with immutable code.
+const.REGULAR_ACCOUNT_IMMUTABLE_CODE=1
+
+# An enum that represents a fungible faucet with immutable code.
+const.FUNGIBLE_FAUCET_ACCOUNT=2
+
+# An enum that represents a non-fungible faucet with immutable code.
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
+
+# Specifies a minimum number of ones for a valid account ID.
+const.MIN_ACCOUNT_ONES=5
+
+# The depth of the account storage sparse merkle tree
+const.STORAGE_TREE_DEPTH=8
+
+# The depth of the account code tree
+const.ACCOUNT_CODE_TREE_DEPTH=8
+
+# The account storage slot at which faucet data is stored.
+# Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+# Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+const.FAUCET_STORAGE_DATA_SLOT=254
+
+# The account storage slot at which the slot types commitment is stored.
+const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
+
+# The maximum value a slot type can take (An array of depth 64).
+const.MAX_SLOT_TYPE=64
+
+# EVENTS
+# =================================================================================================
+
+# Event emitted to signal that an account storage item is being updated.
+const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
+
+# Event emitted to signal that account nonce is being incremented.
+const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
+
+# Event emitted to push the index of the account procedure at the top of the operand stack onto
+# the advice stack.
+const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131076
+
+# CONSTANT ACCESSORS
+# =================================================================================================
+
+#! Returns the account storage slot at which faucet data is stored.
+#! Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+#! Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+#!
+#! Stack: []
+#! Output: [faucet_storage_data_slot]
+#!
+#! - faucet_storage_data_slot is the account storage slot at which faucet data is stored.
+export.get_faucet_storage_data_slot
+    push.FAUCET_STORAGE_DATA_SLOT
+end
+
+#! Returns the account storage slot at which the slot types commitment is stored.
+#!
+#! Stack: []
+#! Output: [slot_types_commitment_storage_slot]
+#!
+#! - slot_types_commitment_storage_slot is the account storage slot at which the slot types
+#!   commitment is stored.
+export.get_slot_types_commitment_storage_slot
+    push.SLOT_TYPES_COMMITMENT_STORAGE_SLOT
+end
+
+#! Returns the maximum value a slot type can take (An array of depth 64).
+#!
+#! Stack: []
+#! Output: [max_slot_type]
+#!
+#! - max_slot_type is the maximum value a slot type can take (An array of depth 64).
+export.get_max_slot_type
+    push.MAX_SLOT_TYPE
+end
+
+# PROCEDURES
+# =================================================================================================
+
+#! Computes and returns the account hash from account data stored in memory.
+#!
+#! Stack: []
+#! Output: [ACCT_HASH]
+#!
+#! - ACCT_HASH is the hash of the account data.
+export.get_current_hash
+    # prepare the stack for computing the account hash
+    exec.memory::get_acct_data_ptr padw padw padw
+
+    # stream account data and compute sequential hash. We perform two `mem_stream` operations
+    # because account data consists of exactly 4 words.
+    mem_stream hperm mem_stream hperm
+
+    # extract account hash
+    dropw swapw dropw
+
+    # drop memory pointer
+    movup.4 drop
+end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_nonce
+    # emit event to signal that account nonce is being incremented
+    emit.ACCOUNT_INCREMENT_NONCE_EVENT
+
+    u32assert
+    exec.memory::get_acct_nonce add
+    exec.memory::set_acct_nonce
+end
+
+#! Returns the account id.
+#!
+#! Stack: []
+#! Output: [acct_id]
+#!
+#! - acct_id is the account id.
+export.memory::get_acct_id->get_id
+
+#! Returns the account nonce.
+#!
+#! Stack: []
+#! Output: [nonce]
+#!
+#! - nonce is the account nonce.
+export.memory::get_acct_nonce->get_nonce
+
+#! Returns the initial account hash.
+#!
+#! Stack: []
+#! Output: [H]
+#!
+#! - H is the initial account hash.
+export.memory::get_init_acct_hash->get_initial_hash
+
+#! Returns the account type of the account id provided via the stack.
+#!
+#! The account type can be of the following forms:
+#! - regular account with updatable code
+#! - regular account with immutable code
+#! - fungible asset faucet account with immutable code
+#! - non-fungible asset faucet account with immutable code
+#!
+#! Stack: [acct_id]
+#! Output: [acct_type]
+#!
+#! - acct_id is the account id.
+#! - acct_type is the account type.
+proc.type
+    # compute the account type
+    u32split swap drop u32assert u32shr.30
+    # => [acct_type]
+end
+
+#! Returns a boolean indicating whether the account is a fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
+export.is_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungible faucet
+    push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a non-fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_non_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
+export.is_non_fungible_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a non-fungible faucet
+    push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_faucet is a boolean indicating whether the account is a faucet.
+export.is_faucet
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a fungilbe faucet
+    dup push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fung_faucet, acct_type]
+
+    # check if the account type is a non-fungible faucet
+    swap push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fung_faucet, is_fung_faucet]
+
+    # check if the account is a faucet
+    or
+    # => [is_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a regular updatable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_updatable_account]
+#!
+#! - acct_id is the account id.
+#! - is_updatable_account is a boolean indicating whether the account is a regular updatable
+#!   account.
+export.is_updatable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
+    # => [is_updatable_account]
+end
+
+#! Returns a boolean indicating whether the account is a regular immutable account.
+#!
+#! Stack: [acct_id]
+#! Output: [is_immutable_account]
+#!
+#! - acct_id is the account id.
+#! - is_immutable_account is a boolean indicating whether the account is a regular immutable
+#!   account.
+export.is_immutable_account
+    # get the account type
+    exec.type
+    # => [acct_type]
+
+    # check if the account type is a regular account
+    push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
+    # => [is_immutable_account]
+end
+
+#! Validates an account id. Panics if the account id is invalid.
+#! Account id must have at least `MIN_ACCOUNT_ONES` ones.
+#!
+#! Stack: [acct_id]
+#! Output: []
+#!
+#! - acct_id is the account id.
+export.validate_id
+    # split felt into 32 bit limbs
+    u32split
+    # => [l_1, l_0]
+
+    # count the number of 1 bits
+    u32popcnt swap u32popcnt add
+    # => [ones]
+
+    # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
+    push.MIN_ACCOUNT_ONES u32gte assert
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_code
+    # get the account id
+    exec.memory::get_acct_id
+    # => [acct_id, CODE_ROOT]
+
+    # assert the account is an updatable regular account
+    exec.is_updatable_account assert
+    # => [CODE_ROOT]
+
+    # set the code root
+    exec.memory::set_new_acct_code_root
+    # => []
+end
+
+#! Returns the type info (slot type, entry arity) of the slot at the provided index.
+#!
+#! Stack: [idx]
+#! Output: [entry_arity, slot_type]
+#!
+#! - idx is the index of the slot to get the type info of.
+#! - slot_type is the type of the slot.
+#! - entry_arity is the arity of the slot.
+export.get_storage_slot_type_info
+    exec.memory::get_acct_storage_slot_type_data u32split
+end
+
+#! Gets an item from the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_item
+    # get the storage root
+    exec.memory::get_acct_storage_root
+    # => [storage_root, index]
+
+    # get the item from storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_get
+    # => [VALUE, ROOT]
+
+    # drop the root
+    swapw dropw
+    # => [VALUE]
+end
+
+#! Sets an item in the account storage. Panics if the index is out of bounds.
+#!
+#! Stack: [index, V']
+#! Output: [V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+export.set_item
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an account storage item is being updated
+    push.1 drop emit.ACCOUNT_STORAGE_SET_ITEM_EVENT
+    
+    # get the storage root
+    exec.memory::get_acct_storage_root
+    # => [R, index, V']
+
+    # set the item in storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_set
+    # => [V, R']
+
+    # set the new storage root
+    swapw exec.memory::set_acct_storage_root
+    # => [V]
+end
+
+#! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
+#! procedure root is not part of the account code Merkle tree.
+#!
+#! Stack: [PROC_ROOT]
+#! Output: [PROC_ROOT]
+#!
+#! - PROC_ROOT is the hash of the procedure to authenticate.
+export.authenticate_procedure.1
+    # load the account code root onto the stack
+    exec.memory::get_acct_code_root swapw
+    # => [PROC_ROOT, CODE_ROOT]
+
+    # load the index of the procedure root onto the advice stack, and move it to the operand stack
+    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
+    # => [PROC_ROOT, index, CODE_ROOT]
+
+    # push the depth of the code Merkle tree onto the stack
+    push.ACCOUNT_CODE_TREE_DEPTH movdn.4
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # verify the procedure exists in the account code Merkle tree
+    mtree_verify
+    # => [PROC_ROOT, depth, index, CODE_ROOT]
+
+    # drop accessory variables
+    movup.4 drop movup.4 drop swapw dropw
+    # => [PROC_ROOT]
+end
+
+#! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
+#!
+#! Validation is performed via the following steps:
+#! 1. compute the hash of (SEED, CODE_ROOT, STORAGE_ROOT, 0, 0, 0, 0)
+#! 2. Assert the least significant element of the digest is equal to the account id of the account
+#!    the transaction is being executed against.
+#! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
+#!    type the transaction is being executed against.
+#!
+#! Stack: []
+#! Output: []
+export.validate_seed
+        # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
+        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
+        # => [SEED, 0, 0, 0, 0]
+
+        # populate last four elements of the hasher rate with the code root
+        exec.memory::get_acct_code_root
+        # => [CODE_ROOT, SEED, 0, 0, 0, 0]
+
+        # perform first permutation of seed and code_root (from advice stack) perm(seed, code_root)
+        hperm
+        # => [RATE, RATE, PERM]
+
+        # clear rate elements
+        dropw dropw
+        # => [PERM]
+
+        # perform second permutation perm(storage_root, 0, 0, 0, 0)
+        exec.memory::get_acct_storage_root padw hperm
+        # => [RATE, RATE, CAP]
+
+        # extract digest
+        dropw swapw dropw
+        # => [DIG]
+
+        # assert the account id matches the account id of the new account and extract pow
+        # element
+        movdn.3 drop drop exec.memory::get_acct_id eq assert
+        # => [pow]
+
+        # get acct and facuet modulus to check the min number of trailing zeros required in the pow
+        exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
+        # => [faucet_modulus, acct_modulus, pow]
+
+        exec.memory::get_acct_id
+        # => [acct_id, faucet_modulus, acct_modulus, pow]
+
+        exec.is_faucet
+        # => [is_faucet, faucet_modulus, acct_modulus, pow]
+
+        # select the appropriate modulus based on the account type
+        cdrop swap
+        # => [pow, modulus]
+
+        # assert that the pow is valid
+        u32split drop swap u32divmod assertz drop
+        # => []
+end
