@@ -1,11 +1,12 @@
 use common::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
-use miden_lib::notes::{create_note, Script};
+use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
     accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteMetadata},
     transaction::OutputNote,
     Felt,
@@ -15,7 +16,6 @@ use mock::constants::{
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_ID_SENDER,
 };
-use vm_processor::Digest;
 
 mod common;
 
@@ -44,18 +44,12 @@ fn test_swap_script() {
         Some(non_fungible_asset),
     );
 
-    // Create the note
-    let swap_script = Script::SWAP {
-        asset: non_fungible_asset,
-        serial_num: [Felt::new(6), Felt::new(7), Felt::new(8), Felt::new(9)],
-    };
-
-    let note = create_note(
-        swap_script,
-        vec![fungible_asset],
+    // Create the note containing the SWAP script
+    let (note, repay_serial_num) = create_swap_note(
         sender_account_id,
-        None,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        fungible_asset,
+        non_fungible_asset,
+        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -73,7 +67,7 @@ fn test_swap_script() {
     let tx_script_code = ProgramAst::parse(
         "
             use.miden::contracts::auth::basic->auth_tx
-    
+
             begin
                 call.auth_tx::auth_tx_rpo_falcon512
             end
@@ -105,12 +99,7 @@ fn test_swap_script() {
     assert_eq!(transaction_result.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
-    let recipient = Digest::new([
-        Felt::new(403044469077705077),
-        Felt::new(5814218301633521607),
-        Felt::new(3036312160134047413),
-        Felt::new(9100684949500007517),
-    ]);
+    let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
 
     let note_metadata =
         NoteMetadata::new(target_account_id, sender_account_id.into(), Felt::new(1));

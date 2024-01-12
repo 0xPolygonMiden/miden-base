@@ -32,7 +32,7 @@ pub mod assembly {
 }
 
 pub mod crypto {
-    pub use miden_crypto::{dsa, merkle, utils};
+    pub use miden_crypto::{dsa, merkle, rand, utils};
 }
 
 pub mod utils {
