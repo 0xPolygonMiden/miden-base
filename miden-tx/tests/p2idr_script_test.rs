@@ -1,8 +1,9 @@
-use miden_lib::notes::{create_note, Script};
+use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
     accounts::{Account, AccountId},
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
+    crypto::rand::RpoRandomCoin,
     utils::collections::Vec,
     Felt,
 };
@@ -56,29 +57,23 @@ fn test_p2idr_script() {
     let reclaim_block_height_reclaimable = 3_u32;
 
     // Create the notes with the P2IDR script
-    let p2idr_script_in_time = Script::P2IDR {
-        target: target_account_id,
-        recall_height: reclaim_block_height_in_time,
-    };
-    let note_in_time = create_note(
-        p2idr_script_in_time,
-        vec![fungible_asset],
+    // Create the note_in_time
+    let note_in_time = create_p2idr_note(
         sender_account_id,
-        None,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        target_account_id,
+        vec![fungible_asset],
+        reclaim_block_height_in_time,
+        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
-    let p2idr_script_reclaimable = Script::P2IDR {
-        target: target_account_id,
-        recall_height: reclaim_block_height_reclaimable,
-    };
-    let note_reclaimable = create_note(
-        p2idr_script_reclaimable,
-        vec![fungible_asset],
+    // Create the reclaimable_note
+    let note_reclaimable = create_p2idr_note(
         sender_account_id,
-        None,
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)],
+        target_account_id,
+        vec![fungible_asset],
+        reclaim_block_height_reclaimable,
+        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
