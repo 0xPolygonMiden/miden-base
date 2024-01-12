@@ -1,3 +1,5 @@
+use miden_crypto::utils::HexParseError;
+
 use super::{Digest, Felt, Hasher, Note, Word, WORD_SIZE, ZERO};
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
@@ -42,6 +44,24 @@ impl Nullifier {
     /// Returns the digest defining this nullifier.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+
+    /// Creates a Nullifier from a hex string. Assumes that the string starts with "0x" and
+    /// that the hexadecimal characters are big-endian encoded.
+    pub fn from_hex(hex_value: &str) -> Result<Self, HexParseError> {
+        miden_crypto::utils::hex_to_bytes(hex_value).and_then(|bytes: [u8; 32]| {
+            let digest = Digest::try_from(bytes)?;
+            Ok(digest.into())
+        })
+    }
+
+    /// Returns a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        self.0.as_bytes().iter().fold(String::from("0x"), |mut acc, &byte| {
+            use std::fmt::Write;
+            write!(&mut acc, "{:02x}", byte).expect("Unable to write to string");
+            acc
+        })
     }
 }
 
@@ -114,18 +134,18 @@ impl Deserializable for Nullifier {
     }
 }
 
-#[cfg(feature = "serde")]
-impl serde::Serialize for Nullifier {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let bytes = self.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-}
+// TESTS
+// ================================================================================================
 
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Nullifier {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+#[cfg(test)]
+mod tests {
+    use crate::notes::Nullifier;
+
+    #[test]
+    fn test_from_hex_and_back() {
+        let nullifier_hex = "0x41e7dbbc8ce63ec25cf2d76d76162f16ef8fd1195288171f5e5a3e178222f6d2";
+        let nullifier = Nullifier::from_hex(nullifier_hex).unwrap();
+
+        assert_eq!(nullifier_hex, nullifier.to_hex());
     }
 }

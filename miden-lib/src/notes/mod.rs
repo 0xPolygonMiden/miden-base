@@ -97,3 +97,57 @@ fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, N
         Hasher::hash_elements(&[target.into(), ZERO, ZERO, ZERO]),
     ]))
 }
+
+#[cfg(test)]
+mod tests {
+
+    use assembly::ast::ProgramAst;
+    use miden_objects::{
+        accounts::{AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+        assets::{Asset, FungibleAsset},
+        notes::{NoteScript, Nullifier},
+        Felt, Hasher, Word, ZERO,
+    };
+    use mock::constants::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN;
+
+    use crate::transaction::TransactionKernel;
+
+    #[test]
+    fn test_nullifier_to_and_from_hex() {
+        let target = ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN;
+
+        let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+
+        let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
+
+        let assembler = TransactionKernel::assembler();
+
+        let p2id_bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
+
+        let note_script_ast = ProgramAst::from_bytes(p2id_bytes).unwrap();
+
+        let (note_script, _) = NoteScript::new(note_script_ast, &assembler).unwrap();
+
+        let script_hash = note_script.hash();
+
+        let inputs = vec![target.into(), ZERO, ZERO, ZERO];
+
+        let inputs_hash = Hasher::hash_elements(&inputs);
+
+        let asset_data: Word = fungible_asset.into();
+
+        let asset_hash = Hasher::hash_elements(&asset_data);
+
+        let serial_num: Word = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+
+        let nullifier = Nullifier::new(script_hash, inputs_hash, asset_hash, serial_num);
+
+        println!("nullifier: {:#?}", nullifier);
+
+        let nullifier_hex = nullifier.to_hex();
+
+        println!("nullifier_hex: {}", nullifier_hex);
+
+        assert_eq!(nullifier, Nullifier::from_hex(nullifier_hex.as_str()).unwrap())
+    }
+}
