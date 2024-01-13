@@ -66,6 +66,6 @@ impl ChainMmr {
     /// Returns an iterator over the inner nodes of authentication paths contained in this chain
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
-        self.mmr.inner_nodes(self.blocks.iter())
+        self.mmr.inner_nodes(self.blocks.iter().cloned())
     }
 }
