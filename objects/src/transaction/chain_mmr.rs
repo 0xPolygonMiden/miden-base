@@ -1,8 +1,7 @@
-use super::Digest;
 use crate::{
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     utils::collections::{BTreeMap, Vec},
-    ChainMmrError,
+    BlockHeader, ChainMmrError,
 };
 
 // CHAIN MMR
@@ -22,29 +21,42 @@ use crate::{
 pub struct ChainMmr {
     /// Partial view of the Chain MMR with authentication paths for the blocks listed below.
     mmr: PartialMmr,
-    /// A list of `(block_num, block_hash)` tuples for all blocks for which the partial MMR
-    /// contains authentication paths.
-    blocks: Vec<(usize, Digest)>,
+    /// A map of block_num |-> block_header for all blocks for which the partial MMR contains
+    /// authentication paths.
+    blocks: BTreeMap<u32, BlockHeader>,
 }
 
 impl ChainMmr {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [ChainMmr] instantiated from the provided partial MMR and a map mapping
-    /// block_num |-> block_hash.
+    /// Returns a new [ChainMmr] instantiated from the provided partial MMR and a list of block
+    /// headers.
     ///
     /// # Errors
-    /// Returns an error if maximum block_num is greater than the chain length implied by the
-    /// provided partial MMR.
-    pub fn new(mmr: PartialMmr, blocks: BTreeMap<u32, Digest>) -> Result<Self, ChainMmrError> {
+    /// Returns an error if:
+    /// - block_num for any of the blocks is greater than the chain length implied by the provided
+    ///   partial MMR.
+    /// - The same block appears more than once in the provided list of block headers.
+    /// - The partial MMR does not track authentication paths for any of the specified blocks.
+    pub fn new(mmr: PartialMmr, blocks: Vec<BlockHeader>) -> Result<Self, ChainMmrError> {
         let chain_length = mmr.forest();
-        let max_block_num = blocks.keys().next_back().cloned().unwrap_or_default() as usize;
-        if max_block_num >= chain_length {
-            return Err(ChainMmrError::block_num_too_big(chain_length, max_block_num));
+
+        let mut block_map = BTreeMap::new();
+        for block in blocks.into_iter() {
+            if block.block_num() as usize >= chain_length {
+                return Err(ChainMmrError::block_num_too_big(chain_length, block.block_num()));
+            }
+
+            if block_map.insert(block.block_num(), block).is_some() {
+                return Err(ChainMmrError::duplicate_block(block.block_num()));
+            }
+
+            if !mmr.is_tracked(block.block_num() as usize) {
+                return Err(ChainMmrError::untracked_block(block.block_num()));
+            }
         }
 
-        let blocks = blocks.into_iter().map(|(key, val)| (key as usize, val)).collect();
-        Ok(Self { mmr, blocks })
+        Ok(Self { mmr, blocks: block_map })
     }
 
     // PUBLIC ACCESSORS
@@ -60,12 +72,20 @@ impl ChainMmr {
         self.mmr.forest()
     }
 
+    /// Returns the block header for the specified block, or None if the block is not present in
+    /// this partial MMR.
+    pub fn get_block(&self, block_num: u32) -> Option<&BlockHeader> {
+        self.blocks.get(&block_num)
+    }
+
     // ITERATORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns an iterator over the inner nodes of authentication paths contained in this chain
     /// MMR.
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
-        self.mmr.inner_nodes(self.blocks.iter().cloned())
+        self.mmr.inner_nodes(
+            self.blocks.values().map(|block| (block.block_num() as usize, block.hash())),
+        )
     }
 }
