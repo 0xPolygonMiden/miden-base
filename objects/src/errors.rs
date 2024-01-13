@@ -312,6 +312,8 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentChainRoot { expected: Digest, actual: Digest },
+    InputNoteBlockNotInChainMmr(NoteId),
     InvalidAccountSeed(AccountError),
     TooManyInputNotes { max: usize, actual: usize },
 }
@@ -331,7 +333,6 @@ impl std::error::Error for TransactionInputError {}
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
-    ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),
     OutputNoteDataNotFound,

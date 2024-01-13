@@ -72,8 +72,13 @@ impl ChainMmr {
         self.mmr.forest()
     }
 
+    /// Returns true if the block is present in this chain MMR.
+    pub fn contains_block(&self, block_num: u32) -> bool {
+        self.blocks.contains_key(&block_num)
+    }
+
     /// Returns the block header for the specified block, or None if the block is not present in
-    /// this partial MMR.
+    /// this chain MMR.
     pub fn get_block(&self, block_num: u32) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
     }
