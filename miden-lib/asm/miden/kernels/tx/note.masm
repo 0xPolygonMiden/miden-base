@@ -46,7 +46,7 @@ export.get_vault_info
     # => [num_assets, ptr]
 
     # get the vault hash from the note pointer
-    swap exec.memory::get_consumed_note_vault_root
+    swap exec.memory::get_consumed_note_assets_hash
     # => [VAULT_HASH, num_assets]
 end
 

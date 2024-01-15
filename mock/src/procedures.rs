@@ -1,7 +1,8 @@
 use super::{
     memory::{
-        CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET,
-        NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
+        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
+        CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
+        NUM_CREATED_NOTES_PTR,
     },
     NoteAssets, OutputNotes, StarkField, Word,
 };
@@ -10,14 +11,17 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let note_0_metadata = prepare_word(&notes.get_note(0).metadata().into());
     let note_0_recipient = prepare_word(notes.get_note(0).recipient());
     let note_0_assets = prepare_assets(notes.get_note(0).assets());
+    let note_0_num_assets = 1;
 
     let note_1_metadata = prepare_word(&notes.get_note(1).metadata().into());
     let note_1_recipient = prepare_word(notes.get_note(1).recipient());
     let note_1_assets = prepare_assets(notes.get_note(1).assets());
+    let note_1_num_assets = 1;
 
     let note_2_metadata = prepare_word(&notes.get_note(2).metadata().into());
     let note_2_recipient = prepare_word(notes.get_note(2).recipient());
     let note_2_assets = prepare_assets(notes.get_note(2).assets());
+    let note_2_num_assets = 1;
 
     const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
     const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
@@ -35,8 +39,11 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
         push.{note_0_recipient}
         push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
 
+        push.{note_0_num_assets}
+        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add mem_store
+
         push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.4 add mem_storew dropw
+        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add mem_storew dropw
 
         # populate note 1
         push.{note_1_metadata}
@@ -45,8 +52,11 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
         push.{note_1_recipient}
         push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
+        push.{note_1_num_assets}
+        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+
         push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.4 add add mem_storew dropw
+        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
         # populate note 2
         push.{note_2_metadata}
@@ -55,8 +65,11 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
         push.{note_2_recipient}
         push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
+        push.{note_2_num_assets}
+        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+
         push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.4 add add mem_storew dropw
+        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
         # set num created notes
         push.{}.{NUM_CREATED_NOTES_PTR} mem_store

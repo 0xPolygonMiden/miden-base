@@ -131,9 +131,10 @@ const.CONSUMED_NOTE_CORE_DATA_OFFSET=1
 const.CONSUMED_NOTE_SERIAL_NUM_OFFSET=1
 const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
 const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
-const.CONSUMED_NOTE_VAULT_ROOT_OFFSET=4
+const.CONSUMED_NOTE_ASSETS_HASH_OFFSET=4
 const.CONSUMED_NOTE_METADATA_OFFSET=5
-const.CONSUMED_NOTE_ASSETS_OFFSET=6
+const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=6
+const.CONSUMED_NOTE_ASSETS_OFFSET=7
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
@@ -145,8 +146,9 @@ const.CREATED_NOTE_SECTION_OFFSET=10000
 const.CREATED_NOTE_HASH_OFFSET=0
 const.CREATED_NOTE_METADATA_OFFSET=1
 const.CREATED_NOTE_RECIPIENT_OFFSET=2
-const.CREATED_NOTE_VAULT_HASH_OFFSET=3
-const.CREATED_NOTE_ASSETS_OFFSET=4
+const.CREATED_NOTE_ASSETS_HASH_OFFSET=3
+const.CREATED_NOTE_NUM_ASSETS_OFFSET=4
+const.CREATED_NOTE_ASSETS_OFFSET=5
 
 # MEMORY PROCEDURES
 # =================================================================================================
@@ -828,7 +830,7 @@ export.get_consumed_note_inputs_hash
     mem_loadw
 end
 
-#! Returns the metatdata of a consumed note located at the specified memory address.
+#! Returns the metadata of a consumed note located at the specified memory address.
 #!
 #! Stack: [consumed_note_ptr]
 #! Output: [M]
@@ -841,7 +843,7 @@ export.get_consumed_note_metadata
     mem_loadw
 end
 
-#! Sets the metadata of a consumed note located at the specified memory address.
+#! Sets the metadata for a consumed note located at the specified memory address.
 #!
 #! Stack: [consumed_note_ptr, M]
 #! Output: []
@@ -861,11 +863,23 @@ end
 #! - consumed_note_ptr is the memory address at which the consumed note data begins.
 #! - num_assets is the number of assets in the consumed note.
 export.get_consumed_note_num_assets
-    push.CONSUMED_NOTE_METADATA_OFFSET add
+    push.CONSUMED_NOTE_NUM_ASSETS_OFFSET add
     mem_load
 end
 
-#! Returns a pointer pointer to the start of the assets segment for the consumed note located at
+#! Sets the number of assets for a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr, num_assets]
+#! Output: []
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - num_assets is the number of assets in the consumed note.
+export.set_consumed_note_num_assets
+    push.CONSUMED_NOTE_NUM_ASSETS_OFFSET add
+    mem_store
+end
+
+#! Returns a pointer to the start of the assets segment for the consumed note located at
 #! the specified memory address.
 #!
 #! Stack: [consumed_note_ptr]
@@ -877,16 +891,16 @@ export.get_consumed_note_assets_ptr
     push.CONSUMED_NOTE_ASSETS_OFFSET add
 end
 
-#! Returns the vault root for the consumed note located at the specified memory address.
+#! Returns the assets hash for the consumed note located at the specified memory address.
 #!
 #! Stack: [consumed_note_ptr]
-#! Output: [V]
+#! Output: [AH]
 #!
 #! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - V is the vault root for the consumed note.
-export.get_consumed_note_vault_root
+#! - AH is the assets root for the consumed note.
+export.get_consumed_note_assets_hash
     padw
-    movup.4 push.CONSUMED_NOTE_VAULT_ROOT_OFFSET add
+    movup.4 push.CONSUMED_NOTE_ASSETS_HASH_OFFSET add
     mem_loadw
 end
 
@@ -914,9 +928,9 @@ export.get_consumed_note_sender
     padw
     movup.4 push.CONSUMED_NOTE_METADATA_OFFSET add
     mem_loadw
-    # => [0, sender, tag, num_assets]
+    # => [0, 0, sender, tag]
 
-    drop movdn.2 drop drop
+    drop drop swap drop
     # => [sender]
 end
 
@@ -964,7 +978,7 @@ end
 #! Output: []
 #!
 #! - recipient is the recipient of the note
-#! - note_ptr is a pointer to the memory address at which the created note is stored
+#! - note_ptr is the memory address at which the created note data begins.
 export.set_created_note_recipient
     push.CREATED_NOTE_RECIPIENT_OFFSET add mem_storew dropw
 end
@@ -975,20 +989,20 @@ end
 #! Output: []
 #!
 #! - METADATA is the note metadata
-#! - note_ptr is a pointer to the memory address at which the created note is stored
+#! - note_ptr is the memory address at which the created note data begins.
 export.set_created_note_metadata
     push.CREATED_NOTE_METADATA_OFFSET add mem_storew dropw
 end
 
 #! Returns the number of assets in the created note
 #!
-#! Stack: [created_note_data_ptr]
+#! Stack: [note_ptr]
 #! Output: [num_assets]
 #!
-#! - created_note_data_ptr is the memory address at which the created note data begins.
+#! - note_ptr is a pointer to the memory address at which the created note is stored.
 #! - num_assets is the number of assets in the created note.
 export.get_created_note_num_assets
-    push.CREATED_NOTE_METADATA_OFFSET add mem_load
+    push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_load
 end
 
 #! Sets the number of assets in the created note
@@ -999,7 +1013,7 @@ end
 #! - note_ptr is the memory address at which the created note data begins.
 #! - num_assets is the number of assets in the created note.
 export.set_created_note_num_assets
-    push.CREATED_NOTE_METADATA_OFFSET add mem_store
+    push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_store
 end
 
 #! Returns a pointer to the created note asset data
@@ -1013,13 +1027,13 @@ export.get_created_note_asset_data_ptr
     push.CREATED_NOTE_ASSETS_OFFSET add
 end
 
-#! Sets the created note vault hash
+#! Sets the created note assets hash.
 #!
-#! Stack: [created_note_data_ptr, V]
+#! Stack: [created_note_data_ptr, AH]
 #! Output: []
 #!
 #! - created_note_data_ptr is the memory address at which the created note data begins.
-#! - V is the vault hash of the created note.
-export.set_created_note_vault_hash
-    push.CREATED_NOTE_VAULT_HASH_OFFSET add mem_storew
+#! - AH is the assets hash of the created note.
+export.set_created_note_assets_hash
+    push.CREATED_NOTE_ASSETS_HASH_OFFSET add mem_storew
 end

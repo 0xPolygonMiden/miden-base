@@ -181,8 +181,21 @@ pub const MAX_ASSETS_PER_NOTE: u32 = 256;
 /// The size of the memory segment allocated to each note
 pub const NOTE_MEM_SIZE: MemoryAddress = 1024;
 
-// CONSUMED NOTES DATA
+// INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
+// Inputs note section contains data for all notes consumed by a transaction. It starts with a word
+// containing the total number of input notes and is followed by data of each note like so:
+//
+// ┌───────────┬─────────────┬─────┬─────────────┐
+// │ NUM NOTES │ NOTE 1 DATA │ ... │ NOTE n DATA │
+// └───────────┴─────────────┴─────┴─────────────┘
+//
+// Data section for each note consists of exactly 1024 words and is laid out like so:
+//
+// ┌──────┬────────┬────────┬────────┬────────┬──────┬────────┬───────┬─────┬───────┐
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │  NUM   │ ASSET │ ... │ ASSET │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ASSETS │   1   │     │   n   │
+// └──────┴────────┴────────┴────────┴────────┴──────┴────────┴───────┴─────┴───────┘
 
 /// The memory address at which the consumed note section begins.
 pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1000;
@@ -195,15 +208,20 @@ pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
 pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
-pub const CONSUMED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 4;
+pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 7;
 
 /// The maximum number of consumed notes that can be processed in a single transaction.
 pub const MAX_NUM_CONSUMED_NOTES: u32 = 1023;
 
-// CREATED NOTES DATA
+// OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
+//
+// ┌─────────┬──────────┬───────────┬─────────────┬────────────┬─────────┬─────┬─────────┐
+// │ NOTE ID │ METADATA │ RECIPIENT │ ASSETS HASH │ NUM ASSETS │ ASSET 1 │ ... │ ASSET n │
+// └─────────┴──────────┴───────────┴─────────────┴────────────┴─────────┴─────┴─────────┘
 
 /// The size of the core created note data segment.
 pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
@@ -216,7 +234,8 @@ pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
 pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
 pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
 pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
-pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 4;
+pub const CREATED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
+pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 5;
 
 /// The maximum number of created notes that can be produced in a single transaction.
 pub const MAX_NUM_CREATED_NOTES: u32 = 4096;

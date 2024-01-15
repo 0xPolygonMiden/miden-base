@@ -44,8 +44,8 @@ pub fn run_tx_with_inputs(
     let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
     advice_inputs.extend(inputs);
     let host = MockHost::new(tx.account().into(), advice_inputs);
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let exec_options = ExecutionOptions::default().with_tracing();
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
     process.execute(&program)?;
     Ok(process)
 }
@@ -74,8 +74,8 @@ where
     let program = assembler.compile(code).unwrap();
 
     let host = DefaultHost::new(adv);
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let exec_options = ExecutionOptions::default().with_tracing();
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
     process.execute(&program)?;
     Ok(process)
 }

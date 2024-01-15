@@ -68,7 +68,7 @@ proc.compute_created_note_vault_hash
     # => [VAULT_HASH, note_data_ptr]
 
     # save vault hash to memory
-    movup.4 exec.memory::set_created_note_vault_hash
+    movup.4 exec.memory::set_created_note_assets_hash
     # => []
 end
 

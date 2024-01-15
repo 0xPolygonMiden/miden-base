@@ -82,7 +82,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let expected_note = OutputNote::new(
         recipient.into(),
         NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
+        NoteMetadata::new(faucet_account.id(), tag),
     );
 
     let created_note = transaction_result.output_notes().get_note(0).clone();

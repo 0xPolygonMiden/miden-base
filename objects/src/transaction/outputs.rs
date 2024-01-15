@@ -9,7 +9,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    Digest, Felt, Hasher, StarkField, TransactionOutputError, Word,
+    Digest, Felt, Hasher, TransactionOutputError, Word,
 };
 
 // TRANSACTION OUTPUTS
@@ -226,9 +226,6 @@ impl OutputNote {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [OutputNote] instantiated from the provided parameters.
     pub fn new(recipient: Digest, assets: NoteAssets, metadata: NoteMetadata) -> Self {
-        // assert is OK here because we'll eventually remove `num_assets` from the metadata
-        assert_eq!(assets.num_assets() as u64, metadata.num_assets().as_int());
-
         let note_id = NoteId::new(recipient, assets.commitment());
         Self {
             envelope: NoteEnvelope::new(note_id, metadata),
