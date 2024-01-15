@@ -1,3 +1,5 @@
+use crate::AccountDeltaError;
+
 use super::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::AssetVault,
@@ -163,6 +165,41 @@ impl Account {
     /// Returns true if the account is new (i.e. it has not been initialized yet).
     pub fn is_new(&self) -> bool {
         self.nonce == ZERO
+    }
+
+    // PUBLIC MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Applies an [AccountDelta] to the [Account] and returns the updated structure
+    pub fn apply_delta(&mut self, account_delta: AccountDelta) -> Result<Self, AccountError> {
+        if let Some(nonce) = account_delta.nonce() {
+            self.set_nonce(nonce);
+        }
+
+        let vault_delta = account_delta.vault();
+
+        vault_delta.validate().map_err(AccountError::AccountDeltaError)?;
+        for cleared_assets in &vault_delta.removed_assets {
+            self.vault
+                .remove_asset(*cleared_assets)
+                .map_err(AccountError::AssetVaultError)?;
+        }
+
+        for added_asset in &vault_delta.added_assets {
+            self.vault.add_asset(*added_asset).map_err(AccountError::AssetVaultError)?;
+        }
+
+        let storage_delta = account_delta.storage();
+        storage_delta.validate().map_err(AccountError::AccountDeltaError)?;
+        for cleared_item in &storage_delta.cleared_items {
+            self.storage.set_item(*cleared_item, [ZERO; 4]);
+        }
+
+        for (updated_index, updated_value) in &storage_delta.updated_items {
+            self.storage.set_item(*updated_index, *updated_value);
+        }
+
+        Ok(self.clone())
     }
 }
 

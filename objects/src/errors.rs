@@ -22,6 +22,7 @@ pub enum AccountError {
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
+    AccountDeltaError(AccountDeltaError),
     ApplyStorageSlotsDiffFailed(MerkleError),
     ApplyStorageStoreDiffFailed(MerkleError),
     AssetVaultError(AssetVaultError),
