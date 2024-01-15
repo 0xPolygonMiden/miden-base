@@ -259,12 +259,22 @@ impl std::error::Error for NoteError {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChainMmrError {
-    BlockNumTooBig { chain_length: usize, block_num: usize },
+    BlockNumTooBig { chain_length: usize, block_num: u32 },
+    DuplicateBlock { block_num: u32 },
+    UntrackedBlock { block_num: u32 },
 }
 
 impl ChainMmrError {
-    pub fn block_num_too_big(chain_length: usize, block_num: usize) -> Self {
+    pub fn block_num_too_big(chain_length: usize, block_num: u32) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
+    }
+
+    pub fn duplicate_block(block_num: u32) -> Self {
+        Self::DuplicateBlock { block_num }
+    }
+
+    pub fn untracked_block(block_num: u32) -> Self {
+        Self::UntrackedBlock { block_num }
     }
 }
 
@@ -302,6 +312,8 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentChainRoot { expected: Digest, actual: Digest },
+    InputNoteBlockNotInChainMmr(NoteId),
     InvalidAccountSeed(AccountError),
     TooManyInputNotes { max: usize, actual: usize },
 }
@@ -321,7 +333,6 @@ impl std::error::Error for TransactionInputError {}
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
-    ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),
     OutputNoteDataNotFound,
