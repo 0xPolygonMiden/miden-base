@@ -31,11 +31,13 @@ impl AccountData {
         Self { account, account_seed, auth }
     }
 
+    #[cfg(feature = "std")]
     /// Serialises and writes binary AccountData to specified file
     pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
         fs::write(filepath, self.to_bytes())
     }
 
+    #[cfg(feature = "std")]
     /// Reads from file and tries to deserialise an AccountData
     pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
         let mut file = File::open(filepath)?;
