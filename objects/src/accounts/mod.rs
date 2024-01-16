@@ -119,12 +119,6 @@ impl Account {
         &self.vault
     }
 
-    #[cfg(test)]
-    /// Returns a mutable reference to the vault of this account.
-    pub fn vault_mut(&mut self) -> &mut AssetVault {
-        &mut self.vault
-    }
-
     /// Returns a reference to the storage of this account.
     pub fn storage(&self) -> &AccountStorage {
         &self.storage
@@ -138,11 +132,6 @@ impl Account {
     /// Returns nonce for this account.
     pub fn nonce(&self) -> Felt {
         self.nonce
-    }
-
-    /// Returns nonce for this account.
-    pub fn set_nonce(&mut self, nonce: Felt) {
-        self.nonce = nonce;
     }
 
     /// Returns true if this account can issue assets.
@@ -163,6 +152,55 @@ impl Account {
     /// Returns true if the account is new (i.e. it has not been initialized yet).
     pub fn is_new(&self) -> bool {
         self.nonce == ZERO
+    }
+
+    // DATA MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Applies the provided delta to this account. This updates account vault, storage, and nonce
+    /// to the values specified by the delta.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Applying vault sub-delta to the vault of this account fails.
+    /// - Applying storage sub-delta to the storage of this account fails.
+    /// - The nonce specified in the provided delta smaller than or equal to the current account
+    ///   nonce.
+    pub fn apply_delta(&mut self, delta: &AccountDelta) -> Result<(), AccountError> {
+        // update vault; we don't check vault delta validity here because AccountDelta can contain
+        // only valid vault deltas
+        for &asset in delta.vault().added_assets.iter() {
+            self.vault.add_asset(asset).map_err(AccountError::AssetVaultUpdateError)?;
+        }
+
+        for &asset in delta.vault().removed_assets.iter() {
+            self.vault.remove_asset(asset).map_err(AccountError::AssetVaultUpdateError)?;
+        }
+
+        // update storage
+        self.storage.apply_delta(delta.storage())?;
+
+        // update nonce
+        if let Some(nonce) = delta.nonce() {
+            if self.nonce.as_int() >= nonce.as_int() {
+                return Err(AccountError::NonceNotMonotonicallyIncreasing {
+                    current: self.nonce.as_int(),
+                    new: nonce.as_int(),
+                });
+            }
+            self.nonce = nonce;
+        }
+
+        Ok(())
+    }
+
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    #[cfg(test)]
+    /// Returns a mutable reference to the vault of this account.
+    pub fn vault_mut(&mut self) -> &mut AssetVault {
+        &mut self.vault
     }
 }
 

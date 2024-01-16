@@ -208,8 +208,8 @@ fn add_account_to_advice_inputs(
 
     // extend advice map with storage types commitment |-> storage types
     inputs.extend_map([(
-        storage.slot_types_commitment().into(),
-        storage.slot_types().iter().map(Felt::from).collect(),
+        storage.layout_commitment().into(),
+        storage.layout().iter().map(Felt::from).collect(),
     )]);
 
     // --- account vault ------------------------------------------------------

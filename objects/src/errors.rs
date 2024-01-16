@@ -4,7 +4,7 @@ use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::AccountId,
+    accounts::{AccountId, StorageSlotType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
@@ -22,21 +22,17 @@ pub enum AccountError {
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
-    ApplyStorageSlotsDiffFailed(MerkleError),
-    ApplyStorageStoreDiffFailed(MerkleError),
-    AssetVaultError(AssetVaultError),
+    AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
-    NonceMustBeMonotonicallyIncreasing(u64, u64),
+    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    SetStoreNodeFailed(MerkleError),
-    StorageArrayRequiresMoreThanOneElement,
-    StorageArrayTooLong { actual: usize, max: usize },
-    StorageSlotArrayTooSmall { actual: u8, min: u8 },
+    StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
+    StorageSlotNotValueSlot(u8, StorageSlotType),
     StubDataIncorrectLength(usize, usize),
 }
 
