@@ -964,7 +964,7 @@ end
 #! Output: []
 #!
 #! - recipient is the recipient of the note
-#! - note_ptr is a pointer to the memory address at whcih the created note is stored
+#! - note_ptr is a pointer to the memory address at which the created note is stored
 export.set_created_note_recipient
     push.CREATED_NOTE_RECIPIENT_OFFSET add mem_storew dropw
 end
@@ -972,7 +972,7 @@ end
 #! Sets the created note's metadata
 #!
 #! Stack: [note_ptr, METADATA]
-#! Ouput: []
+#! Output: []
 #!
 #! - METADATA is the note metadata
 #! - note_ptr is a pointer to the memory address at which the created note is stored
