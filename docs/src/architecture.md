@@ -1,5 +1,5 @@
 # Architecture
-The Polygon Miden Architecture decribes the concepts of how the participants of the network can interact.
+The Polygon Miden Architecture describes the concepts of how the participants of the network can interact.
 
 The architecture reflects the design goals for the rollup:
 
@@ -49,7 +49,7 @@ The state model captures all individual states of all accounts and notes. Finall
   <summary>Want to know more on why we designed Miden as is?</summary>
 
   ### Polygon Miden's architecture
-  Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction exection. In traditional blockchains state and transactions must be transparent to be verifiable. This is necessary for block production and execution. User generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent. 
+  Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution. In traditional blockchains state and transactions must be transparent to be verifiable. This is necessary for block production and execution. User generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent. 
 
   ### Actor-based execution model
   The actor model inspires Polygon Miden’s execution model. This is a well-known design paradigm in concurrent systems. In the actor model, actors are state machines responsible for maintaining their own state. In the context of Polygon Miden, each account is an actor. Actors communicate with each other by exchanging messages asynchronously. One actor can send a message to another, but it is up to the recipient to apply the requested change to their state. 
