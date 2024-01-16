@@ -113,9 +113,8 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let inner_storage = self.storage_builder.build();
 
-        let slots = storage.slots_mut();
         for (key, value) in inner_storage.slots().leaves() {
-            slots.update_leaf(key, *value).map_err(AccountBuilderError::MerkleError)?;
+            storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
         }
 
         self.account_id_builder.code(&self.code);

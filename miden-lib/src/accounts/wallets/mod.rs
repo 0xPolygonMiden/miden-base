@@ -63,7 +63,7 @@ pub fn create_basic_wallet(
         0,
         (StorageSlotType::Value { value_arity: 0 }, storage_slot_0_data),
     )])?;
-    let account_vault = AssetVault::new(&[]).map_err(AccountError::AssetVaultError)?;
+    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
