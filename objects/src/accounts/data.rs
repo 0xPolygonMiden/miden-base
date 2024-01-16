@@ -106,9 +106,7 @@ impl Deserializable for AuthData {
 
         match scheme {
             0 => Ok(AuthData::RpoFalcon512Seed(seed)),
-            value => {
-                return Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value)))
-            },
+            value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
         }
     }
 
