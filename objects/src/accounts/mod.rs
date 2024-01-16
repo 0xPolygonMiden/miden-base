@@ -28,7 +28,7 @@ mod stub;
 pub use stub::AccountStub;
 
 mod data;
-pub use data::AccountData;
+pub use data::{AccountData, AuthData};
 
 // TESTING CONSTANTS
 // ================================================================================================
