@@ -27,6 +27,9 @@ pub use storage::{AccountStorage, SlotItem, StorageSlotType};
 mod stub;
 pub use stub::AccountStub;
 
+mod data;
+pub use data::AccountData;
+
 // TESTING CONSTANTS
 // ================================================================================================
 
