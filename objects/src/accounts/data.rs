@@ -60,9 +60,7 @@ impl Serializable for AccountData {
             AuthData::RpoFalcon512Seed(_) => "RpoFalcon512",
         };
 
-        let auth_seed = match auth {
-            AuthData::RpoFalcon512Seed(seed) => seed,
-        };
+        let AuthData::RpoFalcon512Seed(auth_seed) = auth;
 
         account.write_into(target);
         match account_seed {
@@ -142,6 +140,7 @@ mod tests {
     use storage::AccountStorage;
     use tempfile::tempdir;
 
+    use super::{AccountData, AuthData};
     use crate::{
         accounts::{
             storage, Account, AccountCode, AccountId, Felt, Word,
@@ -149,8 +148,6 @@ mod tests {
         },
         assets::AssetVault,
     };
-
-    use super::{AccountData, AuthData};
 
     fn create_account_data() -> AccountData {
         // create account id
