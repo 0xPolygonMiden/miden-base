@@ -1,3 +1,4 @@
+#[cfg(feature = "std")]
 use std::{
     fs::{self, File},
     io::{self, Read},
@@ -31,14 +32,12 @@ impl AccountData {
     }
 
     /// Serialises and writes binary AccountData to specified file
-    pub fn write(&self, filepath: &Path) -> Result<(), io::Error> {
-        fs::write(filepath, self.to_bytes())?;
-
-        Ok(())
+    pub fn write(&self, filepath: impl AsRef<Path>) -> io::Result<()> {
+        fs::write(filepath, self.to_bytes())
     }
 
     /// Reads from file and tries to deserialise an AccountData
-    pub fn read(filepath: &Path) -> Result<Self, io::Error> {
+    pub fn read(filepath: impl AsRef<Path>) -> io::Result<Self> {
         let mut file = File::open(filepath)?;
         let mut buffer = Vec::new();
 
@@ -56,64 +55,17 @@ impl Serializable for AccountData {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let AccountData { account, account_seed, auth } = self;
 
-        let auth_scheme = match auth {
-            AuthData::RpoFalcon512Seed(_) => "RpoFalcon512",
-        };
-
-        let AuthData::RpoFalcon512Seed(auth_seed) = auth;
-
         account.write_into(target);
-        match account_seed {
-            None => target.write_u8(0),
-            Some(seed) => {
-                target.write_u8(1);
-                seed.write_into(target)
-            },
-        };
-        let auth_scheme_len = auth_scheme.as_bytes().len();
-        target.write_u8(auth_scheme_len as u8);
-        auth_scheme.as_bytes().write_into(target);
-        auth_seed.write_into(target);
+        account_seed.write_into(target);
+        auth.write_into(target);
     }
 }
 
 impl Deserializable for AccountData {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> std::prelude::v1::Result<Self, DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let account = Account::read_from(source)?;
-
-        let account_seed = {
-            let option_flag = source.read_u8()?;
-            match option_flag {
-                0 => None,
-                1 => Some(Word::read_from(source)?),
-                _ => {
-                    return Err(DeserializationError::InvalidValue(
-                        "Invalid option flag".to_string(),
-                    ))
-                },
-            }
-        };
-
-        let auth_scheme_len = source.read_u8()?;
-        let auth_scheme_value = source.read_vec(auth_scheme_len as usize)?;
-        let auth_scheme = match std::str::from_utf8(&auth_scheme_value) {
-            Ok(str) => str,
-            Err(e) => {
-                return Err(DeserializationError::InvalidValue(format!(
-                    "Invalid auth_scheme value {}",
-                    e
-                )))
-            },
-        };
-
-        let auth_seed = <[u8; 40]>::read_from(source)?;
-
-        let auth = match auth_scheme {
-            "RpoFalcon512" => AuthData::RpoFalcon512Seed(auth_seed),
-            _ => return Err(DeserializationError::InvalidValue("Invalid auth_scheme".to_string())),
-        };
+        let account_seed = <Option<Word>>::read_from(source)?;
+        let auth = AuthData::read_from(source)?;
 
         Ok(Self::new(account, account_seed, auth))
     }
@@ -131,6 +83,38 @@ impl Deserializable for AccountData {
 #[derive(Debug, PartialEq, Eq)]
 pub enum AuthData {
     RpoFalcon512Seed([u8; 40]),
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for AuthData {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            AuthData::RpoFalcon512Seed(seed) => {
+                0u8.write_into(target);
+                seed.write_into(target);
+            },
+        }
+    }
+}
+
+impl Deserializable for AuthData {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let scheme = u8::read_from(source)?;
+        let seed = <[u8; 40]>::read_from(source)?;
+
+        match scheme {
+            0 => Ok(AuthData::RpoFalcon512Seed(seed)),
+            value => {
+                return Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value)))
+            },
+        }
+    }
+
+    fn read_from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
+        Self::read_from(&mut SliceReader::new(bytes))
+    }
 }
 
 #[cfg(test)]
