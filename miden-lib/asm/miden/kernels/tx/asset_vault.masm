@@ -60,7 +60,7 @@ export.has_non_fungible_asset
     exec.smt::get swapw dropw
     # => [ASSET]
 
-    # compare with EMTPY_WORD to asses if the asset exists in the vault
+    # compare with EMPTY_WORD to asses if the asset exists in the vault
     padw eqw not
     # => [has_asset, PAD, ASSET]
 
