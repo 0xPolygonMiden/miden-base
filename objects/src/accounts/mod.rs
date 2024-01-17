@@ -278,13 +278,12 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
-    use crate::assets::{Asset, AssetVault, FungibleAsset};
-
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
         AccountVaultDelta, Assembler, Felt, ModuleAst, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
+    use crate::assets::{Asset, AssetVault, FungibleAsset};
 
     fn build_account(assets: Vec<Asset>, nonce: Felt) -> Account {
         // build account code
