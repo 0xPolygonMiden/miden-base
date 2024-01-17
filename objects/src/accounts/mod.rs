@@ -269,3 +269,46 @@ pub fn hash_account(
     elements[12..].copy_from_slice(&*code_root);
     Hasher::hash_elements(&elements)
 }
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use crate::assets::AssetVault;
+
+    use super::{
+        Account, AccountCode, AccountId, AccountStorage, Assembler, Felt, ModuleAst,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    };
+
+    fn build_account() -> Account {
+        // build account code
+        let source = "
+            export.foo
+                push.1 push.2 mul
+            end
+            export.bar
+                push.1 push.2 add
+            end
+        ";
+        let module = ModuleAst::parse(source).unwrap();
+        let assembler = Assembler::default();
+        let code = AccountCode::new(module, &assembler).unwrap();
+
+        // build account data
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        let vault = AssetVault::new(&[]).unwrap();
+        let storage = AccountStorage::new(vec![]).unwrap();
+        let nonce = Felt::new(0);
+
+        // create account
+        Account::new(id, vault, storage, code, nonce)
+    }
+
+    fn delta_with_valid_data_is_correctly_applied() {}
+
+    fn delta_with_invalid_data_returns_error() {}
+
+    fn delta_with_invalid_nonce_returns_error() {}
+}
