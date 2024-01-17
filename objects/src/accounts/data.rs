@@ -139,7 +139,7 @@ mod tests {
         assets::AssetVault,
     };
 
-    fn create_account_data() -> AccountData {
+    fn build_account_data() -> AccountData {
         // create account id
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
 
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn account_data_correctly_serialises_and_deserialises() {
         // create AccountData
-        let account_data = create_account_data();
+        let account_data = build_account_data();
 
         // serialize and deserialize the code; make sure deserialized version matches the original
         let bytes = account_data.to_bytes();
@@ -188,7 +188,7 @@ mod tests {
         let filepath = dir.path().join("account_data.mac");
 
         // create AccountData
-        let account_data = create_account_data();
+        let account_data = build_account_data();
 
         // write AccountData to file
         account_data.write(filepath.as_path()).unwrap();
