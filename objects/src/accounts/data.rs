@@ -17,9 +17,11 @@ use super::{
 // ACCOUNT DATA
 // ================================================================================================
 
-/// AccountData is a representation of the Account struct meant to be used
-/// for Account serialisation and deserialisation for transport of Account data
-#[derive(Debug, PartialEq, Eq)]
+/// Account data contains a complete description of an account, including the [Account] struct as well
+/// as account seed and account authentication info.
+/// The intent of this struct is to provide an easy way to serialize and deserialize all account-related
+/// data as a single unit (e.g., to/from files).
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AccountData {
     pub account: Account,
     pub account_seed: Option<Word>,
@@ -82,7 +84,7 @@ impl Deserializable for AccountData {
 
 /// AuthData is a representation of the AuthScheme struct meant to be used
 /// for Account serialisation and deserialisation for transport of Account data
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuthData {
     RpoFalcon512Seed([u8; 40]),
 }
@@ -94,7 +96,7 @@ impl Serializable for AuthData {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             AuthData::RpoFalcon512Seed(seed) => {
-                0u8.write_into(target);
+                0_u8.write_into(target);
                 seed.write_into(target);
             },
         }
@@ -104,10 +106,11 @@ impl Serializable for AuthData {
 impl Deserializable for AuthData {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let scheme = u8::read_from(source)?;
-        let seed = <[u8; 40]>::read_from(source)?;
-
         match scheme {
-            0 => Ok(AuthData::RpoFalcon512Seed(seed)),
+            0 => {
+                let seed = <[u8; 40]>::read_from(source)?;
+                Ok(AuthData::RpoFalcon512Seed(seed))
+            },
             value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
         }
     }
@@ -116,6 +119,9 @@ impl Deserializable for AuthData {
         Self::read_from(&mut SliceReader::new(bytes))
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
