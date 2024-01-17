@@ -17,10 +17,11 @@ use super::{
 // ACCOUNT DATA
 // ================================================================================================
 
-/// Account data contains a complete description of an account, including the [Account] struct as well
-/// as account seed and account authentication info.
-/// The intent of this struct is to provide an easy way to serialize and deserialize all account-related
-/// data as a single unit (e.g., to/from files).
+/// Account data contains a complete description of an account, including the [Account] struct as
+/// well as account seed and account authentication info.
+///
+/// The intent of this struct is to provide an easy way to serialize and deserialize all
+/// account-related data as a single unit (e.g., to/from files).
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AccountData {
     pub account: Account,
