@@ -101,12 +101,17 @@ end
 # CHAIN DATA
 # =================================================================================================
 
-#! Process the chain data provided via the advice provider. This involves reading the MMR data from
-#! the advice provider and storing it at the appropriate memory addresses. As the MMR peaks are
-#! read from the advice provider, the chain root is computed. It is asserted that the computed
-#! chain root matches the chain root stored in the block data section. The number of words that the
-#! advice provider will send for MMR peaks is variable: it will be at least 16 but could be up to
-#! 63. The actual number will be computed based on num_leaves.
+#! Process the chain data provided via the advice provider.
+#!
+#! This involves reading the MMR data from the advice provider and storing it at the appropriate
+#! memory addresses. As the MMR peaks are read from the advice provider, the chain root is computed.
+#! It is asserted that the computed chain root matches the chain root stored in the block data
+#! section. After the consistency of the chain root has been verified, the block header for the
+#! transaction block is inserted into the MMR. This way, notes created at this block can be
+#! authenticated against the chain MMR.
+#!
+#! The number of words that the advice provider will send for MMR peaks is variable: it will be at
+#! least 16 but could be up to 63. The actual number will be computed based on num_leaves.
 #!
 #! Stack: []
 #! Advice Map: {
@@ -118,16 +123,25 @@ end
 #! - num_leaves is the number of leaves in the MMR.
 #! - P1, P2, ... are the MMR peaks.
 proc.process_chain_data
-    # get a pointer to the chain mmr data
-    exec.memory::get_chain_mmr_ptr
-    # => [chain_mmr_ptr]
+    # get a pointer to the chain MMR data
+    exec.memory::get_chain_mmr_ptr dup
+    # => [chain_mmr_ptr, chain_mmr_ptr]
 
     # get the chain root
     exec.memory::get_chain_root
-    # => [CHAIN_ROOT, chain_mmr_ptr]
+    # => [CHAIN_ROOT, chain_mmr_ptr, chain_mmr_ptr]
 
-    # unpack mmr
+    # load MMR peaks corresponding to CHAIN_ROOT into memory starting at chain_mmr_ptr
     exec.mmr::unpack
+    # => [chain_mmr_ptr]
+
+    # get block hash of the block against which the transaction is being executed
+    exec.memory::get_blk_hash
+    # => [BLOCK_HASH, chain_mmr_ptr]
+
+    # add the block hash to the chain MMR; this updates the MMR to the latest state and enables
+    # authentication of notes created as part of the block defined by the BLOCK_HASH
+    exec.mmr::add
     # => []
 end
 

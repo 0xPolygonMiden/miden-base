@@ -50,6 +50,15 @@ impl TransactionInputs {
         }?;
 
         // make sure block_chain and block_header are consistent
+
+        let block_num = block_header.block_num();
+        if block_chain.chain_length() != block_header.block_num() as usize {
+            return Err(TransactionInputError::InconsistentChainLength {
+                expected: block_header.block_num(),
+                actual: block_chain.chain_length() as u32,
+            });
+        }
+
         if block_chain.peaks().hash_peaks() != block_header.chain_root() {
             return Err(TransactionInputError::InconsistentChainRoot {
                 expected: block_header.chain_root(),
@@ -57,10 +66,25 @@ impl TransactionInputs {
             });
         }
 
-        // make sure that block_chain has authentication paths for all input notes
+        // make sure that block_chain has authentication paths for all input notes; for input notes
+        // which were created in the current block we skip this check because their authentication
+        // paths are derived implicitly
         for note in input_notes.iter() {
-            if !block_chain.contains_block(note.origin().block_num) {
-                return Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()));
+            let note_block_num = note.origin().block_num;
+
+            let block_header = if note_block_num == block_num {
+                &block_header
+            } else {
+                match block_chain.get_block(note_block_num) {
+                    Some(block_header) => block_header,
+                    None => Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?,
+                }
+            };
+
+            // this check may have non-negligible performance impact as we need to verify inclusion
+            // proofs for all notes; TODO: consider enabling this via a feature flag
+            if !note.is_in_block(block_header) {
+                return Err(TransactionInputError::InputNoteNotInBlock(note.id(), note_block_num));
             }
         }
 
@@ -345,6 +369,13 @@ impl InputNote {
     /// Returns a reference to the origin of the note.
     pub fn origin(&self) -> &NoteOrigin {
         self.proof.origin()
+    }
+
+    /// Returns true if this note belongs to the note tree of the specified block.
+    fn is_in_block(&self, block_header: &BlockHeader) -> bool {
+        let note_index = self.origin().node_index.value();
+        let note_hash = self.note.authentication_hash();
+        self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
     }
 }
 
