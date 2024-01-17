@@ -221,7 +221,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     for (types, types_ptr) in inputs
         .account()
         .storage()
-        .slot_types()
+        .layout()
         .chunks(4)
         .zip(ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..)
     {

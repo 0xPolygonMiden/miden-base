@@ -70,7 +70,7 @@ pub fn create_basic_fungible_faucet(
         (0, (StorageSlotType::Value { value_arity: 0 }, auth_data)),
         (1, (StorageSlotType::Value { value_arity: 0 }, metadata)),
     ])?;
-    let account_vault = AssetVault::new(&[]).map_err(AccountError::AssetVaultError)?;
+    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(
         init_seed,

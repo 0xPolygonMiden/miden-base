@@ -1,6 +1,6 @@
 use super::{
-    AccountError, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest,
-    Felt, Hasher, Serializable, String, ToString, Vec, Word,
+    AccountError, AccountStorageDelta, BTreeMap, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, Serializable, String, ToString, Vec, Word,
 };
 use crate::crypto::merkle::{NodeIndex, SimpleSmt};
 
@@ -36,7 +36,7 @@ pub type StorageSlot = (StorageSlotType, Word);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: SimpleSmt,
-    types: Vec<StorageSlotType>,
+    layout: Vec<StorageSlotType>,
 }
 
 impl AccountStorage {
@@ -49,45 +49,45 @@ impl AccountStorage {
     /// Total number of storage slots.
     pub const NUM_STORAGE_SLOTS: usize = 256;
 
-    /// The storage slot at which the slot types commitment is stored.
-    pub const SLOT_TYPES_COMMITMENT_INDEX: u8 = 255;
+    /// The storage slot at which the layout commitment is stored.
+    pub const SLOT_LAYOUT_COMMITMENT_INDEX: u8 = 255;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
-        // initialize slot types vector
-        let mut types = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
+        // initialize storage layout
+        let mut layout = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
 
-        // set the slot type for the types commitment
-        types[Self::SLOT_TYPES_COMMITMENT_INDEX as usize] =
+        // set the slot type for the layout commitment
+        layout[Self::SLOT_LAYOUT_COMMITMENT_INDEX as usize] =
             StorageSlotType::Value { value_arity: 64 };
 
         // process entries to extract type data
         let mut entires = items
             .into_iter()
             .map(|x| {
-                if x.0 == Self::SLOT_TYPES_COMMITMENT_INDEX {
+                if x.0 == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
                     return Err(AccountError::StorageSlotIsReserved(x.0));
                 }
 
                 let (slot_type, slot_value) = x.1;
-                types[x.0 as usize] = slot_type;
+                layout[x.0 as usize] = slot_type;
                 Ok((x.0 as u64, slot_value))
             })
             .collect::<Result<Vec<_>, AccountError>>()?;
 
-        // add slot types commitment entry
+        // add layout commitment entry
         entires.push((
-            Self::SLOT_TYPES_COMMITMENT_INDEX as u64,
-            *Hasher::hash_elements(&types.iter().map(Felt::from).collect::<Vec<_>>()),
+            Self::SLOT_LAYOUT_COMMITMENT_INDEX as u64,
+            *Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>()),
         ));
 
         // construct storage slots smt and populate the types vector.
         let slots = SimpleSmt::with_leaves(Self::STORAGE_TREE_DEPTH, entires)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        Ok(Self { slots, types })
+        Ok(Self { slots, layout })
     }
 
     // PUBLIC ACCESSORS
@@ -112,28 +112,72 @@ impl AccountStorage {
         &self.slots
     }
 
-    /// Returns a mutable reference to the sparse Merkle tree that backs the storage slots.
-    pub fn slots_mut(&mut self) -> &mut SimpleSmt {
-        &mut self.slots
+    /// Returns layout info for this storage.
+    pub fn layout(&self) -> &[StorageSlotType] {
+        &self.layout
     }
 
-    /// Returns a slice of slot types.
-    pub fn slot_types(&self) -> &[StorageSlotType] {
-        &self.types
+    /// Returns a commitment to the storage layout.
+    pub fn layout_commitment(&self) -> Digest {
+        Hasher::hash_elements(&self.layout.iter().map(Felt::from).collect::<Vec<_>>())
     }
 
-    /// Returns a commitment to the storage slot types.
-    pub fn slot_types_commitment(&self) -> Digest {
-        Hasher::hash_elements(&self.types.iter().map(Felt::from).collect::<Vec<_>>())
-    }
-
-    // PUBLIC MODIFIERS
+    // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Applies the provided delta to this account storage.
+    ///
+    /// This method assumes that the delta has been validated by the calling method and so, no
+    /// additional validation of delta is performed.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The delta implies an update to a reserved account slot.
+    /// - The updates violate storage layout constraints.
+    pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
+        for &slot_idx in delta.cleared_items.iter() {
+            self.set_item(slot_idx, Word::default())?;
+        }
+
+        for &(slot_idx, slot_value) in delta.updated_items.iter() {
+            self.set_item(slot_idx, slot_value)?;
+        }
+
+        Ok(())
+    }
+
     /// Sets an item from the storage at the specified index.
-    pub fn set_item(&mut self, index: u8, value: Word) -> Word {
-        self.slots
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The index specifies a reserved storage slot.
+    /// - The update violates storage layout constraints.
+    pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
+        // layout commitment slot cannot be updated
+        if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+            return Err(AccountError::StorageSlotIsReserved(index));
+        }
+
+        // only value slots of basic arity can currently be updated
+        match self.layout[index as usize] {
+            StorageSlotType::Value { value_arity } => {
+                if value_arity > 0 {
+                    return Err(AccountError::StorageSlotInvalidValueArity {
+                        slot: index,
+                        expected: 0,
+                        actual: value_arity,
+                    });
+                }
+            },
+            slot_type => Err(AccountError::StorageSlotNotValueSlot(index, slot_type))?,
+        }
+
+        // update the slot and return
+        let slot_value = self
+            .slots
             .update_leaf(index as u64, value)
-            .expect("index is u8 - index within range")
+            .expect("index is u8 - index within range");
+        Ok(slot_value)
     }
 }
 
@@ -142,10 +186,10 @@ impl AccountStorage {
 
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // serialize slot type info; we don't serialize default type info as we'll assume that any
+        // serialize layout info; we don't serialize default type info as we'll assume that any
         // slot type that wasn't serialized was a default slot type. also we skip the last slot
         // type as it is a constant.
-        let complex_types = self.types[..255]
+        let complex_types = self.layout[..255]
             .iter()
             .enumerate()
             .filter(|(_, slot_type)| !slot_type.is_default())
@@ -165,7 +209,7 @@ impl Serializable for AccountStorage {
             .filter(|(idx, &value)| {
                 // TODO: consider checking empty values for complex types as well
                 value != SimpleSmt::EMPTY_VALUE
-                    && *idx as u8 != AccountStorage::SLOT_TYPES_COMMITMENT_INDEX
+                    && *idx as u8 != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX
             })
             .collect::<Vec<_>>();
 

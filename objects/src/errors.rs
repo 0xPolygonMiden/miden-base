@@ -4,7 +4,7 @@ use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::AccountId,
+    accounts::{AccountId, StorageSlotType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
@@ -22,21 +22,17 @@ pub enum AccountError {
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes,
-    ApplyStorageSlotsDiffFailed(MerkleError),
-    ApplyStorageStoreDiffFailed(MerkleError),
-    AssetVaultError(AssetVaultError),
+    AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
-    NonceMustBeMonotonicallyIncreasing(u64, u64),
+    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    SetStoreNodeFailed(MerkleError),
-    StorageArrayRequiresMoreThanOneElement,
-    StorageArrayTooLong { actual: usize, max: usize },
-    StorageSlotArrayTooSmall { actual: u8, min: u8 },
+    StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
+    StorageSlotNotValueSlot(u8, StorageSlotType),
     StubDataIncorrectLength(usize, usize),
 }
 
@@ -259,12 +255,22 @@ impl std::error::Error for NoteError {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChainMmrError {
-    BlockNumTooBig { chain_length: usize, block_num: usize },
+    BlockNumTooBig { chain_length: usize, block_num: u32 },
+    DuplicateBlock { block_num: u32 },
+    UntrackedBlock { block_num: u32 },
 }
 
 impl ChainMmrError {
-    pub fn block_num_too_big(chain_length: usize, block_num: usize) -> Self {
+    pub fn block_num_too_big(chain_length: usize, block_num: u32) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
+    }
+
+    pub fn duplicate_block(block_num: u32) -> Self {
+        Self::DuplicateBlock { block_num }
+    }
+
+    pub fn untracked_block(block_num: u32) -> Self {
+        Self::UntrackedBlock { block_num }
     }
 }
 
@@ -302,6 +308,8 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentChainRoot { expected: Digest, actual: Digest },
+    InputNoteBlockNotInChainMmr(NoteId),
     InvalidAccountSeed(AccountError),
     TooManyInputNotes { max: usize, actual: usize },
 }
@@ -321,7 +329,6 @@ impl std::error::Error for TransactionInputError {}
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
-    ExtractAccountStorageSlotsDeltaFailed(MerkleError),
     FinalAccountDataNotFound,
     FinalAccountStubDataInvalid(AccountError),
     OutputNoteDataNotFound,

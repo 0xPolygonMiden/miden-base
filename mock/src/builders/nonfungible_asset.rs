@@ -5,7 +5,7 @@ use miden_objects::{
 };
 use rand::{distributions::Standard, Rng};
 
-/// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multipled times.
+/// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetDetailsBuilder<T> {
@@ -28,7 +28,7 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
     }
 }
 
-/// Builder for an `NonFungibleAsset`, the builder can be configured and used multipled times.
+/// Builder for an `NonFungibleAsset`, the builder can be configured and used multiplied times.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetBuilder<T> {

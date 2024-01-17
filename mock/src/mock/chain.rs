@@ -6,7 +6,7 @@ use miden_objects::{
     crypto::merkle::{Mmr, NodeIndex, PartialMmr, SimpleSmt, TieredSmt},
     notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
     transaction::{ChainMmr, InputNote},
-    utils::collections::{BTreeMap, Vec},
+    utils::collections::Vec,
     BlockHeader, Digest, Felt, FieldElement, StarkField, Word,
 };
 use rand::{Rng, SeedableRng};
@@ -536,7 +536,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
     /// Get the latest [ChainMmr].
     pub fn chain(&self) -> ChainMmr {
-        mmr_to_chain_mmr(&self.chain)
+        mmr_to_chain_mmr(&self.chain, &self.blocks)
     }
 
     /// Get a reference to [BlockHeader] with `block_number`.
@@ -630,7 +630,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
     for block_header in block_chain.iter() {
         mmr.add(block_header.hash())
     }
-    let chain_mmr = mmr_to_chain_mmr(&mmr);
+    let chain_mmr = mmr_to_chain_mmr(&mmr, &block_chain);
 
     // set origin for consumed notes using chain and block data
     let recorded_notes = consumed_notes
@@ -660,17 +660,15 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
 // ================================================================================================
 
 /// Converts the MMR into partial MMR by copying all leaves from MMR to partial MMR.
-fn mmr_to_chain_mmr(mmr: &Mmr) -> ChainMmr {
+fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> ChainMmr {
     let num_leaves = mmr.forest();
     let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks(mmr.forest()).unwrap());
-    let mut headers = BTreeMap::new();
 
     for i in 0..num_leaves {
         let node = mmr.get(i).unwrap();
         let path = mmr.open(i, mmr.forest()).unwrap().merkle_path;
         partial_mmr.add(i, node, &path).unwrap();
-        headers.insert(i as u32, node);
     }
 
-    ChainMmr::new(partial_mmr, headers).unwrap()
+    ChainMmr::new(partial_mmr, blocks.to_vec()).unwrap()
 }

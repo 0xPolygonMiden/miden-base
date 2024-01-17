@@ -49,7 +49,20 @@ impl TransactionInputs {
             (false, None) => Ok(()),
         }?;
 
-        // TODO: check if block_chain has authentication paths for all input notes
+        // make sure block_chain and block_header are consistent
+        if block_chain.peaks().hash_peaks() != block_header.chain_root() {
+            return Err(TransactionInputError::InconsistentChainRoot {
+                expected: block_header.chain_root(),
+                actual: block_chain.peaks().hash_peaks(),
+            });
+        }
+
+        // make sure that block_chain has authentication paths for all input notes
+        for note in input_notes.iter() {
+            if !block_chain.contains_block(note.origin().block_num) {
+                return Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()));
+            }
+        }
 
         Ok(Self {
             account,

@@ -23,7 +23,7 @@ Unlike most other rollups, Polygon Miden prioritizes ZK-friendliness over EVM co
 ## Benefits of Polygon Miden
 * Ethereum security
 * Developers can build applications infeasible on other systems, e.g.
-  * **onchain order book exchange** due to parallel tx exectuion and updatable transactions
+  * **onchain order book exchange** due to parallel tx execution and updatable transactions
   * **complex, incomplete information games** due to client-side proving and cheap complex computations
   * **safe wallets** due to assets being stored in the accounts and account state can be hidden
 * Better privacy properties than on Ethereum - first web2 privacy, later even stronger privacy guarantees
