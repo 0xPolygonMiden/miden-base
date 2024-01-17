@@ -40,6 +40,9 @@ pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0b000110111
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
 
 #[cfg(any(feature = "testing", test))]
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 = 0b1010011101 << 54;
+
+#[cfg(any(feature = "testing", test))]
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1101100110 << 54;
 
 #[cfg(any(feature = "testing", test))]
@@ -275,14 +278,15 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
-    use crate::assets::AssetVault;
+    use crate::assets::{Asset, AssetVault, FungibleAsset};
 
     use super::{
-        Account, AccountCode, AccountId, AccountStorage, Assembler, Felt, ModuleAst,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
+        AccountVaultDelta, Assembler, Felt, ModuleAst, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
 
-    fn build_account() -> Account {
+    fn build_account(assets: Vec<Asset>, nonce: Felt) -> Account {
         // build account code
         let source = "
             export.foo
@@ -297,18 +301,99 @@ mod tests {
         let code = AccountCode::new(module, &assembler).unwrap();
 
         // build account data
-        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let vault = AssetVault::new(&[]).unwrap();
-        let storage = AccountStorage::new(vec![]).unwrap();
-        let nonce = Felt::new(0);
+        let vault = AssetVault::new(&assets).unwrap();
+        let storage = AccountStorage::new(Vec::new()).unwrap();
 
         // create account
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
         Account::new(id, vault, storage, code, nonce)
     }
 
-    fn delta_with_valid_data_is_correctly_applied() {}
+    fn build_account_delta(
+        added_assets: Vec<Asset>,
+        removed_assets: Vec<Asset>,
+        nonce: Felt,
+    ) -> AccountDelta {
+        let storage_delta = AccountStorageDelta::default();
+        let vault_delta = AccountVaultDelta { added_assets, removed_assets };
 
-    fn delta_with_invalid_data_returns_error() {}
+        AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
+    }
 
-    fn delta_with_invalid_nonce_returns_error() {}
+    fn build_assets() -> (Asset, Asset) {
+        // build asset 0
+        let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
+
+        // build asset 1
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+        let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
+
+        (asset_0, asset_1)
+    }
+
+    #[test]
+    fn valid_account_delta_is_correctly_applied() {
+        // build account
+        let init_nonce = Felt::new(1);
+        let (asset_0, asset_1) = build_assets();
+        let mut account = build_account(vec![asset_0], init_nonce);
+
+        // build account delta
+        let final_nonce = Felt::new(2);
+        let account_delta = build_account_delta(vec![asset_1], vec![asset_0], final_nonce);
+
+        // apply delta and create final_account
+        account.apply_delta(&account_delta).unwrap();
+        let final_account = build_account(vec![asset_1], final_nonce);
+
+        // assert account is what it should be
+        assert_eq!(account, final_account);
+    }
+
+    #[test]
+    #[should_panic]
+    fn valid_account_delta_with_unchanged_nonce() {
+        // build account
+        let init_nonce = Felt::new(1);
+        let (asset, _) = build_assets();
+        let mut account = build_account(vec![asset], init_nonce);
+
+        // build account delta
+        let account_delta = build_account_delta(vec![], vec![asset], init_nonce);
+
+        // apply delta
+        account.apply_delta(&account_delta).unwrap()
+    }
+
+    #[test]
+    #[should_panic]
+    fn valid_account_delta_with_decremented_nonce() {
+        // build account
+        let init_nonce = Felt::new(2);
+        let (asset, _) = build_assets();
+        let mut account = build_account(vec![asset], init_nonce);
+
+        // build account delta
+        let final_nonce = Felt::new(1);
+        let account_delta = build_account_delta(vec![], vec![asset], final_nonce);
+
+        // apply delta
+        account.apply_delta(&account_delta).unwrap()
+    }
+
+    #[test]
+    #[should_panic]
+    fn empty_account_delta_with_incremented_nonce() {
+        // build account
+        let init_nonce = Felt::new(1);
+        let mut account = build_account(vec![], init_nonce);
+
+        // build account delta
+        let final_nonce = Felt::new(2);
+        let account_delta = build_account_delta(vec![], vec![], final_nonce);
+
+        // apply delta
+        account.apply_delta(&account_delta).unwrap()
+    }
 }
