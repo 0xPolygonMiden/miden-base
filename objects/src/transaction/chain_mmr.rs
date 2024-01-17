@@ -1,5 +1,5 @@
 use crate::{
-    crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
+    crypto::merkle::{InnerNodeInfo, MerklePath, MmrDelta, MmrPeaks, PartialMmr},
     utils::collections::{BTreeMap, Vec},
     BlockHeader, ChainMmrError,
 };
@@ -83,6 +83,47 @@ impl ChainMmr {
         self.blocks.get(&block_num)
     }
 
+    // DATA MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Appends the provided block header to this chain MMR. This method assumes that the provided
+    /// block header is for the next block in the chain.
+    ///
+    /// If `track` parameter is set to true, the authentication path for the provided block header
+    /// will be added to this chain MMR.
+    ///
+    /// # Panics
+    /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
+    /// provided block header is not the next block in the chain).
+    pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
+        let block_num = block_header.block_num();
+        let block_hash = block_header.hash();
+
+        assert_eq!(block_num, self.chain_length() as u32);
+
+        // save the original peaks so that we can construct a Merkle path from them later
+        let mut original_peaks = self.mmr.peaks().peaks().to_vec();
+        original_peaks.reverse();
+
+        // update the partial MMR
+        let delta = MmrDelta {
+            forest: self.mmr.forest() + 1,
+            data: vec![block_header.hash()],
+        };
+        self.mmr.apply(delta).expect("failed to add a block to the partial MMR");
+
+        // if we want to track authentication path for this block, add it to the partial MMR and
+        // also add the block header to the block map
+        if track {
+            // path depth is the depth of the smallest tree after the update; this is defined by
+            // number of trailing zeros in the forest (ideally, we'd use a Forest struct for this)
+            let path_depth = self.mmr.forest().trailing_zeros() as usize;
+            let block_path = MerklePath::new(original_peaks[..path_depth].to_vec());
+            self.mmr.add(block_num as usize, block_hash, &block_path).expect("msg");
+            self.blocks.insert(block_num, block_header);
+        }
+    }
+
     // ITERATORS
     // --------------------------------------------------------------------------------------------
 
@@ -91,6 +132,78 @@ impl ChainMmr {
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         self.mmr.inner_nodes(
             self.blocks.values().map(|block| (block.block_num() as usize, block.hash())),
+        )
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::{ChainMmr, Vec};
+    use crate::{
+        crypto::merkle::{Mmr, PartialMmr},
+        BlockHeader, Digest, ZERO,
+    };
+
+    #[test]
+    fn test_chain_mmr_add() {
+        // create chain MMR with 3 blocks - i.e., 2 peaks
+        let mut mmr = Mmr::default();
+        for i in 0..3 {
+            let block_header = int_to_block_header(i);
+            mmr.add(block_header.hash());
+        }
+        let partial_mmr: PartialMmr = mmr.peaks(mmr.forest()).unwrap().into();
+        let mut chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+
+        // add a new block to the chain MMR, this reduces the number of peaks to 1
+        let block_num = 3;
+        let bock_header = int_to_block_header(block_num);
+        mmr.add(bock_header.hash());
+        chain_mmr.add_block(bock_header, true);
+
+        assert_eq!(
+            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+        );
+
+        // add one more block to the chain MMR, the number of peaks is again 2
+        let block_num = 4;
+        let bock_header = int_to_block_header(block_num);
+        mmr.add(bock_header.hash());
+        chain_mmr.add_block(bock_header, true);
+
+        assert_eq!(
+            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+        );
+
+        // add one more block to the chain MMR, the number of peaks is still 2
+        let block_num = 5;
+        let bock_header = int_to_block_header(block_num);
+        mmr.add(bock_header.hash());
+        chain_mmr.add_block(bock_header, true);
+
+        assert_eq!(
+            mmr.open(block_num as usize, mmr.forest()).unwrap(),
+            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+        );
+    }
+
+    fn int_to_block_header(block_num: u32) -> BlockHeader {
+        BlockHeader::new(
+            Digest::default(),
+            block_num,
+            Digest::default(),
+            Digest::default(),
+            Digest::default(),
+            Digest::default(),
+            Digest::default(),
+            Digest::default(),
+            ZERO,
+            ZERO,
         )
     }
 }
