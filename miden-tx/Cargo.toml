@@ -12,13 +12,14 @@ edition = "2021"
 rust-version = "1.67"
 
 [features]
+concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
 
 [dependencies]
 miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-prover = { workspace = true }
+miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 miden-verifier = { workspace = true }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
