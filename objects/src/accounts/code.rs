@@ -14,6 +14,9 @@ use crate::crypto::merkle::SimpleSmt;
 /// Default serialization options for account code AST.
 const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 
+/// The depth of the Merkle tree that is used to commit to the account's public interface.
+pub const PROCEDURE_TREE_DEPTH: u8 = 8;
+
 // ACCOUNT CODE
 // ================================================================================================
 
@@ -26,7 +29,7 @@ const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 pub struct AccountCode {
     module: ModuleAst,
     procedures: Vec<Digest>,
-    procedure_tree: OnceCell<SimpleSmt>,
+    procedure_tree: OnceCell<SimpleSmt<PROCEDURE_TREE_DEPTH>>,
 }
 
 impl AccountCode {
@@ -34,7 +37,7 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
 
     /// The depth of the Merkle tree that is used to commit to the account's public interface.
-    pub const PROCEDURE_TREE_DEPTH: u8 = 8;
+    pub const PROCEDURE_TREE_DEPTH: u8 = PROCEDURE_TREE_DEPTH;
 
     /// The maximum number of account interface procedures.
     pub const MAX_NUM_PROCEDURES: usize = 2_usize.pow(Self::PROCEDURE_TREE_DEPTH as u32);
@@ -108,7 +111,7 @@ impl AccountCode {
     }
 
     /// Returns a reference to the procedure tree.
-    pub fn procedure_tree(&self) -> &SimpleSmt {
+    pub fn procedure_tree(&self) -> &SimpleSmt<PROCEDURE_TREE_DEPTH> {
         // build procedure tree only when requested
         self.procedure_tree.get_or_init(|| build_procedure_tree(&self.procedures))
     }
@@ -178,7 +181,7 @@ impl Deserializable for AccountCode {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt {
+fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt<PROCEDURE_TREE_DEPTH> {
     // order the procedure digests to achieve a reproducible tree
     let procedures = {
         let mut procedures = procedures.to_vec();
@@ -186,8 +189,7 @@ fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt {
         procedures
     };
 
-    SimpleSmt::with_leaves(
-        AccountCode::PROCEDURE_TREE_DEPTH,
+    SimpleSmt::<PROCEDURE_TREE_DEPTH>::with_leaves(
         procedures
             .iter()
             .enumerate()

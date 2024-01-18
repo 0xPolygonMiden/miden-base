@@ -3,12 +3,13 @@ use core::fmt;
 use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
-    crypto::merkle::{Mmr, NodeIndex, PartialMmr, SimpleSmt, TieredSmt},
-    notes::{Note, NoteInclusionProof, NOTE_LEAF_DEPTH, NOTE_TREE_DEPTH},
+    crypto::merkle::{Mmr, PartialMmr, SimpleSmt, TieredSmt},
+    notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
     utils::collections::Vec,
-    BlockHeader, Digest, Felt, FieldElement, StarkField, Word,
+    BlockHeader, Digest, Felt, FieldElement, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH,
 };
+use miden_test_utils::crypto::LeafIndex;
 use rand::{Rng, SeedableRng};
 
 use super::{
@@ -60,7 +61,7 @@ impl<R: Rng> Objects<R> {
         &mut self,
         pending: &mut Objects<R>,
         header: BlockHeader,
-        notes: &SimpleSmt,
+        notes: &SimpleSmt<NOTE_TREE_DEPTH>,
     ) {
         self.accounts.append(&mut pending.accounts);
         self.fungible_faucets.append(&mut pending.fungible_faucets);
@@ -76,7 +77,7 @@ impl<R: Rng> Objects<R> {
     /// The root of the tree is a commitment to all notes created in the block. The commitment
     /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
     /// a note (i.e., vault, inputs, script, and serial number).
-    pub fn build_notes_tree(&self) -> SimpleSmt {
+    pub fn build_notes_tree(&self) -> SimpleSmt<NOTE_TREE_DEPTH> {
         let mut entries = Vec::with_capacity(self.notes.len() * 2);
 
         entries.extend(self.notes.iter().enumerate().map(|(index, note)| {
@@ -88,21 +89,22 @@ impl<R: Rng> Objects<R> {
             (tree_index, note.metadata().into())
         }));
 
-        SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, entries).unwrap()
+        SimpleSmt::with_leaves(entries).unwrap()
     }
 
     /// Given the [BlockHeader] and its notedb's [SimpleSmt], set all the [Note]'s proof.
     ///
     /// Update the [Note]'s proof once the [BlockHeader] has been created.
-    fn finalize_notes(&mut self, header: BlockHeader, notes: &SimpleSmt) -> Vec<InputNote> {
+    fn finalize_notes(
+        &mut self,
+        header: BlockHeader,
+        notes: &SimpleSmt<NOTE_TREE_DEPTH>,
+    ) -> Vec<InputNote> {
         self.notes
             .drain(..)
             .enumerate()
             .map(|(index, note)| {
-                let auth_index =
-                    NodeIndex::new(NOTE_TREE_DEPTH, index as u64).expect("index bigger than 2**20");
-                let note_path =
-                    notes.get_path(auth_index).expect("auth_index outside of SimpleSmt range");
+                let auth_index = LeafIndex::new(index as u64).expect("index bigger than 2**20");
                 InputNote::new(
                     note.clone(),
                     NoteInclusionProof::new(
@@ -110,7 +112,7 @@ impl<R: Rng> Objects<R> {
                         header.sub_hash(),
                         header.note_root(),
                         index as u64,
-                        note_path,
+                        notes.open(&auth_index).path,
                     )
                     .expect("Invalid data provided to proof constructor"),
                 )
@@ -133,8 +135,7 @@ pub struct MockChain<R> {
     nullifiers: TieredSmt,
 
     /// Tree containing the latest hash of each account.
-    // TODO: change this to a TieredSmt with 64bit keys.
-    accounts: SimpleSmt,
+    accounts: SimpleSmt<ACCOUNT_TREE_DEPTH>,
 
     /// RNG used to seed builders.
     ///
@@ -199,7 +200,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             chain: Mmr::default(),
             blocks: vec![],
             nullifiers: TieredSmt::default(),
-            accounts: SimpleSmt::new(64).expect("depth too big for SimpleSmt"),
+            accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
             rng,
             account_id_builder,
             objects: Objects::new(),
@@ -443,12 +444,10 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let block_num: u32 = self.blocks.len().try_into().expect("usize to u32 failed");
 
         for (account, _seed) in self.pending_objects.accounts.iter() {
-            let id: Felt = account.id().into();
-            self.accounts.update_leaf(id.as_int(), account.hash().into()).unwrap();
+            self.accounts.insert(account.id().into(), account.hash().into());
         }
         for (account, _seed) in self.objects.accounts.iter() {
-            let id: Felt = account.id().into();
-            self.accounts.update_leaf(id.as_int(), account.hash().into()).unwrap();
+            self.accounts.insert(account.id().into(), account.hash().into());
         }
 
         // TODO:
@@ -606,12 +605,8 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
     // TODO: Consider how to better represent note authentication data.
     // we use the index for both the block number and the leaf index in the note tree
     for (index, note) in consumed_notes.iter().enumerate() {
-        let tree_index = 2 * index;
-        let smt_entries = vec![
-            (tree_index as u64, note.id().into()),
-            ((tree_index + 1) as u64, note.metadata().into()),
-        ];
-        let smt = SimpleSmt::with_leaves(NOTE_LEAF_DEPTH, smt_entries).unwrap();
+        let smt_entries = vec![(index as u64, note.authentication_hash().into())];
+        let smt = SimpleSmt::<NOTE_TREE_DEPTH>::with_leaves(smt_entries).unwrap();
         note_trees.push(smt);
     }
 
@@ -638,7 +633,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
         .enumerate()
         .map(|(index, note)| {
             let block_header = &block_chain[index];
-            let auth_index = NodeIndex::new(NOTE_TREE_DEPTH, index as u64).unwrap();
+            let auth_index = LeafIndex::new(index as u64).unwrap();
             InputNote::new(
                 note,
                 NoteInclusionProof::new(
@@ -646,7 +641,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
                     block_header.sub_hash(),
                     block_header.note_root(),
                     index as u64,
-                    note_trees[index].get_path(auth_index).unwrap(),
+                    note_trees[index].open(&auth_index).path,
                 )
                 .unwrap(),
             )

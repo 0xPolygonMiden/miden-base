@@ -5,7 +5,17 @@ use super::{
 use crate::crypto::merkle::{NodeIndex, SimpleSmt};
 
 mod slot;
+use miden_crypto::{merkle::LeafIndex, ZERO};
 pub use slot::StorageSlotType;
+
+// CONSTANTS
+// ================================================================================================
+
+/// Depth of the storage tree.
+pub const STORAGE_TREE_DEPTH: u8 = 8;
+
+/// TODO: should come from SimpleSmt::EMPTY_VALUE.
+pub const EMPTY_VALUE: Word = [ZERO; 4];
 
 // TYPE ALIASES
 // ================================================================================================
@@ -35,7 +45,7 @@ pub type StorageSlot = (StorageSlotType, Word);
 /// and contains information about slot types of all other slots.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
-    slots: SimpleSmt,
+    slots: SimpleSmt<STORAGE_TREE_DEPTH>,
     layout: Vec<StorageSlotType>,
 }
 
@@ -44,7 +54,7 @@ impl AccountStorage {
     // --------------------------------------------------------------------------------------------
 
     /// Depth of the storage tree.
-    pub const STORAGE_TREE_DEPTH: u8 = 8;
+    pub const STORAGE_TREE_DEPTH: u8 = STORAGE_TREE_DEPTH;
 
     /// Total number of storage slots.
     pub const NUM_STORAGE_SLOTS: usize = 256;
@@ -84,7 +94,7 @@ impl AccountStorage {
         ));
 
         // construct storage slots smt and populate the types vector.
-        let slots = SimpleSmt::with_leaves(Self::STORAGE_TREE_DEPTH, entires)
+        let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entires)
             .map_err(AccountError::DuplicateStorageItems)?;
 
         Ok(Self { slots, layout })
@@ -108,7 +118,7 @@ impl AccountStorage {
     }
 
     /// Returns a reference to the sparse Merkle tree that backs the storage slots.
-    pub fn slots(&self) -> &SimpleSmt {
+    pub fn slots(&self) -> &SimpleSmt<STORAGE_TREE_DEPTH> {
         &self.slots
     }
 
@@ -173,10 +183,8 @@ impl AccountStorage {
         }
 
         // update the slot and return
-        let slot_value = self
-            .slots
-            .update_leaf(index as u64, value)
-            .expect("index is u8 - index within range");
+        let index = LeafIndex::new(index as u64).expect("index is u8 - index within range");
+        let slot_value = self.slots.insert(index, value);
         Ok(slot_value)
     }
 }
@@ -208,8 +216,7 @@ impl Serializable for AccountStorage {
             .leaves()
             .filter(|(idx, &value)| {
                 // TODO: consider checking empty values for complex types as well
-                value != SimpleSmt::EMPTY_VALUE
-                    && *idx as u8 != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX
+                value != EMPTY_VALUE && *idx as u8 != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX
             })
             .collect::<Vec<_>>();
 
