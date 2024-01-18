@@ -52,3 +52,12 @@ pub mod vm {
     pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, StackInputs, StackOutputs};
 }
+
+// CONSTANTS
+// ================================================================================================
+
+/// Depth of the account database tree.
+pub const ACCOUNT_TREE_DEPTH: u8 = 64;
+
+/// The depth of the Merkle tree used to commit to notes produced in a block.
+pub const NOTE_TREE_DEPTH: u8 = 20;

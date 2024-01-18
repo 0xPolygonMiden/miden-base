@@ -10,7 +10,7 @@ use super::{
         string::{String, ToString},
     },
     vm::CodeBlock,
-    Digest, Felt, Hasher, NoteError, Word, WORD_SIZE, ZERO,
+    Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
 
 mod envelope;
@@ -39,9 +39,6 @@ pub use assets::NoteAssets;
 
 // CONSTANTS
 // ================================================================================================
-
-/// The depth of the Merkle tree used to commit to notes produced in a block.
-pub const NOTE_TREE_DEPTH: u8 = 20;
 
 /// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
 /// This is equal `NOTE_TREE_DEPTH + 1`. In the kernel we do not authenticate leaf data directly

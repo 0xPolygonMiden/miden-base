@@ -19,7 +19,7 @@ std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier
 [dependencies]
 miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
 
