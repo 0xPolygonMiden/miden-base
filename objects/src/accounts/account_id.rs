@@ -4,7 +4,7 @@ use super::{
     get_account_seed, Account, AccountError, ByteReader, Deserializable, DeserializationError,
     Digest, Felt, FieldElement, Hasher, Serializable, StarkField, String, ToString, Vec, Word,
 };
-use crate::utils::hex_to_bytes;
+use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
 
 // ACCOUNT ID
 // ================================================================================================
@@ -225,6 +225,27 @@ impl AccountId {
     }
 }
 
+impl PartialOrd for AccountId {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for AccountId {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.as_int().cmp(&other.0.as_int())
+    }
+}
+
+impl fmt::Display for AccountId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x{:02x}", self.0.as_int())
+    }
+}
+
+// CONVERSIONS FROM ACCOUNT ID
+// ================================================================================================
+
 impl From<AccountId> for Felt {
     fn from(id: AccountId) -> Self {
         id.0
@@ -244,6 +265,16 @@ impl From<AccountId> for u64 {
         id.0.as_int()
     }
 }
+
+/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
+impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
+    fn from(id: AccountId) -> Self {
+        LeafIndex::new_max_depth(id.0.as_int())
+    }
+}
+
+// CONVERSIONS TO ACCOUNT ID
+// ================================================================================================
 
 impl TryFrom<Felt> for AccountId {
     type Error = AccountError;
@@ -271,24 +302,6 @@ impl TryFrom<u64> for AccountId {
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let element = parse_felt(&value.to_le_bytes())?;
         Self::try_from(element)
-    }
-}
-
-impl fmt::Display for AccountId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:02x}", self.0.as_int())
-    }
-}
-
-impl PartialOrd for AccountId {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for AccountId {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.0.as_int().cmp(&other.0.as_int())
     }
 }
 

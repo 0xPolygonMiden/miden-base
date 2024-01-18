@@ -1,7 +1,11 @@
-use miden_objects::accounts::{
-    AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+use miden_objects::{
+    accounts::{
+        AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    },
+    crypto::merkle::LeafIndex,
 };
 use mock::{
     constants::{
@@ -264,9 +268,9 @@ fn test_set_item() {
     let init_root = account_smt.root();
 
     // insert a new leaf value
-    const NEW_ITEM_INDEX: u64 = 12;
-    const NEW_ITEM_VALUE: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
-    account_smt.update_leaf(NEW_ITEM_INDEX, NEW_ITEM_VALUE).unwrap();
+    let new_item_index = LeafIndex::new(12).unwrap();
+    let new_item_value: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
+    account_smt.insert(new_item_index, new_item_value);
     assert_ne!(account_smt.root(), init_root);
 
     let code = format!(
@@ -283,7 +287,7 @@ fn test_set_item() {
         push.{new_value}
 
         # push the account storage item index
-        push.{NEW_ITEM_INDEX}
+        push.{new_item_index}
 
         # get the item
         exec.account::set_item
@@ -298,7 +302,8 @@ fn test_set_item() {
         push.{new_root} assert_eqw
     end
     ",
-        new_value = prepare_word(&NEW_ITEM_VALUE),
+        new_value = prepare_word(&new_item_value),
+        new_item_index = new_item_index.value(),
         new_root = prepare_word(&account_smt.root()),
     );
 
@@ -385,9 +390,12 @@ fn test_authenticate_procedure() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account = tx_inputs.account();
 
+    let proc0_index = LeafIndex::new(0).unwrap();
+    let proc1_index = LeafIndex::new(1).unwrap();
+
     let test_cases = vec![
-        (account.code().procedure_tree().get_leaf(0).unwrap(), true),
-        (account.code().procedure_tree().get_leaf(1).unwrap(), true),
+        (account.code().procedure_tree().get_leaf(&proc0_index), true),
+        (account.code().procedure_tree().get_leaf(&proc1_index), true),
         ([ONE, ZERO, ONE, ZERO], false),
     ];
 
