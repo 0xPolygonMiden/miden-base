@@ -19,15 +19,11 @@ std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/st
 testing = ["miden-objects/testing"]
 
 [dependencies]
-assembly = { workspace = true }
 miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-stdlib = { workspace = true }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = [
-    "testing",
-] }
-miden-stdlib = { workspace = true }
+miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = ["testing" ]}
 mock = { package = "miden-mock", path = "../mock", default-features = false }
 vm-processor = { workspace = true, features = ["internals"] }
 

@@ -1,6 +1,6 @@
-use assembly::LibraryPath;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
+    assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
     utils::{string::ToString, vec},
     AccountError, Felt, StarkField, Word, ZERO,

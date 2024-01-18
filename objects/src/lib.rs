@@ -27,7 +27,8 @@ pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SI
 pub mod assembly {
     pub use assembly::{
         ast::{AstSerdeOptions, ModuleAst, ProgramAst},
-        Assembler, AssemblyContext, AssemblyError,
+        Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath,
+        MaslLibrary, Version,
     };
 }
 

@@ -1,10 +1,11 @@
-use assembly::{ast::ProgramAst, utils::DeserializationError, Assembler, AssemblyContext};
 use miden_objects::{
     accounts::AccountId,
+    assembly::{Assembler, AssemblyContext, ProgramAst},
     transaction::{OutputNotes, TransactionOutputs},
     utils::{
         collections::{BTreeMap, Vec},
         group_slice_elements,
+        serde::DeserializationError,
     },
     vm::{ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word,

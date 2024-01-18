@@ -5,10 +5,9 @@ use miden_objects::{
     notes::{NoteId, NoteScript},
     transaction::{ExecutedTransaction, PreparedTransaction},
     utils::collections::BTreeMap,
-    vm::CodeBlock,
+    vm::{CodeBlock, Program},
     AccountError, Digest,
 };
-use vm_core::Program;
 use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod compiler;

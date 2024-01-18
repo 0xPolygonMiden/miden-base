@@ -1,6 +1,6 @@
-use assembly::ast::ProgramAst;
 use miden_objects::{
-    accounts::AccountId, notes::NoteScript, Digest, Hasher, NoteError, Word, ZERO,
+    accounts::AccountId, assembly::ProgramAst, notes::NoteScript, Digest, Hasher, NoteError, Word,
+    ZERO,
 };
 
 use crate::transaction::TransactionKernel;

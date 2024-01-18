@@ -36,10 +36,8 @@ assembly = { workspace = true }
 log = { version = "0.4", optional = true }
 miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 miden-verifier = { workspace = true }
-serde = { version = "1.0", optional = true, default-features = false, features = [
-    "derive",
-] }
-vm-core = { workspace = true }
+serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
