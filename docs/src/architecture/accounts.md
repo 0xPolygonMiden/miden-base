@@ -52,6 +52,27 @@ Interface for accounts. In Miden every account is a smart contract. It has an in
 
 *Note: Since code in Miden is expresed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions*
 
+#### Example Account Code
+Currently, Miden provides two standard implementations for account code. 
+
+A basic user account exposes the following code as its interface.
+
+```
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic::auth_tx_rpo_falcon512
+
+```
+
+That means, [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) or transaction scripts can call those functions and in doing so, the account can receive and send assets and authenticate the transaction. It is important to know, that without correct authentication, a note cannot successfully invoke receive and send asset.
+
+There is also a standard for a [basic fungible faucet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/faucets/basic_fungible.masm). It exposes two functions `distribute` and `burn`. The first function can only be called by the faucet owner, otherwise it fails. `burn` can be called by anyone to burn the tokens that are contained in a note.
+
+*Note: The difference is that the `burn` procedure exposes `exec.account::incr_nonce`, so by calling `burn` the nonce gets increased by 1 and the transaction will pass the epilogue check. The `distribute` procedure does not expose that. That means the executing user needs to call `basic::auth_tx_rpo_falcon512` which requires the private key.*
+
 ## Account creation
 For an account to exist it must be present in the [Account DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#account-database) kept by the Miden Node(s). However, new accounts can be created locally by users using a wallet.
 
@@ -64,6 +85,7 @@ The process is as follows:
 * Alice consumes Bob's note to receive the asset in a transaction
 * Depending on the account storage mode (private vs. public) and transaction type (local vs. network) the Operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
 
+A user can simply use the Miden Client or call [this](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/src/accounts/wallets/mod.rs) from his application to create a new account, see [here](TODO LINK TO CLIENT ONCE READY).
 
 ## Account types
 There are four types of accounts in Miden:
