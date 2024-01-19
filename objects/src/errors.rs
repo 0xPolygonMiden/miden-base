@@ -308,8 +308,10 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentChainLength { expected: u32, actual: u32 },
     InconsistentChainRoot { expected: Digest, actual: Digest },
     InputNoteBlockNotInChainMmr(NoteId),
+    InputNoteNotInBlock(NoteId, u32),
     InvalidAccountSeed(AccountError),
     TooManyInputNotes { max: usize, actual: usize },
 }

@@ -3,7 +3,10 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use miden_objects::{
+    assembly::{Library, LibraryNamespace, MaslLibrary, Version},
+    utils::serde::Deserializable,
+};
 
 mod auth;
 pub use auth::AuthScheme;

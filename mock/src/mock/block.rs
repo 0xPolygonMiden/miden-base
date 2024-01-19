@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::Account, crypto::merkle::SimpleSmt, utils::collections::Vec, BlockHeader, Digest,
-    Felt, StarkField, ZERO,
+    Felt, StarkField, ACCOUNT_TREE_DEPTH, ZERO,
 };
 use miden_test_utils::rand;
 
@@ -10,8 +10,7 @@ pub fn mock_block_header(
     note_root: Option<Digest>,
     accts: &[Account],
 ) -> BlockHeader {
-    let acct_db = SimpleSmt::with_leaves(
-        64,
+    let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
         accts
             .iter()
             .flat_map(|acct| {
