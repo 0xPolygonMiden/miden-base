@@ -283,8 +283,9 @@ pub fn hash_account(
 mod tests {
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountVaultDelta, Assembler, Felt, ModuleAst, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlotType,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
     use crate::assets::{Asset, AssetVault, FungibleAsset};
 
@@ -304,7 +305,12 @@ mod tests {
 
         // build account data
         let vault = AssetVault::new(&assets).unwrap();
-        let storage = AccountStorage::new(Vec::new()).unwrap();
+
+        let mut slot_items: Vec<SlotItem> = Vec::new();
+        let slot_type = StorageSlotType::Value { value_arity: 0 };
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(94)];
+        slot_items.push((1, (slot_type, word)));
+        let storage = AccountStorage::new(slot_items).unwrap();
 
         // create account
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
