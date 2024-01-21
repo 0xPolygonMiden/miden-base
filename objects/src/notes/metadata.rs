@@ -11,7 +11,7 @@ use super::{
 ///
 /// The metadata consists of:
 /// - sender is the account which created the note.
-/// - tag is a tag which can be used to identify the target account for the note.
+/// - tag is a value which can be used by the recipient(s) to identify notes intended for them.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {

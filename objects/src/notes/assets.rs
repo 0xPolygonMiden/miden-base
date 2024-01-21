@@ -4,13 +4,14 @@ use super::{
     Asset, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
     NoteError, Serializable, Vec, Word, WORD_SIZE, ZERO,
 };
+use crate::MAX_ASSETS_PER_NOTE;
 
 // NOTE ASSETS
 // ================================================================================================
 /// An asset container for a note.
 ///
-/// A note can contain up to 255 assets. No duplicates are allowed, but the order of assets is
-/// unspecified.
+/// A note must contain at least 1 asset and can contain up to 256 assets. No duplicates are
+/// allowed, but the order of assets is unspecified.
 ///
 /// All the assets in a note can be reduced to a single commitment which is computed by
 /// sequentially hashing the assets. Note that the same list of assets can result in two different
@@ -25,7 +26,7 @@ impl NoteAssets {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
     /// The maximum number of assets which can be carried by a single note.
-    pub const MAX_NUM_ASSETS: usize = 255;
+    pub const MAX_NUM_ASSETS: usize = MAX_ASSETS_PER_NOTE;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -34,7 +35,7 @@ impl NoteAssets {
     /// # Errors
     /// Returns an error if:
     /// - The asset list is empty.
-    /// - The list contains more than 255 assets.
+    /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: &[Asset]) -> Result<Self, NoteError> {
         if assets.is_empty() {

@@ -1,8 +1,8 @@
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset
 use.miden::kernels::tx::constants
-use.miden::kernels::tx::epilogue
 use.miden::kernels::tx::memory
+use.miden::kernels::tx::note
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -36,7 +36,7 @@ export.memory::get_nullifier_com->get_input_notes_hash
 #! Outputs: [COM]
 #!
 #! COM is the output notes hash.
-export.epilogue::compute_output_notes_hash->get_output_notes_hash
+export.note::compute_output_notes_commitment->get_output_notes_hash
 
 #! Increments the number of created notes by one. Returns the index of the next note to be created.
 #!

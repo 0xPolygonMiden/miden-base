@@ -1,6 +1,16 @@
 use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 
+# CONSTANTS
+# =================================================================================================
+
+# The diff between the memory address after first mem_stream operation and the next target when
+# generating the consumed notes commitment. Must be NOTE_MEM_SIZE - 2;
+const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
+
+# INPUT NOTE PROCEDURES
+# =================================================================================================
+
 #! Returns the sender of the note currently being processed. Panics if a note is not being
 #! processed.
 #!
@@ -119,4 +129,158 @@ export.prepare_note
     # read the note script root onto the stack
     exec.memory::get_consumed_note_script_root
     # => [NOTE_SCRIPT_ROOT]
+end
+
+# OUTPUT NOTE PROCEDURES
+# =================================================================================================
+
+#! Computes the assets hash of the output note located at the specified memory address. The hash
+#! is computed as a sequential hash of the assets contained in the note. If there is an odd number
+#! of assets, then for the final hashing permutation we pad the last word of the hasher rate with
+#! ZERO's.
+#!
+#! Stack: [note_data_ptr]
+#! Output: [ASSETS_HASH]
+#!
+#! - note_data_ptr is a pointer to the data section of the output note.
+#! - ASSETS_HASH is the hash of the assets of the output note located at note_data_ptr.
+proc.compute_output_note_assets_hash
+    # duplicate note pointer and fetch num_assets
+    dup dup exec.memory::get_created_note_num_assets
+    # => [num_assets, note_data_ptr, note_data_ptr]
+
+    # calculate the number of pairs of assets (takes ceiling if we have an odd number)
+    add.1 u32assert u32div.2
+    # => [num_asset_pairs, note_data_ptr, note_data_ptr]
+
+    # initiate counter for assets
+    push.0
+    # => [asset_counter, num_asset_pairs, note_data_ptr, note_data_ptr]
+
+    # prepare address and stack for reading assets
+    movup.2 exec.memory::get_created_note_asset_data_ptr padw padw padw
+    # => [PAD, PAD, PAD, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
+
+    # check if we should loop
+    dup.14 dup.14 neq
+    # => [should_loop, PAD, PAD, PAD, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
+
+    # loop and read assets from memory
+    while.true
+        # read assets from memory.
+        # if this is the last permutation of the loop and we have an odd number of assets then we
+        # implicitly pad the last word of the hasher rate with ZERO's by reading from empty memory.
+        mem_stream hperm
+        # => [PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
+
+        # check if we should loop again
+        movup.13 add.1 dup movdn.14 dup.15 neq
+        # => [should_loop, PERM, PERM, PERM, asset_data_ptr, asset_counter, num_asset_pairs,
+        #     note_data_ptr]
+    end
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+    # => [ASSETS_HASH, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
+
+    # drop accessory variables from stack
+    movup.4 drop
+    movup.4 drop
+    movup.4 drop
+    # => [ASSETS_HASH, note_data_ptr]
+
+    # save vault hash to memory
+    movup.4 exec.memory::set_created_note_assets_hash
+    # => []
+end
+
+#! Computes the hash of an output note located at the specified memory address.
+#!
+#! The hash is computed as follows:
+#! - we define, recipient =
+#!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+#! - we then compute the output note hash as:
+#!       hash(recipient, assets_hash)
+#!
+#! Stack: [note_data_ptr]
+#! Output: [OUTPUT_NOTE_HASH]
+#!
+#! - note_data_ptr is a pointer to the data section of the output note.
+#! - OUTPUT_NOTE_HASH is the hash of the output note located at note_data_ptr.
+proc.compute_output_note_hash
+    # pad capacity elements of hasher
+    padw
+
+    # insert output note recipient into the first four elements of the hasher rate
+    dup.4 exec.memory::get_created_note_recipient
+
+    # populate the last four elements of the hasher rate with the output note's asset hash
+    dup.8 exec.compute_output_note_assets_hash
+
+    # compute output note hash and extract digest
+    hperm dropw swapw dropw
+
+    # save output note hash to memory
+    movup.4 mem_storew
+end
+
+#! Computes a commitment to the output notes. This is computed as a sequential hash of
+#! (note_hash, note_metadata) tuples.
+#!
+#! Stack: []
+#! Output: [OUTPUT_NOTES_COMMITMENT]
+#!
+#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.
+export.compute_output_notes_commitment
+    # get the number of output notes from memory
+    exec.memory::get_num_created_notes
+    # => [num_notes, ...]
+
+    # calculate the address at which we should stop looping
+    exec.memory::get_created_note_ptr
+    # => [end_ptr, ...]
+
+    # compute pointer for first address
+    push.0 exec.memory::get_created_note_ptr
+    # => [first_note_ptr, end_ptr, ...]
+
+    # prepare stack for hashing
+    padw padw padw
+    # => [PERM, PERM, PERM, first_note_ptr, end_ptr, ...]
+
+    # check if the number of output notes is greater then 0. Conditional for the while loop.
+    dup.13 dup.13 neq
+    # => [PERM, PERM, PERM, first_note_ptr, end_ptr, ...]
+
+    # loop and hash output notes
+    while.true
+        # compute output note hash (this also computes the note's asset hash)
+        dup.12 exec.compute_output_note_hash
+        # => [NOTE_HASH, PERM, PERM, PERM, note_ptr, end_ptr, ...]
+
+        # drop output note hash from stack
+        dropw
+        # => [PERM, PERM, PERM, note_ptr, end_ptr, ...]
+
+        # permute over (note_hash, note_metadata)
+        mem_stream hperm
+        # => [PERM, PERM, PERM, note_ptr + 2, end_ptr, ...]
+
+        # increment output note pointer
+        movup.12 push.OUTPUT_NOTE_HASHING_MEM_DIFF add
+        # => [note_ptr + 512, PERM, PERM, PERM, end_ptr, ...]
+
+        # check if we should loop again
+        dup movdn.13 dup.14 neq
+        # => [should_loop, PERM, PERM, PERM, note_ptr + 512, end_ptr, ...]
+    end
+
+    # extract digest from hasher rate elements (h_0, ..., h_3)
+    dropw swapw dropw
+    # => [OUTPUT_NOTES_COMMITMENT, end_ptr, end_ptr, ...]
+
+    # drop accessory variables from stack
+    movup.4 drop
+    movup.4 drop
+    # => [OUTPUT_NOTES_COMMITMENT, ...]
 end

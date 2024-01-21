@@ -85,7 +85,8 @@ fn test_create_note() {
     );
 
     // assert there top item on the stack is a pointer to the created note.
-    assert_eq!(process.stack.get(0), Felt::new(10000));
+    let note_ptr = CREATED_NOTE_SECTION_OFFSET;
+    assert_eq!(process.stack.get(0), Felt::from(note_ptr));
 }
 
 #[test]

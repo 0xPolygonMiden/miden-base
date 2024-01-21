@@ -173,35 +173,38 @@ pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
 
 // NOTES DATA
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
-/// The maximum number of assets that can be stored in a single note.
-pub const MAX_ASSETS_PER_NOTE: u32 = 256;
-
-/// The size of the memory segment allocated to each note
-pub const NOTE_MEM_SIZE: MemoryAddress = 1024;
+/// The size of the memory segment allocated to each note.
+pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
-// Inputs note section contains data for all notes consumed by a transaction. It starts with a word
-// containing the total number of input notes and is followed by data of each note like so:
+// Inputs note section contains data of all notes consumed by a transaction. The section starts at
+// memory offset 1_048_576 with a word containing the total number of input notes and is followed
+// by data of each note like so:
 //
-// ┌───────────┬─────────────┬─────┬─────────────┐
-// │ NUM NOTES │ NOTE 1 DATA │ ... │ NOTE n DATA │
-// └───────────┴─────────────┴─────┴─────────────┘
+//    ┌───────────┬─────────────┬─────────────┬───────────────┬─────────────┐
+//    │ NUM NOTES │ NOTE 0 DATA │ NOTE 1 DATA │      ...      │ NOTE n DATA │
+//    └───────────┴─────────────┴─────────────┴───────────────┴─────────────┘
+// 1_048_576     +1           +513          +1025           +1+512n
 //
-// Data section for each note consists of exactly 1024 words and is laid out like so:
+// Data section for each note consists of exactly 512 words and is laid out like so:
 //
-// ┌──────┬────────┬────────┬────────┬────────┬──────┬────────┬───────┬─────┬───────┐
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │  NUM   │ ASSET │ ... │ ASSET │
-// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ASSETS │   1   │     │   n   │
-// └──────┴────────┴────────┴────────┴────────┴──────┴────────┴───────┴─────┴───────┘
+// ┌──────┬────────┬────────┬────────┬────────┬──────┬────────┬───────┬─────┬───────┬─────────┐
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │  NUM   │ ASSET │ ... │ ASSET │ PADDING │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ASSETS │   0   │     │   n   │         │
+// ├──────┼────────┼────────┼────────┼────────┼──────┼────────┼───────┼─────┼───────┼─────────┤
+//    0        1       2        3        4       5       6        7           7 + n
+//
+// Even though both NUM_NOTES and NUM_ASSETS take up a whole word, the actual values for these
+// variables are stored in the first element of the word.
 
 /// The memory address at which the consumed note section begins.
-pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1000;
+pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
 
 /// The memory address at which the number of consumed notes is stored.
-pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = 1000;
+pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = 1_048_576;
 
 /// The offsets at which data of a consumed note is stored relative to the start of its data segment.
 pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
@@ -213,21 +216,32 @@ pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
 pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 6;
 pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 7;
 
-/// The maximum number of consumed notes that can be processed in a single transaction.
-pub const MAX_NUM_CONSUMED_NOTES: u32 = 1023;
-
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
+// Output notes section contains data of all notes produced by a transaction. The section starts at
+// memory offset 4_194_304 with each note data laid out one after another in 512 word increments.
 //
-// ┌─────────┬──────────┬───────────┬─────────────┬────────────┬─────────┬─────┬─────────┐
-// │ NOTE ID │ METADATA │ RECIPIENT │ ASSETS HASH │ NUM ASSETS │ ASSET 1 │ ... │ ASSET n │
-// └─────────┴──────────┴───────────┴─────────────┴────────────┴─────────┴─────┴─────────┘
+//    ┌─────────────┬─────────────┬───────────────┬─────────────┐
+//    │ NOTE 0 DATA │ NOTE 1 DATA │      ...      │ NOTE n DATA │
+//    └─────────────┴─────────────┴───────────────┴─────────────┘
+// 4_194_304      +512          +1024           +512n
+//
+// The total number of output notes for a transaction is stored in the bookkeeping section of the
+// memory. Data section of each note is laid out like so:
+//
+// ┌─────────┬──────────┬───────────┬─────────────┬────────────┬─────────┬─────┬─────────┬─────────┐
+// │ NOTE ID │ METADATA │ RECIPIENT │ ASSETS HASH │ NUM ASSETS │ ASSET 0 │ ... │ ASSET n │ PADDING │
+// ├─────────┼──────────┼───────────┼─────────────┼────────────┼─────────┼─────┼─────────┼─────────┤
+//      0          1          2            3            4           5             5 + n
+//
+// Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
+// first element of the word.
+
+/// The memory address at which the created notes section begins.
+pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 
 /// The size of the core created note data segment.
 pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
-
-/// The memory address at which the created notes section begins.
-pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 10000;
 
 /// The offsets at which data of a created note is stored relative to the start of its data segment.
 pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
@@ -236,6 +250,3 @@ pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
 pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
 pub const CREATED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
 pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 5;
-
-/// The maximum number of created notes that can be produced in a single transaction.
-pub const MAX_NUM_CREATED_NOTES: u32 = 4096;

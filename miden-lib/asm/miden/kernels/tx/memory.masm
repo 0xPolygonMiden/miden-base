@@ -119,11 +119,11 @@ const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 # CONSUMED NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
-# The memory address at which the consumed note section begins
-const.CONSUMED_NOTE_SECTION_OFFSET=1000
+# The memory address at which the consumed note section begins.
+const.CONSUMED_NOTE_SECTION_OFFSET=1048576
 
-# The memory address at which the number of consumed notes is stored
-const.CONSUMED_NOTE_NUM_PTR=1000
+# The memory address at which the number of consumed notes is stored.
+const.CONSUMED_NOTE_NUM_PTR=1048576
 
 # The offsets at which data of a consumed note is stored relative to the start of its data segment
 const.CONSUMED_NOTE_HASH_OFFSET=0
@@ -140,7 +140,7 @@ const.CONSUMED_NOTE_ASSETS_OFFSET=7
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the created notes section begins.
-const.CREATED_NOTE_SECTION_OFFSET=10000
+const.CREATED_NOTE_SECTION_OFFSET=4194304
 
 # The offsets at which data of a created note is stored relative to the start of its data segment.
 const.CREATED_NOTE_HASH_OFFSET=0
