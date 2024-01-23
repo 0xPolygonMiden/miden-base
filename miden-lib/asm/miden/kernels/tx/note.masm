@@ -129,11 +129,11 @@ export.prepare_note
 
     # get the note args for the note 
     # TODO: this should only be called if there are note_args
-    dup exec.layout::get_consumed_note_args movup.4
+    dup exec.memory::get_consumed_note_args movup.4
     # => [note_ptr, NOTE_ARGS]
 
     # read the note script root onto the stack
-    exec.layout::get_consumed_note_script_root
+    exec.memory::get_consumed_note_script_root
     # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 end
 

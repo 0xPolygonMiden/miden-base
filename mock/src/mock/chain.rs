@@ -114,7 +114,7 @@ impl<R: Rng> Objects<R> {
                         notes.open(&auth_index).path,
                     )
                     .expect("Invalid data provided to proof constructor"),
-                    [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO],
+                    None,
                 )
             })
             .collect::<Vec<_>>()
@@ -644,7 +644,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
                     note_trees[index].open(&auth_index).path,
                 )
                 .unwrap(),
-                [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO],
+                None,
             )
         })
         .collect::<Vec<_>>();

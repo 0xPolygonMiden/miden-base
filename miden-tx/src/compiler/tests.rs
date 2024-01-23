@@ -197,7 +197,7 @@ fn test_transaction_compilation_succeeds() {
     .unwrap();
     let notes = notes
         .into_iter()
-        .map(|note| InputNote::new(note, mock_inclusion_proof.clone()))
+        .map(|note| InputNote::new(note, mock_inclusion_proof.clone(), None))
         .collect::<Vec<_>>();
 
     let notes = InputNotes::new(notes).unwrap();

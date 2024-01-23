@@ -175,11 +175,6 @@ impl Note {
     pub fn nullifier(&self) -> Nullifier {
         *self.nullifier.get_or_init(|| self.into())
     }
-
-    /// Returns the note args of the recorded note.
-    pub fn note_args(&self) -> &Word {
-        &self.note_args
-    }
 }
 
 // SERIALIZATION

@@ -9,6 +9,7 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
+use vm_core::utils::Serializable;
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
 use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
@@ -332,32 +333,21 @@ fn note_setup_memory_assertions(process: &Process<MockHost>) {
     );
 }
 
-// #[test]
-// fn test_note_args() {
-//     // Create a RecordedNote instance
-//     let (account, block_header, chain, notes, auxiliary_data) =
-//         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    
-// }
+#[test]
+fn test_serialize_deserialize_recorded_note() {
+    let tx_inputs =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
+    // Serialize the RecordedNote
+    let mut serialized_data = Vec::new();
+    let note = tx_inputs.input_notes().get_note(0).clone();
+    note.write_into(&mut serialized_data);
 
-// #[test]
-// fn test_serialize_deserialize_recorded_note() {
-//     // Create a RecordedNote instance
-//     let (account, block_header, chain, notes, auxiliary_data) =
-//         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    // Deserialize the RecordedNote
+    let mut cursor = std::io::Cursor::new(serialized_data);
+    let deserialized_recorded_note = RecordedNote::read_from(&mut cursor).expect("Failed to deserialize");
 
-//     let recorded_note = notes[0];
-
-//     // Serialize the RecordedNote
-//     let mut serialized_data = Vec::new();
-//     recorded_note.write_into(&mut serialized_data);
-
-//     // Deserialize the RecordedNote
-//     let mut cursor = std::io::Cursor::new(serialized_data);
-//     let deserialized_recorded_note = RecordedNote::read_from(&mut cursor).expect("Failed to deserialize");
-
-//     // Assert that the deserialized instance is equal to the original
-//     assert_eq!(recorded_note, deserialized_recorded_note);
-// }
+    // Assert that the deserialized instance is equal to the original
+    assert_eq!(recorded_note, deserialized_recorded_note);
+}

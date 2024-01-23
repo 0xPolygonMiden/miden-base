@@ -102,11 +102,8 @@ pub fn mock_inputs_with_existing(
     let block_header =
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
-    // Note args
-    let note_args = vec![EMPTY_WORD; consumed_notes.len()];
-
     // Transaction inputs
-    (account, block_header, chain_mmr, recorded_notes, auxiliary_data, note_args)
+    (account, block_header, chain_mmr, recorded_notes, auxiliary_data)
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {

@@ -492,18 +492,6 @@ end
 #!
 #! Output: []
 #!
-<<<<<<< HEAD:miden-lib/asm/miden/kernels/tx/prologue.masm
-#! Where:
-#! - i is the index of the input note.
-#! - CN1_SN is the serial number of input note 1.
-#! - CN1_SR is the script root of input note 1.
-#! - CN1_IR is the inputs root of input note 1.
-#! - CN1_VR is the vault root of input note 1.
-#! - CN1_NA is the number of assets in input note 1.
-#! - CN1_A1 is the first asset of input note 1.
-#! - CN1_A2 is the second asset of input note 1.
-proc.process_input_note
-=======
 #! - i is the index of the consumed note.
 #! - CN1_SN is the serial number of consumed note 1.
 #! - CN1_SR is the script root of consumed note 1.
@@ -513,8 +501,7 @@ proc.process_input_note
 #! - CN1_NA is the number of assets in consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
-proc.process_consumed_note
->>>>>>> 2382f47 (feat: adding note args WIP):miden-lib/asm/miden/sat/internal/prologue.masm
+proc.process_input_note
     # read core note data
     # ---------------------------------------------------------------------------------------------
 
@@ -551,7 +538,7 @@ proc.process_consumed_note
     padw adv_loadw dup.4 
     # => [note_ptr, NOTE_ARGS, note_ptr]
     
-    exec.layout::set_consumed_note_args
+    exec.memory::set_consumed_note_args
     # => [note_ptr]
 
     # ingest note assets
@@ -701,10 +688,10 @@ end
 #! Advice stack: [num_cn, ...],
 #! Advice map: {
 #!               NC: [
-#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_AR, CN1_M,
 #!                  CN1_A1, CN1_A2, ...
 #!
-#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_AR, CN2_M,
 #!                  CN2_A1, CN2_A2, ...
 #!                  ...]
 #!              }
@@ -716,6 +703,7 @@ end
 #! - CN1_SR is the script root of input note 1.
 #! - CN1_IR is the inputs root of input note 1.
 #! - CN1_VR is the vault root of input note 1.
+#! - CN1_AR are the note args of consumed note 1.
 #! - CN1_M is the metadata of input note 1.
 #! - CN1_A1 is the first asset of input note 1.
 #! - CN1_A2 is the second asset of input note 1.

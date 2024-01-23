@@ -257,10 +257,10 @@ fn add_account_to_advice_inputs(
 ///   out[4..8]    = script root
 ///   out[8..12]   = input root
 ///   out[12..16]  = asset_hash
-///   out[16..20]  = metadata
-///   out[20]      = num_assets
-///   out[21..25]  = asset_1
-///   out[25..29]  = asset_2
+///   out[16..20]  = note_args
+///   out[20..24]  = metadata
+///   out[24..28]  = asset_1
+///   out[28..32]  = asset_2
 ///   ...
 ///   out[20 + num_assets * 4..] = Word::default() (this is conditional padding only applied
 ///                                                 if the number of assets is odd)
@@ -286,6 +286,10 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
+        let note_args = match input_note.note_args() {
+            Some(args) => args,
+            None => &[ZERO; 4],
+        };
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().hash().into(), note.inputs().inputs().to_vec())]);
@@ -304,6 +308,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.script().hash());
         note_data.extend(*note.inputs().hash());
         note_data.extend(*note.assets().commitment());
+        note_data.extend(note_args);
         note_data.extend(Word::from(note.metadata()));
 
         note_data.push((note.assets().num_assets() as u32).into());
