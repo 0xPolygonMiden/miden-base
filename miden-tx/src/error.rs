@@ -1,7 +1,7 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, crypto::merkle::NodeIndex, Felt, NoteError, TransactionInputError,
+    assembly::AssemblyError, notes::NoteId, Felt, NoteError, TransactionInputError,
     TransactionOutputError,
 };
 use miden_verifier::VerificationError;
@@ -110,7 +110,7 @@ pub enum DataStoreError {
     BlockNotFound(u32),
     InvalidTransactionInput(TransactionInputError),
     InternalError(String),
-    NoteNotFound(u32, NodeIndex),
+    NoteNotFound(NoteId),
 }
 
 impl fmt::Display for DataStoreError {
