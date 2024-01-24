@@ -1,5 +1,5 @@
-# Polygon Miden - Privacy scales better
-Miden is a zero-knowledge rollup for high-throughput and private applications. Miden allows users to prove state changes of local data where the network only tracks a commitment of. Additionally, users can also let the Operator prove public state changes as in other known rollups.  
+# Polygon Miden
+Miden is a zero-knowledge rollup for high-throughput and private applications. Miden allows users to prove state changes of local data where the network only tracks a commitment of it. This leads to privacy and high-throughput. We think, Privacy Scales Better. Users can also let the Operator prove public state changes as in other known rollups.  
 
 Polygon Miden is a modular execution layer that extends Ethereum's capabilities using powerful features such as parallel transaction execution and client-side proving. With Miden, developers can create novel, high-throughput, privacy preserving dApps for DeFi, RWA and Autonomous Worlds using their favorite languages such as Rust and TypeScript.
 
@@ -18,10 +18,10 @@ At this point, adventurous Pioneers can execute first transactions and send asse
 
 ### Feature highlights
 * **Private accounts**. The Miden Operator only tracks a commitment to any account data in the public database. Users can only execute smart contracts of which they know the interface. 
-* **Private notes**. Like private accounts, the Miden Operator only tracks a commitment to any notes in the public database. Users need to submit the note data off-chain to each other in order to consume private note in transactions.
+* **Private notes**. Like private accounts, the Miden Operator only tracks a commitment to any notes in the public database. Users need to communicate note details to each other off-chain (via any side channel) in order to consume private notes in transactions.
 * **Local transaction execution**. The Miden Client allows for local transaction execution and proving. The Miden Operator verifies the proof and if valid, the state DBs are updated with the new data.
 * **Simple smart contracts**. Currently, there are three different smart contracts available. A basic wallet smart contracts to send and receive assets, and fungible and non-fungible faucets to mint and burn assets. All accounts are written in MASM.
-* **P2ID, P2IDR and SWAP note scripts**. Currently, there are three different note scripts available. Two different versions of pay-to-id scripts of which ne is reclaimable, and a swap script that allows for simple token swaps.
+* **P2ID, P2IDR and SWAP note scripts**. Currently, there are three different note scripts available. Two different versions of pay-to-id scripts of which P2IDR is reclaimable, and a swap script that allows for simple token swaps.
 * **Simple block building**. The Miden Operator running the Miden Node is able to build blocks containing transactions. There is no recursive verification of transactions enabled yet.
 * **Maintaining state**. The Miden Node stores all necessary information already in its State DBs and provides this infos via its RPC endpoint.
 
