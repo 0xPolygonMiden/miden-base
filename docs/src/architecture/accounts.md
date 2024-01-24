@@ -44,7 +44,7 @@ Merkle tree as follows:
 An account vault can be reduced to a single hash which is the root of the sparse Merkle tree.
 
 ### Code
-Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by note and transaction scripts. Users cannot call those functions directly. 
+Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) and [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing). Users cannot call those functions directly. 
 
 Functions exposed by the account have the following properties:
 
@@ -52,7 +52,7 @@ Functions exposed by the account have the following properties:
 * Only account functions have mutable access to an account's storage and vault. Therefore, the only way to modify an account's internal state is through one of the account's functions.
 * Account functions can take parameters and can create new notes.
 
-*Note: Since code in Miden is expresed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions*
+*Note: Since code in Miden is expressed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions*
 
 #### Example Account Code
 Currently, Miden provides two standard implementations for account code. 
@@ -72,7 +72,7 @@ There is a standard for a basic user account. It exposes three functions via its
   ```
 </details>
 
-[Note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) or [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing) can call `receive_asset` and `send_asset` and in doing so, the account can receive and send assets. Transaction scripts can also call `auth_tx_rpo_falcon512` and authenticate the transaction. It is important to know, that without correct authentication, i.e. knowing the correct private Falcon key, a note cannot successfully invoke receive and send asset.
+[Note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) or [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing) can call `receive_asset` and `send_asset` and in doing so, the account can receive and send assets. Transaction scripts can also call `auth_tx_rpo_falcon512` and authenticate the transaction. It is important to know, that without correct authentication, i.e. knowing the correct private key, a note cannot successfully invoke receive and send asset.
 
 ##### Basic fungible faucet (Faucet for fungible assets)
 There is also a standard for a [basic fungible faucet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/faucets/basic_fungible.masm).
@@ -139,12 +139,12 @@ The second function `burn` can be called by anyone to burn the tokens that are c
 *Info: The difference is that the `burn` procedure exposes `exec.account::incr_nonce`, so by calling `burn` the nonce of the executing account gets increased by 1 and the transaction will pass the epilogue check. The `distribute` procedure does not expose that. That means the executing user needs to call `basic::auth_tx_rpo_falcon512` which requires the private key.*
 
 ## Account creation
-For an account to exist it must be present in the [Account DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#account-database) kept by the Miden Node(s). However, new accounts can be created locally by users using a wallet.
+For an account to exist it must be present in the [Account DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#account-database) kept by the Miden node(s). However, new accounts can be created locally by users using a wallet.
 
 The process is as follows:
 
 * Alice grinds a new Account ID (according to the account types) using a wallet
-* Alice's Miden Client requests the Miden Node to check if new Account ID already exists
+* Alice's Miden client requests the Miden node to check if new Account ID already exists
 * Alice shares the new Account ID to Bob (eg. when Alice wants to receive funds)
 * Bob executes a transaction and creates a note that contains an asset for Alice
 * Alice consumes Bob's note to receive the asset in a transaction
@@ -152,7 +152,7 @@ The process is as follows:
 
 For a user to create an account we have 2 solutions at the moment:
 
-1. Use the [Miden Client](https://github.com/0xPolygonMiden/miden-client/tree/main) as a wallet
+1. Use the [Miden client](https://github.com/0xPolygonMiden/miden-client/tree/main) as a wallet
 2. Use the Miden Base builtin functions for wallet creation: [Basic wallet](https://github.com/0xPolygonMiden/miden-base/blob/4e6909bbaf65e77d7fa0333e4664be81a2f65eda/miden-lib/src/accounts/wallets/mod.rs#L15), [Fungible faucet](https://github.com/0xPolygonMiden/miden-base/blob/4e6909bbaf65e77d7fa0333e4664be81a2f65eda/miden-lib/src/accounts/faucets/mod.rs#L11)
 
 ## Account types
@@ -165,7 +165,7 @@ There are four types of accounts in Miden:
 | **Most significant bits** | `00` | `01` | `10` | `11` |
 
 ## Account storage modes
-Account data - stored by the Miden Node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
+Account data - stored by the Miden node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
 
 * Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
 * Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
