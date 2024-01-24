@@ -132,7 +132,7 @@ fn test_p2id_script() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
         &note_ids,
@@ -140,7 +140,7 @@ fn test_p2id_script() {
     );
 
     // Check that we got the expected result - TransactionExecutorError
-    assert!(transaction_result_2.is_err());
+    assert!(executed_transaction_2.is_err());
 }
 
 /// We test the Pay to script with 2 assets to test the loop inside the script.
@@ -256,7 +256,7 @@ fn test_p2id_script_multiple_assets() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
         &note_origins,
@@ -264,5 +264,5 @@ fn test_p2id_script_multiple_assets() {
     );
 
     // Check that we got the expected result - TransactionExecutorError
-    assert!(transaction_result_2.is_err());
+    assert!(executed_transaction_2.is_err());
 }
