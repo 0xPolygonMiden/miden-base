@@ -60,7 +60,7 @@ Currently, Miden provides two standard implementations for account code.
 ##### Basic user account (Regular updatable account)
 There is a standard for a basic user account. It exposes three functions via its interface.
 <details>
-  <summary>What to see the code?</summary>
+  <summary>Want to see the code?</summary>
 
   ```
     use.miden::contracts::wallets::basic->basic_wallet
@@ -78,7 +78,7 @@ There is a standard for a basic user account. It exposes three functions via its
 There is also a standard for a [basic fungible faucet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/faucets/basic_fungible.masm).
 
 <details>
-  <summary>What to see the code?</summary>
+  <summary>Want to see the code?</summary>
 
   ```
   #! Distributes freshly minted fungible assets to the provided recipient.
