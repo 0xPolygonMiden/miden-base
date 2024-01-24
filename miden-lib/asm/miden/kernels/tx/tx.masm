@@ -1,8 +1,8 @@
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset
 use.miden::kernels::tx::constants
-use.miden::kernels::tx::epilogue
 use.miden::kernels::tx::memory
+use.miden::kernels::tx::note
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -36,7 +36,7 @@ export.memory::get_nullifier_com->get_input_notes_hash
 #! Outputs: [COM]
 #!
 #! COM is the output notes hash.
-export.epilogue::compute_output_notes_hash->get_output_notes_hash
+export.note::compute_output_notes_commitment->get_output_notes_hash
 
 #! Increments the number of created notes by one. Returns the index of the next note to be created.
 #!
@@ -79,11 +79,15 @@ export.create_note
     # => [note_ptr, ASSET, tag, RECIPIENT]
 
     # populate the metadata
-    push.1 movup.6 exec.account::get_id push.0
-    # => [1, acct_id, tag, 0, note_ptr, ASSET,  RECIPIENT]
+    movup.5 exec.account::get_id push.0.0
+    # => [0, 0, acct_id, tag, note_ptr, ASSET,  RECIPIENT]
 
     # set the metadata for the new created note
     dup.4 exec.memory::set_created_note_metadata
+    # => [note_ptr, ASSET, RECIPIENT]
+
+    # set the number of assets for the note to 1
+    push.1 dup.1 exec.memory::set_created_note_num_assets
     # => [note_ptr, ASSET, RECIPIENT]
 
     movdn.4 padw swapw movup.8

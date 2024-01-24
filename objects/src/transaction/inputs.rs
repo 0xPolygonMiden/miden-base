@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word, MAX_INPUT_NOTES_PER_TRANSACTION};
+use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{validate_account_seed, Account},
     notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
@@ -9,7 +9,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    TransactionInputError,
+    TransactionInputError, MAX_INPUT_NOTES_PER_TX,
 };
 
 // TRANSACTION INPUTS
@@ -209,9 +209,9 @@ impl<T: ToNullifier> InputNotes<T> {
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<T>) -> Result<Self, TransactionInputError> {
-        if notes.len() > MAX_INPUT_NOTES_PER_TRANSACTION {
+        if notes.len() > MAX_INPUT_NOTES_PER_TX {
             return Err(TransactionInputError::TooManyInputNotes {
-                max: MAX_INPUT_NOTES_PER_TRANSACTION,
+                max: MAX_INPUT_NOTES_PER_TX,
                 actual: notes.len(),
             });
         }

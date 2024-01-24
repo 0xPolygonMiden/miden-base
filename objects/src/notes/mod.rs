@@ -93,14 +93,12 @@ impl Note {
         sender: AccountId,
         tag: Felt,
     ) -> Result<Self, NoteError> {
-        let assets = NoteAssets::new(assets)?;
-        let num_assets = assets.num_assets();
         Ok(Self {
             script,
             inputs: NoteInputs::new(inputs)?,
-            assets,
+            assets: NoteAssets::new(assets)?,
             serial_num,
-            metadata: NoteMetadata::new(sender, tag, Felt::new(num_assets as u64)),
+            metadata: NoteMetadata::new(sender, tag),
             id: OnceCell::new(),
             nullifier: OnceCell::new(),
         })

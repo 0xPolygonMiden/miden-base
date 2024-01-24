@@ -32,6 +32,9 @@ use crate::transaction::{
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 
+// TESTS
+// ================================================================================================
+
 #[test]
 fn test_transaction_prologue() {
     let tx_inputs =
@@ -69,37 +72,31 @@ fn test_transaction_prologue() {
 fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     // The block hash should be stored at the BLK_HASH_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BLK_HASH_PTR).unwrap(),
+        read_root_mem_value(process, BLK_HASH_PTR),
         inputs.block_header().hash().as_elements()
     );
 
     // The account ID should be stored at the ACCT_ID_PTR
-    assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_ID_PTR).unwrap()[0],
-        inputs.account().id().into()
-    );
+    assert_eq!(read_root_mem_value(process, ACCT_ID_PTR)[0], inputs.account().id().into());
 
     // The account commitment should be stored at the ACCT_HASH_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), INIT_ACCT_HASH_PTR).unwrap(),
+        read_root_mem_value(process, INIT_ACCT_HASH_PTR),
         inputs.account().hash().as_elements()
     );
 
     // The nullifier commitment should be stored at the NULLIFIER_COM_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NULLIFIER_COM_PTR).unwrap(),
+        read_root_mem_value(process, NULLIFIER_COM_PTR),
         inputs.input_notes().commitment().as_elements()
     );
 
     // The initial nonce should be stored at the INIT_NONCE_PTR
-    assert_eq!(
-        process.get_mem_value(ContextId::root(), INIT_NONCE_PTR).unwrap()[0],
-        inputs.account().nonce()
-    );
+    assert_eq!(read_root_mem_value(process, INIT_NONCE_PTR)[0], inputs.account().nonce());
 
     // The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), TX_SCRIPT_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
         **inputs.tx_script().as_ref().unwrap().hash()
     );
 }
@@ -107,67 +104,67 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     // The block hash should be stored at the BLK_HASH_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BLK_HASH_PTR).unwrap(),
+        read_root_mem_value(process, BLK_HASH_PTR),
         inputs.block_header().hash().as_elements()
     );
 
     // The previous block hash should be stored at the PREV_BLK_HASH_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), PREV_BLOCK_HASH_PTR).unwrap(),
+        read_root_mem_value(process, PREV_BLOCK_HASH_PTR),
         inputs.block_header().prev_hash().as_elements()
     );
 
     // The chain root should be stored at the CHAIN_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), CHAIN_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, CHAIN_ROOT_PTR),
         inputs.block_header().chain_root().as_elements()
     );
 
     // The account db root should be stored at the ACCT_DB_ROOT_PRT
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_DB_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, ACCT_DB_ROOT_PTR),
         inputs.block_header().account_root().as_elements()
     );
 
     // The nullifier db root should be stored at the NULLIFIER_DB_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NULLIFIER_DB_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, NULLIFIER_DB_ROOT_PTR),
         inputs.block_header().nullifier_root().as_elements()
     );
 
     // The batch root should be stored at the BATCH_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BATCH_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, BATCH_ROOT_PTR),
         inputs.block_header().batch_root().as_elements()
     );
 
     // The note root should be stored at the NOTE_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NOTE_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, NOTE_ROOT_PTR),
         inputs.block_header().note_root().as_elements()
     );
 
     // The proof hash should be stored at the PROOF_HASH_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), PROOF_HASH_PTR).unwrap(),
+        read_root_mem_value(process, PROOF_HASH_PTR),
         inputs.block_header().proof_hash().as_elements()
     );
 
     // The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BLOCK_METADATA_PTR).unwrap()[BLOCK_NUMBER_IDX],
+        read_root_mem_value(process, BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
         inputs.block_header().block_num().into()
     );
 
     // The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BLOCK_METADATA_PTR).unwrap()[PROTOCOL_VERSION_IDX],
+        read_root_mem_value(process, BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
         inputs.block_header().version()
     );
 
     // The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]
     assert_eq!(
-        process.get_mem_value(ContextId::root(), BLOCK_METADATA_PTR).unwrap()[TIMESTAMP_IDX],
+        read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
         inputs.block_header().timestamp()
     );
 }
@@ -179,7 +176,7 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Prepar
 
     // The number of leaves should be stored at the CHAIN_MMR_NUM_LEAVES_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), CHAIN_MMR_NUM_LEAVES_PTR).unwrap()[0],
+        read_root_mem_value(process, CHAIN_MMR_NUM_LEAVES_PTR)[0],
         Felt::new(chain_mmr.chain_length() as u64)
     );
 
@@ -188,35 +185,32 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Prepar
         let i: u32 = i.try_into().expect(
             "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
         );
-        assert_eq!(
-            process.get_mem_value(ContextId::root(), CHAIN_MMR_PEAKS_PTR + i).unwrap(),
-            Word::from(peak)
-        );
+        assert_eq!(read_root_mem_value(process, CHAIN_MMR_PEAKS_PTR + i), Word::from(peak));
     }
 }
 
 fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     // The account id should be stored at ACCT_ID_AND_NONCE_PTR[0]
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_ID_AND_NONCE_PTR).unwrap(),
+        read_root_mem_value(process, ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()]
     );
 
     // The account vault root commitment should be stored at ACCT_VAULT_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, ACCT_VAULT_ROOT_PTR),
         inputs.account().vault().commitment().as_elements()
     );
 
     // The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_STORAGE_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, ACCT_STORAGE_ROOT_PTR),
         Word::from(inputs.account().storage().root())
     );
 
     // The account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(process, ACCT_CODE_ROOT_PTR),
         inputs.account().code().root().as_elements()
     );
 
@@ -230,7 +224,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
         .zip(ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..)
     {
         assert_eq!(
-            process.get_mem_value(ContextId::root(), types_ptr).unwrap(),
+            read_root_mem_value(process, types_ptr),
             Word::try_from(types.iter().map(Felt::from).collect::<Vec<_>>()).unwrap()
         );
     }
@@ -239,77 +233,66 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
-        process.get_mem_value(ContextId::root(), CONSUMED_NOTE_SECTION_OFFSET).unwrap()[0],
+        read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET)[0],
         Felt::new(inputs.input_notes().num_notes() as u64)
     );
 
     for (note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
+        let note = note.note();
+
         // The note nullifier should be computer and stored at (CONSUMED_NOTES_OFFSET + 1 + note_idx)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx)
-                .unwrap(),
-            note.note().nullifier().as_elements()
+            read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx),
+            note.nullifier().as_elements()
         );
 
         // The ID hash should be computed and stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx))
-                .unwrap(),
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx)),
             note.id().as_elements()
         );
 
         // The note serial num should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 1)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 1)
-                .unwrap(),
-            note.note().serial_num()
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 1),
+            note.serial_num()
         );
 
         // The note script hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 2)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 2)
-                .unwrap(),
-            note.note().script().hash().as_elements()
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 2),
+            note.script().hash().as_elements()
         );
 
         // The note input hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 3)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 3)
-                .unwrap(),
-            note.note().inputs().hash().as_elements()
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 3),
+            note.inputs().hash().as_elements()
         );
 
         // The note asset hash should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 4)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 4)
-                .unwrap(),
-            note.note().assets().commitment().as_elements()
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 4),
+            note.assets().commitment().as_elements()
         );
 
-        // The number of assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 5)
+        // The note metadata should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 5)
         assert_eq!(
-            process
-                .get_mem_value(ContextId::root(), consumed_note_data_ptr(note_idx) + 5)
-                .unwrap(),
-            Word::from(note.note().metadata())
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 5),
+            Word::from(note.metadata())
         );
 
-        // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6..)
-        for (asset, asset_idx) in note.note().assets().iter().cloned().zip(0u32..) {
+        // The number of assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 6)
+        assert_eq!(
+            read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 6),
+            [Felt::from(note.assets().num_assets() as u32), ZERO, ZERO, ZERO]
+        );
+
+        // The assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)
+        for (asset, asset_idx) in note.assets().iter().cloned().zip(0u32..) {
             let word: Word = asset.into();
             assert_eq!(
-                process
-                    .get_mem_value(
-                        ContextId::root(),
-                        consumed_note_data_ptr(note_idx) + 6 + asset_idx
-                    )
-                    .unwrap(),
+                read_root_mem_value(process, consumed_note_data_ptr(note_idx) + 7 + asset_idx),
                 word
             );
         }
@@ -518,4 +501,11 @@ fn test_get_blk_timestamp() {
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
+    process.get_mem_value(ContextId::root(), addr).unwrap()
 }
