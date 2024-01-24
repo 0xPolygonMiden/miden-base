@@ -12,7 +12,8 @@ use miden_objects::{
     transaction::OutputNote,
     Felt, Word, ZERO,
 };
-use miden_tx::TransactionExecutor;
+use miden_prover::ProvingOptions;
+use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
 mod common;
@@ -72,9 +73,19 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
+
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
@@ -85,7 +96,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         NoteMetadata::new(faucet_account.id(), tag, Felt::new(1)),
     );
 
-    let created_note = transaction_result.output_notes().get_note(0).clone();
+    let created_note = executed_transaction.output_notes().get_note(0).clone();
     assert_eq!(created_note.recipient(), expected_note.recipient());
     assert_eq!(created_note.assets(), expected_note.assets());
     assert_eq!(created_note.metadata(), expected_note.metadata());
@@ -139,10 +150,10 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result =
+    let executed_transaction =
         executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script));
 
-    assert!(transaction_result.is_err());
+    assert!(executed_transaction.is_err());
 }
 
 // TESTS BURN FUNGIBLE ASSET
@@ -197,13 +208,23 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
+
     // check that the account burned the asset
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
-    assert_eq!(transaction_result.input_notes().get_note(0).id(), note.id());
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.input_notes().get_note(0).id(), note.id());
 }
 
 // TESTS FUNGIBLE CONTRACT CONSTRUCTION

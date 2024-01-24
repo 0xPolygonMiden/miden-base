@@ -7,7 +7,8 @@ use miden_objects::{
     utils::collections::Vec,
     Felt,
 };
-use miden_tx::TransactionExecutor;
+use miden_prover::ProvingOptions;
+use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::constants::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
@@ -80,6 +81,16 @@ fn test_p2id_script() {
     let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
+
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
 
     // vault delta
     let target_account_after: Account = Account::new(
@@ -191,9 +202,19 @@ fn test_p2id_script_multiple_assets() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
+
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
 
     // vault delta
     let target_account_after: Account = Account::new(
@@ -203,7 +224,7 @@ fn test_p2id_script_multiple_assets() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------

@@ -6,7 +6,8 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::TransactionExecutor;
+use miden_prover::ProvingOptions;
+use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
@@ -83,12 +84,22 @@ fn test_receive_asset_via_wallet() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
+
     // nonce delta
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
     let account_storage =
@@ -103,7 +114,7 @@ fn test_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
 #[test]
@@ -163,9 +174,19 @@ fn test_send_asset_via_wallet() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
+
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
 
     // clones account info
     let sender_account_storage =
@@ -181,7 +202,7 @@ fn test_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), sender_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -11,7 +11,8 @@ use miden_objects::{
     transaction::OutputNote,
     Felt,
 };
-use miden_tx::TransactionExecutor;
+use miden_prover::ProvingOptions;
+use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::constants::{
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_ID_SENDER,
@@ -79,9 +80,19 @@ fn test_swap_script() {
         .unwrap();
 
     // Execute the transaction
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
+
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(96);
+
+    assert!(verifier.verify(proven_transaction).is_ok());
 
     // target account vault delta
     let target_account_after: Account = Account::new(
@@ -93,10 +104,10 @@ fn test_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
-    assert_eq!(transaction_result.output_notes().num_notes(), 1);
+    assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
@@ -108,7 +119,7 @@ fn test_swap_script() {
 
     let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
 
-    let created_note = transaction_result.output_notes().get_note(0);
+    let created_note = executed_transaction.output_notes().get_note(0);
 
     assert_eq!(created_note, &requested_note);
 }
