@@ -63,7 +63,7 @@ fn test_transaction_executor_witness() {
 }
 
 #[test]
-fn test_transaction_result_account_delta() {
+fn test_executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor = TransactionExecutor::new(data_store.clone());
     let account_id = data_store.account.id();
@@ -200,20 +200,23 @@ fn test_transaction_result_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // storage delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
-    assert_eq!(transaction_result.account_delta().storage().updated_items[0].0, STORAGE_INDEX_0);
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
     assert_eq!(
-        transaction_result.account_delta().storage().updated_items[0].1,
+        executed_transaction.account_delta().storage().updated_items[0].0,
+        STORAGE_INDEX_0
+    );
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_items[0].1,
         updated_slot_value
     );
 
@@ -229,7 +232,7 @@ fn test_transaction_result_account_delta() {
         .iter()
         .cloned()
         .collect::<Vec<_>>();
-    assert!(transaction_result
+    assert!(executed_transaction
         .account_delta()
         .vault()
         .added_assets
@@ -237,11 +240,11 @@ fn test_transaction_result_account_delta() {
         .all(|x| added_assets.contains(x)));
     assert_eq!(
         added_assets.len(),
-        transaction_result.account_delta().vault().added_assets.len()
+        executed_transaction.account_delta().vault().added_assets.len()
     );
 
     // assert that removed assets are tracked
-    assert!(transaction_result
+    assert!(executed_transaction
         .account_delta()
         .vault()
         .removed_assets
@@ -249,7 +252,7 @@ fn test_transaction_result_account_delta() {
         .all(|x| removed_assets.contains(x)));
     assert_eq!(
         removed_assets.len(),
-        transaction_result.account_delta().vault().removed_assets.len()
+        executed_transaction.account_delta().vault().removed_assets.len()
     );
 }
 
@@ -319,11 +322,11 @@ fn test_tx_script() {
         .unwrap();
 
     // execute the transaction
-    let transaction_result =
+    let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script));
 
     // assert the transaction executed successfully
-    assert!(transaction_result.is_ok());
+    assert!(executed_transaction.is_ok());
 }
 
 // MOCK DATA STORE
