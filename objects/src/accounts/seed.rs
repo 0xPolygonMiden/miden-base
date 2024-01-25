@@ -13,7 +13,7 @@ use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, 
 // --------------------------------------------------------------------------------------------
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
-/// using the provided initial seed as a starting point.
+/// using the provided initial seed as a starting point. Using multi-threading.
 #[cfg(feature = "concurrent")]
 pub fn get_account_seed(
     init_seed: [u8; 32],
@@ -114,10 +114,20 @@ pub fn get_account_seed_inner(
     }
 }
 
-/// Finds and returns a seed suitable for creating an account ID for the specified account type
-/// using the provided initial seed as a starting point.
 #[cfg(not(feature = "concurrent"))]
 pub fn get_account_seed(
+    init_seed: [u8; 32],
+    account_type: AccountType,
+    on_chain: bool,
+    code_root: Digest,
+    storage_root: Digest,
+) -> Result<Word, AccountError> {
+    get_account_seed_single(init_seed, account_type, on_chain, code_root, storage_root)
+}
+
+/// Finds and returns a seed suitable for creating an account ID for the specified account type
+/// using the provided initial seed as a starting point. Using a single thread.
+pub fn get_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     on_chain: bool,
