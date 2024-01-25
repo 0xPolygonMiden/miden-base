@@ -1,5 +1,5 @@
 use crate::{
-    crypto::merkle::{InnerNodeInfo, MerklePath, MmrDelta, MmrPeaks, PartialMmr},
+    crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     utils::collections::{BTreeMap, Vec},
     BlockHeader, ChainMmrError,
 };
@@ -96,32 +96,8 @@ impl ChainMmr {
     /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
     /// provided block header is not the next block in the chain).
     pub fn add_block(&mut self, block_header: BlockHeader, track: bool) {
-        let block_num = block_header.block_num();
-        let block_hash = block_header.hash();
-
-        assert_eq!(block_num, self.chain_length() as u32);
-
-        // save the original peaks so that we can construct a Merkle path from them later
-        let mut original_peaks = self.mmr.peaks().peaks().to_vec();
-        original_peaks.reverse();
-
-        // update the partial MMR
-        let delta = MmrDelta {
-            forest: self.mmr.forest() + 1,
-            data: vec![block_header.hash()],
-        };
-        self.mmr.apply(delta).expect("failed to add a block to the partial MMR");
-
-        // if we want to track authentication path for this block, add it to the partial MMR and
-        // also add the block header to the block map
-        if track {
-            // path depth is the depth of the smallest tree after the update; this is defined by
-            // number of trailing zeros in the forest (ideally, we'd use a Forest struct for this)
-            let path_depth = self.mmr.forest().trailing_zeros() as usize;
-            let block_path = MerklePath::new(original_peaks[..path_depth].to_vec());
-            self.mmr.add(block_num as usize, block_hash, &block_path).expect("msg");
-            self.blocks.insert(block_num, block_header);
-        }
+        assert_eq!(block_header.block_num(), self.chain_length() as u32);
+        self.mmr.add(block_header.hash(), track);
     }
 
     // ITERATORS

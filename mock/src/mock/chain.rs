@@ -661,7 +661,7 @@ fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> ChainMmr {
     for i in 0..num_leaves {
         let node = mmr.get(i).unwrap();
         let path = mmr.open(i, mmr.forest()).unwrap().merkle_path;
-        partial_mmr.add(i, node, &path).unwrap();
+        partial_mmr.track(i, node, &path).unwrap();
     }
 
     ChainMmr::new(partial_mmr, blocks.to_vec()).unwrap()
