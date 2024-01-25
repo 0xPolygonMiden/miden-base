@@ -44,6 +44,11 @@ impl TransactionId {
         self.0.as_bytes()
     }
 
+    /// Returns a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        self.0.to_hex()
+    }
+
     /// Returns the digest defining this transaction ID.
     pub fn inner(&self) -> Digest {
         self.0

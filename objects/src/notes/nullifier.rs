@@ -2,7 +2,7 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
     Serializable, String, Word, WORD_SIZE, ZERO,
 };
-use crate::utils::{bytes_to_hex_string, hex_to_bytes, HexParseError};
+use crate::utils::{hex_to_bytes, HexParseError};
 
 // NULLIFIER
 // ================================================================================================
@@ -56,7 +56,7 @@ impl Nullifier {
 
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
-        bytes_to_hex_string(self.0.as_bytes())
+        self.0.to_hex()
     }
 }
 
