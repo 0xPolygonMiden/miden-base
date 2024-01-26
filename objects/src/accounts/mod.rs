@@ -283,13 +283,13 @@ pub fn hash_account(
 mod tests {
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlotType,
+        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlotType, Word,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
     use crate::assets::{Asset, AssetVault, FungibleAsset};
 
-    fn build_account(assets: Vec<Asset>, nonce: Felt) -> Account {
+    fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
         // build account code
         let source = "
             export.foo
@@ -306,10 +306,12 @@ mod tests {
         // build account data
         let vault = AssetVault::new(&assets).unwrap();
 
-        let mut slot_items: Vec<SlotItem> = Vec::new();
         let slot_type = StorageSlotType::Value { value_arity: 0 };
-        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(94)];
-        slot_items.push((1, (slot_type, word)));
+        let slot_items: Vec<SlotItem> = storage_items
+            .into_iter()
+            .enumerate()
+            .map(|(i, item)| (i as u8, (slot_type, item)))
+            .collect();
         let storage = AccountStorage::new(slot_items).unwrap();
 
         // create account
@@ -322,7 +324,12 @@ mod tests {
         removed_assets: Vec<Asset>,
         nonce: Felt,
     ) -> AccountDelta {
-        let storage_delta = AccountStorageDelta::default();
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let storage_delta = AccountStorageDelta {
+            cleared_items: vec![0],
+            updated_items: vec![(1, word)],
+        };
+
         let vault_delta = AccountVaultDelta { added_assets, removed_assets };
 
         AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
@@ -345,7 +352,8 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset_0, asset_1) = build_assets();
-        let mut account = build_account(vec![asset_0], init_nonce);
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let mut account = build_account(vec![asset_0], init_nonce, vec![word]);
 
         // build account delta
         let final_nonce = Felt::new(2);
@@ -353,7 +361,7 @@ mod tests {
 
         // apply delta and create final_account
         account.apply_delta(&account_delta).unwrap();
-        let final_account = build_account(vec![asset_1], final_nonce);
+        let final_account = build_account(vec![asset_1], final_nonce, vec![Word::default(), word]);
 
         // assert account is what it should be
         assert_eq!(account, final_account);
@@ -365,7 +373,7 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce);
+        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()]);
 
         // build account delta
         let account_delta = build_account_delta(vec![], vec![asset], init_nonce);
@@ -380,7 +388,7 @@ mod tests {
         // build account
         let init_nonce = Felt::new(2);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce);
+        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()]);
 
         // build account delta
         let final_nonce = Felt::new(1);
@@ -395,11 +403,17 @@ mod tests {
     fn empty_account_delta_with_incremented_nonce() {
         // build account
         let init_nonce = Felt::new(1);
-        let mut account = build_account(vec![], init_nonce);
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let mut account = build_account(vec![], init_nonce, vec![word]);
 
         // build account delta
         let final_nonce = Felt::new(2);
-        let account_delta = build_account_delta(vec![], vec![], final_nonce);
+        let account_delta = AccountDelta::new(
+            AccountStorageDelta::default(),
+            AccountVaultDelta::default(),
+            Some(final_nonce),
+        )
+        .unwrap();
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
