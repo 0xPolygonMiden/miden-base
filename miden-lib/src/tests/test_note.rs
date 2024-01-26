@@ -16,7 +16,7 @@ use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 #[test]
 fn test_get_sender_no_sender() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     // calling get_sender should return sender
     let code = "
@@ -44,7 +44,7 @@ fn test_get_sender_no_sender() {
 #[test]
 fn test_get_sender() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     // calling get_sender should return sender
     let code = "
@@ -70,7 +70,7 @@ fn test_get_sender() {
 #[test]
 fn test_get_vault_data() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let notes = tx_inputs.input_notes();
 
@@ -120,7 +120,7 @@ fn test_get_vault_data() {
 #[test]
 fn test_get_assets() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -226,7 +226,7 @@ fn test_get_assets() {
 #[test]
 fn test_get_inputs() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -300,7 +300,7 @@ fn test_get_inputs() {
 #[test]
 fn test_note_setup() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let code = "
         use.miden::kernels::tx::prologue

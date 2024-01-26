@@ -42,7 +42,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 #[test]
 fn test_transaction_prologue() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let code = "
         begin
@@ -241,8 +241,8 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
     );
 
-    for (note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
-        let note = note.note();
+    for (input_note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
+        let note = input_note.note();
 
         // The note nullifier should be computer and stored at the correct offset
         assert_eq!(
@@ -318,6 +318,7 @@ pub fn test_prologue_create_account() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -344,6 +345,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -372,6 +374,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -400,6 +403,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -428,6 +432,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -451,6 +456,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let account_seed_key = [tx_inputs.account().id().into(), ZERO, ZERO, ZERO];
 
@@ -476,7 +482,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 #[test]
 fn test_get_blk_version() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -496,7 +502,7 @@ fn test_get_blk_version() {
 #[test]
 fn test_get_blk_timestamp() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -511,6 +517,38 @@ fn test_get_blk_timestamp() {
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
+}
+
+#[test]
+fn test_get_note_args() {
+    // define the note_args for note 1
+    let note_args = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+
+    let tx_inputs = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        Some(vec![note_args]),
+    );
+
+    let code = "
+    use.miden::kernels::tx::memory
+    use.miden::kernels::tx::prologue
+
+    begin
+        exec.prologue::prepare_transaction
+        push.0 exec.memory::get_consumed_note_ptr
+        
+        exec.memory::get_consumed_note_args
+    end
+    ";
+
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let process = run_tx(&transaction).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        tx_inputs.input_notes().get_note(0).note_args().unwrap()
+    );
 }
 
 // HELPER FUNCTIONS

@@ -20,6 +20,7 @@ fn test_create_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -57,6 +58,7 @@ fn test_create_non_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 

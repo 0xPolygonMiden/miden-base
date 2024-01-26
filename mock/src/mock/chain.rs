@@ -114,6 +114,7 @@ impl<R: Rng> Objects<R> {
                         notes.open(&auth_index).path,
                     )
                     .expect("Invalid data provided to proof constructor"),
+                    None,
                 )
             })
             .collect::<Vec<_>>()
@@ -598,7 +599,10 @@ where
     Ok(data)
 }
 
-pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) {
+pub fn mock_chain_data(
+    consumed_notes: Vec<Note>,
+    note_args: Option<Vec<Word>>,
+) -> (ChainMmr, Vec<InputNote>) {
     let mut note_trees = Vec::new();
 
     // TODO: Consider how to better represent note authentication data.
@@ -633,6 +637,12 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
         .map(|(index, note)| {
             let block_header = &block_chain[index];
             let auth_index = LeafIndex::new(index as u64).unwrap();
+
+            let current_note_args = match &note_args {
+                Some(args) if index < args.len() => Some(args[index]),
+                _ => None,
+            };
+
             InputNote::new(
                 note,
                 NoteInclusionProof::new(
@@ -643,6 +653,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
                     note_trees[index].open(&auth_index).path,
                 )
                 .unwrap(),
+                current_note_args,
             )
         })
         .collect::<Vec<_>>();

@@ -282,6 +282,10 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
+        let note_args = match input_note.note_args() {
+            Some(args) => args,
+            None => &[ZERO; 4],
+        };
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
@@ -300,6 +304,8 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.script().hash());
         note_data.extend(*note.inputs().commitment());
         note_data.extend(*note.assets().commitment());
+
+        note_data.extend(note_args);
         note_data.extend(Word::from(note.metadata()));
 
         note_data.push(note.inputs().num_values().into());

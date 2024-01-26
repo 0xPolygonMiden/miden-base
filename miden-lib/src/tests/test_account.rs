@@ -35,7 +35,7 @@ use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 #[test]
 pub fn test_set_code_is_not_immediate() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -226,8 +226,11 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let tx_inputs =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let tx_inputs = mock_inputs(
+            MockAccountType::StandardExisting,
+            AssetPreservationStatus::Preserved,
+            None,
+        );
 
         let code = format!(
             "
@@ -261,7 +264,7 @@ fn test_get_item() {
 #[test]
 fn test_set_item() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     // copy the initial account slots (SMT)
     let mut account_smt = tx_inputs.account().storage().slots().clone();
@@ -316,7 +319,7 @@ fn test_set_item() {
 #[test]
 fn test_get_map_item() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let code = format!(
         "
@@ -356,7 +359,7 @@ fn test_get_map_item() {
 #[test]
 fn test_get_vault_commitment() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     let account = tx_inputs.account();
     let code = format!(
@@ -387,7 +390,7 @@ fn test_get_vault_commitment() {
 #[test]
 fn test_authenticate_procedure() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let account = tx_inputs.account();
 
     let proc0_index = LeafIndex::new(0).unwrap();
@@ -400,8 +403,11 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let tx_inputs =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let tx_inputs = mock_inputs(
+            MockAccountType::StandardExisting,
+            AssetPreservationStatus::Preserved,
+            None,
+        );
 
         let code = format!(
             "\

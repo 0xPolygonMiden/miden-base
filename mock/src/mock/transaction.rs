@@ -24,14 +24,16 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
+    note_args: Option<Vec<Word>>,
 ) -> TransactionInputs {
-    mock_inputs_with_account_seed(account_type, asset_preservation, None)
+    mock_inputs_with_account_seed(account_type, asset_preservation, None, note_args)
 }
 
 pub fn mock_inputs_with_account_seed(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
     account_seed: Option<Word>,
+    note_args: Option<Vec<Word>>,
 ) -> TransactionInputs {
     // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
@@ -52,7 +54,7 @@ pub fn mock_inputs_with_account_seed(
     let (input_notes, _output_notes) = mock_notes(&assembler, &asset_preservation);
 
     // Chain data
-    let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(input_notes, note_args);
 
     // Block header
     let block_header =
@@ -96,7 +98,7 @@ pub fn mock_inputs_with_existing(
     }
 
     // Chain data
-    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
+    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes, None);
 
     // Block header
     let block_header =
@@ -123,7 +125,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let output_notes = output_notes.into_iter().map(OutputNote::from).collect::<Vec<_>>();
 
     // Chain data
-    let (block_chain, input_notes) = mock_chain_data(input_notes);
+    let (block_chain, input_notes) = mock_chain_data(input_notes, None);
 
     // Block header
     let block_header = mock_block_header(

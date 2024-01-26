@@ -24,7 +24,7 @@ use crate::transaction::memory::{
 #[test]
 fn test_create_note() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
     let account_id = tx_inputs.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -127,7 +127,7 @@ fn test_create_note_too_many_notes() {
 #[test]
 fn test_get_output_notes_hash() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
 
     // extract input note data
     let input_note_1 = tx_inputs.input_notes().get_note(0).note();
