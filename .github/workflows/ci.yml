@@ -81,7 +81,7 @@ jobs:
           RUSTFLAGS: -C debug-assertions
         with:
           command: test
-          args: ${{matrix.args}}
+          args: ${{ join(matrix.args, ' ') }}
 
   no-std:
     name: build ${{matrix.toolchain}} no-std for wasm32-unknown-unknown 
