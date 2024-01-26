@@ -11,7 +11,7 @@ use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER,
+        ACCOUNT_ID_SENDER, DEFAULT_AUTH_CODE, MIN_PROOF_SECURITY_LEVEL,
     },
     utils::prepare_word,
 };
@@ -67,18 +67,7 @@ fn test_receive_asset_via_wallet() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        "
-        .to_string()
-        .as_str(),
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_CODE).unwrap();
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
@@ -94,7 +83,7 @@ fn test_receive_asset_via_wallet() {
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(96);
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
     assert!(verifier.verify(proven_transaction).is_ok());
 
@@ -184,7 +173,7 @@ fn test_send_asset_via_wallet() {
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(96);
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
     assert!(verifier.verify(proven_transaction).is_ok());
 

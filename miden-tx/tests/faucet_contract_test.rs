@@ -14,7 +14,10 @@ use miden_objects::{
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
-use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
+use mock::{
+    constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, MIN_PROOF_SECURITY_LEVEL},
+    utils::prepare_word,
+};
 
 mod common;
 use common::{
@@ -83,7 +86,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(96);
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
     assert!(verifier.verify(proven_transaction).is_ok());
 
@@ -218,7 +221,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(96);
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
     assert!(verifier.verify(proven_transaction).is_ok());
 

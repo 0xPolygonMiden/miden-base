@@ -11,7 +11,7 @@ use miden_prover::ProvingOptions;
 use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
 use mock::constants::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_SENDER, DEFAULT_AUTH_CODE, MIN_PROOF_SECURITY_LEVEL,
 };
 
 mod common;
@@ -97,16 +97,7 @@ fn test_p2idr_script() {
     let block_ref_1 = data_store_1.block_header.block_num();
     let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        ",
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_CODE).unwrap();
     let tx_script_target = executor_1
         .compile_tx_script(
             tx_script_code.clone(),
@@ -131,7 +122,7 @@ fn test_p2idr_script() {
     let proven_transaction = prover.prove_transaction(executed_transaction_1.clone()).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(96);
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
     assert!(verifier.verify(proven_transaction).is_ok());
 
