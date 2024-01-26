@@ -1,15 +1,16 @@
 [workspace]
-members = [
-  "miden-lib",
-  "miden-tx",
-  "mock",
-  "objects",
-]
+members = ["miden-lib", "miden-tx", "mock", "objects"]
 resolver = "2"
 
 [profile.release]
 codegen-units = 1
 lto = true
+
+[profile.test-release]
+inherits = "release"
+debug = true
+debug-assertions = true
+overflow-checks = true
 
 [profile.bench]
 codegen-units = 1
