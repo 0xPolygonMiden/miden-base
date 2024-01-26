@@ -24,12 +24,3 @@ pub use proven_tx::ProvenTransaction;
 pub use transaction_id::TransactionId;
 pub use tx_script::TransactionScript;
 pub use tx_witness::TransactionWitness;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Maximum number of notes consumed in a single transaction.
-const MAX_INPUT_NOTES_PER_TRANSACTION: usize = 1024;
-
-/// Maximum number of notes created in a single transaction.
-const MAX_OUTPUT_NOTES_PER_TRANSACTION: usize = 1024;

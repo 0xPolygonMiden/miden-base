@@ -44,8 +44,8 @@ pub fn run_tx_with_inputs(
     let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
     advice_inputs.extend(inputs);
     let host = MockHost::new(tx.account().into(), advice_inputs);
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let exec_options = ExecutionOptions::default().with_tracing();
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
     process.execute(&program)?;
     Ok(process)
 }
@@ -74,8 +74,8 @@ where
     let program = assembler.compile(code).unwrap();
 
     let host = DefaultHost::new(adv);
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let exec_options = ExecutionOptions::default().with_tracing();
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
     process.execute(&program)?;
     Ok(process)
 }
@@ -104,7 +104,7 @@ pub fn run_within_host<H: Host>(
 // TEST HELPERS
 // ================================================================================================
 pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
-    memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * 1024
+    memory::CONSUMED_NOTE_SECTION_OFFSET + (1 + note_idx) * memory::NOTE_MEM_SIZE
 }
 
 pub fn prepare_transaction(

@@ -258,8 +258,9 @@ fn add_account_to_advice_inputs(
 ///   out[8..12]   = input root
 ///   out[12..16]  = asset_hash
 ///   out[16..20]  = metadata
-///   out[20..24]  = asset_1
-///   out[24..28]  = asset_2
+///   out[20]      = num_assets
+///   out[21..25]  = asset_1
+///   out[25..29]  = asset_2
 ///   ...
 ///   out[20 + num_assets * 4..] = Word::default() (this is conditional padding only applied
 ///                                                 if the number of assets is odd)
@@ -305,6 +306,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.assets().commitment());
         note_data.extend(Word::from(note.metadata()));
 
+        note_data.push((note.assets().num_assets() as u32).into());
         note_data.extend(note.assets().to_padded_assets());
 
         note_data.push(proof.origin().block_num.into());

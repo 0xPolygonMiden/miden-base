@@ -19,7 +19,7 @@ pub mod delta;
 pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
 
 mod seed;
-pub use seed::get_account_seed;
+pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
 pub use storage::{AccountStorage, SlotItem, StorageSlotType};

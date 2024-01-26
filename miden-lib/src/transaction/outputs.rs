@@ -11,7 +11,7 @@ use super::memory::{
     ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET, CREATED_NOTE_ASSETS_OFFSET,
     CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_CORE_DATA_SIZE, CREATED_NOTE_ID_OFFSET,
-    CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
 };
 
 // STACK OUTPUTS
@@ -56,17 +56,17 @@ pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteErro
     let note_id: NoteId = elements[CREATED_NOTE_ID_OFFSET as usize].into();
     let metadata: NoteMetadata = elements[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
     let recipient = elements[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
+    let num_assets = elements[CREATED_NOTE_NUM_ASSETS_OFFSET as usize][0];
     let asset_hash: Digest = elements[CREATED_NOTE_ASSET_HASH_OFFSET as usize].into();
 
     if elements.len()
-        < (CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)
-            * WORD_SIZE
+        < (CREATED_NOTE_ASSETS_OFFSET as usize + num_assets.as_int() as usize) * WORD_SIZE
     {
         return Err(NoteError::InvalidStubDataLen(elements.len()));
     }
 
     let assets = elements[CREATED_NOTE_ASSETS_OFFSET as usize
-        ..(CREATED_NOTE_ASSETS_OFFSET as usize + metadata.num_assets().as_int() as usize)]
+        ..(CREATED_NOTE_ASSETS_OFFSET as usize + num_assets.as_int() as usize)]
         .iter()
         .map(|word| (*word).try_into())
         .collect::<Result<Vec<Asset>, _>>()

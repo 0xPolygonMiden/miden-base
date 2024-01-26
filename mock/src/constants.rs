@@ -1,5 +1,5 @@
 use miden_objects::{
-    accounts::{AccountId, AccountType, SlotItem, StorageSlotType},
+    accounts::{get_account_seed_single, AccountId, AccountType, SlotItem, StorageSlotType},
     assets::{Asset, NonFungibleAsset, NonFungibleAssetDetails},
     Felt, FieldElement, Word, ZERO,
 };
@@ -148,7 +148,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
         ),
     };
 
-    let seed = AccountId::get_account_seed(
+    let seed = get_account_seed_single(
         init_seed,
         account_type,
         true,

@@ -1,6 +1,5 @@
 use core::fmt::Debug;
 
-use super::MAX_OUTPUT_NOTES_PER_TRANSACTION;
 use crate::{
     accounts::AccountStub,
     notes::{Note, NoteAssets, NoteEnvelope, NoteId, NoteMetadata},
@@ -9,7 +8,7 @@ use crate::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    Digest, Felt, Hasher, StarkField, TransactionOutputError, Word,
+    Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
 
 // TRANSACTION OUTPUTS
@@ -90,9 +89,9 @@ impl<T: ToEnvelope> OutputNotes<T> {
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
     pub fn new(notes: Vec<T>) -> Result<Self, TransactionOutputError> {
-        if notes.len() > MAX_OUTPUT_NOTES_PER_TRANSACTION {
+        if notes.len() > MAX_OUTPUT_NOTES_PER_TX {
             return Err(TransactionOutputError::TooManyOutputNotes {
-                max: MAX_OUTPUT_NOTES_PER_TRANSACTION,
+                max: MAX_OUTPUT_NOTES_PER_TX,
                 actual: notes.len(),
             });
         }
@@ -226,9 +225,6 @@ impl OutputNote {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [OutputNote] instantiated from the provided parameters.
     pub fn new(recipient: Digest, assets: NoteAssets, metadata: NoteMetadata) -> Self {
-        // assert is OK here because we'll eventually remove `num_assets` from the metadata
-        assert_eq!(assets.num_assets() as u64, metadata.num_assets().as_int());
-
         let note_id = NoteId::new(recipient, assets.commitment());
         Self {
             envelope: NoteEnvelope::new(note_id, metadata),

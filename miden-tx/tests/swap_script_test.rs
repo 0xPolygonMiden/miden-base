@@ -101,8 +101,7 @@ fn test_swap_script() {
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
 
-    let note_metadata =
-        NoteMetadata::new(target_account_id, sender_account_id.into(), Felt::new(1));
+    let note_metadata = NoteMetadata::new(target_account_id, sender_account_id.into());
 
     let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
 

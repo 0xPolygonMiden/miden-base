@@ -4,16 +4,21 @@ use miden_objects::{
 };
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    mock::{
+        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
+        transaction::mock_inputs,
+    },
     prepare_transaction,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel,
 };
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use super::{
+    ContextId, Felt, MemAdviceProvider, Process, ProcessState, StackInputs, Word, ONE, ZERO,
+};
 use crate::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
+    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
 
 #[test]
@@ -57,39 +62,31 @@ fn test_create_note() {
 
     // assert the recipient is stored at the correct memory location.
     assert_eq!(
-        process
-            .get_mem_value(
-                ContextId::root(),
-                CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET
-            )
-            .unwrap(),
+        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
         recipient
     );
 
     // assert the metadata is stored at the correct memory location.
     assert_eq!(
-        process
-            .get_mem_value(
-                ContextId::root(),
-                CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
-            )
-            .unwrap(),
-        [ONE, tag, Felt::from(account_id), ZERO]
+        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
+        [tag, Felt::from(account_id), ZERO, ZERO]
+    );
+
+    // assert the number of assets is stored at the correct memory location.
+    assert_eq!(
+        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_NUM_ASSETS_OFFSET),
+        [ONE, ZERO, ZERO, ZERO]
     );
 
     // assert the asset is stored at the correct memory location.
     assert_eq!(
-        process
-            .get_mem_value(
-                ContextId::root(),
-                CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET
-            )
-            .unwrap(),
+        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
         asset
     );
 
     // assert there top item on the stack is a pointer to the created note.
-    assert_eq!(process.stack.get(0), Felt::new(10000));
+    let note_ptr = CREATED_NOTE_SECTION_OFFSET;
+    assert_eq!(process.stack.get(0), Felt::from(note_ptr));
 }
 
 #[test]
@@ -214,4 +211,11 @@ fn test_get_output_notes_hash() {
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
+    process.get_mem_value(ContextId::root(), addr).unwrap()
 }

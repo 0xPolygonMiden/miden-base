@@ -544,8 +544,9 @@ proc.process_input_note
     exec.memory::set_consumed_note_metadata
     # => [note_ptr]
 
-    # get the number of assets
-    dup exec.memory::get_consumed_note_num_assets
+    # get the number of assets from the advice provider and store it in memory
+    adv_push.1 dup dup.2
+    exec.memory::set_consumed_note_num_assets
     # => [num_assets, note_ptr]
 
     # assert the number of assets is within limits
@@ -589,12 +590,14 @@ proc.process_input_note
     # => [note_ptr, DIG, note_ptr]
 
     # get expected note vault from memory
-    exec.memory::get_consumed_note_vault_root
+    exec.memory::get_consumed_note_assets_hash
     # => [V, DIG, note_ptr]
 
     # assert that the computed hash matches the expected hash
     assert_eqw
     # => [note_ptr]
+
+    # TODO: make sure the last asset is not [ZERO; 4]?
 
     # insert note assets into the input vault
     # ---------------------------------------------------------------------------------------------
@@ -651,7 +654,7 @@ proc.process_input_note
     # => [RECIPIENT, note_ptr]
 
     # hash recipient with vault hash - note_hash = hmerge(recipient, vault_hash)
-    dup.4 exec.memory::get_consumed_note_vault_root hmerge
+    dup.4 exec.memory::get_consumed_note_assets_hash hmerge
     # => [NOTE_HASH, note_ptr]
 
     # store note hash in memory and clear stack
