@@ -1,6 +1,7 @@
 use super::{Digest, Felt, Hasher, Note, Word};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use crate::utils::{
+    serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    string::String,
 };
 
 // NOTE ID
@@ -36,6 +37,11 @@ impl NoteId {
     /// Returns the byte representation of this note ID.
     pub fn as_bytes(&self) -> [u8; 32] {
         self.0.as_bytes()
+    }
+
+    /// Returns a big-endian, hex-encoded string.
+    pub fn to_hex(&self) -> String {
+        self.0.to_hex()
     }
 
     /// Returns the digest defining this note ID.
