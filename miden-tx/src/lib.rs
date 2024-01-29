@@ -30,6 +30,3 @@ pub use error::{
     DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
     TransactionVerifierError,
 };
-
-#[cfg(test)]
-mod tests;
