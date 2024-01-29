@@ -319,8 +319,48 @@ fn test_note_setup() {
     note_setup_memory_assertions(&process);
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+#[test]
+fn test_note_script_and_note_args() {
+    let note_args_note_0 = [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)];
+    let note_args_note_1 = [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)];
+
+    let tx_inputs = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        Some(vec![note_args_note_0, note_args_note_1]),
+    );
+
+    let code = "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::memory
+        use.miden::kernels::tx::note
+
+        begin
+            exec.prologue::prepare_transaction
+            exec.memory::get_total_num_consumed_notes push.2 assert_eq
+
+            exec.note::prepare_note dropw
+
+            exec.note::increment_current_consumed_note_ptr drop
+
+            exec.note::prepare_note dropw
+            
+        end
+        ";
+
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let process = run_tx(&transaction).unwrap();
+
+    assert_eq!(
+        process.stack.get_word(0),
+        tx_inputs.input_notes().get_note(1).note_args().unwrap()
+    );
+
+    assert_eq!(
+        process.stack.get_word(1),
+        tx_inputs.input_notes().get_note(0).note_args().unwrap()
+    );
+}
 
 fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     let mut expected_stack = [ZERO; 16];
