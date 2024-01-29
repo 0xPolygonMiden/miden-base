@@ -1,17 +1,15 @@
-use mock::{
-    mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
-    procedures::output_notes_data_procedure,
-    run_within_tx_kernel,
-};
-
+use common::{build_module_path, TX_KERNEL_DIR};
 use miden_lib::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
     ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
     TX_SCRIPT_ROOT_WORD_IDX,
 };
+use mock::{
+    mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
+    procedures::output_notes_data_procedure,
+    run_within_tx_kernel,
+};
 use vm_processor::{ContextId, MemAdviceProvider, ProcessState, Word, ZERO};
-
-use common::{build_module_path, TX_KERNEL_DIR};
 
 mod common;
 

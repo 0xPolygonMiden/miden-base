@@ -1,3 +1,4 @@
+use miden_lib::transaction::memory;
 use miden_objects::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
@@ -13,8 +14,6 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
-
-use miden_lib::transaction::memory;
 use vm_processor::{ContextId, ProcessState};
 
 #[test]

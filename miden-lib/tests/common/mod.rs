@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use miden_lib::MidenLib;
 use miden_objects::assembly::Library;
-use std::path::PathBuf;
 
 // CONSTANTS
 // ================================================================================================

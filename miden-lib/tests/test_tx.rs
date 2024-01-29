@@ -1,3 +1,7 @@
+use miden_lib::transaction::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
+    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
+};
 use miden_objects::{
     notes::Note,
     transaction::{OutputNote, OutputNotes},
@@ -12,11 +16,6 @@ use mock::{
     prepare_transaction,
     procedures::prepare_word,
     run_tx, run_within_tx_kernel,
-};
-
-use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
 use vm_processor::{ContextId, MemAdviceProvider, Process, ProcessState, StackInputs};
 

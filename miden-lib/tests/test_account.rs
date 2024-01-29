@@ -1,3 +1,7 @@
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
+    ToTransactionKernelInputs,
+};
 use miden_objects::{
     accounts::{
         AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
@@ -22,11 +26,6 @@ use mock::{
     prepare_transaction,
     procedures::{output_notes_data_procedure, prepare_word},
     run_tx, run_within_host, run_within_tx_kernel,
-};
-
-use miden_lib::transaction::{
-    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
-    ToTransactionKernelInputs,
 };
 use vm_processor::{ContextId, MemAdviceProvider, ProcessState, StackInputs};
 

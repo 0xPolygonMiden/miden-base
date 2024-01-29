@@ -1,3 +1,4 @@
+use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{assets::FungibleAsset, ONE};
 use mock::{
     constants::{
@@ -11,8 +12,6 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
-
-use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
