@@ -9,9 +9,6 @@ use super::{
     TransactionCompilerError, TransactionKernel,
 };
 
-#[cfg(test)]
-mod tests;
-
 // TRANSACTION COMPILER
 // ================================================================================================
 

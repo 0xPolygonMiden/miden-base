@@ -1,12 +1,13 @@
 use miden_objects::{
-    accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    accounts::{AccountId, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN},
+    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteInclusionProof},
     transaction::{InputNote, InputNotes},
+    utils::hex_to_bytes,
     Felt, FieldElement, Word,
 };
-
-use super::{AccountId, ModuleAst, ProgramAst, ScriptTarget, TransactionCompiler};
+use miden_tx::{ScriptTarget, TransactionCompiler};
 
 // CONSTANTS
 // ================================================================================================
@@ -52,9 +53,9 @@ fn test_load_account() {
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
     let account_code = tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
-    let acct_procs = [hex_to_bytes(ACCT_PROC_1), hex_to_bytes(ACCT_PROC_2)];
+    let acct_procs = [hex_to_bytes(ACCT_PROC_1).unwrap(), hex_to_bytes(ACCT_PROC_2).unwrap()];
     for proc in account_code.procedures() {
-        assert!(acct_procs.contains(&proc.as_bytes().to_vec()));
+        assert!(acct_procs.contains(&proc.as_bytes()));
     }
 }
 
@@ -212,9 +213,9 @@ fn test_transaction_compilation_succeeds() {
 // HELPERS
 // ================================================================================================
 
-fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    (2..hex.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-        .collect::<Vec<_>>()
-}
+// fn hex_to_bytes(hex: &str) -> Vec<u8> {
+//     (2..hex.len())
+//         .step_by(2)
+//         .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+//         .collect::<Vec<_>>()
+// }
