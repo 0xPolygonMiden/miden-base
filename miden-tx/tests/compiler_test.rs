@@ -209,13 +209,3 @@ fn test_transaction_compilation_succeeds() {
     let res = tx_compiler.compile_transaction(account_id, &notes, Some(&tx_script_ast));
     assert!(res.is_ok());
 }
-
-// HELPERS
-// ================================================================================================
-
-// fn hex_to_bytes(hex: &str) -> Vec<u8> {
-//     (2..hex.len())
-//         .step_by(2)
-//         .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-//         .collect::<Vec<_>>()
-// }
