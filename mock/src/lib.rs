@@ -16,7 +16,6 @@ pub mod builders;
 pub mod constants;
 pub mod mock;
 pub mod procedures;
-pub mod utils;
 
 // TEST BRACE
 // ================================================================================================

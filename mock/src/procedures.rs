@@ -86,7 +86,7 @@ pub fn prepare_word(word: &Word) -> String {
     word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
 }
 
-fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
+pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
     let mut assets = Vec::new();
     for &asset in note_assets.iter() {
         let asset_word: Word = asset.into();

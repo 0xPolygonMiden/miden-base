@@ -13,7 +13,7 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
+use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, procedures::prepare_word};
 
 mod common;
 use common::{

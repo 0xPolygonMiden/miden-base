@@ -12,7 +12,7 @@ use mock::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_SENDER,
     },
-    utils::prepare_word,
+    procedures::prepare_word,
 };
 
 mod common;

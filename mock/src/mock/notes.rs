@@ -14,7 +14,7 @@ use crate::{
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_ASSET_1_AMOUNT,
         CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
     },
-    utils::{prepare_assets, prepare_word},
+    procedures::{prepare_assets, prepare_word},
 };
 
 pub enum AssetPreservationStatus {
