@@ -163,7 +163,7 @@ There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base
 </details>
 
 ## Note storage mode
-Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored publicly in the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored privately by committing only the note hash to the Note DB. 
+Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the Note DB. 
 
 Every note has a unique note hash. It is defined as follows:
 
