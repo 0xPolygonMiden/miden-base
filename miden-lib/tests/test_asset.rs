@@ -9,7 +9,7 @@ use mock::{
     run_tx,
 };
 
-use super::{Hasher, Word, ONE};
+use miden_objects::{Hasher, Word, ONE};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {

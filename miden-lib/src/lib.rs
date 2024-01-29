@@ -15,9 +15,6 @@ pub mod accounts;
 pub mod notes;
 pub mod transaction;
 
-#[cfg(test)]
-mod tests;
-
 // STANDARD LIBRARY
 // ================================================================================================
 

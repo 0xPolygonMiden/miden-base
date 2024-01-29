@@ -1,4 +1,4 @@
-use miden_objects::{notes::Note, transaction::PreparedTransaction, WORD_SIZE};
+use miden_objects::{notes::Note, transaction::PreparedTransaction, Felt, WORD_SIZE, ZERO};
 use mock::{
     consumed_note_data_ptr,
     mock::{
@@ -10,8 +10,8 @@ use mock::{
     run_tx,
 };
 
-use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
+use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
+use vm_processor::{ContextId, Process, ProcessState};
 
 #[test]
 fn test_get_sender_no_sender() {

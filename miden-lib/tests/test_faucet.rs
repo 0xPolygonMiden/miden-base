@@ -1,4 +1,4 @@
-use miden_objects::assets::FungibleAsset;
+use miden_objects::{assets::FungibleAsset, ONE};
 use mock::{
     constants::{
         non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -12,8 +12,7 @@ use mock::{
     run_tx,
 };
 
-use super::ONE;
-use crate::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
+use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================

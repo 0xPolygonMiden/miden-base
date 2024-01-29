@@ -6,6 +6,7 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     crypto::merkle::LeafIndex,
+    Felt, Word, ONE, ZERO,
 };
 use mock::{
     constants::{
@@ -23,11 +24,11 @@ use mock::{
     run_tx, run_within_host, run_within_tx_kernel,
 };
 
-use super::{
-    super::transaction::ToTransactionKernelInputs, ContextId, Felt, MemAdviceProvider,
-    ProcessState, StackInputs, Word, ONE, ZERO,
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
+    ToTransactionKernelInputs,
 };
-use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use vm_processor::{ContextId, MemAdviceProvider, ProcessState, StackInputs};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================

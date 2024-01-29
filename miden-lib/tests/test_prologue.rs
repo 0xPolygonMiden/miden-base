@@ -1,7 +1,7 @@
 use miden_objects::{
     assembly::ProgramAst,
     transaction::{PreparedTransaction, TransactionScript},
-    Digest,
+    Digest, Felt, Word, ZERO,
 };
 use mock::{
     constants::{generate_account_seed, AccountSeedType},
@@ -16,8 +16,8 @@ use mock::{
 };
 use vm_processor::AdviceInputs;
 
-use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
-use crate::transaction::{
+use common::{build_module_path, TX_KERNEL_DIR};
+use miden_lib::transaction::{
     memory::{
         ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
@@ -29,6 +29,9 @@ use crate::transaction::{
     },
     TransactionKernel,
 };
+use vm_processor::{ContextId, Process, ProcessState};
+
+mod common;
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 

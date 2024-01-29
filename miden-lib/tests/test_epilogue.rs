@@ -4,14 +4,16 @@ use mock::{
     run_within_tx_kernel,
 };
 
-use super::{
-    build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
-};
-use crate::transaction::{
+use miden_lib::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
     ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
     TX_SCRIPT_ROOT_WORD_IDX,
 };
+use vm_processor::{ContextId, MemAdviceProvider, ProcessState, Word, ZERO};
+
+use common::{build_module_path, TX_KERNEL_DIR};
+
+mod common;
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
