@@ -135,7 +135,7 @@ proc.mint_non_fungible_asset
     # => [ASSET, ASSET, TSMT_ROOT, ASSET]
 
     # insert the non-fungible asset into the tracking TSMT
-    exec.smt::insert
+    exec.smt::set
     # => [OLD_VAL, TSMT_ROOT', ASSET]
 
     # assert the `OLD_VAL` is ZERO, indicating that the non-fungible asset did not already exist
