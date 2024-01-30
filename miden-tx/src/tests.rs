@@ -5,7 +5,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
     notes::NoteId,
-    transaction::{ChainMmr, InputNote, InputNotes, TransactionWitness},
+    transaction::{ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionWitness},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -20,7 +20,10 @@ use mock::{
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
-use vm_processor::MemAdviceProvider;
+use vm_processor::{
+    utils::{Deserializable, Serializable},
+    MemAdviceProvider,
+};
 
 use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
@@ -272,11 +275,16 @@ fn test_prove_witness_and_verify() {
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
 
-    // prove the transaction with the witness
+    // Prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
+
+    // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }

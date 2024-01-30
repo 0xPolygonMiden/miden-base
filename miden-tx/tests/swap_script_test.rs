@@ -8,7 +8,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteMetadata},
-    transaction::OutputNote,
+    transaction::{OutputNote, ProvenTransaction},
     Felt,
 };
 use miden_prover::ProvingOptions;
@@ -17,6 +17,7 @@ use mock::constants::{
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_CODE, MIN_PROOF_SECURITY_LEVEL,
 };
+use vm_processor::utils::{Deserializable, Serializable};
 
 mod common;
 
@@ -79,6 +80,10 @@ fn test_swap_script() {
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);

@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    transaction::ProvenTransaction,
     Felt, Word, ONE, ZERO,
 };
 use miden_prover::ProvingOptions;
@@ -15,6 +16,7 @@ use mock::{
     },
     utils::prepare_word,
 };
+use vm_processor::utils::{Deserializable, Serializable};
 
 mod common;
 use common::{
@@ -81,6 +83,10 @@ fn test_receive_asset_via_wallet() {
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);

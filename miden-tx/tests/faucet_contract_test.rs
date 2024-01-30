@@ -9,7 +9,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteAssets, NoteMetadata},
-    transaction::OutputNote,
+    transaction::{OutputNote, ProvenTransaction},
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
@@ -18,6 +18,7 @@ use mock::{
     constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, MIN_PROOF_SECURITY_LEVEL},
     utils::prepare_word,
 };
+use vm_processor::utils::{Deserializable, Serializable};
 
 mod common;
 use common::{
@@ -84,6 +85,10 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
@@ -219,6 +224,10 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
+
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
