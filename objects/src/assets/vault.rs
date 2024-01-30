@@ -2,7 +2,7 @@ use super::{
     AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     FungibleAsset, NonFungibleAsset, Serializable, ToString, Vec, ZERO,
 };
-use crate::{crypto::merkle::TieredSmt, AssetVaultError, Digest};
+use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
 
 // ASSET VAULT
 // ================================================================================================
@@ -20,7 +20,7 @@ use crate::{crypto::merkle::TieredSmt, AssetVaultError, Digest};
 /// An asset vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AssetVault {
-    asset_tree: TieredSmt,
+    asset_tree: Smt,
 }
 
 impl AssetVault {
@@ -29,7 +29,7 @@ impl AssetVault {
     /// Returns a new [AssetVault] initialized with the provided assets.
     pub fn new(assets: &[Asset]) -> Result<Self, AssetVaultError> {
         Ok(Self {
-            asset_tree: TieredSmt::with_entries(
+            asset_tree: Smt::with_entries(
                 assets.iter().map(|asset| (asset.vault_key().into(), (*asset).into())),
             )
             .map_err(AssetVaultError::DuplicateAsset)?,
@@ -51,8 +51,8 @@ impl AssetVault {
         }
 
         // check if the asset is stored in the vault
-        match self.asset_tree.get_value(asset.vault_key().into()) {
-            asset if asset == TieredSmt::EMPTY_VALUE => Ok(false),
+        match self.asset_tree.get_value(&asset.vault_key().into()) {
+            asset if asset == Smt::EMPTY_VALUE => Ok(false),
             _ => Ok(true),
         }
     }
@@ -68,19 +68,19 @@ impl AssetVault {
         }
 
         // if the tree value is [0, 0, 0, 0], the asset is not stored in the vault
-        match self.asset_tree.get_value([ZERO, ZERO, ZERO, faucet_id.into()].into()) {
-            asset if asset == TieredSmt::EMPTY_VALUE => Ok(0),
+        match self.asset_tree.get_value(&[ZERO, ZERO, ZERO, faucet_id.into()].into()) {
+            asset if asset == Smt::EMPTY_VALUE => Ok(0),
             asset => Ok(FungibleAsset::new_unchecked(asset).amount()),
         }
     }
 
     /// Returns an iterator over the assets stored in the vault.
     pub fn assets(&self) -> impl Iterator<Item = Asset> + '_ {
-        self.asset_tree.iter().map(|x| Asset::new_unchecked(x.1))
+        self.asset_tree.entries().map(|x| Asset::new_unchecked(x.1))
     }
 
     /// Returns a reference to the Sparse Merkle tree underling this asset vault.
-    pub fn asset_tree(&self) -> &TieredSmt {
+    pub fn asset_tree(&self) -> &Smt {
         &self.asset_tree
     }
 
@@ -111,8 +111,8 @@ impl AssetVault {
         asset: FungibleAsset,
     ) -> Result<FungibleAsset, AssetVaultError> {
         // fetch current asset value from the tree and add the new asset to it.
-        let new: FungibleAsset = match self.asset_tree.get_value(asset.vault_key().into()) {
-            current if current == TieredSmt::EMPTY_VALUE => asset,
+        let new: FungibleAsset = match self.asset_tree.get_value(&asset.vault_key().into()) {
+            current if current == Smt::EMPTY_VALUE => asset,
             current => {
                 let current = FungibleAsset::new_unchecked(current);
                 current.add(asset).map_err(AssetVaultError::AddFungibleAssetBalanceError)?
@@ -136,7 +136,7 @@ impl AssetVault {
         let old = self.asset_tree.insert(asset.vault_key().into(), asset.into());
 
         // if the asset already exists, return an error
-        if old != TieredSmt::EMPTY_VALUE {
+        if old != Smt::EMPTY_VALUE {
             return Err(AssetVaultError::DuplicateNonFungibleAsset(asset));
         }
 
@@ -168,8 +168,8 @@ impl AssetVault {
         asset: FungibleAsset,
     ) -> Result<FungibleAsset, AssetVaultError> {
         // fetch the asset from the vault.
-        let mut current = match self.asset_tree.get_value(asset.vault_key().into()) {
-            current if current == TieredSmt::EMPTY_VALUE => {
+        let mut current = match self.asset_tree.get_value(&asset.vault_key().into()) {
+            current if current == Smt::EMPTY_VALUE => {
                 return Err(AssetVaultError::FungibleAssetNotFound(asset))
             },
             current => FungibleAsset::new_unchecked(current),
@@ -182,7 +182,7 @@ impl AssetVault {
 
         // if the amount of the asset is zero, remove the asset from the vault.
         let new = match current.amount() {
-            0 => TieredSmt::EMPTY_VALUE,
+            0 => Smt::EMPTY_VALUE,
             _ => current.into(),
         };
         self.asset_tree.insert(asset.vault_key().into(), new);
@@ -200,10 +200,10 @@ impl AssetVault {
         asset: NonFungibleAsset,
     ) -> Result<NonFungibleAsset, AssetVaultError> {
         // remove the asset from the vault.
-        let old = self.asset_tree.insert(asset.vault_key().into(), TieredSmt::EMPTY_VALUE);
+        let old = self.asset_tree.insert(asset.vault_key().into(), Smt::EMPTY_VALUE);
 
         // return an error if the asset did not exist in the vault.
-        if old == TieredSmt::EMPTY_VALUE {
+        if old == Smt::EMPTY_VALUE {
             return Err(AssetVaultError::NonFungibleAssetNotFound(asset));
         }
 
