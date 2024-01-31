@@ -1,3 +1,5 @@
+use miden_crypto::utils::HexParseError;
+
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -71,6 +73,13 @@ impl From<Digest> for NoteId {
     }
 }
 
+impl NoteId {
+    /// Attempts to convert from a hexadecimal string to [NoteId].
+    pub fn try_from_hex(hex_value: &str) -> Result<NoteId, HexParseError> {
+        Digest::try_from(hex_value).and_then(|v| Ok(NoteId::from(v)))
+    }
+}
+
 // CONVERSIONS FROM NOTE ID
 // ================================================================================================
 
@@ -111,5 +120,18 @@ impl Deserializable for NoteId {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let id = Digest::read_from(source)?;
         Ok(Self(id))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NoteId;
+
+    #[test]
+    fn note_id_try_from_hex() {
+        let note_id_hex = "0xc9d31c82c098e060c9b6e3af2710b3fc5009a1a6f82ef9465f8f35d1f5ba4a80";
+        let note_id = NoteId::try_from_hex(note_id_hex).unwrap();
+
+        assert_eq!(note_id.inner().to_string(), note_id_hex)
     }
 }
