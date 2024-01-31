@@ -1,7 +1,6 @@
-use miden_crypto::utils::HexParseError;
-
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
+    HexParseError,
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     string::String,
 };
