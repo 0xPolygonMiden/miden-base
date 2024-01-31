@@ -9,21 +9,18 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteAssets, NoteMetadata},
-    transaction::{OutputNote, ProvenTransaction},
+    transaction::OutputNote,
     Felt, Word, ZERO,
 };
-use miden_prover::ProvingOptions;
-use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
-use mock::{
-    constants::{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, MIN_PROOF_SECURITY_LEVEL},
-    utils::prepare_word,
-};
-use vm_processor::utils::{Deserializable, Serializable};
+use miden_tx::TransactionExecutor;
+use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
 mod common;
 use common::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script, MockDataStore,
 };
+
+use crate::common::prove_and_verify_transaction;
 
 // TESTS MINT FUNGIBLE ASSET
 // ================================================================================================
@@ -81,19 +78,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
-    // Prove the transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
-
-    // Serialize & deserialize the ProvenTransaction
-    let serialised_transaction = proven_transaction.to_bytes();
-    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
-
-    // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
@@ -220,19 +205,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
-    // Prove the transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
-
-    // Serialize & deserialize the ProvenTransaction
-    let serialised_transaction = proven_transaction.to_bytes();
-    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
-
-    // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // check that the account burned the asset
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));

@@ -42,7 +42,7 @@ pub const DEFAULT_ACCOUNT_CODE: &str = "
 ";
 
 // Default authentication code
-pub const DEFAULT_AUTH_CODE: &str = "
+pub const DEFAULT_AUTH_SCRIPT: &str = "
     use.miden::contracts::auth::basic->auth_tx
 
     begin

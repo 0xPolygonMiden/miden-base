@@ -4,25 +4,24 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
-    transaction::ProvenTransaction,
     Felt, Word, ONE, ZERO,
 };
-use miden_prover::ProvingOptions;
-use miden_tx::{TransactionExecutor, TransactionProver, TransactionVerifier};
+use miden_tx::TransactionExecutor;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_AUTH_CODE, MIN_PROOF_SECURITY_LEVEL,
+        ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
     },
     utils::prepare_word,
 };
-use vm_processor::utils::{Deserializable, Serializable};
 
 mod common;
 use common::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
     get_note_with_fungible_asset_and_script, MockDataStore,
 };
+
+use crate::common::prove_and_verify_transaction;
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
@@ -69,7 +68,7 @@ fn test_receive_asset_via_wallet() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_CODE).unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
@@ -79,19 +78,7 @@ fn test_receive_asset_via_wallet() {
         .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
-    // Prove the transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
-
-    // Serialize & deserialize the ProvenTransaction
-    let serialised_transaction = proven_transaction.to_bytes();
-    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
-
-    // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // nonce delta
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
@@ -173,15 +160,7 @@ fn test_send_asset_via_wallet() {
         .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
-    // Prove the transaction
-    let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction.clone()).unwrap();
-
-    // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
-
-    assert!(verifier.verify(proven_transaction).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
     let sender_account_storage =
