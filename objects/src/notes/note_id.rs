@@ -76,7 +76,7 @@ impl From<Digest> for NoteId {
 impl NoteId {
     /// Attempts to convert from a hexadecimal string to [NoteId].
     pub fn try_from_hex(hex_value: &str) -> Result<NoteId, HexParseError> {
-        Digest::try_from(hex_value).and_then(|v| Ok(NoteId::from(v)))
+        Digest::try_from(hex_value).map(|h| NoteId::from(h))
     }
 }
 
