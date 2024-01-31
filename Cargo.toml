@@ -9,7 +9,7 @@ lto = true
 [profile.test-release]
 inherits = "release"
 debug = true
-debug-assertions = true
+# debug-assertions = true
 overflow-checks = true
 
 [profile.bench]
