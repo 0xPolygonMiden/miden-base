@@ -123,7 +123,7 @@ pub fn prove_and_verify_transaction(
     // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
 
-    Ok(verifier.verify(proven_transaction)?)
+    verifier.verify(proven_transaction)
 }
 
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {

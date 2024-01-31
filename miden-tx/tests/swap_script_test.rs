@@ -76,6 +76,7 @@ fn test_swap_script() {
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // target account vault delta

@@ -78,6 +78,7 @@ fn test_faucet_contract_mint_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let fungible_asset: Asset =
@@ -205,6 +206,7 @@ fn test_faucet_contract_burn_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // check that the account burned the asset

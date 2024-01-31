@@ -78,6 +78,7 @@ fn test_receive_asset_via_wallet() {
         .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // nonce delta
@@ -160,6 +161,7 @@ fn test_send_asset_via_wallet() {
         .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
