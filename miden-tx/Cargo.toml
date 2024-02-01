@@ -12,9 +12,21 @@ edition = "2021"
 rust-version = "1.67"
 
 [features]
-concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
+concurrent = [
+    "miden-lib/concurrent",
+    "miden-objects/concurrent",
+    "miden-prover/concurrent",
+    "std",
+]
 default = ["std"]
-std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
+std = [
+    "miden-lib/std",
+    "miden-objects/std",
+    "miden-prover/std",
+    "miden-verifier/std",
+    "vm-processor/std",
+]
+has_proving = []
 
 [dependencies]
 miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }

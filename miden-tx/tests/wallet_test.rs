@@ -23,9 +23,10 @@ use common::{
 
 use crate::common::prove_and_verify_transaction;
 
+#[cfg(feature = "has_proving")]
 #[test]
 // Testing the basic Miden wallet - receiving an asset
-fn test_receive_asset_via_wallet() {
+fn test_receive_asset_via_wallet_has_proving() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
@@ -100,9 +101,10 @@ fn test_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
+#[cfg(feature = "has_proving")]
 #[test]
 // Testing the basic Miden wallet - sending an asset
-fn test_send_asset_via_wallet() {
+fn test_send_asset_via_wallet_has_proving() {
     // Mock data
     // We need an asset and an account that owns that asset
     // Create assets

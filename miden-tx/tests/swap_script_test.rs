@@ -21,8 +21,9 @@ use crate::common::prove_and_verify_transaction;
 
 mod common;
 
+#[cfg(feature = "has_proving")]
 #[test]
-fn test_swap_script() {
+fn test_swap_script_has_proving() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
