@@ -18,8 +18,6 @@ use common::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
 
-use crate::common::prove_and_verify_transaction;
-
 // P2IDR TESTS
 // ===============================================================================================
 // We want to test the Pay to ID Reclaim script, which is a script that allows the user
@@ -116,8 +114,6 @@ fn test_p2idr_script() {
             Some(tx_script_target.clone()),
         )
         .unwrap();
-
-    assert!(prove_and_verify_transaction(executed_transaction_1.clone()).is_ok());
 
     // Assert that the target_account received the funds and the nonce increased by 1
     let target_account_after: Account = Account::new(

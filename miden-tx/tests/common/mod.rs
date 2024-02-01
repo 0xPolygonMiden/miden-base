@@ -108,6 +108,7 @@ impl DataStore for MockDataStore {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+#[allow(dead_code)]
 pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
@@ -126,6 +127,7 @@ pub fn prove_and_verify_transaction(
     verifier.verify(proven_transaction)
 }
 
+#[allow(dead_code)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
     let keypair: KeyPair = KeyPair::new().unwrap();
 

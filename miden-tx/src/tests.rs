@@ -260,7 +260,6 @@ fn test_executed_transaction_account_delta() {
     );
 }
 
-#[cfg(feature = "has_proving")]
 #[test]
 fn test_prove_witness_and_verify_has_proving() {
     let data_store = MockDataStore::default();

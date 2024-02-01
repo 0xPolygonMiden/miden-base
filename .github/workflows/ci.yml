@@ -66,8 +66,7 @@ jobs:
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
-        args: ["--release --features concurrent,testing"]
-        # args: ["--profile test-release --features concurrent,testing"]
+        args: ["--profile test-release --features concurrent,testing -- --skip has_proving", "--release --features concurrent,testing has_proving"]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

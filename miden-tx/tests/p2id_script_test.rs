@@ -24,7 +24,6 @@ use crate::common::prove_and_verify_transaction;
 // ===============================================================================================
 // We test the Pay to ID script. So we create a note that can only be consumed by the target
 // account.
-#[cfg(feature = "has_proving")]
 #[test]
 fn test_p2id_script_has_proving() {
     // Create assets

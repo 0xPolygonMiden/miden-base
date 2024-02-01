@@ -21,7 +21,6 @@ use crate::common::prove_and_verify_transaction;
 
 mod common;
 
-#[cfg(feature = "has_proving")]
 #[test]
 fn test_swap_script_has_proving() {
     // Create assets

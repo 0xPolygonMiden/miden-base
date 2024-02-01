@@ -23,7 +23,6 @@ use common::{
 
 use crate::common::prove_and_verify_transaction;
 
-#[cfg(feature = "has_proving")]
 #[test]
 // Testing the basic Miden wallet - receiving an asset
 fn test_receive_asset_via_wallet_has_proving() {
@@ -101,7 +100,6 @@ fn test_receive_asset_via_wallet_has_proving() {
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
-#[cfg(feature = "has_proving")]
 #[test]
 // Testing the basic Miden wallet - sending an asset
 fn test_send_asset_via_wallet_has_proving() {
