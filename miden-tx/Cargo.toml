@@ -26,7 +26,6 @@ std = [
     "miden-verifier/std",
     "vm-processor/std",
 ]
-has_proving = []
 
 [dependencies]
 miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }

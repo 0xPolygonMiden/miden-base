@@ -26,7 +26,7 @@ use crate::common::prove_and_verify_transaction;
 // ================================================================================================
 
 #[test]
-fn test_faucet_contract_mint_fungible_asset_succeeds_has_proving() {
+fn prove_test_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
@@ -154,7 +154,7 @@ fn test_faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 // ================================================================================================
 
 #[test]
-fn test_faucet_contract_burn_fungible_asset_succeeds_has_proving() {
+fn prove_test_faucet_contract_burn_fungible_asset_succeeds() {
     let (faucet_pub_key, _faucet_keypair_felts) = get_new_key_pair_with_advice_map();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, Some(100));
