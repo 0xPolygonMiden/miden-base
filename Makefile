@@ -9,3 +9,7 @@ watch:
 test:
 	cargo test $(PROFILE_TEST) $(FEATURES_CONCURRENT_TESTING) -- --skip $(PROVE)
 	cargo test $(PROFILE_RELEASE) $(FEATURES_CONCURRENT_TESTING) $(PROVE)
+
+pre:
+	cargo +nightly clippy
+	cargo +nightly fmt
