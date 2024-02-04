@@ -1,14 +1,9 @@
 use std::path::PathBuf;
 
-use miden_objects::{
-    assembly::{AssemblyContext, LibraryPath, ModuleAst},
-    vm::StackInputs,
-    Felt, Hasher, Word, ONE, ZERO,
-};
+use miden_objects::{vm::StackInputs, Felt, Hasher, Word, ONE, ZERO};
 use vm_processor::{ContextId, MemAdviceProvider, Process, ProcessState};
 
 use super::Library;
-use crate::transaction::TransactionKernel;
 
 mod test_account;
 mod test_asset;
@@ -40,35 +35,6 @@ fn test_compile() {
     });
 
     assert!(exists);
-}
-
-#[ignore]
-#[test]
-fn experiment() {
-    let assembler = TransactionKernel::assembler();
-    let mut context = AssemblyContext::for_module(false);
-
-    let src = "use.miden::account
-    use.miden::tx
-    use.miden::contracts::wallets::basic->wallet
-
-    # acct proc 5
-    export.create_note
-        # apply padding
-        repeat.8
-            push.0 movdn.9
-        end
-
-        # create note
-        exec.tx::create_note
-        # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
-    end";
-
-    let module = ModuleAst::parse(src).unwrap();
-    let path = LibraryPath::new("foo::bar").unwrap();
-    let x = assembler.compile_module(&module, Some(&path), &mut context).unwrap();
-    println!("{}", x[0]);
-    assert!(false);
 }
 
 // HELPER FUNCTIONS
