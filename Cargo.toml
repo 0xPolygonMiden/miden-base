@@ -17,6 +17,6 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
-vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "plafer-tsmt-replacement", default-features = false }
+miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "plafer-tsmt-replacement", default-features = false }
+vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm", branch = "plafer-tsmt-replacement", default-features = false }
