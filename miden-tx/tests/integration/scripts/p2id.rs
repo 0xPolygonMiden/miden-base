@@ -23,7 +23,7 @@ use crate::{
 // We test the Pay to ID script. So we create a note that can only be consumed by the target
 // account.
 #[test]
-fn prove_test_p2id_script() {
+fn prove_p2id_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -129,7 +129,7 @@ fn prove_test_p2id_script() {
 /// We test the Pay to script with 2 assets to test the loop inside the script.
 /// So we create a note containing two assets that can only be consumed by the target account.
 #[test]
-fn test_p2id_script_multiple_assets() {
+fn p2id_script_multiple_assets() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();

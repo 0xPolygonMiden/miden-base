@@ -22,7 +22,7 @@ use crate::{
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
-fn prove_test_receive_asset_via_wallet() {
+fn prove_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
@@ -99,7 +99,7 @@ fn prove_test_receive_asset_via_wallet() {
 
 #[test]
 // Testing the basic Miden wallet - sending an asset
-fn prove_test_send_asset_via_wallet() {
+fn prove_send_asset_via_wallet() {
     // Mock data
     // We need an asset and an account that owns that asset
     // Create assets
@@ -180,7 +180,7 @@ fn prove_test_send_asset_via_wallet() {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
-fn test_wallet_creation() {
+fn wallet_creation() {
     // we need a Falcon Public Key to create the wallet account
 
     use miden_objects::accounts::AccountType;

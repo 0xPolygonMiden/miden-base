@@ -9,6 +9,7 @@ test:
 	cargo test $(PROFILE_TEST) $(FEATURES_CONCURRENT_TESTING) -- --skip prove
 	cargo test $(PROFILE_RELEASE) $(FEATURES_CONCURRENT_TESTING) prove
 
-pre:
-	cargo +nightly clippy
+fmt:
+	cargo +nightly fix --allow-staged --allow-dirty --all-targets --all-features
 	cargo +nightly fmt
+	cargo +nightly clippy --workspace --all-targets --all-features -- -D warnings
