@@ -15,12 +15,10 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
-mod common;
-use common::{
-    get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script, MockDataStore,
+use crate::{
+    get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
+    prove_and_verify_transaction, MockDataStore,
 };
-
-use crate::common::prove_and_verify_transaction;
 
 // TESTS MINT FUNGIBLE ASSET
 // ================================================================================================
@@ -248,7 +246,7 @@ fn test_faucet_contract_creation() {
     assert!(faucet_account.is_faucet());
 
     let exp_faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
+        include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 
@@ -265,7 +263,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_account_code_src =
-        include_str!("../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
+        include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 

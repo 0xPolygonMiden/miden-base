@@ -1,4 +1,4 @@
-use common::{
+use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
@@ -17,9 +17,7 @@ use mock::constants::{
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
-use crate::common::prove_and_verify_transaction;
-
-mod common;
+use crate::prove_and_verify_transaction;
 
 #[test]
 fn prove_test_swap_script() {

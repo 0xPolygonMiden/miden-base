@@ -13,8 +13,7 @@ use mock::constants::{
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
-mod common;
-use common::{
+use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
 

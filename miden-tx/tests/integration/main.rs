@@ -1,3 +1,6 @@
+mod scripts;
+mod wallet;
+
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},

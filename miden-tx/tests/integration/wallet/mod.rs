@@ -15,13 +15,10 @@ use mock::{
     utils::prepare_word,
 };
 
-mod common;
-use common::{
+use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
-    get_note_with_fungible_asset_and_script, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
 };
-
-use crate::common::prove_and_verify_transaction;
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset

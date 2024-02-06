@@ -11,6 +11,10 @@ keywords = []
 edition = "2021"
 rust-version = "1.67"
 
+[[test]]
+name = "miden-tx"
+path = "tests/integration/main.rs"
+
 [features]
 concurrent = [
     "miden-lib/concurrent",
