@@ -10,11 +10,10 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::constants::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
-mod common;
-use common::{
+use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
 };
 
@@ -25,7 +24,7 @@ use common::{
 // the note can only be consumed by the target account. After the block height is reached,
 // the note can also be consumed (reclaimed) by the sender account.
 #[test]
-fn test_p2idr_script() {
+fn p2idr_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -96,16 +95,7 @@ fn test_p2idr_script() {
     let block_ref_1 = data_store_1.block_header.block_num();
     let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        ",
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target = executor_1
         .compile_tx_script(
             tx_script_code.clone(),
@@ -115,7 +105,7 @@ fn test_p2idr_script() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result_1 = executor_1
+    let executed_transaction_1 = executor_1
         .execute_transaction(
             target_account_id,
             block_ref_1,
@@ -132,7 +122,7 @@ fn test_p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_1.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction_1.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Sender Account Execution Failure)
     // --------------------------------------------------------------------------------------------
@@ -154,7 +144,7 @@ fn test_p2idr_script() {
     let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor_2.execute_transaction(
         sender_account_id,
         block_ref_2,
         &note_ids_2,
@@ -163,7 +153,7 @@ fn test_p2idr_script() {
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Second transaction should not work (sender consumes too early), we expect an error
-    assert!(transaction_result_2.is_err());
+    assert!(executed_transaction_2.is_err());
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Malicious Target Account Failure)
     // --------------------------------------------------------------------------------------------
@@ -185,7 +175,7 @@ fn test_p2idr_script() {
     let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_3 = executor_3.execute_transaction(
+    let executed_transaction_3 = executor_3.execute_transaction(
         malicious_account_id,
         block_ref_3,
         &note_ids_3,
@@ -194,7 +184,7 @@ fn test_p2idr_script() {
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Third transaction should not work (malicious account can never consume), we expect an error
-    assert!(transaction_result_3.is_err());
+    assert!(executed_transaction_3.is_err());
 
     // CONSTRUCT AND EXECUTE TX (Case "reclaimable" - Execution Target Account Success)
     // --------------------------------------------------------------------------------------------
@@ -209,14 +199,14 @@ fn test_p2idr_script() {
     let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_4 = executor_4
+    let executed_transaction_4 = executor_4
         .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_script_target))
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
     // Assert that the target_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(transaction_result_4.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
     let target_account_after: Account = Account::new(
@@ -226,7 +216,7 @@ fn test_p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_4.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction_4.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
@@ -242,13 +232,13 @@ fn test_p2idr_script() {
     let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_5 = executor_5
+    let executed_transaction_5 = executor_5
         .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_script_sender))
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(transaction_result_5.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
@@ -258,7 +248,7 @@ fn test_p2idr_script() {
         sender_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_5.final_account().hash(), sender_account_after.hash());
+    assert_eq!(executed_transaction_5.final_account().hash(), sender_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
@@ -274,7 +264,7 @@ fn test_p2idr_script() {
     let note_ids_6 = data_store_6.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_6 = executor_6.execute_transaction(
+    let executed_transaction_6 = executor_6.execute_transaction(
         malicious_account_id,
         block_ref_6,
         &note_ids_6,
@@ -283,5 +273,5 @@ fn test_p2idr_script() {
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
     // Sixth transaction should not work (malicious account can never consume), we expect an error
-    assert!(transaction_result_6.is_err())
+    assert!(executed_transaction_6.is_err())
 }

@@ -5,7 +5,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
     notes::NoteId,
-    transaction::{ChainMmr, InputNote, InputNotes, TransactionWitness},
+    transaction::{ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionWitness},
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -14,12 +14,16 @@ use mock::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, FUNGIBLE_ASSET_AMOUNT, STORAGE_INDEX_0,
+        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL,
+        STORAGE_INDEX_0,
     },
     mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     utils::prepare_word,
 };
-use vm_processor::MemAdviceProvider;
+use vm_processor::{
+    utils::{Deserializable, Serializable},
+    MemAdviceProvider,
+};
 
 use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
@@ -30,7 +34,7 @@ use super::{
 // ================================================================================================
 
 #[test]
-fn test_transaction_executor_witness() {
+fn transaction_executor_witness() {
     let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
@@ -63,7 +67,7 @@ fn test_transaction_executor_witness() {
 }
 
 #[test]
-fn test_transaction_result_account_delta() {
+fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor = TransactionExecutor::new(data_store.clone());
     let account_id = data_store.account.id();
@@ -200,20 +204,23 @@ fn test_transaction_result_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // storage delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(transaction_result.account_delta().storage().updated_items.len(), 1);
-    assert_eq!(transaction_result.account_delta().storage().updated_items[0].0, STORAGE_INDEX_0);
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
     assert_eq!(
-        transaction_result.account_delta().storage().updated_items[0].1,
+        executed_transaction.account_delta().storage().updated_items[0].0,
+        STORAGE_INDEX_0
+    );
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_items[0].1,
         updated_slot_value
     );
 
@@ -229,7 +236,7 @@ fn test_transaction_result_account_delta() {
         .iter()
         .cloned()
         .collect::<Vec<_>>();
-    assert!(transaction_result
+    assert!(executed_transaction
         .account_delta()
         .vault()
         .added_assets
@@ -237,11 +244,11 @@ fn test_transaction_result_account_delta() {
         .all(|x| added_assets.contains(x)));
     assert_eq!(
         added_assets.len(),
-        transaction_result.account_delta().vault().added_assets.len()
+        executed_transaction.account_delta().vault().added_assets.len()
     );
 
     // assert that removed assets are tracked
-    assert!(transaction_result
+    assert!(executed_transaction
         .account_delta()
         .vault()
         .removed_assets
@@ -249,12 +256,12 @@ fn test_transaction_result_account_delta() {
         .all(|x| removed_assets.contains(x)));
     assert_eq!(
         removed_assets.len(),
-        transaction_result.account_delta().vault().removed_assets.len()
+        executed_transaction.account_delta().vault().removed_assets.len()
     );
 }
 
 #[test]
-fn test_prove_witness_and_verify() {
+fn prove_witness_and_verify() {
     let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
@@ -268,12 +275,17 @@ fn test_prove_witness_and_verify() {
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
 
-    // prove the transaction with the witness
+    // Prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
-    let verifier = TransactionVerifier::new(96);
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }
 
@@ -319,11 +331,11 @@ fn test_tx_script() {
         .unwrap();
 
     // execute the transaction
-    let transaction_result =
+    let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script));
 
     // assert the transaction executed successfully
-    assert!(transaction_result.is_ok());
+    assert!(executed_transaction.is_ok());
 }
 
 // MOCK DATA STORE

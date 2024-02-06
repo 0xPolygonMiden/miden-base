@@ -1,6 +1,3 @@
-use common::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
-};
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
     accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
@@ -14,13 +11,16 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::constants::{
     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
-mod common;
+use crate::{
+    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    prove_and_verify_transaction, MockDataStore,
+};
 
 #[test]
-fn test_swap_script() {
+fn prove_swap_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -64,24 +64,18 @@ fn test_swap_script() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-            use.miden::contracts::auth::basic->auth_tx
-
-            begin
-                call.auth_tx::auth_tx_rpo_falcon512
-            end
-            ",
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
 
     // Execute the transaction
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
+
+    // Prove, serialize/deserialize and verify the transaction
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // target account vault delta
     let target_account_after: Account = Account::new(
@@ -93,10 +87,10 @@ fn test_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
-    assert_eq!(transaction_result.output_notes().num_notes(), 1);
+    assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
@@ -107,7 +101,7 @@ fn test_swap_script() {
 
     let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
 
-    let created_note = transaction_result.output_notes().get_note(0);
+    let created_note = executed_transaction.output_notes().get_note(0);
 
     assert_eq!(created_note, &requested_note);
 }
