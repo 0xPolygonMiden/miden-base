@@ -219,12 +219,11 @@ fn add_account_to_advice_inputs(
     inputs.extend_merkle_store(vault.asset_tree().inner_nodes());
 
     // populate advice map with tiered merkle tree leaf nodes
-    // TODO: this currently handles only the upper leaves of the tree
     inputs.extend_map(
         vault
             .asset_tree()
-            .upper_leaves()
-            .map(|(node, key, value)| (node.into(), (*key).into_iter().chain(value).collect())),
+            .leaves()
+            .map(|(_, leaf)| (leaf.hash().as_bytes(), leaf.to_elements())),
     );
 
     // --- account code -------------------------------------------------------

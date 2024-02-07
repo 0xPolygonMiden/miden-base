@@ -3,7 +3,7 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::merkle::TieredSmt,
+    crypto::merkle::Smt,
     Felt, FieldElement, Word, ZERO,
 };
 
@@ -181,7 +181,7 @@ pub fn mock_non_fungible_faucet(
     };
 
     // construct nft tree
-    let nft_tree = TieredSmt::with_entries(entires).unwrap();
+    let nft_tree = Smt::with_entries(entires).unwrap();
 
     // TODO: add nft tree data to account storage?
 

@@ -116,7 +116,7 @@ export.add_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::insert movupw.2 assert_eqw
+    exec.smt::set movupw.2 assert_eqw
     # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root
@@ -140,7 +140,7 @@ export.add_non_fungible_asset
     # => [ASSET, ASSET, VAULT_ROOT, ASSET, vault_root_ptr]
 
     # insert asset into vault
-    exec.smt::insert
+    exec.smt::set
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was empty

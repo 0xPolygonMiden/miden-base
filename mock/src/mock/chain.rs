@@ -3,7 +3,7 @@ use core::fmt;
 use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
-    crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, TieredSmt},
+    crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
     utils::collections::Vec,
@@ -131,7 +131,7 @@ pub struct MockChain<R> {
     blocks: Vec<BlockHeader>,
 
     /// Tree containing the latest `Nullifier`'s tree.
-    nullifiers: TieredSmt,
+    nullifiers: Smt,
 
     /// Tree containing the latest hash of each account.
     accounts: SimpleSmt<ACCOUNT_TREE_DEPTH>,
@@ -198,7 +198,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         Self {
             chain: Mmr::default(),
             blocks: vec![],
-            nullifiers: TieredSmt::default(),
+            nullifiers: Smt::default(),
             accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
             rng,
             account_id_builder,
@@ -430,7 +430,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
     fn check_nullifier_unknown(&self, nullifier: Digest) {
         assert!(self.pending_objects.nullifiers.iter().any(|e| *e == nullifier));
-        assert!(self.nullifiers.get_value(nullifier) != TieredSmt::EMPTY_VALUE)
+        assert!(self.nullifiers.get_value(&nullifier) != Smt::EMPTY_VALUE)
     }
 
     // MODIFIERS
@@ -543,7 +543,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     }
 
     /// Get a reference to the nullifier tree.
-    pub fn nullifiers(&self) -> &TieredSmt {
+    pub fn nullifiers(&self) -> &Smt {
         &self.nullifiers
     }
 
