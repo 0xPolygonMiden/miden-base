@@ -10,20 +10,19 @@ use miden_tx::TransactionExecutor;
 use mock::{
     constants::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER,
+        ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
     },
     utils::prepare_word,
 };
 
-mod common;
-use common::{
+use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
-    get_note_with_fungible_asset_and_script, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
 };
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
-fn test_receive_asset_via_wallet() {
+fn prove_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
@@ -66,29 +65,21 @@ fn test_receive_asset_via_wallet() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        "
-        .to_string()
-        .as_str(),
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
 
+    // Prove, serialize/deserialize and verify the transaction
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+
     // nonce delta
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
     let account_storage =
@@ -103,12 +94,12 @@ fn test_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
 #[test]
 // Testing the basic Miden wallet - sending an asset
-fn test_send_asset_via_wallet() {
+fn prove_send_asset_via_wallet() {
     // Mock data
     // We need an asset and an account that owns that asset
     // Create assets
@@ -163,9 +154,12 @@ fn test_send_asset_via_wallet() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
         .unwrap();
+
+    // Prove, serialize/deserialize and verify the transaction
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
     let sender_account_storage =
@@ -181,12 +175,12 @@ fn test_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), sender_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
-fn test_wallet_creation() {
+fn wallet_creation() {
     // we need a Falcon Public Key to create the wallet account
 
     use miden_objects::accounts::AccountType;

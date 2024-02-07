@@ -1,3 +1,6 @@
+mod scripts;
+mod wallet;
+
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
@@ -5,18 +8,24 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
     notes::{Note, NoteId, NoteScript},
-    transaction::{ChainMmr, InputNote, InputNotes, TransactionInputs},
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
+    },
     BlockHeader, Felt, Word,
 };
-use miden_tx::{DataStore, DataStoreError};
+use miden_prover::ProvingOptions;
+use miden_tx::{
+    DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
+};
 use mock::{
-    constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE},
+    constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE, MIN_PROOF_SECURITY_LEVEL},
     mock::{
         account::MockAccountType,
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
 };
+use vm_processor::utils::Deserializable;
 
 // MOCK DATA STORE
 // ================================================================================================
@@ -101,6 +110,27 @@ impl DataStore for MockDataStore {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+#[cfg(test)]
+pub fn prove_and_verify_transaction(
+    executed_transaction: ExecutedTransaction,
+) -> Result<(), TransactionVerifierError> {
+    // Prove the transaction
+    let proof_options = ProvingOptions::default();
+    let prover = TransactionProver::new(proof_options);
+    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+
+    // Serialize & deserialize the ProvenTransaction
+    let serialised_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
+
+    // Verify that the generated proof is valid
+    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
+
+    verifier.verify(proven_transaction)
+}
+
+#[cfg(test)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
     let keypair: KeyPair = KeyPair::new().unwrap();
 

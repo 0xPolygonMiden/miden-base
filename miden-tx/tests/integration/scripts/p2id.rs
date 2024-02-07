@@ -10,12 +10,12 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::constants::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
-mod common;
-use common::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
+use crate::{
+    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    prove_and_verify_transaction, MockDataStore,
 };
 
 // P2ID TESTS
@@ -23,7 +23,7 @@ use common::{
 // We test the Pay to ID script. So we create a note that can only be consumed by the target
 // account.
 #[test]
-fn test_p2id_script() {
+fn prove_p2id_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -57,16 +57,7 @@ fn test_p2id_script() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        ",
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
 
     let tx_script_target = executor
         .compile_tx_script(
@@ -80,6 +71,9 @@ fn test_p2id_script() {
     let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
+
+    // Prove, serialize/deserialize and verify the transaction
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // vault delta
     let target_account_after: Account = Account::new(
@@ -121,7 +115,7 @@ fn test_p2id_script() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
         &note_ids,
@@ -129,13 +123,13 @@ fn test_p2id_script() {
     );
 
     // Check that we got the expected result - TransactionExecutorError
-    assert!(transaction_result_2.is_err());
+    assert!(executed_transaction_2.is_err());
 }
 
 /// We test the Pay to script with 2 assets to test the loop inside the script.
 /// So we create a note containing two assets that can only be consumed by the target account.
 #[test]
-fn test_p2id_script_multiple_assets() {
+fn p2id_script_multiple_assets() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();
@@ -172,16 +166,7 @@ fn test_p2id_script_multiple_assets() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(
-        "
-        use.miden::contracts::auth::basic->auth_tx
-
-        begin
-            call.auth_tx::auth_tx_rpo_falcon512
-        end
-        ",
-    )
-    .unwrap();
+    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target = executor
         .compile_tx_script(
             tx_script_code.clone(),
@@ -191,7 +176,7 @@ fn test_p2id_script_multiple_assets() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
         .unwrap();
 
@@ -203,7 +188,7 @@ fn test_p2id_script_multiple_assets() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -235,7 +220,7 @@ fn test_p2id_script_multiple_assets() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
         &note_origins,
@@ -243,5 +228,5 @@ fn test_p2id_script_multiple_assets() {
     );
 
     // Check that we got the expected result - TransactionExecutorError
-    assert!(transaction_result_2.is_err());
+    assert!(executed_transaction_2.is_err());
 }
