@@ -37,7 +37,7 @@ pub type StorageSlot = (StorageSlotType, Word);
 ///   to 256 words.
 /// - Map: a key-value map where keys are words and values contain up to 256 words.
 ///
-/// Storage slots are stored in a simple Sparse Merkle tree of depth 8. Slot 255 is always reserved
+/// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
 /// and contains information about slot types of all other slots.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
@@ -113,7 +113,7 @@ impl AccountStorage {
         self.slots.get_node(item_index).expect("index is u8 - index within range")
     }
 
-    /// Returns a reference to the sparse Merkle tree that backs the storage slots.
+    /// Returns a reference to the Sparse Merkle Tree that backs the storage slots.
     pub fn slots(&self) -> &SimpleSmt<STORAGE_TREE_DEPTH> {
         &self.slots
     }

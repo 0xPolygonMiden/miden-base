@@ -35,7 +35,7 @@ A non-fungible asset is encoded by hashing the asset data into a `Word` and then
 Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket's data might be represented in a JSON string - which DevCon, the date, the initial price, etc. . Now, users can create a faucet for non-fungible DevCon tickets. This DevCon faucet would hash the JSON string into a `Word` to transform the ticket into an asset.
 
 ### Storage
-[Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html) and [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a sparse Merkle tree called `account vault`. Notes can only store up to `255` distinct assets.
+[Accounts](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html) and [notes](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a Sparse Merkle Tree called `account vault`. Notes can only store up to `255` distinct assets.
 
 <p align="center">
     <img src="../diagrams/architecture/asset/Asset_Storage.png" style="width: 50%;">

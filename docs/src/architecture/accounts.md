@@ -22,9 +22,9 @@ In the above picture, you can see:
 ### Account Storage
 Storage for user-defined data. `AccountStorage` is composed of two components.
 
-The first component is a simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `Word` slots.
+The first component is a simple Sparse Merkle Tree of depth `8` which is index addressable. This provides the user with `256` `Word` slots.
 
-Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in a simple sparse Merkle tree. When `AccountStorage` is serialized it will check if any of the leafs in the simple sparse Merkle tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage` `MerkleStore`.
+Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in a simple Sparse Merkle Tree. When `AccountStorage` is serialized it will check if any of the leafs in the simple Sparse Merkle Tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage` `MerkleStore`.
 
 ### Nonce
 Counter which must be incremented whenever the account state changes. Nonce values must be strictly monotonically increasing and can be incremented by any value smaller than 2^{32} for every account update.
@@ -41,7 +41,7 @@ Merkle tree as follows:
 * For non-fungible assets, the index is defined by the asset itself, and the asset is also
   the value of the node.
 
-An account vault can be reduced to a single hash which is the root of the sparse Merkle tree.
+An account vault can be reduced to a single hash which is the root of the Sparse Merkle Tree.
 
 ### Code
 Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) and [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing). Users cannot call those functions directly. 
