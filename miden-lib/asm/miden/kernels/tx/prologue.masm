@@ -314,7 +314,7 @@ proc.validate_new_account
             # => []
         else
             # assert the non-fungible faucet reserved slot is initialized correctly (root of
-            # empty TSMT)
+            # empty SMT)
             exec.constants::get_empty_smt_root assert_eqw
             # => []
 
