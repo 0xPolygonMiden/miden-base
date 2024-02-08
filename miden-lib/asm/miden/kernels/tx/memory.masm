@@ -133,8 +133,9 @@ const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
 const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
 const.CONSUMED_NOTE_ASSETS_HASH_OFFSET=4
 const.CONSUMED_NOTE_METADATA_OFFSET=5
-const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=6
-const.CONSUMED_NOTE_ASSETS_OFFSET=7
+const.CONSUMED_NOTE_NUM_INPUTS_OFFSET=6
+const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=7
+const.CONSUMED_NOTE_ASSETS_OFFSET=8
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
@@ -853,6 +854,30 @@ end
 export.set_consumed_note_metadata
     push.CONSUMED_NOTE_METADATA_OFFSET add
     mem_storew dropw
+end
+
+#! Returns the number of inputs for the consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr]
+#! Output: [num_inputs]
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - num_inputs is the number of inputs defined for the consumed note.
+export.get_consumed_note_num_inputs
+    push.CONSUMED_NOTE_NUM_INPUTS_OFFSET add
+    mem_load
+end
+
+#! Sets the number of inputs for a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr, num_inputs]
+#! Output: []
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - num_assets is the number of inputs for the consumed note.
+export.set_consumed_note_num_inputs
+    push.CONSUMED_NOTE_NUM_INPUTS_OFFSET add
+    mem_store
 end
 
 #! Returns the number of assets in the consumed note located at the specified memory address.

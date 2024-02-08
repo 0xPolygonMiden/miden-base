@@ -184,6 +184,8 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // memory offset 1_048_576 with a word containing the total number of input notes and is followed
 // by data of each note like so:
 //
+// TODO: add nullifiers
+//
 //    ┌───────────┬─────────────┬─────────────┬───────────────┬─────────────┐
 //    │ NUM NOTES │ NOTE 0 DATA │ NOTE 1 DATA │      ...      │ NOTE n DATA │
 //    └───────────┴─────────────┴─────────────┴───────────────┴─────────────┘
@@ -213,8 +215,9 @@ pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
 pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------

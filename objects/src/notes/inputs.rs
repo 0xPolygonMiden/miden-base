@@ -61,6 +61,11 @@ impl NoteInputs {
         &self.inputs
     }
 
+    /// Returns the number of inputs.
+    pub fn num_inputs(&self) -> usize {
+        self.inputs.len()
+    }
+
     /// Returns a commitment to these inputs.
     pub fn hash(&self) -> Digest {
         *self.hash.get_or_init(|| Hasher::hash_elements(&self.inputs))
