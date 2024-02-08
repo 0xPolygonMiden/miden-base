@@ -17,7 +17,7 @@ use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
 /// - For non-fungible assets, the index is defined by the asset itself, and the asset is also
 ///   the value of the node.
 ///
-/// An asset vault can be reduced to a single hash which is the root of the Sparse Merkle tree.
+/// An asset vault can be reduced to a single hash which is the root of the Sparse Merkle Tree.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AssetVault {
     asset_tree: Smt,
@@ -79,7 +79,7 @@ impl AssetVault {
         self.asset_tree.entries().map(|x| Asset::new_unchecked(x.1))
     }
 
-    /// Returns a reference to the Sparse Merkle tree underling this asset vault.
+    /// Returns a reference to the Sparse Merkle Tree underling this asset vault.
     pub fn asset_tree(&self) -> &Smt {
         &self.asset_tree
     }

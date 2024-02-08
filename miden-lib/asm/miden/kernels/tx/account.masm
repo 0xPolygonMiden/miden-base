@@ -19,7 +19,7 @@ const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
 
-# The depth of the account storage sparse merkle tree
+# The depth of the account storage Sparse Merkle Tree
 const.STORAGE_TREE_DEPTH=8
 
 # The depth of the account code tree

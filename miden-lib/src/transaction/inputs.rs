@@ -193,7 +193,7 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// Inserts the following entries into the advice map:
 /// - The storage types commitment |-> storage slot types vector.
 /// - The account procedure root |-> procedure index, for each account procedure.
-/// - The node |-> (key, value), for all leaf nodes of the asset vault TSMT.
+/// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 fn add_account_to_advice_inputs(
     account: &Account,
@@ -218,7 +218,7 @@ fn add_account_to_advice_inputs(
     // extend the merkle store with account vault data
     inputs.extend_merkle_store(vault.asset_tree().inner_nodes());
 
-    // populate advice map with tiered merkle tree leaf nodes
+    // populate advice map with Sparse Merkle Tree leaf nodes
     inputs.extend_map(
         vault
             .asset_tree()
