@@ -34,7 +34,7 @@ impl TransactionVerifier {
         // build stack inputs and outputs
         let stack_inputs = TransactionKernel::build_input_stack(
             transaction.account_id(),
-            Some(transaction.initial_account_hash()),
+            transaction.initial_account_hash(),
             transaction.input_notes().commitment(),
             transaction.block_ref(),
         );
