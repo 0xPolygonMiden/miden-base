@@ -114,12 +114,12 @@ export.get_faucet_seed_digest_modulus
     push.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS
 end
 
-#! Returns the root of an empty tiered sparse Merkle tree.
+#! Returns the root of an empty sparse Merkle tree.
 #!
 #! Stack: []
 #! Output: [EMPTY_SMT_ROOT]
 #!
-#! - EMPTY_SMT_ROOT is the root of an empty tiered sparse Merkle tree.
-export.get_empty_tsmt_root
+#! - EMPTY_SMT_ROOT is the root of an empty sparse Merkle tree.
+export.get_empty_smt_root
     push.15321474589252129342.17373224439259377994.15071539326562317628.3312677166725950353
 end

@@ -64,7 +64,7 @@ Both of these properties are needed for supporting local transactions using clie
 However, the size of the note database does not grow indefinitely. Theoretically, at high tps, it would grow very quickly: at $1$K TPS there would be about $1$TB/year added to the database. But, only the unconsumed public notes and enough info to construct membership proofs against them need to be stored explicitly. Private notes, as well as public notes which have already been consumed, can be safely discarded. Such notes would still remain in the accumulator, but there is no need to store them explicitly as the append-only accumulator can be updated without knowing all items stored in it. This reduces actual storage requirements to a fraction of the database's nominal size.
 
 ### Nullifier database
-Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html), which maps [Note Nullifiers](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) to `0` or `1`. Nullifiers provide information on whether a specific note has been consumed yet. The database allows proving that a given nullifier is not in the database.
+Nullifiers are stored in a sparse Merkle Tree, which maps [Note Nullifiers](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) to `0` or `1`. Nullifiers provide information on whether a specific note has been consumed yet. The database allows proving that a given nullifier is not in the database.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Nullifier_DB.png">

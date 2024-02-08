@@ -218,7 +218,7 @@ fn add_account_to_advice_inputs(
     // extend the merkle store with account vault data
     inputs.extend_merkle_store(vault.asset_tree().inner_nodes());
 
-    // populate advice map with tiered merkle tree leaf nodes
+    // populate advice map with sparse merkle tree leaf nodes
     inputs.extend_map(
         vault
             .asset_tree()

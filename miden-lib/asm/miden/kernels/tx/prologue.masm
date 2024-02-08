@@ -261,7 +261,7 @@ proc.validate_new_account
     # => [ACCT_VAULT_ROOT]
 
     # push empty vault root onto stack
-    exec.constants::get_empty_tsmt_root
+    exec.constants::get_empty_smt_root
     # => [EMPTY_VAULT_ROOT, ACCT_VAULT_ROOT]
 
     assert_eqw
@@ -315,7 +315,7 @@ proc.validate_new_account
         else
             # assert the non-fungible faucet reserved slot is initialized correctly (root of
             # empty TSMT)
-            exec.constants::get_empty_tsmt_root assert_eqw
+            exec.constants::get_empty_smt_root assert_eqw
             # => []
 
             # get the faucet reserved storage data slot type and entry arity
