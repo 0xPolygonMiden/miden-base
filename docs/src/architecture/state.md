@@ -23,7 +23,7 @@ These databases are represented by authenticated data structures, such that we c
 Polygon Miden has two databases to capture the note states. The note database is append-only and stores all notes permanently. The nullifier database stores nullifiers that indicate that a note has been previsously consumed. Separating note storage into these two databases gives Polygon Miden client-side proving and advanced privacy.
 
 ### Account database
-The latest account states - and data for onchain accounts - are recorded in a [sparse Merkle tree] which maps account IDs to account hashes and account data if needed.
+The latest account states - and data for onchain accounts - are recorded in a Sparse Merkle Tree which maps account IDs to account hashes and account data if needed.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Account_DB.png" width="80%">
@@ -41,7 +41,7 @@ Private accounts significantly reduce the storage overhead for nodes. A private 
 In the future we also want to enable **Encrypted accounts** where the account data is stored onchain but in an encrypted format. This is especially interesting for shared accounts like advanced multi-sig wallets.
 
 ### Note database
-Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). Each leaf is a block header which contains the commitment to all notes created in that block. The commitment is a sparse Merkle tree of all the notes in a block. The size of the Merkle Mountain Range grows logarithmically with the number of items in it.
+Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). Each leaf is a block header which contains the commitment to all notes created in that block. The commitment is a Sparse Merkle Tree of all the notes in a block. The size of the Merkle Mountain Range grows logarithmically with the number of items in it.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Note_DB.png" width="80%">
@@ -64,13 +64,13 @@ Both of these properties are needed for supporting local transactions using clie
 However, the size of the note database does not grow indefinitely. Theoretically, at high tps, it would grow very quickly: at $1$K TPS there would be about $1$TB/year added to the database. But, only the unconsumed public notes and enough info to construct membership proofs against them need to be stored explicitly. Private notes, as well as public notes which have already been consumed, can be safely discarded. Such notes would still remain in the accumulator, but there is no need to store them explicitly as the append-only accumulator can be updated without knowing all items stored in it. This reduces actual storage requirements to a fraction of the database's nominal size.
 
 ### Nullifier database
-Nullifiers are stored in a [Tiered Sparse Merkle Tree](https://0xpolygonmiden.github.io/miden-base/crypto-primitives/tsmt.html), which maps [Note Nullifiers](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) to `0` or `1`. Nullifiers provide information on whether a specific note has been consumed yet. The database allows proving that a given nullifier is not in the database.
+Nullifiers are stored in a Sparse Merkle Tree, which maps [Note Nullifiers](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier) to block numbers at which the nullifiers were inserted into the chain (or to $0$ for nullifiers which haven't been recorded yet). Nullifiers provide information on whether a specific note has been consumed. The database allows proving that a given nullifier is not in the database.
 
 <p align="center">
   <img src="../diagrams/architecture/state/Nullifier_DB.png">
 </p>
 
-To prove that a note has not been consumed previously, the operator needs to provide a Merkle path to its node, and then show that the value in that node is `0`. In our case nullifiers are $32$ bytes each, and thus, the height of the Sparse Merkle tree need to be $256$.
+To prove that a note has not been consumed previously, the operator needs to provide a Merkle path to its node, and then show that the value in that node is `0`. In our case nullifiers are $32$ bytes each, and thus, the height of the Sparse Merkle Tree need to be $256$.
 
 To be able to add new nullifiers to the database, operators needs to maintain the entire nullifier set. Otherwise, they would not be able to compute the new root of the tree.
 

@@ -5,7 +5,6 @@ This documentation presents detailed guides on:
 * [Architecture](../architecture.md)
 * [Network design](../network.md)
 * [Roadmap](../roadmap.md)
-* [Cryptographic primitives](../crypto-primitives.md)
 
 **Getting started** provides an hands-om guide on how builders can use our **testnet**.
 
@@ -14,5 +13,3 @@ This documentation presents detailed guides on:
 **Network design** describes how the architecture is implemented into a zero-knowledge rollup. It describes the software components, RPC interfaces of the Miden Nodes and Cliets.  
 
 **Roadmap** shows the timeline for user facing features that users can expect.
-
-**Cryptographic primitives** provides an in-depth description of the primitives used in the Miden rollup and the Miden VM.

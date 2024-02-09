@@ -12,7 +12,7 @@ The **RPC** serves connections using the [gRPC protocol](https://grpc.io) on a p
 Here is a brief description of supported methods.
 
 ### CheckNullifiers
-Gets a list of proofs for given nullifier hashes, each proof as Tiered Sparse Merkle Trees ([read more](https://github.com/0xPolygonMiden/miden-node/blob/main/proto/proto/tsmt.proto)). 
+Gets a list of proofs for given nullifier hashes, each proof as Sparse Merkle Trees 
 
 **Parameters:**
 

@@ -126,24 +126,24 @@ proc.mint_non_fungible_asset
     exec.account::get_id exec.asset::validate_non_fungible_asset_origin
     # => [ASSET]
 
-    # fetch the root of the TSMT containing the non-fungible assets
+    # fetch the root of the SMT containing the non-fungible assets
     dupw exec.account::get_faucet_storage_data_slot exec.account::get_item
-    # => [TSMT_ROOT, ASSET, ASSET]
+    # => [SMT_ROOT, ASSET, ASSET]
 
-    # prepare stack for insert of non-fungible asset into tracking TSMT
+    # prepare stack for insert of non-fungible asset into tracking SMT
     swapw dupw
-    # => [ASSET, ASSET, TSMT_ROOT, ASSET]
+    # => [ASSET, ASSET, SMT_ROOT, ASSET]
 
-    # insert the non-fungible asset into the tracking TSMT
+    # insert the non-fungible asset into the tracking SMT
     exec.smt::set
-    # => [OLD_VAL, TSMT_ROOT', ASSET]
+    # => [OLD_VAL, SMT_ROOT', ASSET]
 
     # assert the `OLD_VAL` is ZERO, indicating that the non-fungible asset did not already exist
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
     drop drop eq.0 assert drop
-    # => [TSMT_ROOT', ASSET]
+    # => [SMT_ROOT', ASSET]
 
-    # update the root of the TSMT containing the non-fungible assets
+    # update the root of the SMT containing the non-fungible assets
     exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
     # => [ASSET]
 
@@ -175,24 +175,24 @@ proc.burn_non_fungible_asset
     dupw
     # => [ASSET, ASSET]
 
-    # fetch the root of the TSMT containing the non-fungible assets
+    # fetch the root of the SMT containing the non-fungible assets
     exec.account::get_faucet_storage_data_slot exec.account::get_item
-    # => [TSMT_ROOT, ASSET, ASSET]
+    # => [SMT_ROOT, ASSET, ASSET]
 
-    # prepare stack for removal of non-fungible asset from tracking TSMT
+    # prepare stack for removal of non-fungible asset from tracking SMT
     swapw padw
-    # => [ZERO, ASSET, TSMT_ROOT, ASSET]
+    # => [ZERO, ASSET, SMT_ROOT, ASSET]
 
-    # remove the non-fungible asset from the tracking TSMT
+    # remove the non-fungible asset from the tracking SMT
     exec.smt::set
-    # => [OLD_VAL, TSMT_ROOT', ASSET]
+    # => [OLD_VAL, SMT_ROOT', ASSET]
 
     # assert the `OLD_VAL` is not ZERO, indicating that the non-fungible asset exists.
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
     drop drop eq.0 not assert drop
-    # => [TSMT_ROOT', ASSET]
+    # => [SMT_ROOT', ASSET]
 
-    # update the root of the TSMT containing the non-fungible assets
+    # update the root of the SMT containing the non-fungible assets
     exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
     # => [ASSET]
 
