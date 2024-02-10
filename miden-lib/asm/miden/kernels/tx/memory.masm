@@ -122,6 +122,9 @@ const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 # The memory address at which the consumed note section begins.
 const.CONSUMED_NOTE_SECTION_OFFSET=1048576
 
+# The memory address at which the consumed note data section begins.
+const.CONSUMED_NOTE_DATA_SECTION_OFFSET=1064960
+
 # The memory address at which the number of consumed notes is stored.
 const.CONSUMED_NOTE_NUM_PTR=1048576
 
@@ -756,7 +759,7 @@ end
 #! - i is the index of the consumed note.
 #! - ptr is the memory address of the data segment for consumed note i.
 export.get_consumed_note_ptr
-    add.1 exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_SECTION_OFFSET add
+    exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_DATA_SECTION_OFFSET add
 end
 
 #! Set the hash of the consumed note at the specified memory address.
@@ -874,7 +877,7 @@ end
 #! Output: []
 #!
 #! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - num_assets is the number of inputs for the consumed note.
+#! - num_inputs is the number of inputs for the consumed note.
 export.set_consumed_note_num_inputs
     push.CONSUMED_NOTE_NUM_INPUTS_OFFSET add
     mem_store

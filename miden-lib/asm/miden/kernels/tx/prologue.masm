@@ -549,8 +549,8 @@ proc.process_input_note
     exec.memory::set_consumed_note_num_inputs
     # => [num_inputs, note_ptr]
 
-    # TODO: make sure the number of inputs is in the valid range
-    drop
+    # make sure the number of inputs is in the valid range
+    exec.constants::get_max_inputs_per_note lte assert
     # => [note_ptr]
 
     # get the number of assets from the advice provider and store it in memory

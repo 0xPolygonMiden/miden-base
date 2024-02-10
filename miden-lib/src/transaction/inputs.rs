@@ -288,7 +288,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         let proof = input_note.proof();
 
         // insert note inputs and assets into the advice map
-        inputs.extend_map([(note.inputs().hash().into(), note.inputs().inputs().to_vec())]);
+        inputs.extend_map([(note.inputs().commitment().into(), note.inputs().to_padded_values())]);
         inputs.extend_map([(note.assets().commitment().into(), note.assets().to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
@@ -302,11 +302,11 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         // add the note elements to the combined vector of note data
         note_data.extend(note.serial_num());
         note_data.extend(*note.script().hash());
-        note_data.extend(*note.inputs().hash());
+        note_data.extend(*note.inputs().commitment());
         note_data.extend(*note.assets().commitment());
         note_data.extend(Word::from(note.metadata()));
 
-        note_data.push((note.inputs().num_inputs() as u32).into());
+        note_data.push(note.inputs().num_values().into());
 
         note_data.push((note.assets().num_assets() as u32).into());
         note_data.extend(note.assets().to_padded_assets());

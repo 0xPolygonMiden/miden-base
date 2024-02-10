@@ -95,7 +95,7 @@ impl Note {
     ) -> Result<Self, NoteError> {
         Ok(Self {
             script,
-            inputs: NoteInputs::new(inputs)?,
+            inputs: NoteInputs::new(inputs.to_vec())?,
             assets: NoteAssets::new(assets)?,
             serial_num,
             metadata: NoteMetadata::new(sender, tag),
@@ -157,7 +157,7 @@ impl Note {
     pub fn recipient(&self) -> Digest {
         let serial_num_hash = Hasher::merge(&[self.serial_num.into(), Digest::default()]);
         let merge_script = Hasher::merge(&[serial_num_hash, self.script.hash()]);
-        Hasher::merge(&[merge_script, self.inputs.hash()])
+        Hasher::merge(&[merge_script, self.inputs.commitment()])
     }
 
     /// Returns a unique identifier of this note, which is simultaneously a commitment to the note.

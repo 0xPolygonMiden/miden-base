@@ -271,7 +271,7 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
         // The note input hash should be stored at the correct offset
         assert_eq!(
             read_note_element(process, note_idx, CONSUMED_NOTE_INPUTS_HASH_OFFSET),
-            note.inputs().hash().as_elements()
+            note.inputs().commitment().as_elements()
         );
 
         // The note asset hash should be stored at the correct offset
@@ -289,7 +289,7 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
         // The number of inputs should be stored at the correct offset
         assert_eq!(
             read_note_element(process, note_idx, CONSUMED_NOTE_NUM_INPUTS_OFFSET),
-            [Felt::from(note.inputs().num_inputs() as u32), ZERO, ZERO, ZERO]
+            [Felt::from(note.inputs().num_values() as u32), ZERO, ZERO, ZERO]
         );
 
         // The number of assets should be stored at the correct offset
@@ -517,7 +517,6 @@ fn test_get_blk_timestamp() {
 // ================================================================================================
 
 fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
-    println!("addr: {addr}");
     process.get_mem_value(ContextId::root(), addr).unwrap()
 }
 

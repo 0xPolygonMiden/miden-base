@@ -4,6 +4,9 @@
 # The number of elements in a Word
 const.WORD_SIZE=4
 
+# The maximum number of input values associated with a single note.
+const.MAX_INPUTS_PER_NOTE=128
+
 # The maximum number of assets that can be stored in a single note.
 const.MAX_ASSETS_PER_NOTE=256
 
@@ -38,6 +41,16 @@ const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2147483648
 #! - word_size is the number of elements in a Word.
 export.get_word_size
     push.WORD_SIZE
+end
+
+#! Returns the max allowed number of input values per note.
+#!
+#! Stack: []
+#! Output: [max_inputs_per_note]
+#!
+#! - max_inputs_per_note is the max inputs per note.
+export.get_max_inputs_per_note
+    push.MAX_INPUTS_PER_NOTE
 end
 
 #! Returns the max allowed number of assets per note.
