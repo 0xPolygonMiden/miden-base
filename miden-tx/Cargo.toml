@@ -9,27 +9,16 @@ repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = ["no-std"]
 keywords = []
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.75"
 
 [[test]]
 name = "miden-tx"
 path = "tests/integration/main.rs"
 
 [features]
-concurrent = [
-    "miden-lib/concurrent",
-    "miden-objects/concurrent",
-    "miden-prover/concurrent",
-    "std",
-]
+concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
-std = [
-    "miden-lib/std",
-    "miden-objects/std",
-    "miden-prover/std",
-    "miden-verifier/std",
-    "vm-processor/std",
-]
+std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
 
 [dependencies]
 miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
