@@ -110,11 +110,14 @@ impl Account {
         )
     }
 
-    /// Returns hash of account used as initial input for proofs.
-    ///
-    /// We handle old and new accounts differently when generating proofs.
-    /// For new accounts we do not need to pass the initial account hash,
-    /// hence using `Digest::default()`
+    /// Returns hash of this account as used for the initial account state hash in transaction  
+    /// proofs.  
+    ///  
+    /// For existing accounts, this is exactly the same as [Account::hash()], however, for new  
+    /// accounts this value is set to [ZERO; 4]. This is because when a transaction is executed  
+    /// agains a new account, public input for the initial account state is set to [ZERO; 4] to  
+    /// distinguish new accounts from existing accounts. The actual hash of the initial account  
+    /// state (and the initial state itself), are provided to the VM via the advice provider.
     pub fn proof_init_hash(&self) -> Digest {
         if self.is_new() {
             Digest::default()
