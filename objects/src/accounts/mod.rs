@@ -6,7 +6,7 @@ use super::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::{String, ToString},
     },
-    AccountError, Digest, Felt, FieldElement, Hasher, StarkField, Word, ZERO,
+    AccountError, Digest, Felt, FieldElement, Hasher, Word, ZERO,
 };
 
 mod account_id;

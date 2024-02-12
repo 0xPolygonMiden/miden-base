@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::Account, crypto::merkle::SimpleSmt, utils::collections::Vec, BlockHeader, Digest,
-    Felt, StarkField, ACCOUNT_TREE_DEPTH, ZERO,
+    Felt, ACCOUNT_TREE_DEPTH, ZERO,
 };
 use miden_test_utils::rand;
 

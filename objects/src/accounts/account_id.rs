@@ -2,7 +2,7 @@ use core::fmt;
 
 use super::{
     get_account_seed, Account, AccountError, ByteReader, Deserializable, DeserializationError,
-    Digest, Felt, FieldElement, Hasher, Serializable, StarkField, String, ToString, Vec, Word,
+    Digest, Felt, FieldElement, Hasher, Serializable, String, ToString, Vec, Word,
 };
 use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
 

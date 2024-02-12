@@ -5,7 +5,7 @@ use super::{
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
         string::ToString,
     },
-    AssetError, Felt, Hasher, StarkField, Word, ZERO,
+    AssetError, Felt, Hasher, Word, ZERO,
 };
 
 mod fungible;

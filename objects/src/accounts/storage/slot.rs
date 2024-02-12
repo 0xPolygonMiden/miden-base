@@ -118,15 +118,15 @@ impl From<StorageSlotType> for Felt {
         match slot_type {
             StorageSlotType::Value { value_arity } => {
                 let type_value = (value_arity as u64) << 32;
-                Felt::from(type_value)
+                Felt::new(type_value)
             },
             StorageSlotType::Map { value_arity } => {
                 let type_value = ((value_arity as u64) << 32) | 1_u64;
-                Felt::from(type_value)
+                Felt::new(type_value)
             },
             StorageSlotType::Array { depth, value_arity } => {
                 let type_value = ((value_arity as u64) << 32) | (depth as u64);
-                Felt::from(type_value)
+                Felt::new(type_value)
             },
         }
     }

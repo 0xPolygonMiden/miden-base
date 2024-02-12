@@ -1,7 +1,6 @@
 use miden_objects::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    StarkField,
 };
 use mock::{
     constants::{

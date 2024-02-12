@@ -1,8 +1,7 @@
 use core::fmt;
 
 use super::{
-    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, StarkField, ToString, Vec,
-    Word,
+    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, ToString, Vec, Word,
 };
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.

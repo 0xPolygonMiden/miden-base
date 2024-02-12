@@ -4,7 +4,7 @@ use super::{
         CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
         NUM_CREATED_NOTES_PTR,
     },
-    NoteAssets, OutputNotes, StarkField, Word,
+    NoteAssets, OutputNotes, Word,
 };
 
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {

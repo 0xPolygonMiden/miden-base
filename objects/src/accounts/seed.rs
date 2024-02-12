@@ -75,10 +75,10 @@ pub fn get_account_seed_inner(
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
     let mut current_seed: Word = [
-        Felt::from(init_seed[0]),
-        Felt::from(init_seed[1]),
-        Felt::from(init_seed[2]),
-        Felt::from(init_seed[3]),
+        Felt::new(u64::from_le_bytes(init_seed[0])),
+        Felt::new(u64::from_le_bytes(init_seed[1])),
+        Felt::new(u64::from_le_bytes(init_seed[2])),
+        Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
     let mut current_digest = compute_digest(current_seed, code_root, storage_root);
 
@@ -137,10 +137,10 @@ pub fn get_account_seed_single(
     let init_seed: Vec<[u8; 8]> =
         init_seed.chunks(8).map(|chunk| chunk.try_into().unwrap()).collect();
     let mut current_seed: Word = [
-        Felt::from(init_seed[0]),
-        Felt::from(init_seed[1]),
-        Felt::from(init_seed[2]),
-        Felt::from(init_seed[3]),
+        Felt::new(u64::from_le_bytes(init_seed[0])),
+        Felt::new(u64::from_le_bytes(init_seed[1])),
+        Felt::new(u64::from_le_bytes(init_seed[2])),
+        Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
     let mut current_digest = compute_digest(current_seed, code_root, storage_root);
 

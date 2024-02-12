@@ -163,7 +163,7 @@ impl Serializable for AccountCode {
         // since the number of procedures is guaranteed to be between 1 and 256, we can store the
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
         target.write_u8((self.procedures.len() - 1) as u8);
-        self.procedures.write_into(target);
+        target.write_many(self.procedures());
     }
 }
 
@@ -172,7 +172,7 @@ impl Deserializable for AccountCode {
         let mut module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
         module.load_source_locations(source)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
-        let procedures = Digest::read_batch_from(source, num_procedures)?;
+        let procedures = source.read_many::<Digest>(num_procedures)?;
 
         Ok(Self::from_parts(module, procedures))
     }

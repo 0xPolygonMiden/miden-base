@@ -302,14 +302,14 @@ impl<T: ToNullifier> Serializable for InputNotes<T> {
         // assert is OK here because we enforce max number of notes in the constructor
         assert!(self.notes.len() <= u16::MAX.into());
         target.write_u16(self.notes.len() as u16);
-        self.notes.write_into(target);
+        target.write_many(&self.notes);
     }
 }
 
 impl<T: ToNullifier> Deserializable for InputNotes<T> {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_notes = source.read_u16()?;
-        let notes = T::read_batch_from(source, num_notes.into())?;
+        let notes = source.read_many::<T>(num_notes.into())?;
         Self::new(notes).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
