@@ -67,7 +67,7 @@ impl From<&Note> for Nullifier {
     fn from(note: &Note) -> Self {
         Self::new(
             note.script.hash(),
-            note.inputs.hash(),
+            note.inputs.commitment(),
             note.assets.commitment(),
             note.serial_num,
         )

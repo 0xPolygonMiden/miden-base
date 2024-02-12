@@ -233,17 +233,22 @@ fn test_get_inputs() {
 
     fn construct_input_assertions(note: &Note) -> String {
         let mut code = String::new();
-        for input_word in note.inputs().inputs().chunks(WORD_SIZE) {
+        for input_chunk in note.inputs().values().chunks(WORD_SIZE) {
+            let mut input_word = [ZERO; 4];
+            input_word[..input_chunk.len()].copy_from_slice(input_chunk);
+
             code += &format!(
                 "
-                # assert the asset is correct
+                # assert the input is correct
                 dup padw movup.4 mem_loadw push.{input_word} assert_eqw push.1 add
                 ",
-                input_word = prepare_word(input_word.try_into().unwrap())
+                input_word = prepare_word(&input_word)
             );
         }
         code
     }
+
+    let note1 = notes.get_note(0).note();
 
     // calling get_assets should return assets at the specified address
     let code = format!(
@@ -262,11 +267,12 @@ fn test_get_inputs() {
             # get the assets
             exec.note::get_inputs
 
-            # assert the correct pointer is returned
+            # assert the correct num_inputs and pointer is returned
+            eq.{note1_num_inputs} assert
             dup eq.{DEST_POINTER_NOTE_0} assert
 
             # apply note 1 input assertions
-            {NOTE_1_INPUT_ASSERTIONS}
+            {note1_input_assertions}
 
             # clean the pointer
             drop
@@ -283,7 +289,8 @@ fn test_get_inputs() {
             call.process_note_0
         end
         ",
-        NOTE_1_INPUT_ASSERTIONS = construct_input_assertions(notes.get_note(0).note()),
+        note1_num_inputs = note1.inputs().num_values(),
+        note1_input_assertions = construct_input_assertions(note1),
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
@@ -311,6 +318,9 @@ fn test_note_setup() {
     note_setup_stack_assertions(&process, &transaction);
     note_setup_memory_assertions(&process);
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     let mut expected_stack = [ZERO; 16];

@@ -487,8 +487,7 @@ end
 #!
 #! Stack: [i]
 #! Advice stack: [CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!               CN1_NA,
-#!               CN1_A1, CN1_A2, ...]
+#!               C1_NI, CN1_NA, CN1_A1, CN1_A2, ...]
 #!
 #! Output: []
 #!
@@ -498,6 +497,7 @@ end
 #! - CN1_SR is the script root of input note 1.
 #! - CN1_IR is the inputs root of input note 1.
 #! - CN1_VR is the vault root of input note 1.
+#! - CN1_NI is the number of inputs in input note 1.
 #! - CN1_NA is the number of assets in input note 1.
 #! - CN1_A1 is the first asset of input note 1.
 #! - CN1_A2 is the second asset of input note 1.
@@ -534,14 +534,23 @@ proc.process_input_note
     mem_storew dropw
     # => [note_ptr]
 
-    # ingest note assets
+    # ingest note metadata
     # ---------------------------------------------------------------------------------------------
 
-    # read the metadata from the advice provider and store in memory
+    # get the metadata from the advice provider and store in memory
     padw adv_loadw dup.4
     # => [note_ptr, NOTE_META, note_ptr]
 
     exec.memory::set_consumed_note_metadata
+    # => [note_ptr]
+
+    # get the number of inputs from the advice provider and store it in memory
+    adv_push.1 dup dup.2
+    exec.memory::set_consumed_note_num_inputs
+    # => [num_inputs, note_ptr]
+
+    # make sure the number of inputs is in the valid range
+    exec.constants::get_max_inputs_per_note lte assert
     # => [note_ptr]
 
     # get the number of assets from the advice provider and store it in memory
@@ -552,6 +561,9 @@ proc.process_input_note
     # assert the number of assets is within limits
     dup exec.constants::get_max_assets_per_note lte assert
     # => [num_assets, note_ptr]
+
+    # ingest note assets
+    # ---------------------------------------------------------------------------------------------
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
     dup push.1 u32and add

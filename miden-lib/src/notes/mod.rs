@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note,
-    utils::collections::Vec, Felt, NoteError, Word, ZERO,
+    utils::collections::Vec, Felt, NoteError, Word,
 };
 
 use self::utils::build_note_script;
@@ -29,7 +29,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into(), ZERO, ZERO, ZERO];
+    let inputs = [target.into()];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
@@ -58,7 +58,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into(), recall_height.into(), ZERO, ZERO];
+    let inputs = [target.into(), recall_height.into()];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
@@ -96,9 +96,6 @@ pub fn create_swap_note<R: FeltRng>(
         asset_word[2],
         asset_word[3],
         sender.into(),
-        ZERO,
-        ZERO,
-        ZERO,
     ];
 
     let tag: Felt = Felt::new(0);

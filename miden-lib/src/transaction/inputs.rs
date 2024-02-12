@@ -252,16 +252,17 @@ fn add_account_to_advice_inputs(
 /// A combined note data vector is also constructed that holds core data for all notes. This
 /// combined vector is added to the advice map against the input notes commitment. For each note
 /// the following data items are added to the vector:
-///   out[0..4]    = serial num
-///   out[4..8]    = script root
-///   out[8..12]   = input root
-///   out[12..16]  = asset_hash
+///   out[0..4]    = serial_num
+///   out[4..8]    = script_root
+///   out[8..12]   = inputs_hash
+///   out[12..16]  = assets_hash
 ///   out[16..20]  = metadata
-///   out[20]      = num_assets
-///   out[21..25]  = asset_1
-///   out[25..29]  = asset_2
+///   out[20]      = num_inputs
+///   out[21]      = num_assets
+///   out[22..26]  = asset_1
+///   out[26..30]  = asset_2
 ///   ...
-///   out[20 + num_assets * 4..] = Word::default() (this is conditional padding only applied
+///   out[30 + num_assets * 4..] = Word::default() (this is conditional padding only applied
 ///                                                 if the number of assets is odd)
 ///   out[-10]      = origin.block_number
 ///   out[-9..-5]   = origin.SUB_HASH
@@ -287,7 +288,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         let proof = input_note.proof();
 
         // insert note inputs and assets into the advice map
-        inputs.extend_map([(note.inputs().hash().into(), note.inputs().inputs().to_vec())]);
+        inputs.extend_map([(note.inputs().commitment().into(), note.inputs().to_padded_values())]);
         inputs.extend_map([(note.assets().commitment().into(), note.assets().to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
@@ -301,9 +302,11 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         // add the note elements to the combined vector of note data
         note_data.extend(note.serial_num());
         note_data.extend(*note.script().hash());
-        note_data.extend(*note.inputs().hash());
+        note_data.extend(*note.inputs().commitment());
         note_data.extend(*note.assets().commitment());
         note_data.extend(Word::from(note.metadata()));
+
+        note_data.push(note.inputs().num_values().into());
 
         note_data.push((note.assets().num_assets() as u32).into());
         note_data.extend(note.assets().to_padded_assets());

@@ -1,6 +1,33 @@
 use.std::crypto::hashes::native
 use.std::mem
 
+#! Writes the data currently on the advice stack into the memory at the specified location and
+#! verifies that the hash of the written data is equal to the provided hash.
+#!
+#! Inputs:  [start_ptr, end_ptr, HASH]
+#! Outputs: []
+proc.write_advice_data_to_memory
+    # prepare the stack for reading from the advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, start_ptr, end_ptr, HASH]
+
+    # read the data from advice stack to memory
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, HASH]
+
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, HASH]
+
+    # drop pointer for reading from memory
+    movup.4 drop
+    # => [DIGEST, HASH]
+
+    # assert the computed hash is equal to the expected hash
+    assert_eqw
+    # => []
+end
+
 #! Writes the assets of the currently executing note into memory starting at the specified address.
 #!
 #! Inputs: [dest_ptr]
@@ -28,61 +55,44 @@ export.get_assets
     dup.6 add dup.6
     # => [start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
 
-    # prepare the stack for reading from the advice stack
-    padw padw padw
-    # => [PAD, PAD, PAD, start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
-
-    # read the assets from advice stack to memory
-    exec.mem::pipe_double_words_to_memory
-    # => [PERM, PERM, PERM, end_ptr, VAULT_HASH, num_assets, dest_ptr]
-
-    # extract the digest
-    exec.native::state_to_digest
-    # => [DIGEST, end_ptr, VAULT_HASH, num_assets, dest_ptr]
-
-    # drop pointer for reading from memory
-    movup.4 drop
-    # => [DIGEST, VAULT_HASH, num_assets, dest_ptr]
-
-    # assert the vault hash is what we expect
-    assert_eqw
+    # write the data from the advice stack into memory
+    exec.write_advice_data_to_memory
     # => [num_assets, dest_ptr]
 end
 
 #! Writes the inputs of the currently execute note into memory starting at the specified address.
 #!
 #! Inputs: [dest_ptr]
-#! Outputs: [dest_ptr]
+#! Outputs: [num_inputs, dest_ptr]
 #!
 #! - dest_ptr is the memory address to write the inputs.
 export.get_inputs
-    # duplicate the dest_ptr
-    dup
-    # => [dest_ptr, dest_ptr]
+    padw push.0
+    # => [0, 0, 0, 0, 0, dest_ptr]
 
     # get the current consumed note inputs hash
-    padw syscall.get_note_inputs_hash
-    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+    syscall.get_note_inputs_info
+    # => [INPUTS_HASH, num_inputs, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
     adv.push_mapval
-    # => [INPUTS_HASH, dest_ptr, dest_ptr]
+    # => [INPUTS_HASH, num_inputs, dest_ptr]
 
-    # prepare stack for inputs ingestion
-    movup.4 padw padw padw
-    # => [WORD, WORD, ZERO, addr, INPUTS_HASH, dest_ptr]
+    # calculate the number of words required to store the inputs
+    dup.4 u32divmod.4 neq.0 add
+    # => [num_words, INPUTS_HASH, num_inputs, dest_ptr]
 
-    # load the note inputs from the advice provider
-    adv_pipe hperm adv_pipe hperm
-    # => [PERM, PERM, PERM, addr', INPUTS_HASH, dest_ptr]
+    # round up the number of words the next multiple of 2
+    dup is_odd add
+    # => [even_num_words, INPUTS_HASH, num_inputs, dest_ptr]
 
-    # extract inputs hash and assert it matches commitment stored in memory
-    dropw swapw dropw movup.4 drop
-    # => [DIG, INPUTS_HASH, dest_ptr]
+    # calculate the start and end pointer for reading to memory
+    dup.6 add dup.6
+    # => [start_ptr, end_ptr, INPUTS_HASH, num_inputs, dest_ptr]
 
-    # assert the inputs hash matches the commitment stored in memory
-    assert_eqw
-    # => [dest_ptr]
+    # write the data from the advice stack into memory
+    exec.write_advice_data_to_memory
+    # => [num_inputs, dest_ptr]
 end
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being

@@ -308,21 +308,22 @@ export.get_note_vault_info
     # => [VAULT_HASH, num_assets]
 end
 
-#! Returns the note inputs hash of the note currently being processed. Panics if a note is not
-#! being processed.
+#! Returns the number of inputs and inputs hash for the note currently being processed. Panics if
+#! a note is not being processed.
 #!
-#! Inputs: [0, 0, 0, 0]
-#! Outputs: [NOTE_INPUTS_HASH]
+#! Inputs: [0, 0, 0, 0, 0]
+#! Outputs: [NOTE_INPUTS_HASH, num_inputs]
 #!
+#! - num_inputs is the number of inputs associated with the note.
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_note_inputs_hash
-    # get the note inputs hash
-    exec.note::get_inputs_hash
-    # => [NOTE_INPUTS_HASH, 0, 0, 0, 0]
+export.get_note_inputs_info
+    # get the number of inputs and the inputs hash
+    exec.note::get_inputs_info
+    # => [NOTE_INPUTS_HASH, num_inputs, 0, 0, 0, 0, 0]
 
     # organize the stack for return
-    swapw dropw
-    # => [NOTE_INPUTS_HASH]
+    movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
+    # => [NOTE_INPUTS_HASH, num_inputs]
 end
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being

@@ -35,6 +35,10 @@ begin
 
     # store note inputs into memory starting at address 0
     push.0 exec.note::get_inputs
+    # => [num_inputs, inputs_ptr]
+
+    # make sure the number of inputs is 9
+    eq.9 assert
     # => [inputs_ptr]
 
     # load recipient

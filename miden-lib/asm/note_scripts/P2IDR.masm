@@ -71,6 +71,10 @@ begin
 
     # store the note inputs to memory starting at address 0
     push.0 exec.note::get_inputs
+    # => [num_inputs, inputs_ptr]
+
+    # make sure the number of inputs is 2
+    eq.2 assert
     # => [inputs_ptr]
 
     # read the reclaim block height and target account id from the note inputs

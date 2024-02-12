@@ -182,14 +182,16 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // ------------------------------------------------------------------------------------------------
 // Inputs note section contains data of all notes consumed by a transaction. The section starts at
 // memory offset 1_048_576 with a word containing the total number of input notes and is followed
-// by data of each note like so:
+// by note nullifiers and note data like so:
 //
-//    ┌───────────┬─────────────┬─────────────┬───────────────┬─────────────┐
-//    │ NUM NOTES │ NOTE 0 DATA │ NOTE 1 DATA │      ...      │ NOTE n DATA │
-//    └───────────┴─────────────┴─────────────┴───────────────┴─────────────┘
-// 1_048_576     +1           +513          +1025           +1+512n
+// ┌─────────┬───────────┬───────────┬─────┬───────────┬─────────┬────────┬────────┬─────┬────────┐
+// │   NUM   │  NOTE 0   │  NOTE 1   │ ... │  NOTE n   │ PADDING │ NOTE 0 │ NOTE 1 │ ... │ NOTE n │
+// │  NOTES  │ NULLIFIER │ NULLIFIER │     │ NULLIFIER │         │  DATA  │  DATA  │     │  DATA  │
+// └─────────┴───────────┴───────────┴─────┴───────────┴─────────┴────────┴────────┴─────┴────────┘
+//  1_048_576  1_048_577   1_048_578        1_048_576+n      1_064_960   +512    +1024  +512n
 //
-// Data section for each note consists of exactly 512 words and is laid out like so:
+// Each nullifier occupies a single word. A data section for each note consists of exactly 512
+// words and is laid out like so:
 //
 // ┌──────┬────────┬────────┬────────┬────────┬──────┬────────┬───────┬─────┬───────┬─────────┐
 // │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │  NUM   │ ASSET │ ... │ ASSET │ PADDING │
@@ -203,8 +205,11 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 /// The memory address at which the consumed note section begins.
 pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
 
+/// The memory address at which the consumed note data section begins.
+pub const CONSUMED_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
+
 /// The memory address at which the number of consumed notes is stored.
-pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = 1_048_576;
+pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = CONSUMED_NOTE_SECTION_OFFSET;
 
 /// The offsets at which data of a consumed note is stored relative to the start of its data segment.
 pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
@@ -213,8 +218,9 @@ pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
 pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
