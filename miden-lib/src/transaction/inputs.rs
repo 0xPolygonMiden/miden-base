@@ -6,7 +6,7 @@ use miden_objects::{
     },
     utils::{collections::Vec, vec, IntoBytes},
     vm::{AdviceInputs, StackInputs},
-    Digest, Felt, Word, ZERO,
+    Felt, Word, ZERO,
 };
 
 use super::TransactionKernel;
@@ -25,11 +25,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            if account.is_new() {
-                Digest::default()
-            } else {
-                account.hash()
-            },
+            account.proof_init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -46,11 +42,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let account = self.initial_account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            if account.is_new() {
-                Digest::default()
-            } else {
-                account.hash()
-            },
+            account.proof_init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -67,11 +59,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            if account.is_new() {
-                Digest::default()
-            } else {
-                account.hash()
-            },
+            account.proof_init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );

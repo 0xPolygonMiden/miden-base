@@ -110,6 +110,15 @@ impl Account {
         )
     }
 
+    /// Returns hash of account used as initial input for proofs
+    pub fn proof_init_hash(&self) -> Digest {
+        if self.is_new() {
+            Digest::default()
+        } else {
+            self.hash()
+        }
+    }
+
     /// Returns unique identifier of this account.
     pub fn id(&self) -> AccountId {
         self.id
