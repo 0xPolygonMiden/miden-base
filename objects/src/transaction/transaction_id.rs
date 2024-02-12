@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use super::{Digest, ExecutedTransaction, Felt, Hasher, ProvenTransaction, Word, WORD_SIZE, ZERO};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -53,6 +55,12 @@ impl TransactionId {
     /// Returns the digest defining this transaction ID.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+}
+
+impl Display for TransactionId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }
 
