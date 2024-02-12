@@ -110,7 +110,11 @@ impl Account {
         )
     }
 
-    /// Returns hash of account used as initial input for proofs
+    /// Returns hash of account used as initial input for proofs.
+    ///
+    /// We handle old and new accounts differently when generating proofs.
+    /// For new accounts we do not need to pass the initial account hash,
+    /// hence using `Digest::default()`
     pub fn proof_init_hash(&self) -> Digest {
         if self.is_new() {
             Digest::default()
