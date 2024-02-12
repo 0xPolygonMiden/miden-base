@@ -5,7 +5,7 @@ use miden_objects::{
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
-use vm_processor::MemAdviceProvider;
+use vm_processor::{Digest, MemAdviceProvider};
 
 use super::{TransactionHost, TransactionProverError};
 
@@ -64,7 +64,11 @@ impl TransactionProver {
 
         Ok(ProvenTransaction::new(
             account_id,
-            initial_account_hash,
+            if tx_witness.account().is_new() {
+                Digest::default()
+            } else {
+                initial_account_hash
+            },
             tx_outputs.account.hash(),
             input_notes,
             tx_outputs.output_notes.into(),
