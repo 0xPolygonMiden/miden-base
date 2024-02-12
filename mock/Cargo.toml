@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = []
 keywords = []
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.75"
 
 [[bin]]
 name = "mock"
@@ -22,7 +22,7 @@ executable = ["dep:clap", "serde"]
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"], optional = true }
-env_logger = { version = "0.10" }
+env_logger = { version = "0.11" }
 hex = "0.4"
 miden-lib = { path = "../miden-lib" }
 miden-objects = { path = "../objects" , features = ["serde", "log", "testing"]}

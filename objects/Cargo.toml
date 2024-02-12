@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = ["no-std"]
 keywords = []
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.75"
 
 [[bench]]
 name = "account_seed"
@@ -22,13 +22,7 @@ bench = false
 default = ["std"]
 concurrent = ["std"]
 serde = ["dep:serde", "miden-crypto/serde"]
-std = [
-    "assembly/std",
-    "miden-crypto/std",
-    "miden-verifier/std",
-    "vm-core/std",
-    "vm-processor/std",
-]
+std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
 testing = []
 
 [dependencies]
