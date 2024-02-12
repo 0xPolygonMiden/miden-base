@@ -193,7 +193,7 @@ impl<D: DataStore> TransactionExecutor<D> {
                 tx_inputs.input_notes(),
                 tx_script.as_ref().map(|x| x.code()),
             )
-            .map_err(TransactionExecutorError::CompileTransactionFiled)?;
+            .map_err(TransactionExecutorError::CompileTransactionFailed)?;
 
         Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs))
     }

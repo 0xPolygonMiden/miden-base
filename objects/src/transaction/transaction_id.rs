@@ -1,3 +1,5 @@
+use core::fmt::{Debug, Display};
+
 use super::{Digest, ExecutedTransaction, Felt, Hasher, ProvenTransaction, Word, WORD_SIZE, ZERO};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -16,7 +18,7 @@ use crate::utils::{
 /// This achieves the following properties:
 /// - Transactions are identical if and only if they have the same ID.
 /// - Computing transaction ID can be done solely from public transaction data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TransactionId(Digest);
 
 impl TransactionId {
@@ -53,6 +55,18 @@ impl TransactionId {
     /// Returns the digest defining this transaction ID.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+}
+
+impl Debug for TransactionId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
+    }
+}
+
+impl Display for TransactionId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }
 

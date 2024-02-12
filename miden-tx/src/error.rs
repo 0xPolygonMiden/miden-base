@@ -40,7 +40,7 @@ impl std::error::Error for TransactionCompilerError {}
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
     CompileTransactionScriptFailed(TransactionCompilerError),
-    CompileTransactionFiled(TransactionCompilerError),
+    CompileTransactionFailed(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
