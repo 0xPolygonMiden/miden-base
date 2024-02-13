@@ -38,7 +38,7 @@ impl TransactionScript {
     pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
         code: ProgramAst,
         inputs: T,
-        assembler: &mut Assembler,
+        assembler: &Assembler,
     ) -> Result<(Self, CodeBlock), TransactionScriptError> {
         let code_block = assembler
             .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))

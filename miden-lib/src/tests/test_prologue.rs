@@ -59,7 +59,7 @@ fn test_transaction_prologue() {
     )
     .unwrap();
     let (tx_script, _) =
-        TransactionScript::new(mock_tx_script_code, vec![], &mut TransactionKernel::assembler())
+        TransactionScript::new(mock_tx_script_code, vec![], &TransactionKernel::assembler())
             .unwrap();
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
