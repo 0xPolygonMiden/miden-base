@@ -227,15 +227,8 @@ fn executed_transaction_account_delta() {
     // vault delta
     // --------------------------------------------------------------------------------------------
     // assert that added assets are tracked
-    let added_assets = data_store
-        .notes
-        .last()
-        .unwrap()
-        .note()
-        .assets()
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>();
+    let added_assets =
+        data_store.notes.last().unwrap().assets().iter().cloned().collect::<Vec<_>>();
     assert!(executed_transaction
         .account_delta()
         .vault()

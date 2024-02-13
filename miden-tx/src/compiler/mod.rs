@@ -216,7 +216,7 @@ impl TransactionCompiler {
         for recorded_note in notes.iter() {
             let note_program = self
                 .assembler
-                .compile_in_context(recorded_note.note().script().code(), assembly_context)
+                .compile_in_context(recorded_note.script().code(), assembly_context)
                 .map_err(TransactionCompilerError::CompileNoteScriptFailed)?;
             verify_program_account_compatibility(
                 &note_program,

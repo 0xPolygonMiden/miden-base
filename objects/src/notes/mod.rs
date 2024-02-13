@@ -29,7 +29,7 @@ mod nullifier;
 pub use nullifier::Nullifier;
 
 mod origin;
-pub use origin::{NoteInclusionProof, NoteOrigin};
+pub use origin::{NoteInclusionProof, NoteLocation};
 
 mod script;
 pub use script::NoteScript;

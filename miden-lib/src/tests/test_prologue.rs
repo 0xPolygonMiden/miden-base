@@ -242,7 +242,7 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
     );
 
     for (note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
-        let note = note.note();
+        let note = note.inner();
 
         // The note nullifier should be computer and stored at the correct offset
         assert_eq!(

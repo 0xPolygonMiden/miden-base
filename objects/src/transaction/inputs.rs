@@ -3,7 +3,11 @@ use core::fmt::Debug;
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{validate_account_seed, Account},
-    notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
+    crypto::merkle::MerklePath,
+    notes::{
+        Note, NoteAssets, NoteId, NoteInclusionProof, NoteInputs, NoteLocation, NoteMetadata,
+        NoteScript, Nullifier,
+    },
     utils::{
         collections::{self, BTreeSet, Vec},
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -70,7 +74,7 @@ impl TransactionInputs {
         // which were created in the current block we skip this check because their authentication
         // paths are derived implicitly
         for note in input_notes.iter() {
-            let note_block_num = note.origin().block_num;
+            let note_block_num = note.location().block_num();
 
             let block_header = if note_block_num == block_num {
                 &block_header
@@ -356,8 +360,47 @@ impl InputNote {
         self.note.id()
     }
 
+    /// Returns a reference script which locks the assets of this note.
+    pub fn script(&self) -> &NoteScript {
+        self.note.script()
+    }
+
+    /// Returns a reference to the note inputs.
+    pub fn inputs(&self) -> &NoteInputs {
+        self.note.inputs()
+    }
+
+    /// Returns a reference to the asset of this note.
+    pub fn assets(&self) -> &NoteAssets {
+        self.note.assets()
+    }
+
+    /// Returns a serial number of this note.
+    pub fn serial_num(&self) -> Word {
+        self.note.serial_num()
+    }
+
+    /// Returns the metadata associated with this note.
+    pub fn metadata(&self) -> &NoteMetadata {
+        self.note.metadata()
+    }
+
+    /// Returns the note's Merkle authentication path in the note tree of the block in which
+    /// this note was included into the chain.
+    pub fn auth_path(&self) -> &MerklePath {
+        self.proof.note_path()
+    }
+
+    /// Returns the value used to authenticate a notes existence in the note tree.
+    ///
+    /// This is computed as a 2-to-1 hash of the note hash and note metadata
+    /// [hash(note_id, note_metadata)]
+    pub fn authentication_hash(&self) -> Digest {
+        self.note.authentication_hash()
+    }
+
     /// Returns a reference to the underlying note.
-    pub fn note(&self) -> &Note {
+    pub fn inner(&self) -> &Note {
         &self.note
     }
 
@@ -366,14 +409,14 @@ impl InputNote {
         &self.proof
     }
 
-    /// Returns a reference to the origin of the note.
-    pub fn origin(&self) -> &NoteOrigin {
+    /// Returns info about the location of this note in the chain.
+    pub fn location(&self) -> &NoteLocation {
         self.proof.origin()
     }
 
     /// Returns true if this note belongs to the note tree of the specified block.
     fn is_in_block(&self, block_header: &BlockHeader) -> bool {
-        let note_index = self.origin().node_index.value();
+        let note_index = self.location().leaf_index().value();
         let note_hash = self.note.authentication_hash();
         self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
     }

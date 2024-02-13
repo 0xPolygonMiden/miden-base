@@ -63,7 +63,7 @@ fn test_get_sender() {
     let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
-    let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
+    let sender = transaction.input_notes().get_note(0).metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
 
@@ -107,10 +107,10 @@ fn test_get_vault_data() {
             push.{note_1_num_assets} assert_eq
         end
         ",
-        note_0_asset_hash = prepare_word(&notes.get_note(0).note().assets().commitment()),
-        note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
-        note_1_asset_hash = prepare_word(&notes.get_note(1).note().assets().commitment()),
-        note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
+        note_0_asset_hash = prepare_word(&notes.get_note(0).assets().commitment()),
+        note_0_num_assets = notes.get_note(0).assets().num_assets(),
+        note_1_asset_hash = prepare_word(&notes.get_note(1).assets().commitment()),
+        note_1_num_assets = notes.get_note(1).assets().num_assets(),
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
@@ -213,10 +213,10 @@ fn test_get_assets() {
             call.process_note_1
         end
         ",
-        note_0_num_assets = notes.get_note(0).note().assets().num_assets(),
-        note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
-        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(0).note()),
-        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
+        note_0_num_assets = notes.get_note(0).assets().num_assets(),
+        note_1_num_assets = notes.get_note(1).assets().num_assets(),
+        NOTE_0_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(0).inner()),
+        NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).inner()),
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
@@ -248,7 +248,7 @@ fn test_get_inputs() {
         code
     }
 
-    let note1 = notes.get_note(0).note();
+    let note1 = notes.get_note(0).inner();
 
     // calling get_assets should return assets at the specified address
     let code = format!(
@@ -326,7 +326,7 @@ fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTra
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
-    let mut note_script_root = *inputs.input_notes().get_note(0).note().script().hash();
+    let mut note_script_root = *inputs.input_notes().get_note(0).script().hash();
     note_script_root.reverse();
     expected_stack[..4].copy_from_slice(&note_script_root);
 

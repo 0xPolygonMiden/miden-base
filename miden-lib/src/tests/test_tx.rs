@@ -130,9 +130,9 @@ fn test_get_output_notes_hash() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
-    let input_note_1 = tx_inputs.input_notes().get_note(0).note();
+    let input_note_1 = tx_inputs.input_notes().get_note(0).inner();
     let input_asset_1 = **input_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
-    let input_note_2 = tx_inputs.input_notes().get_note(1).note();
+    let input_note_2 = tx_inputs.input_notes().get_note(1).inner();
     let input_asset_2 = **input_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
     // create output note 1

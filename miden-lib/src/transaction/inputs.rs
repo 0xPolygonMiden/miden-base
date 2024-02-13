@@ -283,19 +283,15 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     }
 
     let mut note_data = Vec::new();
-    for input_note in notes.iter() {
-        let note = input_note.note();
-        let proof = input_note.proof();
-
+    for note in notes.iter() {
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment().into(), note.inputs().to_padded_values())]);
         inputs.extend_map([(note.assets().commitment().into(), note.assets().to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
-            proof
-                .note_path()
-                .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
+            note.auth_path()
+                .inner_nodes(note.location().leaf_index().value(), note.authentication_hash())
                 .unwrap(),
         );
 
@@ -311,10 +307,10 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.push((note.assets().num_assets() as u32).into());
         note_data.extend(note.assets().to_padded_assets());
 
-        note_data.push(proof.origin().block_num.into());
-        note_data.extend(*proof.sub_hash());
-        note_data.extend(*proof.note_root());
-        note_data.push(proof.origin().node_index.value().into());
+        note_data.push(note.location().block_num().into());
+        note_data.extend(*note.proof().sub_hash());
+        note_data.extend(*note.proof().note_root());
+        note_data.push(note.location().leaf_index().value().into());
     }
 
     // insert the combined note data into the advice map
