@@ -132,6 +132,6 @@ All state is maintained in `store.sqlite3`, located in the directory defined in 
 
 Congratulations! You have successfully configured and used the Miden client to interact with a Miden node. With these steps, you can perform basic Miden rollup operations like sending transactions, generating and consuming notes.
 
-For more informations on the Miden clienr, refer to the [Readme of the Miden Client](https://github.com/0xPolygonMiden/miden-client)
+For more informations on the Miden client, refer to the [Readme of the Miden Client](https://github.com/0xPolygonMiden/miden-client)
 
 For more informations on the Miden rollup, refer to the [Miden documentation](https://0xpolygonmiden.github.io/miden-base/introduction.html).
