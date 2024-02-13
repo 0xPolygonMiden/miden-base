@@ -86,11 +86,14 @@ impl<D: DataStore> TransactionExecutor<D> {
         self.compiler.load_account_interface(account_id, procedures)
     }
 
+    // COMPILERS
+    // --------------------------------------------------------------------------------------------
+
     /// Compiles the provided program into a [NoteScript] and checks (to the extent possible) if
     /// the specified note program could be executed against all accounts with the specified
     /// interfaces.
     pub fn compile_note_script(
-        &mut self,
+        &self,
         note_script_ast: ProgramAst,
         target_account_procs: Vec<ScriptTarget>,
     ) -> Result<NoteScript, TransactionExecutorError> {
@@ -103,7 +106,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// checks (to the extent possible) that the transaction script can be executed against all
     /// accounts with the specified interfaces.
     pub fn compile_tx_script<T>(
-        &mut self,
+        &self,
         tx_script_ast: ProgramAst,
         inputs: T,
         target_account_procs: Vec<ScriptTarget>,
@@ -132,7 +135,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
     pub fn execute_transaction(
-        &mut self,
+        &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
@@ -175,7 +178,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
     fn prepare_transaction(
-        &mut self,
+        &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],

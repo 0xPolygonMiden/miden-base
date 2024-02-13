@@ -78,7 +78,7 @@ impl TransactionCompiler {
     /// Compiles the provided program into the [NoteScript] and checks (to the extent possible)
     /// if a note could be executed against all accounts with the specified interfaces.
     pub fn compile_note_script(
-        &mut self,
+        &self,
         note_script_ast: ProgramAst,
         target_account_proc: Vec<ScriptTarget>,
     ) -> Result<NoteScript, TransactionCompilerError> {
@@ -103,7 +103,7 @@ impl TransactionCompiler {
     /// Constructs a [TransactionScript] by compiling the provided source code and checking the
     /// compatibility of the resulting program with the target account interfaces.
     pub fn compile_tx_script<T>(
-        &mut self,
+        &self,
         tx_script_ast: ProgramAst,
         tx_script_inputs: T,
         target_account_proc: Vec<ScriptTarget>,
@@ -112,7 +112,7 @@ impl TransactionCompiler {
         T: IntoIterator<Item = (Word, Vec<Felt>)>,
     {
         let (tx_script, code_block) =
-            TransactionScript::new(tx_script_ast, tx_script_inputs, &mut self.assembler).map_err(
+            TransactionScript::new(tx_script_ast, tx_script_inputs, &self.assembler).map_err(
                 |e| match e {
                     TransactionScriptError::ScriptCompilationError(asm_error) => {
                         TransactionCompilerError::CompileTxScriptFailed(asm_error)
@@ -136,7 +136,7 @@ impl TransactionCompiler {
     ///
     /// The account is assumed to have been previously loaded into this compiler.
     pub fn compile_transaction(
-        &mut self,
+        &self,
         account_id: AccountId,
         notes: &InputNotes,
         tx_script: Option<&ProgramAst>,
@@ -205,7 +205,7 @@ impl TransactionCompiler {
     /// compatible with the target account interfaces. Returns a vector of the compiled note
     /// programs.
     fn compile_notes(
-        &mut self,
+        &self,
         target_account_interface: &[Digest],
         notes: &InputNotes,
         assembly_context: &mut AssemblyContext,
@@ -233,7 +233,7 @@ impl TransactionCompiler {
     ///
     /// The transaction script compatibility is verified against the target account interface.
     fn compile_tx_script_program(
-        &mut self,
+        &self,
         tx_script: &ProgramAst,
         assembly_context: &mut AssemblyContext,
         target_account_interface: Vec<Digest>,
