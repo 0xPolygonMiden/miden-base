@@ -72,8 +72,8 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
+    let transaction_result = executor
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script), None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -142,8 +142,8 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script));
+    let transaction_result =
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script), None);
 
     assert!(executed_transaction.is_err());
 }
@@ -200,8 +200,8 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
+    let transaction_result = executor
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None, None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

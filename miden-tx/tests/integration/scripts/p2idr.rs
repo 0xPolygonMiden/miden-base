@@ -111,6 +111,7 @@ fn p2idr_script() {
             block_ref_1,
             &note_ids,
             Some(tx_script_target.clone()),
+            None,
         )
         .unwrap();
 
@@ -149,6 +150,7 @@ fn p2idr_script() {
         block_ref_2,
         &note_ids_2,
         Some(tx_script_sender.clone()),
+        None,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -180,6 +182,7 @@ fn p2idr_script() {
         block_ref_3,
         &note_ids_3,
         Some(tx_script_malicious.clone()),
+        None,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -199,8 +202,8 @@ fn p2idr_script() {
     let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_4 = executor_4
-        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_script_target))
+    let transaction_result_4 = executor_4
+        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_script_target), None)
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
@@ -232,8 +235,8 @@ fn p2idr_script() {
     let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_script_sender))
+    let transaction_result_5 = executor_5
+        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_script_sender), None)
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -269,6 +272,7 @@ fn p2idr_script() {
         block_ref_6,
         &note_ids_6,
         Some(tx_script_malicious),
+        None
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction

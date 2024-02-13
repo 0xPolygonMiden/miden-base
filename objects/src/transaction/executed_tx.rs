@@ -1,9 +1,10 @@
 use core::cell::OnceCell;
+use crate::utils::collections::BTreeMap;
 
 use super::{
     Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
     OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
-    TransactionWitness,
+    TransactionWitness, NoteId, Word,
 };
 
 // EXECUTED TRANSACTION
@@ -27,6 +28,7 @@ pub struct ExecutedTransaction {
     tx_outputs: TransactionOutputs,
     account_delta: AccountDelta,
     tx_script: Option<TransactionScript>,
+    note_args: Option<BTreeMap<NoteId, Word>>,
     advice_witness: AdviceInputs,
 }
 
@@ -44,6 +46,7 @@ impl ExecutedTransaction {
         tx_outputs: TransactionOutputs,
         account_delta: AccountDelta,
         tx_script: Option<TransactionScript>,
+        note_args: Option<BTreeMap<NoteId, Word>>,
         advice_witness: AdviceInputs,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
@@ -56,6 +59,7 @@ impl ExecutedTransaction {
             tx_outputs,
             account_delta,
             tx_script,
+            note_args,
             advice_witness,
         }
     }
@@ -118,6 +122,11 @@ impl ExecutedTransaction {
         &self.tx_inputs
     }
 
+    /// Returns a reference to the inputs for this transaction.
+    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
+        self.note_args.as_ref()
+    }
+
     /// Returns all the data requested by the VM from the advice provider while executing the
     /// transaction program.
     pub fn advice_witness(&self) -> &AdviceInputs {
@@ -133,6 +142,7 @@ impl ExecutedTransaction {
             self.program,
             self.tx_inputs,
             self.tx_script,
+            self.note_args,
             self.advice_witness,
         );
 

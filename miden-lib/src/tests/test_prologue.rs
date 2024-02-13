@@ -42,7 +42,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 #[test]
 fn test_transaction_prologue() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
         begin
@@ -63,7 +63,7 @@ fn test_transaction_prologue() {
             .unwrap();
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
-    let transaction = prepare_transaction(tx_inputs, Some(tx_script), code, Some(assembly_file));
+    let transaction = prepare_transaction(tx_inputs, Some(tx_script), None, code, Some(assembly_file));
     let process = run_tx(&transaction).unwrap();
 
     global_input_memory_assertions(&process, &transaction);
@@ -318,7 +318,6 @@ pub fn test_prologue_create_account() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -328,7 +327,7 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -345,7 +344,6 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -355,7 +353,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_ok());
@@ -374,7 +372,6 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -384,7 +381,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
@@ -403,7 +400,6 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -413,7 +409,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_ok())
@@ -432,7 +428,6 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -442,7 +437,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction);
     assert!(process.is_err());
 }
@@ -456,7 +451,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        None,
     );
     let account_seed_key = [tx_inputs.account().id().into(), ZERO, ZERO, ZERO];
 
@@ -468,7 +462,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     //let (program, stack_inputs, mut advice_provider) = build_tx_inputs(&transaction);
 
     // lets override the seed with an invalid seed to ensure the kernel fails
@@ -482,7 +476,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 #[test]
 fn test_get_blk_version() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -493,7 +487,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), None, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().version());
@@ -502,7 +496,7 @@ fn test_get_blk_version() {
 #[test]
 fn test_get_blk_timestamp() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -513,42 +507,10 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), None, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
-}
-
-#[test]
-fn test_get_note_args() {
-    // define the note_args for note 1
-    let note_args = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-
-    let tx_inputs = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        Some(vec![note_args]),
-    );
-
-    let code = "
-    use.miden::kernels::tx::memory
-    use.miden::kernels::tx::prologue
-
-    begin
-        exec.prologue::prepare_transaction
-        push.0 exec.memory::get_consumed_note_ptr
-        
-        exec.memory::get_consumed_note_args
-    end
-    ";
-
-    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
-    let process = run_tx(&transaction).unwrap();
-
-    assert_eq!(
-        process.stack.get_word(0),
-        tx_inputs.input_notes().get_note(0).note_args().unwrap()
-    );
 }
 
 // HELPER FUNCTIONS

@@ -24,7 +24,7 @@ use crate::transaction::memory::{
 #[test]
 fn test_create_note() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account_id = tx_inputs.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -51,7 +51,7 @@ fn test_create_note() {
         asset = prepare_word(&asset)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
     let process = run_tx(&transaction).unwrap();
 
     // assert the number of created notes has been incremented to 1.
@@ -127,7 +127,7 @@ fn test_create_note_too_many_notes() {
 #[test]
 fn test_get_output_notes_hash() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
     let input_note_1 = tx_inputs.input_notes().get_note(0).note();
@@ -209,7 +209,7 @@ fn test_get_output_notes_hash() {
         expected = prepare_word(&expected_output_notes_hash)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 

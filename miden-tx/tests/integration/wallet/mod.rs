@@ -71,8 +71,8 @@ fn prove_receive_asset_via_wallet() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script))
+    let transaction_result = executor
+        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script), None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -154,8 +154,8 @@ fn prove_send_asset_via_wallet() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script))
+    let transaction_result = executor
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script), None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

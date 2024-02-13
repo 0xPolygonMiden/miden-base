@@ -1,4 +1,4 @@
-use miden_objects::{notes::Note, transaction::PreparedTransaction, WORD_SIZE};
+use miden_objects::{notes::Note, transaction::PreparedTransaction, utils::collections::BTreeMap, WORD_SIZE};
 use mock::{
     consumed_note_data_ptr,
     mock::{
@@ -16,7 +16,7 @@ use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 #[test]
 fn test_get_sender_no_sender() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
     let code = "
@@ -35,7 +35,7 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
@@ -44,7 +44,7 @@ fn test_get_sender_no_sender() {
 #[test]
 fn test_get_sender() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // calling get_sender should return sender
     let code = "
@@ -60,7 +60,7 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
@@ -70,7 +70,7 @@ fn test_get_sender() {
 #[test]
 fn test_get_vault_data() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let notes = tx_inputs.input_notes();
 
@@ -113,14 +113,14 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_get_assets() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -219,14 +219,14 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_get_inputs() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -293,14 +293,14 @@ fn test_get_inputs() {
         note1_input_assertions = construct_input_assertions(note1),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
 #[test]
 fn test_note_setup() {
     let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved, None);
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -312,7 +312,7 @@ fn test_note_setup() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     note_setup_stack_assertions(&process, &transaction);
@@ -327,38 +327,47 @@ fn test_note_script_and_note_args() {
     let tx_inputs = mock_inputs(
         MockAccountType::StandardExisting,
         AssetPreservationStatus::Preserved,
-        Some(vec![note_args_note_0, note_args_note_1]),
     );
 
     let code = "
         use.miden::kernels::tx::prologue
         use.miden::kernels::tx::memory
         use.miden::kernels::tx::note
+        use.miden::note->note_api
 
         begin
             exec.prologue::prepare_transaction
+            
+            # check that we have two notes consumed
             exec.memory::get_total_num_consumed_notes push.2 assert_eq
 
-            exec.note::prepare_note dropw
+            # get the note args for the first note
+            exec.note_api::get_note_args
 
+            #
             exec.note::increment_current_consumed_note_ptr drop
 
-            exec.note::prepare_note dropw
-            
+            padw exec.note_api::get_note_args
+
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let note_args_map = BTreeMap::from([
+        (tx_inputs.input_notes().get_note(0).note().id(), note_args_note_0),
+        (tx_inputs.input_notes().get_note(1).note().id(), note_args_note_1),
+    ]);
+
+    let transaction = prepare_transaction(tx_inputs.clone(), None, Some(note_args_map), code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
-        tx_inputs.input_notes().get_note(1).note_args().unwrap()
+        note_args_note_1
     );
 
     assert_eq!(
         process.stack.get_word(1),
-        tx_inputs.input_notes().get_note(0).note_args().unwrap()
+        note_args_note_0
     );
 }
 

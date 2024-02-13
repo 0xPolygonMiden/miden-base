@@ -343,13 +343,12 @@ pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
 pub struct InputNote {
     note: Note,
     proof: NoteInclusionProof,
-    note_args: Option<Word>,
 }
 
 impl InputNote {
     /// Returns a new instance of an [InputNote] with the specified note and proof.
-    pub fn new(note: Note, proof: NoteInclusionProof, note_args: Option<Word>) -> Self {
-        Self { note, proof, note_args }
+    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
+        Self { note, proof }
     }
 
     /// Returns the ID of the note.
@@ -379,15 +378,6 @@ impl InputNote {
         self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
     }
 
-    /// Returns optional note args of the note.
-    pub fn note_args(&self) -> &Option<[Felt; 4]> {
-        &self.note_args
-    }
-
-    /// Sets note args for an input note.
-    pub fn set_note_args(&mut self, note_args: [Felt; 4]) {
-        self.note_args = Some(note_args);
-    }
 }
 
 // SERIALIZATION
@@ -397,16 +387,6 @@ impl Serializable for InputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.note.write_into(target);
         self.proof.write_into(target);
-
-        match &self.note_args {
-            Some(args) => {
-                target.write_bytes(&[1]); // Indicate that note_args is present
-                args.write_into(target);
-            },
-            None => {
-                target.write_bytes(&[0]); // Indicate that note_args is not present
-            },
-        }
     }
 }
 
@@ -415,12 +395,6 @@ impl Deserializable for InputNote {
         let note = Note::read_from(source)?;
         let proof = NoteInclusionProof::read_from(source)?;
 
-        let note_args = if source.read_u8()? == 1 {
-            Some(Word::read_from(source)?)
-        } else {
-            None
-        };
-
-        Ok(Self { note, proof, note_args })
+        Ok(Self { note, proof })
     }
 }

@@ -1,12 +1,8 @@
 use miden_objects::{
-    accounts::Account,
-    transaction::{
+    accounts::Account, notes::NoteId, transaction::{
         ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
         TransactionScript, TransactionWitness,
-    },
-    utils::{collections::Vec, vec},
-    vm::{AdviceInputs, StackInputs},
-    Felt, Word, ZERO,
+    }, utils::{collections::{Vec, BTreeMap}, vec, IntoBytes}, vm::{AdviceInputs, StackInputs}, Felt, Word, ZERO
 };
 
 use super::TransactionKernel;
@@ -31,7 +27,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -48,7 +44,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -65,7 +61,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -83,6 +79,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
+    note_args: Option<BTreeMap<NoteId, Word>>,
     advice_inputs: &mut AdviceInputs,
 ) {
     // build the advice stack
@@ -93,6 +90,7 @@ fn extend_advice_inputs(
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs.input_notes(), advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
+    add_note_args_to_advice_map(note_args, advice_inputs);
 }
 
 // ADVICE STACK BUILDER
@@ -282,10 +280,6 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
-        let note_args = match input_note.note_args() {
-            Some(args) => args,
-            None => &[ZERO; 4],
-        };
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
@@ -305,7 +299,6 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.inputs().commitment());
         note_data.extend(*note.assets().commitment());
 
-        note_data.extend(note_args);
         note_data.extend(Word::from(note.metadata()));
 
         note_data.push(note.inputs().num_values().into());
@@ -341,5 +334,21 @@ fn add_tx_script_inputs_to_advice_map(
 ) {
     if let Some(tx_script) = tx_script {
         inputs.extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())));
+    }
+}
+
+// NOTE ARGS INJECTOR
+// ------------------------------------------------------------------------------------------------
+
+/// Inserts the following entries into the advice map:
+/// - note_id |-> note_arg, for each note argument
+fn add_note_args_to_advice_map(
+    note_args: Option<BTreeMap<NoteId, Word>>,
+    inputs: &mut AdviceInputs,
+) {
+    if let Some(note_args) = note_args {
+        inputs.extend_map(
+            note_args.iter().map(|(note_id, note_arg)| (note_id.into(), note_arg.clone().into())),
+        );
     }
 }

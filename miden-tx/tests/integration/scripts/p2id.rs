@@ -69,7 +69,7 @@ fn prove_p2id_script() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target), None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -120,6 +120,7 @@ fn prove_p2id_script() {
         block_ref,
         &note_ids,
         Some(tx_script_malicious),
+        None,
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -176,8 +177,8 @@ fn p2id_script_multiple_assets() {
         .unwrap();
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
+    let transaction_result = executor
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target), None)
         .unwrap();
 
     // vault delta
@@ -225,6 +226,7 @@ fn p2id_script_multiple_assets() {
         block_ref,
         &note_origins,
         Some(tx_script_malicious),
+        None,
     );
 
     // Check that we got the expected result - TransactionExecutorError

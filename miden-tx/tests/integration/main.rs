@@ -43,7 +43,6 @@ impl MockDataStore {
         let (account, _, block_header, block_chain, notes) = mock_inputs(
             MockAccountType::StandardExisting,
             AssetPreservationStatus::Preserved,
-            None,
         )
         .into_parts();
         Self {

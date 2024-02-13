@@ -70,8 +70,8 @@ fn prove_swap_script() {
         .unwrap();
 
     // Execute the transaction
-    let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
+    let transaction_result = executor
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target), None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

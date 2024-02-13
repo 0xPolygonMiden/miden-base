@@ -2,6 +2,7 @@ use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     assembly::ProgramAst,
     transaction::{TransactionInputs, TransactionScript},
+    utils::collections::BTreeMap,
     vm::{Program, StackOutputs},
     Felt, Word, ZERO,
 };
@@ -140,8 +141,9 @@ impl<D: DataStore> TransactionExecutor<D> {
         block_ref: u32,
         notes: &[NoteId],
         tx_script: Option<TransactionScript>,
+        note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_script)?;
+        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_script, note_args)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
@@ -155,11 +157,12 @@ impl<D: DataStore> TransactionExecutor<D> {
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
-        let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
+        let (tx_program, tx_script, tx_inputs, note_args) = transaction.into_parts();
 
         build_executed_transaction(
             tx_program,
             tx_script,
+            note_args,
             tx_inputs,
             result.stack_outputs().clone(),
             host,
@@ -183,6 +186,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         block_ref: u32,
         notes: &[NoteId],
         tx_script: Option<TransactionScript>,
+        note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
         let tx_inputs = self
             .data_store
@@ -198,7 +202,7 @@ impl<D: DataStore> TransactionExecutor<D> {
             )
             .map_err(TransactionExecutorError::CompileTransactionFailed)?;
 
-        Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs))
+        Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs, note_args))
     }
 }
 
@@ -209,6 +213,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 fn build_executed_transaction(
     program: Program,
     tx_script: Option<TransactionScript>,
+    note_args: Option<BTreeMap<NoteId, Word>>,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
@@ -254,6 +259,7 @@ fn build_executed_transaction(
         tx_outputs,
         account_delta,
         tx_script,
+        note_args,
         advice_witness,
     ))
 }

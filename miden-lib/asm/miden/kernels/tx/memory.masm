@@ -834,32 +834,6 @@ export.get_consumed_note_inputs_hash
     mem_loadw
 end
 
-#! Returns the note args of a consumed note located at the specified memory address.
-#!
-#! Stack: [consumed_note_ptr]
-#! Output: [NOTE_ARGS]
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - NOTE_ARGS are the note args of the consumed note.
-export.get_consumed_note_args
-    padw
-    movup.4 push.CONSUMED_NOTE_ARGS_OFFSET add
-    mem_loadw
-end
-
-#! Sets the note args of a consumed note located at the specified memory address.
-#!
-#! Stack: [consumed_note_ptr, NOTE_ARGS]
-#! Output: []
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - NOTE_ARGS are the note args of the consumed note.
-export.set_consumed_note_note_args
-    push.CONSUMED_NOTE_ARGS_OFFSET add
-    mem_storew dropw
-end
-
-
 #! Returns the metadata of a consumed note located at the specified memory address.
 #!
 #! Stack: [consumed_note_ptr]

@@ -109,3 +109,21 @@ export.get_sender
     syscall.get_note_sender
     # => [sender]
 end
+
+#! Returns the note args of the note currently being processed. Panics if a note is not being
+#! processed.
+#! 
+#! NOTE_ARGS are being stored on the advice map with { NOTE_ID | NOTE_ARG} per note 
+#!
+#! Inputs: []
+#! Outputs: [NOTE_ARGS]
+export.get_note_args
+    syscall.get_note_id
+    # => [NOTE_ID]
+
+    adv.push_mapval padw adv_loadw
+    # => [NOTE_ARGS, NOTE_ID]
+    
+    swapw dropw
+    # => [NOTE_ARGS]
+end

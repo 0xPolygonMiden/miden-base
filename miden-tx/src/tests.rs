@@ -46,7 +46,7 @@ fn transaction_executor_witness() {
 
     // execute the transaction and get the witness
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
+        executor.execute_transaction(account_id, block_ref, &note_ids, None, None).unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
@@ -204,8 +204,8 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script))
+    let transaction_result = executor
+        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script), None)
         .unwrap();
 
     // nonce delta
@@ -273,7 +273,7 @@ fn prove_witness_and_verify() {
 
     // execute the transaction and get the witness
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
+        executor.execute_transaction(account_id, block_ref, &note_ids, None, None).unwrap();
 
     // Prove the transaction with the witness
     let proof_options = ProvingOptions::default();
@@ -331,8 +331,8 @@ fn test_tx_script() {
         .unwrap();
 
     // execute the transaction
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script));
+    let transaction_result =
+        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script), None);
 
     // assert the transaction executed successfully
     assert!(executed_transaction.is_ok());
@@ -352,7 +352,7 @@ struct MockDataStore {
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
         let (account, _, block_header, block_chain, notes) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation, None).into_parts();
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation).into_parts();
 
         Self {
             account,

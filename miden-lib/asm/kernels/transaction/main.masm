@@ -52,11 +52,11 @@ use.miden::kernels::tx::prologue
 #! - CN1_SR is the script root of consumed note 1.
 #! - CN1_IR is the inputs root of consumed note 1.
 #! - CN1_VR is the vault root of consumed note 1.
-#! - CN1_AR are the note args of consumed note 1.
 #! - CN1_M is the metadata of consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
 #! - TXSR is the transaction script root.
+#! - NOTE_ARGS are optional arguments per note.
 #! - CNC is the commitment to the notes created by the transaction.
 #! - FAH is the final account hash of the account that the transaction is being
 #!   executed against.
@@ -88,7 +88,7 @@ proc.main.1
     while.true
         # execute the note setup script
         exec.note::prepare_note
-        # => [NOTE_SCRIPT_HASH, NOTE_ARGS]
+        # => [NOTE_SCRIPT_HASH]
 
         # invoke the note script using the dyncall instruction
         dyncall

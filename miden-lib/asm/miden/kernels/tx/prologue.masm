@@ -723,7 +723,6 @@ end
 #! - CN1_SR is the script root of input note 1.
 #! - CN1_IR is the inputs root of input note 1.
 #! - CN1_VR is the vault root of input note 1.
-#! - CN1_AR are the note args of input note 1.
 #! - CN1_M is the metadata of input note 1.
 #! - CN1_A1 is the first asset of input note 1.
 #! - CN1_A2 is the second asset of input note 1.
@@ -868,7 +867,7 @@ end
 #! Operand stack: [BH, acct_id, IAH, NC]
 #! Advice stack:  [NR, PH, CR, SR, BR, PH, BN,
 #!                  acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!                  num_cn, TXSR
+#!                  num_cn, TXSR, NOTE_ARGS
 #!                ]
 #! Advice map:  {
 #!                  NC: [NOTE_1_DATA, ..., NOTE_N_DATA],
@@ -895,6 +894,7 @@ end
 #! - num_cn is the number of input notes.
 #! - NOTE_X_DATA is the data of the x'th note.
 #! - TXSR is the transaction script root.
+#! - NOTE_ARGS are optional arguments per note.
 export.prepare_transaction
     # process global inputs
     exec.process_global_inputs
