@@ -1,8 +1,16 @@
 use miden_objects::{
-    accounts::Account, notes::NoteId, transaction::{
+    accounts::Account,
+    notes::NoteId,
+    transaction::{
         ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
         TransactionScript, TransactionWitness,
-    }, utils::{collections::{Vec, BTreeMap}, vec, IntoBytes}, vm::{AdviceInputs, StackInputs}, Felt, Word, ZERO
+    },
+    utils::{
+        collections::{BTreeMap, Vec},
+        vec, IntoBytes,
+    },
+    vm::{AdviceInputs, StackInputs},
+    Felt, Word, ZERO,
 };
 
 use super::TransactionKernel;
@@ -27,7 +35,12 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_script(),
+            self.note_args().cloned(),
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -44,7 +57,12 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_script(),
+            self.note_args().cloned(),
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -61,7 +79,12 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), self.note_args().cloned(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_script(),
+            self.note_args().cloned(),
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -348,7 +371,7 @@ fn add_note_args_to_advice_map(
 ) {
     if let Some(note_args) = note_args {
         inputs.extend_map(
-            note_args.iter().map(|(note_id, note_arg)| (note_id.into(), note_arg.clone().into())),
+            note_args.iter().map(|(note_id, note_arg)| (note_id.into(), (*note_arg).into())),
         );
     }
 }

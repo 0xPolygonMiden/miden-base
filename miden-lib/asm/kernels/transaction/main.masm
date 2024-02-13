@@ -22,9 +22,9 @@ use.miden::kernels::tx::prologue
 #! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
 #!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
 #!                num_cn,
-#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_AR, CN1_M,
+#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
 #!                CN1_A1, CN1_A2, ...
-#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_AR, CN2_M,
+#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
 #!                CN2_A1, CN2_A2, ...,
 #!                ...,
 #!                TXSR]

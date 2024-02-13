@@ -1,5 +1,7 @@
+use super::{
+    Account, BlockHeader, InputNotes, NoteId, Program, TransactionInputs, TransactionScript, Word,
+};
 use crate::utils::collections::BTreeMap;
-use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript, NoteId, Word};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -74,7 +76,14 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs, Option<BTreeMap<NoteId, Word>>) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        Program,
+        Option<TransactionScript>,
+        TransactionInputs,
+        Option<BTreeMap<NoteId, Word>>,
+    ) {
         (self.program, self.tx_script, self.tx_inputs, self.note_args)
     }
 }

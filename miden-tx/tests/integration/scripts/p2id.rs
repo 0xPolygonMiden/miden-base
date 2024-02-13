@@ -189,7 +189,7 @@ fn p2id_script_multiple_assets() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
@@ -221,7 +221,7 @@ fn p2id_script_multiple_assets() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_2 = executor_2.execute_transaction(
+    let transaction_result_2 = executor_2.execute_transaction(
         malicious_account_id,
         block_ref,
         &note_origins,
@@ -230,5 +230,5 @@ fn p2id_script_multiple_assets() {
     );
 
     // Check that we got the expected result - TransactionExecutorError
-    assert!(executed_transaction_2.is_err());
+    assert!(transaction_result_2.is_err());
 }

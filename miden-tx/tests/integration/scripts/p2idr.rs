@@ -203,13 +203,19 @@ fn p2idr_script() {
 
     // Execute the transaction and get the witness
     let transaction_result_4 = executor_4
-        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_script_target), None)
+        .execute_transaction(
+            target_account_id,
+            block_ref_4,
+            &note_ids_4,
+            Some(tx_script_target),
+            None,
+        )
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
     // Assert that the target_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(executed_transaction_4.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(transaction_result_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
     let target_account_after: Account = Account::new(
@@ -219,7 +225,7 @@ fn p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(executed_transaction_4.final_account().hash(), target_account_after.hash());
+    assert_eq!(transaction_result_4.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
@@ -236,12 +242,18 @@ fn p2idr_script() {
 
     // Execute the transaction and get the witness
     let transaction_result_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_script_sender), None)
+        .execute_transaction(
+            sender_account_id,
+            block_ref_5,
+            &note_ids_5,
+            Some(tx_script_sender),
+            None,
+        )
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(executed_transaction_5.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(transaction_result_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
@@ -251,7 +263,7 @@ fn p2idr_script() {
         sender_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(executed_transaction_5.final_account().hash(), sender_account_after.hash());
+    assert_eq!(transaction_result_5.final_account().hash(), sender_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
@@ -272,7 +284,7 @@ fn p2idr_script() {
         block_ref_6,
         &note_ids_6,
         Some(tx_script_malicious),
-        None
+        None,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction

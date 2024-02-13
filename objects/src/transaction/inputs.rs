@@ -377,7 +377,6 @@ impl InputNote {
         let note_hash = self.note.authentication_hash();
         self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
     }
-
 }
 
 // SERIALIZATION

@@ -63,7 +63,8 @@ fn test_transaction_prologue() {
             .unwrap();
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
-    let transaction = prepare_transaction(tx_inputs, Some(tx_script), None, code, Some(assembly_file));
+    let transaction =
+        prepare_transaction(tx_inputs, Some(tx_script), None, code, Some(assembly_file));
     let process = run_tx(&transaction).unwrap();
 
     global_input_memory_assertions(&process, &transaction);

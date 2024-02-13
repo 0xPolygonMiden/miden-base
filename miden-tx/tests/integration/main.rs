@@ -40,11 +40,9 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, _, block_header, block_chain, notes) = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-        )
-        .into_parts();
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
+                .into_parts();
         Self {
             account,
             block_header,

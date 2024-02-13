@@ -111,7 +111,7 @@ export.get_sender
 end
 
 #! Returns the note args of the note currently being processed. Panics if a note is not being
-#! processed.
+#! processed or if no note args for the note id were provided via the advice map.
 #! 
 #! NOTE_ARGS are being stored on the advice map with { NOTE_ID | NOTE_ARG} per note 
 #!

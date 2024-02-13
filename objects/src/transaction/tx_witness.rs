@@ -1,7 +1,7 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript, Word, NoteId,
+    Account, AdviceInputs, BlockHeader, InputNotes, NoteId, Program, TransactionInputs,
+    TransactionScript, Word,
 };
-
 use crate::utils::collections::BTreeMap;
 
 // TRANSACTION WITNESS

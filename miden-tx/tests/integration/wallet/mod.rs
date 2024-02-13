@@ -76,10 +76,10 @@ fn prove_receive_asset_via_wallet() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(transaction_result.clone()).is_ok());
 
     // nonce delta
-    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
     let account_storage =
@@ -94,7 +94,7 @@ fn prove_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 }
 
 #[test]
@@ -159,7 +159,7 @@ fn prove_send_asset_via_wallet() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(transaction_result.clone()).is_ok());
 
     // clones account info
     let sender_account_storage =
@@ -175,7 +175,7 @@ fn prove_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -154,7 +154,15 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let note_args = None;
 
     // Executed Transaction
-    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, note_args, advice_witness)
+    ExecutedTransaction::new(
+        program,
+        tx_inputs,
+        tx_outputs,
+        account_delta,
+        None,
+        note_args,
+        advice_witness,
+    )
 }
 
 // HELPER FUNCTIONS

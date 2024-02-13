@@ -598,9 +598,7 @@ where
     Ok(data)
 }
 
-pub fn mock_chain_data(
-    consumed_notes: Vec<Note>,
-) -> (ChainMmr, Vec<InputNote>) {
+pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) {
     let mut note_trees = Vec::new();
 
     // TODO: Consider how to better represent note authentication data.

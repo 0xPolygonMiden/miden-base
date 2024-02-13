@@ -226,10 +226,8 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let tx_inputs = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-        );
+        let tx_inputs =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
             "
@@ -402,10 +400,8 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let tx_inputs = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-        );
+        let tx_inputs =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
             "\

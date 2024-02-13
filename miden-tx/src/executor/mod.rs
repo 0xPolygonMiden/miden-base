@@ -143,7 +143,8 @@ impl<D: DataStore> TransactionExecutor<D> {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_script, note_args)?;
+        let transaction =
+            self.prepare_transaction(account_id, block_ref, notes, tx_script, note_args)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();

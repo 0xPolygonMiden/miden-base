@@ -75,7 +75,7 @@ fn prove_swap_script() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(transaction_result.clone()).is_ok());
 
     // target account vault delta
     let target_account_after: Account = Account::new(
@@ -87,10 +87,10 @@ fn prove_swap_script() {
     );
 
     // Check that the target account has received the asset from the note
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
 
     // Check if only one `Note` has been created
-    assert_eq!(executed_transaction.output_notes().num_notes(), 1);
+    assert_eq!(transaction_result.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
@@ -101,7 +101,7 @@ fn prove_swap_script() {
 
     let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
 
-    let created_note = executed_transaction.output_notes().get_note(0);
+    let created_note = transaction_result.output_notes().get_note(0);
 
     assert_eq!(created_note, &requested_note);
 }

@@ -1,11 +1,11 @@
 use core::cell::OnceCell;
-use crate::utils::collections::BTreeMap;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes, NoteId,
     OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
-    TransactionWitness, NoteId, Word,
+    TransactionWitness, Word,
 };
+use crate::utils::collections::BTreeMap;
 
 // EXECUTED TRANSACTION
 // ================================================================================================

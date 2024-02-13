@@ -368,7 +368,7 @@ export.get_note_id
     # => [hash(hash(SERIAL_NUM, ZERO), SCRIPT_ROOT)]
 
     # get the note's inputs hash
-    exec.note::get_inputs_hash hmerge
+    exec.note::get_inputs_info movup.4 drop hmerge
     # => [hash(hash(hash(SERIAL_NUM, ZERO), SCRIPT_ROOT), INPUTS_HASH) ~ RECIPIENT]
 
     # get the note's asset hash
