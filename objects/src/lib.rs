@@ -76,3 +76,6 @@ pub const MAX_INPUT_NOTES_PER_TX: usize = 1023;
 
 /// The maximum number of new notes created by a single transaction.
 pub const MAX_OUTPUT_NOTES_PER_TX: usize = 4096;
+
+/// The minimum proof security level used by the Miden prover & verifier.
+pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
