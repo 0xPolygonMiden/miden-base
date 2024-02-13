@@ -7,7 +7,7 @@ use super::{
     utils::{
         collections::Vec,
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::{String, ToString},
+        string::String,
     },
     vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
@@ -28,8 +28,8 @@ pub use note_id::NoteId;
 mod nullifier;
 pub use nullifier::Nullifier;
 
-mod origin;
-pub use origin::{NoteInclusionProof, NoteLocation};
+mod location;
+pub use location::NoteLocation;
 
 mod script;
 pub use script::NoteScript;

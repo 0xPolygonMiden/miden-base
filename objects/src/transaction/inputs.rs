@@ -5,8 +5,7 @@ use crate::{
     accounts::{validate_account_seed, Account},
     crypto::merkle::MerklePath,
     notes::{
-        Note, NoteAssets, NoteId, NoteInclusionProof, NoteInputs, NoteLocation, NoteMetadata,
-        NoteScript, Nullifier,
+        Note, NoteAssets, NoteId, NoteInputs, NoteLocation, NoteMetadata, NoteScript, Nullifier,
     },
     utils::{
         collections::{self, BTreeSet, Vec},
@@ -346,13 +345,14 @@ pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct InputNote {
     note: Note,
-    proof: NoteInclusionProof,
+    location: NoteLocation,
+    auth_path: MerklePath,
 }
 
 impl InputNote {
     /// Returns a new instance of an [InputNote] with the specified note and proof.
-    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
-        Self { note, proof }
+    pub fn new(note: Note, location: NoteLocation, auth_path: MerklePath) -> Self {
+        Self { note, location, auth_path }
     }
 
     /// Returns the ID of the note.
@@ -388,7 +388,7 @@ impl InputNote {
     /// Returns the note's Merkle authentication path in the note tree of the block in which
     /// this note was included into the chain.
     pub fn auth_path(&self) -> &MerklePath {
-        self.proof.note_path()
+        &self.auth_path
     }
 
     /// Returns the value used to authenticate a notes existence in the note tree.
@@ -404,21 +404,16 @@ impl InputNote {
         &self.note
     }
 
-    /// Returns a reference to the inclusion proof of the note.
-    pub fn proof(&self) -> &NoteInclusionProof {
-        &self.proof
-    }
-
     /// Returns info about the location of this note in the chain.
     pub fn location(&self) -> &NoteLocation {
-        self.proof.origin()
+        &self.location
     }
 
     /// Returns true if this note belongs to the note tree of the specified block.
     fn is_in_block(&self, block_header: &BlockHeader) -> bool {
-        let note_index = self.location().leaf_index().value();
+        let note_index = self.location().note_index() as u64;
         let note_hash = self.note.authentication_hash();
-        self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+        self.auth_path.verify(note_index, note_hash, &block_header.note_root())
     }
 }
 
@@ -428,15 +423,17 @@ impl InputNote {
 impl Serializable for InputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.note.write_into(target);
-        self.proof.write_into(target);
+        self.location.write_into(target);
+        self.auth_path.write_into(target);
     }
 }
 
 impl Deserializable for InputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let note = Note::read_from(source)?;
-        let proof = NoteInclusionProof::read_from(source)?;
+        let location = NoteLocation::read_from(source)?;
+        let auth_path = MerklePath::read_from(source)?;
 
-        Ok(Self { note, proof })
+        Ok(Self { note, location, auth_path })
     }
 }

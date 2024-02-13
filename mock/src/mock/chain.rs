@@ -4,7 +4,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountType, SlotItem},
     assets::Asset,
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
-    notes::{Note, NoteInclusionProof},
+    notes::{Note, NoteLocation},
     transaction::{ChainMmr, InputNote},
     utils::collections::Vec,
     BlockHeader, Digest, Felt, FieldElement, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH,
@@ -104,17 +104,8 @@ impl<R: Rng> Objects<R> {
             .enumerate()
             .map(|(index, note)| {
                 let auth_index = LeafIndex::new(index as u64).expect("index bigger than 2**20");
-                InputNote::new(
-                    note.clone(),
-                    NoteInclusionProof::new(
-                        header.block_num(),
-                        header.sub_hash(),
-                        header.note_root(),
-                        index as u64,
-                        notes.open(&auth_index).path,
-                    )
-                    .expect("Invalid data provided to proof constructor"),
-                )
+                let location = NoteLocation::new(header.block_num(), auth_index.value() as u32);
+                InputNote::new(note.clone(), location, notes.open(&auth_index).path)
             })
             .collect::<Vec<_>>()
     }
@@ -633,17 +624,8 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
         .map(|(index, note)| {
             let block_header = &block_chain[index];
             let auth_index = LeafIndex::new(index as u64).unwrap();
-            InputNote::new(
-                note,
-                NoteInclusionProof::new(
-                    block_header.block_num(),
-                    block_header.sub_hash(),
-                    block_header.note_root(),
-                    index as u64,
-                    note_trees[index].open(&auth_index).path,
-                )
-                .unwrap(),
-            )
+            let location = NoteLocation::new(block_header.block_num(), auth_index.value() as u32);
+            InputNote::new(note, location, note_trees[index].open(&auth_index).path)
         })
         .collect::<Vec<_>>();
 

@@ -1,7 +1,7 @@
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteInclusionProof},
+    notes::Note,
     transaction::{InputNote, InputNotes},
     Felt, FieldElement, Word,
 };
@@ -187,17 +187,9 @@ fn test_transaction_compilation_succeeds() {
     let _account_code = tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
     let notes = mock_consumed_notes(&mut tx_compiler, account_id);
-    let mock_inclusion_proof = NoteInclusionProof::new(
-        Default::default(),
-        Default::default(),
-        Default::default(),
-        0,
-        Default::default(),
-    )
-    .unwrap();
     let notes = notes
         .into_iter()
-        .map(|note| InputNote::new(note, mock_inclusion_proof.clone()))
+        .map(|note| InputNote::new(note, Default::default(), Default::default()))
         .collect::<Vec<_>>();
 
     let notes = InputNotes::new(notes).unwrap();

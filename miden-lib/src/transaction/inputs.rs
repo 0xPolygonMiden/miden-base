@@ -1,8 +1,8 @@
 use miden_objects::{
     accounts::Account,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
-        TransactionScript, TransactionWitness,
+        ChainMmr, ExecutedTransaction, PreparedTransaction, TransactionInputs, TransactionScript,
+        TransactionWitness,
     },
     utils::{collections::Vec, vec, IntoBytes},
     vm::{AdviceInputs, StackInputs},
@@ -91,7 +91,7 @@ fn extend_advice_inputs(
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs, advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
 }
 
@@ -276,7 +276,9 @@ fn add_account_to_advice_inputs(
 /// - inputs_hash |-> inputs
 /// - asset_hash |-> assets
 /// - notes_hash |-> combined note data
-fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInputs) {
+fn add_input_notes_to_advice_inputs(tx_inputs: &TransactionInputs, inputs: &mut AdviceInputs) {
+    let notes = tx_inputs.input_notes();
+
     // if there are no input notes, nothing is added to the advice inputs
     if notes.is_empty() {
         return;
@@ -291,8 +293,8 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
             note.auth_path()
-                .inner_nodes(note.location().leaf_index().value(), note.authentication_hash())
-                .unwrap(),
+                .inner_nodes(note.location().note_index() as u64, note.authentication_hash())
+                .expect("failed to compute inner nodes for Merkle path"),
         );
 
         // add the note elements to the combined vector of note data
@@ -307,10 +309,21 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.push((note.assets().num_assets() as u32).into());
         note_data.extend(note.assets().to_padded_assets());
 
-        note_data.push(note.location().block_num().into());
-        note_data.extend(*note.proof().sub_hash());
-        note_data.extend(*note.proof().note_root());
-        note_data.push(note.location().leaf_index().value().into());
+        // determine which block header is associated with the note
+        let block_num = note.location().block_num();
+        let block_header = if block_num == tx_inputs.block_header().block_num() {
+            tx_inputs.block_header()
+        } else {
+            tx_inputs
+                .block_chain()
+                .get_block(block_num)
+                .expect("missing block header for note")
+        };
+
+        note_data.push(block_num.into());
+        note_data.extend(*block_header.sub_hash());
+        note_data.extend(*block_header.note_root());
+        note_data.push(note.location().note_index().into());
     }
 
     // insert the combined note data into the advice map

@@ -2,7 +2,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
+    notes::{Note, NoteInputs, NoteScript},
     utils::{
         collections::Vec,
         string::{String, ToString},
@@ -27,7 +27,6 @@ pub struct NoteBuilder {
     serial_num: Word,
     tag: Felt,
     code: String,
-    proof: Option<NoteInclusionProof>,
 }
 
 impl NoteBuilder {
@@ -46,7 +45,6 @@ impl NoteBuilder {
             serial_num,
             tag: Felt::default(),
             code: DEFAULT_NOTE_CODE.to_string(),
-            proof: None,
         }
     }
 
@@ -68,11 +66,6 @@ impl NoteBuilder {
 
     pub fn code<S: AsRef<str>>(mut self, code: S) -> Self {
         self.code = code.as_ref().to_string();
-        self
-    }
-
-    pub fn proof(mut self, proof: NoteInclusionProof) -> Self {
-        self.proof = Some(proof);
         self
     }
 
