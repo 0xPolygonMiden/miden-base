@@ -37,8 +37,8 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -62,8 +62,8 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
@@ -115,8 +115,8 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -221,8 +221,8 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -295,8 +295,8 @@ fn test_get_inputs() {
         note1_input_assertions = construct_input_assertions(note1),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -314,8 +314,8 @@ fn test_note_setup() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     note_setup_stack_assertions(&process, &transaction);
     note_setup_memory_assertions(&process);
@@ -323,8 +323,10 @@ fn test_note_setup() {
 
 #[test]
 fn test_note_script_and_note_args() {
-    let note_args_note_0 = [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)];
-    let note_args_note_1 = [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)];
+    let note_args = vec![
+        [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
+        [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
+    ];
 
     let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
@@ -333,37 +335,27 @@ fn test_note_script_and_note_args() {
         use.miden::kernels::tx::prologue
         use.miden::kernels::tx::memory
         use.miden::kernels::tx::note
-        use.miden::note->note_api
 
         begin
             exec.prologue::prepare_transaction
-            
-            # check that we have two notes consumed
             exec.memory::get_total_num_consumed_notes push.2 assert_eq
-
-            # get the note args for the first note
-            exec.note_api::get_note_args
-
-            # increase the note pointer to get second note
+            exec.note::prepare_note dropw
             exec.note::increment_current_consumed_note_ptr drop
-
-            # get the note args for the second note
-            padw exec.note_api::get_note_args
-
+            exec.note::prepare_note dropw
         end
         ";
 
     let note_args_map = BTreeMap::from([
-        (tx_inputs.input_notes().get_note(0).note().id(), note_args_note_0),
-        (tx_inputs.input_notes().get_note(1).note().id(), note_args_note_1),
+        (tx_inputs.input_notes().get_note(0).note().id(), note_args[1]),
+        (tx_inputs.input_notes().get_note(1).note().id(), note_args[0]),
     ]);
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, Some(note_args_map), code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let process = run_tx(&transaction, note_args_map).unwrap();
 
-    assert_eq!(process.stack.get_word(0), note_args_note_1);
+    assert_eq!(process.stack.get_word(0), note_args[0]);
 
-    assert_eq!(process.stack.get_word(1), note_args_note_0);
+    assert_eq!(process.stack.get_word(1), note_args[1]);
 }
 
 fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {

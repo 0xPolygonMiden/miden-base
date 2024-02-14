@@ -559,6 +559,16 @@ proc.process_input_note
     exec.memory::set_consumed_note_metadata
     # => [note_ptr]
 
+    # ingest note args
+    # ---------------------------------------------------------------------------------------------
+
+    # get the note args from the advice provider and store in memory
+    padw adv_loadw dup.4
+    # => [note_ptr, NOTE_ARGS, note_ptr]
+
+    exec.memory::set_consumed_note_note_args
+    # => [note_ptr]
+
     # get the number of inputs from the advice provider and store it in memory
     adv_push.1 dup dup.2
     exec.memory::set_consumed_note_num_inputs
@@ -708,10 +718,10 @@ end
 #! Advice stack: [num_cn, ...],
 #! Advice map: {
 #!               NC: [
-#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M, CN1_NA
 #!                  CN1_A1, CN1_A2, ...
 #!
-#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M, CN2_NA
 #!                  CN2_A1, CN2_A2, ...
 #!                  ...]
 #!              }
@@ -724,6 +734,7 @@ end
 #! - CN1_IR is the inputs root of input note 1.
 #! - CN1_VR is the vault root of input note 1.
 #! - CN1_M is the metadata of input note 1.
+#! - CN1_NA are optional note args for input note 1.
 #! - CN1_A1 is the first asset of input note 1.
 #! - CN1_A2 is the second asset of input note 1.
 proc.process_input_notes_data
@@ -867,7 +878,7 @@ end
 #! Operand stack: [BH, acct_id, IAH, NC]
 #! Advice stack:  [NR, PH, CR, SR, BR, PH, BN,
 #!                  acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!                  num_cn, TXSR, NOTE_ARGS
+#!                  num_cn, TXSR
 #!                ]
 #! Advice map:  {
 #!                  NC: [NOTE_1_DATA, ..., NOTE_N_DATA],
@@ -894,7 +905,6 @@ end
 #! - num_cn is the number of input notes.
 #! - NOTE_X_DATA is the data of the x'th note.
 #! - TXSR is the transaction script root.
-#! - NOTE_ARGS are optional arguments per note.
 export.prepare_transaction
     # process global inputs
     exec.process_global_inputs

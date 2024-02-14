@@ -21,11 +21,11 @@ use super::TransactionKernel;
 /// Defines how inputs required to execute a transaction kernel can be extracted from self.
 pub trait ToTransactionKernelInputs {
     /// Returns stack and advice inputs required to execute the transaction kernel.
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
+    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs);
 }
 
 impl ToTransactionKernelInputs for PreparedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -35,19 +35,14 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(
-            self.tx_inputs(),
-            self.tx_script(),
-            self.note_args().cloned(),
-            &mut advice_inputs,
-        );
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
 }
 
 impl ToTransactionKernelInputs for ExecutedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
         let account = self.initial_account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -57,19 +52,14 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(
-            self.tx_inputs(),
-            self.tx_script(),
-            self.note_args().cloned(),
-            &mut advice_inputs,
-        );
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
 }
 
 impl ToTransactionKernelInputs for TransactionWitness {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -79,12 +69,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(
-            self.tx_inputs(),
-            self.tx_script(),
-            self.note_args().cloned(),
-            &mut advice_inputs,
-        );
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -102,7 +87,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
-    note_args: Option<BTreeMap<NoteId, Word>>,
+    note_args: BTreeMap<NoteId, Word>,
     advice_inputs: &mut AdviceInputs,
 ) {
     // build the advice stack
@@ -111,9 +96,8 @@ fn extend_advice_inputs(
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), note_args, advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
-    add_note_args_to_advice_map(note_args, advice_inputs);
 }
 
 // ADVICE STACK BUILDER
@@ -274,12 +258,13 @@ fn add_account_to_advice_inputs(
 ///   out[8..12]   = inputs_hash
 ///   out[12..16]  = assets_hash
 ///   out[16..20]  = metadata
-///   out[20]      = num_inputs
-///   out[21]      = num_assets
-///   out[22..26]  = asset_1
-///   out[26..30]  = asset_2
+///   out[20..24]  = note_args
+///   out[24]      = num_inputs
+///   out[25]      = num_assets
+///   out[26..30]  = asset_1
+///   out[30..34]  = asset_2
 ///   ...
-///   out[30 + num_assets * 4..] = Word::default() (this is conditional padding only applied
+///   out[34 + num_assets * 4..] = Word::default() (this is conditional padding only applied
 ///                                                 if the number of assets is odd)
 ///   out[-10]      = origin.block_number
 ///   out[-9..-5]   = origin.SUB_HASH
@@ -293,7 +278,11 @@ fn add_account_to_advice_inputs(
 /// - inputs_hash |-> inputs
 /// - asset_hash |-> assets
 /// - notes_hash |-> combined note data
-fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInputs) {
+fn add_input_notes_to_advice_inputs(
+    notes: &InputNotes,
+    note_args: BTreeMap<NoteId, Word>,
+    inputs: &mut AdviceInputs,
+) {
     // if there are no input notes, nothing is added to the advice inputs
     if notes.is_empty() {
         return;
@@ -303,6 +292,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
+        let note_arg = note_args.get(&note.id()).unwrap_or(&[ZERO; 4]);
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
@@ -323,6 +313,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.assets().commitment());
 
         note_data.extend(Word::from(note.metadata()));
+        note_data.extend(Word::from(note_arg.clone()));
 
         note_data.push(note.inputs().num_values().into());
 
@@ -357,21 +348,5 @@ fn add_tx_script_inputs_to_advice_map(
 ) {
     if let Some(tx_script) = tx_script {
         inputs.extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())));
-    }
-}
-
-// NOTE ARGS INJECTOR
-// ------------------------------------------------------------------------------------------------
-
-/// Inserts the following entries into the advice map:
-/// - note_id |-> note_arg, for each note argument
-fn add_note_args_to_advice_map(
-    note_args: Option<BTreeMap<NoteId, Word>>,
-    inputs: &mut AdviceInputs,
-) {
-    if let Some(note_args) = note_args {
-        inputs.extend_map(
-            note_args.iter().map(|(note_id, note_arg)| (note_id.into(), (*note_arg).into())),
-        );
     }
 }

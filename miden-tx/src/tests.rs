@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
@@ -51,7 +53,8 @@ fn transaction_executor_witness() {
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
-    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
+    let note_args = BTreeMap::new();
+    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs(note_args);
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider);
     let result =

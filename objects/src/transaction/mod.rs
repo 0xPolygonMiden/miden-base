@@ -1,6 +1,6 @@
 use super::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
-    notes::{NoteEnvelope, NoteId, Nullifier},
+    notes::{NoteEnvelope, Nullifier},
     vm::{AdviceInputs, Program},
     BlockHeader, Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
 };

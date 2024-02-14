@@ -1,3 +1,4 @@
+use miden_objects::{notes::NoteId, utils::collections::BTreeMap};
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
     procedures::output_notes_data_procedure,
@@ -35,7 +36,8 @@ fn test_epilogue() {
         "
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+    let note_args: BTreeMap<NoteId, Word> = BTreeMap::new();
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs(note_args);
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,
@@ -96,7 +98,8 @@ fn test_compute_created_note_id() {
         "
         );
 
-        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+        let note_args: BTreeMap<NoteId, Word> = BTreeMap::new();
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs(note_args);
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
@@ -148,7 +151,8 @@ fn test_epilogue_asset_preservation_violation() {
         "
         );
 
-        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+        let note_args: BTreeMap<NoteId, Word> = BTreeMap::new();
+        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs(note_args);
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
             imports,
@@ -184,7 +188,8 @@ fn test_epilogue_increment_nonce_success() {
         "
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+    let note_args: BTreeMap<NoteId, Word> = BTreeMap::new();
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs(note_args);
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let _process = run_within_tx_kernel(
         imports,
@@ -216,7 +221,8 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
+    let note_args: BTreeMap<NoteId, Word> = BTreeMap::new();
+    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs(note_args);
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
         imports,

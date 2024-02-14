@@ -218,9 +218,10 @@ pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
 pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
+pub const CONSUMED_NOTE_NOTE_ARGS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 8;
+pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 9;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------

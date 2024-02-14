@@ -1,8 +1,6 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNotes, NoteId, Program, TransactionInputs,
-    TransactionScript, Word,
+    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript,
 };
-use crate::utils::collections::BTreeMap;
 
 // TRANSACTION WITNESS
 // ================================================================================================
@@ -28,7 +26,6 @@ pub struct TransactionWitness {
     program: Program,
     tx_inputs: TransactionInputs,
     tx_script: Option<TransactionScript>,
-    note_args: Option<BTreeMap<NoteId, Word>>,
     advice_witness: AdviceInputs,
 }
 
@@ -40,14 +37,12 @@ impl TransactionWitness {
         program: Program,
         tx_inputs: TransactionInputs,
         tx_script: Option<TransactionScript>,
-        note_args: Option<BTreeMap<NoteId, Word>>,
         advice_witness: AdviceInputs,
     ) -> Self {
         Self {
             program,
             tx_inputs,
             tx_script,
-            note_args,
             advice_witness,
         }
     }
@@ -83,11 +78,6 @@ impl TransactionWitness {
     /// Returns a reference to the inputs for this transaction.
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
-    }
-
-    /// Returns a reference to the inputs for this transaction.
-    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.note_args.as_ref()
     }
 
     /// Returns all the data requested by the VM from the advice provider while executing the

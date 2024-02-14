@@ -32,16 +32,20 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
 }
 
 /// Inject `code` along side the specified file and run it
-pub fn run_tx(tx: &PreparedTransaction) -> Result<Process<MockHost>, ExecutionError> {
-    run_tx_with_inputs(tx, AdviceInputs::default())
+pub fn run_tx(
+    tx: &PreparedTransaction,
+    note_args: BTreeMap<NoteId, Word>,
+) -> Result<Process<MockHost>, ExecutionError> {
+    run_tx_with_inputs(tx, AdviceInputs::default(), note_args)
 }
 
 pub fn run_tx_with_inputs(
     tx: &PreparedTransaction,
     inputs: AdviceInputs,
+    note_args: BTreeMap<NoteId, Word>,
 ) -> Result<Process<MockHost>, ExecutionError> {
     let program = tx.program().clone();
-    let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
+    let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs(note_args);
     advice_inputs.extend(inputs);
     let host = MockHost::new(tx.account().into(), advice_inputs);
     let exec_options = ExecutionOptions::default().with_tracing();
@@ -110,7 +114,6 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 pub fn prepare_transaction(
     tx_inputs: TransactionInputs,
     tx_script: Option<TransactionScript>,
-    note_args: Option<BTreeMap<NoteId, Word>>,
     code: &str,
     file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
@@ -122,5 +125,5 @@ pub fn prepare_transaction(
     };
 
     let program = assembler.compile(code).unwrap();
-    PreparedTransaction::new(program, tx_script, tx_inputs, note_args)
+    PreparedTransaction::new(program, tx_script, tx_inputs)
 }

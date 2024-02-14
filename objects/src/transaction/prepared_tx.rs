@@ -1,7 +1,4 @@
-use super::{
-    Account, BlockHeader, InputNotes, NoteId, Program, TransactionInputs, TransactionScript, Word,
-};
-use crate::utils::collections::BTreeMap;
+use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -17,7 +14,6 @@ pub struct PreparedTransaction {
     program: Program,
     tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
-    note_args: Option<BTreeMap<NoteId, Word>>,
 }
 
 impl PreparedTransaction {
@@ -29,9 +25,8 @@ impl PreparedTransaction {
         program: Program,
         tx_script: Option<TransactionScript>,
         tx_inputs: TransactionInputs,
-        note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Self {
-        Self { program, tx_script, tx_inputs, note_args }
+        Self { program, tx_script, tx_inputs }
     }
 
     // ACCESSORS
@@ -67,23 +62,11 @@ impl PreparedTransaction {
         &self.tx_inputs
     }
 
-    /// Returns a reference to the inputs for this transaction.
-    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.note_args.as_ref()
-    }
-
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (
-        Program,
-        Option<TransactionScript>,
-        TransactionInputs,
-        Option<BTreeMap<NoteId, Word>>,
-    ) {
-        (self.program, self.tx_script, self.tx_inputs, self.note_args)
+    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
+        (self.program, self.tx_script, self.tx_inputs)
     }
 }

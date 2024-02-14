@@ -1,6 +1,7 @@
 use miden_objects::{
     notes::Note,
     transaction::{OutputNote, OutputNotes},
+    utils::collections::BTreeMap,
 };
 use mock::{
     constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -51,8 +52,8 @@ fn test_create_note() {
         asset = prepare_word(&asset)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     // assert the number of created notes has been incremented to 1.
     assert_eq!(
@@ -209,8 +210,8 @@ fn test_get_output_notes_hash() {
         expected = prepare_word(&expected_output_notes_hash)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 // HELPER FUNCTIONS

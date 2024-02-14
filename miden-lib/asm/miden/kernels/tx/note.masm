@@ -87,50 +87,6 @@ export.get_inputs_info
     # => [NOTE_INPUTS_HASH, num_inputs]
 end
 
-#! Returns the note script hash of the note currently being processed. Panics if a note is not
-#! being processed.
-#!
-#! Inputs: []
-#! Outputs: [NOTE_SCRIPT_HASH]
-#!
-#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_script_root
-    # get the current consumed note pointer
-    exec.memory::get_current_consumed_note_ptr
-    # => [ptr]
-
-    # assert the pointer is not zero - this would suggest the procedure has been called from an
-    # incorrect context
-    dup neq.0 assert
-    # => [ptr]
-
-    # get the note inputs hash from the note pointer
-    exec.memory::get_consumed_note_script_root
-    # => [NOTE_SCRIPT_ROOT]
-end
-
-#! Returns the serial number of the note currently being processed. Panics if a note is not
-#! being processed.
-#!
-#! Inputs: []
-#! Outputs: [NOTE_SERIAL_NUM]
-#!
-#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_note_serial_number
-    # get the current consumed note pointer
-    exec.memory::get_current_consumed_note_ptr
-    # => [ptr]
-
-    # assert the pointer is not zero - this would suggest the procedure has been called from an
-    # incorrect context
-    dup neq.0 assert
-    # => [ptr]
-
-    # get the note inputs hash from the note pointer
-    exec.memory::get_consumed_note_serial_num
-    # => [NOTE_SERIAL_NUM]
-end
-
 #! Increment current consumed note pointer to the next note and returns the pointer value.
 #!
 #! Inputs: []
@@ -167,7 +123,7 @@ end
 #! 2. Loading the note script root onto the stack.
 #!
 #! Stack: []
-#! Output: [NSR]
+#! Output: [NSR, NOTE_ARGS]
 #!
 #! - NSR is the note script root of the note currently being executed.
 #! - NOTE_ARGS are the note args of the note currently being executed.
@@ -176,9 +132,12 @@ export.prepare_note
     exec.memory::get_current_consumed_note_ptr
     # => [note_ptr]
 
+    dup exec.memory::get_consumed_note_note_args movup.4
+    # => [note_ptr, NOTE_ARGS]
+
     # read the note script root onto the stack
     exec.memory::get_consumed_note_script_root
-    # => [NOTE_SCRIPT_ROOT]
+    # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 end
 
 # OUTPUT NOTE PROCEDURES

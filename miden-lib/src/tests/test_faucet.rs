@@ -1,4 +1,4 @@
-use miden_objects::assets::FungibleAsset;
+use miden_objects::{assets::FungibleAsset, utils::collections::BTreeMap};
 use mock::{
     constants::{
         non_fungible_asset, non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -63,8 +63,8 @@ fn test_mint_fungible_asset_succeeds() {
         expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -86,8 +86,8 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
         "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
     assert!(process.is_err());
 }
 
@@ -116,8 +116,8 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
         ",
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -148,8 +148,8 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
         saturating_amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_FAUCET_INITIAL_BALANCE + 1
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -209,8 +209,8 @@ fn test_mint_non_fungible_asset_succeeds() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -234,8 +234,8 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -261,8 +261,8 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -294,8 +294,8 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -349,8 +349,8 @@ fn test_burn_fungible_asset_succeeds() {
         expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -372,8 +372,8 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
         "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -403,8 +403,8 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
         ",
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
     assert!(process.is_err());
 }
 
@@ -434,8 +434,8 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
         saturating_amount = CONSUMED_ASSET_1_AMOUNT + 1
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -495,8 +495,8 @@ fn test_burn_non_fungible_asset_succeeds() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[test]
@@ -531,8 +531,8 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -565,8 +565,8 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -603,8 +603,8 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -643,6 +643,6 @@ fn test_get_total_issuance_succeeds() {
     ",
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }

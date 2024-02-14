@@ -1,6 +1,7 @@
 use miden_objects::{
     assembly::ProgramAst,
     transaction::{PreparedTransaction, TransactionScript},
+    utils::collections::BTreeMap,
     Digest,
 };
 use mock::{
@@ -25,11 +26,12 @@ use crate::transaction::{
         CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
         CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
         CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
-        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_NUM_INPUTS_OFFSET,
-        CONSUMED_NOTE_SCRIPT_ROOT_OFFSET, CONSUMED_NOTE_SECTION_OFFSET,
-        CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
-        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
+        CONSUMED_NOTE_NOTE_ARGS_OFFSET, CONSUMED_NOTE_NUM_ASSETS_OFFSET,
+        CONSUMED_NOTE_NUM_INPUTS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
+        CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
+        INIT_NONCE_PTR, NOTE_ROOT_PTR, NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR,
+        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
+        TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
@@ -64,14 +66,24 @@ fn test_transaction_prologue() {
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
     let transaction =
-        prepare_transaction(tx_inputs, Some(tx_script), None, code, Some(assembly_file));
-    let process = run_tx(&transaction).unwrap();
+        prepare_transaction(tx_inputs.clone(), Some(tx_script), code, Some(assembly_file));
+
+    let note_args = vec![
+        [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
+        [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
+    ];
+    let note_args_map = BTreeMap::from([
+        (tx_inputs.input_notes().get_note(0).note().id(), note_args[0]),
+        (tx_inputs.input_notes().get_note(1).note().id(), note_args[1]),
+    ]);
+
+    let process = run_tx(&transaction, note_args_map).unwrap();
 
     global_input_memory_assertions(&process, &transaction);
     block_data_memory_assertions(&process, &transaction);
     chain_mmr_memory_assertions(&process, &transaction);
     account_data_memory_assertions(&process, &transaction);
-    consumed_notes_memory_assertions(&process, &transaction);
+    consumed_notes_memory_assertions(&process, &transaction, &note_args);
 }
 
 fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
@@ -235,7 +247,11 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     }
 }
 
-fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn consumed_notes_memory_assertions(
+    process: &Process<MockHost>,
+    inputs: &PreparedTransaction,
+    note_args: &Vec<[Felt; 4]>,
+) {
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
         read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET),
@@ -287,6 +303,12 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
             Word::from(note.metadata())
         );
 
+        // The note args should be stored at the correct offset
+        assert_eq!(
+            read_note_element(process, note_idx, CONSUMED_NOTE_NOTE_ARGS_OFFSET),
+            Word::from(note_args[note_idx as usize])
+        );
+
         // The number of inputs should be stored at the correct offset
         assert_eq!(
             read_note_element(process, note_idx, CONSUMED_NOTE_NUM_INPUTS_OFFSET),
@@ -328,8 +350,8 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -354,8 +376,8 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_ok());
 }
@@ -382,8 +404,8 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -410,8 +432,8 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_ok())
 }
@@ -438,8 +460,8 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
     assert!(process.is_err());
 }
 
@@ -463,14 +485,14 @@ pub fn test_prologue_create_account_invalid_seed() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, None, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     //let (program, stack_inputs, mut advice_provider) = build_tx_inputs(&transaction);
 
     // lets override the seed with an invalid seed to ensure the kernel fails
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let process = run_tx_with_inputs(&transaction, adv_inputs);
+    let process = run_tx_with_inputs(&transaction, adv_inputs, BTreeMap::new());
     assert!(process.is_err());
 }
 
@@ -488,8 +510,8 @@ fn test_get_blk_version() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, None, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().version());
 }
@@ -508,8 +530,8 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, None, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
 }

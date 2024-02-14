@@ -344,40 +344,6 @@ export.get_note_sender
 
 end
 
-#! Returns the id of the note currently being processed. Panics if a note is not being
-#! processed.
-#! Note ID is computed as:
-#! 
-#!    hash(recipient, asset_hash),
-#! 
-#!     where `recipient` is defined as:
-#! 
-#!     hash(hash(hash(serial_num, [0; 4]), script_hash), inputs_hash)
-#!
-#! Inputs: []
-#! Outputs: [NOTE_ID]
-#!
-#! - note_id is the NoteID of the note currently being processed.
-export.get_note_id
-    # get the note's serial hash
-    exec.note::get_note_serial_number padw hmerge
-    # => [hash(NOTE_SERIAL_NUM, ZERO)]
-
-    # get the note's script hash
-    exec.note::get_script_root hmerge
-    # => [hash(hash(SERIAL_NUM, ZERO), SCRIPT_ROOT)]
-
-    # get the note's inputs hash
-    exec.note::get_inputs_info movup.4 drop hmerge
-    # => [hash(hash(hash(SERIAL_NUM, ZERO), SCRIPT_ROOT), INPUTS_HASH) ~ RECIPIENT]
-
-    # get the note's asset hash
-    exec.note::get_vault_info movup.4 drop hmerge
-    # => [hash(RECIPIENT, ASSET_HASH) ~ NOTE_ID]
-
-    swapw dropw
-end
-
 #! Returns the block number of the last known block at the time of transaction execution.
 #!
 #! Inputs: [0]

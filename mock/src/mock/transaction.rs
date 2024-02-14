@@ -151,18 +151,9 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let program = build_dummy_tx_program();
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
-    let note_args = None;
 
     // Executed Transaction
-    ExecutedTransaction::new(
-        program,
-        tx_inputs,
-        tx_outputs,
-        account_delta,
-        None,
-        note_args,
-        advice_witness,
-    )
+    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, advice_witness)
 }
 
 // HELPER FUNCTIONS

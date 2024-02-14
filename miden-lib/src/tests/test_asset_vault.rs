@@ -35,8 +35,8 @@ fn test_get_balance() {
     "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
@@ -62,8 +62,8 @@ fn test_get_balance_non_fungible_fails() {
     "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -88,8 +88,8 @@ fn test_has_non_fungible_asset() {
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(process.stack.get(0), ONE);
 }
@@ -119,8 +119,8 @@ fn test_add_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -158,8 +158,8 @@ fn test_add_non_fungible_asset_fail_overflow() {
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
@@ -193,8 +193,8 @@ fn test_add_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -233,8 +233,8 @@ fn test_add_non_fungible_asset_fail_duplicate() {
         NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
@@ -265,8 +265,8 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -303,8 +303,8 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
 }
@@ -334,8 +334,8 @@ fn test_remove_fungible_asset_success_balance_remaining() {
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -374,8 +374,8 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new());
 
     assert!(process.is_err());
     assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
@@ -407,8 +407,8 @@ fn test_remove_non_fungible_asset_success() {
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, None, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction, BTreeMap::new()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
