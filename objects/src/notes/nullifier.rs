@@ -1,4 +1,4 @@
-use core::fmt::{Display, Formatter};
+use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
@@ -18,7 +18,7 @@ use crate::utils::{hex_to_bytes, HexParseError};
 /// - We cannot derive a note's hash from its nullifier, or a note's nullifier from its hash.
 /// - To compute the nullifier we must know all components of the note: serial_num, script_hash,
 ///   input_hash and asset_hash.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nullifier(Digest);
 
 impl Nullifier {
@@ -65,6 +65,12 @@ impl Nullifier {
 impl Display for Nullifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl Debug for Nullifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
