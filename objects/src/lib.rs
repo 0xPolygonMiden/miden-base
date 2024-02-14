@@ -5,22 +5,21 @@
 extern crate alloc;
 
 pub mod accounts;
-
 pub mod assets;
-pub mod notes;
-
 pub mod block;
-pub use block::BlockHeader;
-
+pub mod notes;
 pub mod transaction;
 
 mod errors;
+
+// RE-EXPORTS
+// ================================================================================================
+
+pub use block::BlockHeader;
 pub use errors::{
     AccountDeltaError, AccountError, AssetError, AssetVaultError, ChainMmrError, NoteError,
     TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
-// RE-EXPORTS
-// ================================================================================================
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 
