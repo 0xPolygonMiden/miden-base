@@ -216,6 +216,25 @@ impl Account {
         Ok(())
     }
 
+    /// Sets the nonce of this account to the specified nonce value.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The new nonce is smaller than the actual account nonce
+    /// - The new nonce is equal to the actual account nonce
+    pub fn set_nonce(&mut self, nonce: Felt) -> Result<(), AccountError> {
+        if self.nonce.as_int() >= nonce.as_int() {
+            return Err(AccountError::NonceNotMonotonicallyIncreasing {
+                current: self.nonce.as_int(),
+                new: nonce.as_int(),
+            });
+        }
+
+        self.nonce = nonce;
+
+        Ok(())
+    }
+
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
