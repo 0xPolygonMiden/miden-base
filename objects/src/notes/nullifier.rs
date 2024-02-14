@@ -64,7 +64,7 @@ impl Nullifier {
 
 impl Display for Nullifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.0, f)
+        f.write_str(&self.to_hex())
     }
 }
 
