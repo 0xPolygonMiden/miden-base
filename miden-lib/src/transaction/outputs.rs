@@ -4,7 +4,7 @@ use miden_objects::{
     notes::{NoteAssets, NoteId, NoteMetadata},
     transaction::OutputNote,
     utils::collections::Vec,
-    AccountError, Digest, NoteError, StarkField, Word, WORD_SIZE,
+    AccountError, Digest, NoteError, Word, WORD_SIZE,
 };
 
 use super::memory::{

@@ -106,14 +106,14 @@ impl Serializable for NoteInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let NoteInputs { values, hash: _hash } = self;
         target.write_u8(values.len().try_into().expect("inputs len is not a u8 value"));
-        values.write_into(target);
+        target.write_many(values);
     }
 }
 
 impl Deserializable for NoteInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_values = source.read_u8()? as usize;
-        let values = Felt::read_batch_from(source, num_values)?;
+        let values = source.read_many::<Felt>(num_values)?;
         Self::new(values).map_err(|v| DeserializationError::InvalidValue(format!("{v}")))
     }
 }

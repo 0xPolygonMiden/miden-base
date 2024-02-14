@@ -314,7 +314,14 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.push(proof.origin().block_num.into());
         note_data.extend(*proof.sub_hash());
         note_data.extend(*proof.note_root());
-        note_data.push(proof.origin().node_index.value().into());
+        note_data.push(
+            proof
+                .origin()
+                .node_index
+                .value()
+                .try_into()
+                .expect("value is greater than or equal to the field modulus"),
+        );
     }
 
     // insert the combined note data into the advice map

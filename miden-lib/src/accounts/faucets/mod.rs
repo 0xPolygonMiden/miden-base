@@ -3,7 +3,7 @@ use miden_objects::{
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
     utils::{string::ToString, vec},
-    AccountError, Felt, StarkField, Word, ZERO,
+    AccountError, Felt, Word, ZERO,
 };
 
 use super::{AuthScheme, Library, MidenLib, TransactionKernel};

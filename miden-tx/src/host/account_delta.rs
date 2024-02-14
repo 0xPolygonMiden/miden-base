@@ -9,7 +9,7 @@ use miden_objects::{
         collections::{btree_map::Entry, BTreeMap},
         string::ToString,
     },
-    Digest, Felt, StarkField, Word, EMPTY_WORD, ZERO,
+    Digest, Felt, Word, EMPTY_WORD, ZERO,
 };
 use vm_processor::{ContextId, ProcessState};
 

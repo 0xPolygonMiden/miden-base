@@ -1,8 +1,6 @@
 use core::fmt;
 
-use super::{
-    parse_word, AccountId, AccountType, Asset, AssetError, Felt, StarkField, ToString, Word, ZERO,
-};
+use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, ToString, Word, ZERO};
 
 // FUNGIBLE ASSET
 // ================================================================================================

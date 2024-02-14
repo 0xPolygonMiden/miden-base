@@ -224,17 +224,14 @@ impl Serializable for AssetVault {
         // u32::MAX or use variable-length encoding for the number of assets
         assert!(assets.len() <= u32::MAX as usize, "too many assets in the vault");
         target.write_u32(assets.len() as u32);
-
-        for asset in assets {
-            asset.write_into(target);
-        }
+        target.write_many(&assets);
     }
 }
 
 impl Deserializable for AssetVault {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_assets = source.read_u32()? as usize;
-        let assets = Asset::read_batch_from(source, num_assets)?;
+        let assets = source.read_many::<Asset>(num_assets)?;
         Self::new(&assets).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }

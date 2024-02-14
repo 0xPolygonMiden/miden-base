@@ -1,5 +1,3 @@
-use vm_core::StarkField;
-
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
     Serializable, Vec, Word,

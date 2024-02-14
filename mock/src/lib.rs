@@ -4,7 +4,7 @@ use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKerne
 use miden_objects::{
     notes::NoteAssets,
     transaction::{OutputNotes, PreparedTransaction, TransactionInputs, TransactionScript},
-    Felt, StarkField,
+    Felt,
 };
 use mock::host::MockHost;
 use vm_processor::{

@@ -153,15 +153,14 @@ impl Serializable for NoteAssets {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         debug_assert!(self.assets.len() <= NoteAssets::MAX_NUM_ASSETS);
         target.write_u8((self.assets.len() - 1) as u8);
-        self.assets.write_into(target);
+        target.write_many(&self.assets);
     }
 }
 
 impl Deserializable for NoteAssets {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u8()? + 1;
-        let assets = Asset::read_batch_from(source, count.into())?;
-
+        let assets = source.read_many::<Asset>(count.into())?;
         Self::new(&assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
     }
 }

@@ -1,4 +1,4 @@
-use super::{AssetError, Felt, StarkField, ToString};
+use super::{AssetError, Felt, ToString};
 use crate::utils::string::String;
 
 #[derive(Clone, Copy, Debug)]

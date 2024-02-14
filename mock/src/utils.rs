@@ -4,7 +4,7 @@ use miden_objects::{
         collections::Vec,
         string::{String, ToString},
     },
-    StarkField, Word,
+    Word,
 };
 
 // TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
