@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
@@ -7,7 +5,9 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
     notes::NoteId,
-    transaction::{ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionWitness},
+    transaction::{
+        ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
+    },
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -48,13 +48,12 @@ fn transaction_executor_witness() {
 
     // execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, None, None)
+        .execute_transaction(account_id, block_ref, &note_ids, TransactionArgs::default())
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
-    let note_args = BTreeMap::new();
-    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs(note_args);
+    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider);
     let result =
@@ -201,6 +200,7 @@ fn executed_transaction_account_delta() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_args = TransactionArgs::new(Some(tx_script), None);
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -208,9 +208,8 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script), None)
-        .unwrap();
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -277,7 +276,7 @@ fn prove_witness_and_verify() {
 
     // execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, None, None)
+        .execute_transaction(account_id, block_ref, &note_ids, TransactionArgs::default())
         .unwrap();
 
     // Prove the transaction with the witness
@@ -334,10 +333,11 @@ fn test_tx_script() {
             vec![],
         )
         .unwrap();
+    let tx_args = TransactionArgs::new(Some(tx_script), None);
 
     // execute the transaction
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script), None);
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
 
     // assert the transaction executed successfully
     assert!(executed_transaction.is_ok());

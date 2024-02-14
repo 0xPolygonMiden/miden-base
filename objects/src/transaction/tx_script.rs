@@ -1,10 +1,54 @@
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
+    notes::NoteId,
     utils::collections::{BTreeMap, Vec},
     vm::CodeBlock,
     TransactionScriptError,
 };
+
+// TRANSACTION ARGS
+// ================================================================================================
+
+/// A struct that represents optional transaction arguments.
+///
+/// The [TransactionArgs] object is composed of:
+/// - [struct](TransactionScript): a program that is executed in a transaction after all input
+///   notes have been executed..
+/// - [BTreeMap](NoteArgs): data being put on stack when the note script is executed. Different
+///   to Note Inputs, Note Args can be used by the executing account.
+#[derive(Clone, Debug, Default)]
+pub struct TransactionArgs {
+    tx_script: Option<TransactionScript>,
+    note_args: Option<BTreeMap<NoteId, Word>>,
+}
+
+impl TransactionArgs {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a new instance of a [TransactionArgs] with the provided transaction script and note
+    /// arguments.
+    pub fn new(
+        tx_script: Option<TransactionScript>,
+        note_args: Option<BTreeMap<NoteId, Word>>,
+    ) -> Self {
+        Self { tx_script, note_args }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the transaction script.
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
+    }
+
+    /// Returns a reference to the note arguments.
+    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
+        self.note_args.as_ref()
+    }
+}
 
 // TRANSACTION SCRIPT
 // ================================================================================================

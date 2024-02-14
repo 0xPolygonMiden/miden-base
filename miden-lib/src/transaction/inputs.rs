@@ -21,11 +21,11 @@ use super::TransactionKernel;
 /// Defines how inputs required to execute a transaction kernel can be extracted from self.
 pub trait ToTransactionKernelInputs {
     /// Returns stack and advice inputs required to execute the transaction kernel.
-    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs);
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
 }
 
 impl ToTransactionKernelInputs for PreparedTransaction {
-    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -35,14 +35,19 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_script(),
+            self.note_args(),
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
 }
 
 impl ToTransactionKernelInputs for ExecutedTransaction {
-    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.initial_account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -52,14 +57,14 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), None, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
 }
 
 impl ToTransactionKernelInputs for TransactionWitness {
-    fn get_kernel_inputs(&self, note_args: BTreeMap<NoteId, Word>) -> (StackInputs, AdviceInputs) {
+    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
@@ -69,7 +74,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), note_args, &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_script(), None, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -87,7 +92,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
-    note_args: BTreeMap<NoteId, Word>,
+    note_args: Option<&BTreeMap<NoteId, Word>>,
     advice_inputs: &mut AdviceInputs,
 ) {
     // build the advice stack
@@ -96,7 +101,7 @@ fn extend_advice_inputs(
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), note_args, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), note_args.cloned(), advice_inputs);
     add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
 }
 
@@ -280,7 +285,7 @@ fn add_account_to_advice_inputs(
 /// - notes_hash |-> combined note data
 fn add_input_notes_to_advice_inputs(
     notes: &InputNotes,
-    note_args: BTreeMap<NoteId, Word>,
+    note_args: Option<BTreeMap<NoteId, Word>>,
     inputs: &mut AdviceInputs,
 ) {
     // if there are no input notes, nothing is added to the advice inputs
@@ -289,6 +294,7 @@ fn add_input_notes_to_advice_inputs(
     }
 
     let mut note_data = Vec::new();
+    let note_args = note_args.unwrap_or_default();
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
@@ -313,7 +319,7 @@ fn add_input_notes_to_advice_inputs(
         note_data.extend(*note.assets().commitment());
 
         note_data.extend(Word::from(note.metadata()));
-        note_data.extend(Word::from(note_arg.clone()));
+        note_data.extend(Word::from(*note_arg));
 
         note_data.push(note.inputs().num_values().into());
 

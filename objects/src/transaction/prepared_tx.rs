@@ -1,4 +1,7 @@
-use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
+use super::{
+    Account, BTreeMap, BlockHeader, InputNotes, NoteId, Program, TransactionArgs,
+    TransactionInputs, TransactionScript, Word,
+};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -12,8 +15,8 @@ use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, Transa
 #[derive(Debug)]
 pub struct PreparedTransaction {
     program: Program,
-    tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
+    tx_args: TransactionArgs,
 }
 
 impl PreparedTransaction {
@@ -21,12 +24,8 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [PreparedTransaction] instantiated from the provided executable transaction
     /// program and inputs required to execute this program.
-    pub fn new(
-        program: Program,
-        tx_script: Option<TransactionScript>,
-        tx_inputs: TransactionInputs,
-    ) -> Self {
-        Self { program, tx_script, tx_inputs }
+    pub fn new(program: Program, tx_inputs: TransactionInputs, tx_args: TransactionArgs) -> Self {
+        Self { program, tx_inputs, tx_args }
     }
 
     // ACCESSORS
@@ -54,7 +53,7 @@ impl PreparedTransaction {
 
     /// Return a reference the transaction script.
     pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+        self.tx_args.tx_script()
     }
 
     /// Returns a reference to the inputs for this transaction.
@@ -62,11 +61,16 @@ impl PreparedTransaction {
         &self.tx_inputs
     }
 
+    /// Return a reference the transaction script.
+    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
+        self.tx_args.note_args()
+    }
+
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
-        (self.program, self.tx_script, self.tx_inputs)
+    pub fn into_parts(self) -> (Program, TransactionInputs, TransactionArgs) {
+        (self.program, self.tx_inputs, self.tx_args)
     }
 }

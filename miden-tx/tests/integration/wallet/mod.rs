@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -69,10 +70,11 @@ fn prove_receive_asset_via_wallet() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
+    let tx_args: TransactionArgs = TransactionArgs::new(Some(tx_script), None);
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_script), None)
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -152,10 +154,11 @@ fn prove_send_asset_via_wallet() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(sender_pub_key, sender_keypair_felt)], vec![])
         .unwrap();
+    let tx_args: TransactionArgs = TransactionArgs::new(Some(tx_script), None);
 
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_script), None)
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

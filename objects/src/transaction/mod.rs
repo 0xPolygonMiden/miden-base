@@ -1,6 +1,7 @@
 use super::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
-    notes::{NoteEnvelope, Nullifier},
+    notes::{NoteEnvelope, NoteId, Nullifier},
+    utils::collections::BTreeMap,
     vm::{AdviceInputs, Program},
     BlockHeader, Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
 };
@@ -22,5 +23,5 @@ pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::ProvenTransaction;
 pub use transaction_id::TransactionId;
-pub use tx_script::TransactionScript;
+pub use tx_script::{TransactionArgs, TransactionScript};
 pub use tx_witness::TransactionWitness;

@@ -2,7 +2,6 @@ use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::Nullifier,
     transaction::{InputNotes, ProvenTransaction, TransactionWitness},
-    utils::collections::BTreeMap,
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -42,7 +41,7 @@ impl TransactionProver {
         let tx_witness: TransactionWitness = transaction.into();
 
         // extract required data from the transaction witness
-        let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs(BTreeMap::new());
+        let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
 
         let input_notes: InputNotes<Nullifier> = (tx_witness.tx_inputs().input_notes()).into();
 

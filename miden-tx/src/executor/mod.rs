@@ -1,8 +1,7 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     assembly::ProgramAst,
-    transaction::{TransactionInputs, TransactionScript},
-    utils::collections::BTreeMap,
+    transaction::{TransactionArgs, TransactionInputs, TransactionScript},
     vm::{Program, StackOutputs},
     Felt, Word, ZERO,
 };
@@ -140,13 +139,11 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
-        tx_script: Option<TransactionScript>,
-        note_args: Option<BTreeMap<NoteId, Word>>,
+        tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_script)?;
+        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
 
-        let note_args = note_args.unwrap_or_else(BTreeMap::new);
-        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs(note_args);
+        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
 
@@ -158,11 +155,11 @@ impl<D: DataStore> TransactionExecutor<D> {
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
-        let (tx_program, tx_script, tx_inputs) = transaction.into_parts();
+        let (tx_program, tx_inputs, tx_args) = transaction.into_parts();
 
         build_executed_transaction(
             tx_program,
-            tx_script,
+            tx_args,
             tx_inputs,
             result.stack_outputs().clone(),
             host,
@@ -185,7 +182,7 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
-        tx_script: Option<TransactionScript>,
+        tx_args: TransactionArgs,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
         let tx_inputs = self
             .data_store
@@ -197,11 +194,11 @@ impl<D: DataStore> TransactionExecutor<D> {
             .compile_transaction(
                 account_id,
                 tx_inputs.input_notes(),
-                tx_script.as_ref().map(|x| x.code()),
+                tx_args.tx_script().map(|x| x.code()),
             )
             .map_err(TransactionExecutorError::CompileTransactionFailed)?;
 
-        Ok(PreparedTransaction::new(tx_program, tx_script, tx_inputs))
+        Ok(PreparedTransaction::new(tx_program, tx_inputs, tx_args))
     }
 }
 
@@ -211,7 +208,7 @@ impl<D: DataStore> TransactionExecutor<D> {
 /// Creates a new [ExecutedTransaction] from the provided data.
 fn build_executed_transaction(
     program: Program,
-    tx_script: Option<TransactionScript>,
+    tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
@@ -256,7 +253,7 @@ fn build_executed_transaction(
         tx_inputs,
         tx_outputs,
         account_delta,
-        tx_script,
+        tx_args,
         advice_witness,
     ))
 }

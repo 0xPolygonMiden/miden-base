@@ -566,8 +566,11 @@ proc.process_input_note
     padw adv_loadw dup.4
     # => [note_ptr, NOTE_ARGS, note_ptr]
 
-    exec.memory::set_consumed_note_note_args
+    exec.memory::set_consumed_note_args
     # => [note_ptr]
+
+    # ingest number of note inputs
+    # ---------------------------------------------------------------------------------------------
 
     # get the number of inputs from the advice provider and store it in memory
     adv_push.1 dup dup.2
@@ -578,6 +581,9 @@ proc.process_input_note
     exec.constants::get_max_inputs_per_note lte assert
     # => [note_ptr]
 
+    # ingest note assets
+    # ---------------------------------------------------------------------------------------------
+
     # get the number of assets from the advice provider and store it in memory
     adv_push.1 dup dup.2
     exec.memory::set_consumed_note_num_assets
@@ -586,9 +592,6 @@ proc.process_input_note
     # assert the number of assets is within limits
     dup exec.constants::get_max_assets_per_note lte assert
     # => [num_assets, note_ptr]
-
-    # ingest note assets
-    # ---------------------------------------------------------------------------------------------
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
     dup push.1 u32and add

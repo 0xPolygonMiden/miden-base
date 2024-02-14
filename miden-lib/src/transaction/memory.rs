@@ -193,11 +193,11 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:
 //
-// ┌──────┬────────┬────────┬────────┬────────┬──────┬────────┬───────┬─────┬───────┬─────────┐
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │  NUM   │ ASSET │ ... │ ASSET │ PADDING │
-// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ASSETS │   0   │     │   n   │         │
-// ├──────┼────────┼────────┼────────┼────────┼──────┼────────┼───────┼─────┼───────┼─────────┤
-//    0        1       2        3        4       5       6        7           7 + n
+// ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬───────┬─────┬───────┬─────────┬
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │  NUM   │ ASSET │ ... │ ASSET │ PADDING │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
+// ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
+//    0        1       2        3        4       5       6        7                   7 + n
 //
 // Even though both NUM_NOTES and NUM_ASSETS take up a whole word, the actual values for these
 // variables are stored in the first element of the word.
@@ -218,7 +218,7 @@ pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
 pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
 pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_NOTE_ARGS_OFFSET: MemoryOffset = 6;
+pub const CONSUMED_NOTE_ARGS_OFFSET: MemoryOffset = 6;
 pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 7;
 pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 8;
 pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 9;

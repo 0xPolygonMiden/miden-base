@@ -1,4 +1,4 @@
-use miden_objects::utils::collections::BTreeMap;
+use miden_objects::transaction::TransactionArgs;
 use mock::{
     constants::{
         non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -45,8 +45,8 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
-    let _process = run_tx(&transaction, BTreeMap::new());
+    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let _process = run_tx(&transaction);
 }
 
 #[test]
@@ -83,6 +83,6 @@ fn test_create_non_fungible_asset_succeeds() {
         expected_non_fungible_asset = prepare_word(&Word::from(non_fungible_asset))
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
-    let _process = run_tx(&transaction, BTreeMap::new()).unwrap();
+    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let _process = run_tx(&transaction).unwrap();
 }

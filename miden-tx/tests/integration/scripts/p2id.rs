@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
+    transaction::TransactionArgs,
     utils::collections::Vec,
     Felt,
 };
@@ -66,10 +67,11 @@ fn prove_p2id_script() {
             vec![],
         )
         .unwrap();
+    let tx_args = TransactionArgs::new(Some(tx_script_target), None);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target), None)
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -107,6 +109,8 @@ fn prove_p2id_script() {
         )
         .unwrap();
 
+    let tx_args = TransactionArgs::new(Some(tx_script_malicious), None);
+
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_ids = data_store_malicious_account
         .notes
@@ -115,13 +119,8 @@ fn prove_p2id_script() {
         .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_2 = executor_2.execute_transaction(
-        malicious_account_id,
-        block_ref,
-        &note_ids,
-        Some(tx_script_malicious),
-        None,
-    );
+    let executed_transaction_2 =
+        executor_2.execute_transaction(malicious_account_id, block_ref, &note_ids, tx_args);
 
     // Check that we got the expected result - TransactionExecutorError
     assert!(executed_transaction_2.is_err());
@@ -176,9 +175,11 @@ fn p2id_script_multiple_assets() {
         )
         .unwrap();
 
+    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+
     // Execute the transaction and get the witness
     let transaction_result = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target), None)
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     // vault delta
@@ -212,6 +213,7 @@ fn p2id_script_multiple_assets() {
             vec![],
         )
         .unwrap();
+    let tx_args_malicious = TransactionArgs::new(Some(tx_script_malicious), None);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_origins = data_store_malicious_account
@@ -225,8 +227,7 @@ fn p2id_script_multiple_assets() {
         malicious_account_id,
         block_ref,
         &note_origins,
-        Some(tx_script_malicious),
-        None,
+        tx_args_malicious,
     );
 
     // Check that we got the expected result - TransactionExecutorError

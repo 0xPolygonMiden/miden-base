@@ -1,5 +1,6 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript,
+    Account, AdviceInputs, BTreeMap, BlockHeader, InputNotes, NoteId, Program, TransactionArgs,
+    TransactionInputs, TransactionScript, Word,
 };
 
 // TRANSACTION WITNESS
@@ -25,7 +26,7 @@ use super::{
 pub struct TransactionWitness {
     program: Program,
     tx_inputs: TransactionInputs,
-    tx_script: Option<TransactionScript>,
+    tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
 }
 
@@ -36,13 +37,13 @@ impl TransactionWitness {
     pub fn new(
         program: Program,
         tx_inputs: TransactionInputs,
-        tx_script: Option<TransactionScript>,
+        tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
     ) -> Self {
         Self {
             program,
             tx_inputs,
-            tx_script,
+            tx_args,
             advice_witness,
         }
     }
@@ -72,7 +73,12 @@ impl TransactionWitness {
 
     /// Returns a reference to the transaction script.
     pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+        self.tx_args.tx_script()
+    }
+
+    /// Returns a reference to the transaction script.
+    pub fn tx_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
+        self.tx_args.note_args()
     }
 
     /// Returns a reference to the inputs for this transaction.

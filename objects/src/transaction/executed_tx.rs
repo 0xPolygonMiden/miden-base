@@ -1,9 +1,9 @@
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
-    OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
-    TransactionWitness,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BTreeMap, BlockHeader, InputNotes,
+    NoteId, OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs,
+    TransactionOutputs, TransactionScript, TransactionWitness, Word,
 };
 
 // EXECUTED TRANSACTION
@@ -26,7 +26,7 @@ pub struct ExecutedTransaction {
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
     account_delta: AccountDelta,
-    tx_script: Option<TransactionScript>,
+    tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
 }
 
@@ -43,7 +43,7 @@ impl ExecutedTransaction {
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
         account_delta: AccountDelta,
-        tx_script: Option<TransactionScript>,
+        tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
@@ -55,7 +55,7 @@ impl ExecutedTransaction {
             tx_inputs,
             tx_outputs,
             account_delta,
-            tx_script,
+            tx_args,
             advice_witness,
         }
     }
@@ -100,7 +100,12 @@ impl ExecutedTransaction {
 
     /// Returns a reference to the transaction script.
     pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+        self.tx_args.tx_script()
+    }
+
+    /// Returns a reference to the note args.
+    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
+        self.tx_args.note_args()
     }
 
     /// Returns the block header for the block against which the transaction was executed.
@@ -132,7 +137,7 @@ impl ExecutedTransaction {
         let tx_witness = TransactionWitness::new(
             self.program,
             self.tx_inputs,
-            self.tx_script,
+            self.tx_args,
             self.advice_witness,
         );
 
