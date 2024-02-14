@@ -326,7 +326,7 @@ fn test_note_setup() {
 
 #[test]
 fn test_note_script_and_note_args() {
-    let note_args = vec![
+    let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];

@@ -65,10 +65,11 @@ fn test_transaction_prologue() {
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
 
-    let note_args = vec![
+    let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
+
     let note_args_map = BTreeMap::from([
         (tx_inputs.input_notes().get_note(0).note().id(), note_args[0]),
         (tx_inputs.input_notes().get_note(1).note().id(), note_args[1]),
@@ -251,7 +252,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 fn consumed_notes_memory_assertions(
     process: &Process<MockHost>,
     inputs: &PreparedTransaction,
-    note_args: &Vec<[Felt; 4]>,
+    note_args: &[[Felt; 4]],
 ) {
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
