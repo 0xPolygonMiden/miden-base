@@ -204,13 +204,7 @@ impl Account {
 
         // update nonce
         if let Some(nonce) = delta.nonce() {
-            if self.nonce.as_int() >= nonce.as_int() {
-                return Err(AccountError::NonceNotMonotonicallyIncreasing {
-                    current: self.nonce.as_int(),
-                    new: nonce.as_int(),
-                });
-            }
-            self.nonce = nonce;
+            self.set_nonce(nonce)?;
         }
 
         Ok(())
