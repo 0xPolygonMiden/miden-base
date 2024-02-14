@@ -42,6 +42,11 @@ impl Nullifier {
         self.0.as_elements()
     }
 
+    /// Returns the most significant felt (the last element in array)
+    pub fn most_significant_felt(&self) -> Felt {
+        self.as_elements()[3]
+    }
+
     /// Returns the digest defining this nullifier.
     pub fn inner(&self) -> Digest {
         self.0
