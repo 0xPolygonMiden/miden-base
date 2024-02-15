@@ -466,8 +466,8 @@ pub fn test_prologue_create_account_invalid_seed() {
     //let (program, stack_inputs, mut advice_provider) = build_tx_inputs(&transaction);
 
     // lets override the seed with an invalid seed to ensure the kernel fails
-    let adv_inputs = AdviceInputs::default()
-        .with_map([(Digest::from(account_seed_key).as_bytes(), vec![ZERO; 4])]);
+    let adv_inputs =
+        AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let process = run_tx_with_inputs(&transaction, adv_inputs);
     assert!(process.is_err());

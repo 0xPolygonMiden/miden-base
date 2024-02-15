@@ -2,12 +2,8 @@ use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     transaction::{OutputNotes, TransactionOutputs},
-    utils::{
-        collections::{BTreeMap, Vec},
-        group_slice_elements,
-        serde::DeserializationError,
-    },
-    vm::{ProgramInfo, StackInputs, StackOutputs},
+    utils::{collections::Vec, group_slice_elements, serde::DeserializationError},
+    vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word,
 };
 use miden_stdlib::StdLibrary;
@@ -175,7 +171,7 @@ impl TransactionKernel {
         // --- parse final account state --------------------------------------
         let final_account_data: &[Word] = group_slice_elements(
             adv_map
-                .get(final_acct_hash)
+                .get(&final_acct_hash)
                 .ok_or(TransactionOutputError::FinalAccountDataNotFound)?,
         );
         let account = parse_final_account_stub(final_account_data)
@@ -189,7 +185,7 @@ impl TransactionKernel {
         } else {
             let output_notes_data: &[Word] = group_slice_elements(
                 adv_map
-                    .get(output_notes_hash)
+                    .get(&output_notes_hash)
                     .ok_or(TransactionOutputError::OutputNoteDataNotFound)?,
             );
 
@@ -213,22 +209,5 @@ impl TransactionKernel {
         };
 
         Ok(TransactionOutputs { account, output_notes })
-    }
-}
-
-// ADVICE MAP
-// ================================================================================================
-
-pub struct AdviceMap(BTreeMap<[u8; 32], Vec<Felt>>);
-
-impl AdviceMap {
-    pub fn get(&self, key: Digest) -> Option<&Vec<Felt>> {
-        self.0.get(&key.as_bytes())
-    }
-}
-
-impl From<BTreeMap<[u8; 32], Vec<Felt>>> for AdviceMap {
-    fn from(value: BTreeMap<[u8; 32], Vec<Felt>>) -> Self {
-        Self(value)
     }
 }

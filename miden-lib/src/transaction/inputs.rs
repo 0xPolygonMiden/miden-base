@@ -4,7 +4,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
         TransactionScript, TransactionWitness,
     },
-    utils::{collections::Vec, vec, IntoBytes},
+    utils::{collections::Vec, vec},
     vm::{AdviceInputs, StackInputs},
     Felt, Word, ZERO,
 };
@@ -177,7 +177,7 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
     let peaks = mmr.peaks();
     let mut elements = vec![Felt::new(peaks.num_leaves() as u64), ZERO, ZERO, ZERO];
     elements.extend(peaks.flatten_and_pad_peaks());
-    inputs.extend_map([(peaks.hash_peaks().into(), elements)]);
+    inputs.extend_map([(peaks.hash_peaks(), elements)]);
 }
 
 // ACCOUNT DATA INJECTOR
@@ -208,7 +208,7 @@ fn add_account_to_advice_inputs(
 
     // extend advice map with storage types commitment |-> storage types
     inputs.extend_map([(
-        storage.layout_commitment().into(),
+        storage.layout_commitment(),
         storage.layout().iter().map(Felt::from).collect(),
     )]);
 
@@ -219,12 +219,8 @@ fn add_account_to_advice_inputs(
     inputs.extend_merkle_store(vault.asset_tree().inner_nodes());
 
     // populate advice map with Sparse Merkle Tree leaf nodes
-    inputs.extend_map(
-        vault
-            .asset_tree()
-            .leaves()
-            .map(|(_, leaf)| (leaf.hash().as_bytes(), leaf.to_elements())),
-    );
+    inputs
+        .extend_map(vault.asset_tree().leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
 
     // --- account code -------------------------------------------------------
     let code = account.code();
@@ -235,7 +231,7 @@ fn add_account_to_advice_inputs(
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
         inputs.extend_map(vec![(
-            [account.id().into(), ZERO, ZERO, ZERO].into_bytes(),
+            [account.id().into(), ZERO, ZERO, ZERO].into(),
             account_seed.to_vec(),
         )]);
     }
@@ -288,8 +284,8 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         let proof = input_note.proof();
 
         // insert note inputs and assets into the advice map
-        inputs.extend_map([(note.inputs().commitment().into(), note.inputs().to_padded_values())]);
-        inputs.extend_map([(note.assets().commitment().into(), note.assets().to_padded_assets())]);
+        inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
+        inputs.extend_map([(note.assets().commitment(), note.assets().to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
@@ -325,7 +321,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     }
 
     // insert the combined note data into the advice map
-    inputs.extend_map([(notes.commitment().into(), note_data)]);
+    inputs.extend_map([(notes.commitment(), note_data)]);
 }
 
 // TRANSACTION SCRIPT INJECTOR
@@ -338,8 +334,6 @@ fn add_tx_script_inputs_to_advice_map(
     inputs: &mut AdviceInputs,
 ) {
     if let Some(tx_script) = tx_script {
-        inputs.extend_map(
-            tx_script.inputs().iter().map(|(hash, input)| (hash.into(), input.clone())),
-        );
+        inputs.extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())));
     }
 }
