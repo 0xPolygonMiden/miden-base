@@ -4,7 +4,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
     },
-    utils::{collections::Vec, vec, IntoBytes},
+    utils::{collections::Vec, vec},
     vm::{AdviceInputs, StackInputs},
     Felt, Word, ZERO,
 };
