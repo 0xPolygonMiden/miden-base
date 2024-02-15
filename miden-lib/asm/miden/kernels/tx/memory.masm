@@ -136,9 +136,10 @@ const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
 const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
 const.CONSUMED_NOTE_ASSETS_HASH_OFFSET=4
 const.CONSUMED_NOTE_METADATA_OFFSET=5
-const.CONSUMED_NOTE_NUM_INPUTS_OFFSET=6
-const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=7
-const.CONSUMED_NOTE_ASSETS_OFFSET=8
+const.CONSUMED_NOTE_ARGS_OFFSET=6
+const.CONSUMED_NOTE_NUM_INPUTS_OFFSET=7
+const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=8
+const.CONSUMED_NOTE_ASSETS_OFFSET=9
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
@@ -856,6 +857,33 @@ end
 #! - M is the metadata of the consumed note.
 export.set_consumed_note_metadata
     push.CONSUMED_NOTE_METADATA_OFFSET add
+    mem_storew dropw
+end
+
+#! Returns the note args of a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr]
+#! Output: [NOTE_ARGS]
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - NOTE_ARGS are optional note args of the consumed note.
+export.get_consumed_note_args
+    padw
+    movup.4 push.CONSUMED_NOTE_ARGS_OFFSET
+ add
+    mem_loadw
+end
+
+#! Sets the note args for a consumed note located at the specified memory address.
+#!
+#! Stack: [consumed_note_ptr, NOTE_ARGS]
+#! Output: []
+#!
+#! - consumed_note_ptr is the memory address at which the consumed note data begins.
+#! - NOTE_ARGS are optional note args of the consumed note.
+export.set_consumed_note_args
+    push.CONSUMED_NOTE_ARGS_OFFSET
+ add
     mem_storew dropw
 end
 

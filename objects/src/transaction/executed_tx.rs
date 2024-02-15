@@ -2,7 +2,7 @@ use core::cell::OnceCell;
 
 use super::{
     Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
-    OutputNotes, Program, TransactionId, TransactionInputs, TransactionOutputs, TransactionScript,
+    OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs, TransactionOutputs,
     TransactionWitness,
 };
 
@@ -26,7 +26,7 @@ pub struct ExecutedTransaction {
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
     account_delta: AccountDelta,
-    tx_script: Option<TransactionScript>,
+    tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
 }
 
@@ -43,7 +43,7 @@ impl ExecutedTransaction {
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
         account_delta: AccountDelta,
-        tx_script: Option<TransactionScript>,
+        tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
@@ -55,7 +55,7 @@ impl ExecutedTransaction {
             tx_inputs,
             tx_outputs,
             account_delta,
-            tx_script,
+            tx_args,
             advice_witness,
         }
     }
@@ -98,9 +98,9 @@ impl ExecutedTransaction {
         &self.tx_outputs.output_notes
     }
 
-    /// Returns a reference to the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns the block header for the block against which the transaction was executed.
@@ -132,7 +132,7 @@ impl ExecutedTransaction {
         let tx_witness = TransactionWitness::new(
             self.program,
             self.tx_inputs,
-            self.tx_script,
+            self.tx_args,
             self.advice_witness,
         );
 

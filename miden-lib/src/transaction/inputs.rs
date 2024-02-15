@@ -1,8 +1,8 @@
 use miden_objects::{
     accounts::Account,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
-        TransactionScript, TransactionWitness,
+        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionArgs,
+        TransactionInputs, TransactionScript, TransactionWitness,
     },
     utils::{collections::Vec, vec},
     vm::{AdviceInputs, StackInputs},
@@ -31,7 +31,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -48,7 +48,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -65,7 +65,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -82,17 +82,17 @@ impl ToTransactionKernelInputs for TransactionWitness {
 /// of one of chain MMR peaks.
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
-    tx_script: Option<&TransactionScript>,
+    tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
     // build the advice stack
-    build_advice_stack(tx_inputs, tx_script, advice_inputs);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
 
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), advice_inputs);
-    add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
+    add_tx_script_inputs_to_advice_map(tx_args.tx_script(), advice_inputs);
 }
 
 // ADVICE STACK BUILDER
@@ -253,12 +253,13 @@ fn add_account_to_advice_inputs(
 ///   out[8..12]   = inputs_hash
 ///   out[12..16]  = assets_hash
 ///   out[16..20]  = metadata
-///   out[20]      = num_inputs
-///   out[21]      = num_assets
-///   out[22..26]  = asset_1
-///   out[26..30]  = asset_2
+///   out[20..24]  = note_args
+///   out[24]      = num_inputs
+///   out[25]      = num_assets
+///   out[26..30]  = asset_1
+///   out[30..34]  = asset_2
 ///   ...
-///   out[30 + num_assets * 4..] = Word::default() (this is conditional padding only applied
+///   out[34 + num_assets * 4..] = Word::default() (this is conditional padding only applied
 ///                                                 if the number of assets is odd)
 ///   out[-10]      = origin.block_number
 ///   out[-9..-5]   = origin.SUB_HASH
@@ -272,7 +273,11 @@ fn add_account_to_advice_inputs(
 /// - inputs_hash |-> inputs
 /// - asset_hash |-> assets
 /// - notes_hash |-> combined note data
-fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInputs) {
+fn add_input_notes_to_advice_inputs(
+    notes: &InputNotes,
+    tx_args: &TransactionArgs,
+    inputs: &mut AdviceInputs,
+) {
     // if there are no input notes, nothing is added to the advice inputs
     if notes.is_empty() {
         return;
@@ -282,6 +287,7 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
+        let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
@@ -300,7 +306,9 @@ fn add_input_notes_to_advice_inputs(notes: &InputNotes, inputs: &mut AdviceInput
         note_data.extend(*note.script().hash());
         note_data.extend(*note.inputs().commitment());
         note_data.extend(*note.assets().commitment());
+
         note_data.extend(Word::from(note.metadata()));
+        note_data.extend(Word::from(*note_arg));
 
         note_data.push(note.inputs().num_values().into());
 

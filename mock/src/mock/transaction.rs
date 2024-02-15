@@ -3,7 +3,7 @@ use miden_objects::{
     notes::Note,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
-        TransactionInputs, TransactionOutputs,
+        TransactionArgs, TransactionInputs, TransactionOutputs,
     },
     utils::collections::Vec,
     BlockHeader, Felt, FieldElement,
@@ -151,9 +151,10 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let program = build_dummy_tx_program();
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
+    let tx_args: TransactionArgs = TransactionArgs::default();
 
     // Executed Transaction
-    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, None, advice_witness)
+    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, tx_args, advice_witness)
 }
 
 // HELPER FUNCTIONS

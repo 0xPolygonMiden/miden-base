@@ -5,7 +5,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteMetadata},
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionArgs},
     Felt,
 };
 use miden_tx::TransactionExecutor;
@@ -68,10 +68,11 @@ fn prove_swap_script() {
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
+    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
 
     // Execute the transaction
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_script_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

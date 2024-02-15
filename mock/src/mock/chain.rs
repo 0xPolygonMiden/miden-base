@@ -633,6 +633,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
         .map(|(index, note)| {
             let block_header = &block_chain[index];
             let auth_index = LeafIndex::new(index as u64).unwrap();
+
             InputNote::new(
                 note,
                 NoteInclusionProof::new(

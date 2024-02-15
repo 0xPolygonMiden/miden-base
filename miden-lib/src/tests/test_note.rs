@@ -1,4 +1,9 @@
-use miden_objects::{notes::Note, transaction::PreparedTransaction, WORD_SIZE};
+use miden_objects::{
+    notes::Note,
+    transaction::{PreparedTransaction, TransactionArgs},
+    utils::collections::BTreeMap,
+    WORD_SIZE,
+};
 use mock::{
     consumed_note_data_ptr,
     mock::{
@@ -319,8 +324,44 @@ fn test_note_setup() {
     note_setup_memory_assertions(&process);
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+#[test]
+fn test_note_script_and_note_args() {
+    let note_args = [
+        [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
+        [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
+    ];
+
+    let tx_inputs =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let code = "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::memory
+        use.miden::kernels::tx::note
+
+        begin
+            exec.prologue::prepare_transaction
+            exec.memory::get_total_num_consumed_notes push.2 assert_eq
+            exec.note::prepare_note dropw
+            exec.note::increment_current_consumed_note_ptr drop
+            exec.note::prepare_note dropw
+        end
+        ";
+
+    let note_args_map = BTreeMap::from([
+        (tx_inputs.input_notes().get_note(0).note().id(), note_args[1]),
+        (tx_inputs.input_notes().get_note(1).note().id(), note_args[0]),
+    ]);
+
+    let tx_args = TransactionArgs::new(None, Some(note_args_map));
+
+    let transaction = prepare_transaction(tx_inputs.clone(), Some(tx_args), code, None);
+    let process = run_tx(&transaction).unwrap();
+
+    assert_eq!(process.stack.get_word(0), note_args[0]);
+
+    assert_eq!(process.stack.get_word(1), note_args[1]);
+}
 
 fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
     let mut expected_stack = [ZERO; 16];

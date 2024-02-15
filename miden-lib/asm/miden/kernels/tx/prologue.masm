@@ -559,6 +559,19 @@ proc.process_input_note
     exec.memory::set_consumed_note_metadata
     # => [note_ptr]
 
+    # ingest note args
+    # ---------------------------------------------------------------------------------------------
+
+    # get the note args from the advice provider and store in memory
+    padw adv_loadw dup.4
+    # => [note_ptr, NOTE_ARGS, note_ptr]
+
+    exec.memory::set_consumed_note_args
+    # => [note_ptr]
+
+    # ingest number of note inputs
+    # ---------------------------------------------------------------------------------------------
+
     # get the number of inputs from the advice provider and store it in memory
     adv_push.1 dup dup.2
     exec.memory::set_consumed_note_num_inputs
@@ -568,6 +581,9 @@ proc.process_input_note
     exec.constants::get_max_inputs_per_note lte assert
     # => [note_ptr]
 
+    # ingest note assets
+    # ---------------------------------------------------------------------------------------------
+
     # get the number of assets from the advice provider and store it in memory
     adv_push.1 dup dup.2
     exec.memory::set_consumed_note_num_assets
@@ -576,9 +592,6 @@ proc.process_input_note
     # assert the number of assets is within limits
     dup exec.constants::get_max_assets_per_note lte assert
     # => [num_assets, note_ptr]
-
-    # ingest note assets
-    # ---------------------------------------------------------------------------------------------
 
     # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
     dup push.1 u32and add
@@ -708,10 +721,10 @@ end
 #! Advice stack: [num_cn, ...],
 #! Advice map: {
 #!               NC: [
-#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M, CN1_NA
 #!                  CN1_A1, CN1_A2, ...
 #!
-#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M, CN2_NA
 #!                  CN2_A1, CN2_A2, ...
 #!                  ...]
 #!              }
@@ -724,6 +737,7 @@ end
 #! - CN1_IR is the inputs root of input note 1.
 #! - CN1_VR is the vault root of input note 1.
 #! - CN1_M is the metadata of input note 1.
+#! - CN1_NA are optional note args for input note 1.
 #! - CN1_A1 is the first asset of input note 1.
 #! - CN1_A2 is the second asset of input note 1.
 proc.process_input_notes_data

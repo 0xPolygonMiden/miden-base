@@ -1,6 +1,7 @@
 use miden_objects::{
     assembly::ProgramAst,
-    transaction::{PreparedTransaction, TransactionScript},
+    transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
+    utils::collections::BTreeMap,
     Digest,
 };
 use mock::{
@@ -22,7 +23,7 @@ use crate::transaction::{
         MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
         BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX,
-        CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+        CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_ARGS_OFFSET,
         CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
         CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
         CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_NUM_INPUTS_OFFSET,
@@ -63,14 +64,29 @@ fn test_transaction_prologue() {
             .unwrap();
 
     let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
-    let transaction = prepare_transaction(tx_inputs, Some(tx_script), code, Some(assembly_file));
+
+    let note_args = [
+        [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
+        [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
+    ];
+
+    let note_args_map = BTreeMap::from([
+        (tx_inputs.input_notes().get_note(0).note().id(), note_args[0]),
+        (tx_inputs.input_notes().get_note(1).note().id(), note_args[1]),
+    ]);
+
+    let tx_args = TransactionArgs::new(Some(tx_script), Some(note_args_map));
+
+    let transaction =
+        prepare_transaction(tx_inputs.clone(), Some(tx_args), code, Some(assembly_file));
+
     let process = run_tx(&transaction).unwrap();
 
     global_input_memory_assertions(&process, &transaction);
     block_data_memory_assertions(&process, &transaction);
     chain_mmr_memory_assertions(&process, &transaction);
     account_data_memory_assertions(&process, &transaction);
-    consumed_notes_memory_assertions(&process, &transaction);
+    consumed_notes_memory_assertions(&process, &transaction, &note_args);
 }
 
 fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
@@ -101,7 +117,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     // The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR
     assert_eq!(
         read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
-        **inputs.tx_script().as_ref().unwrap().hash()
+        **inputs.tx_args().tx_script().as_ref().unwrap().hash()
     );
 }
 
@@ -234,15 +250,19 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     }
 }
 
-fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn consumed_notes_memory_assertions(
+    process: &Process<MockHost>,
+    inputs: &PreparedTransaction,
+    note_args: &[[Felt; 4]],
+) {
     // The number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET
     assert_eq!(
         read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET),
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
     );
 
-    for (note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
-        let note = note.note();
+    for (input_note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
+        let note = input_note.note();
 
         // The note nullifier should be computer and stored at the correct offset
         assert_eq!(
@@ -284,6 +304,12 @@ fn consumed_notes_memory_assertions(process: &Process<MockHost>, inputs: &Prepar
         assert_eq!(
             read_note_element(process, note_idx, CONSUMED_NOTE_METADATA_OFFSET),
             Word::from(note.metadata())
+        );
+
+        // The note args should be stored at the correct offset
+        assert_eq!(
+            read_note_element(process, note_idx, CONSUMED_NOTE_ARGS_OFFSET),
+            Word::from(note_args[note_idx as usize])
         );
 
         // The number of inputs should be stored at the correct offset

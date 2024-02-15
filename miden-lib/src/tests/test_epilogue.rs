@@ -50,6 +50,7 @@ fn test_epilogue() {
     assert_eq!(
         process.stack.get_word(TX_SCRIPT_ROOT_WORD_IDX),
         executed_transaction
+            .tx_args()
             .tx_script()
             .as_ref()
             .map_or_else(Word::default, |s| **s.hash())

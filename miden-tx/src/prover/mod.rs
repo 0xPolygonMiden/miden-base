@@ -48,7 +48,7 @@ impl TransactionProver {
         let account_id = tx_witness.account().id();
         let initial_account_hash = tx_witness.account().hash();
         let block_hash = tx_witness.block_header().hash();
-        let tx_script_root = tx_witness.tx_script().map(|script| *script.hash());
+        let tx_script_root = tx_witness.tx_args().tx_script().map(|script| *script.hash());
 
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(tx_witness.account().into(), advice_provider);

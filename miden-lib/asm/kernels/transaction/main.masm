@@ -22,9 +22,9 @@ use.miden::kernels::tx::prologue
 #! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
 #!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
 #!                num_cn,
-#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M,
+#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M, CN1_NA
 #!                CN1_A1, CN1_A2, ...
-#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M,
+#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M, CN2_NA
 #!                CN2_A1, CN2_A2, ...,
 #!                ...,
 #!                TXSR]
@@ -53,6 +53,7 @@ use.miden::kernels::tx::prologue
 #! - CN1_IR is the inputs root of consumed note 1.
 #! - CN1_VR is the vault root of consumed note 1.
 #! - CN1_M is the metadata of consumed note 1.
+#! - CN1_NA are optional note args of consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
 #! - TXSR is the transaction script root.
@@ -87,7 +88,7 @@ proc.main.1
     while.true
         # execute the note setup script
         exec.note::prepare_note
-        # => [NOTE_SCRIPT_HASH]
+        # => [NOTE_SCRIPT_HASH, NOTE_ARGS]
 
         # invoke the note script using the dyncall instruction
         dyncall

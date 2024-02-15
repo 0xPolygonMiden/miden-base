@@ -3,7 +3,7 @@ use std::{fs::File, io::Read, path::PathBuf};
 use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::NoteAssets,
-    transaction::{OutputNotes, PreparedTransaction, TransactionInputs, TransactionScript},
+    transaction::{OutputNotes, PreparedTransaction, TransactionArgs, TransactionInputs},
     Felt,
 };
 use mock::host::MockHost;
@@ -109,7 +109,7 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 
 pub fn prepare_transaction(
     tx_inputs: TransactionInputs,
-    tx_script: Option<TransactionScript>,
+    tx_args: Option<TransactionArgs>,
     code: &str,
     file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
@@ -121,5 +121,7 @@ pub fn prepare_transaction(
     };
 
     let program = assembler.compile(code).unwrap();
-    PreparedTransaction::new(program, tx_script, tx_inputs)
+
+    let tx_args = tx_args.unwrap_or_default();
+    PreparedTransaction::new(program, tx_inputs, tx_args)
 }

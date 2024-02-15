@@ -9,7 +9,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteAssets, NoteMetadata},
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionArgs},
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -70,10 +70,11 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script))
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -141,9 +142,11 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
 
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
+
     // Execute the transaction and get the witness
     let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_script));
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args));
 
     assert!(executed_transaction.is_err());
 }

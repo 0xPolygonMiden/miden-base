@@ -1,5 +1,5 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript,
+    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs,
 };
 
 // TRANSACTION WITNESS
@@ -25,7 +25,7 @@ use super::{
 pub struct TransactionWitness {
     program: Program,
     tx_inputs: TransactionInputs,
-    tx_script: Option<TransactionScript>,
+    tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
 }
 
@@ -36,13 +36,13 @@ impl TransactionWitness {
     pub fn new(
         program: Program,
         tx_inputs: TransactionInputs,
-        tx_script: Option<TransactionScript>,
+        tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
     ) -> Self {
         Self {
             program,
             tx_inputs,
-            tx_script,
+            tx_args,
             advice_witness,
         }
     }
@@ -70,9 +70,9 @@ impl TransactionWitness {
         self.tx_inputs.block_header()
     }
 
-    /// Returns a reference to the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns a reference to the inputs for this transaction.

@@ -1,4 +1,4 @@
-use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, TransactionScript};
+use super::{Account, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -12,8 +12,8 @@ use super::{Account, BlockHeader, InputNotes, Program, TransactionInputs, Transa
 #[derive(Debug)]
 pub struct PreparedTransaction {
     program: Program,
-    tx_script: Option<TransactionScript>,
     tx_inputs: TransactionInputs,
+    tx_args: TransactionArgs,
 }
 
 impl PreparedTransaction {
@@ -21,12 +21,8 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [PreparedTransaction] instantiated from the provided executable transaction
     /// program and inputs required to execute this program.
-    pub fn new(
-        program: Program,
-        tx_script: Option<TransactionScript>,
-        tx_inputs: TransactionInputs,
-    ) -> Self {
-        Self { program, tx_script, tx_inputs }
+    pub fn new(program: Program, tx_inputs: TransactionInputs, tx_args: TransactionArgs) -> Self {
+        Self { program, tx_inputs, tx_args }
     }
 
     // ACCESSORS
@@ -52,9 +48,9 @@ impl PreparedTransaction {
         self.tx_inputs.input_notes()
     }
 
-    /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns a reference to the inputs for this transaction.
@@ -66,7 +62,7 @@ impl PreparedTransaction {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes the prepared transaction and returns its parts.
-    pub fn into_parts(self) -> (Program, Option<TransactionScript>, TransactionInputs) {
-        (self.program, self.tx_script, self.tx_inputs)
+    pub fn into_parts(self) -> (Program, TransactionInputs, TransactionArgs) {
+        (self.program, self.tx_inputs, self.tx_args)
     }
 }

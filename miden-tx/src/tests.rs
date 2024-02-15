@@ -5,7 +5,9 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
     notes::NoteId,
-    transaction::{ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionWitness},
+    transaction::{
+        ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
+    },
     Felt, Word,
 };
 use miden_prover::ProvingOptions;
@@ -197,6 +199,7 @@ fn executed_transaction_account_delta() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -205,7 +208,7 @@ fn executed_transaction_account_delta() {
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_script))
+        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
     // nonce delta
@@ -329,10 +332,11 @@ fn test_tx_script() {
             vec![],
         )
         .unwrap();
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // execute the transaction
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_script));
+        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_args));
 
     // assert the transaction executed successfully
     assert!(executed_transaction.is_ok());
