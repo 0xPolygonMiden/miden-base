@@ -77,7 +77,8 @@ fn test_transaction_prologue() {
 
     let tx_args = TransactionArgs::new(Some(tx_script), Some(note_args_map));
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, Some(assembly_file));
+    let transaction =
+        prepare_transaction(tx_inputs.clone(), Some(tx_args), code, Some(assembly_file));
 
     let process = run_tx(&transaction).unwrap();
 
@@ -116,7 +117,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     // The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR
     assert_eq!(
         read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
-        **inputs.tx_script().as_ref().unwrap().hash()
+        **inputs.tx_args().tx_script().as_ref().unwrap().hash()
     );
 }
 
@@ -352,7 +353,7 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -378,7 +379,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_ok());
@@ -406,7 +407,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
@@ -434,7 +435,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_ok())
@@ -462,7 +463,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction);
     assert!(process.is_err());
 }
@@ -487,7 +488,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     //let (program, stack_inputs, mut advice_provider) = build_tx_inputs(&transaction);
 
     // lets override the seed with an invalid seed to ensure the kernel fails
@@ -512,8 +513,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let transaction =
-        prepare_transaction(tx_inputs.clone(), TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().version());
@@ -533,8 +533,7 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let transaction =
-        prepare_transaction(tx_inputs.clone(), TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());

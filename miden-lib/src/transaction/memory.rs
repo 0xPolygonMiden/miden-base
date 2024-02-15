@@ -193,11 +193,11 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:
 //
-// ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬───────┬─────┬───────┬─────────┬
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │  NUM   │ ASSET │ ... │ ASSET │ PADDING │
-// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
-// ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
-//    0        1       2        3        4       5       6        7                   7 + n
+// ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬────────┬───────┬─────┬───────┬─────────┬
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │  NUM   │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ INPUTS │ ASSETS │   0   │     │   n   │         │
+// ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼────────┼───────┼─────┼───────┼─────────┤
+//    0        1       2        3        4       5       6       7        8      9 + n
 //
 // Even though both NUM_NOTES and NUM_ASSETS take up a whole word, the actual values for these
 // variables are stored in the first element of the word.

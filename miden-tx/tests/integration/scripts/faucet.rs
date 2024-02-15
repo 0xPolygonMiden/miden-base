@@ -70,11 +70,11 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
-    let tx_args = TransactionArgs::new(Some(tx_script), None);
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -142,13 +142,13 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
         .unwrap();
 
-    let tx_args = TransactionArgs::new(Some(tx_script), None);
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
-    let transaction_result =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args);
+    let executed_transaction =
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args));
 
-    assert!(transaction_result.is_err());
+    assert!(executed_transaction.is_err());
 }
 
 // TESTS BURN FUNGIBLE ASSET
@@ -204,7 +204,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, TransactionArgs::default())
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

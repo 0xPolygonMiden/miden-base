@@ -109,7 +109,7 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 
 pub fn prepare_transaction(
     tx_inputs: TransactionInputs,
-    tx_args: TransactionArgs,
+    tx_args: Option<TransactionArgs>,
     code: &str,
     file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
@@ -121,5 +121,7 @@ pub fn prepare_transaction(
     };
 
     let program = assembler.compile(code).unwrap();
+
+    let tx_args = tx_args.unwrap_or_default();
     PreparedTransaction::new(program, tx_inputs, tx_args)
 }

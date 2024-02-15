@@ -6,7 +6,6 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     crypto::merkle::LeafIndex,
-    transaction::TransactionArgs,
 };
 use mock::{
     constants::{
@@ -48,7 +47,7 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     // assert the code root is not changed
@@ -254,7 +253,7 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.1 .1)
         );
 
-        let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+        let transaction = prepare_transaction(tx_inputs, None, &code, None);
         let _process = run_tx(&transaction).unwrap();
     }
 }
@@ -308,7 +307,7 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -347,8 +346,7 @@ fn test_get_map_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let transaction =
-        prepare_transaction(tx_inputs, TransactionArgs::default(), code.as_str(), None);
+    let transaction = prepare_transaction(tx_inputs, None, code.as_str(), None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -379,7 +377,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -424,7 +422,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+        let transaction = prepare_transaction(tx_inputs, None, &code, None);
         let process = run_tx(&transaction);
 
         match valid {

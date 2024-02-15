@@ -12,11 +12,11 @@ use crate::{
 
 /// A struct that represents optional transaction arguments.
 ///
-/// The [TransactionArgs] object is composed of:
-/// - [struct](TransactionScript): a program that is executed in a transaction after all input
-///   notes have been executed..
-/// - [BTreeMap](NoteArgs): data being put on stack when the note script is executed. Different
-///   to Note Inputs, Note Args can be used by the executing account.
+/// Transaction arguments consist of:
+/// - Transaction script: a program that is executed in a transaction after all input notes
+///   scripts have been executed..
+/// - Note arguments: data put onto the the stack right before a note script is executed. These
+///   are different from note inputs, as the executing account can specify arbitrary note args.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
@@ -36,6 +36,20 @@ impl TransactionArgs {
         Self { tx_script, note_args }
     }
 
+    pub fn with_tx_script(tx_script: TransactionScript) -> Self {
+        Self {
+            tx_script: Some(tx_script),
+            note_args: None,
+        }
+    }
+
+    pub fn with_note_args(not_args: BTreeMap<NoteId, Word>) -> Self {
+        Self {
+            tx_script: None,
+            note_args: Some(not_args),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -44,9 +58,14 @@ impl TransactionArgs {
         self.tx_script.as_ref()
     }
 
-    /// Returns a reference to the note arguments.
+    /// Returns a reference to the transaction script.
     pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
         self.note_args.as_ref()
+    }
+
+    /// Returns a reference to a specific note argument.
+    pub fn get_note_args(&self, note_id: NoteId) -> Option<&Word> {
+        self.note_args.as_ref().and_then(|map| map.get(&note_id))
     }
 }
 

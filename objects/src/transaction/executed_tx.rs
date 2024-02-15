@@ -1,9 +1,9 @@
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BTreeMap, BlockHeader, InputNotes,
-    NoteId, OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs,
-    TransactionOutputs, TransactionScript, TransactionWitness, Word,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
+    OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs, TransactionOutputs,
+    TransactionWitness,
 };
 
 // EXECUTED TRANSACTION
@@ -98,14 +98,9 @@ impl ExecutedTransaction {
         &self.tx_outputs.output_notes
     }
 
-    /// Returns a reference to the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_args.tx_script()
-    }
-
-    /// Returns a reference to the note args.
-    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.tx_args.note_args()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns the block header for the block against which the transaction was executed.

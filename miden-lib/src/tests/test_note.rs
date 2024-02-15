@@ -40,7 +40,7 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
@@ -65,7 +65,7 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
@@ -118,7 +118,7 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -224,7 +224,7 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -298,7 +298,7 @@ fn test_get_inputs() {
         note1_input_assertions = construct_input_assertions(note1),
     );
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), &code, None);
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -317,7 +317,7 @@ fn test_note_setup() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, TransactionArgs::default(), code, None);
+    let transaction = prepare_transaction(tx_inputs, None, code, None);
     let process = run_tx(&transaction).unwrap();
 
     note_setup_stack_assertions(&process, &transaction);
@@ -355,7 +355,7 @@ fn test_note_script_and_note_args() {
 
     let tx_args = TransactionArgs::new(None, Some(note_args_map));
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), Some(tx_args), code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(process.stack.get_word(0), note_args[0]);

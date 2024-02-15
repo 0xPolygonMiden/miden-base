@@ -108,7 +108,12 @@ fn p2idr_script() {
 
     // Execute the transaction and get the witness
     let executed_transaction_1 = executor_1
-        .execute_transaction(target_account_id, block_ref_1, &note_ids, tx_args_target.clone())
+        .execute_transaction(
+            target_account_id,
+            block_ref_1,
+            &note_ids,
+            Some(tx_args_target.clone()),
+        )
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
@@ -146,7 +151,7 @@ fn p2idr_script() {
         sender_account_id,
         block_ref_2,
         &note_ids_2,
-        tx_args_sender.clone(),
+        Some(tx_args_sender.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -178,7 +183,7 @@ fn p2idr_script() {
         malicious_account_id,
         block_ref_3,
         &note_ids_3,
-        tx_args_malicious.clone(),
+        Some(tx_args_malicious.clone()),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -198,14 +203,14 @@ fn p2idr_script() {
     let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_4 = executor_4
-        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, tx_args_target)
+    let executed_transaction_4 = executor_4
+        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_args_target))
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
     // Assert that the target_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(transaction_result_4.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
     let target_account_after: Account = Account::new(
@@ -215,7 +220,7 @@ fn p2idr_script() {
         target_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_4.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction_4.final_account().hash(), target_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
@@ -231,13 +236,13 @@ fn p2idr_script() {
     let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let transaction_result_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, tx_args_sender)
+    let executed_transaction_5 = executor_5
+        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_args_sender))
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
     // Nonce delta
-    assert_eq!(transaction_result_5.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
     let sender_account_after: Account = Account::new(
@@ -247,7 +252,7 @@ fn p2idr_script() {
         sender_account.code().clone(),
         Felt::new(2),
     );
-    assert_eq!(transaction_result_5.final_account().hash(), sender_account_after.hash());
+    assert_eq!(executed_transaction_5.final_account().hash(), sender_account_after.hash());
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
@@ -267,7 +272,7 @@ fn p2idr_script() {
         malicious_account_id,
         block_ref_6,
         &note_ids_6,
-        tx_args_malicious,
+        Some(tx_args_malicious),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction

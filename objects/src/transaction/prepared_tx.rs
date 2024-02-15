@@ -1,7 +1,4 @@
-use super::{
-    Account, BTreeMap, BlockHeader, InputNotes, NoteId, Program, TransactionArgs,
-    TransactionInputs, TransactionScript, Word,
-};
+use super::{Account, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -51,19 +48,14 @@ impl PreparedTransaction {
         self.tx_inputs.input_notes()
     }
 
-    /// Return a reference the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_args.tx_script()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns a reference to the inputs for this transaction.
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
-    }
-
-    /// Return a reference the transaction script.
-    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.tx_args.note_args()
     }
 
     // CONVERSIONS

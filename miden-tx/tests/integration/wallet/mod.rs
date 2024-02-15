@@ -70,18 +70,18 @@ fn prove_receive_asset_via_wallet() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
         .unwrap();
-    let tx_args: TransactionArgs = TransactionArgs::new(Some(tx_script), None);
+    let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args)
+    let executed_transaction = executor
+        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(transaction_result.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // nonce delta
-    assert_eq!(transaction_result.account_delta().nonce(), Some(Felt::new(2)));
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
     let account_storage =
@@ -96,7 +96,7 @@ fn prove_receive_asset_via_wallet() {
         account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), target_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
 #[test]
@@ -154,15 +154,15 @@ fn prove_send_asset_via_wallet() {
     let tx_script = executor
         .compile_tx_script(tx_script_code, vec![(sender_pub_key, sender_keypair_felt)], vec![])
         .unwrap();
-    let tx_args: TransactionArgs = TransactionArgs::new(Some(tx_script), None);
+    let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
-    let transaction_result = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
+    let executed_transaction = executor
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(transaction_result.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
     let sender_account_storage =
@@ -178,7 +178,7 @@ fn prove_send_asset_via_wallet() {
         sender_account_code,
         Felt::new(2),
     );
-    assert_eq!(transaction_result.final_account().hash(), sender_account_after.hash());
+    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
 }
 
 #[cfg(not(target_arch = "wasm32"))]

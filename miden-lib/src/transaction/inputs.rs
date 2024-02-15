@@ -1,14 +1,10 @@
 use miden_objects::{
     accounts::Account,
-    notes::NoteId,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionInputs,
-        TransactionScript, TransactionWitness,
+        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionArgs,
+        TransactionInputs, TransactionScript, TransactionWitness,
     },
-    utils::{
-        collections::{BTreeMap, Vec},
-        vec, IntoBytes,
-    },
+    utils::{collections::Vec, vec, IntoBytes},
     vm::{AdviceInputs, StackInputs},
     Felt, Word, ZERO,
 };
@@ -35,12 +31,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(
-            self.tx_inputs(),
-            self.tx_script(),
-            self.note_args(),
-            &mut advice_inputs,
-        );
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -57,7 +48,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), None, &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -74,7 +65,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_script(), None, &mut advice_inputs);
+        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -91,18 +82,17 @@ impl ToTransactionKernelInputs for TransactionWitness {
 /// of one of chain MMR peaks.
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
-    tx_script: Option<&TransactionScript>,
-    note_args: Option<&BTreeMap<NoteId, Word>>,
+    tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
     // build the advice stack
-    build_advice_stack(tx_inputs, tx_script, advice_inputs);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
 
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), note_args.cloned(), advice_inputs);
-    add_tx_script_inputs_to_advice_map(tx_script, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
+    add_tx_script_inputs_to_advice_map(tx_args.tx_script(), advice_inputs);
 }
 
 // ADVICE STACK BUILDER
@@ -285,7 +275,7 @@ fn add_account_to_advice_inputs(
 /// - notes_hash |-> combined note data
 fn add_input_notes_to_advice_inputs(
     notes: &InputNotes,
-    note_args: Option<BTreeMap<NoteId, Word>>,
+    tx_args: &TransactionArgs,
     inputs: &mut AdviceInputs,
 ) {
     // if there are no input notes, nothing is added to the advice inputs
@@ -294,11 +284,10 @@ fn add_input_notes_to_advice_inputs(
     }
 
     let mut note_data = Vec::new();
-    let note_args = note_args.unwrap_or_default();
     for input_note in notes.iter() {
         let note = input_note.note();
         let proof = input_note.proof();
-        let note_arg = note_args.get(&note.id()).unwrap_or(&[ZERO; 4]);
+        let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
         // insert note inputs and assets into the advice map
         inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);

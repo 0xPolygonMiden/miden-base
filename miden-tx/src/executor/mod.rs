@@ -139,9 +139,10 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
-        tx_args: TransactionArgs,
+        tx_args: Option<TransactionArgs>,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
+        let transaction =
+            self.prepare_transaction(account_id, block_ref, notes, tx_args.unwrap_or_default())?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();

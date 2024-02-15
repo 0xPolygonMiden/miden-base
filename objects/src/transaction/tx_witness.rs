@@ -1,6 +1,5 @@
 use super::{
-    Account, AdviceInputs, BTreeMap, BlockHeader, InputNotes, NoteId, Program, TransactionArgs,
-    TransactionInputs, TransactionScript, Word,
+    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs,
 };
 
 // TRANSACTION WITNESS
@@ -71,14 +70,9 @@ impl TransactionWitness {
         self.tx_inputs.block_header()
     }
 
-    /// Returns a reference to the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_args.tx_script()
-    }
-
-    /// Returns a reference to the transaction script.
-    pub fn tx_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.tx_args.note_args()
+    /// Returns a reference to the transaction args.
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 
     /// Returns a reference to the inputs for this transaction.
