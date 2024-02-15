@@ -92,7 +92,7 @@ This will add a transaction and an output note (containing the minted asset) to 
 After creating the note with the minted asset, the regular account can now consume it and add the tokens to its vault. You can do this the following way:
 
 ```bash
-miden-client tx new consume-note <regular-account-id-A> <input-note-id>
+miden-client tx new consume-notes <regular-account-id-A> <input-note-id>
 ```
 
 This will consume the input note, which you can get by listing them as explained in the previous step. You will now be able to see the asset in the account's vault by running:
@@ -114,7 +114,8 @@ This will generate a Pay-to-ID (`P2ID`) note containing 50 assets, transferred f
 
 ```shell
 miden-client sync # Make sure we have an updated view of the state
-miden-client tx new consume-note <regular-account-ID-B> # Consume the note
+miden-client input-notes list # Now use the second note id
+miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> # Consume the note
 ```
 
 That's it! You will now be able to see `950` fungible tokens in the first regular account, and `50` tokens in the remaining regular account:
@@ -132,6 +133,6 @@ All state is maintained in `store.sqlite3`, located in the directory defined in 
 
 Congratulations! You have successfully configured and used the Miden client to interact with a Miden node. With these steps, you can perform basic Miden rollup operations like sending transactions, generating and consuming notes.
 
-For more informations on the Miden client, refer to the [Readme of the Miden Client](https://github.com/0xPolygonMiden/miden-client)
+For more information on the Miden client, refer to the [Readme of the Miden Client](https://github.com/0xPolygonMiden/miden-client)
 
-For more informations on the Miden rollup, refer to the [Miden documentation](https://0xpolygonmiden.github.io/miden-base/introduction.html).
+For more information on the Miden rollup, refer to the [Miden documentation](https://0xpolygonmiden.github.io/miden-base/introduction.html).
