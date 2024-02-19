@@ -1,21 +1,25 @@
 site_name: Polygon Knowledge Layer
 
 nav:
-    - Miden: miden/index.md
-    - Overview: miden/overview.md
-    - Roadmap:  miden/roadmap.md
-    - Miden rollup docs:
-        - Introduction:  
-            - Welcome: miden/introduction/index.md
-        - Architecture:
-            - Architecture:  miden/architecture/index.md
-            - Accounts:  miden/architecture/accounts.md
-            - Notes:  miden/architecture/notes.md
-            - Assets:  miden/architecture/assets.md
-            - Transactions:  miden/architecture/transactions.md
-            - State:  miden/architecture/state.md
-            - Execution:  miden/architecture/execution.md
-        - Concepts:
-            - Crypto primitives:
-                - Tiered sparce Merkle tree (TSMT):  miden/concepts/crypto-primitives/tsmt.md
+  - Miden: index.md
+  - Overview: overview.md
+  - Roadmap:  roadmap.md
+  - Getting started: getting-started.md
+  - Architecture:
+      - Overview:  architecture/overview.md
+      - Accounts:  architecture/accounts.md
+      - Notes:  architecture/notes.md
+      - Assets: architecture/assets.md
+      - Transactions:  
+          - Transaction execution: architecture/transaction-execution.md
+          - Transaction kernel: architecture/transaction-kernel.md
+          - Transaction procedures: architecture/transaction-procedures.md
+          - Transaction modes: architecture/transaction-modes.md
+      - State:  architecture/state.md
+      - Batching and blocks:
+          - Batching and recursion: architecture/batching-recursion.md
+          - Block kernel: architecture/block-kernel.md
+      - Network:
+          - Bridge: architecture/bridge.md
+          - Deposit: architecture/deposit.md
 
