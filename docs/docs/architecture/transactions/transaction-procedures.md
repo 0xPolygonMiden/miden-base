@@ -1,6 +1,6 @@
 There are user-facing procedures and kernel procedures. Users don't directly invoke kernel procedures, but indirectly via account code, note or transaction scripts. In that case, kernel procedures can only be invoked by a `syscall` instruction which always executes in the kernel context. 
 
-## User-facing Procedures (APIs)
+## User-facing procedures (APIs)
 
 These procedures can be used to create smart contract / account code, note scripts or account scripts. They basically serve as an API for the underlying kernel procedures. If a procedure can be called in the current context an `exec` is sufficient, otherwise if being the wrong context procedures must be invoked by `call`. Users will never need to invoke `syscall` procedures themselves. 
 
