@@ -1,7 +1,10 @@
 site_name: Polygon Knowledge Layer
 
+theme:
+  name: material
+
 nav:
-  - Miden: index.md
+  - Miden: index.md # this is the doc section design html
   - Overview: overview.md
   - Roadmap:  roadmap.md
   - Getting started: getting-started.md
@@ -11,10 +14,11 @@ nav:
       - Notes:  architecture/notes.md
       - Assets: architecture/assets.md
       - Transactions:  
-          - Transaction execution: architecture/transaction-execution.md
-          - Transaction kernel: architecture/transaction-kernel.md
-          - Transaction procedures: architecture/transaction-procedures.md
-          - Transaction modes: architecture/transaction-modes.md
+          - Introduction: architecture/transactions/introduction.md
+          - Transaction execution: architecture/transactions/transaction-execution.md
+          - Transaction kernel: architecture/transactions/transaction-kernel.md
+          - Transaction procedures: architecture/transactions/transaction-procedures.md
+          - Transaction modes: architecture/transactions/transaction-modes.md
       - State:  architecture/state.md
       - Batching and blocks:
           - Batching and recursion: architecture/batching-recursion.md
@@ -23,3 +27,59 @@ nav:
           - Bridge: architecture/bridge.md
           - Deposit: architecture/deposit.md
 
+
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      permalink_title: Link to this section
+      toc_depth: 4
+  - codehilite
+  - markdown_include.include:
+      base_path: docs
+  - admonition
+  - footnotes
+  - def_list
+  - attr_list
+  - abbr
+  - pymdownx.tabbed
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.keys
+  - pymdownx.details
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.caret
+  - meta
+  - smarty
+  - pymdownx.extra
+
+
+plugins:
+  - search
+  - open-in-new-tab
+  - git-revision-date-localized:
+      fallback_to_build_date: true
+      strict: false
+      exclude:
+        - index.md
+  - git-authors:
+      show_contribution: true
+      exclude:
+        - index.md
+        - cdk/index.md
+        - zkEVM/index.md
+        - pos/index.md
+        - miden/index.md
+        - tools/index.md
+        - learn/index.md
+
+validation:
+  absolute_links: warn

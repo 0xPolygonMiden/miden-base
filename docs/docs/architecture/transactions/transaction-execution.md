@@ -35,4 +35,4 @@ Finally, after the transaction program has been compiled and the inputs includin
 The `ExecutedTransaction` object represents the result of a transaction - not its proof yet. From it, the account, and storage delta can be extracted. Furthermore, it serves as an input of the transaction prover to generate the proof. A successfully executed transaction results in a new state of the provided account, a vector of all created Notes (`OutputNotes`) and a vector of all the consumed Notes (`InputNotes`) together with their Nullifiers.
 
 ## The Transaction Prover
-The Transaction Prover proves the provided `ExecutedTransaction` and returns a `ProvenTransaction` object. This object can be verified by the Miden Node using the Transaction Verifier and if valid updating the [State](../architecture/state.md) databases.
+The Transaction Prover proves the provided `ExecutedTransaction` and returns a `ProvenTransaction` object. This object can be verified by the Miden Node using the Transaction Verifier and if valid updating the [State](../state.md) databases.

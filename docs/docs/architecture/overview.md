@@ -26,12 +26,12 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 
 ### Transactions
 
-[Transactions](transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the different transaction types.
+[Transactions](transactions/transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the different transaction types.
 
 ##### Accounts produce and consume notes to communicate 
 
 <center>
-![Core concepts](../../img/miden/architecture/miden_architecture_core_concepts.gif){ width="80%" }
+![Core concepts](../img/architecture/miden_architecture_core_concepts.gif){ width="80%" }
 </center>
 
 ## State and execution
@@ -42,14 +42,16 @@ The state model captures all individual states of all accounts and notes. Finall
 
 [State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
 
+<!-- not listed in toc: https://github.com/0xPolygonMiden/miden-base/issues/472
 ### Execution model
 
 [Execution](execution.md) describes how the state progresses - on an individual level via transactions and at the global level expressed as aggregated state updates in blocks. This chapter describes the execution model and how blocks are built.
+-->
 
 ##### Operators capture and progress state 
 
 <center>
-![State progress](../../img/miden/architecture/miden_architecture_state_progress.gif){ width="80%" }
+![State progress](../img/architecture/miden_architecture_state_progress.gif){ width="80%" }
 </center>
 
 ??? "Architecture tradeoffs"

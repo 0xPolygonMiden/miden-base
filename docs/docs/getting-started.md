@@ -1,79 +1,77 @@
-# Getting started
-
 This tutorial guides you through the process of connecting to a remote Miden node using the Miden client. The Miden node processes transactions and creates blocks for the Miden rollup. The Miden client provides a way to execute and prove transactions, facilitating the interaction with the Miden rollup. By the end of this tutorial, you will be able to configure the Miden client, connect to a Miden node, and perform basic operations like sending transactions, generating and consuming notes.
 
 ## Prerequisites
 
 Before starting, ensure you have the following:
 
-- **Rust Installed:** You must have the Rust programming language installed on your machine. If you haven't installed Rust, you can download it from [the Rust website](https://www.rust-lang.org/learn/get-started).
-- **Node IP Address:** Obtain the IP address of the running Miden node. This information can be acquired by contacting one of the Miden engineers.
-- **Miden client Installation:** You need to install the [Miden client](https://github.com/0xPolygonMiden/miden-client) and configure it to point to the remote node.
+- **Rust installed:** You must have the Rust programming language installed on your machine. If you haven't installed Rust, you can download it from [the Rust website](https://www.rust-lang.org/learn/get-started).
+- **Node IP address:** Obtain the IP address of the running Miden node. This information can be acquired by contacting one of the Miden engineers.
+- **Miden client installation:** You need to install the [Miden client](https://github.com/0xPolygonMiden/miden-client) and configure it to point to the remote node.
 
 ## Step 1: Configuring the Miden client
 
 1. **Download the Miden client:** First, download the Miden client from its repository. Use the following command:
 
-   ```shell
-   git clone https://github.com/0xPolygonMiden/miden-client
-   ```
+      ```shell
+      git clone https://github.com/0xPolygonMiden/miden-client
+      ```
 
-2. **Navigate & Configure the client:** Navigate to the client directory and modify the configuration file to point to the remote Miden node. You can find the configuration file at `./miden-client.toml`. In the `[RPC]` section replace the `endpoint = { host: }` field with the address provided by the Miden engineer.
+2. **Navigate & configure the client:** Navigate to the client directory and modify the configuration file to point to the remote Miden node. You can find the configuration file at `./miden-client.toml`. In the `[RPC]` section replace the `endpoint = { host: }` field with the address provided by the Miden engineer.
 
-   ```shell
-   cd miden-client
-   ```
+      ```shell
+      cd miden-client
+      ```
 
-   Configuration file example:
+      Configuration file example:
 
-   ```toml
-    [rpc]
-    endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
+      ```toml
+      [rpc]
+      endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
 
-    [store]
-    database_filepath = "store.sqlite3"
-   ```
+      [store]
+      database_filepath = "store.sqlite3"
+      ```
 
-3. **Build & install the Client:** install the client using cargo:
+3. **Build & install the client:** install the client using cargo:
 
-   ```shell
-   cargo install --features testing,concurrent --path .
-   ```
+      ```shell
+      cargo install --features testing,concurrent --path .
+      ```
 
-   you should now be able to use the following command:
+      you should now be able to use the following command:
 
-   ```shell
-   miden-client --help
-   ```
+      ```shell
+      miden-client --help
+      ```
 
 ## Step 2: Setting-up the Miden client
 
 1. **Creating new accounts:** To be able to interact with the Miden node we will need to generate accounts. For this example we will be generating 3 accounts: `basic-immutable` account A, `basic-immutable` account B and a `fungible-faucet`. You can generate new accounts using the following commands:
 
-   ```shell
-   miden-client account new basic-immutable
-   miden-client account new basic-immutable
-   miden-client account new fungible-faucet [...]
-   ```
+      ```shell
+      miden-client account new basic-immutable
+      miden-client account new basic-immutable
+      miden-client account new fungible-faucet [...]
+      ```
 
-   Please refer to the documentation of the CLI
+      Please refer to the documentation of the CLI.
 
 2. **Listing accounts:** To view the newly created accounts we can run the following command:
 
-   ```shell
-   miden-client account -l
-   ```
+      ```shell
+      miden-client account -l
+      ```
 
-   We should now see 3 available accounts listed:
-   - `basic-immutable` account A
-   - `basic-immutable` account B
-   - `fungible-faucet` account
+      We should now see 3 available accounts listed:
+      - `basic-immutable` account A
+      - `basic-immutable` account B
+      - `fungible-faucet` account
 
 3. **Syncing node state:** The client needs to periodically query the node to receive updates about entities that might be important in order to run transactions. The way to do so is by running the `sync` command:
 
-   ```shell
-   miden-client sync
-   ```
+      ```shell
+      miden-client sync
+      ```
 
 ## Step 3: Minting an asset
 

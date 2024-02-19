@@ -1,11 +1,10 @@
-# Accounts
 Miden aims to support expressive smart contracts via a Turing-complete language. For smart contracts the go-to solution is account-based state. In Miden, an account is an entity which holds assets and defines rules of how these assets can be transferred. They are basic building blocks representing a user or an autonomous smart contract.
 
 ## Account Design
 The diagram below illustrates basic components of an account. In Miden every account is a smart contract.
 
 <p align="center">
-    <img src="../diagrams/architecture/account/Account_Definition.png" style="width: 25%;">
+    <img src="../../img/architecture/account/account_definition.png" style="width: 25%;">
 </p>
 
 In the above picture, you can see:
