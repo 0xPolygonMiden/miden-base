@@ -84,7 +84,7 @@ jobs:
           args: ${{matrix.args}}
 
   no-std:
-    name: build ${{matrix.toolchain}} no-std for wasm32-unknown-unknown 
+    name: build ${{matrix.toolchain}} no-std for wasm32-unknown-unknown
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -16,7 +16,7 @@ proc.copy_output_notes_to_advice_map
     # get the number of notes created by the transaction
     exec.memory::get_num_created_notes
     # => [num_notes, OUTPUT_NOTES_COMMITMENT, ...]
-    
+
     # if there are created notes, add them to the advice map
     dup eq.0
     if.true

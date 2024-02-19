@@ -10,6 +10,6 @@ This documentation presents detailed guides on:
 
 **Architecture** describes Miden's unique state and execution model - an actor-based model with concurrent off-chain state.
 
-**Network design** describes how the architecture is implemented into a zero-knowledge rollup. It describes the software components, RPC interfaces of the Miden Nodes and Cliets.  
+**Network design** describes how the architecture is implemented into a zero-knowledge rollup. It describes the software components, RPC interfaces of the Miden Nodes and Cliets.
 
 **Roadmap** shows the timeline for user facing features that users can expect.

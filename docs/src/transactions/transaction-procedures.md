@@ -1,7 +1,7 @@
 # Transaction Contexts
 Miden assembly program execution can span multiple isolated contexts. An execution context defines its own memory space which is not accessible from other execution contexts. Note scripts cannot directly write into account data. This should be possible if only if the account exposes respective functions.
 
-The kernel program always starts executing in a root context. Thus, the prologue sets the memory for the root context. To move execution into a different context, we can invoke a procedure using the `call` or `dyncall` instruction. In fact, any time we invoke a procedure using the `call` instruction, the procedure is executed in a new context. 
+The kernel program always starts executing in a root context. Thus, the prologue sets the memory for the root context. To move execution into a different context, we can invoke a procedure using the `call` or `dyncall` instruction. In fact, any time we invoke a procedure using the `call` instruction, the procedure is executed in a new context.
 
 While executing in a note, account, or tx script context, we can request to execute some procedures in the kernel context, which is where all necessary information was stored during the prologue. Switching to the kernle context can be done via the `syscall` instruction. The set of procedures which can be invoked via the `syscall` instruction is limited by the [transaction kernel API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/kernels/transaction/api.masm). Once the procedure call via `syscall` returns, the execution moves back to the note, account, or tx script from which it was invoked.
 
@@ -16,7 +16,7 @@ While executing in a note, account, or tx script context, we can request to exec
 \
 \
 
-The above diagram shows different context switches in a simple transaction. In this example, an account consumes a [P2ID](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2ID.masm) note and receives the asset into its vault. As with in any MASM program, the transaction kernel program starts in the root context. It executes the Prologue and stores all necessary information into the root memory. 
+The above diagram shows different context switches in a simple transaction. In this example, an account consumes a [P2ID](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/P2ID.masm) note and receives the asset into its vault. As with in any MASM program, the transaction kernel program starts in the root context. It executes the Prologue and stores all necessary information into the root memory.
 
 The next step, note processing, starts with a `dyncall` and in doing so, invoking the note script. This command moves execution into a different context **(1)**. In this new context, the note has no access to the kernel memory. After a successful ID check, which changes back to the kernel context twice to get the note inputs and the account id, the script executes the `add_note_assets_to_account` procedure.
 
@@ -25,7 +25,7 @@ The next step, note processing, starts with a `dyncall` and in doing so, invokin
 # matches target account ID specified by the note inputs.
 # ...
 begin
-    
+
     ... <check correct ID>
 
     exec.add_note_assets_to_account
@@ -33,7 +33,7 @@ begin
 end
 ```
 
-The procedure cannot simply add assets to the account, because it is executed in a note context. Therefore, it needs to `call` the account interface. And in doing so, it moves execution into a second context - Account context - isolated from the note context **(2)**. 
+The procedure cannot simply add assets to the account, because it is executed in a note context. Therefore, it needs to `call` the account interface. And in doing so, it moves execution into a second context - Account context - isolated from the note context **(2)**.
 
 ```
 #! Helper procedure to add all assets of a note to an account.
@@ -53,7 +53,7 @@ proc.add_note_assets_to_account
 end
 ```
 
-The [wallet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/wallets/basic.masm) smart contract provides an interface for accounts to recieve and send assets. In this new context, the wallet calls the `add_asset` procedure of the account API. 
+The [wallet](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/miden/contracts/wallets/basic.masm) smart contract provides an interface for accounts to recieve and send assets. In this new context, the wallet calls the `add_asset` procedure of the account API.
 
 ```
 export.receive_asset
@@ -72,13 +72,13 @@ export.add_asset
 end
 ```
 
-Now, the asset can be safely added to the vault within the kernel context and the note successfully be processed. 
+Now, the asset can be safely added to the vault within the kernel context and the note successfully be processed.
 
 # Transaction Procedures
-There are user-facing procedures and kernel procedures. Users don't directly invoke kernel procedures, but indirectly via account code, note or transaction scripts. In that case, kernel procedures can only be invoked by a `syscall` instruction which always executes in the kernel context. 
+There are user-facing procedures and kernel procedures. Users don't directly invoke kernel procedures, but indirectly via account code, note or transaction scripts. In that case, kernel procedures can only be invoked by a `syscall` instruction which always executes in the kernel context.
 
 ## User-facing Procedures (APIs)
-These procedures can be used to create smart contract / account code, note scripts or account scripts. They basically serve as an API for the underlying kernel procedures. If a procedure can be called in the current context an `exec` is sufficient, otherwise if being the wrong context procedures must be invoked by `call`. Users will never need to invoke `syscall` procedures themselves. 
+These procedures can be used to create smart contract / account code, note scripts or account scripts. They basically serve as an API for the underlying kernel procedures. If a procedure can be called in the current context an `exec` is sufficient, otherwise if being the wrong context procedures must be invoked by `call`. Users will never need to invoke `syscall` procedures themselves.
 
 _Note: If capitalized, a variable represents a `Word`, e.g., `ACCT_HASH` consists of four `Felts`. If lowercase, the variable is represented by a single `Felt`._
 
@@ -144,6 +144,5 @@ To import the faucet procedures set `use.miden::faucet` at the beginning of the 
 | `get_total_issuance`     | `[]`       | `[total_issuance]`| faucet | <details><summary>View</summary>Returns the total issuance of the fungible faucet the transaction is being executed against. Panics if the transaction is not being executed against a fungible faucet. total_issuance is the total issuance of the fungible faucet the transaction is being executed against.</details> |
 
 
-## Kernel Procedures 
-WIP - we will add those later. 
-
+## Kernel Procedures
+WIP - we will add those later.
