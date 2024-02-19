@@ -17,6 +17,7 @@ nav:
           - Introduction: architecture/transactions/introduction.md
           - Transaction execution: architecture/transactions/transaction-execution.md
           - Transaction kernel: architecture/transactions/transaction-kernel.md
+          - Transaction contexts: architecture/transactions/transaction-contexts.md
           - Transaction procedures: architecture/transactions/transaction-procedures.md
           - Transaction modes: architecture/transactions/transaction-modes.md
       - State:  architecture/state.md

@@ -1,4 +1,5 @@
-# The Transaction Kernel Program
+# The transaction kernel program
+
 The transaction kernel program is responsible to execute a Miden rollup transaction within the Miden VM. Therefore, it is written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) and it is defined as MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels). The kernel provides context-sensitive security preventing unwanted read and write access. It defines a set of procedures which can be invoked from other [contexts](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#execution-contexts) - e.g., notes - to be executed in the root context.  
 
 In general, the kernel's procedures must reflect everything users might want to do in executing transactions, from transferring assets to complex smart contract interactions with custom code. Learn more about available procedures and contexts [here](transaction-procedures.md).
@@ -11,14 +12,15 @@ The kernel has a well-defined structure which must do the following:
 4. **Epilogue**: finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions and asserting the nonce rules are upheld.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_program.png" style="width: 75%;">
+    <img src="../../../img/architecture/transaction/transaction_program.png" style="width: 75%;">
 </p>
 
+## The inputs
 
-## The Inputs
 The transaction kernel program receives two type of inputs, public inputs via the `operand_stack` and secret inputs via the `advice_provider`. The stack holds the global inputs. They serve as a commitment to the data being provided via the advice provider. The advice stack holds data of the last known block, account and input note data. The details are layed out in the next paragraph.
 
-## The Prologue
+## The prologue
+
 The transaction prologue is executed at the beginning of a transaction. It needs to accomplish the following tasks:
 
 1. "Unhash" the inputs and lay them out in root context's memory.
@@ -30,7 +32,7 @@ In other words, the prologue stores all provided information from the inputs and
 The memory layout looks as follows. The kernel context has access to all of those memory slots. 
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Memory_layout_kernel.png" style="width: 75%;">
+    <img src="../../../img/architecture/transaction/memory_layout_kernel.png" style="width: 75%;">
 </p>
 
 The book keeping section is needed to keep track of variables which are used internally by the transaction kernel. 
@@ -49,7 +51,8 @@ _Note: One needs to provide the note data to compute the Nullifier, e.g. the [no
 
 Lastly, if a transaction script is provided, its root is being stored at the pre-defined memory address. 
 
-## The Note Processing
+## The note processing
+
 If there are input notes they are being consumed in a loop. For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design/programs.html) of the note script is being loaded onto the stack. Then, by calling a [`dyncall`](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/code_organization.html?highlight=dyncall#dynamic-procedure-invocation) the note script is being executed in a new context to prevent unwanted memory access. 
 
 ```
@@ -79,7 +82,8 @@ In processing a note, the creation of a new note might be triggered. If so, all 
 
 _Note: The Miden Transaction Kernel Program prevents notes from having direct access to account storage. Notes can only call the account interface to trigger write operations in the account._
 
-## The Transaction Script Processing
+## The transaction script processing
+
 If there is a transaction script provided with the transaction, it will be processed after all notes are being consumed. By loading the transaction script root onto the stack the kernel can invoke a `dyncall` and in doing so execute the script. The transaction script is again being executed in its own context.
 
 The transaction script can be used to authenticate the transaction by increasing the account's nonce and signing the transaction, see the following example:
@@ -94,9 +98,9 @@ The transaction script can be used to authenticate the transaction by increasing
 
 _Note: The executing account must expose the `auth_tx_rpo_falcon512` function in order for the transaction script to call it._
 
+## The epilogue
 
-## The Epilogue
-The Epilogue finalizes the transaction. It 
+The epilogue finalizes the transaction. It 
 
 1. computes the final account hash
 2. if the account has changed, assert that the final account nonce is greater than the initial
@@ -106,5 +110,6 @@ The Epilogue finalizes the transaction. It
 
 There is an exception for special accounts, called faucets, which can mint or burn assets. In that case input and output vault roots are not equal. 
 
-## The Outputs
+## The outputs
+
 The transaction kernel program outputs the transaction script root, a commitment of all newly created outputs notes, and the account hash in its new state. 
