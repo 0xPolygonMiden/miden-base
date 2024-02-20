@@ -1,4 +1,7 @@
 use super::{Digest, Felt, Hasher, Vec, ZERO};
+use crate::utils::serde::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
 
 /// The header of a block. It contains metadata about the block, commitments to the current
 /// state of the chain and the hash of the proof that attests to the integrity of the chain.
@@ -179,5 +182,56 @@ impl BlockHeader {
         elements.extend([block_num.into(), version, timestamp, ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
+    }
+}
+
+impl Serializable for BlockHeader {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            prev_hash,
+            block_num,
+            chain_root,
+            account_root,
+            nullifier_root,
+            note_root,
+            batch_root,
+            proof_hash,
+            version,
+            timestamp,
+            sub_hash,
+            hash,
+        } = self;
+
+        prev_hash.write_into(target);
+        block_num.write_into(target);
+        chain_root.write_into(target);
+        account_root.write_into(target);
+        nullifier_root.write_into(target);
+        note_root.write_into(target);
+        batch_root.write_into(target);
+        proof_hash.write_into(target);
+        version.write_into(target);
+        timestamp.write_into(target);
+        sub_hash.write_into(target);
+        hash.write_into(target);
+    }
+}
+
+impl Deserializable for BlockHeader {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            prev_hash: source.read()?,
+            block_num: source.read()?,
+            chain_root: source.read()?,
+            account_root: source.read()?,
+            nullifier_root: source.read()?,
+            note_root: source.read()?,
+            batch_root: source.read()?,
+            proof_hash: source.read()?,
+            version: source.read()?,
+            timestamp: source.read()?,
+            sub_hash: source.read()?,
+            hash: source.read()?,
+        })
     }
 }
