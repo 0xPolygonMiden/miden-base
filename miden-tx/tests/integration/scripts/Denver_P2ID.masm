@@ -1,0 +1,25 @@
+# Try to code a Pay to ID note script. 
+# Goal is that the note can only be consumed by a specified account (target_account).
+# The target_account is already specified in the note inputs.
+# If an account different to the target_account tries to consume the note, execution should fail.
+# If the target_account executes the script, you can add the note's asset into the account vault.
+# To add assets into the account, you will need to use the basic wallet. The target_account 
+# exposes the basic wallet, esp, call.wallet::receive_asset
+#
+# Good luck
+
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+begin
+    # All scripts start with the NOTE_SCRIPT_ROOT, you can drop it
+    dropw 
+
+    # Debugging https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/debugging.html
+    debug.stack
+    
+    # All account and note procedures
+    # https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-procedures 
+
+end
