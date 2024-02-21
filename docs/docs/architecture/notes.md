@@ -36,7 +36,7 @@ By design, every note script can be defined as a unique hash or the root of a [M
 
 Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
 
-There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the [Miden client]() or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
+There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
 
 * P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself. 
 * SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset. 
@@ -176,7 +176,7 @@ _Info: To compute a note's hash, we do not need to know the note's `serial_num`.
 
 ### Note discovery
 Note discovery describes the process of Miden clients finding notes they want to consume. There are two ways to receive new relevant notes - getting notes via an off-chain channel or querying the Miden operator to request newly recorded relevant notes. 
-The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the [Miden node]() requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
+The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the Miden node requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
 
 ### Note consumption
 As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed. 
