@@ -1,7 +1,8 @@
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    ToString, Vec, Word,
+    Word,
 };
+use crate::utils::{collections::*, string::*};
 
 // CONSTANTS
 // ================================================================================================

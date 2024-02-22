@@ -1,6 +1,6 @@
 use miden_objects::{
-    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note,
-    utils::collections::Vec, Felt, NoteError, Word,
+    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note, utils::collections::*,
+    Felt, NoteError, Word,
 };
 
 use self::utils::build_note_script;

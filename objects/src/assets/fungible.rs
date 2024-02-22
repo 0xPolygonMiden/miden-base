@@ -1,6 +1,7 @@
 use core::fmt;
 
-use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, ToString, Word, ZERO};
+use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, Word, ZERO};
+use crate::utils::string::*;
 
 // FUNGIBLE ASSET
 // ================================================================================================

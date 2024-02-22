@@ -2,9 +2,9 @@ use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
-    Serializable, String, Word, WORD_SIZE, ZERO,
+    Serializable, Word, WORD_SIZE, ZERO,
 };
-use crate::utils::{hex_to_bytes, HexParseError};
+use crate::utils::{hex_to_bytes, string::*, HexParseError};
 
 // NULLIFIER
 // ================================================================================================

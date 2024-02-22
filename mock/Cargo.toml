@@ -6,8 +6,8 @@ authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/0xPolygonMiden/miden-base"
-categories = []
-keywords = []
+categories = ["no-std"]
+keywords = ["miden", "mock"]
 edition = "2021"
 rust-version = "1.75"
 
@@ -17,8 +17,10 @@ path = "src/main.rs"
 required-features = ["executable"]
 
 [features]
-serde = ["dep:serde", "miden-objects/serde"]
+default = ["std"]
 executable = ["dep:clap", "serde"]
+serde = ["dep:serde", "miden-objects/serde"]
+std = ["miden-lib/std", "miden-objects/std"]
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"], optional = true }

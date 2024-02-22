@@ -1,11 +1,5 @@
-use miden_objects::{
-    notes::NoteAssets,
-    utils::{
-        collections::Vec,
-        string::{String, ToString},
-    },
-    Word,
-};
+pub use miden_objects::utils::*;
+use miden_objects::{notes::NoteAssets, Word};
 
 // TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
 pub fn prepare_word(word: &Word) -> String {

@@ -1,13 +1,14 @@
 use miden_lib::transaction::{TransactionEvent, TransactionKernelError};
 use miden_objects::{
     accounts::{AccountDelta, AccountStub},
-    utils::{collections::BTreeMap, string::ToString},
     Digest,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
     ExecutionError, Host, HostResponse, ProcessState,
 };
+
+use crate::utils::{collections::*, format, string::*};
 
 mod account_delta;
 use account_delta::AccountDeltaTracker;

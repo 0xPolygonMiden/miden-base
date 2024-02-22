@@ -4,9 +4,9 @@ use assembly::ast::AstSerdeOptions;
 
 use super::{
     AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Digest, ModuleAst, Serializable, Vec,
+    DeserializationError, Digest, ModuleAst, Serializable,
 };
-use crate::crypto::merkle::SimpleSmt;
+use crate::{crypto::merkle::SimpleSmt, utils::collections::*};
 
 // CONSTANTS
 // ================================================================================================

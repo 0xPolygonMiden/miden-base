@@ -3,7 +3,7 @@ use miden_objects::{
     assets::Asset,
     notes::{NoteAssets, NoteId, NoteMetadata},
     transaction::OutputNote,
-    utils::collections::Vec,
+    utils::collections::*,
     AccountError, Digest, NoteError, Word, WORD_SIZE,
 };
 

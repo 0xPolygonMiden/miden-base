@@ -1,7 +1,8 @@
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Serializable, ToString, Vec,
+    Serializable,
 };
+use crate::utils::{collections::*, string::*};
 
 // ACCOUNT VAULT DELTA
 // ================================================================================================

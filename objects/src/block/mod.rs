@@ -1,4 +1,4 @@
-use super::{utils::collections::Vec, Digest, Felt, Hasher, ZERO};
+use super::{Digest, Felt, Hasher, ZERO};
 
 mod header;
 pub use header::BlockHeader;

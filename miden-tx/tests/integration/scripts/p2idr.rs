@@ -5,7 +5,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     transaction::TransactionArgs,
-    utils::collections::Vec,
+    utils::collections::*,
     Felt,
 };
 use miden_tx::TransactionExecutor;

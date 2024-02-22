@@ -2,15 +2,12 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
     assembly::ModuleAst,
     assets::AssetVault,
-    utils::{
-        format,
-        string::{String, ToString},
-        vec,
-    },
+    utils::format,
     AccountError, Word, ZERO,
 };
 
 use super::{AuthScheme, TransactionKernel};
+use crate::utils::{string::*, vec};
 
 // BASIC WALLET
 // ================================================================================================

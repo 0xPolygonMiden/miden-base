@@ -5,9 +5,10 @@ use miden_objects::{
 };
 
 use super::{
-    AccountCode, AccountId, BTreeMap, CodeBlock, Digest, NoteScript, Program,
-    TransactionCompilerError, TransactionKernel,
+    AccountCode, AccountId, CodeBlock, Digest, NoteScript, Program, TransactionCompilerError,
+    TransactionKernel,
 };
+use crate::utils::{collections::*, vec};
 
 #[cfg(test)]
 mod tests;

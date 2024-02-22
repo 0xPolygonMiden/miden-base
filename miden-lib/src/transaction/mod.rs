@@ -2,13 +2,14 @@ use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     transaction::{OutputNotes, TransactionOutputs},
-    utils::{collections::Vec, group_slice_elements, serde::DeserializationError},
+    utils::{group_slice_elements, serde::DeserializationError},
     vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word,
 };
 use miden_stdlib::StdLibrary;
 
 use super::MidenLib;
+use crate::utils::collections::*;
 
 pub mod memory;
 

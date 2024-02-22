@@ -2,7 +2,7 @@ use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
     notes::NoteId,
-    utils::collections::{BTreeMap, Vec},
+    utils::collections::*,
     vm::CodeBlock,
     TransactionScriptError,
 };
