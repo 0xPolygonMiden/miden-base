@@ -350,7 +350,7 @@ export.set_item
     #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
     # emit event to signal that an account storage item is being updated
     push.1 drop emit.ACCOUNT_STORAGE_SET_ITEM_EVENT
-    
+
     # get the storage root
     exec.memory::get_acct_storage_root
     # => [R, index, V']

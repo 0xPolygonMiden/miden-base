@@ -17,7 +17,7 @@ In the above picture, you can see:
 * **Code &rarr;** a collection of functions which define the external interface for an account
 
 ### Account ID
-~63 bits (1 field element) long identifier for the account. The four most significant bits specify its [account type](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-types) - regular, immutable, faucet - and the [storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes) - public or private. 
+~63 bits (1 field element) long identifier for the account. The four most significant bits specify its [account type](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-types) - regular, immutable, faucet - and the [storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#account-storage-modes) - public or private.
 
 ### Account Storage
 Storage for user-defined data. `AccountStorage` is composed of two components.
@@ -44,7 +44,7 @@ Merkle tree as follows:
 An account vault can be reduced to a single hash which is the root of the Sparse Merkle Tree.
 
 ### Code
-Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) and [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing). Users cannot call those functions directly. 
+Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-scripts) and [transaction scripts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-kernel.html#the-transaction-script-processing). Users cannot call those functions directly.
 
 Functions exposed by the account have the following properties:
 
@@ -55,7 +55,7 @@ Functions exposed by the account have the following properties:
 *Note: Since code in Miden is expressed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions*
 
 #### Example Account Code
-Currently, Miden provides two standard implementations for account code. 
+Currently, Miden provides two standard implementations for account code.
 
 ##### Basic user account (Regular updatable account)
 There is a standard for a basic user account. It exposes three functions via its interface.

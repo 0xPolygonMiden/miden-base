@@ -21,12 +21,12 @@ repos:
     # Allows cargo fmt to modify the source code prior to the commit
     - id: cargo
       name: Cargo fmt
-      args: ["+stable", "fmt", "--all"]
+      args: ["+nightly", "fmt", "--all"]
       stages: [commit]
     # Requires code to be properly formatted prior to pushing upstream
     - id: cargo
       name: Cargo fmt --check
-      args: ["+stable", "fmt", "--all", "--check"]
+      args: ["+nightly", "fmt", "--all", "--check"]
       stages: [push, manual]
     - id: cargo
       name: Cargo check --all-targets
@@ -40,4 +40,7 @@ repos:
     # Unlike fmt, clippy will not be automatically applied
     - id: cargo
       name: Cargo clippy
-      args: ["+nightly", "clippy", "--workspace", "--", "--deny", "clippy::all", "--deny", "warnings"]
+      args: ["+nightly", "clippy", "--workspace", "--all-targets", "--", "--deny", "clippy::all", "--deny", "warnings"]
+    - id: cargo
+      name: Cargo clippy all-features
+      args: ["+nightly", "clippy", "--workspace", "--all-targets", "--all-features", "--", "--deny", "clippy::all", "--deny", "warnings"]

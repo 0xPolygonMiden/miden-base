@@ -4,7 +4,7 @@ use.miden::contracts::wallets::basic->wallet
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
-# Requires that the account exposes: 
+# Requires that the account exposes:
 #
 # Inputs: [SCRIPT_ROOT]
 # Outputs: []
@@ -31,7 +31,7 @@ begin
 
     # load the asset and add it to the account
     mem_loadw call.wallet::receive_asset dropw
-    # => [] 
+    # => []
 
     # store note inputs into memory starting at address 0
     push.0 exec.note::get_inputs

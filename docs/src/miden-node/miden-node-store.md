@@ -1,6 +1,6 @@
 # Miden node store
-The **Store** maintains the state of the chain. It serves as the "source of truth" for the chain - i.e., if it is not in 
-the store, the node does not consider it to be part of the chain. 
+The **Store** maintains the state of the chain. It serves as the "source of truth" for the chain - i.e., if it is not in
+the store, the node does not consider it to be part of the chain.
 **Store** is one of components of the Miden node.
 
 ## Architecture
@@ -56,7 +56,7 @@ Returns data needed by the block producer to construct and prove the next block.
 
 **Parameters**
 
-* `account_ids`: `[AccountId]` – array of account IDs. 
+* `account_ids`: `[AccountId]` – array of account IDs.
 * `nullifiers`: `[Digest]` – array of nullifier hashes (not currently in use).
 
 **Returns**
@@ -68,7 +68,7 @@ Returns data needed by the block producer to construct and prove the next block.
 
 ### GetTransactionInputs
 
-Returns the data needed by the block producer to check validity of an incoming transaction. 
+Returns the data needed by the block producer to check validity of an incoming transaction.
 
 **Parameters**
 
@@ -77,7 +77,7 @@ Returns the data needed by the block producer to check validity of an incoming t
 
 **Returns**
 
-* `account_state`: `AccountTransactionInputRecord` – account's descriptors. 
+* `account_state`: `AccountTransactionInputRecord` – account's descriptors.
 * `nullifiers`: `[NullifierTransactionInputRecord]` – the block numbers at which corresponding nullifiers have been consumed, zero if not consumed.
 
 ### SyncState
@@ -122,7 +122,7 @@ This request doesn't have any parameters.
 
 **Returns**
 
-* `nullifiers`: `[NullifierLeaf]` – lists of all nullifiers of the current chain. 
+* `nullifiers`: `[NullifierLeaf]` – lists of all nullifiers of the current chain.
 
 ### ListAccounts
 

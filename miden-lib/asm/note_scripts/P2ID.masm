@@ -64,7 +64,7 @@ begin
     # drop the note script root
     dropw
     # => []
-    
+
     # store the note inputs to memory starting at address 0
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
