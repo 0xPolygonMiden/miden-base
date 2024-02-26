@@ -1,6 +1,8 @@
 # Getting started
 
-This tutorial will guide you through the process generating a new Miden account, requesting funds from a public faucet and interacting with the Miden rollup using the Miden client. The Miden node processes transactions and creates blocks for the Miden rollup. The Miden client provides a way to execute and prove transactions, facilitating the interaction with the Miden rollup. By the end of this tutorial, you will be able to configure the Miden client, connect to a Miden node, and perform basic operations like sending transactions, generating and consuming notes.
+This tutorial will guide you through the process generating a new Miden account, requesting funds from a public faucet and interacting with the Miden rollup using the Miden client. 
+
+The Miden node processes transactions and creates blocks for the Miden rollup. The Miden client provides a way to execute and prove transactions, facilitating the interaction with the Miden rollup. By the end of this tutorial, you will be able to configure the Miden client, connect to a Miden node, and perform basic operations like sending transactions, generating and consuming notes.
 
 ### Prerequisites
 
@@ -53,7 +55,7 @@ In this first part of the tutorial we will teach you how to create a new Miden a
    ```
 ### Creating a new Miden account
 
-1. **Creating a new account:** To be able to interact with the Miden rollup you will need to generate an accounts. For this first part of the example we will generate one `basic-immutable` account using the following command:
+1. **Creating a new account:** To be able to interact with the Miden rollup you will need to generate an account. For this first part of the example we will generate one `basic-immutable` account using the following command:
 
    ```shell
    miden-client account new basic-immutable
@@ -165,7 +167,7 @@ miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-a
 ```
 
 > **Note**
-> The faucet account id can be found on the faucet website
+> The faucet account id can be found on the faucet website under the title "Miden faucet".
 
 This will generate a Pay-to-ID (`P2ID`) note containing `<amount>` assets, transferred from one regular account to the other. If we sync, we can now make use of the note and consume it for the receiving account:
 
