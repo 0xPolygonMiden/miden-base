@@ -1,10 +1,14 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 use miden_lib::transaction::TransactionKernel;
 pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
     notes::{NoteId, NoteScript},
     transaction::{ExecutedTransaction, PreparedTransaction},
-    utils::collections::BTreeMap,
     vm::{CodeBlock, Program},
     AccountError, Digest,
 };
@@ -33,3 +37,7 @@ pub use error::{
 
 #[cfg(test)]
 mod tests;
+
+// RE-EXPORTS
+// ================================================================================================
+pub use miden_objects::utils;

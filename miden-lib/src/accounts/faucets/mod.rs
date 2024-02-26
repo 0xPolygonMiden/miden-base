@@ -2,11 +2,11 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
-    utils::{string::ToString, vec},
     AccountError, Felt, Word, ZERO,
 };
 
 use super::{AuthScheme, Library, MidenLib, TransactionKernel};
+use crate::utils::{string::*, vec};
 
 // FUNGIBLE FAUCET
 // ================================================================================================

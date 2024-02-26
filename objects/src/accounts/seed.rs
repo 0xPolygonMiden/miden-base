@@ -7,7 +7,8 @@ use std::{
     thread::{self, spawn},
 };
 
-use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, Vec, Word};
+use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, Word};
+use crate::utils::collections::*;
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -177,7 +178,7 @@ mod log {
         super::{digest_pow, Digest, FieldElement, Word},
         AccountId, AccountType,
     };
-    use crate::utils::string::String;
+    use crate::utils::string::*;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.
     pub struct Log {

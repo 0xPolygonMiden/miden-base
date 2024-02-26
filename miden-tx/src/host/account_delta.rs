@@ -5,15 +5,15 @@ use miden_objects::{
         AccountVaultDelta,
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    utils::{
-        collections::{btree_map::Entry, BTreeMap},
-        string::ToString,
-    },
     Digest, Felt, Word, EMPTY_WORD, ZERO,
 };
 use vm_processor::{ContextId, ProcessState};
 
 use super::{AdviceProvider, TransactionHost};
+use crate::utils::{
+    collections::{btree_map::*, *},
+    string::*,
+};
 
 // CONSTANTS
 // ================================================================================================

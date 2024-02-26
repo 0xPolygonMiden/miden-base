@@ -1,5 +1,5 @@
-use super::{AssetError, Felt, ToString};
-use crate::utils::string::String;
+use super::{AssetError, Felt};
+use crate::utils::string::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TokenSymbol(Felt);

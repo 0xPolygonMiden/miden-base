@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::{AccountStorage, SlotItem},
-    utils::collections::Vec,
+    utils::collections::*,
 };
 
 #[derive(Default, Debug, Clone)]

@@ -5,7 +5,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::collections::Vec,
+    utils::collections::*,
     BlockHeader, Felt, FieldElement,
 };
 use vm_processor::{AdviceInputs, Operation, Program, Word};

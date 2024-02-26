@@ -3,7 +3,7 @@ use miden_objects::{
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
-    utils::collections::Vec,
+    utils::collections::*,
     Felt, Word, ZERO,
 };
 

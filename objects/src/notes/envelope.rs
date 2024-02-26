@@ -1,7 +1,8 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
-    Serializable, Vec, Word,
+    Serializable, Word,
 };
+use crate::utils::collections::*;
 
 // NOTE ENVELOPE
 // ================================================================================================

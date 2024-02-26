@@ -1,10 +1,6 @@
 use miden_objects::{
     accounts::{Account, AccountStorage, AccountType, SlotItem},
     assets::{Asset, AssetVault},
-    utils::{
-        collections::Vec,
-        string::{String, ToString},
-    },
     Felt, Word, ZERO,
 };
 use rand::Rng;
@@ -12,6 +8,7 @@ use rand::Rng;
 use crate::{
     builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
     constants::DEFAULT_ACCOUNT_CODE,
+    utils::{collections::*, string::*},
 };
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each

@@ -1,8 +1,7 @@
 use core::fmt;
 
-use super::{
-    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, ToString, Vec, Word,
-};
+use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word};
+use crate::utils::{collections::*, string::*};
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;

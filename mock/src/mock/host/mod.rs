@@ -1,13 +1,14 @@
 use miden_lib::transaction::TransactionEvent;
 use miden_objects::{
     accounts::{delta::AccountVaultDelta, AccountStub},
-    utils::{collections::BTreeMap, string::ToString},
     Digest,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource,
     ContextId, ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
 };
+
+use crate::utils::{collections::*, string::*};
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;

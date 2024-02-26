@@ -8,7 +8,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    utils::string::String,
+    utils::string::*,
     Digest, Word,
 };
 

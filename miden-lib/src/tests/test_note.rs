@@ -1,7 +1,7 @@
 use miden_objects::{
     notes::Note,
     transaction::{PreparedTransaction, TransactionArgs},
-    utils::collections::BTreeMap,
+    utils::collections::*,
     WORD_SIZE,
 };
 use mock::{

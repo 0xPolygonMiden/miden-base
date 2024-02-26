@@ -1,7 +1,7 @@
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    string::String,
+    string::*,
     HexParseError,
 };
 

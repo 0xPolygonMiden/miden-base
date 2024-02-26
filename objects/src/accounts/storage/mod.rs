@@ -1,8 +1,11 @@
 use super::{
-    AccountError, AccountStorageDelta, BTreeMap, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Digest, Felt, Hasher, Serializable, String, ToString, Vec, Word,
+    AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
+use crate::{
+    crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt},
+    utils::{collections::*, string::*, vec},
+};
 
 mod slot;
 pub use slot::StorageSlotType;

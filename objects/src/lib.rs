@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
 extern crate alloc;
 
 pub mod accounts;
@@ -39,7 +38,7 @@ pub mod crypto {
 
 pub mod utils {
     pub use miden_crypto::utils::{bytes_to_hex_string, format, hex_to_bytes, vec, HexParseError};
-    pub use vm_core::utils::{collections, group_slice_elements, string, IntoBytes};
+    pub use vm_core::utils::*;
 
     pub mod serde {
         pub use miden_crypto::utils::{
