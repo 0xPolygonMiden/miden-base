@@ -61,7 +61,7 @@ In this first part of the tutorial we will teach you how to create a new Miden a
    miden-client account new basic-immutable
    ```
 
-   Please refer to the documentation of the CLI for more information
+   Please refer to the documentation of the CLI
 
 2. **Listing accounts:** To view the newly created account we can run the following command:
 
