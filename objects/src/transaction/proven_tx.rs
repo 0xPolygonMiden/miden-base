@@ -199,7 +199,13 @@ impl Serializable for ProvenTransaction {
         self.output_notes.write_into(target);
 
         target.write_usize(self.output_note_details.len());
+<<<<<<< HEAD
         target.write_many(self.output_note_details.iter());
+=======
+        let elements: Vec<_> =
+            self.output_note_details.iter().map(|(k, v)| (*k, v.clone())).collect();
+        target.write_many(&elements);
+>>>>>>> 350922a (objects: add account/note details to ProvenTransaction #403)
 
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
