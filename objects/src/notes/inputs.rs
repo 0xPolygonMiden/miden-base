@@ -2,9 +2,12 @@ use core::cell::OnceCell;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, NoteError,
-    Serializable, Vec, WORD_SIZE, ZERO,
+    Serializable, WORD_SIZE, ZERO,
 };
-use crate::MAX_INPUTS_PER_NOTE;
+use crate::{
+    utils::{collections::*, format},
+    MAX_INPUTS_PER_NOTE,
+};
 
 // NOTE INPUTS
 // ================================================================================================

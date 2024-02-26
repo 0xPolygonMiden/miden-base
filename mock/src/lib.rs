@@ -1,3 +1,8 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 use std::{fs::File, io::Read, path::PathBuf};
 
 use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};

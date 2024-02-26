@@ -1,14 +1,10 @@
 use core::cell::OnceCell;
 
-use super::{
+use crate::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     assets::Asset,
-    utils::{
-        collections::Vec,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::{String, ToString},
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
@@ -232,6 +228,8 @@ impl serde::Serialize for Note {
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Note {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use crate::utils::collections::*;
+
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
         Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }

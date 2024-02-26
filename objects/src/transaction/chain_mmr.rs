@@ -1,6 +1,6 @@
 use crate::{
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
-    utils::collections::{BTreeMap, Vec},
+    utils::collections::*,
     BlockHeader, ChainMmrError,
 };
 
@@ -117,9 +117,10 @@ impl ChainMmr {
 
 #[cfg(test)]
 mod tests {
-    use super::{ChainMmr, Vec};
+    use super::ChainMmr;
     use crate::{
         crypto::merkle::{Mmr, PartialMmr},
+        utils::collections::*,
         BlockHeader, Digest, ZERO,
     };
 

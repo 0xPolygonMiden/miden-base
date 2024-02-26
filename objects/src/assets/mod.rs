@@ -1,12 +1,12 @@
 use super::{
     accounts::{AccountId, AccountType},
     utils::{
-        collections::Vec,
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::ToString,
+        string::*,
     },
     AssetError, Felt, Hasher, Word, ZERO,
 };
+use crate::utils::format;
 
 mod fungible;
 pub use fungible::FungibleAsset;

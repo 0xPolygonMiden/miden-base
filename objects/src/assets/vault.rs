@@ -1,8 +1,12 @@
 use super::{
     AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    FungibleAsset, NonFungibleAsset, Serializable, ToString, Vec, ZERO,
+    FungibleAsset, NonFungibleAsset, Serializable, ZERO,
 };
-use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
+use crate::{
+    crypto::merkle::Smt,
+    utils::{collections::*, string::*},
+    AssetVaultError, Digest,
+};
 
 // ASSET VAULT
 // ================================================================================================

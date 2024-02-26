@@ -1,8 +1,11 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, NoteError, Serializable,
-    ToString, NOTE_TREE_DEPTH,
+    NOTE_TREE_DEPTH,
 };
-use crate::crypto::merkle::{MerklePath, NodeIndex};
+use crate::{
+    crypto::merkle::{MerklePath, NodeIndex},
+    utils::string::*,
+};
 
 /// Contains information about the origin of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -3,15 +3,12 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::Asset,
     notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
-    utils::{
-        collections::Vec,
-        string::{String, ToString},
-    },
     Felt, NoteError, Word,
 };
 use rand::Rng;
 
 use super::TransactionKernel;
+use crate::utils::{collections::*, string::*};
 
 const DEFAULT_NOTE_CODE: &str = "\
 begin

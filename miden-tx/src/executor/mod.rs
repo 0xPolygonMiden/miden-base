@@ -12,6 +12,7 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
+use crate::utils::collections::*;
 
 mod data;
 pub use data::DataStore;

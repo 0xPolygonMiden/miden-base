@@ -4,9 +4,9 @@ use crate::{
     accounts::AccountStub,
     notes::{Note, NoteAssets, NoteEnvelope, NoteId, NoteMetadata},
     utils::{
-        collections::{self, BTreeSet, Vec},
+        collections::*,
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::ToString,
+        string::*,
     },
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -144,7 +144,7 @@ impl<T: ToEnvelope> OutputNotes<T> {
 
 impl<T: ToEnvelope> IntoIterator for OutputNotes<T> {
     type Item = T;
-    type IntoIter = collections::vec::IntoIter<Self::Item>;
+    type IntoIter = vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.notes.into_iter()

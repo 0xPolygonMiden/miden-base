@@ -1,6 +1,7 @@
-use super::{Digest, Felt, Hasher, Vec, ZERO};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use super::{Digest, Felt, Hasher, ZERO};
+use crate::utils::{
+    collections::*,
+    serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 /// The header of a block. It contains metadata about the block, commitments to the current

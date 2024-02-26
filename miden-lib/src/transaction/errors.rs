@@ -1,6 +1,6 @@
 use core::fmt;
 
-use miden_objects::{accounts::AccountStorage, utils::string::String, AssetError, Digest};
+use miden_objects::{accounts::AccountStorage, utils::string::*, AssetError, Digest};
 
 // TRANSACTION KERNEL ERROR
 // ================================================================================================
