@@ -1,7 +1,7 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    notes::Nullifier,
-    transaction::{InputNotes, ProvenTransaction, TransactionWitness},
+    notes::{NoteEnvelope, Nullifier},
+    transaction::{InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -62,19 +62,26 @@ impl TransactionProver {
         let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
             .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
-        Ok(ProvenTransaction::new(
-            account_id,
-            if tx_witness.account().is_new() {
-                Digest::default()
-            } else {
-                initial_account_hash
-            },
-            tx_outputs.account.hash(),
-            input_notes,
-            tx_outputs.output_notes.into(),
-            tx_script_root,
-            block_hash,
-            proof,
-        ))
+        let initial_hash = if tx_witness.account().is_new() {
+            Digest::default()
+        } else {
+            initial_account_hash
+        };
+
+        let builder = ProvenTransactionBuilder::new()
+            .account_id(account_id)
+            .initial_account_hash(initial_hash)
+            .final_account_hash(tx_outputs.account.hash())
+            .add_input_notes(input_notes)
+            .add_output_notes(tx_outputs.output_notes.into_iter().map(NoteEnvelope::from))
+            .block_ref(block_hash)
+            .proof(proof);
+
+        let builder = match tx_script_root {
+            Some(tx_script_root) => builder.tx_script_root(tx_script_root),
+            _ => builder,
+        };
+
+        Ok(builder.build()?)
     }
 }

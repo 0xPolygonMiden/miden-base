@@ -1,8 +1,8 @@
 use core::fmt;
 
 use miden_objects::{
-    assembly::AssemblyError, notes::NoteId, Felt, NoteError, TransactionInputError,
-    TransactionOutputError,
+    assembly::AssemblyError, notes::NoteId, transaction::ProvenTransactionBuilderError, Felt,
+    NoteError, TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
@@ -70,19 +70,15 @@ impl std::error::Error for TransactionExecutorError {}
 // ================================================================================================
 
 #[derive(Debug)]
+#[cfg_attr(feature = "std", derive(thiserror::Error))]
 pub enum TransactionProverError {
-    ProveTransactionProgramFailed(ExecutionError),
-    InvalidTransactionOutput(TransactionOutputError),
+    #[error("Proving transaction failed: {0}")]
+    ProveTransactionProgramFailed(#[from] ExecutionError),
+    #[error("Transaction ouptut invalid: {0}")]
+    InvalidTransactionOutput(#[from] TransactionOutputError),
+    #[error("Building proven transaction error: {0}")]
+    ProvenTransactionBuilderError(#[from] ProvenTransactionBuilderError),
 }
-
-impl fmt::Display for TransactionProverError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
