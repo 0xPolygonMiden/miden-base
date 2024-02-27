@@ -22,6 +22,7 @@ pub trait DataStore {
     /// - The account with the specified ID could not be found in the data store.
     /// - The block with the specified number could not be found in the data store.
     /// - Any of the notes with the specified IDs could not be found in the data store.
+    /// - Any of the notes with the specified IDs were already consumed.
     /// - The combination of specified inputs resulted in a transaction input error.
     /// - The data store encountered some internal error
     fn get_transaction_inputs(
