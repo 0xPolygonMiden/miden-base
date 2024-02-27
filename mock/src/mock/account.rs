@@ -22,10 +22,15 @@ use crate::{
 // ================================================================================================
 
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 932255360940351967;
+
 pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
+pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = 0b0100111011u64 << 54;
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010111100 << 54;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1000111100 << 54;
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1110011100 << 54;
 pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 = 0b1110011101 << 54;
+
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
     0b1010010001111111010110100011011110101011010001101111110110111100u64;
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
@@ -188,7 +193,7 @@ pub enum MockAccountType {
 
 pub fn mock_new_account(assembler: &Assembler) -> Account {
     let (acct_id, _account_seed) =
-        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
+        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
     Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
@@ -263,6 +268,7 @@ pub enum AccountSeedType {
     NonFungibleFaucetInvalidReservedSlot,
     NonFungibleFaucetValidReservedSlot,
     RegularAccountUpdatableCodeOnChain,
+    RegularAccountUpdatableCodeOffChain,
 }
 
 /// Returns the account id and seed for the specified account type.
@@ -309,7 +315,15 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
             mock_account(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+                Felt::ONE,
+                mock_account_code(&assembler),
+            ),
+            AccountType::RegularAccountUpdatableCode,
+        ),
+        AccountSeedType::RegularAccountUpdatableCodeOffChain => (
+            mock_account(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ONE,
                 mock_account_code(&assembler),
             ),

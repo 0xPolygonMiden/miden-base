@@ -9,7 +9,7 @@ use crate::{
         format,
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     },
-    TransactionInputError, TransactionOutputError,
+    ProvenTransactionError,
 };
 
 // PROVEN TRANSACTION
@@ -35,6 +35,8 @@ pub struct ProvenTransaction {
     account_id: AccountId,
 
     /// The hash of the account before the transaction was executed.
+    ///
+    /// Set to `Digest::default()` for new accounts.
     initial_account_hash: Digest,
 
     /// The hash of the account after the transaction was executed.
@@ -130,13 +132,13 @@ impl ProvenTransaction {
 #[derive(Clone, Debug)]
 pub struct ProvenTransactionBuilder {
     /// ID of the account that the transaction was executed against.
-    account_id: Option<AccountId>,
+    account_id: AccountId,
 
     /// The hash of the account before the transaction was executed.
-    initial_account_hash: Option<Digest>,
+    initial_account_hash: Digest,
 
     /// The hash of the account after the transaction was executed.
-    final_account_hash: Option<Digest>,
+    final_account_hash: Digest,
 
     /// State changes to the account due to the transaction.
     account_details: Option<AccountDetails>,
@@ -154,40 +156,10 @@ pub struct ProvenTransactionBuilder {
     tx_script_root: Option<Digest>,
 
     /// Block [Digest] of the transaction's reference block.
-    block_ref: Option<Digest>,
+    block_ref: Digest,
 
     /// A STARK proof that attests to the correct execution of the transaction.
-    proof: Option<ExecutionProof>,
-}
-
-#[derive(Debug)]
-#[cfg_attr(feature = "std", derive(thiserror::Error))]
-pub enum ProvenTransactionBuilderError {
-    #[error("A ProvenTransaction can not be created without an account id.")]
-    MissingAccountId,
-    #[error("A ProvenTransaction can not be created without the account's initial hash.")]
-    MissingInitialHash,
-    #[error("A ProvenTransaction can not be created without the account's final hash.")]
-    MissingFinalHash,
-    #[error("A ProvenTransaction can not be created without a reference block.")]
-    MissingBlockReference,
-    #[error("A ProvenTransaction can not be created without the execution proof.")]
-    MissingExecutionProof,
-
-    #[error("Note detail {0} for an unknown output note.")]
-    InvalidNoteDetail(NoteId, Note),
-
-    #[error("Provent transaction account_id {0} and account_details.id must match {1}.")]
-    AccountIdMismatch(AccountId, AccountId),
-
-    #[error("Provent transaction account_final_hash {0} and account_details.hash must match {1}.")]
-    AccountFinalHashMismatch(Digest, Digest),
-    #[error("Invalid input notes: {0}")]
-    InputNotesError(#[from] TransactionInputError),
-    #[error("Invalid output notes: {0}")]
-    OutputNotesError(#[from] TransactionOutputError),
-    #[error("Note details for unknown note ids: {0:?}")]
-    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    proof: ExecutionProof,
 }
 
 impl ProvenTransactionBuilder {
@@ -195,41 +167,29 @@ impl ProvenTransactionBuilder {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
-    pub fn new() -> Self {
+    pub fn new(
+        account_id: AccountId,
+        initial_account_hash: Digest,
+        final_account_hash: Digest,
+        block_ref: Digest,
+        proof: ExecutionProof,
+    ) -> Self {
         Self {
-            account_id: None,
-            initial_account_hash: None,
-            final_account_hash: None,
+            account_id,
+            initial_account_hash,
+            final_account_hash,
             account_details: None,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
             output_note_details: BTreeMap::new(),
             tx_script_root: None,
-            block_ref: None,
-            proof: None,
+            block_ref,
+            proof,
         }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Sets the [Account] for which the was executed.
-    pub fn account_id(mut self, account_id: AccountId) -> Self {
-        self.account_id = Some(account_id);
-        self
-    }
-
-    /// Sets the account's initial state hash.
-    pub fn initial_account_hash(mut self, initial_account_hash: Digest) -> Self {
-        self.initial_account_hash = Some(initial_account_hash);
-        self
-    }
-
-    /// Sets the account's final account state hash.
-    pub fn final_account_hash(mut self, final_account_hash: Digest) -> Self {
-        self.final_account_hash = Some(final_account_hash);
-        self
-    }
 
     /// Sets the account's details.
     pub fn account_details(mut self, account_details: AccountDetails) -> Self {
@@ -270,37 +230,7 @@ impl ProvenTransactionBuilder {
         self
     }
 
-    /// Set the transaction's proof.
-    pub fn proof(mut self, proof: ExecutionProof) -> Self {
-        self.proof = Some(proof);
-        self
-    }
-
-    /// Set reference block the transaction was executed against.
-    pub fn block_ref(mut self, block_ref: Digest) -> Self {
-        self.block_ref = Some(block_ref);
-        self
-    }
-
-    pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionBuilderError> {
-        // Required fields
-        let account_id =
-            self.account_id.take().ok_or(ProvenTransactionBuilderError::MissingAccountId)?;
-        let initial_account_hash = self
-            .initial_account_hash
-            .take()
-            .ok_or(ProvenTransactionBuilderError::MissingInitialHash)?;
-        let final_account_hash = self
-            .final_account_hash
-            .take()
-            .ok_or(ProvenTransactionBuilderError::MissingFinalHash)?;
-        let block_ref = self
-            .block_ref
-            .take()
-            .ok_or(ProvenTransactionBuilderError::MissingBlockReference)?;
-        let proof =
-            self.proof.take().ok_or(ProvenTransactionBuilderError::MissingExecutionProof)?;
-
+    pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let output_note_details = self.output_note_details;
         let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
         let unknown_ids: Vec<_> = output_note_details
@@ -309,60 +239,85 @@ impl ProvenTransactionBuilder {
             .cloned()
             .collect();
         if !unknown_ids.is_empty() {
-            return Err(ProvenTransactionBuilderError::NoteDetailsForUnknownNotes(unknown_ids));
+            return Err(ProvenTransactionError::NoteDetailsForUnknownNotes(unknown_ids));
         }
 
         let account_details = self.account_details.take();
-        let input_notes = InputNotes::new(self.input_notes)?;
-        let output_notes = OutputNotes::new(self.output_notes)?;
+        let input_notes =
+            InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
+        let output_notes = OutputNotes::new(self.output_notes)
+            .map_err(ProvenTransactionError::OutputNotesError)?;
         let tx_script_root = self.tx_script_root;
 
-        if let Some(ref details) = account_details {
-            match details {
-                AccountDetails::Full(account) => {
-                    if account.id() != account_id {
-                        return Err(ProvenTransactionBuilderError::AccountIdMismatch(
-                            account_id,
-                            account.id(),
-                        ));
-                    }
-                    if account.hash() != final_account_hash {
-                        return Err(ProvenTransactionBuilderError::AccountFinalHashMismatch(
-                            final_account_hash,
-                            account.hash(),
-                        ));
+        if !self.account_id.is_on_chain() && account_details.is_some() {
+            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
+        }
+
+        if self.account_id.is_on_chain() {
+            match account_details {
+                None => {
+                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
+                        self.account_id,
+                    ))
+                },
+                Some(ref details) => {
+                    let is_new_account = self.initial_account_hash == Digest::default();
+
+                    match (is_new_account, details) {
+                        (true, AccountDetails::Delta(_)) => {
+                            return Err(
+                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (true, AccountDetails::Full(account)) => {
+                            if account.id() != self.account_id {
+                                return Err(ProvenTransactionError::AccountIdMismatch(
+                                    self.account_id,
+                                    account.id(),
+                                ));
+                            }
+                            if account.hash() != self.final_account_hash {
+                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
+                                    self.final_account_hash,
+                                    account.hash(),
+                                ));
+                            }
+                        },
+                        (false, AccountDetails::Full(_)) => {
+                            return Err(
+                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (false, AccountDetails::Delta(_)) => todo!(),
                     }
                 },
-                AccountDetails::Delta(_) => todo!(),
             }
         }
 
         let id = TransactionId::new(
-            initial_account_hash,
-            final_account_hash,
+            self.initial_account_hash,
+            self.final_account_hash,
             input_notes.commitment(),
             output_notes.commitment(),
         );
 
         Ok(ProvenTransaction {
             id,
-            account_id,
-            initial_account_hash,
-            final_account_hash,
+            account_id: self.account_id,
+            initial_account_hash: self.initial_account_hash,
+            final_account_hash: self.final_account_hash,
             account_details,
             input_notes,
             output_notes,
             output_note_details,
             tx_script_root,
-            block_ref,
-            proof,
+            block_ref: self.block_ref,
+            proof: self.proof,
         })
-    }
-}
-
-impl Default for ProvenTransactionBuilder {
-    fn default() -> Self {
-        ProvenTransactionBuilder::new()
     }
 }
 
@@ -406,13 +361,7 @@ impl Serializable for ProvenTransaction {
         self.output_notes.write_into(target);
 
         target.write_usize(self.output_note_details.len());
-<<<<<<< HEAD
         target.write_many(self.output_note_details.iter());
-=======
-        let elements: Vec<_> =
-            self.output_note_details.iter().map(|(k, v)| (*k, v.clone())).collect();
-        target.write_many(&elements);
->>>>>>> 350922a (objects: add account/note details to ProvenTransaction #403)
 
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);

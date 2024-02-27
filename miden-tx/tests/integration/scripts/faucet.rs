@@ -13,7 +13,7 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
+use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, utils::prepare_word};
 
 use crate::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
@@ -264,7 +264,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     max_supply: u64,
     total_issuance: Option<u64>,
 ) -> Account {
-    let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
     let faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();

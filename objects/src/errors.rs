@@ -11,6 +11,7 @@ use super::{
     utils::string::*,
     Digest, Word,
 };
+use crate::{notes::Note, utils::collections::*};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -347,3 +348,64 @@ impl fmt::Display for TransactionOutputError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionOutputError {}
+
+// PROVEN TRANSACTIOM ERROR
+// ================================================================================================
+
+#[derive(Debug)]
+pub enum ProvenTransactionError {
+    AccountFinalHashMismatch(Digest, Digest),
+    AccountIdMismatch(AccountId, AccountId),
+    InputNotesError(TransactionInputError),
+    InvalidNoteDetail(NoteId, Note),
+    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    OffChainAccountWithDetails(AccountId),
+    OnChainAccountMissingDetails(AccountId),
+    NewOnChainAccountRequiresFullDetails(AccountId),
+    ExistingOnChainAccountRequiresDeltaDetails(AccountId),
+    OutputNotesError(TransactionOutputError),
+}
+
+impl fmt::Display for ProvenTransactionError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ProvenTransactionError::AccountFinalHashMismatch(tx_digest, details_hash) => {
+                write!(f, "Provent transaction account_final_hash {} and account_details.hash must match {}.", tx_digest, details_hash)
+            },
+            ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
+                write!(
+                    f,
+                    "Provent transaction account_id {} and account_details.id must match {}.",
+                    tx_id, details_id,
+                )
+            },
+            ProvenTransactionError::InputNotesError(inner) => {
+                write!(f, "Invalid input notes: {}", inner)
+            },
+            ProvenTransactionError::InvalidNoteDetail(id, _note) => {
+                write!(f, "Note detail {} for an unknown output note.", id)
+            },
+            ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
+                write!(f, "Note details for unknown note ids: {:?}", note_ids)
+            },
+            ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
+                write!(f, "Off-chain account {} should not have account details", account_id)
+            },
+            ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
+                write!(f, "On-chain account {} missing account details", account_id)
+            },
+            ProvenTransactionError::OutputNotesError(inner) => {
+                write!(f, "Invalid output notes: {}", inner)
+            },
+            ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
+                write!(f, "New on-chain account {} missing full details", account_id)
+            },
+            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
+                write!(f, "Existing on-chain account {} should only provide deltas", account_id)
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ProvenTransactionError {}

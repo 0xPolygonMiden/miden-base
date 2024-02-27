@@ -10,8 +10,9 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::{
     mock::account::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
+        DEFAULT_AUTH_SCRIPT,
     },
     utils::prepare_word,
 };
@@ -29,7 +30,7 @@ fn prove_receive_asset_via_wallet() {
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
     let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
@@ -108,7 +109,7 @@ fn prove_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,

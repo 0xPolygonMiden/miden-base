@@ -5,7 +5,7 @@ use miden_mock::mock::{
     account::DEFAULT_ACCOUNT_CODE,
     chain::{Immutable, MockChain, OnChain},
 };
-use miden_objects::{Digest, FieldElement, Word};
+use miden_objects::Digest;
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 
@@ -80,12 +80,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut mock_chain = MockChain::new(small_rng);
     let start = Instant::now();
 
-    let faucet = mock_chain.build_fungible_faucet_with_seed(
-        seed_to_word("3ef982ea3dca3f89179e1e86ef1c263896ef1e07e76325ce7c69825046bf75ec"),
-        OnChain::Yes,
-        DEFAULT_FAUCET_CODE,
-        Digest::default(),
-    );
+    let faucet =
+        mock_chain.build_fungible_faucet(OnChain::Yes, DEFAULT_FAUCET_CODE, Digest::default());
     println!("Fungible faucet created {} [took: {}s]", faucet, start.elapsed().as_secs());
     mock_chain.seal_block();
 
@@ -124,17 +120,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     output.write_all(&data)?;
 
     Ok(())
-}
-
-// HELPER FUNCTIONS
-// ===============================================================================================
-
-fn seed_to_word(seed: &str) -> Word {
-    let seed_bytes = hex::decode(seed).unwrap();
-    let data = unsafe { FieldElement::bytes_as_elements(&seed_bytes) }.unwrap();
-    let seed: Word = [data[0], data[1], data[2], data[3]];
-
-    seed
 }
 
 // TESTS

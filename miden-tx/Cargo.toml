@@ -26,7 +26,6 @@ miden-objects = { package = "miden-objects", path = "../objects", version = "0.2
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
-thiserror = { version = "1.0" }
 
 [dev-dependencies]
 mock = { package = "miden-mock", path = "../mock", default-features = false }

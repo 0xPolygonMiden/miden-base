@@ -111,7 +111,10 @@ impl<T: Rng> AccountBuilder<T> {
         let inner_storage = self.storage_builder.build();
 
         for (key, value) in inner_storage.slots().leaves() {
-            storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
+            if key != 255 {
+                // don't copy the reserved key
+                storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
+            }
         }
 
         self.account_id_builder.code(&self.code);

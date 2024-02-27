@@ -1,8 +1,8 @@
-use core::fmt;
+use core::fmt::{self, Display};
 
 use miden_objects::{
-    assembly::AssemblyError, notes::NoteId, transaction::ProvenTransactionBuilderError, Felt,
-    NoteError, TransactionInputError, TransactionOutputError,
+    assembly::AssemblyError, notes::NoteId, Felt, NoteError, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
@@ -70,15 +70,30 @@ impl std::error::Error for TransactionExecutorError {}
 // ================================================================================================
 
 #[derive(Debug)]
-#[cfg_attr(feature = "std", derive(thiserror::Error))]
 pub enum TransactionProverError {
-    #[error("Proving transaction failed: {0}")]
-    ProveTransactionProgramFailed(#[from] ExecutionError),
-    #[error("Transaction ouptut invalid: {0}")]
-    InvalidTransactionOutput(#[from] TransactionOutputError),
-    #[error("Building proven transaction error: {0}")]
-    ProvenTransactionBuilderError(#[from] ProvenTransactionBuilderError),
+    ProveTransactionProgramFailed(ExecutionError),
+    InvalidTransactionOutput(TransactionOutputError),
+    ProvenTransactionError(ProvenTransactionError),
 }
+
+impl Display for TransactionProverError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TransactionProverError::ProveTransactionProgramFailed(inner) => {
+                write!(f, "Proving transaction failed: {}", inner)
+            },
+            TransactionProverError::InvalidTransactionOutput(inner) => {
+                write!(f, "Transaction ouptut invalid: {}", inner)
+            },
+            TransactionProverError::ProvenTransactionError(inner) => {
+                write!(f, "Building proven transaction error: {}", inner)
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionProverError {}
 
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
