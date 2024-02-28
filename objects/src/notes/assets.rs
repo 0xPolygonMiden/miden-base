@@ -59,7 +59,7 @@ impl NoteAssets {
 
         Ok(Self {
             assets: assets.to_vec(),
-            hash: compute_asset_commitment(&assets),
+            hash: compute_asset_commitment(assets),
         })
     }
 

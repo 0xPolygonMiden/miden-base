@@ -38,7 +38,7 @@ impl NoteInputs {
         if values.len() > Self::MAX_INPUTS_PER_NOTE {
             return Err(NoteError::too_many_inputs(values.len()));
         }
-        
+
         let hash = {
             let padded_values = pad_inputs(&values);
             Hasher::hash_elements(&padded_values)
