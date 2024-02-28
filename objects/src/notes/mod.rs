@@ -1,5 +1,3 @@
-use core::cell::OnceCell;
-
 use crate::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -82,8 +80,15 @@ pub struct Note {
     serial_num: Word,
     metadata: NoteMetadata,
 
-    id: OnceCell<NoteId>,
-    nullifier: OnceCell<Nullifier>,
+    id: NoteId,
+    recipient: Digest,
+    nullifier: Nullifier,
+}
+
+fn compute_recipient(serial_num: Word, script: &NoteScript, inputs: &NoteInputs) -> Digest {
+    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
+    let merge_script = Hasher::merge(&[serial_num_hash, script.hash()]);
+    Hasher::merge(&[merge_script, inputs.commitment()])
 }
 
 impl Note {
@@ -104,15 +109,11 @@ impl Note {
         sender: AccountId,
         tag: Felt,
     ) -> Result<Self, NoteError> {
-        Ok(Self {
-            script,
-            inputs: NoteInputs::new(inputs.to_vec())?,
-            assets: NoteAssets::new(assets)?,
-            serial_num,
-            metadata: NoteMetadata::new(sender, tag),
-            id: OnceCell::new(),
-            nullifier: OnceCell::new(),
-        })
+        let inputs = NoteInputs::new(inputs.to_vec())?;
+        let assets = NoteAssets::new(assets)?;
+        let metadata = NoteMetadata::new(sender, tag);
+
+        Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
     }
 
     /// Returns a note instance created from the provided parts.
@@ -123,14 +124,19 @@ impl Note {
         serial_num: Word,
         metadata: NoteMetadata,
     ) -> Self {
+        let recipient = compute_recipient(serial_num, &script, &inputs);
+        let id = NoteId::new(recipient, assets.commitment());
+        let nullifier =
+            Nullifier::new(script.hash(), inputs.commitment(), assets.commitment(), serial_num);
         Self {
             script,
             inputs,
             assets,
             serial_num,
             metadata,
-            id: OnceCell::new(),
-            nullifier: OnceCell::new(),
+            id,
+            recipient,
+            nullifier,
         }
     }
 
@@ -163,17 +169,18 @@ impl Note {
     }
 
     /// Returns the recipient of this note.
+    ///
     /// Recipient is defined and calculated as:
-    ///  hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+    ///
+    /// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+    ///
     pub fn recipient(&self) -> Digest {
-        let serial_num_hash = Hasher::merge(&[self.serial_num.into(), Digest::default()]);
-        let merge_script = Hasher::merge(&[serial_num_hash, self.script.hash()]);
-        Hasher::merge(&[merge_script, self.inputs.commitment()])
+        self.recipient
     }
 
     /// Returns a unique identifier of this note, which is simultaneously a commitment to the note.
     pub fn id(&self) -> NoteId {
-        *self.id.get_or_init(|| self.into())
+        self.id
     }
 
     /// Returns the value used to authenticate a notes existence in the note tree. This is computed
@@ -184,7 +191,7 @@ impl Note {
 
     /// Returns the nullifier for this note.
     pub fn nullifier(&self) -> Nullifier {
-        *self.nullifier.get_or_init(|| self.into())
+        self.nullifier
     }
 }
 
@@ -201,6 +208,7 @@ impl Serializable for Note {
             metadata,
 
             id: _,
+            recipient: _,
             nullifier: _,
         } = self;
 
@@ -220,15 +228,7 @@ impl Deserializable for Note {
         let serial_num = Word::read_from(source)?;
         let metadata = NoteMetadata::read_from(source)?;
 
-        Ok(Self {
-            script,
-            inputs,
-            assets,
-            serial_num,
-            metadata,
-            id: OnceCell::new(),
-            nullifier: OnceCell::new(),
-        })
+        Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
     }
 }
 

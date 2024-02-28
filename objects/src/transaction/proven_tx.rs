@@ -248,3 +248,15 @@ impl Deserializable for ProvenTransaction {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ProvenTransaction;
+
+    fn check_if_send<T: Send>() {}
+
+    #[test]
+    fn proven_transaction_is_send() {
+        check_if_send::<ProvenTransaction>();
+    }
+}
