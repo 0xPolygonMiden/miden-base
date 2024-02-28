@@ -9,6 +9,7 @@ use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKerne
 use miden_objects::{
     notes::NoteAssets,
     transaction::{OutputNotes, PreparedTransaction, TransactionArgs, TransactionInputs},
+    utils::string::*,
     Felt,
 };
 use mock::host::MockHost;

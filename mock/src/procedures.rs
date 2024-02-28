@@ -1,3 +1,5 @@
+use miden_objects::utils::string::*;
+
 use super::{
     memory::{
         CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
