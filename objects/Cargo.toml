@@ -35,7 +35,5 @@ vm-core = { package = "miden-core", version = "0.8", default-features = false }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "0.5", default-features = false, features = [
-    "html_reports",
-] }
+criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 tempfile = { version = "3.0" }

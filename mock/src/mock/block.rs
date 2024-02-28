@@ -2,9 +2,7 @@ use miden_objects::{
     accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt, ACCOUNT_TREE_DEPTH,
     ZERO,
 };
-use miden_test_utils::rand;
-
-use crate::utils::collections::*;
+use rand_utils as rand;
 
 pub fn mock_block_header(
     block_num: u32,
