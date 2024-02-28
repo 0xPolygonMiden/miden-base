@@ -44,6 +44,21 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 // NOTE
 // ================================================================================================
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NoteType {
+    /// Notes with this type have only their hash published to the network.
+    OffChain,
+
+    /// Notes with type are shared with the network encrypted.
+    Encrypted,
+
+    /// Notes with this type are known by the network, intended to be used in local transactions.
+    Local,
+
+    /// Notes with this type are known by the network, intended for network transactions.
+    Network,
+}
+
 /// A note which can be used to transfer assets between accounts.
 ///
 /// This struct is a full description of a note which is needed to execute a note in a transaction.
