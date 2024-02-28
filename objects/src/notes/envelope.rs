@@ -18,6 +18,7 @@ use crate::utils::collections::*;
 ///     - num assets
 ///     - ZERO
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
     note_id: NoteId,
     note_metadata: NoteMetadata,

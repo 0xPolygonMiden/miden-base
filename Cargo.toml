@@ -20,3 +20,4 @@ lto = true
 assembly = { package = "miden-assembly", version = "0.8", default-features = false }
 miden-verifier = { package = "miden-verifier", version = "0.8", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.8", default-features = false }
+miden-prover = { package = "miden-prover", version = "0.8", default-features = false }

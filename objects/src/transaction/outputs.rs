@@ -33,6 +33,10 @@ pub trait ToEnvelope:
 {
     fn id(&self) -> NoteId;
     fn metadata(&self) -> NoteMetadata;
+
+    fn to_envelope(&self) -> NoteEnvelope {
+        NoteEnvelope::new(self.id(), self.metadata())
+    }
 }
 
 impl ToEnvelope for OutputNote {
