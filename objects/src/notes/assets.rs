@@ -1,5 +1,3 @@
-use core::cell::OnceCell;
-
 use super::{
     Asset, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
     NoteError, Serializable, Word, WORD_SIZE, ZERO,
@@ -22,7 +20,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct NoteAssets {
     assets: Vec<Asset>,
-    hash: OnceCell<Digest>,
+    hash: Digest,
 }
 
 impl NoteAssets {
@@ -61,7 +59,7 @@ impl NoteAssets {
 
         Ok(Self {
             assets: assets.to_vec(),
-            hash: OnceCell::new(),
+            hash: compute_asset_commitment(assets),
         })
     }
 
@@ -70,7 +68,7 @@ impl NoteAssets {
 
     /// Returns a commitment to the note's assets.
     pub fn commitment(&self) -> Digest {
-        *self.hash.get_or_init(|| compute_asset_commitment(&self.assets))
+        self.hash
     }
 
     /// Returns the number of assets.

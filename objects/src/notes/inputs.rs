@@ -1,5 +1,3 @@
-use core::cell::OnceCell;
-
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, NoteError,
     Serializable, WORD_SIZE, ZERO,
@@ -23,7 +21,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct NoteInputs {
     values: Vec<Felt>,
-    hash: OnceCell<Digest>,
+    hash: Digest,
 }
 
 impl NoteInputs {
@@ -41,7 +39,12 @@ impl NoteInputs {
             return Err(NoteError::too_many_inputs(values.len()));
         }
 
-        Ok(Self { values, hash: OnceCell::new() })
+        let hash = {
+            let padded_values = pad_inputs(&values);
+            Hasher::hash_elements(&padded_values)
+        };
+
+        Ok(Self { values, hash })
     }
 
     // PUBLIC ACCESSORS
@@ -49,10 +52,7 @@ impl NoteInputs {
 
     /// Returns a commitment to these inputs.
     pub fn commitment(&self) -> Digest {
-        *self.hash.get_or_init(|| {
-            let padded_values = pad_inputs(&self.values);
-            Hasher::hash_elements(&padded_values)
-        })
+        self.hash
     }
 
     /// Returns the number of input values.
