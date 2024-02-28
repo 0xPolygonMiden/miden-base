@@ -1,5 +1,3 @@
-use core::cell::OnceCell;
-
 use assembly::ast::AstSerdeOptions;
 
 use super::{
@@ -29,7 +27,7 @@ pub const PROCEDURE_TREE_DEPTH: u8 = 8;
 pub struct AccountCode {
     module: ModuleAst,
     procedures: Vec<Digest>,
-    procedure_tree: OnceCell<SimpleSmt<PROCEDURE_TREE_DEPTH>>,
+    procedure_tree: SimpleSmt<PROCEDURE_TREE_DEPTH>,
 }
 
 impl AccountCode {
@@ -68,7 +66,7 @@ impl AccountCode {
         }
 
         Ok(Self {
-            procedure_tree: OnceCell::new(),
+            procedure_tree: build_procedure_tree(&procedures),
             module,
             procedures,
         })
@@ -86,7 +84,7 @@ impl AccountCode {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
         Self {
-            procedure_tree: OnceCell::new(),
+            procedure_tree: build_procedure_tree(&procedures),
             module,
             procedures,
         }
@@ -113,7 +111,7 @@ impl AccountCode {
     /// Returns a reference to the procedure tree.
     pub fn procedure_tree(&self) -> &SimpleSmt<PROCEDURE_TREE_DEPTH> {
         // build procedure tree only when requested
-        self.procedure_tree.get_or_init(|| build_procedure_tree(&self.procedures))
+        &self.procedure_tree
     }
 
     /// Returns the number of public interface procedures defined for this account.
