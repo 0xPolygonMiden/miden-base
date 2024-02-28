@@ -111,6 +111,7 @@ pub enum DataStoreError {
     BlockNotFound(u32),
     InvalidTransactionInput(TransactionInputError),
     InternalError(String),
+    NoteAlreadyConsumed(NoteId),
     NoteNotFound(NoteId),
 }
 
