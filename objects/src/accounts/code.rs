@@ -110,7 +110,6 @@ impl AccountCode {
 
     /// Returns a reference to the procedure tree.
     pub fn procedure_tree(&self) -> &SimpleSmt<PROCEDURE_TREE_DEPTH> {
-        // build procedure tree only when requested
         &self.procedure_tree
     }
 
