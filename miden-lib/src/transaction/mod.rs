@@ -79,7 +79,7 @@ impl TransactionKernel {
             .with_library(&StdLibrary::default())
             .expect("failed to load std-lib")
             .with_kernel(Self::kernel())
-            .expect("kernel is well formed")
+            .expect("kernel must be well formed")
     }
 
     // STACK INPUTS / OUTPUTS
