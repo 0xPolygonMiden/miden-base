@@ -1,6 +1,15 @@
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
 
+# ERRORS
+# =================================================================================================
+
+# SWAP script expects exactly 9 note inputs
+const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
+
+# SWAP script requires exactly one note asset
+const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
+
 # Swap script: adds an asset from the note into consumers account and
 # creates a note consumable by note issuer containing requested ASSET.
 #
@@ -26,7 +35,7 @@ begin
     # => []
 
     # store asset into memory at address 3
-    push.3 exec.note::get_assets assert
+    push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
     # load the asset and add it to the account
@@ -38,7 +47,7 @@ begin
     # => [num_inputs, inputs_ptr]
 
     # make sure the number of inputs is 9
-    eq.9 assert
+    eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     # load recipient

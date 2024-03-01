@@ -1,6 +1,21 @@
 use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 
+# ERRORS
+# =================================================================================================
+
+# Input note can not have an empty sender, procedure was likely called from the wrong context
+const.ERR_NOTE_INVALID_SENDER=0x00020027
+
+# Input note can not have an empty vault, procedure was likely called from the wrong context
+const.ERR_NOTE_INVALID_VAULT=0x00020028
+
+# Input note can not have empty inputs, procedure was likely called from the wrong context
+const.ERR_NOTE_INVALID_INPUTS=0x00020029
+
+# Note's asset must fit in a u32
+const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+
 # CONSTANTS
 # =================================================================================================
 
@@ -25,7 +40,7 @@ export.get_sender
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
-    dup neq.0 assert
+    dup neq.0 assert.err=ERR_NOTE_INVALID_SENDER
     # => [ptr]
 
     # get the sender from the note pointer
@@ -48,7 +63,7 @@ export.get_vault_info
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
-    dup neq.0 assert
+    dup neq.0 assert.err=ERR_NOTE_INVALID_VAULT
     # => [ptr]
 
     # get the number of assets in the note
@@ -75,7 +90,7 @@ export.get_inputs_info
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
     # incorrect context
-    dup neq.0 assert
+    dup neq.0 assert.err=ERR_NOTE_INVALID_INPUTS
     # => [ptr]
 
     # get the number of inputs for the note
@@ -159,7 +174,9 @@ proc.compute_output_note_assets_hash
     # => [num_assets, note_data_ptr, note_data_ptr]
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
-    add.1 u32assert u32div.2
+    add.1
+    u32assert.err=ERR_NOTE_TOO_MANY_ASSETS
+    u32div.2
     # => [num_asset_pairs, note_data_ptr, note_data_ptr]
 
     # initiate counter for assets

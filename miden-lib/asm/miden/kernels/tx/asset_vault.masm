@@ -4,6 +4,33 @@ use.miden::kernels::tx::account
 use.miden::kernels::tx::asset
 use.miden::kernels::tx::memory
 
+# ERRORS
+# =================================================================================================
+
+# The get_balance procedure can be called only with a fungible faucet
+const.ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE=0x0002002B
+
+# The has_non_fungible_asset procedure can be called only with a non-fungible faucet
+const.ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE=0x0002002C
+
+# Adding the fungible asset would exceed the max_amount
+const.ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x0002002D
+
+# Decorator value did not match the assert commitment
+const.ERR_VAULT_ADD_FUNGIBLE_ASSET_MISMATCH=0x0002002E
+
+# The non-fungible asset already existed, can not be added again.
+const.ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTED=0x0002002F
+
+# Removing the fungible asset would have current amount being negative
+const.ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW=0x00020030
+
+# Data provided via decorator did not match the commitment
+const.ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH=0x00020031
+
+# Removing inexisting non-fungible asset
+const.ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET=0x00020032
+
 # ACCESSORS
 # =================================================================================================
 
@@ -18,7 +45,7 @@ use.miden::kernels::tx::memory
 #! - balance is the vault balance of the fungible asset.
 export.get_balance
     # assert that the faucet id is a fungible faucet
-    dup exec.account::is_fungible_faucet assert
+    dup exec.account::is_fungible_faucet assert.err=ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE
     # => [faucet_id, vault_root_ptr]
 
     # get the asset vault root
@@ -49,7 +76,7 @@ end
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.has_non_fungible_asset
     # check if the asset is a non-fungible asset
-    exec.asset::is_non_fungible_asset assert
+    exec.asset::is_non_fungible_asset assert.err=ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE
     # => [ASSET, vault_root_ptr]
 
     # prepare the stack to read non-fungible asset from vault
@@ -103,7 +130,7 @@ export.add_fungible_asset
     # => [(max_amount - cur_amount), amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # assert amount + cur_amount < max_amount
-    lte assert
+    lte assert.err=ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED
     # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, vault_root_ptr]
 
     # add asset amounts
@@ -116,7 +143,7 @@ export.add_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 assert_eqw
+    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_ADD_FUNGIBLE_ASSET_MISMATCH
     # => [VAULT_ROOT', ASSET', vault_root_ptr]
 
     # update the vault root
@@ -144,7 +171,7 @@ export.add_non_fungible_asset
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was empty
-    padw assert_eqw
+    padw assert_eqw.err=ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTED
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -219,7 +246,7 @@ export.remove_fungible_asset
     # => [cur_amount, amount, amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # assert amount <= cur_amount
-    lte assert
+    lte assert.err=ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW
     # => [amount, cur_amount, faucet_id, 0, 0, VAULT_ROOT, CUR_VAULT_VALUE, ASSET, vault_root_ptr]
 
     # asset amount + cur_amount < max_amount
@@ -242,7 +269,7 @@ export.remove_fungible_asset
 
     # update asset in vault and assert the old value is equivalent to the value provided via the
     # decorator
-    exec.smt::set movupw.2 assert_eqw
+    exec.smt::set movupw.2 assert_eqw.err=ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root
@@ -271,7 +298,7 @@ export.remove_non_fungible_asset
     # => [OLD_VAL, VAULT_ROOT', ASSET, vault_root_ptr]
 
     # Assert old value was not empty (we only need to check ASSET[1] which is the faucet id)
-    drop drop eq.0 assertz drop
+    drop drop eq.0 assertz.err=ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET drop
     # => [VAULT_ROOT', ASSET, vault_root_ptr]
 
     # update the vault root

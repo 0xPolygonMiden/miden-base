@@ -5,6 +5,15 @@ use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 use.miden::kernels::tx::tx
 
+# ERRORS
+# =================================================================================================
+
+# For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item
+const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
+
+# Procedure can only be called for faucet accounts
+const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
+
 # EVENTS
 # =================================================================================================
 
@@ -153,7 +162,7 @@ export.set_account_item
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
     dup exec.account::get_faucet_storage_data_slot eq
     exec.account::get_id exec.account::is_faucet
-    and assertz
+    and assertz.err=ERR_FAUCET_RESERVED_DATA_SLOT
     # => [index, V', 0, 0, 0]
 
     # authenticate that the procedure invocation originates from the account context
@@ -508,7 +517,7 @@ end
 #!   against.
 export.get_fungible_faucet_total_issuance
     # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id exec.account::is_fungible_faucet assert
+    exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCT_MUST_BE_A_FAUCET
     # => [0]
 
     # get the total issuance
