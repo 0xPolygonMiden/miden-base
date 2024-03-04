@@ -1,6 +1,7 @@
 [package]
 name = "miden-lib"
 version = "0.1.0"
+description = "Miden assembly library of the Miden rollup"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
@@ -20,11 +21,11 @@ std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/st
 testing = ["miden-objects/testing"]
 
 [dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
-miden-stdlib = { package = "miden-stdlib", version = "0.8", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.1.0", default-features = false }
+miden-stdlib = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false, features = ["testing"]}
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.1.0", default-features = false, features = ["testing"]}
 mock = { package = "miden-mock", path = "../mock", default-features = false }
 vm-processor = { workspace = true, features = ["internals"] }
 
