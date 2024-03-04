@@ -31,6 +31,7 @@ nav:
       - Accounts: architecture/accounts.md
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md
+      - Execution: architecture/execution.md
       - Transactions:
           - Transactions: architecture/transactions/overview.md
           - Transaction execution: architecture/transactions/execution.md

@@ -1,4 +1,3 @@
-# Architecture
 The Polygon Miden Architecture describes the concepts of how the participants of the network can interact.
 
 The architecture reflects the design goals for the rollup:
@@ -14,16 +13,16 @@ The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to a
 In Miden, there are accounts and notes which can hold assets. Accounts consume and produce notes in transactions. Transactions describe account state changes of single accounts.
 
 ### Accounts
-[Accounts](./architecture/accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. This chapter describes the design, the storage types, and the creation of an account.
+[Accounts](accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. This chapter describes the design, the storage types, and the creation of an account.
 
 ### Notes
-[Notes](./architecture/notes.md) are messages that accounts send to each other. A note stores assets and a script that defines how this note can be consumed. This chapter describes the design, the storage types, and the creation of a note.
+[Notes](notes.md) are messages that accounts send to each other. A note stores assets and a script that defines how this note can be consumed. This chapter describes the design, the storage types, and the creation of a note.
 
 ### Assets
-[Assets](./architecture/assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. This chapter describes asset issuance, customization, and storage.
+[Assets](assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. This chapter describes asset issuance, customization, and storage.
 
 ### Transactions
-[Transactions](./architecture/transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the implementation thereof. At it's core, transaction execution happens in the transaction kernel program which is explained in depth.
+[Transactions](transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the implementation thereof. At it's core, transaction execution happens in the transaction kernel program which is explained in depth.
 
 #### Accounts produce and consume notes to communicate
 <p align="center">

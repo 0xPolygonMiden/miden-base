@@ -1,3 +1,4 @@
+# Transaction Execution
 Transactions are being executed by the Miden Transaction Executor. Transaction execution results in a `ExecutedTransaction` object and consists of the following steps:
 
 1. Fetch the data required to execute a transaction from the data store.
@@ -26,7 +27,7 @@ _Note: The `InputNotes` must all be already recorded on-chain in order for the t
 ## The Transaction Compiler
 Every transaction must be executed within the Miden VM to generate a transaction proof. In Miden there is a proof for every transaction. The transaction compiler is responsible for building executable programs. The generated programs - MASM programs - can then be executed on the Miden VM which generates a zkProof. In addition to transaction compilation, the transaction compiler provides methods which can be used to compile Miden account code, note scripts, and transaction scripts.
 
-Compilation results in an executable MASM Program, including the provided account interface and notes, an optional transaction script and the [Transaction Kernel Program](transaction-kernel.md). The Transaction Kernel Program defines procedures and the memory layout for all parts of the transaction. A detailed description can be found in the next section.
+Compilation results in an executable MASM Program, including the provided account interface and notes, an optional transaction script and the [Transaction Kernel Program](kernel.md). The Transaction Kernel Program defines procedures and the memory layout for all parts of the transaction. A detailed description can be found in the next section.
 
 Finally, after the transaction program has been compiled and the inputs including the advice provider were correctly populated, the transaction can be executed.
 

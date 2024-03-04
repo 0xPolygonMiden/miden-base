@@ -1,4 +1,3 @@
-# Polygon Miden Network [WIP]
 Polygon Miden is a bi-directional token bridge and state machine. Miden Nodes act as operators that keep the state and compress state transitions recursively into STARK-proofs. The token bridge on Ethereum verifies these proofs. Users can run Miden clients to send RPC requests to the Miden Nodes to update the state.
 
 The major components of Polygon Miden are:
@@ -10,7 +9,7 @@ The major components of Polygon Miden are:
 
 
 ## Network Slide
-![Miden Architecture Overview](diagrams/network/Architecture_Overview.svg)
+![Miden Architecture Overview](img/network/Architecture_Overview.svgdiagrams/network/Architecture_Overview.svg)
 
 ## Miden Clients
 Users will run Miden Clients. They are designed to provide an interface for wallets representing accounts on Miden. Miden Clients can execute and prove transactions in the Tx Prover. They can handle arbitrary signature schemes - whereas the default is Falcon. The wallet interface serves a user interface, a wallet database to be able to store account data locally, and the required smart contract code that represents the account on Miden.
