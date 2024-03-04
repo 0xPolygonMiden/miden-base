@@ -23,7 +23,7 @@ theme:
 
 nav:
   - Welcome:
-      - Introduction: introduction/index.md
+      - Introduction: index.md
       - Getting started: introduction/getting-started.md
       - Roadmap: introduction/roadmap.md
   - Architecture:

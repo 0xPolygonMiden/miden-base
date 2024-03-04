@@ -37,7 +37,7 @@ By design, every note script can be defined as a unique hash or the root of a [M
 
 Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
 
-There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the [Miden client](../network/miden-clients.md) or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
+There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
 
 * P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself.
 * SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset.
@@ -177,12 +177,12 @@ _Info: To compute a note's hash, we do not need to know the note's `serial_num`.
 
 ## Note discovery
 Note discovery describes the process of Miden clients finding notes they want to consume. There are two ways to receive new relevant notes - getting notes via an off-chain channel or querying the Miden operator to request newly recorded relevant notes.
-The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the [Miden node](../network/miden-node.md) requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
+The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the Miden node requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
 
 ## Note consumption
 As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
 
-Notes can only be consumed if the note data is known to the consumer. The note data must be provided as input to the [transaction kernel](../transactions/transaction-kernel.md). That means, for privately stored notes, there must be some off-chain communication to transmit the note's data from the sender to the target.
+Notes can only be consumed if the note data is known to the consumer. The note data must be provided as input to the [transaction kernel](transactions/kernel.md). That means, for privately stored notes, there must be some off-chain communication to transmit the note's data from the sender to the target.
 
 ### Note recipient to restrict note consumption
 There are several ways to restrict the set of accounts that can consume a specific note. One way is to specifically define the target account ID as done in the P2ID and P2IDR note scripts. Another way is by using the concept of a `RECIPIENT`. Miden defines a `RECIPIENT` (represented as `Word`) as:
@@ -193,7 +193,7 @@ hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 
 This concept restricts note consumption to those users who know the pre-image data of `RECIPIENT` - which might be a bigger set than a single account.
 
-During the [transaction prologue](../transactions/transaction-kernel.md) the users needs to provide all the data to compute the note hash. That means, one can create notes that can only be consumed if the `serial_num` and other data is known. This information can be passed on off-chain by the sender to the consumer. This is only useful with private notes.For public notes, all note data is known, and anyone can compute the `RECIPIENT`.
+During the [transaction prologue](transactions/kernel.md) the users needs to provide all the data to compute the note hash. That means, one can create notes that can only be consumed if the `serial_num` and other data is known. This information can be passed on off-chain by the sender to the consumer. This is only useful with private notes.For public notes, all note data is known, and anyone can compute the `RECIPIENT`.
 
 You can see in the standard [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm) how `RECIPIENT` is used. Here, using a single hash, is sufficient to ensure that the swapped asset and its note can only be consumed by the defined target.
 

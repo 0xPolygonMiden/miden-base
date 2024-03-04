@@ -7,7 +7,7 @@ If you want to join the technical discussion, please check out
 
 * the [Discord](https://discord.gg/0xpolygondevs)
 * the [Repo](https://github.com/0xPolygonMiden)
-* the [Roadmap](roadmap.md)
+* the [Roadmap](introduction/roadmap.md)
 
 > *This documentation is still Work In Progress. Some topics have been discussed in greater depth, while others require additional clarification. Sections of this documentation might later be reorganized in order to achieve a better flow.*
 

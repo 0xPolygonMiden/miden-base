@@ -22,7 +22,7 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 [Assets](assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. This chapter describes asset issuance, customization, and storage.
 
 ### Transactions
-[Transactions](transactions.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the implementation thereof. At it's core, transaction execution happens in the transaction kernel program which is explained in depth.
+[Transactions](transactions/overview.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the implementation thereof. At it's core, transaction execution happens in the transaction kernel program which is explained in depth.
 
 #### Accounts produce and consume notes to communicate
 <p align="center">
@@ -33,10 +33,10 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
 
 ### State model
-[State](./architecture/state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
+[State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
 
 ### Execution model
-[Execution](./architecture/execution.md) describes how the state progresses as aggregated state updates in batches, blocks, and epochs. This chapter describes the execution model and how blocks are built.
+[Execution](execution.md) describes how the state progresses as aggregated state updates in batches, blocks, and epochs. This chapter describes the execution model and how blocks are built.
 
 #### Operators capture and progress state
 <p align="center">
