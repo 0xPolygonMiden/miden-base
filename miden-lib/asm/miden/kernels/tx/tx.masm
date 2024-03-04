@@ -4,6 +4,12 @@ use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 
+# ERRORS
+# =================================================================================================
+
+# Output notes exceeded the maximum limit
+const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
+
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
 #! Inputs: []
@@ -48,7 +54,7 @@ proc.increment_num_created_notes
     # => [note_idx]
 
     # assert that there is space for a new note
-    dup exec.constants::get_max_num_created_notes lt assert
+    dup exec.constants::get_max_num_created_notes lt assert.err=ERR_TX_OUTPUT_NOTES_OVERFLOW
     # => [note_idx]
 
     # increment the number of created notes
