@@ -2,7 +2,7 @@
 Polygon Miden is an Ethereum Rollup. It batches transactions - or more precisely, proofs thereof - that happen together in the same time period into a block. The Execution Model describes how the state progresses on **an individual level via transactions** and **at the global level expressed as aggregated state updates in blocks**.
 
 <p align="center">
-  <img src="../diagrams/architecture/execution/Execution.png">
+  <img src="../img/architecture/execution/Execution.png">
 </p>
 
 ## Transaction Execution
@@ -27,7 +27,7 @@ Batch proofs are aggregated into blocks by the Miden Node. The blocks are then s
 A block produced by the Miden Node looks somewhat like this:
 
 <p align="center">
-  <img src="../diagrams/architecture/execution/Block.png">
+  <img src="../img/architecture/execution/Block.png">
 </p>
 
 * **state updates** contain only the hashes of changes. For example, for each account which was updated, we record a tuple `([account id], [new account hash])`.

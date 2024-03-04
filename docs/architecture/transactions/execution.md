@@ -1,4 +1,3 @@
-# Transaction Execution
 Transactions are being executed by the Miden Transaction Executor. Transaction execution results in a `ExecutedTransaction` object and consists of the following steps:
 
 1. Fetch the data required to execute a transaction from the data store.
@@ -7,7 +6,7 @@ Transactions are being executed by the Miden Transaction Executor. Transaction e
 4. Prove the `ExecutedTransaction` using the Transaction Prover.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_execution_process.png" style="width: 75%;">
+    <img src="../img/architecture/transaction/Transaction_execution_process.png" style="width: 75%;">
 </p>
 
 One of the main reasons for splitting execution and proving is that it allows to have "stateless provers" - i.e., the executed transaction contains all data needed to re-execute and prove a transaction (no database access is needed). This is very powerful and allows the distribution of proof generation much more easily.
@@ -35,4 +34,4 @@ Finally, after the transaction program has been compiled and the inputs includin
 The `ExecutedTransaction` object represents the result of a transaction - not its proof yet. From it, the account, and storage delta can be extracted. Furthermore, it serves as an input of the transaction prover to generate the proof. A successfully executed transaction results in a new state of the provided account, a vector of all created Notes (`OutputNotes`) and a vector of all the consumed Notes (`InputNotes`) together with their Nullifiers.
 
 ## The Transaction Prover
-The Transaction Prover proves the provided `ExecutedTransaction` and returns a `ProvenTransaction` object. This object can be verified by the Miden Node using the Transaction Verifier and if valid updating the [State](../architecture/state.md) databases.
+The Transaction Prover proves the provided `ExecutedTransaction` and returns a `ProvenTransaction` object. This object can be verified by the Miden Node using the Transaction Verifier and if valid updating the [State](../../architecture/state.md) databases.

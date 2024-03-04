@@ -5,7 +5,7 @@ Miden aims to support expressive smart contracts via a Turing-complete language.
 The diagram below illustrates basic components of an account. In Miden every account is a smart contract.
 
 <p align="center">
-    <img src="../diagrams/architecture/account/Account_Definition.png" style="width: 25%;">
+    <img src="../img/architecture/account/Account_Definition.png" style="width: 25%;">
 </p>
 
 In the above picture, you can see:

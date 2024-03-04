@@ -1,36 +1,28 @@
-# Transactions
-Transactions in Miden can be understood as facilitating account state changes. Asset transfers between accounts are done by executing transactions. They take a single account and some [notes](notes.md) as input and output the same account at a new state together with some other notes.
+Transactions in Miden can be understood as facilitating account state changes. Asset transfers between accounts are done by executing transactions. They take a single account and some [notes](../notes.md) as input and output the same account at a new state together with some other notes.
 
 Miden aims for parallel and private transaction execution. Because a transaction is always performed against a single account, Miden obtains asynchronicity. And, because every transaction causes a provable state-change with a STARK proof, it provides privacy when executed locally.
 
 ## Transaction design
 Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 4096` notes as output.
 
-\
-\
-
-
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_diagram.png" style="width: 75%;">
+    <img src="../img/architecture/transaction/Transaction_diagram.png" style="width: 75%;">
 </p>
-
-\
-\
 
 At its core, a transaction is an executable program - the transaction kernel program - that processes the provided inputs and creates the requested outputs. Because the program is executed by the Miden VM, a STARK-proof is generated for every transaction.
 
-The next sections will explain the details of a Miden transaction
+The next sections explain the details of a Miden transaction.
 
-* Transaction [execution](../transactions/transaction-execution.md)
-* Transaction [kernel](../transactions/transaction-kernel.md)
-* Transaction [procedures](../transactions/transaction-procedures.md)
-* Transaction [modes](../transactions/transaction-modes.md)
+* Transaction [execution](execution.md)
+* Transaction [kernel](kernel.md)
+* Transaction [procedures](procedures.md)
+* Transaction [modes](modes.md)
 
 ## Asset transfer using two transactions
 Transferring assets between accounts requires two transactions as shown in the diagram below.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_Flow.png">
+    <img src="../img/architecture/transaction/Transaction_Flow.png">
 </p>
 
 The first transaction invokes a function on `account_a` (e.g., "send_asset" function) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g., "receive_asset" function), which also updates the internal state of `account_b`.

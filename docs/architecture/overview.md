@@ -27,7 +27,7 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 
 #### Accounts produce and consume notes to communicate
 <p align="center">
-    <img src="./diagrams/architecture/miden_architecture_core_concepts.gif" style="width: 80%;">
+    <img src="./img/architecture/miden_architecture_core_concepts.gif" style="width: 80%;">
 </p>
 
 ## State and Execution
@@ -41,7 +41,7 @@ The state model captures all individual states of all accounts and notes. Finall
 
 #### Operators capture and progress state
 <p align="center">
-    <img src="./diagrams/architecture/miden_architecture_state_progress.gif" style="width: 80%;">
+    <img src="./img/architecture/miden_architecture_state_progress.gif" style="width: 80%;">
 </p>
 
 # Architecture tradeoffs

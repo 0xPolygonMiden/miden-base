@@ -18,31 +18,31 @@ Alice owns an account that holds her assets.
 
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction_lifecycle/Account_Alice_1.svg">
+    <img src="../img/protocol/transaction_lifecycle/Account_Alice_1.svg">
 </p>
 
 Alice can execute a transaction that creates a note carrying 5 MATIC and changing her account to own 5 MATIC less.
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction_lifecycle/Transaction_1.svg">
+    <img src="../img/protocol/transaction_lifecycle/Transaction_1.svg">
 </p>
 
 Now in Miden there would be Alice's account, the note, and Bob's account. Because Bob hasn't consumed the note yet.
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction_lifecycle/Account_Note_Account.svg">
+    <img src="../img/protocol/transaction_lifecycle/Account_Note_Account.svg">
 </p>
 
 For Bob to finally receive the 5 MATIC, he needs to consume the note that Alice created in her transaction. To do so, Bob needs to execute a second transaction.
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction_lifecycle/Transaction_2.svg">
+    <img src="../img/protocol/transaction_lifecycle/Transaction_2.svg">
 </p>
 
 Now, Bob got 5 MATIC in his account.
 
 <p align="center">
-    <img src="../diagrams/protocol/transaction_lifecycle/Account_Bob_1.svg">
+    <img src="../img/protocol/transaction_lifecycle/Account_Bob_1.svg">
 </p>
 
 

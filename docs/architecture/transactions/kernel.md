@@ -1,7 +1,6 @@
-# The Transaction Kernel Program
 The transaction kernel program is responsible to execute a Miden rollup transaction within the Miden VM. Therefore, it is written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) and it is defined as MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels). The kernel provides context-sensitive security preventing unwanted read and write access. It defines a set of procedures which can be invoked from other [contexts](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#execution-contexts) - e.g., notes - to be executed in the root context.
 
-In general, the kernel's procedures must reflect everything users might want to do in executing transactions, from transferring assets to complex smart contract interactions with custom code. Learn more about available procedures and contexts [here](transaction-procedures.md).
+In general, the kernel's procedures must reflect everything users might want to do in executing transactions, from transferring assets to complex smart contract interactions with custom code. Learn more about available procedures and contexts [here](procedures.md).
 
 The kernel has a well-defined structure which must do the following:
 
@@ -11,7 +10,7 @@ The kernel has a well-defined structure which must do the following:
 4. **Epilogue**: finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions and asserting the nonce rules are upheld.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_program.png" style="width: 75%;">
+    <img src="../img/architecture/transaction/Transaction_program.png" style="width: 75%;">
 </p>
 
 
@@ -30,7 +29,7 @@ In other words, the prologue stores all provided information from the inputs and
 The memory layout looks as follows. The kernel context has access to all of those memory slots.
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Memory_layout_kernel.png" style="width: 75%;">
+    <img src="../img/architecture/transaction/Memory_layout_kernel.png" style="width: 75%;">
 </p>
 
 The book keeping section is needed to keep track of variables which are used internally by the transaction kernel.

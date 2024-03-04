@@ -16,4 +16,4 @@ All three components can either run as one process, or each component can run in
 
 The diagram below illustrates high-level design of each component as well as basic interactions between them (components in light-grey are yet to be built).
 
-![Architecture diagram](../diagrams/network/Miden_node.png)
+![Architecture diagram](../img/network/Miden_node.png)

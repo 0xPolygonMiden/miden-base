@@ -24,7 +24,6 @@ theme:
 nav:
   - Welcome:
       - Introduction: introduction/index.md
-      - Overview: introduction/overview.md
       - Getting started: introduction/getting-started.md
       - Roadmap: introduction/roadmap.md
   - Architecture:
@@ -33,7 +32,7 @@ nav:
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md
       - Transactions:
-          - Overview: architecture/transactions/overview.md
+          - Transactions: architecture/transactions/overview.md
           - Transaction execution: architecture/transactions/execution.md
           - Transaction kernel: architecture/transactions/kernel.md
           - Transaction procedures: architecture/transactions/procedures.md

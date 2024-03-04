@@ -7,7 +7,7 @@ In Polygon Miden, accounts communicate with one another by producing and consumi
 The diagram below illustrates the contents of a note:
 
 <p align="center">
-    <img src="../diagrams/architecture/note/Note.png" style="width: 25%;">
+    <img src="../img/architecture/note/Note.png" style="width: 25%;">
 </p>
 
 As shown in the above picture:
@@ -22,7 +22,7 @@ In addition, a note has **metadata** including the sender and the note tag. Thos
 New notes are created by executing transactions. After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database). Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the Nullifier DB to "consumed".
 
 <p align="center">
-    <img src="../diagrams/architecture/note/Note_life_cycle.png">
+    <img src="../img/architecture/note/Note_life_cycle.png">
 </p>
 
 The following sections will explain, how notes are created, stored, discovered and consumed.
@@ -212,5 +212,5 @@ This achieves the following properties:
 That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
 <p align="center">
-    <img src="../diagrams/architecture/note/Nullifier.png">
+    <img src="../img/architecture/note/Nullifier.png">
 </p>

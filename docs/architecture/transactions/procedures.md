@@ -10,7 +10,7 @@ While executing in a note, account, or tx script context, we can request to exec
 
 
 <p align="center">
-    <img src="../diagrams/architecture/transaction/Transaction_contexts.png" style="width: 100%;">
+    <img src="../img/architecture/transaction/Transaction_contexts.png" style="width: 100%;">
 </p>
 
 \
