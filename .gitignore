@@ -11,3 +11,15 @@ Cargo.lock
 
 # Ignore compiled library files
 *.masl
+
+# Docs platform ignores
+.vscode
+.code
+.idea
+site/
+venv/
+env/
+*.out
+node_modules/
+*DS_Store
+*.iml
