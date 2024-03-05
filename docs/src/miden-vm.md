@@ -1,2 +1,0 @@
-# Miden VM
-[WIP]
