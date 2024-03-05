@@ -9,7 +9,7 @@ The major components of Polygon Miden are:
 
 
 ## Network Slide
-![Miden Architecture Overview](img/network/architecture-overview.svg)
+![Miden Architecture Overview](../img/network/architecture-overview.svg)
 
 ## Miden Clients
 Users will run Miden Clients. They are designed to provide an interface for wallets representing accounts on Miden. Miden Clients can execute and prove transactions in the Tx Prover. They can handle arbitrary signature schemes - whereas the default is Falcon. The wallet interface serves a user interface, a wallet database to be able to store account data locally, and the required smart contract code that represents the account on Miden.
