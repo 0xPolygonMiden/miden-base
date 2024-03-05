@@ -28,10 +28,10 @@ testing = []
 [dependencies]
 assembly = { workspace = true }
 log = { version = "0.4", optional = true }
-miden-crypto = { version = "0.8", default-features = false }
+miden-crypto = { workspace = true }
 miden-verifier = { workspace = true }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
-vm-core = { package = "miden-core", version = "0.8", default-features = false }
+vm-core = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
