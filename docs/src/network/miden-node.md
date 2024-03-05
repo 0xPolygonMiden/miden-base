@@ -16,4 +16,6 @@ All three components can either run as one process, or each component can run in
 
 The diagram below illustrates high-level design of each component as well as basic interactions between them (components in light-grey are yet to be built).
 
-![Architecture diagram](../diagrams/network/Miden_node.png)
+![Miden Node](https://github.com/0xPolygonMiden/miden-base/assets/7201911/22173640-d814-45b0-8971-cb7271b3644d)
+
+
