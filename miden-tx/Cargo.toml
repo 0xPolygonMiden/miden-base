@@ -21,11 +21,11 @@ default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
 
 [dependencies]
-miden-lib = { package = "miden-lib", path = "../miden-lib", default-features = false }
-miden-objects = { package = "miden-objects", path = "../objects", default-features = false }
+miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.1", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.1", default-features = false }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
-mock = { package = "miden-mock", path = "../mock", default-features = false }
+mock = { package = "miden-mock", path = "../mock", version = "0.1", default-features = false }
