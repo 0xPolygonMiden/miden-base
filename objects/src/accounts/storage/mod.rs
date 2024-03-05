@@ -4,7 +4,7 @@ use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
+use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt, Smt};
 
 mod slot;
 pub use slot::StorageSlotType;
@@ -89,10 +89,15 @@ impl StorageSlot {
 ///
 /// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
 /// and contains information about slot types of all other slots.
+///
+/// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
+/// they can hold more data as there is in plain usage of the storage slots. The root of the SMT
+/// consumes one storage slot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: SimpleSmt<STORAGE_TREE_DEPTH>,
     layout: Vec<StorageSlotType>,
+    maps: Option<Vec<Smt>>,
 }
 
 impl AccountStorage {
@@ -111,7 +116,10 @@ impl AccountStorage {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
-    pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
+    pub fn new(
+        items: Vec<SlotItem>,
+        maps: Option<Vec<Smt>>,
+    ) -> Result<AccountStorage, AccountError> {
         // initialize storage layout
         let mut layout = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
 
@@ -142,7 +150,17 @@ impl AccountStorage {
         let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        Ok(Self { slots, layout })
+        // check if the provided Vec<Smt> is longer than 255 and return an error if so
+        if let Some(ref m) = maps {
+            if m.len() > 255 {
+                return Err(AccountError::StorageMapToManyMaps {
+                    max: (Self::NUM_STORAGE_SLOTS - 1),
+                    actual: (m.len()),
+                });
+            }
+        }
+
+        Ok(Self { slots, layout, maps })
     }
 
     // PUBLIC ACCESSORS
@@ -175,6 +193,11 @@ impl AccountStorage {
     /// Returns a commitment to the storage layout.
     pub fn layout_commitment(&self) -> Digest {
         Hasher::hash_elements(&self.layout.iter().map(Felt::from).collect::<Vec<_>>())
+    }
+
+    /// Returns the storage maps for this storage.
+    pub fn maps(&self) -> Option<&[Smt]> {
+        self.maps.as_ref().map(|v| &v[..])
     }
 
     // DATA MUTATORS
@@ -271,6 +294,24 @@ impl Serializable for AccountStorage {
             target.write_u8(idx as u8);
             target.write(value);
         }
+
+        // // Serialize the optional maps field
+        // match &self.maps {
+        //     Some(maps) => {
+        //         // Write the length of the vector to indicate how many trees we're serializing
+        //         target.write_u8(maps.len() as u8);
+
+        //         // Serialize each SparseMerkleTree in the vector
+        //         for smt in maps {
+        //             // Serialize the individual SparseMerkleTree here
+        //             smt.write_into(target);
+        //         }
+        //     }
+        //     None => {
+        //         // Write a length of 0 to indicate that there are no trees
+        //         target.write_u8(0);
+        //     }
+        // }
     }
 }
 
@@ -299,7 +340,8 @@ impl Deserializable for AccountStorage {
             });
         }
 
-        Self::new(items).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        // ToDo: add correct serialization and deserialization for SMTs
+        Self::new(items, None).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -318,7 +360,7 @@ mod tests {
     #[test]
     fn account_storage_serialization() {
         // empty storage
-        let storage = AccountStorage::new(Vec::new()).unwrap();
+        let storage = AccountStorage::new(Vec::new(), None).unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
@@ -338,12 +380,13 @@ mod tests {
                     value: [ONE, ONE, ONE, ZERO],
                 },
             },
-        ])
+        ], vec![])
         .unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
         // storage with a mix of types
+<<<<<<< HEAD
         let storage = AccountStorage::new(vec![
             SlotItem {
                 index: 0,
@@ -371,6 +414,20 @@ mod tests {
                 },
             },
         ])
+=======
+        let storage = AccountStorage::new(
+            vec![
+                (0, (StorageSlotType::Value { value_arity: 1 }, [ONE, ONE, ONE, ONE])),
+                (1, (StorageSlotType::Value { value_arity: 0 }, [ONE, ONE, ONE, ZERO])),
+                (2, (StorageSlotType::Map { value_arity: 2 }, [ONE, ONE, ZERO, ZERO])),
+                (
+                    3,
+                    (StorageSlotType::Array { depth: 4, value_arity: 3 }, [ONE, ZERO, ZERO, ZERO]),
+                ),
+            ],
+            None,
+        )
+>>>>>>> 2c7f04d (feat: adding account storage maps)
         .unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());

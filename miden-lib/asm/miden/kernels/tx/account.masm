@@ -344,7 +344,7 @@ end
 export.get_item
     # get the storage root
     exec.memory::get_acct_storage_root
-    # => [storage_root, index]
+    # => [STORAGE_ROOT, index]
 
     # get the item from storage
     movup.4 push.STORAGE_TREE_DEPTH mtree_get

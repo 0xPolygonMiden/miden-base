@@ -1,18 +1,17 @@
 use miden_objects::{
     accounts::{
-        AccountId, AccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        AccountId, AccountType, StorageSlotType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_INSUFFICIENT_ONES, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     crypto::merkle::LeafIndex,
 };
 use mock::{
-    constants::{
-        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
-    },
     mock::{
-        account::{storage_item_0, storage_item_1, MockAccountType},
+        account::{
+            storage_item_0, storage_item_1, storage_item_2, MockAccountType, STORAGE_LEAVES_2,
+        },
         host::MockHost,
         notes::AssetPreservationStatus,
         transaction::{mock_executed_tx, mock_inputs},
@@ -310,43 +309,82 @@ fn test_set_item() {
     let _process = run_tx(&transaction).unwrap();
 }
 
-// TODO: reenable once storage map support is implemented
-#[ignore]
+// Test different account storage types
 #[test]
-fn test_get_map_item() {
-    let tx_inputs =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+fn test_get_storage_data_type() {
+    for storage_item in [storage_item_0(), storage_item_1(), storage_item_2()] {
+        let tx_inputs =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    let code = format!(
-        "
-        use.miden::account
+        let code = format!(
+            "
+        use.miden::kernels::tx::account
         use.miden::kernels::tx::prologue
 
         begin
             # prepare the transaction
             exec.prologue::prepare_transaction
 
-            # push the account storage index the child root is stored at
-            push.{CHILD_ROOT_PARENT_LEAF_INDEX}
+            # push the account storage item index
+            push.{item_index}
 
-            # get the child root
-            exec.account::get_item
+            # get the data type of the respective storage slot
+            exec.account::get_storage_slot_type_info
 
-            # get a value from the child tree
-            push.{CHILD_STORAGE_INDEX_0}
-
-            # get the item
-            push.{CHILD_SMT_DEPTH} mtree_get
-
-            # assert the child value is correct
-            push.{child_value} assert_eqw
         end
         ",
-        child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
-    );
+            item_index = storage_item.0,
+        );
 
-    let transaction = prepare_transaction(tx_inputs, None, code.as_str(), None);
-    let _process = run_tx(&transaction).unwrap();
+        let transaction = prepare_transaction(tx_inputs, None, &code, None);
+        let process = run_tx(&transaction).unwrap();
+
+        let storage_slot_data_type = match storage_item.1 .0 {
+            StorageSlotType::Value { value_arity } => (value_arity, 0),
+            StorageSlotType::Map { value_arity } => (value_arity, 1),
+            StorageSlotType::Array { value_arity, depth } => (value_arity, depth),
+        };
+
+        assert_eq!(process.get_stack_item(0), Felt::from(storage_slot_data_type.0));
+        assert_eq!(process.get_stack_item(1), Felt::from(storage_slot_data_type.1));
+    }
+}
+
+#[test]
+fn test_get_map_item() {
+    let tx_inputs =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let storage_item = storage_item_2();
+    for (key, value) in STORAGE_LEAVES_2 {
+        let code = format!(
+            "
+            use.miden::account
+            use.miden::kernels::tx::prologue
+
+            begin
+                # prepare the transaction
+                exec.prologue::prepare_transaction
+
+                # push the item's KEY
+                push.{map_key}
+
+                # push the account storage item index
+                push.{item_index}
+
+                # get the map item
+                exec.account::get_map_item
+                
+            end
+            ",
+            item_index = storage_item.0,
+            map_key = prepare_word(&key),
+        );
+
+        let transaction = prepare_transaction(tx_inputs.clone(), None, code.as_str(), None);
+        let process = run_tx(&transaction).unwrap();
+        assert_eq!(value, process.get_stack_word(0));
+    }
 }
 
 // ACCOUNT VAULT TESTS

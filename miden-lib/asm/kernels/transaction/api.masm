@@ -1,3 +1,5 @@
+use.std::collections::smt
+
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
 use.miden::kernels::tx::faucet
@@ -176,6 +178,70 @@ export.set_account_item
     # organize the stack for return
     movup.8 drop movup.8 drop movup.8 drop
     # => [R', V]
+end
+
+#! Returns VALUE located under specified KEY in map in specified account storage slot. 
+#! Panics if 
+#! - the index is out of bounds.
+#! - the requested storage slot type is not map
+#!
+#! Stack: [index, KEY, ...]
+#! Output: [VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_account_map_item
+    # check if storage type is map
+    dup exec.account::get_storage_slot_type_info drop
+    # => [slot_type, index, KEY, ...]
+
+    # fails if slot_type is not 1 = map
+    assert
+    # => [index, KEY, ...]
+    
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item swapw
+    # => [KEY, ROOT ...]
+
+    # fetch the VALUE located under KEY in the tree
+    exec.smt::get 
+    # => [VALUE, ROOT, ...]
+
+    # organize the stack for return
+    swapw dropw
+    # => [VALUE]
+end
+
+#! Inserts specified VALUE under specified KEY in map in specified account storage slot. 
+#! Panics if 
+#! - the index is out of bounds.
+#! - the requested storage slot type is not map
+#!
+#! Stack: [index, KEY, VALUE, ...]
+#! Output: [OLD_VALUE]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.set_account_map_item
+    # check if storage type is map
+    dup exec.account::get_storage_slot_type_info drop
+    # => [slot_type, index, KEY, VALUE, ...]
+
+    # fails if slot_type is not 1 = map
+    swap assert
+    # => [index, KEY, VALUE, ...]
+    
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item swapw.2
+    # => [VALUE, KEY, ROOT, ...]
+
+    # fetch the VALUE located under KEY in the tree
+    exec.smt::set
+    # => [OLD_VALUE, ROOT, ...]
+
+    # organize the stack for return
+    swapw dropw
+    # => [OLD_VALUE]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
