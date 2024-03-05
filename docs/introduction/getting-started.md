@@ -22,55 +22,55 @@ In this first part of the tutorial we will teach you how to create a new Miden a
 
 1. **Download the Miden client:** First, download the Miden client from its repository. Use the following command:
 
-   ```shell
-   git clone https://github.com/0xPolygonMiden/miden-client
-   ```
+      ```shell
+      git clone https://github.com/0xPolygonMiden/miden-client
+      ```
 
 2. **Navigate & Configure the client:** Navigate to the client directory and modify the configuration file to point to the remote Miden node. You can find the configuration file at `./miden-client.toml`. In the `[RPC]` section replace the `endpoint = { host: }` field with the address provided by the Miden team.
 
-   ```shell
-   cd miden-client
-   ```
+      ```shell
+      cd miden-client
+      ```
 
-   Configuration file example:
+      Configuration file example:
 
-   ```toml
-    [rpc]
-    endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
+      ```toml
+      [rpc]
+      endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
 
-    [store]
-    database_filepath = "store.sqlite3"
-   ```
+      [store]
+      database_filepath = "store.sqlite3"
+      ```
 
 3. **Build & install the Client:** install the client using cargo:
 
-   ```shell
-   cargo install --features testing,concurrent --path .
-   ```
+      ```shell
+      cargo install --features testing,concurrent --path .
+      ```
 
-   you should now be able to use the following command:
+      you should now be able to use the following command:
 
-   ```shell
-   miden-client --help
-   ```
+      ```shell
+      miden-client --help
+      ```
 ### Creating a new Miden account
 
 1. **Creating a new account:** To be able to interact with the Miden rollup you will need to generate an account. For this first part of the example we will generate one `basic-immutable` account using the following command:
 
-   ```shell
-   miden-client account new basic-immutable
-   ```
+      ```shell
+      miden-client account new basic-immutable
+      ```
 
-   Please refer to the documentation of the CLI
+      Please refer to the documentation of the CLI
 
 2. **Listing accounts:** To view the newly created account we can run the following command:
 
-   ```shell
-   miden-client account -l
-   ```
+      ```shell
+      miden-client account -l
+      ```
 
-   We should now see 1 available account listed:
-   - `basic-immutable`
+      We should now see 1 available account listed:
+      - `basic-immutable`
 
 ### Requesting tokens from the public faucet
 
@@ -82,53 +82,53 @@ In this first part of the tutorial we will teach you how to create a new Miden a
 
 1. **Importing & visualising notes:** From your terminal we will use the Miden client to import and visualise the note that you have received using the following commands: 
 
-    ```shell
-    miden-client input-notes -i <path-to-note>
-    ```
+      ```shell
+      miden-client input-notes -i <path-to-note>
+      ```
 
-    Now that the note has been successfully imported you should be able to visualise it's information using the following command: 
+      Now that the note has been successfully imported you should be able to visualise it's information using the following command: 
 
-    ```shell
-    miden-client input-notes -l
-    ```
+      ```shell
+      miden-client input-notes -l
+      ```
 
-    As you can see the listed note is lacking a `commit-height` this is due to the fact that you have received a note off-chain but have not synced your view of the rollup to check that the note is valid and exists at the rollup level. This is essential to prevent double-spend and make sure that you consume notes that have not yet been nullified. Hence before consuming the note we will need to update or view of the rollup and sync.
+      As you can see the listed note is lacking a `commit-height` this is due to the fact that you have received a note off-chain but have not synced your view of the rollup to check that the note is valid and exists at the rollup level. This is essential to prevent double-spend and make sure that you consume notes that have not yet been nullified. Hence before consuming the note we will need to update or view of the rollup and sync.
 
 2. **Syncing the client:** The client needs to periodically query the node to receive updates about entities that might be important in order to run transactions. The way to do so is by running the `sync` command:
 
-    ```shell
-    miden-client sync
-    ```
+      ```shell
+      miden-client sync
+      ```
 
 
 ### Consuming the note & receiving the funds
 
 1. **Consuming the note:** Now that we have synced the client the input-note that we have imported from the faucet should have a `commit-height` confirming it's existence at the rollup level: 
 
-    ```shell
-    miden-client input-notes -l
-    ```
-    We can now consume the note and add the funds contained inside it's vault to our account using the following commands: 
+      ```shell
+      miden-client input-notes -l
+      ```
+      We can now consume the note and add the funds contained inside it's vault to our account using the following commands: 
 
-    ```shell
-    miden-client tx new consume-notes <Account-Id> <Note-Id>
-    ```
+      ```shell
+      miden-client tx new consume-notes <Account-Id> <Note-Id>
+      ```
 
-    You should be able to find your account and note id by listing both `accounts` and `input-notes`:
+      You should be able to find your account and note id by listing both `accounts` and `input-notes`:
 
-    ```shell
-    miden-client account -l
-    miden-client input-notes -l
-    ```
+      ```shell
+      miden-client account -l
+      miden-client input-notes -l
+      ```
     
 2. **Visualising account vault:** After successfully running the previous commands your account should now contained the tokens sent from the faucet. You can visualise your accounts vault by running the following command: 
 
-    ```shell
-    miden-client account show <Account-Id> -v
-    ```
-    You should now see your accounts vault containing the funds sent by the faucet. 
+      ```shell
+      miden-client account show <Account-Id> -v
+      ```
+      You should now see your accounts vault containing the funds sent by the faucet. 
 
-    #### Congratulations! You finished the first part of the tutorial, continue to learn more about Miden and understand how to send Peer-to-Peer private off-chain transactions!
+#### Congratulations! You finished the first part of the tutorial, continue to learn more about Miden and understand how to send Peer-to-Peer private off-chain transactions!
 
 ## Part 2: Peer-to-Peer private off-chain transactions
 
@@ -142,21 +142,21 @@ In this second part of the tutorial we will teach you how to make off-chain tran
 
 1. **Creating a second account:** To be able to send funds from one account to another we will need to generate one more account. For this example we will be generating 1 additional account: we generated `basic-immutable` account A in the first part of the tutorial. Here we will be creating `basic-immutable` account B using the following command:
 
-   ```shell
-   miden-client account new basic-immutable
-   ```
+      ```shell
+      miden-client account new basic-immutable
+      ```
 
-   Please refer to the documentation of the CLI
+      Please refer to the documentation of the CLI
 
 2. **Listing accounts:** To view the newly created accounts we can run the following command:
 
-   ```shell
-   miden-client account -l
-   ```
+      ```shell
+      miden-client account -l
+      ```
 
-   We should now see 2 available accounts listed:
-   - `basic-immutable` account A (created during the first part of this tutorial)
-   - `basic-immutable` account B
+      We should now see 2 available accounts listed:
+      - `basic-immutable` account A (created during the first part of this tutorial)
+      - `basic-immutable` account B
 
 ### Transferring assets between accounts
 

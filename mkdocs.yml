@@ -22,16 +22,14 @@ theme:
 
 
 nav:
-  - Welcome:
-      - Introduction: index.md
-      - Getting started: introduction/getting-started.md
-      - Roadmap: introduction/roadmap.md
+  - Welcome: welcome.md
+  - Getting started: introduction/getting-started.md
+  - Roadmap: introduction/roadmap.md
   - Architecture:
       - Overview: architecture/overview.md
       - Accounts: architecture/accounts.md
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md
-      - Execution: architecture/execution.md
       - Transactions:
           - Transactions: architecture/transactions/overview.md
           - Transaction execution: architecture/transactions/execution.md
@@ -39,6 +37,7 @@ nav:
           - Transaction procedures: architecture/transactions/procedures.md
           - Transaction modes: architecture/transactions/modes.md
       - State: architecture/state.md
+      - Execution: architecture/execution.md
       - Network: network.md
 
 
