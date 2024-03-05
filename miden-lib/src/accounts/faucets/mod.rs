@@ -80,7 +80,7 @@ pub fn create_basic_fungible_faucet(
             index: 1,
             slot: StorageSlot::new_value(metadata),
         },
-    ])?;
+    ], vec![])?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(

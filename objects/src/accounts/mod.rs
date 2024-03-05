@@ -430,7 +430,7 @@ mod tests {
                 slot: StorageSlot { slot_type, value: item },
             })
             .collect();
-        let storage = AccountStorage::new(slot_items).unwrap();
+        let storage = AccountStorage::new(slot_items, None).unwrap();
 
         // create account
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();

@@ -181,7 +181,7 @@ pub fn get_account_with_default_account_code(
     let account_storage = AccountStorage::new(vec![SlotItem {
         index: 0,
         slot: StorageSlot::new_value(public_key),
-    }])
+    }], vec![])
     .unwrap();
 
     let account_vault = match assets {

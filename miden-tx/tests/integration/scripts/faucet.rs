@@ -299,7 +299,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             index: 1,
             slot: StorageSlot::new_value(faucet_storage_slot_1),
         },
-    ])
+    ], vec![])
     .unwrap();
 
     if total_issuance.is_some() {

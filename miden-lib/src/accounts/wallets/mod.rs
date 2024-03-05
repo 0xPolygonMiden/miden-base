@@ -63,7 +63,7 @@ pub fn create_basic_wallet(
     let account_storage = AccountStorage::new(vec![miden_objects::accounts::SlotItem {
         index: 0,
         slot: StorageSlot::new_value(storage_slot_0_data),
-    }])?;
+    }], vec![])?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(

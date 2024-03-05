@@ -84,10 +84,17 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
+<<<<<<< HEAD
     let account_storage = AccountStorage::new(vec![SlotItem {
         index: 0,
         slot: StorageSlot::new_value(target_pub_key),
     }])
+=======
+    let account_storage = AccountStorage::new(
+        vec![(0, (StorageSlotType::Value { value_arity: 0 }, target_pub_key))],
+        None,
+    )
+>>>>>>> 2c7f04d (feat: adding account storage maps)
     .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
@@ -167,7 +174,7 @@ fn prove_send_asset_via_wallet() {
     let sender_account_storage = AccountStorage::new(vec![SlotItem {
         index: 0,
         slot: StorageSlot::new_value(sender_pub_key),
-    }])
+    }], vec![])
     .unwrap();
     let sender_account_code = sender_account.code().clone();
 
