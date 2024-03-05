@@ -50,7 +50,7 @@ Lastly, if a transaction script is provided, its root is being stored at the pre
 ## The Note Processing
 If there are input notes they are being consumed in a loop. For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design/programs.html) of the note script is being loaded onto the stack. Then, by calling a [`dyncall`](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/code_organization.html?highlight=dyncall#dynamic-procedure-invocation) the note script is being executed in a new context to prevent unwanted memory access.
 
-```
+```arduino
     # loop while we have notes to consume
     while.true
         # execute the note setup script
@@ -82,7 +82,7 @@ If there is a transaction script provided with the transaction, it will be proce
 
 The transaction script can be used to authenticate the transaction by increasing the account's nonce and signing the transaction, see the following example:
 
-```
+```arduino
     use.miden::contracts::auth::basic->auth_tx
 
     begin

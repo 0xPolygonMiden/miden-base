@@ -1,3 +1,5 @@
+# Transactions overview
+
 Transactions in Miden can be understood as facilitating account state changes. Asset transfers between accounts are done by executing transactions. They take a single account and some [notes](../notes.md) as input and output the same account at a new state together with some other notes.
 
 Miden aims for parallel and private transaction execution. Because a transaction is always performed against a single account, Miden obtains asynchronicity. And, because every transaction causes a provable state-change with a STARK proof, it provides privacy when executed locally.
