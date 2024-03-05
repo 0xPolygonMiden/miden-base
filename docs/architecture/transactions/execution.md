@@ -6,9 +6,9 @@ Transactions are being executed by the Miden Transaction Executor. Transaction e
 3. Execute the transaction program and create an `ExecutedTransaction` object.
 4. Prove the `ExecutedTransaction` using the Transaction Prover.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Transaction_execution_process.png" style="width: 75%;">
-</p>
+<center>
+![Architecture core concepts](../../img/architecture/transaction/transaction-execution-process.png)
+</center>
 
 One of the main reasons for splitting execution and proving is that it allows to have "stateless provers" - i.e., the executed transaction contains all data needed to re-execute and prove a transaction (no database access is needed). This is very powerful and allows the distribution of proof generation much more easily.
 

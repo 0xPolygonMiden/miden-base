@@ -5,9 +5,9 @@ Miden aims for parallel and private transaction execution. Because a transaction
 ## Transaction design
 Transactions describe the state-transition of a single account that takes chain data and `0 to 1023` notes as input and produces a `TransactionWitness` and `0 to 4096` notes as output.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Transaction_diagram.png" style="width: 75%;">
-</p>
+<center>
+![Architecture core concepts](../../img/architecture/transaction/transaction-diagram.png){ width="75%" }
+</center>
 
 At its core, a transaction is an executable program - the transaction kernel program - that processes the provided inputs and creates the requested outputs. Because the program is executed by the Miden VM, a STARK-proof is generated for every transaction.
 
@@ -21,9 +21,9 @@ The next sections explain the details of a Miden transaction.
 ## Asset transfer using two transactions
 Transferring assets between accounts requires two transactions as shown in the diagram below.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Transaction_Flow.png">
-</p>
+<center>
+![Architecture core concepts](../../img/architecture/transaction/transaction-flow.png)
+</center>
 
 The first transaction invokes a function on `account_a` (e.g., "send_asset" function) which creates a new note and also updates the internal state of `account_a`. The second transaction consumes the note which invokes a function on `account_b` (e.g., "receive_asset" function), which also updates the internal state of `account_b`.
 

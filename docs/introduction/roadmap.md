@@ -1,3 +1,1 @@
-<p align="center">
-    <img src="./img/roadmap/miden_roadmap_dec_23.jpg">
-</p>
+![Roadmap](../img/roadmap/miden-roadmap-dec-23.jpg)

@@ -26,14 +26,15 @@ nav:
   - Getting started: introduction/getting-started.md
   - Roadmap: introduction/roadmap.md
   - Architecture:
-      - Overview: architecture/overview.md
+      - Architecture overview: architecture/overview.md
       - Accounts: architecture/accounts.md
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md
       - Transactions:
-          - Transactions: architecture/transactions/overview.md
+          - Transactions overview: architecture/transactions/overview.md
           - Transaction execution: architecture/transactions/execution.md
           - Transaction kernel: architecture/transactions/kernel.md
+          - Transaction contexts: architecture/transactions/contexts.md
           - Transaction procedures: architecture/transactions/procedures.md
           - Transaction modes: architecture/transactions/modes.md
       - State: architecture/state.md

@@ -9,10 +9,9 @@ The kernel has a well-defined structure which must do the following:
 3. **Transaction Script Processing**: executes the optional transaction script.
 4. **Epilogue**: finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions and asserting the nonce rules are upheld.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Transaction_program.png" style="width: 75%;">
-</p>
-
+<center>
+![Architecture core concepts](../../img/architecture/transaction/transaction-program.png)
+</center>
 
 ## The Inputs
 The transaction kernel program receives two type of inputs, public inputs via the `operand_stack` and secret inputs via the `advice_provider`. The stack holds the global inputs. They serve as a commitment to the data being provided via the advice provider. The advice stack holds data of the last known block, account and input note data. The details are layed out in the next paragraph.
@@ -28,9 +27,9 @@ In other words, the prologue stores all provided information from the inputs and
 
 The memory layout looks as follows. The kernel context has access to all of those memory slots.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Memory_layout_kernel.png" style="width: 75%;">
-</p>
+<center>
+![Architecture core concepts](../../img/architecture/transaction/memory-layout-kernel.png)
+</center>
 
 The book keeping section is needed to keep track of variables which are used internally by the transaction kernel.
 

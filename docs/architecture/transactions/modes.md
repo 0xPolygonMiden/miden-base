@@ -1,9 +1,8 @@
-## Transaction Modes
 There are two types of transactions in Miden: local transactions and network transactions.
 
-<p align="center">
-    <img src="../img/architecture/transaction/Local_vs_Network_Transaction.png">
-</p>
+<center>
+![Architecture core concepts](../../img/architecture/transaction/local-vs-network-transaction.png)
+</center>
 
 For **local transactions**, clients executing the transactions also generate the proofs of their correct execution. So, no additional work needs to be performed by the network. Local transactions are useful for several reasons:
 

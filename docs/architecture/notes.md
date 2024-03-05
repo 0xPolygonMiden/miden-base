@@ -1,14 +1,16 @@
 # Notes
+
 Miden aims to achieve parallel transaction execution and privacy. The UTXO-model combined with client-side proofs provide those features. That means, in Miden exist notes as a way of transferring assets between and to interact with accounts. Notes can be consumed and produced asynchronously and privately. The concept of notes is a key difference between Ethereum’s Account-based model and Polygon Miden, which uses a hybrid UTXO- and Account-based [state-model](state.md).
 
-# Note design
+## Note design
+
 In Polygon Miden, accounts communicate with one another by producing and consuming notes. A note stores assets and a script that defines how this note can be consumed.
 
 The diagram below illustrates the contents of a note:
 
-<p align="center">
-    <img src="../img/architecture/note/Note.png" style="width: 25%;">
-</p>
+<center>
+![Architecture core concepts](../img/architecture/note/note.png){ width="25%" }
+</center>
 
 As shown in the above picture:
 * **Assets &rarr;** serves as [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
@@ -18,12 +20,12 @@ As shown in the above picture:
 
 In addition, a note has **metadata** including the sender and the note tag. Those values are always public regardless of the [note storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-storage-mode).
 
-# Note's lifecycle
+## Note's lifecycle
 New notes are created by executing transactions. After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database). Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the Nullifier DB to "consumed".
 
-<p align="center">
-    <img src="../img/architecture/note/Note_life_cycle.png">
-</p>
+<center>
+![Architecture core concepts](../img/architecture/note/note-life-cycle.png)
+</center>
 
 The following sections will explain, how notes are created, stored, discovered and consumed.
 
@@ -211,6 +213,6 @@ This achieves the following properties:
 
 That means if a note is private and the operator stores only the note's hash, only those with the note details know if this note has been consumed already. Zcash first [introduced](https://zcash.github.io/orchard/design/nullifiers.html#nullifiers) this approach.
 
-<p align="center">
-    <img src="../img/architecture/note/Nullifier.png">
-</p>
+<center>
+![Architecture core concepts](../img/architecture/note/nullifier.png)
+</center>
