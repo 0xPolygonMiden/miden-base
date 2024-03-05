@@ -1,22 +1,18 @@
 # Miden Transaction
 
-This crate contains tools to create, execute, and prove transactions.
+This crate contains tools to create, execute, and prove Miden transactions.
 
 ## Usage
 
 This crate exposes a few components to compile, run, and prove transactions.
 
-The first requirement is to have a `DataStore` implementation. `DataStore`
-objects are responsible to load the data needed by the transactions executor,
-specially the account's code, the reference block data, and the note's inputs.
+The first requirement is to have a `DataStore` implementation. `DataStore` objects are responsible to load the data needed by the transactions executor, specially the account's code, the reference block data, and the note's inputs.
 
 ```rust
 let store = DataStore:new();
 ```
 
-Once a store is available, a `TransactionExecutor` object can be used to
-execute a transaction. Consuming a zero or more notes, and possibly calling
-some of the account's code.
+Once a store is available, a `TransactionExecutor` object can be used to execute a transaction. Consuming a zero or more notes, and possibly calling some of the account's code.
 
 ```rust
 let executor = TransactionExecutor::new(store);
