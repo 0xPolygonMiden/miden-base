@@ -13,6 +13,12 @@ use.miden::faucet
 use.miden::tx
 use.miden::contracts::auth::basic
 
+# ERRORS
+# =================================================================================================
+
+# Distribute would cause the max supply to be exceeded
+const.ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW=0x00020021
+
 # CONSTANTS
 # =================================================================================================
 
@@ -51,7 +57,7 @@ export.distribute
     # => [max_supply - total_issuance, amount, tag, RECIPIENT, ...]
 
     # check that amount =< max_supply - total_issuance, fails if otherwise
-    dup.1 gte assert
+    dup.1 gte assert.err=ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
     # => [asset, tag, RECIPIENT, ...]
 
     # creating the asset

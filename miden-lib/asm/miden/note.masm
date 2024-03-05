@@ -1,6 +1,12 @@
 use.std::crypto::hashes::native
 use.std::mem
 
+# ERRORS
+# =================================================================================================
+
+# Note's advice data does not match the expected commitment.
+const.ERR_NOTE_DATA_MISMATCH=0x00020040
+
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.
 #!
@@ -24,7 +30,7 @@ proc.write_advice_data_to_memory
     # => [DIGEST, HASH]
 
     # assert the computed hash is equal to the expected hash
-    assert_eqw
+    assert_eqw.err=ERR_NOTE_DATA_MISMATCH
     # => []
 end
 

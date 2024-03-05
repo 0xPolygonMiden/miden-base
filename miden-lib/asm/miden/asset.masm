@@ -2,6 +2,18 @@ use.miden::kernels::tx::account->internal_account
 use.miden::kernels::tx::asset
 use.miden::account
 
+# ERRORS
+# =================================================================================================
+
+# Can not build the fungible asset because provided id is not a fungible id
+const.ERR_ASSET_NOT_FUNGIBLE_ID=0x00020041
+
+# Can not build the asset because amount exceeds the maximum
+const.ERR_ASSET_INVALID_AMOUNT=0x00020042
+
+# Can not build the non-fungible asset because provided id is not a non-fungible id
+const.ERR_ASSET_NOT_NON_FUNGIBLE_ID=0x00020043
+
 # CONSTANTS
 # =================================================================================================
 
@@ -21,11 +33,11 @@ const.TWO_POW_32=4294967296
 #! - ASSET is the built fungible asset.
 export.build_fungible_asset
     # assert the faucet is a fungible faucet
-    dup exec.internal_account::is_fungible_faucet assert
+    dup exec.internal_account::is_fungible_faucet assert.err=ERR_ASSET_NOT_FUNGIBLE_ID
     # => [faucet_id, amount]
 
     # assert the amount is valid
-    dup.1 exec.asset::get_fungible_asset_max_amount lte assert
+    dup.1 exec.asset::get_fungible_asset_max_amount lte assert.err=ERR_ASSET_INVALID_AMOUNT
     # => [faucet_id, amount]
 
     # create the asset
@@ -60,7 +72,7 @@ end
 #! - ASSET is the built non-fungible asset.
 export.build_non_fungible_asset
     # assert the faucet is a non-fungible faucet
-    dup exec.internal_account::is_non_fungible_faucet assert
+    dup exec.internal_account::is_non_fungible_faucet assert.err=ERR_ASSET_NOT_NON_FUNGIBLE_ID
     # => [faucet_id, DATA_HASH]
 
     # build the asset

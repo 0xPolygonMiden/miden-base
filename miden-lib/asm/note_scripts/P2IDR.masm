@@ -3,6 +3,18 @@ use.miden::note
 use.miden::tx
 use.miden::contracts::wallets::basic->wallet
 
+# ERRORS
+# =================================================================================================
+
+# P2IDR scripts expect exactly 2 note inputs
+const.ERR_P2IDR_WRONG_NUMBER_OF_INPUTS=0x00020004
+
+# P2IDR's can only be reclaimed by the sender
+const.ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER=0x00020005
+
+# Transaction's reference block is lower than reclaim height. The P2IDR can not be reclaimed
+const.ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED=0x00020006
+
 #! Helper procedure to add all assets of a note to an account.
 #!
 #! Inputs: []
@@ -74,7 +86,7 @@ begin
     # => [num_inputs, inputs_ptr]
 
     # make sure the number of inputs is 2
-    eq.2 assert
+    eq.2 assert.err=ERR_P2IDR_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     # read the reclaim block height and target account id from the note inputs
@@ -98,14 +110,14 @@ begin
         exec.note::get_sender
         # => [sender_account_id, account_id, reclaim_block_height, ...]
 
-        assert_eq
+        assert_eq.err=ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
         # => [reclaim_block_height, ...]
 
         # now check that sender is allowed to reclaim, current block >= reclaim block height
         exec.tx::get_block_number
         # => [current_block_height, reclaim_block_height, ...]
 
-        u32assert2 u32lte assert
+        u32assert2 u32lte assert.err=ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED
     end
 
     exec.add_note_assets_to_account
