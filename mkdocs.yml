@@ -39,7 +39,7 @@ nav:
           - Transaction modes: architecture/transactions/modes.md
       - State: architecture/state.md
       - Execution: architecture/execution.md
-      - Network: architecture/network.md
+    - Network: network/network.md
 
 
 
