@@ -22,7 +22,7 @@ theme:
 
 
 nav:
-  - Welcome: welcome.md
+  - Welcome: introduction/welcome.md
   - Getting started: introduction/getting-started.md
   - Roadmap: introduction/roadmap.md
   - Architecture:
@@ -79,11 +79,6 @@ markdown_extensions:
 plugins:
   - search
   - open-in-new-tab
-  - git-revision-date-localized:
-      fallback_to_build_date: true
-      strict: false
-      exclude:
-        - index.md
 
 validation:
   absolute_links: warn
