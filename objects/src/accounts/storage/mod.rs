@@ -73,7 +73,7 @@ impl AccountStorage {
             StorageSlotType::Value { value_arity: 64 };
 
         // process entries to extract type data
-        let mut entires = items
+        let mut entries = items
             .into_iter()
             .map(|x| {
                 if x.0 == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
@@ -87,13 +87,13 @@ impl AccountStorage {
             .collect::<Result<Vec<_>, AccountError>>()?;
 
         // add layout commitment entry
-        entires.push((
+        entries.push((
             Self::SLOT_LAYOUT_COMMITMENT_INDEX as u64,
             *Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>()),
         ));
 
         // construct storage slots smt and populate the types vector.
-        let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entires)
+        let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
         Ok(Self { slots, layout })
