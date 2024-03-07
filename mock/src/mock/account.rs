@@ -2,7 +2,7 @@ use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage, AccountType,
-        SlotItem, StorageSlotType,
+        SlotItem, StorageSlot, StorageSlotType,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
@@ -42,11 +42,23 @@ pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
 
 pub fn storage_item_0() -> SlotItem {
-    (STORAGE_INDEX_0, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_0))
+    SlotItem {
+        index: STORAGE_INDEX_0,
+        slot: StorageSlot {
+            slot_type: StorageSlotType::Value { value_arity: 0 },
+            value: STORAGE_VALUE_0,
+        },
+    }
 }
 
 pub fn storage_item_1() -> SlotItem {
-    (STORAGE_INDEX_1, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_1))
+    SlotItem {
+        index: STORAGE_INDEX_1,
+        slot: StorageSlot {
+            slot_type: StorageSlotType::Value { value_arity: 0 },
+            value: STORAGE_VALUE_1,
+        },
+    }
 }
 
 fn mock_account_vault() -> AssetVault {
@@ -215,10 +227,13 @@ pub fn mock_fungible_faucet(
     } else {
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
-    let account_storage = AccountStorage::new(vec![(
-        FAUCET_STORAGE_DATA_SLOT,
-        (StorageSlotType::Value { value_arity: 0 }, [ZERO, ZERO, ZERO, initial_balance]),
-    )])
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: FAUCET_STORAGE_DATA_SLOT,
+        slot: StorageSlot {
+            slot_type: StorageSlotType::Value { value_arity: 0 },
+            value: [ZERO, ZERO, ZERO, initial_balance],
+        },
+    }])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
@@ -244,10 +259,13 @@ pub fn mock_non_fungible_faucet(
 
     // TODO: add nft tree data to account storage?
 
-    let account_storage = AccountStorage::new(vec![(
-        FAUCET_STORAGE_DATA_SLOT,
-        (StorageSlotType::Map { value_arity: 0 }, *nft_tree.root()),
-    )])
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: FAUCET_STORAGE_DATA_SLOT,
+        slot: StorageSlot {
+            slot_type: StorageSlotType::Map { value_arity: 0 },
+            value: *nft_tree.root(),
+        },
+    }])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);

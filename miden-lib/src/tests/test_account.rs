@@ -248,8 +248,8 @@ fn test_get_item() {
             push.{item_value} assert_eqw
         end
         ",
-            item_index = storage_item.0,
-            item_value = prepare_word(&storage_item.1 .1)
+            item_index = storage_item.index,
+            item_value = prepare_word(&storage_item.slot.value)
         );
 
         let transaction = prepare_transaction(tx_inputs, None, &code, None);

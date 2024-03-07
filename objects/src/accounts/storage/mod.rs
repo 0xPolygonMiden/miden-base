@@ -19,14 +19,52 @@ pub const STORAGE_TREE_DEPTH: u8 = 8;
 // TYPE ALIASES
 // ================================================================================================
 
-/// A type that represents a single storage slot item. The tuple contains the slot index of the item
-/// and the entry of the item.
-pub type SlotItem = (u8, StorageSlot);
+/// Represents a single storage slot item.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub struct SlotItem {
+    /// The index this item will occupy in the [AccountStorage] tree.
+    pub index: u8,
 
-/// A type that represents a single storage slot entry. The tuple contains the type of the slot and
-/// the value of the slot - the value can be a raw value or a commitment to the underlying data
-/// structure.
-pub type StorageSlot = (StorageSlotType, Word);
+    /// The type and value of the item.
+    pub slot: StorageSlot,
+}
+
+/// Represents a single storage slot entry.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub struct StorageSlot {
+    /// The type of the value
+    pub slot_type: StorageSlotType,
+
+    /// The value itself.
+    ///
+    /// The value can be a raw value or a commitment to the underlying data structure.
+    pub value: Word,
+}
+
+impl StorageSlot {
+    pub fn new_value(value: Word) -> Self {
+        Self {
+            slot_type: StorageSlotType::Value { value_arity: 0 },
+            value,
+        }
+    }
+
+    pub fn new_map(root: Word) -> Self {
+        Self {
+            slot_type: StorageSlotType::Map { value_arity: 0 },
+            value: root,
+        }
+    }
+
+    pub fn new_array(root: Word, depth: u8) -> Self {
+        Self {
+            slot_type: StorageSlotType::Array { depth, value_arity: 0 },
+            value: root,
+        }
+    }
+}
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -75,14 +113,13 @@ impl AccountStorage {
         // process entries to extract type data
         let mut entries = items
             .into_iter()
-            .map(|(index, item)| {
-                if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
-                    return Err(AccountError::StorageSlotIsReserved(index));
+            .map(|item| {
+                if item.index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+                    return Err(AccountError::StorageSlotIsReserved(item.index));
                 }
 
-                let (slot_type, slot_value) = item;
-                layout[index as usize] = slot_type;
-                Ok((index as u64, slot_value))
+                layout[item.index as usize] = item.slot.slot_type;
+                Ok((item.index as u64, item.slot.value))
             })
             .collect::<Result<Vec<_>, AccountError>>()?;
 
@@ -244,10 +281,13 @@ impl Deserializable for AccountStorage {
         let mut items: Vec<SlotItem> = Vec::new();
         let num_filled_slots = source.read_u8()?;
         for _ in 0..num_filled_slots {
-            let idx = source.read_u8()?;
-            let slot_value: Word = source.read()?;
-            let slot_type = complex_types.remove(&idx).unwrap_or_default();
-            items.push((idx, (slot_type, slot_value)));
+            let index = source.read_u8()?;
+            let value: Word = source.read()?;
+            let slot_type = complex_types.remove(&index).unwrap_or_default();
+            items.push(SlotItem {
+                index,
+                slot: StorageSlot { slot_type, value },
+            });
         }
 
         Self::new(items).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
@@ -259,7 +299,9 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use super::{AccountStorage, Deserializable, Serializable, StorageSlotType};
+    use super::{
+        AccountStorage, Deserializable, Serializable, SlotItem, StorageSlot, StorageSlotType,
+    };
     use crate::{ONE, ZERO};
 
     #[test]
@@ -271,8 +313,20 @@ mod tests {
 
         // storage with values for default types
         let storage = AccountStorage::new(vec![
-            (0, (StorageSlotType::default(), [ONE, ONE, ONE, ONE])),
-            (2, (StorageSlotType::default(), [ONE, ONE, ONE, ZERO])),
+            SlotItem {
+                index: 0,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::default(),
+                    value: [ONE, ONE, ONE, ONE],
+                },
+            },
+            SlotItem {
+                index: 2,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::default(),
+                    value: [ONE, ONE, ONE, ZERO],
+                },
+            },
         ])
         .unwrap();
         let bytes = storage.to_bytes();
@@ -280,13 +334,34 @@ mod tests {
 
         // storage with a mix of types
         let storage = AccountStorage::new(vec![
-            (0, (StorageSlotType::Value { value_arity: 1 }, [ONE, ONE, ONE, ONE])),
-            (1, (StorageSlotType::Value { value_arity: 0 }, [ONE, ONE, ONE, ZERO])),
-            (2, (StorageSlotType::Map { value_arity: 2 }, [ONE, ONE, ZERO, ZERO])),
-            (
-                3,
-                (StorageSlotType::Array { depth: 4, value_arity: 3 }, [ONE, ZERO, ZERO, ZERO]),
-            ),
+            SlotItem {
+                index: 0,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 1 },
+                    value: [ONE, ONE, ONE, ONE],
+                },
+            },
+            SlotItem {
+                index: 1,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [ONE, ONE, ONE, ZERO],
+                },
+            },
+            SlotItem {
+                index: 2,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Map { value_arity: 2 },
+                    value: [ONE, ONE, ZERO, ZERO],
+                },
+            },
+            SlotItem {
+                index: 3,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Array { depth: 4, value_arity: 3 },
+                    value: [ONE, ZERO, ZERO, ZERO],
+                },
+            },
         ])
         .unwrap();
         let bytes = storage.to_bytes();
