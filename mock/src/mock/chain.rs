@@ -12,12 +12,12 @@ use miden_objects::{
 use rand::{Rng, SeedableRng};
 
 use super::{
+    account::DEFAULT_ACCOUNT_CODE,
     block::mock_block_header,
     builders::{
         accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuilder,
         FungibleAssetBuilder, NonFungibleAssetBuilder,
     },
-    constants::DEFAULT_ACCOUNT_CODE,
 };
 
 /// Initial timestamp value

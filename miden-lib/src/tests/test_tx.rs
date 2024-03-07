@@ -3,9 +3,10 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes},
 };
 use mock::{
-    constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     mock::{
-        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
+        account::{MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+        host::MockHost,
+        notes::AssetPreservationStatus,
         transaction::mock_inputs,
     },
     prepare_transaction,

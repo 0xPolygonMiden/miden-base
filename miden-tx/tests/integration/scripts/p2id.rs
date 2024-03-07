@@ -9,7 +9,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::TransactionExecutor;
-use mock::constants::{
+use mock::mock::account::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };

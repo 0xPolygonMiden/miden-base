@@ -15,12 +15,12 @@ use super::{
     account::{
         mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
         mock_non_fungible_faucet, MockAccountType,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     },
     block::mock_block_header,
     chain::mock_chain_data,
     notes::{mock_notes, AssetPreservationStatus},
 };
-use crate::constants::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN;
 
 pub fn mock_inputs(
     account_type: MockAccountType,
