@@ -13,8 +13,8 @@ use vm_processor::{AdviceInputs, Operation, Program, Word};
 use super::{
     super::TransactionKernel,
     account::{
-        mock_account, mock_fungible_faucet, mock_new_account, mock_non_fungible_faucet,
-        MockAccountType,
+        mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
+        mock_non_fungible_faucet, MockAccountType,
     },
     block::mock_block_header,
     chain::mock_chain_data,
@@ -43,8 +43,7 @@ pub fn mock_inputs_with_account_seed(
         MockAccountType::StandardExisting => mock_account(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             Felt::ONE,
-            None,
-            &assembler,
+            mock_account_code(&assembler),
         ),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
@@ -88,8 +87,7 @@ pub fn mock_inputs_with_existing(
         MockAccountType::StandardExisting => account.unwrap_or(mock_account(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             Felt::ONE,
-            None,
-            &assembler,
+            mock_account_code(&assembler),
         )),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler))
@@ -122,16 +120,14 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let initial_account = mock_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         Felt::ONE,
-        None,
-        &assembler,
+        mock_account_code(&assembler),
     );
 
     // nonce incremented by 1
     let final_account = mock_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         Felt::new(2),
-        Some(initial_account.code().clone()),
-        &assembler,
+        initial_account.code().clone(),
     );
 
     // mock notes

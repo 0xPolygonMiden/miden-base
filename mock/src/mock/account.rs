@@ -121,25 +121,9 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
     Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
-pub fn mock_account(
-    account_id: u64,
-    nonce: Felt,
-    code: Option<AccountCode>,
-    assembler: &Assembler,
-) -> Account {
-    // mock account storage
+pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
     let account_storage = mock_account_storage();
-
-    // mock account code
-    let account_code = match code {
-        Some(code) => code,
-        None => mock_account_code(assembler),
-    };
-
-    // Create account vault
     let account_vault = mock_account_vault();
-
-    // Create an account with storage items
     let account_id = AccountId::try_from(account_id).unwrap();
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }

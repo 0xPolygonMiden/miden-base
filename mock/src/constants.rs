@@ -12,6 +12,7 @@ use super::{
     mock::account::{mock_account, mock_fungible_faucet, mock_non_fungible_faucet},
     TransactionKernel,
 };
+use crate::mock::account::mock_account_code;
 
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
 
@@ -157,8 +158,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
             mock_account(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 Felt::ONE,
-                None,
-                &assembler,
+                mock_account_code(&assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
