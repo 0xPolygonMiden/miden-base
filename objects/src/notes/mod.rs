@@ -7,6 +7,9 @@ use crate::{
     Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
 
+mod assets;
+pub use assets::NoteAssets;
+
 mod envelope;
 pub use envelope::NoteEnvelope;
 
@@ -19,6 +22,9 @@ pub use metadata::NoteMetadata;
 mod note_id;
 pub use note_id::NoteId;
 
+mod note_type;
+pub use note_type::NoteType;
+
 mod nullifier;
 pub use nullifier::Nullifier;
 
@@ -27,9 +33,6 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 
 mod script;
 pub use script::NoteScript;
-
-mod assets;
-pub use assets::NoteAssets;
 
 // CONSTANTS
 // ================================================================================================
@@ -41,21 +44,6 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 
 // NOTE
 // ================================================================================================
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NoteType {
-    /// Notes with this type have only their hash published to the network.
-    OffChain,
-
-    /// Notes with type are shared with the network encrypted.
-    Encrypted,
-
-    /// Notes with this type are known by the network, intended to be used in local transactions.
-    Local,
-
-    /// Notes with this type are known by the network, intended for network transactions.
-    Network,
-}
 
 /// A note which can be used to transfer assets between accounts.
 ///
@@ -107,11 +95,12 @@ impl Note {
         assets: &[Asset],
         serial_num: Word,
         sender: AccountId,
+        note_type: NoteType,
         tag: Felt,
     ) -> Result<Self, NoteError> {
         let inputs = NoteInputs::new(inputs.to_vec())?;
         let assets = NoteAssets::new(assets)?;
-        let metadata = NoteMetadata::new(sender, tag);
+        let metadata = NoteMetadata::new(sender, note_type, tag);
 
         Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
     }

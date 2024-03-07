@@ -4,7 +4,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteScript},
+    notes::{Note, NoteScript, NoteType},
     Felt, Word, ZERO,
 };
 
@@ -14,9 +14,9 @@ use crate::{
         CONSUMED_ASSET_3_AMOUNT,
     },
     mock::account::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_SENDER,
+        ACCOUNT_CREATE_NOTE_MAST_ROOT, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER,
     },
     utils::{prepare_assets, prepare_word},
 };
@@ -61,6 +61,7 @@ pub fn mock_notes(
         &[fungible_asset_1],
         SERIAL_NUM_4,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();
@@ -72,14 +73,22 @@ pub fn mock_notes(
         &[fungible_asset_2],
         SERIAL_NUM_5,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();
 
     const SERIAL_NUM_6: Word = [Felt::new(21), Felt::new(22), Felt::new(23), Felt::new(24)];
-    let created_note_3 =
-        Note::new(note_script, &[Felt::new(2)], &[fungible_asset_3], SERIAL_NUM_6, sender, ZERO)
-            .unwrap();
+    let created_note_3 = Note::new(
+        note_script,
+        &[Felt::new(2)],
+        &[fungible_asset_3],
+        SERIAL_NUM_6,
+        sender,
+        NoteType::Public,
+        ZERO,
+    )
+    .unwrap();
 
     let created_notes = vec![created_note_1, created_note_2, created_note_3];
 
@@ -92,21 +101,24 @@ pub fn mock_notes(
         begin
             # create note 0
             push.{created_note_0_recipient}
+            push.{PUBLIC_NOTE}
             push.{created_note_0_tag}
             push.{created_note_0_asset}
             # MAST root of the `create_note` mock account procedure
-            call.0xacb46cadec8d1721934827ed161b851f282f1f4b88b72391a67fed668b1a00ba
-            drop dropw dropw
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            drop drop dropw dropw
 
             # create note 1
             push.{created_note_1_recipient}
+            push.{PUBLIC_NOTE}
             push.{created_note_1_tag}
             push.{created_note_1_asset}
             # MAST root of the `create_note` mock account procedure
-            call.0xacb46cadec8d1721934827ed161b851f282f1f4b88b72391a67fed668b1a00ba
-            drop dropw dropw
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            drop drop dropw dropw
         end
     ",
+        PUBLIC_NOTE = NoteType::Public as u8,
         created_note_0_recipient = prepare_word(&created_notes[0].recipient()),
         created_note_0_tag = created_notes[0].metadata().tag(),
         created_note_0_asset = prepare_assets(created_notes[0].assets())[0],
@@ -123,13 +135,15 @@ pub fn mock_notes(
         begin
             # create note 2
             push.{created_note_2_recipient}
+            push.{PUBLIC_NOTE}
             push.{created_note_2_tag}
             push.{created_note_2_asset}
             # MAST root of the `create_note` mock account procedure
-            call.0xacb46cadec8d1721934827ed161b851f282f1f4b88b72391a67fed668b1a00ba
-            drop dropw dropw
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            drop drop dropw dropw
         end
         ",
+        PUBLIC_NOTE = NoteType::Public as u8,
         created_note_2_recipient = prepare_word(&created_notes[2].recipient()),
         created_note_2_tag = created_notes[2].metadata().tag(),
         created_note_2_asset = prepare_assets(created_notes[2].assets())[0],
@@ -139,9 +153,16 @@ pub fn mock_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let consumed_note_1 =
-        Note::new(note_1_script, &[Felt::new(1)], &[fungible_asset_1], SERIAL_NUM_1, sender, ZERO)
-            .unwrap();
+    let consumed_note_1 = Note::new(
+        note_1_script,
+        &[Felt::new(1)],
+        &[fungible_asset_1],
+        SERIAL_NUM_1,
+        sender,
+        NoteType::Public,
+        ZERO,
+    )
+    .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
     let consumed_note_2 = Note::new(
@@ -150,6 +171,7 @@ pub fn mock_notes(
         &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();
@@ -164,6 +186,7 @@ pub fn mock_notes(
         &[fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_3,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();
@@ -178,6 +201,7 @@ pub fn mock_notes(
         &[non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)],
         SERIAL_NUM_7,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();
@@ -224,6 +248,7 @@ pub fn mock_notes(
         ],
         SERIAL_NUM_8,
         sender,
+        NoteType::Public,
         ZERO,
     )
     .unwrap();

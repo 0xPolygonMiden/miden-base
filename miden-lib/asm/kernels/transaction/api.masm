@@ -421,21 +421,21 @@ end
 
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
-#! Inputs: [ASSET, tag, RECIPIENT]
-#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+#! Inputs: [ASSET, tag, note_type, RECIPIENT]
+#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #!
 #! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.
+#! note_type is the note storage type
 #! RECIPIENT is the recipient of the note.
 #! ptr is the pointer to the memory address at which the note is stored.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [ASSET, tag, RECIPIENT]
+    # => [ASSET, tag, note_type, RECIPIENT]
 
-    # create the note
     exec.tx::create_note
-    # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+    # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.

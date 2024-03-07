@@ -1,7 +1,11 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note, Felt, NoteError, Word,
+    accounts::AccountId,
+    assets::Asset,
+    crypto::rand::FeltRng,
+    notes::{Note, NoteType},
+    Felt, NoteError, Word,
 };
 
 use self::utils::build_note_script;
@@ -25,6 +29,7 @@ pub fn create_p2id_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
     assets: Vec<Asset>,
+    note_type: NoteType,
     mut rng: R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
@@ -34,7 +39,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
-    Note::new(note_script, &inputs, &assets, serial_num, sender, tag)
+    Note::new(note_script, &inputs, &assets, serial_num, sender, note_type, tag)
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -53,6 +58,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
     assets: Vec<Asset>,
+    note_type: NoteType,
     recall_height: u32,
     mut rng: R,
 ) -> Result<Note, NoteError> {
@@ -63,7 +69,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag)
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, note_type, tag)
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -78,6 +84,7 @@ pub fn create_swap_note<R: FeltRng>(
     sender: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
+    note_type: NoteType,
     mut rng: R,
 ) -> Result<(Note, Word), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
@@ -102,7 +109,15 @@ pub fn create_swap_note<R: FeltRng>(
     let tag: Felt = Felt::new(0);
     let serial_num = rng.draw_word();
 
-    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, sender, tag)?;
+    let note = Note::new(
+        note_script.clone(),
+        &inputs,
+        &[offered_asset],
+        serial_num,
+        sender,
+        note_type,
+        tag,
+    )?;
 
     Ok((note, payback_serial_num))
 }

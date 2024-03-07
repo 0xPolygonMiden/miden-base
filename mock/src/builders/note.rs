@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
+    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript, NoteType},
     Felt, NoteError, Word,
 };
 use rand::Rng;
@@ -25,6 +25,7 @@ pub struct NoteBuilder {
     sender: AccountId,
     inputs: Vec<Felt>,
     assets: Vec<Asset>,
+    note_type: NoteType,
     serial_num: Word,
     tag: Felt,
     code: String,
@@ -44,6 +45,7 @@ impl NoteBuilder {
             sender,
             inputs: vec![],
             assets: vec![],
+            note_type: NoteType::Public,
             serial_num,
             tag: Felt::default(),
             code: DEFAULT_NOTE_CODE.to_string(),
@@ -81,6 +83,14 @@ impl NoteBuilder {
         let assembler = TransactionKernel::assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
-        Note::new(note_script, &self.inputs, &self.assets, self.serial_num, self.sender, self.tag)
+        Note::new(
+            note_script,
+            &self.inputs,
+            &self.assets,
+            self.serial_num,
+            self.sender,
+            self.note_type,
+            self.tag,
+        )
     }
 }

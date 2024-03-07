@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
+    notes::NoteType,
     transaction::TransactionArgs,
     utils::collections::*,
     Felt,
@@ -62,6 +63,7 @@ fn p2idr_script() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset],
+        NoteType::Public,
         reclaim_block_height_in_time,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -72,6 +74,7 @@ fn p2idr_script() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset],
+        NoteType::Public,
         reclaim_block_height_reclaimable,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )

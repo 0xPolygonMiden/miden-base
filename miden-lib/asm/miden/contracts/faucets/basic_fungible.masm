@@ -13,6 +13,10 @@ use.miden::faucet
 use.miden::tx
 use.miden::contracts::auth::basic
 
+# CONSTANTS
+# =================================================================================================
+const.OFFCHAIN_NOTE=0
+
 # ERRORS
 # =================================================================================================
 
@@ -67,6 +71,9 @@ export.distribute
     # mint the asset; this is needed to satisfy asset preservation logic.
     exec.faucet::mint
     # => [ASSET, tag, RECIPIENT, ...]
+
+    push.OFFCHAIN_NOTE movdn.5
+    # => [ASSET, tag, note_type, RECIPIENT, ...]
 
     # create a note containing the asset
     exec.tx::create_note

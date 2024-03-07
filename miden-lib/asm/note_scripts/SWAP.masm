@@ -1,6 +1,11 @@
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
 
+# CONSTANTS
+# =================================================================================================
+
+const.OFFCHAIN_NOTE=0
+
 # ERRORS
 # =================================================================================================
 
@@ -63,7 +68,14 @@ begin
     drop drop drop movdn.4
     # => [ASSET, tag, RECIPIENT]
 
+    push.OFFCHAIN_NOTE movdn.5
+    # => [ASSET, tag, note_type, RECIPIENT]
+
     # create a note using inputs
-    call.wallet::send_asset dropw dropw
+    call.wallet::send_asset
+    # => [ptr, ZERO, ZERO, 0]
+
+    # clean stack
+    dropw dropw drop drop
     # => []
 end

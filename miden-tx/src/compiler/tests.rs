@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteInclusionProof},
+    notes::{Note, NoteInclusionProof, NoteType},
     transaction::{InputNote, InputNotes},
     Felt, FieldElement, Word,
 };
@@ -162,6 +162,7 @@ fn mock_consumed_notes(
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_1,
         sender,
+        NoteType::Public,
         Felt::ZERO,
     )
     .unwrap();
@@ -173,6 +174,7 @@ fn mock_consumed_notes(
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
         sender,
+        NoteType::Public,
         Felt::ZERO,
     )
     .unwrap();

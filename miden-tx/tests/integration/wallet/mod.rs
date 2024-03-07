@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    notes::NoteType,
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
@@ -140,14 +141,16 @@ fn prove_send_asset_via_wallet() {
 
         begin
             push.{recipient}
+            push.{note_type}
             push.{tag}
             push.{asset}
-            call.wallet::send_asset drop
-            dropw dropw
+            call.wallet::send_asset
+            drop drop dropw dropw
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
             recipient = prepare_word(&recipient),
+            note_type = NoteType::Public as u8,
             tag = tag,
             asset = prepare_word(&fungible_asset_1.into())
         )
