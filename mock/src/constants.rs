@@ -154,7 +154,12 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            mock_account(None, Felt::ONE, None, &assembler),
+            mock_account(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                Felt::ONE,
+                None,
+                &assembler,
+            ),
             AccountType::RegularAccountUpdatableCode,
         ),
     };

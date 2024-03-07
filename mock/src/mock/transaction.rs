@@ -20,6 +20,7 @@ use super::{
     chain::mock_chain_data,
     notes::{mock_notes, AssetPreservationStatus},
 };
+use crate::constants::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN;
 
 pub fn mock_inputs(
     account_type: MockAccountType,
@@ -39,7 +40,12 @@ pub fn mock_inputs_with_account_seed(
     // Create an account with storage items
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
-        MockAccountType::StandardExisting => mock_account(None, Felt::ONE, None, &assembler),
+        MockAccountType::StandardExisting => mock_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            Felt::ONE,
+            None,
+            &assembler,
+        ),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
@@ -79,9 +85,12 @@ pub fn mock_inputs_with_existing(
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
-        MockAccountType::StandardExisting => {
-            account.unwrap_or(mock_account(None, Felt::ONE, None, &assembler))
-        },
+        MockAccountType::StandardExisting => account.unwrap_or(mock_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            Felt::ONE,
+            None,
+            &assembler,
+        )),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler))
         },
@@ -110,12 +119,20 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
-    // Initial Account
-    let initial_account = mock_account(None, Felt::ONE, None, &assembler);
+    let initial_account = mock_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        Felt::ONE,
+        None,
+        &assembler,
+    );
 
-    // Finial Account (nonce incremented by 1)
-    let final_account =
-        mock_account(None, Felt::new(2), Some(initial_account.code().clone()), &assembler);
+    // nonce incremented by 1
+    let final_account = mock_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        Felt::new(2),
+        Some(initial_account.code().clone()),
+        &assembler,
+    );
 
     // mock notes
     let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);

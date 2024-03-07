@@ -11,8 +11,8 @@ use crate::constants::{
     generate_account_seed, non_fungible_asset, non_fungible_asset_2, storage_item_0,
     storage_item_1, AccountSeedType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
+    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, FUNGIBLE_ASSET_AMOUNT,
+    FUNGIBLE_FAUCET_INITIAL_BALANCE,
 };
 
 fn mock_account_vault() -> AssetVault {
@@ -122,7 +122,7 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
 }
 
 pub fn mock_account(
-    account_id: Option<u64>,
+    account_id: u64,
     nonce: Felt,
     code: Option<AccountCode>,
     assembler: &Assembler,
@@ -140,7 +140,6 @@ pub fn mock_account(
     let account_vault = mock_account_vault();
 
     // Create an account with storage items
-    let account_id = account_id.unwrap_or(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN);
     let account_id = AccountId::try_from(account_id).unwrap();
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
