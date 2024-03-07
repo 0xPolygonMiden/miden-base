@@ -75,14 +75,14 @@ impl AccountStorage {
         // process entries to extract type data
         let mut entries = items
             .into_iter()
-            .map(|x| {
-                if x.0 == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
-                    return Err(AccountError::StorageSlotIsReserved(x.0));
+            .map(|(index, item)| {
+                if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+                    return Err(AccountError::StorageSlotIsReserved(index));
                 }
 
-                let (slot_type, slot_value) = x.1;
-                layout[x.0 as usize] = slot_type;
-                Ok((x.0 as u64, slot_value))
+                let (slot_type, slot_value) = item;
+                layout[index as usize] = slot_type;
+                Ok((index as u64, slot_value))
             })
             .collect::<Result<Vec<_>, AccountError>>()?;
 
