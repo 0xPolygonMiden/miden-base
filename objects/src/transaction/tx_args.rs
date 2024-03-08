@@ -34,7 +34,10 @@ impl TransactionArgs {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Self {
-        Self { tx_script, note_args: note_args.unwrap_or_default() }
+        Self {
+            tx_script,
+            note_args: note_args.unwrap_or_default(),
+        }
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
@@ -47,10 +50,7 @@ impl TransactionArgs {
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(not_args: BTreeMap<NoteId, Word>) -> Self {
-        Self {
-            tx_script: None,
-            note_args: not_args,
-        }
+        Self { tx_script: None, note_args: not_args }
     }
 
     // PUBLIC ACCESSORS
