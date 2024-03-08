@@ -18,9 +18,9 @@ use miden_tx::{
     DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
 };
 use mock::{
-    constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE, MIN_PROOF_SECURITY_LEVEL},
+    constants::MIN_PROOF_SECURITY_LEVEL,
     mock::{
-        account::MockAccountType,
+        account::{MockAccountType, ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE},
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },

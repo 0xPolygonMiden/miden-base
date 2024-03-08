@@ -7,7 +7,7 @@ use rand::Rng;
 
 use crate::{
     builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
-    constants::DEFAULT_ACCOUNT_CODE,
+    mock::account::DEFAULT_ACCOUNT_CODE,
     utils::{collections::*, string::*},
 };
 

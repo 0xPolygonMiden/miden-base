@@ -1,9 +1,9 @@
 use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 use clap::Parser;
-use miden_mock::{
-    constants::DEFAULT_ACCOUNT_CODE,
-    mock::chain::{Immutable, MockChain, OnChain},
+use miden_mock::mock::{
+    account::DEFAULT_ACCOUNT_CODE,
+    chain::{Immutable, MockChain, OnChain},
 };
 use miden_objects::{Digest, FieldElement, Word};
 use rand::SeedableRng;

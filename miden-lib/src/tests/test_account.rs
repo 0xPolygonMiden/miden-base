@@ -9,11 +9,10 @@ use miden_objects::{
 };
 use mock::{
     constants::{
-        storage_item_0, storage_item_1, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
     },
     mock::{
-        account::MockAccountType,
+        account::{storage_item_0, storage_item_1, MockAccountType},
         host::MockHost,
         notes::AssetPreservationStatus,
         transaction::{mock_executed_tx, mock_inputs},

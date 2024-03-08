@@ -13,7 +13,7 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
+use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
 
 use crate::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,

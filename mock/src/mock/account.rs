@@ -1,19 +1,53 @@
 use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    accounts::{
+        get_account_seed_single, Account, AccountCode, AccountId, AccountStorage, AccountType,
+        SlotItem, StorageSlotType,
+    },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::merkle::Smt,
     Felt, FieldElement, Word, ZERO,
 };
 
-use crate::constants::{
-    generate_account_seed, non_fungible_asset, non_fungible_asset_2, storage_item_0,
-    storage_item_1, AccountSeedType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
+use crate::{
+    constants::{
+        non_fungible_asset, non_fungible_asset_2, FUNGIBLE_ASSET_AMOUNT,
+        FUNGIBLE_FAUCET_INITIAL_BALANCE,
+    },
+    TransactionKernel,
 };
+
+// ACCOUNT IDs
+// ================================================================================================
+
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
+pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010111100 << 54;
+pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1110011100 << 54;
+pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 = 0b1110011101 << 54;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
+    0b1010010001111111010110100011011110101011010001101111110110111100u64;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
+    0b1010000101101010101101000110111101010110100011011110100011011101u64;
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
+    0b1010011001011010101101000110111101010110100011011101000110111100u64;
+
+// ACCOUNT STORAGE
+// ================================================================================================
+
+pub const STORAGE_INDEX_0: u8 = 20;
+pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+pub const STORAGE_INDEX_1: u8 = 30;
+pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
+
+pub fn storage_item_0() -> SlotItem {
+    (STORAGE_INDEX_0, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_0))
+}
+
+pub fn storage_item_1() -> SlotItem {
+    (STORAGE_INDEX_1, (StorageSlotType::Value { value_arity: 0 }, STORAGE_VALUE_1))
+}
 
 fn mock_account_vault() -> AssetVault {
     // prepare fungible asset
@@ -46,6 +80,26 @@ pub fn mock_account_storage() -> AccountStorage {
 pub const ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX: usize = 2;
 pub const ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX: usize = 3;
 pub const ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX: usize = 4;
+
+// ACCOUNT ASSEMBLY CODE
+// ================================================================================================
+
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
+";
+
+pub const DEFAULT_AUTH_SCRIPT: &str = "
+    use.miden::contracts::auth::basic->auth_tx
+
+    begin
+        call.auth_tx::auth_tx_rpo_falcon512
+    end
+";
 
 pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     let account_code = "\
@@ -113,6 +167,25 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     AccountCode::new(account_module_ast, assembler).unwrap()
 }
 
+// MOCK ACCOUNT
+// ================================================================================================
+
+#[derive(Debug, PartialEq)]
+pub enum MockAccountType {
+    StandardNew,
+    StandardExisting,
+    FungibleFaucet {
+        acct_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+    },
+    NonFungibleFaucet {
+        acct_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+    },
+}
+
 pub fn mock_new_account(assembler: &Assembler) -> Account {
     let (acct_id, _account_seed) =
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
@@ -121,29 +194,15 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
     Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
 }
 
-pub fn mock_account(
-    account_id: Option<u64>,
-    nonce: Felt,
-    code: Option<AccountCode>,
-    assembler: &Assembler,
-) -> Account {
-    // mock account storage
+pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
     let account_storage = mock_account_storage();
-
-    // mock account code
-    let account_code = match code {
-        Some(code) => code,
-        None => mock_account_code(assembler),
-    };
-
-    // Create account vault
     let account_vault = mock_account_vault();
-
-    // Create an account with storage items
-    let account_id = account_id.unwrap_or(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN);
     let account_id = AccountId::try_from(account_id).unwrap();
     Account::new(account_id, account_vault, account_storage, account_code, nonce)
 }
+
+// MOCK FAUCET
+// ================================================================================================
 
 pub fn mock_fungible_faucet(
     account_id: u64,
@@ -195,18 +254,79 @@ pub fn mock_non_fungible_faucet(
     Account::new(account_id, AssetVault::default(), account_storage, account_code, nonce)
 }
 
-#[derive(Debug, PartialEq)]
-pub enum MockAccountType {
-    StandardNew,
-    StandardExisting,
-    FungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
-    NonFungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
+// ACCOUNT SEED GENERATION
+// ================================================================================================
+
+pub enum AccountSeedType {
+    FungibleFaucetInvalidInitialBalance,
+    FungibleFaucetValidInitialBalance,
+    NonFungibleFaucetInvalidReservedSlot,
+    NonFungibleFaucetValidReservedSlot,
+    RegularAccountUpdatableCodeOnChain,
+}
+
+/// Returns the account id and seed for the specified account type.
+pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, Word) {
+    let assembler = TransactionKernel::assembler();
+    let init_seed: [u8; 32] = Default::default();
+
+    let (account, account_type) = match account_seed_type {
+        AccountSeedType::FungibleFaucetInvalidInitialBalance => (
+            mock_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                false,
+                &assembler,
+            ),
+            AccountType::FungibleFaucet,
+        ),
+        AccountSeedType::FungibleFaucetValidInitialBalance => (
+            mock_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                true,
+                &assembler,
+            ),
+            AccountType::FungibleFaucet,
+        ),
+        AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
+            mock_non_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                false,
+                &assembler,
+            ),
+            AccountType::NonFungibleFaucet,
+        ),
+        AccountSeedType::NonFungibleFaucetValidReservedSlot => (
+            mock_non_fungible_faucet(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ZERO,
+                true,
+                &assembler,
+            ),
+            AccountType::NonFungibleFaucet,
+        ),
+        AccountSeedType::RegularAccountUpdatableCodeOnChain => (
+            mock_account(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                Felt::ONE,
+                mock_account_code(&assembler),
+            ),
+            AccountType::RegularAccountUpdatableCode,
+        ),
+    };
+
+    let seed = get_account_seed_single(
+        init_seed,
+        account_type,
+        true,
+        account.code().root(),
+        account.storage().root(),
+    )
+    .unwrap();
+
+    let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
+
+    (account_id, seed)
 }

@@ -13,13 +13,19 @@ use miden_objects::{
 use miden_prover::ProvingOptions;
 use mock::{
     constants::{
-        non_fungible_asset, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-        ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL,
-        STORAGE_INDEX_0,
+        non_fungible_asset, ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX,
+        ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX, ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
+        FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL,
     },
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
+    mock::{
+        account::{
+            MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            STORAGE_INDEX_0,
+        },
+        notes::AssetPreservationStatus,
+        transaction::mock_inputs,
+    },
     utils::prepare_word,
 };
 use vm_processor::{
