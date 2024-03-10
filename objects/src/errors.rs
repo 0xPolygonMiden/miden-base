@@ -11,7 +11,7 @@ use super::{
     utils::string::*,
     Digest, Word,
 };
-use crate::{notes::Note, utils::collections::*};
+use crate::utils::collections::*;
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -349,7 +349,7 @@ impl fmt::Display for TransactionOutputError {
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionOutputError {}
 
-// PROVEN TRANSACTIOM ERROR
+// PROVEN TRANSACTION ERROR
 // ================================================================================================
 
 #[derive(Debug)]
@@ -357,7 +357,6 @@ pub enum ProvenTransactionError {
     AccountFinalHashMismatch(Digest, Digest),
     AccountIdMismatch(AccountId, AccountId),
     InputNotesError(TransactionInputError),
-    InvalidNoteDetail(NoteId, Note),
     NoteDetailsForUnknownNotes(Vec<NoteId>),
     OffChainAccountWithDetails(AccountId),
     OnChainAccountMissingDetails(AccountId),
@@ -370,7 +369,7 @@ impl fmt::Display for ProvenTransactionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             ProvenTransactionError::AccountFinalHashMismatch(tx_digest, details_hash) => {
-                write!(f, "Provent transaction account_final_hash {} and account_details.hash must match {}.", tx_digest, details_hash)
+                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", tx_digest, details_hash)
             },
             ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
                 write!(
@@ -381,9 +380,6 @@ impl fmt::Display for ProvenTransactionError {
             },
             ProvenTransactionError::InputNotesError(inner) => {
                 write!(f, "Invalid input notes: {}", inner)
-            },
-            ProvenTransactionError::InvalidNoteDetail(id, _note) => {
-                write!(f, "Note detail {} for an unknown output note.", id)
             },
             ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
                 write!(f, "Note details for unknown note ids: {:?}", note_ids)

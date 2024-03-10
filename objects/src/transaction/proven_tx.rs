@@ -15,7 +15,7 @@ use crate::{
 // PROVEN TRANSACTION
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AccountDetails {
     /// The whole state is needed for new accounts
     Full(Account),
@@ -215,7 +215,7 @@ impl ProvenTransactionBuilder {
         self
     }
 
-    /// Add produce notes details.
+    /// Add produced notes details.
     pub fn add_output_note_details<T>(mut self, notes: T) -> Self
     where
         T: IntoIterator<Item = (NoteId, Note)>,
@@ -230,6 +230,7 @@ impl ProvenTransactionBuilder {
         self
     }
 
+    /// Builds the [ProvenTransaction].
     pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let output_note_details = self.output_note_details;
         let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
@@ -292,7 +293,7 @@ impl ProvenTransactionBuilder {
                                 ),
                             )
                         },
-                        (false, AccountDetails::Delta(_)) => todo!(),
+                        (false, AccountDetails::Delta(_)) => (),
                     }
                 },
             }
