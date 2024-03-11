@@ -12,13 +12,13 @@ mod code;
 pub use code::AccountCode;
 
 pub mod delta;
-pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta, StorageMapDelta};
 
 mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, SlotItem, StorageSlot, StorageSlotType};
+pub use storage::{AccountStorage, SlotItem, StorageMap, StorageSlot, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;
@@ -345,7 +345,7 @@ mod tests {
                 slot: StorageSlot { slot_type, value: item },
             })
             .collect();
-        let storage = AccountStorage::new(slot_items, None).unwrap();
+        let storage = AccountStorage::new(slot_items, vec![]).unwrap();
 
         // create account
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
@@ -361,6 +361,7 @@ mod tests {
         let storage_delta = AccountStorageDelta {
             cleared_items: vec![0],
             updated_items: vec![(1, word)],
+            updated_maps: vec![],
         };
 
         let vault_delta = AccountVaultDelta { added_assets, removed_assets };

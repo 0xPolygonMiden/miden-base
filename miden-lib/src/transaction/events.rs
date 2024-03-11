@@ -18,8 +18,9 @@ pub enum TransactionEvent {
     AccountVaultAddAsset = 0x2_0000,      // 131072
     AccountVaultRemoveAsset = 0x2_0001,   // 131073
     AccountStorageSetItem = 0x2_0002,     // 131074
-    AccountIncrementNonce = 0x2_0003,     // 131075
-    AccountPushProcedureIndex = 0x2_0004, // 131076
+    AccountStorageSetMapItem = 0x2_0003,  // 131075
+    AccountIncrementNonce = 0x2_0004,     // 131076
+    AccountPushProcedureIndex = 0x2_0005, // 131077
 }
 
 impl TransactionEvent {
@@ -45,8 +46,9 @@ impl TryFrom<u32> for TransactionEvent {
             0x2_0000 => Ok(TransactionEvent::AccountVaultAddAsset),
             0x2_0001 => Ok(TransactionEvent::AccountVaultRemoveAsset),
             0x2_0002 => Ok(TransactionEvent::AccountStorageSetItem),
-            0x2_0003 => Ok(TransactionEvent::AccountIncrementNonce),
-            0x2_0004 => Ok(TransactionEvent::AccountPushProcedureIndex),
+            0x2_0003 => Ok(TransactionEvent::AccountStorageSetMapItem),
+            0x2_0004 => Ok(TransactionEvent::AccountIncrementNonce),
+            0x2_0005 => Ok(TransactionEvent::AccountPushProcedureIndex),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

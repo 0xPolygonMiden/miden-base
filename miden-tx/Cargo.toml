@@ -28,4 +28,4 @@ miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
-mock = { package = "miden-mock", path = "../mock", default-features = false }
+mock = { package = "miden-mock", path = "../mock" }
