@@ -231,6 +231,11 @@ impl ProvenTransactionBuilder {
     }
 
     /// Builds the [ProvenTransaction].
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned if an on-chain account is used without provided on-chain detail.
+    /// Or if the account details, i.e. account id and final hash, don't match the transaction.
     pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let output_note_details = self.output_note_details;
         let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
