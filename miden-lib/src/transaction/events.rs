@@ -11,6 +11,7 @@ const ACCOUNT_STORAGE_SET_ITEM: u32 = 0x2_0002; // 131074
 const ACCOUNT_INCREMENT_NONCE: u32 = 0x2_0003; // 131075
 const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_0004; // 131076
 const NOTE_CREATED: u32 = 0x2_0005; // 131077
+const ACCOUNT_STORAGE_SET_MAP_ITEM: u32 = 0x2_0006; // 131078
 
 /// Events which may be emitted by a transaction kernel.
 ///
@@ -28,6 +29,7 @@ pub enum TransactionEvent {
     AccountIncrementNonce = ACCOUNT_INCREMENT_NONCE,
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
     NoteCreated = NOTE_CREATED,
+    AccountStorageSetMapItem = ACCOUNT_STORAGE_SET_MAP_ITEM,
 }
 
 impl TransactionEvent {
@@ -56,6 +58,7 @@ impl TryFrom<u32> for TransactionEvent {
             ACCOUNT_INCREMENT_NONCE => Ok(TransactionEvent::AccountIncrementNonce),
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
             NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
+            ACCOUNT_STORAGE_SET_MAP_ITEM => Ok(TransactionEvent::AccountStorageSetMapItem),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

@@ -215,8 +215,8 @@ fn add_account_to_advice_inputs(
     )]);
 
     // If there are storage maps, we populate the merkle store and advice map
-    if let Some(maps_array) = account.storage().maps() {
-        for map in maps_array {
+    if !(account.storage().maps().is_empty()) {
+        for map in account.storage().maps() {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
 
@@ -224,7 +224,6 @@ fn add_account_to_advice_inputs(
             inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
         }
     }
-    //println!("ADVICE_MAP:{:?}", inputs.map);
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();

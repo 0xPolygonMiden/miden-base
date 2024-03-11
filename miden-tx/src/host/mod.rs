@@ -193,6 +193,42 @@ impl<A: AdviceProvider> TransactionHost<A> {
         Ok(())
     }
 
+    /// Extracts information from the process state about the storage map being updated and
+    /// records the latest values of this storage map.
+    pub fn on_account_storage_set_map_item<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        // get slot index from the stack and make sure it is valid
+        let slot_index = process.get_stack_item(0);
+        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
+            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
+        }
+
+        // get the KEY to which the slot is being updated
+        let new_map_key = [
+            process.get_stack_item(4),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+        ];
+
+        // get the VALUE to which the slot is being updated
+        let new_map_value = [
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+            process.get_stack_item(5),
+        ];
+
+        let slot_index = slot_index.as_int() as u8;
+        self.account_delta
+            .storage_tracker()
+            .maps_update(slot_index, new_map_key, new_map_value);
+
+        Ok(())
+    }
+
     // ACCOUNT VAULT UPDATE HANDLERS
     // --------------------------------------------------------------------------------------------
 
@@ -269,6 +305,9 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
                 self.on_account_push_procedure_index(process)
             },
             TransactionEvent::NoteCreated => self.on_note_created(process),
+            TransactionEvent::AccountStorageSetMapItem => {
+                self.on_account_storage_set_map_item(process)
+            },
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 

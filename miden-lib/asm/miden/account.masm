@@ -111,7 +111,6 @@ end
 export.get_map_item
     push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
     # => [index, KEY, 0, 0, 0]
-    #debug.stack
     syscall.get_account_map_item
     # => [VALUE]
 end
@@ -119,18 +118,18 @@ end
 #! Sets a map item in the account storage. Panics if the index is out of bounds.
 #!
 #! Stack: [index, KEY, VALUE]
-#! Output: [OLD_VALUE]
+#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE]
 #!
 #! - index is the index of the item to set.
-#! - V' is the value to set.
-#! - V is the previous value of the item.
-#! - R' is the new storage root.
+#! - VALUE is the value to set at KEY.
+#! - OLD_MAP_ROOT is the old map root.
+#! - OLD_MAP_VALUE is the old value at KEY.
 export.set_map_item
     push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
     # => [index, KEY, VALUE, 0, 0, 0]
 
-    syscall.set_account_item
-    # => [OLD_VALUE]
+    syscall.set_account_map_item
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE,]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only

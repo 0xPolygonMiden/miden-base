@@ -5,12 +5,13 @@ use miden_objects::{
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
-    crypto::merkle::LeafIndex,
+    crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
 };
 use mock::{
     mock::{
         account::{
-            storage_item_0, storage_item_1, storage_item_2, MockAccountType, STORAGE_LEAVES_2,
+            storage_item_0, storage_item_1, storage_item_2, storage_map_2, MockAccountType,
+            STORAGE_LEAVES_2,
         },
         host::MockHost,
         notes::AssetPreservationStatus,
@@ -350,7 +351,7 @@ fn test_get_storage_data_type() {
 
         end
         ",
-            item_index = storage_item.0,
+            item_index = storage_item.index,
         );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
@@ -358,7 +359,7 @@ fn test_get_storage_data_type() {
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let process = run_tx(&transaction).unwrap();
 
-        let storage_slot_data_type = match storage_item.1 .0 {
+        let storage_slot_data_type = match storage_item.slot.slot_type {
             StorageSlotType::Value { value_arity } => (value_arity, 0),
             StorageSlotType::Map { value_arity } => (value_arity, 1),
             StorageSlotType::Array { value_arity, depth } => (value_arity, depth),
@@ -396,7 +397,7 @@ fn test_get_map_item() {
                 
             end
             ",
-            item_index = storage_item.0,
+            item_index = storage_item.index,
             map_key = prepare_word(&key),
         );
 
@@ -404,6 +405,63 @@ fn test_get_map_item() {
         let process = run_tx(&transaction).unwrap();
         assert_eq!(value, process.get_stack_word(0));
     }
+}
+
+#[test]
+fn test_set_map_item() {
+    let (new_key, new_value) = (
+        RpoDigest::new([Felt::new(109), Felt::new(110), Felt::new(111), Felt::new(112)]),
+        [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
+    );
+
+    let tx_inputs =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let storage_item = storage_item_2();
+
+    let code = format!(
+        "
+        use.miden::account
+        use.miden::kernels::tx::prologue
+
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
+
+            # push the new VALUE
+            push.{new_value}
+
+            # push the new KEY
+            push.{new_key}
+
+            # push the account storage item index
+            push.{item_index}
+
+            # get the map item
+            exec.account::set_map_item
+
+            # double check that on storage slot is indeed the new map
+            push.{item_index}
+            exec.account::get_item
+            
+        end
+        ",
+        item_index = storage_item.index,
+        new_key = prepare_word(&new_key),
+        new_value = prepare_word(&new_value),
+    );
+
+    let transaction = prepare_transaction(tx_inputs.clone(), None, code.as_str(), None);
+    let process = run_tx(&transaction).unwrap();
+
+    let mut new_storage_map = storage_map_2();
+    new_storage_map.insert(new_key, new_value);
+
+    // check the new storage root in the process state is what we expect
+    assert_eq!(new_storage_map.root(), RpoDigest::from(process.get_stack_word(0)));
+
+    // check the old storage root in the process state is what we expect
+    assert_eq!(storage_item.slot.value, process.get_stack_word(1));
 }
 
 // ACCOUNT VAULT TESTS
