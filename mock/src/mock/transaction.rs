@@ -15,7 +15,7 @@ use super::{
     account::{
         mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
         mock_non_fungible_faucet, MockAccountType,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     block::mock_block_header,
     chain::mock_chain_data,
@@ -41,7 +41,7 @@ pub fn mock_inputs_with_account_seed(
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => mock_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             Felt::ONE,
             mock_account_code(&assembler),
         ),
@@ -85,7 +85,7 @@ pub fn mock_inputs_with_existing(
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => account.unwrap_or(mock_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             Felt::ONE,
             mock_account_code(&assembler),
         )),
@@ -118,14 +118,14 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let assembler = TransactionKernel::assembler();
 
     let initial_account = mock_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         Felt::ONE,
         mock_account_code(&assembler),
     );
 
     // nonce incremented by 1
     let final_account = mock_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         Felt::new(2),
         initial_account.code().clone(),
     );
