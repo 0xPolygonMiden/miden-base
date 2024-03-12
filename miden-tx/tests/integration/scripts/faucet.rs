@@ -4,7 +4,9 @@ use miden_lib::{
     AuthScheme,
 };
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot, StorageSlotType,
+    },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
@@ -275,8 +277,20 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(vec![
-        (0, (StorageSlotType::Value { value_arity: 0 }, public_key)),
-        (1, (StorageSlotType::Value { value_arity: 0 }, faucet_storage_slot_1)),
+        SlotItem {
+            index: 0,
+            slot: StorageSlot {
+                slot_type: StorageSlotType::Value { value_arity: 0 },
+                value: public_key,
+            },
+        },
+        SlotItem {
+            index: 1,
+            slot: StorageSlot {
+                slot_type: StorageSlotType::Value { value_arity: 0 },
+                value: faucet_storage_slot_1,
+            },
+        },
     ])
     .unwrap();
 
