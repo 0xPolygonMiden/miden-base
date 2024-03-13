@@ -2,7 +2,7 @@ use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage, AccountType,
-        SlotItem, StorageSlot, StorageSlotType,
+        SlotItem, StorageSlot,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
@@ -49,20 +49,14 @@ pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Fel
 pub fn storage_item_0() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_0,
-        slot: StorageSlot {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value: STORAGE_VALUE_0,
-        },
+        slot: StorageSlot::new_value(STORAGE_VALUE_0),
     }
 }
 
 pub fn storage_item_1() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_1,
-        slot: StorageSlot {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value: STORAGE_VALUE_1,
-        },
+        slot: StorageSlot::new_value(STORAGE_VALUE_1),
     }
 }
 
@@ -234,10 +228,7 @@ pub fn mock_fungible_faucet(
     };
     let account_storage = AccountStorage::new(vec![SlotItem {
         index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value: [ZERO, ZERO, ZERO, initial_balance],
-        },
+        slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
     }])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
@@ -266,10 +257,7 @@ pub fn mock_non_fungible_faucet(
 
     let account_storage = AccountStorage::new(vec![SlotItem {
         index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot {
-            slot_type: StorageSlotType::Map { value_arity: 0 },
-            value: *nft_tree.root(),
-        },
+        slot: StorageSlot::new_map(*nft_tree.root()),
     }])
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();

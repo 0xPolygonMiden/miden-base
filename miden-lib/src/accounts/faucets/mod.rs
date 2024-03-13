@@ -1,7 +1,6 @@
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountType, SlotItem, StorageSlot,
-        StorageSlotType,
     },
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
@@ -72,17 +71,11 @@ pub fn create_basic_fungible_faucet(
     let account_storage = AccountStorage::new(vec![
         SlotItem {
             index: 0,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Value { value_arity: 0 },
-                value: auth_data,
-            },
+            slot: StorageSlot::new_value(auth_data),
         },
         SlotItem {
             index: 1,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Value { value_arity: 0 },
-                value: metadata,
-            },
+            slot: StorageSlot::new_value(metadata),
         },
     ])?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");

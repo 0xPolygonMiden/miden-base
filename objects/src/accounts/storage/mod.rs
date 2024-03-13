@@ -44,6 +44,9 @@ pub struct StorageSlot {
 }
 
 impl StorageSlot {
+    /// Returns a new [StorageSlot] with the provided value.
+    ///
+    /// The value arity for the slot is set to 0.
     pub fn new_value(value: Word) -> Self {
         Self {
             slot_type: StorageSlotType::Value { value_arity: 0 },
@@ -51,6 +54,9 @@ impl StorageSlot {
         }
     }
 
+    /// Returns a new [StorageSlot] with a map defined by the provided root.
+    ///
+    /// The value arity for the slot is set to 0.
     pub fn new_map(root: Word) -> Self {
         Self {
             slot_type: StorageSlotType::Map { value_arity: 0 },
@@ -58,9 +64,13 @@ impl StorageSlot {
         }
     }
 
-    pub fn new_array(root: Word, depth: u8) -> Self {
+    /// Returns a new [StorageSlot] with an array defined by the provided root and the number of
+    /// elements.
+    ///
+    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
+    pub fn new_array(root: Word, log_n: u8) -> Self {
         Self {
-            slot_type: StorageSlotType::Array { depth, value_arity: 0 },
+            slot_type: StorageSlotType::Array { depth: log_n, value_arity: 0 },
             value: root,
         }
     }
@@ -343,10 +353,7 @@ mod tests {
             },
             SlotItem {
                 index: 1,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::Value { value_arity: 0 },
-                    value: [ONE, ONE, ONE, ZERO],
-                },
+                slot: StorageSlot::new_value([ONE, ONE, ONE, ZERO]),
             },
             SlotItem {
                 index: 2,
