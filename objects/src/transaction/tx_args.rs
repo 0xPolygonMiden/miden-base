@@ -14,40 +14,43 @@ use crate::{
 ///
 /// Transaction arguments consist of:
 /// - Transaction script: a program that is executed in a transaction after all input notes
-///   scripts have been executed..
+///   scripts have been executed.
 /// - Note arguments: data put onto the the stack right before a note script is executed. These
-///   are different from note inputs, as the executing account can specify arbitrary note args.
+///   are different from note inputs, as the user executing the transaction can specify arbitrary
+///   note args.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
-    note_args: Option<BTreeMap<NoteId, Word>>,
+    note_args: BTreeMap<NoteId, Word>,
 }
 
 impl TransactionArgs {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new instance of a [TransactionArgs] with the provided transaction script and note
+    /// Returns new [TransactionArgs] instantiated with the provided transaction script and note
     /// arguments.
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
     ) -> Self {
-        Self { tx_script, note_args }
+        Self {
+            tx_script,
+            note_args: note_args.unwrap_or_default(),
+        }
     }
 
+    /// Returns new [TransactionArgs] instantiated with the provided transaction script.
     pub fn with_tx_script(tx_script: TransactionScript) -> Self {
         Self {
             tx_script: Some(tx_script),
-            note_args: None,
+            note_args: BTreeMap::default(),
         }
     }
 
+    /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(not_args: BTreeMap<NoteId, Word>) -> Self {
-        Self {
-            tx_script: None,
-            note_args: Some(not_args),
-        }
+        Self { tx_script: None, note_args: not_args }
     }
 
     // PUBLIC ACCESSORS
@@ -58,14 +61,9 @@ impl TransactionArgs {
         self.tx_script.as_ref()
     }
 
-    /// Returns a reference to the transaction script.
-    pub fn note_args(&self) -> Option<&BTreeMap<NoteId, Word>> {
-        self.note_args.as_ref()
-    }
-
     /// Returns a reference to a specific note argument.
     pub fn get_note_args(&self, note_id: NoteId) -> Option<&Word> {
-        self.note_args.as_ref().and_then(|map| map.get(&note_id))
+        self.note_args.get(&note_id)
     }
 }
 
