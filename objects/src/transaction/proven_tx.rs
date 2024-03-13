@@ -172,7 +172,9 @@ pub struct ProvenTransactionBuilder {
     account_id: AccountId,
 
     /// The hash of the account before the transaction was executed.
-    initial_account_hash: Digest,
+    ///
+    /// Set to `None` for new accounts.
+    initial_account_hash: Option<Digest>,
 
     /// The hash of the account after the transaction was executed.
     final_account_hash: Digest,
@@ -200,11 +202,13 @@ impl ProvenTransactionBuilder {
     /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
     pub fn new(
         account_id: AccountId,
-        initial_account_hash: Digest,
+        initial_account_hash: Option<Digest>,
         final_account_hash: Digest,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
+        debug_assert_ne!(initial_account_hash, Some(Digest::default()));
+
         Self {
             account_id,
             initial_account_hash,

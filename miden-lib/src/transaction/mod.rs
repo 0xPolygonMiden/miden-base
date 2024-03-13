@@ -103,13 +103,13 @@ impl TransactionKernel {
     ///   tuples for the notes consumed by the transaction.
     pub fn build_input_stack(
         acct_id: AccountId,
-        init_acct_hash: Digest,
+        init_acct_hash: Option<Digest>,
         input_notes_hash: Digest,
         block_hash: Digest,
     ) -> StackInputs {
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(input_notes_hash);
-        inputs.extend_from_slice(init_acct_hash.as_elements());
+        inputs.extend_from_slice(init_acct_hash.unwrap_or_default().as_elements());
         inputs.push(acct_id.into());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)

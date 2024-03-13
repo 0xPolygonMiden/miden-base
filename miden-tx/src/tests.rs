@@ -334,10 +334,13 @@ fn prove_witness_and_verify() {
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
         .unwrap();
+    let executed_transaction_id = executed_transaction.id();
 
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+
+    assert_eq!(proven_transaction.id(), executed_transaction_id);
 
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();

@@ -138,10 +138,13 @@ impl DataStore for MockDataStore {
 pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
+    let executed_transaction_id = executed_transaction.id();
     // Prove the transaction
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+
+    assert_eq!(proven_transaction.id(), executed_transaction_id);
 
     // Serialize & deserialize the ProvenTransaction
     let serialised_transaction = proven_transaction.to_bytes();

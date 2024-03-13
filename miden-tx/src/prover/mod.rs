@@ -1,3 +1,5 @@
+use core::ops::Not;
+
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
