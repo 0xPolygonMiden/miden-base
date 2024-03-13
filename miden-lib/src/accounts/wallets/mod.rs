@@ -1,7 +1,5 @@
 use miden_objects::{
-    accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlot, StorageSlotType,
-    },
+    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlot},
     assembly::ModuleAst,
     assets::AssetVault,
     utils::format,
@@ -60,10 +58,7 @@ pub fn create_basic_wallet(
 
     let account_storage = AccountStorage::new(vec![miden_objects::accounts::SlotItem {
         index: 0,
-        slot: StorageSlot {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value: storage_slot_0_data,
-        },
+        slot: StorageSlot::new_value(storage_slot_0_data),
     }])?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
