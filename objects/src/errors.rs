@@ -349,50 +349,30 @@ impl std::error::Error for TransactionOutputError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProvenTransactionError {
-    AccountFinalHashMismatch(Digest, Digest),
-    AccountIdMismatch(AccountId, AccountId),
     InputNotesError(TransactionInputError),
-    NoteDetailsForUnknownNotes(Vec<NoteId>),
-    OffChainAccountWithDetails(AccountId),
-    OnChainAccountMissingDetails(AccountId),
-    NewOnChainAccountRequiresFullDetails(AccountId),
-    ExistingOnChainAccountRequiresDeltaDetails(AccountId),
     OutputNotesError(TransactionOutputError),
+    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    OffChainAccountWithDelta(AccountId),
+    OnChainAccountMissingDelta(AccountId),
 }
 
 impl fmt::Display for ProvenTransactionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
-                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", account_final_hash, details_hash)
-            },
-            ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
-                write!(
-                    f,
-                    "Proven transaction account_id {} and account_details.id must match {}.",
-                    tx_id, details_id,
-                )
-            },
             ProvenTransactionError::InputNotesError(inner) => {
-                write!(f, "Invalid input notes: {}", inner)
+                write!(f, "Invalid input notes: {inner}")
             },
             ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
-                write!(f, "Note details for unknown note ids: {:?}", note_ids)
+                write!(f, "Note details for unknown note ids: {note_ids:?}")
             },
-            ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
-                write!(f, "Off-chain account {} should not have account details", account_id)
+            ProvenTransactionError::OffChainAccountWithDelta(account_id) => {
+                write!(f, "Off-chain account {account_id} should not have account delta")
             },
-            ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
-                write!(f, "On-chain account {} missing account details", account_id)
+            ProvenTransactionError::OnChainAccountMissingDelta(account_id) => {
+                write!(f, "On-chain account {account_id} missing account delta")
             },
             ProvenTransactionError::OutputNotesError(inner) => {
-                write!(f, "Invalid output notes: {}", inner)
-            },
-            ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
-                write!(f, "New on-chain account {} missing full details", account_id)
-            },
-            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
-                write!(f, "Existing on-chain account {} should only provide deltas", account_id)
+                write!(f, "Invalid output notes: {inner}")
             },
         }
     }

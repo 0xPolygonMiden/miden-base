@@ -2,6 +2,8 @@
 
 ## 0.3.0 (TBD)
 
+* [BREAKING] Simplified account details for on-chain accounts, now only delta provided
+
 ## 0.2.1 (2024-04-12)
 
 * [BREAKING] Return a reference to `NoteMetadata` from output notes (#593).
