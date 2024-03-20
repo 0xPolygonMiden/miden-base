@@ -2,11 +2,10 @@ use miden_verifier::ExecutionProof;
 
 use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
 use crate::{
-    accounts::{Account, AccountDelta},
+    accounts::AccountDelta,
     notes::{Note, NoteId},
     utils::{
         collections::*,
-        format,
         serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     },
     ProvenTransactionError,
@@ -14,15 +13,6 @@ use crate::{
 
 // PROVEN TRANSACTION
 // ================================================================================================
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AccountDetails {
-    /// The whole state is needed for new accounts
-    Full(Account),
-
-    /// For existing accounts, only the delta is needed.
-    Delta(AccountDelta),
-}
 
 /// Result of executing and proving a transaction. Contains all the data required to verify that a
 /// transaction was executed correctly.
@@ -44,7 +34,7 @@ pub struct ProvenTransaction {
 
     /// Optional account state changes used for on-chain accounts, This data is used to update an
     /// on-chain account's state after a local transaction execution.
-    account_details: Option<AccountDetails>,
+    account_delta: Option<AccountDelta>,
 
     /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
@@ -89,9 +79,9 @@ impl ProvenTransaction {
         self.final_account_hash
     }
 
-    /// Returns the account details.
-    pub fn account_details(&self) -> Option<&AccountDetails> {
-        self.account_details.as_ref()
+    /// Returns the delta for on-chain accounts changes.
+    pub fn account_delta(&self) -> Option<&AccountDelta> {
+        self.account_delta.as_ref()
     }
 
     /// Returns a reference to the notes consumed by the transaction.
@@ -141,7 +131,7 @@ pub struct ProvenTransactionBuilder {
     final_account_hash: Digest,
 
     /// State changes to the account due to the transaction.
-    account_details: Option<AccountDetails>,
+    account_delta: Option<AccountDelta>,
 
     /// List of [Nullifier]s of all consumed notes by the transaction.
     input_notes: Vec<Nullifier>,
@@ -178,7 +168,7 @@ impl ProvenTransactionBuilder {
             account_id,
             initial_account_hash,
             final_account_hash,
-            account_details: None,
+            account_delta: None,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
             output_note_details: BTreeMap::new(),
@@ -191,9 +181,9 @@ impl ProvenTransactionBuilder {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Sets the account's details.
-    pub fn account_details(mut self, account_details: AccountDetails) -> Self {
-        self.account_details = Some(account_details);
+    /// Sets the account's delta.
+    pub fn account_delta(mut self, account_delta: AccountDelta) -> Self {
+        self.account_delta = Some(account_delta);
         self
     }
 
@@ -234,11 +224,11 @@ impl ProvenTransactionBuilder {
     ///
     /// # Errors
     ///
-    /// An error will be returned if an on-chain account is used without provided on-chain detail.
-    /// Or if the account details, i.e. account id and final hash, don't match the transaction.
+    /// An error will be returned if an on-chain account is used without provided account delta.
     pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let output_note_details = self.output_note_details;
-        let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
+        let known_output_ids =
+            BTreeSet::from_iter(self.output_notes.iter().map(NoteEnvelope::note_id));
         let unknown_ids: Vec<_> = output_note_details
             .keys()
             .filter(|k| !known_output_ids.contains(k))
@@ -248,61 +238,19 @@ impl ProvenTransactionBuilder {
             return Err(ProvenTransactionError::NoteDetailsForUnknownNotes(unknown_ids));
         }
 
-        let account_details = self.account_details.take();
+        let account_delta = self.account_delta.take();
+        if self.account_id.is_on_chain() && account_delta.is_none() {
+            return Err(ProvenTransactionError::OnChainAccountMissingDelta(self.account_id));
+        }
+        if !self.account_id.is_on_chain() && account_delta.is_some() {
+            return Err(ProvenTransactionError::OffChainAccountWithDelta(self.account_id));
+        }
+
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
         let tx_script_root = self.tx_script_root;
-
-        if !self.account_id.is_on_chain() && account_details.is_some() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
-        }
-
-        if self.account_id.is_on_chain() {
-            match account_details {
-                None => {
-                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
-                        self.account_id,
-                    ))
-                },
-                Some(ref details) => {
-                    let is_new_account = self.initial_account_hash == Digest::default();
-
-                    match (is_new_account, details) {
-                        (true, AccountDetails::Delta(_)) => {
-                            return Err(
-                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (true, AccountDetails::Full(account)) => {
-                            if account.id() != self.account_id {
-                                return Err(ProvenTransactionError::AccountIdMismatch(
-                                    self.account_id,
-                                    account.id(),
-                                ));
-                            }
-                            if account.hash() != self.final_account_hash {
-                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                                    self.final_account_hash,
-                                    account.hash(),
-                                ));
-                            }
-                        },
-                        (false, AccountDetails::Full(_)) => {
-                            return Err(
-                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (false, AccountDetails::Delta(_)) => (),
-                    }
-                },
-            }
-        }
 
         let id = TransactionId::new(
             self.initial_account_hash,
@@ -316,7 +264,7 @@ impl ProvenTransactionBuilder {
             account_id: self.account_id,
             initial_account_hash: self.initial_account_hash,
             final_account_hash: self.final_account_hash,
-            account_details,
+            account_delta,
             input_notes,
             output_notes,
             output_note_details,
@@ -330,39 +278,12 @@ impl ProvenTransactionBuilder {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for AccountDetails {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        match self {
-            AccountDetails::Full(account) => {
-                0_u8.write_into(target);
-                account.write_into(target);
-            },
-            AccountDetails::Delta(delta) => {
-                1_u8.write_into(target);
-                delta.write_into(target);
-            },
-        }
-    }
-}
-
-impl Deserializable for AccountDetails {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        match u8::read_from(source)? {
-            0_u8 => Ok(Self::Full(Account::read_from(source)?)),
-            1_u8 => Ok(Self::Delta(AccountDelta::read_from(source)?)),
-            v => Err(DeserializationError::InvalidValue(format!(
-                "Unknown variant {v} for AccountDetails"
-            ))),
-        }
-    }
-}
-
 impl Serializable for ProvenTransaction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
         self.initial_account_hash.write_into(target);
         self.final_account_hash.write_into(target);
-        self.account_details.write_into(target);
+        self.account_delta.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
 
@@ -380,7 +301,7 @@ impl Deserializable for ProvenTransaction {
         let account_id = AccountId::read_from(source)?;
         let initial_account_hash = Digest::read_from(source)?;
         let final_account_hash = Digest::read_from(source)?;
-        let account_details = <Option<AccountDetails>>::read_from(source)?;
+        let account_delta = <Option<AccountDelta>>::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
         let output_notes = OutputNotes::<NoteEnvelope>::read_from(source)?;
@@ -406,7 +327,7 @@ impl Deserializable for ProvenTransaction {
             account_id,
             initial_account_hash,
             final_account_hash,
-            account_details,
+            account_delta,
             input_notes,
             output_notes,
             output_note_details,
