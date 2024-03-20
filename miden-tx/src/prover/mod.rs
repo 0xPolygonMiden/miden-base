@@ -1,9 +1,7 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::{NoteEnvelope, Nullifier},
-    transaction::{
-        AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
-    },
+    transaction::{InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -86,15 +84,7 @@ impl TransactionProver {
         };
 
         let builder = match account_id.is_on_chain() {
-            true => {
-                let account_details = if tx_witness.account().is_new() {
-                    AccountDetails::Full(tx_witness.account().clone())
-                } else {
-                    AccountDetails::Delta(account_delta)
-                };
-
-                builder.account_details(account_details)
-            },
+            true => builder.account_delta(account_delta),
             false => builder,
         };
 

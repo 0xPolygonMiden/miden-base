@@ -2,7 +2,8 @@
 
 ## Next
 
-* Added state delta to the ProvenTransaction (#485)
+* Added state delta to the `ProvenTransaction` (#485)
+* [BREAKING] Simplified account details for on-chain accounts, now only delta provided (#530)
 
 ## 0.1.1 (2024-03-07) - `miden-objects` crate only
 
