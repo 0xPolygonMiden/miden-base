@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     assembly::ProgramAst,
@@ -12,7 +14,6 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
-use crate::utils::collections::*;
 
 mod data;
 pub use data::DataStore;

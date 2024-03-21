@@ -1,3 +1,5 @@
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+
 use miden_lib::transaction::{memory::ACCT_STORAGE_ROOT_PTR, TransactionKernelError};
 use miden_objects::{
     accounts::{
@@ -10,10 +12,6 @@ use miden_objects::{
 use vm_processor::{ContextId, ProcessState};
 
 use super::{AdviceProvider, TransactionHost};
-use crate::utils::{
-    collections::{btree_map::*, *},
-    string::*,
-};
 
 // CONSTANTS
 // ================================================================================================
@@ -310,6 +308,8 @@ where
     V: Copy,
     K: Ord,
 {
+    use alloc::collections::btree_map::Entry;
+
     match delta_map.entry(key) {
         Entry::Occupied(mut entry) => {
             if entry.get() == &-amount {

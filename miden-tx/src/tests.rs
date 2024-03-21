@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{Account, AccountCode},
