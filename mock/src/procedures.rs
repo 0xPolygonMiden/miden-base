@@ -1,4 +1,7 @@
-use miden_objects::utils::string::*;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use super::{
     memory::{

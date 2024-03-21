@@ -1,3 +1,8 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
@@ -8,7 +13,6 @@ use miden_objects::{
 use rand::Rng;
 
 use super::TransactionKernel;
-use crate::utils::{collections::*, string::*};
 
 const DEFAULT_NOTE_CODE: &str = "\
 begin

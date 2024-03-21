@@ -1,3 +1,8 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use miden_objects::{
     accounts::{Account, AccountStorage, AccountType, SlotItem},
     assets::{Asset, AssetVault},
@@ -8,7 +13,6 @@ use rand::Rng;
 use crate::{
     builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
     mock::account::DEFAULT_ACCOUNT_CODE,
-    utils::{collections::*, string::*},
 };
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each

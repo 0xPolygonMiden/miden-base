@@ -1,22 +1,33 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
 
-use std::{fs::File, io::Read, path::PathBuf};
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(feature = "std")]
+use std::{
+    fs::File,
+    io::Read,
+    path::PathBuf,
+    string::{String, ToString},
+};
 
 use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::NoteAssets,
-    transaction::{OutputNotes, PreparedTransaction, TransactionArgs, TransactionInputs},
-    utils::string::*,
+    transaction::{OutputNotes, PreparedTransaction},
+};
+#[cfg(feature = "std")]
+use miden_objects::{
+    transaction::{TransactionArgs, TransactionInputs},
     Felt,
 };
 use mock::host::MockHost;
-use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
-    StackInputs, Word,
-};
+use vm_processor::{AdviceInputs, ExecutionError, ExecutionOptions, Process, Word};
+#[cfg(feature = "std")]
+use vm_processor::{AdviceProvider, DefaultHost, Host, StackInputs};
 
 pub mod builders;
 pub mod constants;
@@ -28,6 +39,7 @@ pub mod utils;
 // ================================================================================================
 
 /// Loads the specified file and append `code` into its end.
+#[cfg(feature = "std")]
 fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
     let mut module = String::new();
     File::open(assembly_file).unwrap().read_to_string(&mut module).unwrap();
@@ -57,6 +69,7 @@ pub fn run_tx_with_inputs(
 }
 
 /// Inject `code` along side the specified file and run it
+#[cfg(feature = "std")]
 pub fn run_within_tx_kernel<A>(
     imports: &str,
     code: &str,
@@ -87,6 +100,7 @@ where
 }
 
 /// Inject `code` along side the specified file and run it
+#[cfg(feature = "std")]
 pub fn run_within_host<H: Host>(
     imports: &str,
     code: &str,
@@ -113,6 +127,7 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
     memory::CONSUMED_NOTE_DATA_SECTION_OFFSET + note_idx * memory::NOTE_MEM_SIZE
 }
 
+#[cfg(feature = "std")]
 pub fn prepare_transaction(
     tx_inputs: TransactionInputs,
     tx_args: Option<TransactionArgs>,

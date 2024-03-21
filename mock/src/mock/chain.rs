@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::fmt;
 
 use miden_objects::{
@@ -6,7 +7,6 @@ use miden_objects::{
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
-    utils::collections::*,
     BlockHeader, Digest, Felt, FieldElement, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH,
 };
 use rand::{Rng, SeedableRng};
