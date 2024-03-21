@@ -1,4 +1,4 @@
-use std::{boxed::Box, fs::File, io::Write, path::PathBuf, time::Instant};
+use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use miden_mock::mock::{

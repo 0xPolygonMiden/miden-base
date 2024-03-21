@@ -1,3 +1,5 @@
+use alloc::string::ToString;
+
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountType, SlotItem, StorageSlot,
@@ -8,7 +10,6 @@ use miden_objects::{
 };
 
 use super::{AuthScheme, Library, MidenLib, TransactionKernel};
-use crate::utils::{string::*, vec};
 
 // FUNGIBLE FAUCET
 // ================================================================================================

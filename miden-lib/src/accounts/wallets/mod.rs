@@ -1,13 +1,13 @@
+use alloc::string::{String, ToString};
+
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlot},
     assembly::ModuleAst,
     assets::AssetVault,
-    utils::format,
     AccountError, Word, ZERO,
 };
 
 use super::{AuthScheme, TransactionKernel};
-use crate::utils::{string::*, vec};
 
 // BASIC WALLET
 // ================================================================================================

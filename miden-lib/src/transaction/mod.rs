@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -9,7 +11,6 @@ use miden_objects::{
 use miden_stdlib::StdLibrary;
 
 use super::MidenLib;
-use crate::utils::collections::*;
 
 pub mod memory;
 
