@@ -1,6 +1,6 @@
 # Polygon Miden
 
-Polygon Miden is a zero-knowledge rollup with high-throughput and private applications.
+Polygon Miden is a zero-knowledge rollup for private, high-throughput applications.
 
 It is a modular execution layer that extends Ethereum's capabilities using powerful features such as parallel transaction execution and client-side proving. 
 
@@ -45,7 +45,7 @@ The Miden client allows for local transaction execution and proving. The Miden o
 
 Currently, there are three different smart contracts available. A basic wallet smart contract that sends and receives assets, and fungible and non-fungible faucets to mint and burn assets. 
 
-All accounts are written in MASM.
+All accounts are written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html).
 
 #### P2ID, P2IDR, and SWAP note scripts
 
@@ -57,7 +57,7 @@ The Miden operator running the Miden node builds the blocks containing transacti
 
 #### Maintaining state
 
-The Miden node stores all necessary information in its state DBs and provides this information via its RPC endpoint.
+The Miden node stores all necessary information in its state DBs and provides this information via its RPC endpoints.
 
 ### Planned features
 
@@ -74,7 +74,7 @@ As with public accounts, public notes will also be supported. That means, the Mi
 
 #### Customized smart contracts
 
-Accounts can expose any interface in the future. This is the Miden version of a smart contract. Account code can be arbitrarily complex due to the underlying Turing-complete Miden VM.
+Accounts can expose any interface in the future. This is the Miden version of a smart contract. Account code can be arbitrarily complex due to the underlying Turing-complete [Miden VM](https://0xpolygonmiden.github.io/miden-vm/intro/main.html).
 
 #### Customized note scripts
 

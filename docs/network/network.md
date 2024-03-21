@@ -24,7 +24,7 @@ Miden clients can execute and prove transactions with the tx prover. They can ha
 
 ## Miden nodes
 
-Operators run Miden Nodes. 
+Operators run Miden nodes. 
 
 Operators ensure integrity of account, note, and nullifier states - all of which represent the state of Polygon Miden. Operators can execute and prove transactions against single accounts and they can also verify proofs of locally executed transactions. 
 
@@ -42,6 +42,14 @@ To manage all of this, Miden nodes have separate modules.
 
 This contract on Ethereum verifies proofs sent by the operator running a Miden Node. The proof is verified against the current state root. If accepted the state root changes.
 
+!!! note
+    - Polygon Miden will integrate into the AggLayer. 
+    - The specific design is not yet finalized.
+
 ## Bridge contract
 
 This contract serves as a bridge for Miden users on Ethereum. Users can deposit their tokens and get an equivalent amount minted and sent to the specified address on Polygon Miden.
+
+!!! note
+    - Polygon Miden will integrate into the AggLayer and the Unified Bridge. 
+    - The specific design is not yet finalized.

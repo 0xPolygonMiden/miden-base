@@ -102,7 +102,7 @@ Save the account ID for a future step.
 !!! tip "The importance of syncing"
       - As you can see, the listed note is lacking a `commit-height`. 
       - This is because you have received a note off-chain but have not yet synced your view of the rollup to check that the note is valid and exists at the rollup level. 
-      - Syncing is essential to prevent double-spends and make sure that you consume notes that have not yet been nullified. 
+      - Syncing is essential to prevent double-spends and make sure that you can consume notes that have not yet been nullified. 
       - Hence, before consuming the note we will need to update our view of the rollup by syncing.
 
 ### Sync the client
@@ -143,6 +143,9 @@ State synced to block 179672
       ```shell
       miden-client tx new consume-notes <Account-Id> <Note-Id>
       ```
+
+!!! tip 
+      - You only need to use the first 7 characters of the Note-Id.
 
 5. View your updated account's vault containing the tokens sent by the faucet by running the following command: 
 
