@@ -1,9 +1,9 @@
+use alloc::string::String;
 use core::fmt::Display;
 
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    string::*,
     HexParseError,
 };
 
@@ -133,6 +133,8 @@ impl Deserializable for NoteId {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::NoteId;
 
     #[test]

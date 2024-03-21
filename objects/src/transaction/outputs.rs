@@ -1,13 +1,10 @@
+use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
 
 use crate::{
     accounts::AccountStub,
     notes::{Note, NoteAssets, NoteEnvelope, NoteId, NoteMetadata},
-    utils::{
-        collections::*,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::*,
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
 
@@ -148,7 +145,7 @@ impl<T: ToEnvelope> OutputNotes<T> {
 
 impl<T: ToEnvelope> IntoIterator for OutputNotes<T> {
     type Item = T;
-    type IntoIter = vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.notes.into_iter()

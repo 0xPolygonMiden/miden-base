@@ -1,8 +1,9 @@
+use alloc::{string::ToString, vec::Vec};
+
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable,
 };
-use crate::utils::{collections::*, string::*};
 
 // ACCOUNT VAULT DELTA
 // ================================================================================================

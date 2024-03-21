@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 #[cfg(feature = "concurrent")]
 use std::{
     sync::{
@@ -8,7 +9,6 @@ use std::{
 };
 
 use super::{compute_digest, AccountError, AccountId, AccountType, Digest, Felt, Word};
-use crate::utils::collections::*;
 
 // SEED GENERATORS
 // --------------------------------------------------------------------------------------------
@@ -172,13 +172,14 @@ pub fn get_account_seed_single(
 
 #[cfg(feature = "log")]
 mod log {
+    use alloc::string::String;
+
     use assembly::utils::to_hex;
 
     use super::{
         super::{digest_pow, Digest, FieldElement, Word},
         AccountId, AccountType,
     };
-    use crate::utils::string::*;
 
     /// Keeps track of the best digest found so far and count how many iterations have been done.
     pub struct Log {

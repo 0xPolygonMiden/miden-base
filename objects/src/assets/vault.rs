@@ -1,12 +1,10 @@
+use alloc::{string::ToString, vec::Vec};
+
 use super::{
     AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     FungibleAsset, NonFungibleAsset, Serializable, ZERO,
 };
-use crate::{
-    crypto::merkle::Smt,
-    utils::{collections::*, string::*},
-    AssetVaultError, Digest,
-};
+use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
 
 // ASSET VAULT
 // ================================================================================================

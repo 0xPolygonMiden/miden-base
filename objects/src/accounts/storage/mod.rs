@@ -1,11 +1,10 @@
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+
 use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::{
-    crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt},
-    utils::{collections::*, string::*, vec},
-};
+use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
 
 mod slot;
 pub use slot::StorageSlotType;
@@ -309,6 +308,8 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use super::{
         AccountStorage, Deserializable, Serializable, SlotItem, StorageSlot, StorageSlotType,
     };

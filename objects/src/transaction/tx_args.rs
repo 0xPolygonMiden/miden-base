@@ -1,8 +1,9 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
     notes::NoteId,
-    utils::collections::*,
     vm::CodeBlock,
     TransactionScriptError,
 };
