@@ -1,5 +1,6 @@
+use alloc::string::{String, ToString};
+
 use super::{AssetError, Felt};
-use crate::utils::string::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TokenSymbol(Felt);

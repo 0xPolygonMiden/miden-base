@@ -1,3 +1,5 @@
+use alloc::{collections::BTreeMap, string::ToString};
+
 use miden_lib::transaction::{TransactionEvent, TransactionKernelError};
 use miden_objects::{
     accounts::{AccountDelta, AccountStub},
@@ -7,8 +9,6 @@ use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
     ExecutionError, Host, HostResponse, ProcessState,
 };
-
-use crate::utils::{collections::*, format, string::*};
 
 mod account_delta;
 use account_delta::AccountDeltaTracker;

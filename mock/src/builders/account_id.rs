@@ -1,6 +1,7 @@
+use alloc::string::{String, ToString};
+
 use miden_objects::{
     accounts::{AccountId, AccountType},
-    utils::string::*,
     Digest, Word,
 };
 use rand::Rng;

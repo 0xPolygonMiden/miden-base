@@ -1,14 +1,15 @@
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
+
 use miden_verifier::ExecutionProof;
 
 use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
 use crate::{
     accounts::{Account, AccountDelta},
     notes::{Note, NoteId},
-    utils::{
-        collections::*,
-        format,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     ProvenTransactionError,
 };
 

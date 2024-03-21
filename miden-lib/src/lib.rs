@@ -1,7 +1,10 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use miden_objects::{
     assembly::{Library, LibraryNamespace, MaslLibrary, Version},
@@ -15,7 +18,7 @@ pub mod accounts;
 pub mod notes;
 pub mod transaction;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests;
 
 // RE-EXPORTS

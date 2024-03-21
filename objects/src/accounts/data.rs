@@ -3,6 +3,7 @@ use std::{
     fs::{self, File},
     io::{self, Read},
     path::Path,
+    vec::Vec,
 };
 
 use miden_crypto::utils::SliceReader;
@@ -13,7 +14,6 @@ use super::{
     },
     Account, Word,
 };
-use crate::utils::format;
 
 // ACCOUNT DATA
 // ================================================================================================
@@ -130,6 +130,7 @@ mod tests {
     use assembly::{ast::ModuleAst, Assembler};
     use miden_crypto::utils::{Deserializable, Serializable};
     use storage::AccountStorage;
+    #[cfg(feature = "std")]
     use tempfile::tempdir;
 
     use super::{AccountData, AuthData};
@@ -183,6 +184,7 @@ mod tests {
         assert_eq!(account_data, account_data_2);
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn account_data_is_correctly_writen_and_read_to_and_from_file() {
         // setup temp directory

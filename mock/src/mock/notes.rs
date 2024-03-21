@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
-    utils::collections::*,
     Felt, Word, ZERO,
 };
 

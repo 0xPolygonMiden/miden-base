@@ -1,10 +1,11 @@
+use alloc::string::String;
 use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
     Serializable, Word, WORD_SIZE, ZERO,
 };
-use crate::utils::{hex_to_bytes, string::*, HexParseError};
+use crate::utils::{hex_to_bytes, HexParseError};
 
 // NULLIFIER
 // ================================================================================================

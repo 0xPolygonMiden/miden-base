@@ -1,7 +1,8 @@
+use alloc::{collections::BTreeMap, string::String};
+
 use miden_objects::{
     notes::Note,
     transaction::{PreparedTransaction, TransactionArgs},
-    utils::collections::*,
     WORD_SIZE,
 };
 use mock::{

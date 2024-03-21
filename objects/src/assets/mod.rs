@@ -1,12 +1,10 @@
+use alloc::string::ToString;
+
 use super::{
     accounts::{AccountId, AccountType},
-    utils::{
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::*,
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
-use crate::utils::format;
 
 mod fungible;
 pub use fungible::FungibleAsset;

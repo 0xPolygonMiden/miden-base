@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     notes::Note,
     transaction::{OutputNote, OutputNotes},

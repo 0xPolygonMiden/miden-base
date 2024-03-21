@@ -1,3 +1,4 @@
+use alloc::string::String;
 use core::fmt::{self, Display};
 
 use miden_objects::{
@@ -7,7 +8,6 @@ use miden_objects::{
 use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
-use crate::utils::string::*;
 
 // TRANSACTION COMPILER ERROR
 // ================================================================================================

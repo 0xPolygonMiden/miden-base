@@ -1,11 +1,10 @@
+use alloc::vec::Vec;
+
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, NoteError,
     Serializable, WORD_SIZE, ZERO,
 };
-use crate::{
-    utils::{collections::*, format},
-    MAX_INPUTS_PER_NOTE,
-};
+use crate::MAX_INPUTS_PER_NOTE;
 
 // NOTE INPUTS
 // ================================================================================================

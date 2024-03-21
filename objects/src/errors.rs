@@ -1,3 +1,4 @@
+use alloc::string::String;
 use core::fmt;
 
 use assembly::AssemblyError;
@@ -8,7 +9,6 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    utils::string::*,
     Digest, Word,
 };
 use crate::utils::collections::*;

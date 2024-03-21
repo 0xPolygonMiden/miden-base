@@ -1,6 +1,7 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
-    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note, utils::collections::*,
-    Felt, NoteError, Word,
+    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note, Felt, NoteError, Word,
 };
 
 use self::utils::build_note_script;

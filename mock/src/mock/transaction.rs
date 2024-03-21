@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::{Account, AccountDelta},
     notes::Note,
@@ -5,7 +7,6 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::collections::*,
     BlockHeader, Felt, FieldElement,
 };
 use vm_processor::{AdviceInputs, Operation, Program, Word};
