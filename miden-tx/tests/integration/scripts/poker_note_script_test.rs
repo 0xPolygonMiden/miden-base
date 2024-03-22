@@ -1,10 +1,10 @@
 use miden_objects::{
-    accounts::{Account, AccountId},
-    assembly::ProgramAst,
+    accounts::{Account, AccountId, AccountCode, AccountStorage, SlotItem, StorageSlot},
+    assembly::{ProgramAst, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     transaction::TransactionArgs,
-    Felt,
+    Felt, Word,
     notes::{Note, NoteScript},
     NoteError, 
     crypto::rand::FeltRng,};
@@ -16,10 +16,34 @@ use mock::mock::account::{
 };
 
 use crate::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
+    get_new_key_pair_with_advice_map, MockDataStore,
 };
 
 //use crate::prove_and_verify_transaction;
+
+pub fn get_account_with_custom_account_code(
+    account_id: AccountId,
+    public_key: Word,
+    assets: Option<Asset>,
+) -> Account {
+    let account_code_src = include_str!("Poker_Account.masm");;
+    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
+    let account_assembler = TransactionKernel::assembler();
+
+    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(public_key),
+    }])
+    .unwrap();
+
+    let account_vault = match assets {
+        Some(asset) => AssetVault::new(&[asset]).unwrap(),
+        None => AssetVault::new(&[]).unwrap(),
+    };
+
+    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
+}
 
 fn create_note<R: FeltRng>(
     sender_account_id: AccountId,
@@ -57,7 +81,7 @@ fn note_script_poker() {
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
     let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
     let target_account =
-        get_account_with_default_account_code(target_account_id, target_pub_key, None);
+    get_account_with_custom_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
     let note = create_note(
@@ -91,7 +115,7 @@ fn note_script_poker() {
     let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
 
     // Execute the transaction and get the witness
-    let executed_transaction = executor
+    let _executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
         .unwrap();
 
