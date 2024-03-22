@@ -26,7 +26,7 @@ pub fn get_account_with_custom_account_code(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    let account_code_src = include_str!("Poker_Account.masm");;
+    let account_code_src = include_str!("Poker_Account.masm");
     let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();
 

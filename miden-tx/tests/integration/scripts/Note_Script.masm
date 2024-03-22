@@ -7,11 +7,18 @@ use.miden::contracts::wallets::basic->wallet
 begin
     # All scripts start with the NOTE_SCRIPT_ROOT, you can drop it
     dropw 
-
+    
     # Debugging https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/debugging.html
-    debug.stack
+    # debug.stack
     
     # All account and note procedures
     # https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-procedures 
+    
+    push.0 exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [ASSET, ...]
 
 end
