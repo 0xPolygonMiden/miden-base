@@ -47,6 +47,7 @@ args = ["test", "--release", "--features", "concurrent,testing", "prove"]
 [tasks.test-all]
 description = "Run all tests"
 workspace = false
+env = { "RUSTFLAGS" = "-C debug-assertions" }
 run_task = { name = ["test", "test-prove"], parallel = true }
 
 # building
