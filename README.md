@@ -49,13 +49,13 @@ Polygon Miden is currently on release v0.1. This is an early version of the prot
 
 ## Testing
 
-To test the crates contained in this repo, you can run the following command:
+To test the crates contained in this repo, you can use [cargo-make](https://github.com/sagiegurari/cargo-make) run the following command present in our [Makefile.toml](Makefile.toml): 
 
 ```shell
-make test
+cargo make test-all
 ```
 
-Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile](./Makefile) for the specific commands and configurations that have been chosen.
+Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
 
 ## License
 
