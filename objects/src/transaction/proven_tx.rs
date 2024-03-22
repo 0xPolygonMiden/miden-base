@@ -1,5 +1,6 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
+    string::ToString,
     vec::Vec,
 };
 
@@ -124,6 +125,70 @@ impl ProvenTransaction {
     pub fn block_ref(&self) -> Digest {
         self.block_ref
     }
+
+    fn validate(&self) -> Result<(), ProvenTransactionError> {
+        let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
+        let unknown_ids: Vec<_> = self
+            .output_note_details
+            .keys()
+            .filter(|&k| !known_output_ids.contains(k))
+            .cloned()
+            .collect();
+        if !unknown_ids.is_empty() {
+            return Err(ProvenTransactionError::NoteDetailsForUnknownNotes(unknown_ids));
+        }
+
+        if !self.account_id.is_on_chain() && self.account_details.is_some() {
+            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
+        }
+
+        if self.account_id.is_on_chain() {
+            match self.account_details {
+                None => {
+                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
+                        self.account_id,
+                    ))
+                },
+                Some(ref details) => {
+                    let is_new_account = self.initial_account_hash == Digest::default();
+
+                    match (is_new_account, details) {
+                        (true, AccountDetails::Delta(_)) => {
+                            return Err(
+                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (true, AccountDetails::Full(account)) => {
+                            if account.id() != self.account_id {
+                                return Err(ProvenTransactionError::AccountIdMismatch(
+                                    self.account_id,
+                                    account.id(),
+                                ));
+                            }
+                            if account.hash() != self.final_account_hash {
+                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
+                                    self.final_account_hash,
+                                    account.hash(),
+                                ));
+                            }
+                        },
+                        (false, AccountDetails::Full(_)) => {
+                            return Err(
+                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (false, AccountDetails::Delta(_)) => (),
+                    }
+                },
+            }
+        }
+
+        Ok(())
+    }
 }
 
 // PROVEN TRANSACTION BUILDER
@@ -239,72 +304,12 @@ impl ProvenTransactionBuilder {
     /// Or if the account details, i.e. account id and final hash, don't match the transaction.
     pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let output_note_details = self.output_note_details;
-        let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
-        let unknown_ids: Vec<_> = output_note_details
-            .keys()
-            .filter(|k| !known_output_ids.contains(k))
-            .cloned()
-            .collect();
-        if !unknown_ids.is_empty() {
-            return Err(ProvenTransactionError::NoteDetailsForUnknownNotes(unknown_ids));
-        }
-
         let account_details = self.account_details.take();
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
         let tx_script_root = self.tx_script_root;
-
-        if !self.account_id.is_on_chain() && account_details.is_some() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
-        }
-
-        if self.account_id.is_on_chain() {
-            match account_details {
-                None => {
-                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
-                        self.account_id,
-                    ))
-                },
-                Some(ref details) => {
-                    let is_new_account = self.initial_account_hash == Digest::default();
-
-                    match (is_new_account, details) {
-                        (true, AccountDetails::Delta(_)) => {
-                            return Err(
-                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (true, AccountDetails::Full(account)) => {
-                            if account.id() != self.account_id {
-                                return Err(ProvenTransactionError::AccountIdMismatch(
-                                    self.account_id,
-                                    account.id(),
-                                ));
-                            }
-                            if account.hash() != self.final_account_hash {
-                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                                    self.final_account_hash,
-                                    account.hash(),
-                                ));
-                            }
-                        },
-                        (false, AccountDetails::Full(_)) => {
-                            return Err(
-                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (false, AccountDetails::Delta(_)) => (),
-                    }
-                },
-            }
-        }
-
         let id = TransactionId::new(
             self.initial_account_hash,
             self.final_account_hash,
@@ -312,7 +317,7 @@ impl ProvenTransactionBuilder {
             output_notes.commitment(),
         );
 
-        Ok(ProvenTransaction {
+        let proven_transaction = ProvenTransaction {
             id,
             account_id: self.account_id,
             initial_account_hash: self.initial_account_hash,
@@ -324,7 +329,11 @@ impl ProvenTransactionBuilder {
             tx_script_root,
             block_ref: self.block_ref,
             proof: self.proof,
-        })
+        };
+
+        proven_transaction.validate()?;
+
+        Ok(proven_transaction)
     }
 }
 
@@ -402,7 +411,7 @@ impl Deserializable for ProvenTransaction {
             output_notes.commitment(),
         );
 
-        Ok(Self {
+        let proven_transaction = Self {
             id,
             account_id,
             initial_account_hash,
@@ -414,7 +423,13 @@ impl Deserializable for ProvenTransaction {
             tx_script_root,
             block_ref,
             proof,
-        })
+        };
+
+        proven_transaction
+            .validate()
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+
+        Ok(proven_transaction)
     }
 }
 
