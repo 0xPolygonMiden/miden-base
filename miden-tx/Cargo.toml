@@ -2,14 +2,15 @@
 name = "miden-tx"
 version = "0.2.0"
 description = "Miden rollup transaction compiler, executor, and prover"
-authors = ["miden contributors"]
-readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = ["no-std"]
 keywords = ["miden", "transaction"]
-edition = "2021"
-rust-version = "1.75"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [[test]]
 name = "miden-tx"

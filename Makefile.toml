@@ -33,6 +33,9 @@ dependencies = [
 
 # testing
 [tasks.test]
+disabled = true
+
+[tasks.test-default]
 description = "Run default tests excluding `prove`"
 workspace = false
 command = "cargo"
@@ -48,7 +51,7 @@ args = ["test", "--release", "--features", "concurrent,testing", "prove"]
 description = "Run all tests"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
-run_task = { name = ["test", "test-prove"], parallel = true }
+run_task = { name = ["test-default", "test-prove"], parallel = true }
 
 # building
 [tasks.build-no-std]
