@@ -22,18 +22,19 @@ use crate::{
 
 //use crate::prove_and_verify_transaction;
 
-fn create_denver_p2id_note<R: FeltRng>(
+fn create_note<R: FeltRng>(
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     mut rng: R,
 ) -> Result<Note, NoteError> {
-    let note_script = include_str!("Denver_P2ID.masm");
+    let note_script = include_str!("Note_Script.masm");
     
     let note_assembler = TransactionKernel::assembler();
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let (note_script, _) = NoteScript::new(script_ast, &note_assembler)?;
     
+    // Here you can add the inputs to the note
     let inputs = [target_account_id.into()];
     let tag: Felt = target_account_id.into();
     let serial_num = rng.draw_word();
@@ -41,12 +42,11 @@ fn create_denver_p2id_note<R: FeltRng>(
     Note::new(note_script, &inputs, &assets, serial_num, sender_account_id, tag)
 }
 
-// P2ID TESTS
+// Note TESTS
 // ===============================================================================================
-// We test the Pay to ID script. So we create a note that can only be consumed by the target
-// account.
+// We test the Note script.
 #[test]
-fn denver_p2id_script() {
+fn note_script_poker() {
     // Create an asset
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -61,7 +61,7 @@ fn denver_p2id_script() {
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let note = create_denver_p2id_note(
+    let note = create_note(
         sender_account_id,
         target_account_id,
         vec![fungible_asset],
@@ -97,57 +97,17 @@ fn denver_p2id_script() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
+    // We can add this as a last step
     //assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
-    // vault delta
-    let target_account_after: Account = Account::new(
-        target_account.id(),
-        AssetVault::new(&[fungible_asset]).unwrap(),
-        target_account.storage().clone(),
-        target_account.code().clone(),
-        Felt::new(2),
-    );
-    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
-
-    // CONSTRUCT AND EXECUTE TX (Failure)
-    // --------------------------------------------------------------------------------------------
-    // A "malicious" account tries to consume the note, we expect an error
-
-    let malicious_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
-    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
-    let malicious_account =
-        get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
-
-    let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
-    let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
-    executor_2.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor
-        .compile_tx_script(
-            tx_script_code,
-            vec![(malicious_pub_key, malicious_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
-
-    let tx_args_malicious = TransactionArgs::new(Some(tx_script_malicious), None);
-
-    let block_ref = data_store_malicious_account.block_header.block_num();
-    let note_ids = data_store_malicious_account
-        .notes
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    // Execute the transaction and get the witness
-    let executed_transaction_2 = executor_2.execute_transaction(
-        malicious_account_id,
-        block_ref,
-        &note_ids,
-        Some(tx_args_malicious),
-    );
-
-    // Check that we got the expected result - TransactionExecutorError
-    assert!(executed_transaction_2.is_err());
+    // Not sure what you want to test after the account but we should see if the 
+    // account change is what you expect
+    // let target_account_after: Account = Account::new(
+    //     target_account.id(),
+    //     AssetVault::new(&[fungible_asset]).unwrap(),
+    //     target_account.storage().clone(),
+    //     target_account.code().clone(),
+    //     Felt::new(2),
+    // );
+    // assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
