@@ -4,17 +4,16 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     transaction::TransactionArgs,
-    utils::collections::Vec,
     Felt,
     notes::{Note, NoteScript},
     NoteError, 
     crypto::rand::FeltRng,};
 use miden_tx::TransactionExecutor;
-use mock::constants::{
+use miden_lib::transaction::TransactionKernel;
+use mock::mock::account::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
-use miden_lib::transaction::TransactionKernel;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
