@@ -1,6 +1,5 @@
 [workspace]
 members = ["miden-lib", "miden-tx", "mock", "objects"]
-rust-version = "1.75"
 resolver = "2"
 
 [profile.release]
