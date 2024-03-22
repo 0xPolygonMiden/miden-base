@@ -22,7 +22,7 @@ pub use inputs::ToTransactionKernelInputs;
 
 mod outputs;
 pub use outputs::{
-    notes_try_from_elements, parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX,
+    parse_final_account_stub, parse_output_note_from_slice, FINAL_ACCOUNT_HASH_WORD_IDX,
     OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
 };
 
@@ -194,8 +194,9 @@ impl TransactionKernel {
             let mut output_notes = Vec::new();
             let mut output_note_ptr = 0;
             while output_note_ptr < output_notes_data.len() {
-                let output_note = notes_try_from_elements(&output_notes_data[output_note_ptr..])
-                    .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
+                let output_note =
+                    parse_output_note_from_slice(&output_notes_data[output_note_ptr..])
+                        .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
                 output_notes.push(output_note);
                 output_note_ptr += memory::NOTE_MEM_SIZE as usize;
             }
