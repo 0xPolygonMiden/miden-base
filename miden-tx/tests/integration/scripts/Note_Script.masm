@@ -1,0 +1,17 @@
+# Try to code an easy note script
+
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+begin
+    # All scripts start with the NOTE_SCRIPT_ROOT, you can drop it
+    dropw 
+
+    # Debugging https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/debugging.html
+    debug.stack
+    
+    # All account and note procedures
+    # https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-procedures 
+
+end
