@@ -4,7 +4,7 @@ use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt, Smt};
+use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
 
 mod slot;
 pub use slot::StorageSlotType;
