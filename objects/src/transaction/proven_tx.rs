@@ -126,7 +126,10 @@ impl ProvenTransaction {
         self.block_ref
     }
 
-    fn validate(&self) -> Result<(), ProvenTransactionError> {
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn validate(self) -> Result<Self, ProvenTransactionError> {
         let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
         let unknown_ids: Vec<_> = self
             .output_note_details
@@ -187,7 +190,7 @@ impl ProvenTransaction {
             }
         }
 
-        Ok(())
+        Ok(self)
     }
 }
 
@@ -331,9 +334,7 @@ impl ProvenTransactionBuilder {
             proof: self.proof,
         };
 
-        proven_transaction.validate()?;
-
-        Ok(proven_transaction)
+        proven_transaction.validate()
     }
 }
 
@@ -427,9 +428,7 @@ impl Deserializable for ProvenTransaction {
 
         proven_transaction
             .validate()
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
-
-        Ok(proven_transaction)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
