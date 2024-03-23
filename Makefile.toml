@@ -31,6 +31,16 @@ dependencies = [
   "clippy"
 ]
 
+# --- docs ----------------------------------------------------------------------------------------
+[tasks.doc]
+env = { "RUSTDOCFLAGS" = "-D warnings" }
+command = "cargo"
+args = ["doc", "--all-features", "--keep-going", "--release"]
+
+[tasks.doc-serve]
+workspace = false
+script = [ "./scripts/serve-doc-site.sh" ]
+
 # --- testing -------------------------------------------------------------------------------------
 [tasks.test]
 disabled = true
