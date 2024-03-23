@@ -5,7 +5,7 @@
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 
-# linting
+# -- linting --------------------------------------------------------------------------------------
 [tasks.clippy]
 description = "Runs Clippy"
 command = "cargo"
@@ -31,7 +31,7 @@ dependencies = [
   "clippy"
 ]
 
-# testing
+# --- testing -------------------------------------------------------------------------------------
 [tasks.test]
 disabled = true
 
@@ -53,13 +53,18 @@ workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
 run_task = { name = ["test-default", "test-prove"], parallel = true }
 
-# building
+# --- building ------------------------------------------------------------------------------------
+[tasks.build]
+description = "Build in release mode"
+command = "cargo"
+args = ["build", "--release"]
+
 [tasks.build-no-std]
 description = "Build using no-std"
 command = "cargo"
 args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock"]
 
-# utilities
+# --- utilities ----------------------------------------------------------------------------------------
 [tasks.watch]
 description = "Watch for changes and rebuild"
 workspace = false
