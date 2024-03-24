@@ -139,6 +139,14 @@ impl From<&Asset> for [u8; 32] {
     }
 }
 
+impl TryFrom<&Word> for Asset {
+    type Error = AssetError;
+
+    fn try_from(value: &Word) -> Result<Self, Self::Error> {
+        (*value).try_into()
+    }
+}
+
 impl TryFrom<Word> for Asset {
     type Error = AssetError;
 
