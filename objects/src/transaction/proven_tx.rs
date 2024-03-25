@@ -378,7 +378,7 @@ impl Serializable for ProvenTransaction {
         self.output_notes.write_into(target);
 
         target.write_usize(self.output_note_details.len());
-        target.write_many(self.output_note_details.iter().map(|(_note_id, note)| note.clone()).collect::<Vec<Note>>());
+        target.write_many(self.output_note_details.values());
 
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
@@ -398,7 +398,10 @@ impl Deserializable for ProvenTransaction {
 
         let output_notes_details_len = usize::read_from(source)?;
         let notes = source.read_many(output_notes_details_len)?;
-        let details = notes.iter().map(|note: &Note| (note.id(), note.clone())).collect::<Vec<(NoteId, Note)>>();
+        let details = notes
+            .iter()
+            .map(|note: &Note| (note.id(), note.clone()))
+            .collect::<Vec<(NoteId, Note)>>();
         let output_note_details = BTreeMap::from_iter(details);
 
         let tx_script_root = Deserializable::read_from(source)?;
