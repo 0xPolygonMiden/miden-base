@@ -19,11 +19,7 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{matrix.toolchain}}
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - run: rustup target add wasm32-unknown-unknown
       - uses: davidB/rust-cargo-make@v1
       - name: cargo make - build-no-std

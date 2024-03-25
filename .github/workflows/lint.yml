@@ -14,10 +14,7 @@ jobs:
     name: check rust version consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          profile: minimal
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - name: check rust versions
         run: ./scripts/check-rust-version.sh
 
@@ -26,13 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install minimal Rust with rustfmt & cargo-make
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: davidB/rust-cargo-make@v1
       - name: cargo make - format
         run: cargo make format
@@ -42,12 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install minimal Rust with clippy & cargo-make
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: clippy
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: davidB/rust-cargo-make@v1
       - name: cargo make - clippy
         run: cargo make clippy

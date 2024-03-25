@@ -21,10 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{matrix.toolchain}}
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: davidB/rust-cargo-make@v1
       - uses: taiki-e/install-action@nextest
       - name: cargo make - test
