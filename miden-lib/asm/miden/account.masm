@@ -96,7 +96,6 @@ end
 export.set_item
     push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
     # => [index, V', 0, 0, 0]
-
     syscall.set_account_item
     # => [R', V]
 end
