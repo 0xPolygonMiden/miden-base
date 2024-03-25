@@ -20,7 +20,6 @@ theme:
     - content.code.copy
     - content.action.edit
 
-
 nav:
   - Welcome: introduction/welcome.md
   - Getting started: introduction/getting-started.md
@@ -40,9 +39,6 @@ nav:
       - State: architecture/state.md
       - Execution: architecture/execution.md
   - Network: network/network.md
-
-
-
 
 markdown_extensions:
   - toc:
@@ -86,7 +82,7 @@ validation:
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js  
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
 
 extra_css:

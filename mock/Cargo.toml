@@ -2,14 +2,16 @@
 name = "miden-mock"
 version = "0.2.0"
 description = "Library for mocking and testing core Miden rollup components"
-authors = ["miden contributors"]
-readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-base"
-categories = ["no-std"]
 keywords = ["miden", "mock"]
-edition = "2021"
-rust-version = "1.75"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+
 
 [[bin]]
 name = "mock"
