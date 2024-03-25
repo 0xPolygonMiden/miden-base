@@ -56,9 +56,12 @@ fn create_note<R: FeltRng>(
     let note_assembler = TransactionKernel::assembler();
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let (note_script, _) = NoteScript::new(script_ast, &note_assembler)?;
+
+    let card_1 = [Felt::new(99), Felt::new(99), Felt::new(99), Felt::new(99)];
+    let card_2 = [Felt::new(98), Felt::new(98), Felt::new(98), Felt::new(98)];
     
     // Here you can add the inputs to the note
-    let inputs = [target_account_id.into()];
+    let inputs = [card_1.as_slice(), card_2.as_slice()].concat();
     let tag: Felt = target_account_id.into();
     let serial_num = rng.draw_word();
 
@@ -115,7 +118,7 @@ fn note_script_poker() {
     let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
 
     // Execute the transaction and get the witness
-    let _executed_transaction = executor
+    let executed_transaction = executor
         .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
         .unwrap();
 
@@ -125,12 +128,16 @@ fn note_script_poker() {
 
     // Not sure what you want to test after the account but we should see if the 
     // account change is what you expect
-    // let target_account_after: Account = Account::new(
-    //     target_account.id(),
-    //     AssetVault::new(&[fungible_asset]).unwrap(),
-    //     target_account.storage().clone(),
-    //     target_account.code().clone(),
-    //     Felt::new(2),
-    // );
-    // assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
+    let mut target_storage = target_account.storage().clone();
+    target_storage.set_item(100, [Felt::new(99), Felt::new(99), Felt::new(99), Felt::new(99)]).unwrap();
+    target_storage.set_item(101, [Felt::new(98), Felt::new(98), Felt::new(98), Felt::new(98)]).unwrap();
+    
+    let target_account_after: Account = Account::new(
+        target_account.id(),
+        AssetVault::new(&[fungible_asset]).unwrap(),
+        target_storage,
+        target_account.code().clone(),
+        Felt::new(2),
+    );
+    assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }

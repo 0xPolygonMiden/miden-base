@@ -172,7 +172,6 @@ export.set_account_item
     # set the account storage item
     exec.account::set_item
     # => [R', V, 0, 0, 0]
-
     # organize the stack for return
     movup.8 drop movup.8 drop movup.8 drop
     # => [R', V]
