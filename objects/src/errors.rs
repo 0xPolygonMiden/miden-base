@@ -7,7 +7,7 @@ use vm_processor::DeserializationError;
 use super::{
     accounts::{AccountId, StorageSlotType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::merkle::MerkleError,
+    crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
     notes::NoteId,
     Digest, Word,
 };
@@ -34,6 +34,7 @@ pub enum AccountError {
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
     StorageSlotNotValueSlot(u8, StorageSlotType),
+    StorageMapToManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),
 }
 
@@ -77,6 +78,8 @@ pub enum AccountDeltaError {
     TooManyClearedStorageItems { actual: usize, max: usize },
     TooManyRemovedAssets { actual: usize, max: usize },
     TooManyUpdatedStorageItems { actual: usize, max: usize },
+    DuplicateStorageMapLeaf { key: RpoDigest },
+    StorageMapDeltaWithoutStorageItemChange(usize),
 }
 
 #[cfg(feature = "std")]

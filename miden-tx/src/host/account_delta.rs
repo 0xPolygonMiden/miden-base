@@ -4,7 +4,7 @@ use miden_lib::transaction::{memory::ACCT_STORAGE_ROOT_PTR, TransactionKernelErr
 use miden_objects::{
     accounts::{
         AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountStub,
-        AccountVaultDelta,
+        AccountVaultDelta, StorageMapDelta,
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     Digest, Felt, Word, EMPTY_WORD, ZERO,
@@ -24,7 +24,7 @@ const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPTH as
 /// Keeps track of changes made to the account during transaction execution.
 ///
 /// Currently, this tracks:
-/// - Changes to the account storage slots.
+/// - Changes to the account storage, slots and maps.
 /// - Changes to the account vault.
 /// - Changes to the account nonce.
 ///
@@ -125,6 +125,49 @@ impl<A: AdviceProvider> TransactionHost<A> {
         Ok(())
     }
 
+    /// Extracts information from the process state about the storage map being updated and
+    /// records the latest values of this storage map.
+    pub(super) fn on_account_storage_set_map_item<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        // get slot index from the stack and make sure it is valid
+        let slot_index = process.get_stack_item(0);
+        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
+            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
+        }
+
+        // get the KEY to which the slot is being updated
+        let new_map_key = [
+            process.get_stack_item(4),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+        ];
+
+        // get the VALUE to which the slot is being updated
+        let new_map_value = [
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+            process.get_stack_item(5),
+        ];
+
+        let slot_index = slot_index.as_int() as u8;
+        if let Some(previous_maps_update) =
+            self.account_delta.storage.maps_updates.get_mut(&slot_index)
+        {
+            previous_maps_update.push((new_map_key, new_map_value))
+        } else {
+            self.account_delta
+                .storage
+                .maps_updates
+                .insert(slot_index, vec![(new_map_key, new_map_value)]);
+        }
+
+        Ok(())
+    }
+
     // ACCOUNT VAULT UPDATE HANDLERS
     // --------------------------------------------------------------------------------------------
 
@@ -167,9 +210,11 @@ impl<A: AdviceProvider> TransactionHost<A> {
 ///
 /// The delta tracker is composed of:
 /// - A map which records the latest states for the updated storage slots.
+/// - A map which records the latest states for the updates storage maps
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct AccountStorageDeltaTracker {
     slot_updates: BTreeMap<u8, Word>,
+    maps_updates: BTreeMap<u8, Vec<(Word, Word)>>,
 }
 
 impl AccountStorageDeltaTracker {
@@ -178,6 +223,7 @@ impl AccountStorageDeltaTracker {
     pub fn into_delta(self) -> AccountStorageDelta {
         let mut cleared_items = Vec::new();
         let mut updated_items = Vec::new();
+        let mut updated_maps: Vec<(u8, StorageMapDelta)> = Vec::new();
 
         for (idx, value) in self.slot_updates {
             if value == EMPTY_WORD {
@@ -187,7 +233,26 @@ impl AccountStorageDeltaTracker {
             }
         }
 
-        AccountStorageDelta { cleared_items, updated_items }
+        for (idx, map_deltas) in self.maps_updates {
+            let mut updated_leafs = Vec::new();
+            let mut cleared_leafs = Vec::new();
+
+            for map_delta in map_deltas {
+                if map_delta.1 == EMPTY_WORD {
+                    cleared_leafs.push(map_delta.0);
+                } else {
+                    updated_leafs.push(map_delta);
+                }
+            }
+            let storage_map_delta = StorageMapDelta::from(cleared_leafs, updated_leafs);
+            updated_maps.push((idx, storage_map_delta));
+        }
+
+        AccountStorageDelta {
+            cleared_items,
+            updated_items,
+            updated_maps,
+        }
     }
 }
 

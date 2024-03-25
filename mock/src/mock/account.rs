@@ -2,11 +2,11 @@ use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage, AccountType,
-        SlotItem, StorageSlot,
+        SlotItem, StorageMap, StorageSlot,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::merkle::Smt,
+    crypto::{hash::rpo::RpoDigest, merkle::Smt},
     Felt, FieldElement, Word, ZERO,
 };
 
@@ -46,6 +46,18 @@ pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Fel
 pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
 
+pub const STORAGE_INDEX_2: u8 = 40;
+pub const STORAGE_LEAVES_2: [(RpoDigest, Word); 2] = [
+    (
+        RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+        [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+    ),
+    (
+        RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+        [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+    ),
+];
+
 pub fn storage_item_0() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_0,
@@ -57,6 +69,17 @@ pub fn storage_item_1() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_1,
         slot: StorageSlot::new_value(STORAGE_VALUE_1),
+    }
+}
+
+pub fn storage_map_2() -> StorageMap {
+    StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
+}
+
+pub fn storage_item_2() -> SlotItem {
+    SlotItem {
+        index: STORAGE_INDEX_2,
+        slot: StorageSlot::new_map(Word::from(storage_map_2().root())),
     }
 }
 
@@ -84,13 +107,18 @@ fn mock_account_vault() -> AssetVault {
 
 pub fn mock_account_storage() -> AccountStorage {
     // create account storage
-    AccountStorage::new(vec![storage_item_0(), storage_item_1()]).unwrap()
+    AccountStorage::new(
+        vec![storage_item_0(), storage_item_1(), storage_item_2()],
+        vec![storage_map_2()],
+    )
+    .unwrap()
 }
 
 // Constants that define the indexes of the account procedures of interest
 pub const ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX: usize = 2;
 pub const ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX: usize = 3;
-pub const ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX: usize = 4;
+pub const ACCOUNT_PROCEDURE_SET_MAP_ITEM_PROC_IDX: usize = 4;
+pub const ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX: usize = 5;
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -141,7 +169,16 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [R', V]
             end
 
-            # acct proc 4
+            # acct proc 4
+            export.set_map_item
+                exec.account::set_map_item
+                # => [R', V, 0, 0, 0]
+
+                movup.8 drop movup.8 drop movup.8 drop
+                # => [R', V]
+            end
+
+            # acct proc 5
             export.set_code
                 padw swapw
                 # => [CODE_ROOT, 0, 0, 0, 0]
@@ -150,7 +187,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0, 0, 0, 0]
             end
 
-            # acct proc 5
+            # acct proc 6
             export.create_note
                 # apply padding
                 repeat.8
@@ -162,13 +199,13 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
             end
 
-            # acct proc 6
+            # acct proc 7
             export.account_procedure_1
                 push.1.2
                 add
             end
 
-            # acct proc 7
+            # acct proc 8
             export.account_procedure_2
                 push.2.1
                 sub
@@ -226,10 +263,13 @@ pub fn mock_fungible_faucet(
     } else {
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
-    let account_storage = AccountStorage::new(vec![SlotItem {
-        index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-    }])
+    let account_storage = AccountStorage::new(
+        vec![SlotItem {
+            index: FAUCET_STORAGE_DATA_SLOT,
+            slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
+        }],
+        vec![],
+    )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
@@ -255,10 +295,13 @@ pub fn mock_non_fungible_faucet(
 
     // TODO: add nft tree data to account storage?
 
-    let account_storage = AccountStorage::new(vec![SlotItem {
-        index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot::new_map(*nft_tree.root()),
-    }])
+    let account_storage = AccountStorage::new(
+        vec![SlotItem {
+            index: FAUCET_STORAGE_DATA_SLOT,
+            slot: StorageSlot::new_map(*nft_tree.root()),
+        }],
+        vec![],
+    )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);

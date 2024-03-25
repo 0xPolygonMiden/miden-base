@@ -213,6 +213,17 @@ fn add_account_to_advice_inputs(
         storage.layout().iter().map(Felt::from).collect(),
     )]);
 
+    // If there are storage maps, we populate the merkle store and advice map
+    if !(account.storage().maps().is_empty()) {
+        for map in account.storage().maps() {
+            // extend the merkle store and map with the storage maps
+            inputs.extend_merkle_store(map.inner_nodes());
+
+            // populate advice map with Sparse Merkle Tree leaf nodes
+            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+        }
+    }
+
     // --- account vault ------------------------------------------------------
     let vault = account.vault();
 

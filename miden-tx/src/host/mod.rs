@@ -99,6 +99,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             AccountVaultAddAsset => self.on_account_vault_add_asset(process),
             AccountVaultRemoveAsset => self.on_account_vault_remove_asset(process),
             AccountStorageSetItem => self.on_account_storage_set_item(process),
+            AccountStorageSetMapItem => self.on_account_storage_set_map_item(process),
             AccountIncrementNonce => self.on_account_increment_nonce(process),
             AccountPushProcedureIndex => self.on_account_push_procedure_index(process),
         }

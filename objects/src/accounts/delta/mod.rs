@@ -6,7 +6,7 @@ use super::{
 use crate::{assets::Asset, AccountDeltaError};
 
 mod storage;
-pub use storage::AccountStorageDelta;
+pub use storage::{AccountStorageDelta, StorageMapDelta};
 
 mod vault;
 pub use vault::AccountVaultDelta;
@@ -156,6 +156,7 @@ mod tests {
         let storage_delta = AccountStorageDelta {
             cleared_items: vec![],
             updated_items: vec![],
+            updated_maps: vec![],
         };
 
         let vault_delta = AccountVaultDelta {
@@ -170,6 +171,7 @@ mod tests {
         let storage_delta = AccountStorageDelta {
             cleared_items: vec![1],
             updated_items: vec![],
+            updated_maps: vec![],
         };
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
