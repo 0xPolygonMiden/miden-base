@@ -1,18 +1,22 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteScript},
-    utils::collections::*,
     Felt, Word, ZERO,
 };
 
 use crate::{
     constants::{
-        non_fungible_asset_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_SENDER, CONSUMED_ASSET_1_AMOUNT,
-        CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
+        non_fungible_asset_2, CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT,
+        CONSUMED_ASSET_3_AMOUNT,
+    },
+    mock::account::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_SENDER,
     },
     utils::{prepare_assets, prepare_word},
 };

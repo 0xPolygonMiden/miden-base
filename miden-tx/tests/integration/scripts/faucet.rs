@@ -4,7 +4,7 @@ use miden_lib::{
     AuthScheme,
 };
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
@@ -13,7 +13,7 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{constants::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, utils::prepare_word};
+use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, utils::prepare_word};
 
 use crate::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
@@ -264,7 +264,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     max_supply: u64,
     total_issuance: Option<u64>,
 ) -> Account {
-    let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
     let faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
@@ -275,8 +275,14 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(vec![
-        (0, (StorageSlotType::Value { value_arity: 0 }, public_key)),
-        (1, (StorageSlotType::Value { value_arity: 0 }, faucet_storage_slot_1)),
+        SlotItem {
+            index: 0,
+            slot: StorageSlot::new_value(public_key),
+        },
+        SlotItem {
+            index: 1,
+            slot: StorageSlot::new_value(faucet_storage_slot_1),
+        },
     ])
     .unwrap();
 

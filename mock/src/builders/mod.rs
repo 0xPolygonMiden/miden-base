@@ -9,7 +9,6 @@ mod error;
 mod fungible_asset;
 mod nonfungible_asset;
 mod note;
-mod tx;
 
 // RE-EXPORTS
 // ================================================================================================
@@ -20,7 +19,6 @@ pub use error::AccountBuilderError;
 pub use fungible_asset::FungibleAssetBuilder;
 pub use nonfungible_asset::{NonFungibleAssetBuilder, NonFungibleAssetDetailsBuilder};
 pub use note::NoteBuilder;
-pub use tx::ProvenTransactionBuilder;
 
 pub fn str_to_account_code(source: &str) -> Result<AccountCode, AccountError> {
     let assembler = TransactionKernel::assembler();

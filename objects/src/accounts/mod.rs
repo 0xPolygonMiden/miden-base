@@ -18,7 +18,7 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, SlotItem, StorageSlotType};
+pub use storage::{AccountStorage, SlotItem, StorageSlot, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;
@@ -310,8 +310,8 @@ pub fn hash_account(
 mod tests {
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlotType, Word,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
+        Word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
     use crate::{
@@ -340,7 +340,10 @@ mod tests {
         let slot_items: Vec<SlotItem> = storage_items
             .into_iter()
             .enumerate()
-            .map(|(i, item)| (i as u8, (slot_type, item)))
+            .map(|(index, item)| SlotItem {
+                index: index as u8,
+                slot: StorageSlot { slot_type, value: item },
+            })
             .collect();
         let storage = AccountStorage::new(slot_items).unwrap();
 

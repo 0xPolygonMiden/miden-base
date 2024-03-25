@@ -1,7 +1,10 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use miden_lib::transaction::TransactionKernel;
 pub use miden_objects::transaction::TransactionInputs;

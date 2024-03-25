@@ -3,11 +3,15 @@ use miden_objects::{
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
 };
 use mock::{
-    constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA,
+    constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+    mock::{
+        account::{
+            MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        notes::AssetPreservationStatus,
+        transaction::mock_inputs,
     },
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     prepare_transaction,
     procedures::prepare_word,
     run_tx,

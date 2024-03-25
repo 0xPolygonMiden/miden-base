@@ -3,7 +3,7 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
@@ -18,9 +18,9 @@ use miden_tx::{
     DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
 };
 use mock::{
-    constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE, MIN_PROOF_SECURITY_LEVEL},
+    constants::MIN_PROOF_SECURITY_LEVEL,
     mock::{
-        account::MockAccountType,
+        account::{MockAccountType, ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE},
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
@@ -153,9 +153,11 @@ pub fn get_account_with_default_account_code(
     let account_assembler = TransactionKernel::assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, public_key))])
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(public_key),
+    }])
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

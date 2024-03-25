@@ -1,8 +1,9 @@
+use alloc::vec::Vec;
+
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
     Serializable, Word,
 };
-use crate::utils::collections::*;
 
 // NOTE ENVELOPE
 // ================================================================================================

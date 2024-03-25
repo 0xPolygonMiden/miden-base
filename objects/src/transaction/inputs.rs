@@ -1,14 +1,11 @@
+use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{validate_account_seed, Account},
     notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
-    utils::{
-        collections::*,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::*,
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
 };
 
@@ -270,7 +267,7 @@ impl<T: ToNullifier> InputNotes<T> {
 
 impl<T: ToNullifier> IntoIterator for InputNotes<T> {
     type Item = T;
-    type IntoIter = vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.notes.into_iter()

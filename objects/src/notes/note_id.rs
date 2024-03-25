@@ -1,7 +1,9 @@
+use alloc::string::String;
+use core::fmt::Display;
+
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    string::*,
     HexParseError,
 };
 
@@ -49,6 +51,12 @@ impl NoteId {
     /// Returns the digest defining this note ID.
     pub fn inner(&self) -> Digest {
         self.0
+    }
+}
+
+impl Display for NoteId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }
 
@@ -125,6 +133,8 @@ impl Deserializable for NoteId {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::NoteId;
 
     #[test]

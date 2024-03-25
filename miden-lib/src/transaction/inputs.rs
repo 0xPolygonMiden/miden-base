@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::Account,
     transaction::{
@@ -9,7 +11,6 @@ use miden_objects::{
 };
 
 use super::TransactionKernel;
-use crate::utils::{collections::*, vec};
 
 // TRANSACTION KERNEL INPUTS
 // ================================================================================================

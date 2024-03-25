@@ -1,6 +1,7 @@
+use alloc::string::String;
 use core::fmt;
 
-use miden_objects::{accounts::AccountStorage, utils::string::*, AssetError, Digest};
+use miden_objects::{accounts::AccountStorage, AssetError, Digest};
 
 // TRANSACTION KERNEL ERROR
 // ================================================================================================

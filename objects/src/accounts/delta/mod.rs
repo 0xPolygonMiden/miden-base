@@ -1,7 +1,9 @@
+use alloc::string::ToString;
+
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, Word, ZERO,
 };
-use crate::{assets::Asset, utils::string::*, AccountDeltaError};
+use crate::{assets::Asset, AccountDeltaError};
 
 mod storage;
 pub use storage::AccountStorageDelta;

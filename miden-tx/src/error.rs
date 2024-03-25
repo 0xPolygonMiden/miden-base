@@ -1,13 +1,13 @@
-use core::fmt;
+use alloc::string::String;
+use core::fmt::{self, Display};
 
 use miden_objects::{
-    assembly::AssemblyError, notes::NoteId, Felt, NoteError, TransactionInputError,
-    TransactionOutputError,
+    assembly::AssemblyError, notes::NoteId, Felt, NoteError, ProvenTransactionError,
+    TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
 use super::{AccountError, AccountId, Digest, ExecutionError};
-use crate::utils::string::*;
 
 // TRANSACTION COMPILER ERROR
 // ================================================================================================
@@ -73,11 +73,22 @@ impl std::error::Error for TransactionExecutorError {}
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
     InvalidTransactionOutput(TransactionOutputError),
+    ProvenTransactionError(ProvenTransactionError),
 }
 
-impl fmt::Display for TransactionProverError {
+impl Display for TransactionProverError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            TransactionProverError::ProveTransactionProgramFailed(inner) => {
+                write!(f, "Proving transaction failed: {}", inner)
+            },
+            TransactionProverError::InvalidTransactionOutput(inner) => {
+                write!(f, "Transaction ouptut invalid: {}", inner)
+            },
+            TransactionProverError::ProvenTransactionError(inner) => {
+                write!(f, "Building proven transaction error: {}", inner)
+            },
+        }
     }
 }
 

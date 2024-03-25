@@ -1,3 +1,5 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
     transaction::{InputNotes, TransactionScript},
@@ -8,7 +10,6 @@ use super::{
     AccountCode, AccountId, CodeBlock, Digest, NoteScript, Program, TransactionCompilerError,
     TransactionKernel,
 };
-use crate::utils::{collections::*, vec};
 
 #[cfg(test)]
 mod tests;

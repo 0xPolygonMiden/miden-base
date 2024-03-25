@@ -5,10 +5,9 @@ use miden_objects::{
     Digest,
 };
 use mock::{
-    constants::{generate_account_seed, AccountSeedType},
     consumed_note_data_ptr,
     mock::{
-        account::MockAccountType,
+        account::{generate_account_seed, AccountSeedType, MockAccountType},
         host::MockHost,
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_account_seed},

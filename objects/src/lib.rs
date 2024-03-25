@@ -1,7 +1,10 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 pub mod accounts;
 pub mod assets;
@@ -19,7 +22,7 @@ pub use block::BlockHeader;
 pub use constants::*;
 pub use errors::{
     AccountDeltaError, AccountError, AssetError, AssetVaultError, ChainMmrError, NoteError,
-    TransactionInputError, TransactionOutputError, TransactionScriptError,
+    ProvenTransactionError, TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};

@@ -1,10 +1,12 @@
+use alloc::vec::Vec;
+
 use assembly::ast::AstSerdeOptions;
 
 use super::{
     AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, ModuleAst, Serializable,
 };
-use crate::{crypto::merkle::SimpleSmt, utils::collections::*};
+use crate::crypto::merkle::SimpleSmt;
 
 // CONSTANTS
 // ================================================================================================

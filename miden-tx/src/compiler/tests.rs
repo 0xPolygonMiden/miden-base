@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},

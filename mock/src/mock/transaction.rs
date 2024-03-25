@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::{Account, AccountDelta},
     notes::Note,
@@ -5,7 +7,6 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    utils::collections::*,
     BlockHeader, Felt, FieldElement,
 };
 use vm_processor::{AdviceInputs, Operation, Program, Word};
@@ -13,8 +14,9 @@ use vm_processor::{AdviceInputs, Operation, Program, Word};
 use super::{
     super::TransactionKernel,
     account::{
-        mock_account, mock_fungible_faucet, mock_new_account, mock_non_fungible_faucet,
-        MockAccountType,
+        mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
+        mock_non_fungible_faucet, MockAccountType,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     block::mock_block_header,
     chain::mock_chain_data,
@@ -39,7 +41,11 @@ pub fn mock_inputs_with_account_seed(
     // Create an account with storage items
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
-        MockAccountType::StandardExisting => mock_account(None, Felt::ONE, None, &assembler),
+        MockAccountType::StandardExisting => mock_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            Felt::ONE,
+            mock_account_code(&assembler),
+        ),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
@@ -79,9 +85,11 @@ pub fn mock_inputs_with_existing(
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
-        MockAccountType::StandardExisting => {
-            account.unwrap_or(mock_account(None, Felt::ONE, None, &assembler))
-        },
+        MockAccountType::StandardExisting => account.unwrap_or(mock_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            Felt::ONE,
+            mock_account_code(&assembler),
+        )),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
             account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler))
         },
@@ -110,12 +118,18 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
-    // Initial Account
-    let initial_account = mock_account(None, Felt::ONE, None, &assembler);
+    let initial_account = mock_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        Felt::ONE,
+        mock_account_code(&assembler),
+    );
 
-    // Finial Account (nonce incremented by 1)
-    let final_account =
-        mock_account(None, Felt::new(2), Some(initial_account.code().clone()), &assembler);
+    // nonce incremented by 1
+    let final_account = mock_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        Felt::new(2),
+        initial_account.code().clone(),
+    );
 
     // mock notes
     let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);

@@ -1,10 +1,8 @@
 # Miden mock
 
-Utilities to help test Miden programs.
+This crate contains utilities to help with testing Miden rollup components.
 
-This crate contains builder and mock functions to create objects for testing. A
-mock chain which allows the simulation of a rollup in-memory. And some precompute
-values to speed up testing.
+This crate contains builder and mock functions to create objects for testing. A mock chain which allows the simulation of a rollup in-memory. And some precomputed values to speed up testing.
 
 ## Features
 

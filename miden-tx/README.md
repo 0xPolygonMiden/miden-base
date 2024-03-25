@@ -1,6 +1,6 @@
 # Miden Transaction
 
-This crate contains tools to create, execute, and prove Miden transactions.
+This crate contains tool for creating, executing, and proving Miden rollup transaction.
 
 ## Usage
 

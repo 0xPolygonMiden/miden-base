@@ -1,7 +1,6 @@
-use miden_objects::{
-    accounts::{AccountStorage, SlotItem},
-    utils::collections::*,
-};
+use alloc::vec::Vec;
+
+use miden_objects::accounts::{AccountStorage, SlotItem};
 
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]

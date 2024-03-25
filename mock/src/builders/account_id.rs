@@ -1,13 +1,14 @@
+use alloc::string::{String, ToString};
+
 use miden_objects::{
     accounts::{AccountId, AccountType},
-    utils::string::*,
     Digest, Word,
 };
 use rand::Rng;
 
 use crate::{
     builders::{str_to_account_code, AccountBuilderError},
-    constants::DEFAULT_ACCOUNT_CODE,
+    mock::account::DEFAULT_ACCOUNT_CODE,
 };
 
 /// Builder for an `AccountId`, the builder can be configured and used multiple times.

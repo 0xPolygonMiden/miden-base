@@ -1,6 +1,6 @@
 # Getting started
 
-This tutorial will guide you through the process generating a new Miden account, requesting funds from a public faucet and interacting with the Miden rollup using the Miden client. 
+This tutorial will guide you through the process generating a new Miden account, requesting funds from a public faucet and interacting with the Miden rollup using the Miden client.
 
 The Miden node processes transactions and creates blocks for the Miden rollup. The Miden client provides a way to execute and prove transactions, facilitating the interaction with the Miden rollup. By the end of this tutorial, you will be able to configure the Miden client, connect to a Miden node, and perform basic operations like sending transactions, generating and consuming notes.
 
@@ -80,13 +80,13 @@ In this first part of the tutorial we will teach you how to create a new Miden a
 
 ### Importing the note into the Miden client
 
-1. **Importing & visualising notes:** From your terminal we will use the Miden client to import and visualise the note that you have received using the following commands: 
+1. **Importing & visualizing notes:** From your terminal we will use the Miden client to import and visualize the note that you have received using the following commands:
 
       ```shell
       miden-client input-notes -i <path-to-note>
       ```
 
-      Now that the note has been successfully imported you should be able to visualise it's information using the following command: 
+      Now that the note has been successfully imported you should be able to visualize it's information using the following command: 
 
       ```shell
       miden-client input-notes -l
@@ -103,7 +103,7 @@ In this first part of the tutorial we will teach you how to create a new Miden a
 
 ### Consuming the note & receiving the funds
 
-1. **Consuming the note:** Now that we have synced the client the input-note that we have imported from the faucet should have a `commit-height` confirming it's existence at the rollup level: 
+1. **Consuming the note:** Now that we have synced the client the input-note that we have imported from the faucet should have a `commit-height` confirming it's existence at the rollup level:
 
       ```shell
       miden-client input-notes -l
@@ -121,7 +121,7 @@ In this first part of the tutorial we will teach you how to create a new Miden a
       miden-client input-notes -l
       ```
     
-2. **Visualising account vault:** After successfully running the previous commands your account should now contained the tokens sent from the faucet. You can visualise your accounts vault by running the following command: 
+2. **Visualizing account vault:** After successfully running the previous commands your account should now contained the tokens sent from the faucet. You can visualize your accounts vault by running the following command: 
 
       ```shell
       miden-client account show <Account-Id> -v
@@ -132,10 +132,10 @@ In this first part of the tutorial we will teach you how to create a new Miden a
 
 ## Part 2: Peer-to-Peer private off-chain transactions
 
-In this second part of the tutorial we will teach you how to make off-chain transactions and send funds to another account using the Miden client. 
+In this second part of the tutorial we will teach you how to make off-chain transactions and send funds to another account using the Miden client.
 
 > **Note**:
-> We consider that you have done the first part of the turorial and that the state of your local client has not been reset. 
+> We consider that you have done the first part of the tutorial and that the state of your local client has not been reset.
 
 
 ### Setting-up the Miden client

@@ -1,7 +1,9 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    notes::Nullifier,
-    transaction::{InputNotes, ProvenTransaction, TransactionWitness},
+    notes::{NoteEnvelope, Nullifier},
+    transaction::{
+        AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
+    },
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -57,24 +59,45 @@ impl TransactionProver {
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, _event_handler) = host.into_parts();
+        let (advice_provider, account_delta) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
             .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
-        Ok(ProvenTransaction::new(
+        let initial_hash = if tx_witness.account().is_new() {
+            Digest::default()
+        } else {
+            initial_account_hash
+        };
+
+        let builder = ProvenTransactionBuilder::new(
             account_id,
-            if tx_witness.account().is_new() {
-                Digest::default()
-            } else {
-                initial_account_hash
-            },
+            initial_hash,
             tx_outputs.account.hash(),
-            input_notes,
-            tx_outputs.output_notes.into(),
-            tx_script_root,
             block_hash,
             proof,
-        ))
+        )
+        .add_input_notes(input_notes)
+        .add_output_notes(tx_outputs.output_notes.into_iter().map(NoteEnvelope::from));
+
+        let builder = match tx_script_root {
+            Some(tx_script_root) => builder.tx_script_root(tx_script_root),
+            _ => builder,
+        };
+
+        let builder = match account_id.is_on_chain() {
+            true => {
+                let account_details = if tx_witness.account().is_new() {
+                    AccountDetails::Full(tx_witness.account().clone())
+                } else {
+                    AccountDetails::Delta(account_delta)
+                };
+
+                builder.account_details(account_details)
+            },
+            false => builder,
+        };
+
+        builder.build().map_err(TransactionProverError::ProvenTransactionError)
     }
 }

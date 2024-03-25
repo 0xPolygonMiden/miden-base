@@ -1,6 +1,6 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, StorageSlotType},
+    accounts::{Account, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
@@ -9,9 +9,10 @@ use miden_objects::{
 };
 use miden_tx::TransactionExecutor;
 use mock::{
-    constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    mock::account::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
+        DEFAULT_AUTH_SCRIPT,
     },
     utils::prepare_word,
 };
@@ -29,7 +30,7 @@ fn prove_receive_asset_via_wallet() {
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
     let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
@@ -84,9 +85,11 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, target_pub_key))])
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(target_pub_key),
+    }])
+    .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -108,7 +111,7 @@ fn prove_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,
@@ -165,9 +168,11 @@ fn prove_send_asset_via_wallet() {
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
-    let sender_account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, sender_pub_key))])
-            .unwrap();
+    let sender_account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(sender_pub_key),
+    }])
+    .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta

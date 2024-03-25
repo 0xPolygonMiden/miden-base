@@ -1,7 +1,8 @@
+use alloc::vec::Vec;
+
 use super::{Digest, Felt, Hasher, ZERO};
-use crate::utils::{
-    collections::*,
-    serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+use crate::utils::serde::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 
 /// The header of a block. It contains metadata about the block, commitments to the current
@@ -188,6 +189,8 @@ impl BlockHeader {
 
 #[cfg(feature = "testing")]
 mod mock {
+    use alloc::vec::Vec;
+
     use winter_rand_utils as rand;
 
     use crate::{

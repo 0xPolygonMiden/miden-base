@@ -1,6 +1,7 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use crate::{
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
-    utils::collections::*,
     BlockHeader, ChainMmrError,
 };
 

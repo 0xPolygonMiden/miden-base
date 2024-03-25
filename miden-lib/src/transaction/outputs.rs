@@ -4,7 +4,7 @@ use miden_objects::{
     notes::{NoteAssets, NoteId, NoteMetadata},
     transaction::OutputNote,
     utils::collections::*,
-    AccountError, Digest, NoteError, Word, WORD_SIZE,
+    AccountError, Digest, NoteError, Word,
 };
 
 use super::memory::{
@@ -48,27 +48,36 @@ pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, Accoun
 // NOTES EXTRACTOR
 // ================================================================================================
 
-pub fn notes_try_from_elements(elements: &[Word]) -> Result<OutputNote, NoteError> {
-    if elements.len() < CREATED_NOTE_CORE_DATA_SIZE {
-        return Err(NoteError::InvalidStubDataLen(elements.len()));
+/// Parse an [OutputNote] given a slice of [Word]s.
+///
+/// The expected format is:
+///
+/// > [NOTE_ID, NOTE_METADATA, RECIPIENT, ASSET_HASH, [num_assets, _, _, _], ASSET*]
+///
+pub fn parse_output_note_from_slice(words: &[Word]) -> Result<OutputNote, NoteError> {
+    // Check there is enough data in the slice so the indexes below won't panic
+    if words.len() < CREATED_NOTE_CORE_DATA_SIZE {
+        return Err(NoteError::InvalidStubDataLen(words.len()));
     }
 
-    let note_id: NoteId = elements[CREATED_NOTE_ID_OFFSET as usize].into();
-    let metadata: NoteMetadata = elements[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
-    let recipient = elements[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
-    let num_assets = elements[CREATED_NOTE_NUM_ASSETS_OFFSET as usize][0];
-    let asset_hash: Digest = elements[CREATED_NOTE_ASSET_HASH_OFFSET as usize].into();
+    // Extract the data with fixed offsets
+    let note_id: NoteId = words[CREATED_NOTE_ID_OFFSET as usize].into();
+    let metadata: NoteMetadata = words[CREATED_NOTE_METADATA_OFFSET as usize].try_into()?;
+    let recipient = words[CREATED_NOTE_RECIPIENT_OFFSET as usize].into();
+    let asset_hash: Digest = words[CREATED_NOTE_ASSET_HASH_OFFSET as usize].into();
+    let num_assets = words[CREATED_NOTE_NUM_ASSETS_OFFSET as usize][0];
 
-    if elements.len()
-        < (CREATED_NOTE_ASSETS_OFFSET as usize + num_assets.as_int() as usize) * WORD_SIZE
-    {
-        return Err(NoteError::InvalidStubDataLen(elements.len()));
+    let asset_start = CREATED_NOTE_ASSETS_OFFSET as usize;
+    let asset_end = asset_start + (num_assets.as_int() as usize);
+
+    // Check there is enough data in the slice for the expected number of assets
+    if words.len() < asset_end {
+        return Err(NoteError::InvalidStubDataLen(words.len()));
     }
 
-    let assets = elements[CREATED_NOTE_ASSETS_OFFSET as usize
-        ..(CREATED_NOTE_ASSETS_OFFSET as usize + num_assets.as_int() as usize)]
+    let assets = words[asset_start..asset_end]
         .iter()
-        .map(|word| (*word).try_into())
+        .map(Asset::try_from)
         .collect::<Result<Vec<Asset>, _>>()
         .map_err(NoteError::InvalidAssetData)?;
 
