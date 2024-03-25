@@ -1,10 +1,10 @@
 # Miden Rollup protocol
 
-[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/base/blob/main/LICENSE)
-[![test](https://github.com/0xPolygonMiden/base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/base/actions/workflows/test.yml)
-[![no-std](https://github.com/0xPolygonMiden/base/actions/workflows/no-std.yml/badge.svg)](https://github.com/0xPolygonMiden/base/actions/workflows/no-std.yml)
+[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/miden-base/blob/main/LICENSE)
+[![test](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml)
+[![no-std](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml)
 [![RUST_VERSION](https://img.shields.io/badge/rustc-1.75+-lightgray.svg)]()
-[![CRATE](https://img.shields.io/crates/v/miden-base)](https://crates.io/crates/miden-base)
+[![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)]()  
 
 Description and core structures for the Miden Rollup protocol.
 
