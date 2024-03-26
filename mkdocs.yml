@@ -25,8 +25,8 @@ nav:
   - Welcome: introduction/welcome.md
   - Getting started: introduction/getting-started.md
   - Roadmap: introduction/roadmap.md
-  - Architecture:
-      - Architecture overview: architecture/overview.md
+  - Miden architecture:
+      - Overview: architecture/overview.md
       - Accounts: architecture/accounts.md
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md

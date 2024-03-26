@@ -1,20 +1,27 @@
 # Miden architecture overview
 
-The Polygon Miden Architecture describes the concepts of how the participants of the network can interact.
+## Design goals
 
-The architecture reflects the design goals for the rollup:
+The Polygon Miden rollup architecture has the following design goals:
 
-* **High throughput**
-* **Privacy**
-* **Asset safety**
+* High throughput
+* Privacy
+* Asset safety
 
-## Inspired by the Actor model
-The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to achieve concurrent and local state changes. In the model, actors are little state machines with inboxes, meaning each actor is responsible for their own state. Actors can send and receive messages to communicate with other actors. Messages can be read asynchronously.
+### Inspired by the Actor model
+
+The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to implement concurrent and local state changes. 
+
+In the model, actors are little state machines with inboxes, meaning each actor is responsible for their own state. Actors can send and receive messages to communicate with other actors. 
+
+Messages can be read asynchronously.
 
 ## Core Concepts in Miden
-In Miden, there are accounts and notes which can hold assets. Accounts consume and produce notes in transactions. Transactions describe account state changes of single accounts.
+
+Miden has accounts and notes which can hold assets. Accounts consume and produce notes during transactions. Transactions describe the account state changes of single accounts.
 
 ### Accounts
+
 [Accounts](accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. This chapter describes the design, the storage types, and the creation of an account.
 
 ### Notes
