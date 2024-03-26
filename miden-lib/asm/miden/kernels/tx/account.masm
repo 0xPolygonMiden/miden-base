@@ -362,7 +362,7 @@ end
 
 #! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
 #!
-#! Stack: [index, NEW_VALUE, KEY, ROOT, ...]
+#! Stack: [index, KEY, VALUE, ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
 #!
 #! - ROOT is the root of the map to set the KEY NEW_VALUE pair.
@@ -377,7 +377,8 @@ export.set_map_item
     push.1 drop emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop
 
     # set the NEW_VALUE under KEY in the tree
-    exec.smt::set
+    # note smt::set expects the stack to be [VALUE, KEY, ROOT, ...]
+    swapw exec.smt::set
     # => [OLD_VALUE, NEW_ROOT, ...]
     
     # prepare stack for return

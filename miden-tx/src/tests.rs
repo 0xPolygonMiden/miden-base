@@ -98,8 +98,8 @@ fn executed_transaction_account_delta() {
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
 
     // updated storage map
-    let updated_map_value = [Felt::new(14), Felt::new(15), Felt::new(16), Felt::new(17)];
-    let updated_map_key = [Felt::new(18), Felt::new(19), Felt::new(20), Felt::new(21)];
+    let updated_map_key = [Felt::new(14), Felt::new(15), Felt::new(16), Felt::new(17)];
+    let updated_map_value = [Felt::new(18), Felt::new(19), Felt::new(20), Felt::new(21)];
 
     // removed assets
     let removed_asset_1 = Asset::Fungible(
@@ -189,15 +189,15 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # push a new VALUE for the storage map onto the stack
             push.{UPDATED_MAP_VALUE}
-            # => [14, 15, 16, 17]
+            # => [18, 19, 20, 21]
 
             # push a new KEY for the storage map onto the stack
             push.{UPDATED_MAP_KEY}
-            # => [18, 19, 20, 21, 14, 15, 16, 17]
+            # => [14, 15, 16, 17, 18, 19, 20, 21]
 
             # get the index of account storage slot
             push.{STORAGE_INDEX_2}
-            # => [idx, 18, 19, 20, 21, 14, 15, 16, 17]
+            # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
 
             # update the storage value
             exec.set_map_item dropw dropw dropw    
@@ -279,15 +279,15 @@ fn executed_transaction_account_delta() {
         updated_slot_value
     );
 
-    // assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 1);
-    // assert_eq!(
-    //     executed_transaction.account_delta().storage().updated_maps[0].0,
-    //     STORAGE_INDEX_2
-    // );
-    // assert_eq!(
-    //     executed_transaction.account_delta().storage().updated_maps[0].1.updated_leaves[0],
-    //     (updated_map_key, updated_map_value)
-    // );
+    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 1);
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_maps[0].0,
+        STORAGE_INDEX_2
+    );
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_maps[0].1.updated_leaves[0],
+        (updated_map_key, updated_map_value)
+    );
 
     // vault delta
     // --------------------------------------------------------------------------------------------
