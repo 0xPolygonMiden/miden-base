@@ -1,27 +1,55 @@
-Polygon Miden is a bi-directional token bridge and state machine. Miden Nodes act as operators that keep the state and compress state transitions recursively into STARK-proofs. The token bridge on Ethereum verifies these proofs. Users can run Miden clients to send RPC requests to the Miden Nodes to update the state.
+!!! tip "Recap"
+    Polygon Miden network architecture contains a bi-directional token bridge and state machine. 
 
-The major components of Polygon Miden are:
+    Miden nodes act as operators that maintain state and compress state transitions recursively into STARK-proofs. The token bridge on Ethereum verifies these proofs. 
 
-- Miden Clients - represent Miden users
-- Miden Nodes - manage the Miden rollup and compress proofs
-- Verifier Contract - keeps and verifies state on Ethereum
-- Bridge Contract - entry and exit point for users
+    Users can run Miden clients to send RPC requests to the Miden nodes to update the state.
 
+    The major components of the Polygon Miden network are:
 
-## Network Slide
-![Miden Architecture Overview](../img/network/architecture-overview.svg)
+    - Miden clients which represent Miden users.
+    - Miden nodes which manage the Miden rollup and compress proofs.
+    - A verifier contract which maintains and verifies state on Ethereum.
+    - A bridge contract as an entry and exit point for users.
 
-## Miden Clients
-Users will run Miden Clients. They are designed to provide an interface for wallets representing accounts on Miden. Miden Clients can execute and prove transactions in the Tx Prover. They can handle arbitrary signature schemes - whereas the default is Falcon. The wallet interface serves a user interface, a wallet database to be able to store account data locally, and the required smart contract code that represents the account on Miden.
+## Overview of the Miden network
 
-## Miden Nodes
-Operators will run Miden Nodes. Operators ensure integrity of the Account, Note and Nullifier State - which represent the state of Polygon Miden. Operators can execute and proof transactions against single accounts and they can verify proofs of locally executed transactions. Furthermore, the operator compresses the proofs in several steps up to a single proofs that gets published and verified on the Verifier contract. Operators also watch events emitted by the Bridge Contract to detect deposits and withdrawals.
+![Miden architecture overview](../img/network/architecture-overview.svg)
 
-To manage all of this, Miden Nodes have different modules. The Node orchestrates a Tx Prover, a Tx Aggregator and a Block Producer. The Tx Prover executes and proves transactions, like in the Miden Client. The Tx Aggregator can batch multiple proofs together to reduce the final state proof size using recursive proving. The Block Producer exposes the RPC interface to the user. The Block Producer collects transactions in the Tx Pool and stores the state of Polygon Miden in its three databases (Accounts, Notes, Nullifiers).
+## Miden clients
 
-## Verifier Contract
+Users run Miden clients and they provide an interface for wallets representing accounts on Miden. 
+
+Miden clients can execute and prove transactions with the tx prover. They can handle arbitrary signature schemes. The default is [Falcon](https://falcon-sign.info/). There is a wallet user interface, a database that stores account data locally, and the required smart contract code that represents the account on Miden.
+
+## Miden nodes
+
+Operators run Miden nodes. 
+
+Operators ensure integrity of account, note, and nullifier states - all of which represent the state of Polygon Miden. Operators can execute and prove transactions against single accounts and they can also verify proofs of locally executed transactions. 
+
+Furthermore, the operator compresses the proofs in several steps up to a single proof that gets published and verified on the verifier contract. Operators also watch events emitted by the bridge contract to detect deposits and withdrawals.
+
+### Node modules
+
+To manage all of this, Miden nodes have separate modules. 
+
+- Tx prover: Executes and proves transactions, like the Miden client.
+- Tx aggregator: Batches multiple proofs together to reduce the final state proof size using recursive proving.
+- Block producer: exposes the RPC interface to the user and collects transactions in the tx pool and stores the state of Polygon Miden in its three databases (accounts, notes, and nullifiers).
+
+## Verifier contract
+
 This contract on Ethereum verifies proofs sent by the operator running a Miden Node. The proof is verified against the current state root. If accepted the state root changes.
 
-## Bridge Contract
-This contract serves the Miden users on Ethereum as bridge. Users can deposit their tokens and get an equivalent amount minted and sent to the specified address on Polygon Miden.
+!!! note
+    - Polygon Miden will integrate into the AggLayer. 
+    - The specific design is not yet finalized.
 
+## Bridge contract
+
+This contract serves as a bridge for Miden users on Ethereum. Users can deposit their tokens and get an equivalent amount minted and sent to the specified address on Polygon Miden.
+
+!!! note
+    - Polygon Miden will integrate into the AggLayer and the Unified Bridge. 
+    - The specific design is not yet finalized.
