@@ -190,11 +190,11 @@ end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot. 
 #! Panics if 
-#! - the index is out of bounds.
+#! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #!
 #! Stack: [index, KEY, ...]
-#! Output: [VALUE]
+#! Output: [VALUE, 0]
 #!
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
@@ -217,16 +217,16 @@ export.get_account_map_item
 
     # organize the stack for return
     swapw dropw
-    # => [VALUE]
+    # => [VALUE, 0]
 end
 
 #! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot. 
 #! Panics if 
-#! - the index is out of bounds.
+#! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #!
 #! Stack: [index, KEY, NEW_VALUE, ...]
-#! Output: [OLD_MAP_ROOT]
+#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
 #!
 #! - index is the index of the item to get.
 #! - NEW_VALUE is the value of the new map item for the respective KEY.
@@ -252,8 +252,8 @@ export.set_account_map_item.1
     # => [index, KEY, NEW_VALUE, ...]
 
     # fetch the account storage item, which is ROOT of the map
-    exec.account::get_item swapw.2
-    # => [NEW_VALUE, KEY, OLD_MAP_ROOT, ...]
+    exec.account::get_item movdnw.2
+    # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
 
     # set the new map item
     loc_load.0 exec.account::set_map_item swapw
@@ -262,6 +262,11 @@ export.set_account_map_item.1
     # set the root of the map in the respective account storage slot
     loc_load.0 exec.account::set_item
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
+    
+    # prepare the stack for return
+    # push.0 movdn.8
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
+
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
