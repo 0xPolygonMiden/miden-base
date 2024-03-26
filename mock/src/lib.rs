@@ -62,8 +62,7 @@ pub fn run_tx_with_inputs(
     let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
     advice_inputs.extend(inputs);
     let host = MockHost::new(tx.account().into(), advice_inputs);
-    let exec_options = ExecutionOptions::default().with_tracing();
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
     process.execute(&program)?;
     Ok(process)
 }

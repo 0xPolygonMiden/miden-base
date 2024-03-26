@@ -7,7 +7,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteId, NoteScript},
+    notes::{Note, NoteId, NoteScript, NoteType},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
     },
@@ -183,6 +183,7 @@ pub fn get_note_with_fungible_asset_and_script(
         &[fungible_asset.into()],
         SERIAL_NUM,
         sender_id,
+        NoteType::Public,
         Felt::new(1),
     )
     .unwrap()

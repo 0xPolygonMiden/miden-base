@@ -1,6 +1,10 @@
 use.miden::account
 use.miden::tx
 
+# CONSTANTS
+# =================================================================================================
+const.PUBLIC_NOTE=2
+
 #! Adds the provided asset to the current account.
 #!
 #! Inputs: [ASSET]
@@ -20,11 +24,12 @@ end
 #! Creates a note which sends the specified asset out of the current account
 #! to the specified recipient.
 #!
-#! Inputs: [ASSET, tag, RECIPIENT, ...]
-#! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#! Inputs: [ASSET, tag, note_type, RECIPIENT, ...]
+#! Outputs: [note_ptr, ZERO, ZERO, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
+#! - note_type is the note's storage type
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 #! - note_ptr is the pointer to the memory address in the kernel.
@@ -34,16 +39,23 @@ end
 #! - The fungible asset is not found in the vault.
 #! - The amount of the fungible asset in the vault is less than the amount to be removed.
 #! - The non-fungible asset is not found in the vault.
-export.send_asset.1
+export.send_asset
     exec.account::remove_asset
-    # => [ASSET, tag, RECIPIENT, ...]
+    # => [ASSET, tag, note_type, RECIPIENT, ...]
 
-    # insert 8 ZEROs into the stack right after recipient; we temporarily store one of the
-    # elements of ASSET in memory to make stack manipulation easier
-    push.0 swap loc_store.0 padw push.0.0.0 swapdw loc_load.0
-    # => [ASSET, tag, RECIPIENT, ZERO, ZERO, ...]
-
+    # This procedure is written to be executed with `exec` or `call`. When this
+    # procedure is `call`ed the stack has to be carefully manipulated to avoid
+    # inserting unwanted elements between the user data. The convention is to
+    # ensure the input&output data have the same length. This code pads the
+    # stack so the output stack will be the same length as the the input.
+    #
+    # The padding must be added before calling `create_note`, not after. This
+    # is because the VM stack has a minimum size of 16 elements, trying to push
+    # elements after the call to `create_note` would increase the stack in
+    # addition to the minimum 16 elements.
+    push.0.0 padw movdnw.3 padw movdnw.3 movdn.11 drop
+    # => [ASSET, tag, note_type, RECIPIENT, ZERO, ZERO, 0, ...]
 
     exec.tx::create_note
-    # => [note_ptr, ZERO, ZERO, ...]
+    # => [note_ptr, ZERO, ZERO, 0, ...]
 end

@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    notes::Note,
+    notes::{Note, NoteType},
     transaction::{OutputNote, OutputNotes},
+    FieldElement,
 };
 use mock::{
     mock::{
@@ -21,7 +22,8 @@ use super::{
 };
 use crate::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
+    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
+    NUM_CREATED_NOTES_PTR,
 };
 
 #[test]
@@ -43,6 +45,7 @@ fn test_create_note() {
         exec.prologue::prepare_transaction
 
         push.{recipient}
+        push.{PUBLIC_NOTE}
         push.{tag}
         push.{asset}
 
@@ -50,8 +53,9 @@ fn test_create_note() {
     end
     ",
         recipient = prepare_word(&recipient),
+        PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        asset = prepare_word(&asset)
+        asset = prepare_word(&asset),
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
@@ -72,7 +76,7 @@ fn test_create_note() {
     // assert the metadata is stored at the correct memory location.
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
-        [tag, Felt::from(account_id), ZERO, ZERO]
+        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO]
     );
 
     // assert the number of assets is stored at the correct memory location.
@@ -109,6 +113,7 @@ fn test_create_note_too_many_notes() {
         exec.memory::set_num_created_notes
 
         push.{recipient}
+        push.{PUBLIC_NOTE}
         push.{tag}
         push.{asset}
 
@@ -117,7 +122,8 @@ fn test_create_note_too_many_notes() {
     ",
         recipient = prepare_word(&recipient),
         tag = tag,
-        asset = prepare_word(&asset)
+        asset = prepare_word(&asset),
+        PUBLIC_NOTE = NoteType::Public as u8,
     );
 
     let process =
@@ -147,6 +153,7 @@ fn test_get_output_notes_hash() {
         &[input_asset_1],
         output_serial_no_1,
         tx_inputs.account().id(),
+        NoteType::Public,
         output_tag_1,
     )
     .unwrap();
@@ -160,6 +167,7 @@ fn test_get_output_notes_hash() {
         &[input_asset_2],
         output_serial_no_2,
         tx_inputs.account().id(),
+        NoteType::Public,
         output_tag_2,
     )
     .unwrap();
@@ -178,27 +186,38 @@ fn test_get_output_notes_hash() {
     use.miden::tx
 
     begin
+        # => [BH, acct_id, IAH, NC]
         exec.prologue::prepare_transaction
+        # => []
 
         # create output note 1
         push.{recipient_1}
+        push.{PUBLIC_NOTE}
         push.{tag_1}
         push.{asset_1}
         exec.tx::create_note
+        # => [note_ptr]
+
         drop
+        # => []
 
         # create output note 2
         push.{recipient_2}
+        push.{PUBLIC_NOTE}
         push.{tag_2}
         push.{asset_2}
         exec.tx::create_note
+        # => [note_ptr]
+
         drop
+        # => []
 
         # compute the output notes hash
         exec.tx::get_output_notes_hash
-        push.{expected} assert_eqw
+        # => [COMM]
     end
     ",
+        PUBLIC_NOTE = NoteType::Public as u8,
         recipient_1 = prepare_word(&output_note_1.recipient()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
@@ -209,11 +228,34 @@ fn test_get_output_notes_hash() {
         asset_2 = prepare_word(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        expected = prepare_word(&expected_output_notes_hash)
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction).unwrap();
+
+    assert_eq!(
+        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
+        Some([Felt::new(2), Felt::ZERO, Felt::ZERO, Felt::ZERO]),
+        "The test creates two notes",
+    );
+    assert_eq!(
+        process.get_mem_value(
+            ContextId::root(),
+            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
+        ),
+        Some(output_note_1.metadata().into()),
+        "Validate the output note 1 metadata",
+    );
+    assert_eq!(
+        process.get_mem_value(
+            ContextId::root(),
+            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
+        ),
+        Some(output_note_2.metadata().into()),
+        "Validate the output note 1 metadata",
+    );
+
+    assert_eq!(process.get_stack_word(0), *expected_output_notes_hash);
 }
 
 // HELPER FUNCTIONS

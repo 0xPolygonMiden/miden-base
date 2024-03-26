@@ -4,6 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
+    notes::NoteType,
     transaction::TransactionArgs,
     utils::collections::*,
     Felt,
@@ -44,6 +45,7 @@ fn prove_p2id_script() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset],
+        NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
@@ -156,6 +158,7 @@ fn p2id_script_multiple_assets() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset_1, fungible_asset_2],
+        NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();

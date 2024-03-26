@@ -4,11 +4,6 @@ use miden_objects::{
     Felt,
 };
 
-pub use super::mock::account::{
-    ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX, ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX,
-    ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX,
-};
-
 pub const FUNGIBLE_ASSET_AMOUNT: u64 = 100;
 pub const FUNGIBLE_FAUCET_INITIAL_BALANCE: u64 = 50000;
 
