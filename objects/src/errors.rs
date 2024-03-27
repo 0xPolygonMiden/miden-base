@@ -215,6 +215,9 @@ pub enum NoteError {
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
+    InvalidOffchainTag,
+    InvalidPublicTag,
+    InvalidEncryptedTag,
 }
 
 impl NoteError {
