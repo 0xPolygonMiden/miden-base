@@ -13,18 +13,31 @@ use super::{
 /// The metadata consists of:
 /// - sender is the account which created the note.
 /// - tag is a value which can be used by the recipient(s) to identify notes intended for them.
+/// - note_type defines the note type
+/// - aux is currenlty unspecified
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
     sender: AccountId,
     tag: Felt,
     note_type: NoteType,
+    aux: Felt,
 }
 
 impl NoteMetadata {
     /// Returns a new [NoteMetadata] instantiated with the specified parameters.
-    pub fn new(sender: AccountId, note_type: NoteType, tag: Felt) -> Self {
-        Self { sender, tag, note_type }
+    pub fn new(
+        sender: AccountId,
+        note_type: NoteType,
+        tag: Felt,
+        aux: Felt,
+    ) -> Result<Self, NoteError> {
+        let tag_mask = note_type as u64;
+        if (tag.as_int() >> 62) & tag_mask != 0 {
+            return Err(NoteError::InvalidTag(note_type, tag));
+        }
+
+        Ok(Self { sender, tag, note_type, aux })
     }
 
     /// Returns the account which created the note.
@@ -41,6 +54,11 @@ impl NoteMetadata {
     pub fn note_type(&self) -> NoteType {
         self.note_type
     }
+
+    /// Returns the note's aux field.
+    pub fn aux(&self) -> Felt {
+        self.aux
+    }
 }
 
 impl From<NoteMetadata> for Word {
@@ -54,7 +72,8 @@ impl From<&NoteMetadata> for Word {
         let mut elements = Word::default();
         elements[0] = metadata.tag;
         elements[1] = metadata.sender.into();
-        elements[2] = metadata.note_type().into();
+        elements[2] = metadata.note_type.into();
+        elements[3] = metadata.aux;
         elements
     }
 }
@@ -67,6 +86,7 @@ impl TryFrom<Word> for NoteMetadata {
             sender: elements[1].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?,
             tag: elements[0],
             note_type: elements[2].try_into()?,
+            aux: elements[3],
         })
     }
 }
@@ -79,6 +99,7 @@ impl Serializable for NoteMetadata {
         self.sender.write_into(target);
         self.tag.write_into(target);
         self.note_type.write_into(target);
+        self.aux.write_into(target);
     }
 }
 
@@ -87,7 +108,8 @@ impl Deserializable for NoteMetadata {
         let sender = AccountId::read_from(source)?;
         let tag = Felt::read_from(source)?;
         let note_type = NoteType::read_from(source)?;
+        let aux = Felt::read_from(source)?;
 
-        Ok(Self { sender, tag, note_type })
+        Ok(Self { sender, tag, note_type, aux })
     }
 }

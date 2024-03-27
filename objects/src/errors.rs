@@ -2,6 +2,7 @@ use alloc::string::String;
 use core::fmt;
 
 use assembly::AssemblyError;
+use miden_crypto::Felt;
 use vm_processor::DeserializationError;
 
 use super::{
@@ -11,7 +12,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::utils::collections::*;
+use crate::{notes::NoteType, utils::collections::*};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -215,6 +216,7 @@ pub enum NoteError {
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
+    InvalidTag(NoteType, Felt),
 }
 
 impl NoteError {

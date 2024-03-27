@@ -4,8 +4,8 @@ use miden_objects::{
     accounts::AccountId,
     assets::Asset,
     crypto::rand::FeltRng,
-    notes::{Note, NoteType},
-    Felt, NoteError, Word,
+    notes::{Note, NoteMetadata, NoteType},
+    Felt, FieldElement, NoteError, Word,
 };
 
 use self::utils::build_note_script;
@@ -38,8 +38,10 @@ pub fn create_p2id_note<R: FeltRng>(
     let inputs = [target.into()];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    Note::new(note_script, &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script, &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -68,8 +70,10 @@ pub fn create_p2idr_note<R: FeltRng>(
     let inputs = [target.into(), recall_height.into()];
     let tag: Felt = target.into();
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -108,16 +112,10 @@ pub fn create_swap_note<R: FeltRng>(
 
     let tag: Felt = Felt::new(0);
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    let note = Note::new(
-        note_script.clone(),
-        &inputs,
-        &[offered_asset],
-        serial_num,
-        sender,
-        note_type,
-        tag,
-    )?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, metadata)?;
 
     Ok((note, payback_serial_num))
 }
