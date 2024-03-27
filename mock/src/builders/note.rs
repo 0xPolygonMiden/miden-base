@@ -7,8 +7,8 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript, NoteType},
-    Felt, NoteError, Word,
+    notes::{Note, NoteInclusionProof, NoteInputs, NoteMetadata, NoteScript, NoteType},
+    Felt, FieldElement, NoteError, Word,
 };
 use rand::Rng;
 
@@ -27,9 +27,10 @@ pub struct NoteBuilder {
     assets: Vec<Asset>,
     note_type: NoteType,
     serial_num: Word,
-    tag: Felt,
+    tag: u32,
     code: String,
     proof: Option<NoteInclusionProof>,
+    aux: Felt,
 }
 
 impl NoteBuilder {
@@ -47,9 +48,10 @@ impl NoteBuilder {
             assets: vec![],
             note_type: NoteType::Public,
             serial_num,
-            tag: Felt::default(),
+            tag: 0,
             code: DEFAULT_NOTE_CODE.to_string(),
             proof: None,
+            aux: Felt::ZERO,
         }
     }
 
@@ -64,7 +66,7 @@ impl NoteBuilder {
         self
     }
 
-    pub fn tag(mut self, tag: Felt) -> Self {
+    pub fn tag(mut self, tag: u32) -> Self {
         self.tag = tag;
         self
     }
@@ -79,18 +81,16 @@ impl NoteBuilder {
         self
     }
 
+    pub fn aux(mut self, aux: Felt) -> Self {
+        self.aux = aux;
+        self
+    }
+
     pub fn build(self) -> Result<Note, NoteError> {
         let assembler = TransactionKernel::assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
-        Note::new(
-            note_script,
-            &self.inputs,
-            &self.assets,
-            self.serial_num,
-            self.sender,
-            self.note_type,
-            self.tag,
-        )
+        let metadata = NoteMetadata::new(self.sender, self.note_type, self.tag, self.aux)?;
+        Note::new(note_script, &self.inputs, &self.assets, self.serial_num, metadata)
     }
 }

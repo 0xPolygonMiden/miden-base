@@ -8,9 +8,11 @@ use crate::{
 
 // CONSTANTS
 // ================================================================================================
-const OFF_CHAIN: u8 = 0;
-const ENCRYPTED: u8 = 1;
-const PUBLIC: u8 = 2;
+
+// Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
+const PUBLIC: u8 = 0b01;
+const OFF_CHAIN: u8 = 0b10;
+const ENCRYPTED: u8 = 0b11;
 
 // NOTE TYPE
 // ================================================================================================

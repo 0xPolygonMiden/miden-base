@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    notes::{Note, NoteType},
+    notes::{Note, NoteMetadata, NoteType},
     transaction::{OutputNote, OutputNotes},
     FieldElement,
 };
@@ -61,39 +61,79 @@ fn test_create_note() {
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
     let process = run_tx(&transaction).unwrap();
 
-    // assert the number of created notes has been incremented to 1.
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
-        [ONE, ZERO, ZERO, ZERO]
+        [ONE, ZERO, ZERO, ZERO],
+        "number of created notes must increment by 1",
     );
 
-    // assert the recipient is stored at the correct memory location.
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
-        recipient
+        recipient,
+        "recipient must be stored at the correct memory location",
     );
 
-    // assert the metadata is stored at the correct memory location.
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
-        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO]
+        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO],
+        "metadata must be stored at the correct memory location",
     );
 
-    // assert the number of assets is stored at the correct memory location.
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_NUM_ASSETS_OFFSET),
-        [ONE, ZERO, ZERO, ZERO]
+        [ONE, ZERO, ZERO, ZERO],
+        "number of assets must be stored at the correct memory location",
     );
 
-    // assert the asset is stored at the correct memory location.
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
-        asset
+        asset,
+        "asset must be stored at the correct memory location",
     );
 
-    // assert there top item on the stack is a pointer to the created note.
     let note_ptr = CREATED_NOTE_SECTION_OFFSET;
-    assert_eq!(process.stack.get(0), Felt::from(note_ptr));
+    assert_eq!(
+        process.stack.get(0),
+        Felt::from(note_ptr),
+        "top item on the stack is a pointer to the created note"
+    );
+}
+
+#[test]
+fn test_create_note_with_invalid_tag() {
+    let tx_inputs =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let tag = Felt::new((NoteType::Public as u64) << 62);
+    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
+
+    let code = format!(
+        "
+    use.miden::kernels::tx::prologue
+    use.miden::tx
+
+    begin
+        exec.prologue::prepare_transaction
+
+        push.{recipient}
+        push.{PUBLIC_NOTE}
+        push.{tag}
+        push.{asset}
+
+        exec.tx::create_note
+    end
+    ",
+        recipient = prepare_word(&recipient),
+        PUBLIC_NOTE = NoteType::Public as u8,
+        tag = tag,
+        asset = prepare_word(&asset),
+    );
+
+    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let process = run_tx(&transaction);
+
+    assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
 }
 
 #[test]
@@ -146,29 +186,29 @@ fn test_get_output_notes_hash() {
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
-    let output_tag_1 = Felt::new(8888);
+    let output_tag_1 = 8888;
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
     let output_note_1 = Note::new(
         input_note_1.script().clone(),
         &[],
         &[input_asset_1],
         output_serial_no_1,
-        tx_inputs.account().id(),
-        NoteType::Public,
-        output_tag_1,
+        metadata,
     )
     .unwrap();
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
-    let output_tag_2 = Felt::new(1111);
+    let output_tag_2 = 1111;
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
     let output_note_2 = Note::new(
         input_note_2.script().clone(),
         &[],
         &[input_asset_2],
         output_serial_no_2,
-        tx_inputs.account().id(),
-        NoteType::Public,
-        output_tag_2,
+        metadata,
     )
     .unwrap();
 

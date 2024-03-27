@@ -4,8 +4,8 @@ use miden_objects::{
     accounts::AccountId,
     assets::Asset,
     crypto::rand::FeltRng,
-    notes::{Note, NoteType},
-    Felt, NoteError, Word,
+    notes::{Note, NoteExecution, NoteMetadata, NoteType},
+    Felt, FieldElement, NoteError, Word,
 };
 
 use self::utils::build_note_script;
@@ -36,10 +36,12 @@ pub fn create_p2id_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = [target.into()];
-    let tag: Felt = target.into();
+    let tag = target.to_tag(NoteExecution::Local).map_err(NoteError::TagError)?;
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    Note::new(note_script, &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script, &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -66,10 +68,12 @@ pub fn create_p2idr_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = [target.into(), recall_height.into()];
-    let tag: Felt = target.into();
+    let tag = target.to_tag(NoteExecution::Local).map_err(NoteError::TagError)?;
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -103,21 +107,15 @@ pub fn create_swap_note<R: FeltRng>(
         asset_word[1],
         asset_word[2],
         asset_word[3],
-        sender.into(),
+        sender.to_tag(NoteExecution::Local).map_err(NoteError::TagError)?.into(),
     ];
 
-    let tag: Felt = Felt::new(0);
+    let tag: u32 = 0;
     let serial_num = rng.draw_word();
+    let aux = Felt::ZERO;
 
-    let note = Note::new(
-        note_script.clone(),
-        &inputs,
-        &[offered_asset],
-        serial_num,
-        sender,
-        note_type,
-        tag,
-    )?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, metadata)?;
 
     Ok((note, payback_serial_num))
 }

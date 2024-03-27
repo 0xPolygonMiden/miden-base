@@ -8,7 +8,10 @@ use super::{
     get_account_seed, Account, AccountError, ByteReader, Deserializable, DeserializationError,
     Digest, Felt, FieldElement, Hasher, Serializable, Word,
 };
-use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
+use crate::{
+    crypto::merkle::LeafIndex, errors::TagError, notes::NoteExecution, utils::hex_to_bytes,
+    ACCOUNT_TREE_DEPTH,
+};
 
 // ACCOUNT ID
 // ================================================================================================
@@ -226,6 +229,32 @@ impl AccountId {
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
         format!("0x{:02x}", self.0.as_int())
+    }
+
+    pub fn to_tag(&self, execution: NoteExecution) -> Result<u32, TagError> {
+        match execution {
+            NoteExecution::Network => {
+                if !self.is_on_chain() {
+                    Err(TagError::NetworkExecutionRequiresOnChainAccount)
+                } else {
+                    let id = self.0.as_int();
+                    // select the 30 high bits of the account id
+                    let highbits = id & 0xfffffffc00000000;
+                    // set bits (30,0] with the account id data
+                    let tag = (highbits >> 34) as u32;
+                    // set bits (32,30] as `0b10` identifing the note as intended for network execution
+                    Ok(tag | 0x80000000)
+                }
+            },
+            NoteExecution::Local => {
+                let id = self.0.as_int();
+                // select the 16 high bits of the account id
+                let highbits = id & 0xffff000000000000;
+                // set bits (30,14] with the account id data
+                // set bits (32,30] as `0b00` identifing the note as intended for local execution
+                Ok((highbits >> 34) as u32)
+            },
+        }
     }
 }
 

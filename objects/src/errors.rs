@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::utils::collections::*;
+use crate::{notes::NoteType, utils::collections::*};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -215,6 +215,8 @@ pub enum NoteError {
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
+    InvalidTag(NoteType, u64),
+    TagError(TagError),
 }
 
 impl NoteError {
@@ -284,6 +286,23 @@ impl fmt::Display for ChainMmrError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
+
+// TAG ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TagError {
+    NetworkExecutionRequiresOnChainAccount,
+}
+
+impl fmt::Display for TagError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TagError {}
 
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
