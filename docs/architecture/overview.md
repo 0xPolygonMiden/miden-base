@@ -1,68 +1,65 @@
 # Miden architecture overview
 
-## Design goals
+Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution. 
 
-The Polygon Miden rollup architecture has the following design goals:
+In traditional blockchains, state and transactions must be transparent to be verifiable. This is necessary for block production and execution. 
 
-* High throughput
-* Privacy
+However, user generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent.
+
+## Miden design goals
+
+* [High throughput](https://en.wikipedia.org/wiki/High-throughput_computing)
+* [Privacy](https://en.wikipedia.org/wiki/Privacy_and_blockchain)
 * Asset safety
 
-### Inspired by the Actor model
+## Actor model
 
-The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) inspired Miden to implement concurrent and local state changes. 
+The [actor model](https://en.wikipedia.org/wiki/Actor_model) inspires Polygon Miden’s execution model. This is a well-known computational design paradigm in concurrent systems. In the actor model, actors are state machines responsible for maintaining their own state. In the context of Polygon Miden, each account is an actor. Actors communicate with each other by exchanging messages asynchronously. One actor can send a message to another, but it is up to the recipient to apply the requested change to their state.
 
-In the model, actors are little state machines with inboxes, meaning each actor is responsible for their own state. Actors can send and receive messages to communicate with other actors. 
+Polygon Miden’s architecture takes the actor model further and combines it with zero-knowledge proofs. Now, actors not only maintain and update their own state, but they can also prove the validity of their own state transitions to the rest of the network. This ability to independently prove state transitions enables local smart contract execution, private smart contracts, and much more. And it is quite unique in the rollup space. Normally only centralized entities - sequencer or prover - create zero-knowledge proofs, not the users.
 
-Messages can be read asynchronously.
+## Core concepts
 
-## Core Concepts in Miden
-
-Miden has accounts and notes which can hold assets. Accounts consume and produce notes during transactions. Transactions describe the account state changes of single accounts.
+Miden uses _accounts_ and _notes_, both of which hold assets. Accounts consume and produce notes during transactions. Transactions describe the account state changes of single accounts.
 
 ### Accounts
 
-[Accounts](accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. This chapter describes the design, the storage types, and the creation of an account.
+[Accounts](accounts.md) can hold assets and define rules how assets can be transferred. Accounts can represent users or autonomous smart contracts. The [accounts chapter](accounts.md) describes the design of an account, its storage types, and creating an account.
 
 ### Notes
-[Notes](notes.md) are messages that accounts send to each other. A note stores assets and a script that defines how this note can be consumed. This chapter describes the design, the storage types, and the creation of a note.
+
+[Notes](notes.md) are messages that accounts send to each other. A note stores assets and a script that defines how the note can be consumed. The [note chapter](notes.md) describes the design, the storage types, and the creation of a note.
 
 ### Assets
-[Assets](assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. This chapter describes asset issuance, customization, and storage.
+
+[Assets](assets.md) can be fungible and non-fungible. They are stored in the owner’s account itself or in a note. The [assets chapter](assets.md) describes asset issuance, customization, and storage.
 
 ### Transactions
-[Transactions](transactions/overview.md) describe production and consumption of notes by a single account. Executing a transaction always results in a STARK proof. This chapter describes the transaction design and the implementation thereof. At it's core, transaction execution happens in the transaction kernel program which is explained in depth.
 
-#### Accounts produce and consume notes to communicate
+[Transactions](transactions/overview.md) describe the production and consumption of notes by a single account. 
+
+Executing a transaction always results in a STARK proof. 
+
+The [transaction chapter](transactions/overview.md) describes the transaction design and implementation, including an indepth discussion of how transaction execution happens in the transaction kernel program.
+
+##### Accounts produce and consume notes to communicate
 
 ![Architecture core concepts](../img/architecture/miden-architecture-core-concepts.gif)
 
-## State and Execution
-The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
+## State and execution
+
+The actor-based execution model requires a radically different approach to recording the system's state. Actors and the messages they exchange must be treated as first-class citizens. Polygon Miden addresses this by combining the state models of account-based systems like Ethereum and UTXO-based systems like Bitcoin and Zcash.
+
+Miden's state model captures the individual states of all accounts and notes, and the execution model describes state progress in a sequence of blocks.
 
 ### State model
-[State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
+
+[State](state.md) describes the state of everything at a certain point in time. Individual account or note states can be stored onchain and offchain. The [state chapter](state.md) describes the three different state databases in Miden.
 
 ### Execution model
-[Execution](execution.md) describes how the state progresses as aggregated state updates in batches, blocks, and epochs. This chapter describes the execution model and how blocks are built.
 
-#### Operators capture and progress state
+[Execution](execution.md) defines how state progresses as aggregated-state-updates in batches, blocks, and epochs. The [execution chapter](execution.md) describes the execution model and how blocks are built.
+
+##### Operators capture and progress state
 
 ![Architecture state process](../img/architecture/miden-architecture-state-progress.gif)
-
-!!! info "Architecture tradeoffs"
-      Want to know more on why we designed Miden as is?
-
-      **Polygon Miden's architecture**
-      
-      Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution. In traditional blockchains state and transactions must be transparent to be verifiable. This is necessary for block production and execution. User generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent.
-
-      **Actor-based execution model**
-      
-      The actor model inspires Polygon Miden’s execution model. This is a well-known design paradigm in concurrent systems. In the actor model, actors are state machines responsible for maintaining their own state. In the context of Polygon Miden, each account is an actor. Actors communicate with each other by exchanging messages asynchronously. One actor can send a message to another, but it is up to the recipient to apply the requested change to their state.
-
-      Polygon Miden’s architecture takes the actor model further and combines it with zero-knowledge proofs. Now, actors not only maintain and update their own state, but they can also prove the validity of their own state transitions to the rest of the network. This ability to independently prove state transitions enables local smart contract execution, private smart contracts, and much more. And it is quite unique in the rollup space. Normally only centralized entities - sequencer or prover - create zero-knowledge proofs, not the users.
-
-      **Hybrid state model**
-      
-      The actor-based execution model requires a radically different approach to recording the system's state. Actors and the messages they exchange must be treated as first-class citizens. Polygon Miden addresses this by combining the state models of account-based systems like Ethereum and UTXO-based systems like Bitcoin and Zcash.
