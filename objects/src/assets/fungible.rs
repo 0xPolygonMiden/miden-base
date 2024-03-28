@@ -118,8 +118,9 @@ impl FungibleAsset {
     /// - The faucet_id is not a valid fungible faucet ID.
     /// - The provided amount is greater than 2^63 - 1.
     fn validate(&self) -> Result<(), AssetError> {
-        if !matches!(self.faucet_id.account_type(), AccountType::FungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(self.faucet_id));
+        let account_type = self.faucet_id.account_type();
+        if !matches!(account_type, AccountType::FungibleFaucet) {
+            return Err(AssetError::not_a_fungible_faucet_id(self.faucet_id, account_type));
         }
 
         if self.amount > Self::MAX_AMOUNT {

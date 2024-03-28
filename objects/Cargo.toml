@@ -38,3 +38,4 @@ winter-rand-utils = { version = "0.8", optional = true }
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
 tempfile = { version = "3.0" }
+miden-mock = { path = "../mock" }

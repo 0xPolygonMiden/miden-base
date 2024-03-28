@@ -19,12 +19,39 @@ pub struct NoteMetadata {
     sender: AccountId,
     tag: Felt,
     note_type: NoteType,
+    aux: Felt,
 }
 
 impl NoteMetadata {
     /// Returns a new [NoteMetadata] instantiated with the specified parameters.
-    pub fn new(sender: AccountId, note_type: NoteType, tag: Felt) -> Self {
-        Self { sender, tag, note_type }
+    pub fn new(
+        sender: AccountId,
+        note_type: NoteType,
+        tag: Felt,
+        aux: Felt,
+    ) -> Result<Self, NoteError> {
+        match note_type {
+            NoteType::OffChain => {
+                // 1st most significant bit set to 0
+                if tag.as_int() >> 63 != 0 {
+                    return Err(NoteError::InvalidOffchainTag);
+                }
+            },
+            NoteType::Public => {
+                // 2nd most significant bit set to 0
+                if (tag.as_int() >> 62) & 1 != 0 {
+                    return Err(NoteError::InvalidPublicTag);
+                }
+            },
+            NoteType::Encrypted => {
+                // 1st & 2nd most significant bit set to 0
+                if tag.as_int() >> 62 != 0 {
+                    return Err(NoteError::InvalidEncryptedTag);
+                }
+            },
+        }
+
+        Ok(Self { sender, tag, note_type, aux })
     }
 
     /// Returns the account which created the note.
@@ -67,6 +94,7 @@ impl TryFrom<Word> for NoteMetadata {
             sender: elements[1].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?,
             tag: elements[0],
             note_type: elements[2].try_into()?,
+            aux: elements[3],
         })
     }
 }
@@ -79,6 +107,7 @@ impl Serializable for NoteMetadata {
         self.sender.write_into(target);
         self.tag.write_into(target);
         self.note_type.write_into(target);
+        self.aux.write_into(target);
     }
 }
 
@@ -87,7 +116,8 @@ impl Deserializable for NoteMetadata {
         let sender = AccountId::read_from(source)?;
         let tag = Felt::read_from(source)?;
         let note_type = NoteType::read_from(source)?;
+        let aux = Felt::read_from(source)?;
 
-        Ok(Self { sender, tag, note_type })
+        Ok(Self { sender, tag, note_type, aux })
     }
 }

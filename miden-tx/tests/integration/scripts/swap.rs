@@ -1,17 +1,17 @@
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
-    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{Account, AccountId},
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteMetadata, NoteType},
     transaction::{OutputNote, TransactionArgs},
-    Felt,
+    Felt, FieldElement,
 };
 use miden_tx::TransactionExecutor;
 use mock::mock::account::{
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
 use crate::{
@@ -96,8 +96,13 @@ fn prove_swap_script() {
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
 
-    let note_metadata =
-        NoteMetadata::new(target_account_id, NoteType::OffChain, sender_account_id.into());
+    let note_metadata = NoteMetadata::new(
+        target_account_id,
+        NoteType::OffChain,
+        sender_account_id.into(),
+        Felt::ZERO,
+    )
+    .unwrap();
 
     let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
 

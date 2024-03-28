@@ -660,6 +660,7 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-crypto",
+ "miden-mock",
  "miden-processor",
  "miden-verifier",
  "serde",

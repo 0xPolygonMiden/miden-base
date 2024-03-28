@@ -16,8 +16,9 @@ impl FungibleAssetBuilder {
     pub const DEFAULT_AMOUNT: u64 = 10;
 
     pub fn new(faucet_id: AccountId) -> Result<Self, AssetError> {
-        if !matches!(faucet_id.account_type(), AccountType::FungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(faucet_id));
+        let account_type = faucet_id.account_type();
+        if !matches!(account_type, AccountType::FungibleFaucet) {
+            return Err(AssetError::not_a_fungible_faucet_id(faucet_id, account_type));
         }
 
         Ok(Self { faucet_id, amount: Self::DEFAULT_AMOUNT })

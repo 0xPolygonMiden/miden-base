@@ -1,7 +1,10 @@
 use alloc::{string::ToString, vec::Vec};
 use core::fmt;
 
-use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word};
+use super::{
+    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
+    ACCOUNT_ISFAUCET_MASK,
+};
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -10,10 +13,11 @@ const FAUCET_ID_POS: usize = 1;
 // ================================================================================================
 /// A commitment to a non-fungible asset.
 ///
-/// A non-fungible asset consists of 4 field elements which are computed by hashing asset data
-/// (which can be of arbitrary length) to produce: [d0, d1, d2, d3].  We then replace d1 with the
-/// faucet_id that issued the asset: [d0, faucet_id, d2, d3]. We then set the most significant bit
-/// of the most significant element to ZERO.
+/// The commitment is constructed as follows:
+///
+/// - Hash the asset data producing `[d0, d1, d2, d3]`.
+/// - Replace the value of `d1` with the fauce id producing `[d0, faucet_id, d2, d3]`.
+/// - Force the bit position [ACCOUNT_ISFAUCET_MASK] of `d3` to be `0`.
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
@@ -52,7 +56,8 @@ impl NonFungibleAsset {
 
         // set the first bit of the asset to 0; we can do this because setting the first bit to 0
         // will always result in a valid field element.
-        data_hash[3] = Felt::new((data_hash[3].as_int() << 1) >> 1);
+        let d3 = data_hash[3].as_int();
+        data_hash[3] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
 
         // construct an asset
         let asset = Self(data_hash);
@@ -92,12 +97,9 @@ impl NonFungibleAsset {
         let faucet_id = AccountId::try_from(self.0[FAUCET_ID_POS])
             .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
 
-        if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(faucet_id));
-        }
-
-        if self.0[3].as_int() >> 63 != 0 {
-            return Err(AssetError::non_fungible_asset_invalid_first_bit());
+        let account_type = faucet_id.account_type();
+        if !matches!(account_type, AccountType::NonFungibleFaucet) {
+            return Err(AssetError::not_a_fungible_faucet_id(faucet_id, account_type));
         }
 
         Ok(())

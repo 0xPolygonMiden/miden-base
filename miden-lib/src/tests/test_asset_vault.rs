@@ -1,13 +1,14 @@
 use miden_objects::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    AssetVaultError,
 };
 use mock::{
     constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     mock::{
         account::{
             MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
         },
         notes::AssetPreservationStatus,
         transaction::mock_inputs,
@@ -353,16 +354,23 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 }
 
 #[test]
-fn test_remove_non_fungible_asset_fail_doesnt_exist() {
+fn test_remove_inexisting_non_fungible_asset_fails() {
     let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    let faucet_id: AccountId = (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN + 1).try_into().unwrap();
+    let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
     let mut account_vault = tx_inputs.account().vault().clone();
+
     let non_fungible_asset_details =
         NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
-    let non_existent_non_fungible_asset =
-        Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
+    let nonfungible = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
+    let non_existent_non_fungible_asset = Asset::NonFungible(nonfungible);
+
+    assert_eq!(
+        account_vault.remove_asset(non_existent_non_fungible_asset),
+        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
+        "Asset must not be in the vault before the test",
+    );
 
     let code = format!(
         "
@@ -373,6 +381,7 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
+            push.0 assert
         end
     ",
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
@@ -382,7 +391,11 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
-    assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
+    assert_eq!(
+        account_vault.remove_asset(non_existent_non_fungible_asset),
+        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
+        "Asset should not be in the vault after the test",
+    );
 }
 
 #[test]

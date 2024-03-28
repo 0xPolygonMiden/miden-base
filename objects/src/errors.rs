@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::utils::collections::*;
+use crate::{accounts::AccountType, utils::collections::*};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -22,7 +22,7 @@ pub enum AccountError {
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes,
+    AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
@@ -35,6 +35,7 @@ pub enum AccountError {
     StorageSlotIsReserved(u8),
     StorageSlotNotValueSlot(u8, StorageSlotType),
     StubDataIncorrectLength(usize, usize),
+    InvalidAccountStorageType,
 }
 
 impl AccountError {
@@ -42,8 +43,8 @@ impl AccountError {
         Self::AccountIdInvalidFieldElement(msg)
     }
 
-    pub fn account_id_too_few_ones() -> Self {
-        Self::AccountIdTooFewOnes
+    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
+        Self::AccountIdTooFewOnes(expected, actual)
     }
 
     pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
@@ -95,15 +96,13 @@ impl fmt::Display for AccountDeltaError {
 pub enum AssetError {
     AmountTooBig(u64),
     AssetAmountNotSufficient(u64, u64),
-    FungibleAssetInvalidFirstBit,
     FungibleAssetInvalidTag(u32),
     FungibleAssetInvalidWord(Word),
     InconsistentFaucetIds(AccountId, AccountId),
     InvalidAccountId(String),
     InvalidFieldElement(String),
-    NonFungibleAssetInvalidFirstBit,
     NonFungibleAssetInvalidTag(u32),
-    NotAFungibleFaucetId(AccountId),
+    NotAFungibleFaucetId(AccountId, AccountType),
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
     TokenSymbolError(String),
@@ -116,10 +115,6 @@ impl AssetError {
 
     pub fn asset_amount_not_sufficient(available: u64, requested: u64) -> Self {
         Self::AssetAmountNotSufficient(available, requested)
-    }
-
-    pub fn fungible_asset_invalid_first_bit() -> Self {
-        Self::FungibleAssetInvalidFirstBit
     }
 
     pub fn fungible_asset_invalid_tag(tag: u32) -> Self {
@@ -142,16 +137,12 @@ impl AssetError {
         Self::InvalidFieldElement(msg)
     }
 
-    pub fn non_fungible_asset_invalid_first_bit() -> Self {
-        Self::NonFungibleAssetInvalidFirstBit
-    }
-
     pub fn non_fungible_asset_invalid_tag(tag: u32) -> Self {
         Self::NonFungibleAssetInvalidTag(tag)
     }
 
-    pub fn not_a_fungible_faucet_id(id: AccountId) -> Self {
-        Self::NotAFungibleFaucetId(id)
+    pub fn not_a_fungible_faucet_id(id: AccountId, account_type: AccountType) -> Self {
+        Self::NotAFungibleFaucetId(id, account_type)
     }
 
     pub fn not_a_non_fungible_faucet_id(id: AccountId) -> Self {
@@ -215,6 +206,9 @@ pub enum NoteError {
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
+    InvalidOffchainTag,
+    InvalidPublicTag,
+    InvalidEncryptedTag,
 }
 
 impl NoteError {
