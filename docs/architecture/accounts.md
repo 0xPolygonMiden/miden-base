@@ -1,6 +1,6 @@
 Accounts are basic building blocks representing a user or an autonomous smart contract.
 
-Miden supports expressive smart contracts via a Turing-complete language. For smart contracts the go-to solution is account-based state. 
+For smart contracts the go-to solution is account-based state. Miden supports expressive smart contracts via a Turing-complete language and the use of accounts.
 
 In Miden, an account is an entity which holds assets and defines rules about how to transfer these assets. 
 
@@ -22,7 +22,7 @@ In Miden every account is a smart contract. The diagram below illustrates the ba
 ### Account ID
 
 !!! info
-    Its ~63 bits long identifier for the account id (1 field element). 
+    Its `~63` bits long identifier for the account id (one field element). 
 
 The four most significant bits specify the [account type](#account-types) - regular, immutable, faucet - and the [storage mode](#account-storage-modes) - public or private.
 
@@ -30,15 +30,15 @@ The four most significant bits specify the [account type](#account-types) - regu
 
 Account storage for user-defined data is composed of two components.
 
-1. A simple Sparse Merkle Tree of depth `8` which is index addressable. This provides the user with `256` `Word` slots.
+1. A simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `word` slots.
 
-2. Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in a simple Sparse Merkle Tree. When `AccountStorage` is serialized it checks if any of the leaves in the simple Sparse Merkle Tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage`'s `MerkleStore`.
+2. Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in a simple sparse Merkle tree. When `AccountStorage` is serialized it checks if any of the leaves in the simple sparse Merkle tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage`'s `MerkleStore`.
 
 ### Nonce
 
 A counter which increments whenever the account state changes. 
 
-Nonce values must be strictly monotonically increasing and increment by any value smaller than 2^{32} for every account update.
+Nonce values must be strictly monotonically increasing and increment by any value smaller than `2^{32}` for every account update.
 
 ### Vault
 
@@ -52,7 +52,7 @@ An account vault can contain an unlimited number of [assets](assets.md). The ass
 * For non-fungible assets, the index is defined by the asset itself, and the asset is also
   the value of the node.
 
-An account vault can be reduced to a single hash which is the root of the Sparse Merkle Tree.
+An account vault can be reduced to a single hash which is the root of the sparse Merkle tree.
 
 ### Code
 
@@ -65,7 +65,7 @@ Functions exposed by the account have the following properties:
 * Account functions can take parameters and can create new notes.
 
 !!! note
-    Since code in Miden is expressed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions*
+    Since code in Miden is expressed as MAST, every function is a commitment to the underlying code. The code cannot change unnoticed to the user because its hash would change. Behind any MAST root there can only be `256` functions.
 
 #### Example account code
 
@@ -165,16 +165,16 @@ The second function `burn` burns the tokens that are contained in a note and can
 
 ## Account creation
 
-For an account to exist it must be present in the [account DB](state.md#account-database) kept on the Miden node(s). 
+For an account to exist it must be present in the [account database](state.md#account-database) kept on the Miden node(s). 
 
-However, new accounts can be created locally by users using a wallet. The process is as follows:
+However, new accounts can be created locally by users using the Miden client. The process is as follows:
 
-* Alice creates a new account ID (according to the account types) using a wallet.
+* Alice creates a new account ID (according to the account types) using the Miden client.
 * Alice's Miden client asks the Miden node to check if the new ID already exists.
 * Alice shares the ID with Bob (eg. when Alice wants to receive funds).
 * Bob executes a transaction and creates a note that contains an asset for Alice.
 * Alice consumes Bob's note to receive the asset in a transaction.
-* Depending on the account storage mode (private vs. public) and transaction type (local vs. network) the operator eventually receives the new account ID and - if the transaction is correct - adds the ID to the account DB.
+* Depending on the account storage mode (private vs. public) and transaction type (local vs. network) the operator eventually receives the new account ID and - if the transaction is correct - adds the ID to the account database.
 
 A user can create an account in one of the following manners:
 
@@ -193,7 +193,7 @@ There are four types of accounts in Miden:
 
 ## Account storage modes
 
-Account data - stored by the Miden node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specify whether the account data is public `00`, encrypted `01`, or private `11`.
+Account data - stored by the Miden node - can be public or private. The third and fourth most significant bits of the account ID specify whether the account data is public `00`, encrypted `01`, or private `11`.
 
 * Public state accounts: The actual state is stored onchain. These are similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
 * Private state accounts: Only the hash of the account is stored onchain. Users who want to stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.

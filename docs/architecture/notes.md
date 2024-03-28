@@ -1,6 +1,8 @@
-Miden uses notes as a way to interact with, and transfer assets between, accounts. Notes can be consumed and produced asynchronously and privately. 
+Two of Miden's key goals are parallel transaction execution and privacy. 
 
-The concept of notes is a key difference between Ethereum’s account-based model and Polygon Miden, which uses a hybrid UTXO and account-based [state-model](state.md).
+Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately. 
+
+The concept of notes is a key divergence from Ethereum’s account-based model. 
 
 ## Note design
 
@@ -11,8 +13,8 @@ The concept of notes is a key difference between Ethereum’s account-based mode
 !!! tip "Key to diagram"
     * Assets: An [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
     * Script: To be executed in the [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) in which the note is consumed. The script defines the conditions for the consumption. If the script fails, the note cannot be consumed.
-    * Inputs: Used execute the note script. They can be accessed by the note script via [transaction kernel procedures](./transactions/kernel.md). The number is limited to 16 and they must be defined at note creation.
-    * Serial number: A note's unique identifier to break linkability between note hash and [nullifier](#note-nullifier-to-ensure-private-consumption). Should be a random `word` chosen by the user - if revealed, the nullifier might be computed easily.
+    * Inputs: Used to execute the note script. They can be accessed by the note script via [transaction kernel procedures](./transactions/kernel.md). A note can be associated with up to `128` input values. Each value is represented by a single field element. Thus, note input values can contain up to `~1` KB of data.
+    * Serial number: A note's unique identifier to break link-ability between note hash and [nullifier](#note-nullifier-to-ensure-private-consumption). Should be a random `word` chosen by the user - if revealed, the nullifier might be computed easily.
     * In addition, a note has metadata including the sender and the note tag. Those values are always public regardless of the [note storage mode](#note-storage-mode).
 
 ## Note lifecycle
@@ -177,7 +179,7 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
 
 ## Note storage mode
 
-Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the Note DB.
+Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the note database.
 
 Every note has a unique note hash. It is defined as follows:
 
@@ -195,7 +197,7 @@ The latter is done via note tags. Tags are part of the note's metadata and are r
 
 ## Note consumption
 
-As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
+As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [nullifier database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
 
 Notes can only be consumed if the note data is known to the consumer. The note data must be provided as input to the [transaction kernel](transactions/kernel.md). That means, for privately stored notes, there must be some off-chain communication to transmit the note's data from the sender to the target.
 
