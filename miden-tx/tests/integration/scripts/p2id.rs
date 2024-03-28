@@ -1,6 +1,11 @@
 use miden_lib::notes::create_p2id_note;
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{
+        Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
@@ -9,11 +14,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::TransactionExecutor;
-use mock::mock::account::{
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
-};
+use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -94,7 +95,7 @@ fn prove_p2id_script() {
     // A "malicious" account tries to consume the note, we expect an error
 
     let malicious_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
@@ -204,7 +205,7 @@ fn p2id_script_multiple_assets() {
     // A "malicious" account tries to consume the note, we expect an error
 
     let malicious_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);

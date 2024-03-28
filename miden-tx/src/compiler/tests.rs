@@ -1,7 +1,11 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    accounts::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+    },
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteInclusionProof, NoteMetadata, NoteType},
     transaction::{InputNote, InputNotes},
@@ -113,7 +117,7 @@ fn test_compile_valid_note_script() {
 
     // TODO: replace this with anonymous call targets once they are implemented
     let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2).unwrap();
     let account_code_ast = ModuleAst::parse(ADDITIONAL_PROCEDURES).unwrap();
     tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
@@ -133,18 +137,14 @@ fn mock_consumed_notes(
     tx_compiler: &mut TransactionCompiler,
     target_account: AccountId,
 ) -> Vec<Note> {
-    pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
-
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
-    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 20).unwrap();
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 200).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 300).unwrap().into();
 
-    // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     // create note script

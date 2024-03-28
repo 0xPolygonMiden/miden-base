@@ -4,7 +4,10 @@ use miden_lib::{
     AuthScheme,
 };
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+    },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -13,7 +16,7 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, utils::prepare_word};
+use mock::utils::prepare_word;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{

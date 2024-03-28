@@ -1,15 +1,14 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
+    accounts::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     notes::{Note, NoteMetadata, NoteType},
     transaction::{OutputNote, OutputNotes},
     Word, ONE, ZERO,
 };
 use mock::{
     mock::{
-        account::{MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
-        host::MockHost,
-        notes::AssetPreservationStatus,
+        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
         transaction::mock_inputs,
     },
     prepare_transaction,

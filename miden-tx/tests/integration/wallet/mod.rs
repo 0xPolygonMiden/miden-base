@@ -1,6 +1,10 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, SlotItem, StorageSlot},
+    accounts::{
+        Account, AccountId, AccountStorage, SlotItem, StorageSlot,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -9,14 +13,7 @@ use miden_objects::{
     Felt, Word, ONE, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{
-    mock::account::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
-        DEFAULT_AUTH_SCRIPT,
-    },
-    utils::prepare_word,
-};
+use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
@@ -193,7 +190,7 @@ fn prove_send_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    use miden_objects::accounts::AccountType;
+    use miden_objects::accounts::{AccountType, ACCOUNT_ID_SENDER};
 
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];

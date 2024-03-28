@@ -3,7 +3,7 @@ use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
-    accounts::{validate_account_seed, Account},
+    accounts::{Account, AccountId},
     notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
@@ -38,13 +38,8 @@ impl TransactionInputs {
         block_chain: ChainMmr,
         input_notes: InputNotes,
     ) -> Result<Self, TransactionInputError> {
-        match (account.is_new(), account_seed) {
-            (true, Some(seed)) => validate_account_seed(&account, seed)
-                .map_err(TransactionInputError::InvalidAccountSeed),
-            (true, None) => Err(TransactionInputError::AccountSeedNotProvidedForNewAccount),
-            (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
-            (false, None) => Ok(()),
-        }?;
+        // make sure the provided seed is valid in the context of the provided account
+        validate_account_seed(&account, account_seed)?;
 
         // make sure block_chain and block_header are consistent
 
@@ -392,5 +387,29 @@ impl Deserializable for InputNote {
         let proof = NoteInclusionProof::read_from(source)?;
 
         Ok(Self { note, proof })
+    }
+}
+
+/// Validates that the provided seed is valid for this account.
+pub fn validate_account_seed(
+    account: &Account,
+    account_seed: Option<Word>,
+) -> Result<(), TransactionInputError> {
+    match (account.is_new(), account_seed) {
+        (true, Some(seed)) => {
+            let account_id = AccountId::new(seed, account.code().root(), account.storage().root())
+                .map_err(TransactionInputError::InvalidAccountSeed)?;
+            if account_id != account.id() {
+                return Err(TransactionInputError::InconsistentAccountSeed {
+                    expected: account.id(),
+                    actual: account_id,
+                });
+            }
+
+            Ok(())
+        },
+        (true, None) => Err(TransactionInputError::AccountSeedNotProvidedForNewAccount),
+        (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
+        (false, None) => Ok(()),
     }
 }

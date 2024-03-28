@@ -123,6 +123,8 @@ pub fn test_account_type() {
     ];
 
     for (procedure, expected_type) in procedures {
+        let mut has_type = false;
+
         for account_id in test_cases.iter() {
             let account_id = AccountId::try_from(*account_id).unwrap();
 
@@ -148,12 +150,23 @@ pub fn test_account_type() {
             .unwrap();
 
             let expected_result = if account_id.account_type() == expected_type {
+                has_type = true;
                 ONE
             } else {
                 ZERO
             };
-            assert_eq!(process.stack.get(0), expected_result);
+            assert_eq!(
+                process.stack.get(0),
+                expected_result,
+                "Rust and Masm check on account type diverge. proc: {} account_id: {} account_type: {:?} expected_type: {:?}",
+                procedure,
+                account_id,
+                account_id.account_type(),
+                expected_type,
+            );
         }
+
+        assert!(has_type, "missing test for type {:?}", expected_type);
     }
 }
 
@@ -199,16 +212,12 @@ fn test_is_faucet_procedure() {
 
             # execute is_faucet procedure
             exec.account::is_faucet
-
-            # assert it matches expected result
-            eq.{expected} assert
         end
     ",
             account_id = account_id,
-            expected = if account_id.is_faucet() { 1 } else { 0 },
         );
 
-        let _process = run_within_tx_kernel(
+        let process = run_within_tx_kernel(
             "",
             &code,
             StackInputs::default(),
@@ -216,6 +225,13 @@ fn test_is_faucet_procedure() {
             None,
         )
         .unwrap();
+        let is_faucet = account_id.is_faucet();
+        assert_eq!(
+            process.stack.get(0),
+            Felt::new(is_faucet as u64),
+            "Rust and Masm is_faucet diverged. account_id: {}",
+            account_id
+        );
     }
 }
 

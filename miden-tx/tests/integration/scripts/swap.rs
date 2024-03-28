@@ -1,6 +1,10 @@
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
-    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{
+        Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
@@ -9,10 +13,7 @@ use miden_objects::{
     Felt, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::mock::account::{
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
-};
+use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,

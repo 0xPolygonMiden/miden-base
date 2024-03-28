@@ -154,10 +154,16 @@ impl AssetVault {
     /// - The amount of the fungible asset in the vault is less than the amount to be removed.
     /// - The non-fungible asset is not found in the vault.
     pub fn remove_asset(&mut self, asset: Asset) -> Result<Asset, AssetVaultError> {
-        Ok(match asset {
-            Asset::Fungible(asset) => Asset::Fungible(self.remove_fungible_asset(asset)?),
-            Asset::NonFungible(asset) => Asset::NonFungible(self.remove_non_fungible_asset(asset)?),
-        })
+        match asset {
+            Asset::Fungible(asset) => {
+                let asset = self.remove_fungible_asset(asset)?;
+                Ok(Asset::Fungible(asset))
+            },
+            Asset::NonFungible(asset) => {
+                let asset = self.remove_non_fungible_asset(asset)?;
+                Ok(Asset::NonFungible(asset))
+            },
+        }
     }
 
     /// Remove the specified fungible asset from the vault.

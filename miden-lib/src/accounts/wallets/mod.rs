@@ -1,7 +1,10 @@
 use alloc::string::{String, ToString};
 
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlot},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
+        StorageSlot,
+    },
     assembly::ModuleAst,
     assets::AssetVault,
     AccountError, Word, ZERO,
@@ -65,7 +68,7 @@ pub fn create_basic_wallet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        false,
+        AccountStorageType::OffChain,
         account_code.root(),
         account_storage.root(),
     )?;

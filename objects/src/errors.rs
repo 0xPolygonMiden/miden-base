@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::notes::NoteType;
+use crate::{accounts::AccountType, notes::NoteType};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -22,13 +22,13 @@ pub enum AccountError {
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes,
+    AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
-    InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
+    InvalidAccountStorageType,
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
@@ -42,8 +42,8 @@ impl AccountError {
         Self::AccountIdInvalidFieldElement(msg)
     }
 
-    pub fn account_id_too_few_ones() -> Self {
-        Self::AccountIdTooFewOnes
+    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
+        Self::AccountIdTooFewOnes(expected, actual)
     }
 
     pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
@@ -95,15 +95,13 @@ impl fmt::Display for AccountDeltaError {
 pub enum AssetError {
     AmountTooBig(u64),
     AssetAmountNotSufficient(u64, u64),
-    FungibleAssetInvalidFirstBit,
     FungibleAssetInvalidTag(u32),
     FungibleAssetInvalidWord(Word),
     InconsistentFaucetIds(AccountId, AccountId),
     InvalidAccountId(String),
     InvalidFieldElement(String),
-    NonFungibleAssetInvalidFirstBit,
     NonFungibleAssetInvalidTag(u32),
-    NotAFungibleFaucetId(AccountId),
+    NotAFungibleFaucetId(AccountId, AccountType),
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
     TokenSymbolError(String),
@@ -116,10 +114,6 @@ impl AssetError {
 
     pub fn asset_amount_not_sufficient(available: u64, requested: u64) -> Self {
         Self::AssetAmountNotSufficient(available, requested)
-    }
-
-    pub fn fungible_asset_invalid_first_bit() -> Self {
-        Self::FungibleAssetInvalidFirstBit
     }
 
     pub fn fungible_asset_invalid_tag(tag: u32) -> Self {
@@ -142,16 +136,12 @@ impl AssetError {
         Self::InvalidFieldElement(msg)
     }
 
-    pub fn non_fungible_asset_invalid_first_bit() -> Self {
-        Self::NonFungibleAssetInvalidFirstBit
-    }
-
     pub fn non_fungible_asset_invalid_tag(tag: u32) -> Self {
         Self::NonFungibleAssetInvalidTag(tag)
     }
 
-    pub fn not_a_fungible_faucet_id(id: AccountId) -> Self {
-        Self::NotAFungibleFaucetId(id)
+    pub fn not_a_fungible_faucet_id(id: AccountId, account_type: AccountType) -> Self {
+        Self::NotAFungibleFaucetId(id, account_type)
     }
 
     pub fn not_a_non_fungible_faucet_id(id: AccountId) -> Self {
@@ -312,6 +302,7 @@ pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentAccountSeed { expected: AccountId, actual: AccountId },
     InconsistentChainLength { expected: u32, actual: u32 },
     InconsistentChainRoot { expected: Digest, actual: Digest },
     InputNoteBlockNotInChainMmr(NoteId),

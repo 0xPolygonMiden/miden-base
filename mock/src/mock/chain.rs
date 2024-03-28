@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use miden_objects::{
-    accounts::{Account, AccountId, AccountType, SlotItem},
+    accounts::{Account, AccountId, AccountStorageType, AccountType, SlotItem},
     assets::Asset,
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
@@ -162,12 +162,6 @@ pub struct MockChain<R> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum OnChain {
-    No,
-    Yes,
-}
-
-#[derive(Debug, PartialEq, Eq)]
 pub enum Immutable {
     No,
     Yes,
@@ -217,7 +211,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage: S,
         assets: A,
         immutable: Immutable,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
     ) -> AccountId
     where
         C: AsRef<str>,
@@ -229,18 +223,13 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             Immutable::No => AccountType::RegularAccountUpdatableCode,
         };
 
-        let on_chain_bool = match on_chain {
-            OnChain::Yes => true,
-            OnChain::No => false,
-        };
-
         let storage = AccountStorageBuilder::new().add_items(storage).build();
 
         let (seed, _) = accountid_build_details(
             &mut self.rng,
             code.as_ref(),
             account_type,
-            on_chain_bool,
+            storage_type,
             storage.root(),
         )
         .unwrap();
@@ -249,7 +238,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let account = AccountBuilder::new(rng)
             .add_assets(assets)
             .account_type(account_type)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .with_seed_and_storage(seed, storage)
             .unwrap();
@@ -266,7 +255,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage: S,
         assets: A,
         immutable: Immutable,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
     ) -> AccountId
     where
         C: AsRef<str>,
@@ -283,7 +272,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .add_storage_items(storage)
             .add_assets(assets)
             .account_type(account_type)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .with_seed(seed)
             .unwrap();
@@ -294,20 +283,19 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
     pub fn build_basic_wallet(&mut self) -> AccountId {
         let account_type = AccountType::RegularAccountUpdatableCode;
-        let on_chain = true;
         let storage = AccountStorageBuilder::new().build();
         let (seed, _) = accountid_build_details(
             &mut self.rng,
             DEFAULT_ACCOUNT_CODE,
             account_type,
-            on_chain,
+            AccountStorageType::OnChain,
             storage.root(),
         )
         .unwrap();
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
         let account = AccountBuilder::new(rng)
             .account_type(account_type)
-            .on_chain(on_chain)
+            .storage_type(AccountStorageType::OnChain)
             .code(DEFAULT_ACCOUNT_CODE)
             .build()
             .unwrap();
@@ -320,14 +308,14 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     /// pending objects.
     pub fn build_fungible_faucet<C: AsRef<str>>(
         &mut self,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
             .account_type(AccountType::FungibleFaucet)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
             .build()
@@ -343,14 +331,14 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     pub fn build_fungible_faucet_with_seed<C: AsRef<str>>(
         &mut self,
         seed: Word,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
             .account_type(AccountType::FungibleFaucet)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
             .with_seed(seed)
@@ -365,14 +353,14 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     /// pending objects.
     pub fn build_nonfungible_faucet<C: AsRef<str>>(
         &mut self,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
             .account_type(AccountType::NonFungibleFaucet)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
             .build()
@@ -389,14 +377,14 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     pub fn build_nonfungible_faucet_with_seed<C: AsRef<str>>(
         &mut self,
         seed: Word,
-        on_chain: OnChain,
+        storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
             .account_type(AccountType::NonFungibleFaucet)
-            .on_chain(on_chain == OnChain::Yes)
+            .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
             .with_seed(seed)

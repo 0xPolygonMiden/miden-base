@@ -22,17 +22,23 @@ const.ERR_ACCOUNT_INVALID_POW=0x0002003F
 # CONSTANTS
 # =================================================================================================
 
-# An enum that represents a regular account with updatable code.
-const.REGULAR_ACCOUNT_UPDATABLE_CODE=0
+# Given the most significant half of an account id, this mask defines the bits used to determine the account type.
+const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
 
-# An enum that represents a regular account with immutable code.
-const.REGULAR_ACCOUNT_IMMUTABLE_CODE=1
+# Bit pattern for an account w/ immutable code, after the account type mask has been applied.
+const.REGULAR_ACCOUNT_IMMUTABLE_CODE=0 # 0b00000000_00000000_00000000_00000000
 
-# An enum that represents a fungible faucet with immutable code.
-const.FUNGIBLE_FAUCET_ACCOUNT=2
+# Bit pattern for an account w/ updatable code, after the account type mask has been applied.
+const.REGULAR_ACCOUNT_UPDATABLE_CODE=268435456 # 0b00010000_00000000_00000000_00000000
 
-# An enum that represents a non-fungible faucet with immutable code.
-const.NON_FUNGIBLE_FAUCET_ACCOUNT=3
+# Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
+const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
+
+# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been applied.
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
+
+# Bit pattern for a faucet account, after the account type mask has been applied.
+const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
@@ -167,13 +173,14 @@ export.memory::get_acct_nonce->get_nonce
 #! - H is the initial account hash.
 export.memory::get_init_acct_hash->get_initial_hash
 
-#! Returns the account type of the account id provided via the stack.
+#! Returns the most significant half with the account type bits masked out.
 #!
-#! The account type can be of the following forms:
-#! - regular account with updatable code
-#! - regular account with immutable code
-#! - fungible asset faucet account with immutable code
-#! - non-fungible asset faucet account with immutable code
+#! The accout type can be defined by comparing this value with the following constants:
+#!
+#! - REGULAR_ACCOUNT_UPDATABLE_CODE
+#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
+#! - FUNGIBLE_FAUCET_ACCOUNT
+#! - NON_FUNGIBLE_FAUCET_ACCOUNT
 #!
 #! Stack: [acct_id]
 #! Output: [acct_type]
@@ -181,8 +188,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 #! - acct_id is the account id.
 #! - acct_type is the account type.
 proc.type
-    # compute the account type
-    u32split swap drop u32assert u32shr.30
+    u32split swap drop push.ACCOUNT_TYPE_U32MASK u32and
     # => [acct_type]
 end
 
@@ -194,12 +200,7 @@ end
 #! - acct_id is the account id.
 #! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
 export.is_fungible_faucet
-    # get the account type
-    exec.type
-    # => [acct_type]
-
-    # check if the account type is a fungible faucet
-    push.FUNGIBLE_FAUCET_ACCOUNT eq
+    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
     # => [is_fungible_faucet]
 end
 
@@ -211,12 +212,7 @@ end
 #! - acct_id is the account id.
 #! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
 export.is_non_fungible_faucet
-    # get the account type
-    exec.type
-    # => [acct_type]
-
-    # check if the account type is a non-fungible faucet
-    push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
     # => [is_non_fungible_faucet]
 end
 
@@ -228,20 +224,7 @@ end
 #! - acct_id is the account id.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
 export.is_faucet
-    # get the account type
-    exec.type
-    # => [acct_type]
-
-    # check if the account type is a fungilbe faucet
-    dup push.FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_fung_faucet, acct_type]
-
-    # check if the account type is a non-fungible faucet
-    swap push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
-    # => [is_non_fung_faucet, is_fung_faucet]
-
-    # check if the account is a faucet
-    or
+    u32split swap drop push.FAUCET_ACCOUNT u32and eq.0 not
     # => [is_faucet]
 end
 
@@ -254,12 +237,7 @@ end
 #! - is_updatable_account is a boolean indicating whether the account is a regular updatable
 #!   account.
 export.is_updatable_account
-    # get the account type
-    exec.type
-    # => [acct_type]
-
-    # check if the account type is a regular account
-    push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
+    exec.type push.REGULAR_ACCOUNT_UPDATABLE_CODE eq
     # => [is_updatable_account]
 end
 
@@ -272,12 +250,7 @@ end
 #! - is_immutable_account is a boolean indicating whether the account is a regular immutable
 #!   account.
 export.is_immutable_account
-    # get the account type
-    exec.type
-    # => [acct_type]
-
-    # check if the account type is a regular account
-    push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
+    exec.type push.REGULAR_ACCOUNT_IMMUTABLE_CODE eq
     # => [is_immutable_account]
 end
 
@@ -452,7 +425,7 @@ export.validate_seed
         movdn.3 drop drop exec.memory::get_acct_id eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
         # => [pow]
 
-        # get acct and facuet modulus to check the min number of trailing zeros required in the pow
+        # get acct and faucet modulus to check the min number of trailing zeros required in the pow
         exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
         # => [faucet_modulus, acct_modulus, pow]
 

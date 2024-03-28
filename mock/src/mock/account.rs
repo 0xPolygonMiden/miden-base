@@ -1,8 +1,12 @@
 use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
-        get_account_seed_single, Account, AccountCode, AccountId, AccountStorage, AccountType,
-        SlotItem, StorageSlot,
+        get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
+        AccountStorageType, AccountType, SlotItem, StorageSlot,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
@@ -17,26 +21,6 @@ use crate::{
     },
     TransactionKernel,
 };
-
-// ACCOUNT IDs
-// ================================================================================================
-
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = 3238098370154045919;
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 932255360940351967;
-
-pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
-pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = 0b0100111011u64 << 54;
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010111100 << 54;
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1000111100 << 54;
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1110011100 << 54;
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 = 0b1110011101 << 54;
-
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
-    0b1010010001111111010110100011011110101011010001101111110110111100u64;
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
-    0b1010000101101010101101000110111101010110100011011110100011011101u64;
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
-    0b1010011001011010101101000110111101010110100011011101000110111100u64;
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -60,23 +44,28 @@ pub fn storage_item_1() -> SlotItem {
     }
 }
 
+/// Creates an [AssetVault] with 4 assets.
+///
+/// The ids of the assets added to the vault are defined by the following constants:
+///
+/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
+/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
+/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
+/// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
+///
 fn mock_account_vault() -> AssetVault {
-    // prepare fungible asset
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let fungible_asset =
         Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    // prepare second fungible asset
     let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
     let fungible_asset_1 =
         Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    // prepare third fungible asset
     let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
     let fungible_asset_2 =
         Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    // prepare non fungible asset
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
         .unwrap()
@@ -90,12 +79,12 @@ pub fn mock_account_storage() -> AccountStorage {
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 8] = [
-    "0x5e2981e93f961ddc63f5f65332554cafabe642d1eccff58a9279be4a13075f15",
-    "0x722d00547cb2d5991625ae2944cecaafb0b69e89e1e7b7a8b46b27605cd035dc",
+    "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
+    "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
-    "0xf7f1a1facd65a56bda0471acaf12c62b99d9f9c8e33c9fa02a64b167fb7669db",
-    "0x9d221abcc386973775499406d126764cdf4530ccf8084e27091f7e9f28177bbe",
-    "0x6eaff3f1133abb464f62f98284014654a7466b32aed3523c7046cf24c5007b8d",
+    "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
+    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
+    "0xef07641ea1aa8fe85d8f854d29bf729b92251e1433244892138fd9ca898a5a22",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
@@ -372,7 +361,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
     let seed = get_account_seed_single(
         init_seed,
         account_type,
-        true,
+        AccountStorageType::OnChain,
         account.code().root(),
         account.storage().root(),
     )
