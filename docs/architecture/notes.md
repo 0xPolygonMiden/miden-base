@@ -1,69 +1,79 @@
-# Notes
+Two of Miden's key goals are parallel transaction execution and privacy. 
 
-Miden aims to achieve parallel transaction execution and privacy. The UTXO-model combined with client-side proofs provide those features. That means, in Miden exist notes as a way of transferring assets between and to interact with accounts. Notes can be consumed and produced asynchronously and privately. The concept of notes is a key difference between Ethereum’s Account-based model and Polygon Miden, which uses a hybrid UTXO- and Account-based [state-model](state.md).
+Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately. 
+
+The concept of notes is a key divergence from Ethereum’s account-based model. 
 
 ## Note design
 
-In Polygon Miden, accounts communicate with one another by producing and consuming notes. A note stores assets and a script that defines how this note can be consumed.
-
-The diagram below illustrates the contents of a note:
-
 <center>
-![Architecture core concepts](../img/architecture/note/note.png){ width="25%" }
+![Architecture core concepts](../img/architecture/note/note.png){ width="45%" }
 </center>
 
-As shown in the above picture:
-* **Assets &rarr;** serves as [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
-* **Script &rarr;** will be executed in the [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) in which the note is consumed. The script defines the conditions for the consumption, if the script fails, the note cannot be consumed.
-* **Inputs &rarr;** used for the note script execution. They can be accessed by the note script via [transaction kernel procedures](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#note). The number is limited to 16 and they must be defined at note creation.
-* **Serial number &rarr;** a note's unique identifier to break linkability between [note hash](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-hash) and [nullifier](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-nullifier). Should be a random `Word` chosen by the user - if revealed, the nullifier might be computed easily.
+!!! tip "Key to diagram"
+    * Assets: An [asset](assets.md) container for a note. It can contain up to `256` assets stored in an array which can be reduced to a single hash.
+    * Script: To be executed in the [transaction](https://0xpolygonmiden.github.io/miden-base/architecture/transactions.html) in which the note is consumed. The script defines the conditions for the consumption. If the script fails, the note cannot be consumed.
+    * Inputs: Used to execute the note script. They can be accessed by the note script via [transaction kernel procedures](./transactions/kernel.md). A note can be associated with up to `128` input values. Each value is represented by a single field element. Thus, note input values can contain up to `~1` KB of data.
+    * Serial number: A note's unique identifier to break link-ability between note hash and [nullifier](#note-nullifier-to-ensure-private-consumption). Should be a random `word` chosen by the user - if revealed, the nullifier might be computed easily.
+    * In addition, a note has metadata including the sender and the note tag. Those values are always public regardless of the [note storage mode](#note-storage-mode).
 
-In addition, a note has **metadata** including the sender and the note tag. Those values are always public regardless of the [note storage mode](https://0xpolygonmiden.github.io/miden-base/architecture/notes.html#note-storage-mode).
+## Note lifecycle
 
-## Note's lifecycle
-New notes are created by executing transactions. After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database). Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the Nullifier DB to "consumed".
+New notes are created by executing transactions. 
+
+After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the [note database](state.md#notes-database). 
+
+Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. 
+
+Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the nullifier database to "consumed".
 
 <center>
 ![Architecture core concepts](../img/architecture/note/note-life-cycle.png)
 </center>
 
-The following sections will explain, how notes are created, stored, discovered and consumed.
-
 ## Note creation
-Notes are created as outputs (`OutputNotes`) of Miden transactions. Operators record those notes to the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#note-database), after successful verification of the underlying transactions those notes can be consumed.
+
+Notes are created as the outputs (`OutputNotes`) of Miden transactions. Operators record the notes to the [note database](state.md#note-database). After successful verification of the underlying transactions, those notes can be consumed.
 
 ## The note script
-Every note has a script which gets executed at note consumption. It is always executed in the context of a single account, and thus, may invoke zero or more of the [account's functions](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#code). The script allows for more than just the transferring of assets, they could be of arbitrary complexity thanks to the Turing completeness of the Miden VM
 
-By design, every note script can be defined as a unique hash or the root of a [Miden program MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html). That also means every function is a commitment to the underlying code. That code cannot change unnoticed to the user because its hash would change. That way it is easy to recognize standardized notes and those which deviate.
+Every note has a script which gets executed at note consumption. It is always executed in the context of a single account, and thus, may invoke zero or more of the [account's functions](accounts.md#code). The script allows for more than just asset transfers; actions which could be of arbitrary complexity thanks to the Turing completeness of the Miden VM.
+
+By design, every note script can be defined as a unique hash or the root of a [Miden program MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html). That also means every function is a commitment to the underlying code. That code cannot change unnoticed to the user because its hash changes. That way it is easy to recognize standardized notes and those which deviate.
 
 Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
 
-There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
+There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
 
 * P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself.
 * SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset.
 
-### Example note script Pay to ID (P2ID)
+### Example note script pay to ID (P2ID)
+
 <details>
-  <summary>Want to know more how to ensure a note can only be consumed by a specified account?</summary>
+  <summary>Want to know how to ensure a note can only be consumed by a specified account?</summary>
 
   #### Goal of the P2ID script
+  
   The P2ID script defines a specific target account ID as the only account that can consume the note. Such notes ensure a targeted asset transfer.
 
   #### Imports and context
+
   The P2ID script uses procedures from the account, note and wallet API.
-  ```
+
+  ```arduino
   use.miden::account
   use.miden::note
   use.miden::contracts::wallets::basic->wallet
   ```
+
   As discussed in detail in [transaction kernel procedures](../transactions/transaction-procedures.md) certain procedures can only be invoked in certain contexts. The note script is being executed in the note context of the [transaction kernel](../transactions/transaction-kernel.md).
 
   #### Main script
+
   The main part of the P2ID script checks if the executing account is the same as the account defined in the `NoteInputs`. The creator of the note defines the note script and the note inputs separately to ensure usage of the same standardized P2ID script regardless of the target account ID. That way, it is enough to check the script root (see above).
 
-  ```
+  ```arduino
   # Pay-to-ID script: adds all assets from the note to the account, assuming ID of the account
   # matches target account ID specified by the note inputs.
   #
@@ -111,9 +121,10 @@ There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base
   If execution hasn't failed, the script invokes a helper procedure `exec.add_note_assets_to_account` to add the note's assets into the executing account's vault.
 
   #### Add assets
+
   This procedure adds the assets held by the note into the account's vault.
 
-  ```
+  ```arduino
   #! Helper procedure to add all assets of a note to an account.
   #!
   #! Inputs: []
@@ -167,29 +178,34 @@ There exist [standard note scripts](https://github.com/0xPolygonMiden/miden-base
 </details>
 
 ## Note storage mode
-Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [Note DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the Note DB.
+
+Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the note database.
 
 Every note has a unique note hash. It is defined as follows:
 
-```
+```arduino
 hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 ```
 
-_Info: To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is also sufficient. We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM._
+!!! info
+    To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is also sufficient. We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM._
 
 ## Note discovery
+
 Note discovery describes the process of Miden clients finding notes they want to consume. There are two ways to receive new relevant notes - getting notes via an off-chain channel or querying the Miden operator to request newly recorded relevant notes.
 The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the Miden node requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
 
 ## Note consumption
-As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [Nullifier DB](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
+
+As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [nullifier database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
 
 Notes can only be consumed if the note data is known to the consumer. The note data must be provided as input to the [transaction kernel](transactions/kernel.md). That means, for privately stored notes, there must be some off-chain communication to transmit the note's data from the sender to the target.
 
 ### Note recipient to restrict note consumption
+
 There are several ways to restrict the set of accounts that can consume a specific note. One way is to specifically define the target account ID as done in the P2ID and P2IDR note scripts. Another way is by using the concept of a `RECIPIENT`. Miden defines a `RECIPIENT` (represented as `Word`) as:
 
-```
+```arduino
 hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ```
 
@@ -200,13 +216,15 @@ During the [transaction prologue](transactions/kernel.md) the users needs to pro
 You can see in the standard [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm) how `RECIPIENT` is used. Here, using a single hash, is sufficient to ensure that the swapped asset and its note can only be consumed by the defined target.
 
 ### Note nullifier to ensure private consumption
+
 The note's nullifier is computed as:
 
-```
+```arduino
 hash(serial_num, script_hash, input_hash, vault_hash)
 ```
 
 This achieves the following properties:
+
 - Every note can be reduced to a single unique nullifier.
 - One cannot derive a note's hash from its nullifier.
 - To compute the nullifier, one must know all components of the note: `serial_num`, `script_hash`, `input_hash`, and `vault_hash`.
@@ -216,3 +234,5 @@ That means if a note is private and the operator stores only the note's hash, on
 <center>
 ![Architecture core concepts](../img/architecture/note/nullifier.png)
 </center>
+
+<br/>
