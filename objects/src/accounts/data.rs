@@ -129,16 +129,14 @@ impl Deserializable for AuthData {
 mod tests {
     use assembly::{ast::ModuleAst, Assembler};
     use miden_crypto::utils::{Deserializable, Serializable};
+    use miden_mock::mock::account::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN;
     use storage::AccountStorage;
     #[cfg(feature = "std")]
     use tempfile::tempdir;
 
     use super::{AccountData, AuthData};
     use crate::{
-        accounts::{
-            storage, Account, AccountCode, AccountId, Felt, Word,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        },
+        accounts::{storage, Account, AccountCode, AccountId, Felt, Word},
         assets::AssetVault,
     };
 

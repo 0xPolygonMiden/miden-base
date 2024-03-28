@@ -10,18 +10,51 @@ use super::{
 };
 use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
 
-// ACCOUNT ID
+// CONSTANTS
 // ================================================================================================
 
-/// Specifies the account type.
+// Two bits of the most significant nibble are used to determine the account type. This mask
+// defines these bits.
+pub const ACCOUNT_TYPE_MASK_SHIFT: u64 = 60;
+pub const ACCOUNT_TYPE_MASK: u64 = 0b11 << ACCOUNT_TYPE_MASK_SHIFT;
+pub const ACCOUNT_ISFAUCET_MASK: u64 = 0b10 << ACCOUNT_TYPE_MASK_SHIFT;
+
+// Two bits of the most significant nibble are used to determine the account storage type. This mask
+// defines these bits.
+pub const ACCOUNT_STORAGE_MASK_SHIFT: u64 = 62;
+pub const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
+
+// ACCOUNT TYPES
+// ================================================================================================
+
+const ON_CHAIN: u64 = 0b00;
+const OFF_CHAIN: u64 = 0b10;
+
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AccountType {
-    FungibleFaucet,
-    NonFungibleFaucet,
-    RegularAccountImmutableCode,
-    RegularAccountUpdatableCode,
+#[repr(u64)]
+pub enum AccountStorageType {
+    OnChain = ON_CHAIN,
+    OffChain = OFF_CHAIN,
 }
+
+const FUNGIBLE_FAUCET: u64 = 0b10;
+const NON_FUNGIBLE_FAUCET: u64 = 0b11;
+const REGULAR_ACCOUNT_IMMUTABLE_CODE: u64 = 0b00;
+const REGULAR_ACCOUNT_UPDATABLE_CODE: u64 = 0b01;
+
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u64)]
+pub enum AccountType {
+    FungibleFaucet = FUNGIBLE_FAUCET,
+    NonFungibleFaucet = NON_FUNGIBLE_FAUCET,
+    RegularAccountImmutableCode = REGULAR_ACCOUNT_IMMUTABLE_CODE,
+    RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
+}
+
+// ACCOUNT ID
+// ================================================================================================
 
 /// Unique identifier of an account.
 ///
@@ -42,14 +75,6 @@ pub enum AccountType {
 pub struct AccountId(Felt);
 
 impl AccountId {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-    pub const FUNGIBLE_FAUCET_TAG: u64 = 0b10;
-    pub const NON_FUNGIBLE_FAUCET_TAG: u64 = 0b11;
-    pub const REGULAR_ACCOUNT_UPDATABLE_CODE_TAG: u64 = 0b00;
-    pub const REGULAR_ACCOUNT_IMMUTABLE_CODE_TAG: u64 = 0b01;
-    pub const ON_CHAIN_ACCOUNT_SELECTOR: u64 = 0b001;
-
     /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
     ///
     /// Note: The account id includes 3 bits of metadata, these bits determine the account type
@@ -123,13 +148,7 @@ impl AccountId {
 
     /// Returns the type of this account ID.
     pub fn account_type(&self) -> AccountType {
-        match self.0.as_int() >> 62 {
-            Self::REGULAR_ACCOUNT_UPDATABLE_CODE_TAG => AccountType::RegularAccountUpdatableCode,
-            Self::REGULAR_ACCOUNT_IMMUTABLE_CODE_TAG => AccountType::RegularAccountImmutableCode,
-            Self::FUNGIBLE_FAUCET_TAG => AccountType::FungibleFaucet,
-            Self::NON_FUNGIBLE_FAUCET_TAG => AccountType::NonFungibleFaucet,
-            _ => unreachable!(),
-        }
+        account_type(self.0.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
@@ -142,15 +161,21 @@ impl AccountId {
 
     /// Returns true if an account with this ID is a regular account.
     pub fn is_regular_account(&self) -> bool {
-        matches!(
-            self.account_type(),
-            AccountType::RegularAccountUpdatableCode | AccountType::RegularAccountImmutableCode
-        )
+        is_regular_account(self.0.as_int())
+    }
+
+    pub fn storage_type(&self) -> Result<AccountStorageType, AccountError> {
+        let bits = (self.0.as_int() & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
+        match bits {
+            ON_CHAIN => Ok(AccountStorageType::OnChain),
+            OFF_CHAIN => Ok(AccountStorageType::OffChain),
+            _ => Err(AccountError::InvalidAccountStorageType),
+        }
     }
 
     /// Returns true if an account with this ID is an on-chain account.
     pub fn is_on_chain(&self) -> bool {
-        self.0.as_int() >> 61 & Self::ON_CHAIN_ACCOUNT_SELECTOR == 1
+        self.storage_type().map(|v| v == AccountStorageType::OnChain).unwrap_or(false)
     }
 
     /// Finds and returns a seed suitable for creating an account ID for the specified account type
@@ -173,38 +198,38 @@ impl AccountId {
     pub fn validate_seed_digest(digest: &Digest) -> Result<(), AccountError> {
         let elements = digest.as_elements();
 
-        // accounts must have at least 5 ONEs in the ID.
-        if elements[0].as_int().count_ones() < Self::MIN_ACCOUNT_ONES {
-            return Err(AccountError::account_id_too_few_ones());
+        // check the id contains the minimum number of required ones.
+        let count = elements[0].as_int().count_ones();
+        if count < Self::MIN_ACCOUNT_ONES {
+            return Err(AccountError::account_id_too_few_ones(Self::MIN_ACCOUNT_ONES, count));
         }
 
-        // we require that accounts have at least some number of trailing zeros in the last element,
-        let is_regular_account = elements[0].as_int() >> 63 == 0;
-        let pow_trailing_zeros = digest_pow(*digest);
-
-        // check if there is there enough trailing zeros in the last element of the seed hash for
-        // the account type.
-        let expected = match is_regular_account {
-            true => Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS,
-            false => Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS,
+        // check the id satisfies the proof-of-work requirement.
+        let required_zeros = if is_regular_account(elements[0].as_int()) {
+            Self::REGULAR_ACCOUNT_SEED_DIGEST_MIN_TRAILING_ZEROS
+        } else {
+            Self::FAUCET_SEED_DIGEST_MIN_TRAILING_ZEROS
         };
-        let sufficient_pow = pow_trailing_zeros >= expected;
-
-        if !sufficient_pow {
+        let trailing_zeros = digest_pow(*digest);
+        if required_zeros > trailing_zeros {
             return Err(AccountError::seed_digest_too_few_trailing_zeros(
-                expected,
-                pow_trailing_zeros,
+                required_zeros,
+                trailing_zeros,
             ));
         }
 
         Ok(())
     }
 
-    /// Returns an error if:
-    /// - There are fewer then 5 ONEs in the account ID.
+    /// Validates the account_id
+    ///
+    /// # Errors
+    ///
+    /// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the account ID.
     fn validate(&self) -> Result<(), AccountError> {
-        if self.0.as_int().count_ones() < Self::MIN_ACCOUNT_ONES {
-            return Err(AccountError::account_id_too_few_ones());
+        let count = self.0.as_int().count_ones();
+        if count < Self::MIN_ACCOUNT_ONES {
+            return Err(AccountError::account_id_too_few_ones(Self::MIN_ACCOUNT_ONES, count));
         }
 
         Ok(())
@@ -225,7 +250,14 @@ impl AccountId {
 
     /// Returns a big-endian, hex-encoded string.
     pub fn to_hex(&self) -> String {
-        format!("0x{:02x}", self.0.as_int())
+        let mut res = format!("{:x}", self.0.as_int());
+
+        // ensure the result is even-legnth
+        if res.len() % 2 == 1 {
+            res.insert(0, '0');
+        }
+        res.insert_str(0, "0x");
+        res
     }
 }
 
@@ -243,7 +275,7 @@ impl Ord for AccountId {
 
 impl fmt::Display for AccountId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:02x}", self.0.as_int())
+        write!(f, "{}", self.to_hex())
     }
 }
 
@@ -359,22 +391,54 @@ pub fn digest_pow(digest: Digest) -> u32 {
     digest.as_elements()[3].as_int().trailing_zeros()
 }
 
+/// Returns the [AccountType] given the `account_id`.
+pub fn account_type(account_id: u64) -> AccountType {
+    debug_assert!(
+        ACCOUNT_TYPE_MASK.count_ones() == 2,
+        "This method assumes there are only 2bits in the mask"
+    );
+
+    let bits = (account_id & ACCOUNT_TYPE_MASK) >> ACCOUNT_TYPE_MASK_SHIFT;
+    match bits {
+        REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
+        REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
+        FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
+        NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
+        _ => unreachable!("account_type mask contains only 2bits, there are 4 options total"),
+    }
+}
+
+/// Returns true if an account with this ID is a regular account.
+pub fn is_regular_account(account_id: u64) -> bool {
+    matches!(
+        account_type(account_id),
+        AccountType::RegularAccountUpdatableCode | AccountType::RegularAccountImmutableCode
+    )
+}
+
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    use miden_crypto::utils::{Deserializable, Serializable};
+    use miden_mock::mock::account::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    };
+
+    use super::{account_type, AccountId, AccountType};
+    use crate::accounts::{
+        account_id::{
+            ACCOUNT_ISFAUCET_MASK, FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET,
+            REGULAR_ACCOUNT_IMMUTABLE_CODE, REGULAR_ACCOUNT_UPDATABLE_CODE,
         },
-        AccountId, AccountType,
+        ACCOUNT_TYPE_MASK_SHIFT,
     };
 
     #[test]
-    fn test_from_hex_and_back() {
+    fn test_accountid_from_hex_and_back() {
         let account_id_hex = "0x45ce97a017946317";
         let account_id = AccountId::from_hex(account_id_hex).unwrap();
 
@@ -382,7 +446,54 @@ mod tests {
     }
 
     #[test]
-    fn test_account_tag_identifiers() {
+    fn test_accountid_serde() {
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
+
+        let account_id =
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
+        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(account_id, AccountId::read_from_bytes(&account_id.to_bytes()).unwrap());
+    }
+
+    #[test]
+    fn test_accountid_accounttype() {
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(
+            account_type(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN),
+            account_id.account_type()
+        );
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(
+            account_type(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN),
+            account_id.account_type()
+        );
+
+        let account_id =
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
+        assert_eq!(account_type(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN), account_id.account_type());
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
+            .expect("Valid account ID");
+        assert_eq!(
+            account_type(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN),
+            account_id.account_type()
+        );
+    }
+
+    #[test]
+    fn test_accountid_tag_identifiers() {
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN)
             .expect("Valid account ID");
         assert!(account_id.is_regular_account());
@@ -406,5 +517,23 @@ mod tests {
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
         assert!(!account_id.is_on_chain());
+    }
+
+    /// The following test ensure there is a bit available to identify an account as a faucet or
+    /// normal.
+    #[test]
+    #[allow(clippy::assertions_on_constants)]
+    fn test_accountid_faucetbit() {
+        // faucets have a bit set
+        assert!(FUNGIBLE_FAUCET << ACCOUNT_TYPE_MASK_SHIFT & ACCOUNT_ISFAUCET_MASK != 0);
+        assert!(NON_FUNGIBLE_FAUCET << ACCOUNT_TYPE_MASK_SHIFT & ACCOUNT_ISFAUCET_MASK != 0);
+
+        // the same bit must not be set for normal accounts
+        assert!(
+            REGULAR_ACCOUNT_IMMUTABLE_CODE << ACCOUNT_TYPE_MASK_SHIFT & ACCOUNT_ISFAUCET_MASK == 0
+        );
+        assert!(
+            REGULAR_ACCOUNT_UPDATABLE_CODE << ACCOUNT_TYPE_MASK_SHIFT & ACCOUNT_ISFAUCET_MASK == 0
+        );
     }
 }

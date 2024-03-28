@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    accounts::{AccountId, AccountType},
+    accounts::{AccountId, AccountType, ACCOUNT_ISFAUCET_MASK},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
@@ -109,10 +109,9 @@ impl Asset {
 
 impl From<Asset> for Word {
     fn from(asset: Asset) -> Self {
-        use Asset::*;
         match asset {
-            Fungible(asset) => asset.into(),
-            NonFungible(asset) => asset.into(),
+            Asset::Fungible(asset) => asset.into(),
+            Asset::NonFungible(asset) => asset.into(),
         }
     }
 }
@@ -125,10 +124,9 @@ impl From<&Asset> for Word {
 
 impl From<Asset> for [u8; 32] {
     fn from(asset: Asset) -> Self {
-        use Asset::*;
         match asset {
-            Fungible(asset) => asset.into(),
-            NonFungible(asset) => asset.into(),
+            Asset::Fungible(asset) => asset.into(),
+            Asset::NonFungible(asset) => asset.into(),
         }
     }
 }
@@ -151,11 +149,14 @@ impl TryFrom<Word> for Asset {
     type Error = AssetError;
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
-        let first_bit = value[3].as_int() >> 63;
-        match first_bit {
-            0 => NonFungibleAsset::try_from(value).map(Asset::from),
-            1 => FungibleAsset::try_from(value).map(Asset::from),
-            _ => unreachable!(),
+        // For fungible assets, the 4th word contains the account_id, and the bit is set to true.
+        // For non-fungible assets the account_id is on the 2nd word. The 4th word is initialized
+        // with the asset's content hash, and then the bit is set to false.
+        let bit = value[3].as_int() & ACCOUNT_ISFAUCET_MASK;
+        if bit == 0 {
+            NonFungibleAsset::try_from(value).map(Asset::from)
+        } else {
+            FungibleAsset::try_from(value).map(Asset::from)
         }
     }
 }
@@ -164,11 +165,15 @@ impl TryFrom<[u8; 32]> for Asset {
     type Error = AssetError;
 
     fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let first_bit = value[31] >> 7;
-        match first_bit {
-            0 => NonFungibleAsset::try_from(value).map(Asset::from),
-            1 => FungibleAsset::try_from(value).map(Asset::from),
-            _ => unreachable!(),
+        // converts the mask from u64 to u8 by assuming the bit is always on the MSB
+        let mask = (ACCOUNT_ISFAUCET_MASK >> 56) as u8;
+        debug_assert!(mask != 0, "the faucet bit must be on the highest byte");
+
+        let bit = value[31] & mask;
+        if bit == 0 {
+            NonFungibleAsset::try_from(value).map(Asset::from)
+        } else {
+            FungibleAsset::try_from(value).map(Asset::from)
         }
     }
 }
@@ -197,7 +202,7 @@ impl Deserializable for Asset {
         let data_array: [u8; 32] = data_vec.try_into().expect("Vec must be of size 32");
 
         let asset = Asset::try_from(&data_array)
-            .map_err(|v| DeserializationError::InvalidValue(format!("{v:?}")))?;
+            .map_err(|error| DeserializationError::InvalidValue(format!("{error}")))?;
         Ok(asset)
     }
 }
@@ -216,4 +221,33 @@ fn parse_word(bytes: [u8; 32]) -> Result<Word, AssetError> {
 
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AssetError> {
     Felt::try_from(bytes).map_err(|err| AssetError::invalid_field_element(err.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::utils::{Deserializable, Serializable};
+
+    use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
+    use crate::accounts::{AccountId, AccountType};
+
+    #[test]
+    fn test_asset_serde() {
+        let id1 = AccountId::new_dummy([0; 32], AccountType::FungibleFaucet);
+        let asset1: Asset = FungibleAsset::new(id1, 10).unwrap().into();
+
+        assert_eq!(asset1, Asset::read_from_bytes(&asset1.to_bytes()).unwrap());
+
+        let id2 = AccountId::new_dummy([0; 32], AccountType::NonFungibleFaucet);
+        let asset2: Asset =
+            NonFungibleAsset::new(&NonFungibleAssetDetails::new(id2, vec![1, 2, 3]).unwrap())
+                .unwrap()
+                .into();
+        assert_eq!(asset2, Asset::read_from_bytes(&asset2.to_bytes()).unwrap());
+
+        let asset5: Asset =
+            NonFungibleAsset::new(&NonFungibleAssetDetails::new(id2, vec![4, 5, 6]).unwrap())
+                .unwrap()
+                .into();
+        assert_eq!(asset5, Asset::read_from_bytes(&asset5.to_bytes()).unwrap());
+    }
 }

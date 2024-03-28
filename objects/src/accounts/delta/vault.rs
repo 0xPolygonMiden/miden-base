@@ -72,15 +72,11 @@ impl Serializable for AccountVaultDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         assert!(self.added_assets.len() <= u16::MAX as usize, "too many added assets");
         target.write_u16(self.added_assets.len() as u16);
-        for asset in self.added_assets.iter() {
-            asset.write_into(target);
-        }
+        target.write_many(self.added_assets.iter());
 
         assert!(self.removed_assets.len() <= u16::MAX as usize, "too many removed assets");
         target.write_u16(self.removed_assets.len() as u16);
-        for asset in self.removed_assets.iter() {
-            asset.write_into(target);
-        }
+        target.write_many(self.removed_assets.iter());
     }
 }
 
@@ -159,6 +155,8 @@ mod tests {
             NonFungibleAsset::new(&NonFungibleAssetDetails::new(nffid2, vec![7, 8, 9]).unwrap())
                 .unwrap()
                 .into();
+
+        assert_eq!(asset5, Asset::read_from_bytes(&asset5.to_bytes()).unwrap());
 
         // control case
         let delta = AccountVaultDelta {

@@ -6,7 +6,10 @@ use crate::{
 };
 
 mod account_id;
-pub use account_id::{compute_digest, digest_pow, validate_account_seed, AccountId, AccountType};
+pub use account_id::{
+    account_type, compute_digest, digest_pow, validate_account_seed, AccountId, AccountStorageType,
+    AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
+};
 
 mod code;
 pub use code::AccountCode;
@@ -25,27 +28,6 @@ pub use stub::AccountStub;
 
 mod data;
 pub use data::{AccountData, AuthData};
-
-// TESTING CONSTANTS
-// ================================================================================================
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0b0001101110 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 = 0b1010011101 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1101100110 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 // ACCOUNT
 // ================================================================================================
@@ -308,11 +290,15 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
+    use miden_mock::mock::account::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    };
+
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
         AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
-        Word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        Word,
     };
     use crate::{
         assets::{Asset, AssetVault, FungibleAsset},
