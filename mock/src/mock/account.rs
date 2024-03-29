@@ -234,7 +234,7 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
-    Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
+    Account::new(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
 }
 
 pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {

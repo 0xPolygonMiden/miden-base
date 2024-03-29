@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_objects::{
     notes::{Note, NoteMetadata, NoteType},
     transaction::{OutputNote, OutputNotes},
-    FieldElement,
+    Word, ONE, ZERO,
 };
 use mock::{
     mock::{
@@ -17,9 +17,7 @@ use mock::{
     run_tx, run_within_tx_kernel,
 };
 
-use super::{
-    ContextId, Felt, MemAdviceProvider, Process, ProcessState, StackInputs, Word, ONE, ZERO,
-};
+use super::{ContextId, Felt, MemAdviceProvider, Process, ProcessState, StackInputs};
 use crate::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
     CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
@@ -275,7 +273,7 @@ fn test_get_output_notes_hash() {
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
-        Some([Felt::new(2), Felt::ZERO, Felt::ZERO, Felt::ZERO]),
+        Some([Felt::new(2), ZERO, ZERO, ZERO]),
         "The test creates two notes",
     );
     assert_eq!(

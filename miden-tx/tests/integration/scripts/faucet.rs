@@ -10,7 +10,7 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
     notes::{NoteAssets, NoteMetadata, NoteType},
     transaction::{OutputNote, TransactionArgs},
-    Felt, FieldElement, Word, ZERO,
+    Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
 use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, utils::prepare_word};
@@ -86,7 +86,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let expected_note = OutputNote::new(
         recipient.into(),
         NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, Felt::ZERO).unwrap(),
+        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap(),
     );
 
     let created_note = executed_transaction.output_notes().get_note(0).clone();

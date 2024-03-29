@@ -6,7 +6,7 @@ use miden_objects::{
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteExecution, NoteMetadata, NoteType},
     transaction::{OutputNote, TransactionArgs},
-    Felt, FieldElement,
+    Felt, ZERO,
 };
 use miden_tx::TransactionExecutor;
 use mock::mock::account::{
@@ -100,7 +100,7 @@ fn prove_swap_script() {
         target_account_id,
         NoteType::OffChain,
         sender_account_id.to_tag(NoteExecution::Local).unwrap(),
-        Felt::ZERO,
+        ZERO,
     )
     .unwrap();
 

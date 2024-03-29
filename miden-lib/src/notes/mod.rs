@@ -5,7 +5,7 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{Note, NoteExecution, NoteMetadata, NoteType},
-    Felt, FieldElement, NoteError, Word,
+    NoteError, Word, ZERO,
 };
 
 use self::utils::build_note_script;
@@ -38,7 +38,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let inputs = [target.into()];
     let tag = target.to_tag(NoteExecution::Local).map_err(NoteError::TagError)?;
     let serial_num = rng.draw_word();
-    let aux = Felt::ZERO;
+    let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
     Note::new(note_script, &inputs, &assets, serial_num, metadata)
@@ -70,7 +70,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let inputs = [target.into(), recall_height.into()];
     let tag = target.to_tag(NoteExecution::Local).map_err(NoteError::TagError)?;
     let serial_num = rng.draw_word();
-    let aux = Felt::ZERO;
+    let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
     Note::new(note_script.clone(), &inputs, &assets, serial_num, metadata)
@@ -112,7 +112,7 @@ pub fn create_swap_note<R: FeltRng>(
 
     let tag: u32 = 0;
     let serial_num = rng.draw_word();
-    let aux = Felt::ZERO;
+    let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
     let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, metadata)?;

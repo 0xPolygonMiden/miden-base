@@ -8,7 +8,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::Asset,
     notes::{Note, NoteInclusionProof, NoteInputs, NoteMetadata, NoteScript, NoteType},
-    Felt, FieldElement, NoteError, Word,
+    Felt, NoteError, Word, ZERO,
 };
 use rand::Rng;
 
@@ -51,7 +51,7 @@ impl NoteBuilder {
             tag: 0,
             code: DEFAULT_NOTE_CODE.to_string(),
             proof: None,
-            aux: Felt::ZERO,
+            aux: ZERO,
         }
     }
 

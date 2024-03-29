@@ -11,7 +11,7 @@ use miden_objects::{
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
     },
-    BlockHeader, Felt, FieldElement, Word,
+    BlockHeader, Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
@@ -177,6 +177,6 @@ pub fn get_note_with_fungible_asset_and_script(
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1, Felt::ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1, ZERO).unwrap();
     Note::new(note_script.clone(), &[], &[fungible_asset.into()], SERIAL_NUM, metadata).unwrap()
 }
