@@ -40,7 +40,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
-    let tag = Felt::new(4);
+    let tag = 4.into();
     let amount = Felt::new(100);
 
     let tx_script_code = ProgramAst::parse(
@@ -86,7 +86,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let expected_note = OutputNote::new(
         recipient.into(),
         NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag),
+        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap(),
     );
 
     let created_note = executed_transaction.output_notes().get_note(0).clone();

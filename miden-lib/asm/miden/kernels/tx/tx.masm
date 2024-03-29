@@ -8,9 +8,9 @@ use.miden::kernels::tx::note
 # =================================================================================================
 
 # Constants for different note types
-const.OFFCHAIN_NOTE=0
-const.ENCRYPTED_NOTE=1
-const.PUBLIC_NOTE=2
+const.PUBLIC_NOTE=1     # 0b01
+const.OFFCHAIN_NOTE=2   # 0b10
+const.ENCRYPTED_NOTE=3  # 0b11
 
 # ERRORS
 # =================================================================================================
@@ -20,6 +20,12 @@ const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
 
 # Invalid note type
 const.ERR_INVALID_NOTE_TYPE=0x00020044
+
+# The note's tag failed the most significant validation.
+const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
+
+# The note's tag high bits must be set to zero.
+const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -90,6 +96,16 @@ export.create_note
     # validate the note type
     # NOTE: encrypted notes are currently unsupported `dup.6 push.ENCRYPTED_NOTE eq or`
     dup.5 push.OFFCHAIN_NOTE eq dup.6 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    # => [ASSET, tag, note_type, RECIPIENT]
+
+    # validate the tag against the note type
+    dup.5 dup.5 u32split
+    # => [tag_high, tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+
+    assertz.err=ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
+    # => [tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+
+    u32shr.30 u32and assertz.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
     # => [ASSET, tag, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter

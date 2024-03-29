@@ -7,7 +7,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    BlockHeader, Felt, FieldElement,
+    BlockHeader, Felt, FieldElement, ZERO,
 };
 use vm_processor::{AdviceInputs, Operation, Program, Word};
 
@@ -175,7 +175,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
 // ================================================================================================
 
 fn build_dummy_tx_program() -> Program {
-    let operations = vec![Operation::Push(Felt::ZERO), Operation::Drop];
+    let operations = vec![Operation::Push(ZERO), Operation::Drop];
     let span = miden_objects::vm::CodeBlock::new_span(operations);
     Program::new(span)
 }

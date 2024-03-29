@@ -7,7 +7,7 @@ use miden_objects::{
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
-    BlockHeader, Digest, Felt, FieldElement, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH,
+    BlockHeader, Digest, Felt, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH, ZERO,
 };
 use rand::{Rng, SeedableRng};
 
@@ -454,8 +454,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         // - inserting only nullifier from transactions included in the batches, once the batch
         // kernel has been implemented.
         for nullifier in self.pending_objects.nullifiers.iter() {
-            self.nullifiers
-                .insert(*nullifier, [block_num.into(), Felt::ZERO, Felt::ZERO, Felt::ZERO]);
+            self.nullifiers.insert(*nullifier, [block_num.into(), ZERO, ZERO, ZERO]);
         }
         let notes = self.pending_objects.build_notes_tree();
 
@@ -466,7 +465,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());
         let nullifier_root = self.nullifiers.root();
         let note_root = notes.root();
-        let version = Felt::ZERO;
+        let version = ZERO;
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
 

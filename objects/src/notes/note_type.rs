@@ -8,9 +8,11 @@ use crate::{
 
 // CONSTANTS
 // ================================================================================================
-const OFF_CHAIN: u8 = 0;
-const ENCRYPTED: u8 = 1;
-const PUBLIC: u8 = 2;
+
+// Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
+const PUBLIC: u8 = 0b01;
+const OFF_CHAIN: u8 = 0b10;
+const ENCRYPTED: u8 = 0b11;
 
 // NOTE TYPE
 // ================================================================================================
@@ -40,12 +42,12 @@ impl TryFrom<Felt> for NoteType {
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
         let value = value.as_int();
-        let note_type: u8 = value.try_into().map_err(|_| NoteError::NoteTypeInvalid(value))?;
+        let note_type: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteType(value))?;
         match note_type {
             OFF_CHAIN => Ok(NoteType::OffChain),
             ENCRYPTED => Ok(NoteType::Encrypted),
             PUBLIC => Ok(NoteType::Public),
-            _ => Err(NoteError::NoteTypeInvalid(value)),
+            _ => Err(NoteError::InvalidNoteType(value)),
         }
     }
 }

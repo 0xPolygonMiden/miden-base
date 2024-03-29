@@ -3,9 +3,9 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteInclusionProof, NoteType},
+    notes::{Note, NoteInclusionProof, NoteMetadata, NoteType},
     transaction::{InputNote, InputNotes},
-    Felt, FieldElement, Word,
+    Felt, Word, ZERO,
 };
 
 use super::{AccountId, ModuleAst, ProgramAst, ScriptTarget, TransactionCompiler};
@@ -156,26 +156,24 @@ fn mock_consumed_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let note_1 = Note::new(
         note_script.clone(),
         &[Felt::new(1)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_1,
-        sender,
-        NoteType::Public,
-        Felt::ZERO,
+        metadata,
     )
     .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let note_2 = Note::new(
         note_script,
         &[Felt::new(2)],
         &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
         SERIAL_NUM_2,
-        sender,
-        NoteType::Public,
-        Felt::ZERO,
+        metadata,
     )
     .unwrap();
 

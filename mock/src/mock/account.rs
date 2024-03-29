@@ -89,22 +89,24 @@ pub fn mock_account_storage() -> AccountStorage {
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-pub const ACCOUNT_RECEIVE_ASSET_MAST_ROOT: &str =
-    "0x5e2981e93f961ddc63f5f65332554cafabe642d1eccff58a9279be4a13075f15";
-pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str =
-    "0x5854bb8e999332fc072a7a63d00ed88817c64b52c5e00fd56f70147a274ab937";
-pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str =
-    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac";
-pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str =
-    "0xf7f1a1facd65a56bda0471acaf12c62b99d9f9c8e33c9fa02a64b167fb7669db";
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str =
-    "0x9d221abcc386973775499406d126764cdf4530ccf8084e27091f7e9f28177bbe";
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str =
-    "0xb7750b2b06c5f65f5419533a0a83ab1899cab050a9e796941ef8bb62d9cf6336";
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str =
-    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5";
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str =
-    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794";
+const MASTS: [&str; 8] = [
+    "0x5e2981e93f961ddc63f5f65332554cafabe642d1eccff58a9279be4a13075f15",
+    "0x722d00547cb2d5991625ae2944cecaafb0b69e89e1e7b7a8b46b27605cd035dc",
+    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
+    "0xf7f1a1facd65a56bda0471acaf12c62b99d9f9c8e33c9fa02a64b167fb7669db",
+    "0x9d221abcc386973775499406d126764cdf4530ccf8084e27091f7e9f28177bbe",
+    "0x6eaff3f1133abb464f62f98284014654a7466b32aed3523c7046cf24c5007b8d",
+    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
+    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
+];
+pub const ACCOUNT_RECEIVE_ASSET_MAST_ROOT: &str = MASTS[0];
+pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
+pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
+pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
+pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[4];
+pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[5];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[6];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[7];
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -203,17 +205,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
         code.procedures()[6].to_hex(),
         code.procedures()[7].to_hex(),
     ];
-    let expected = [
-        ACCOUNT_RECEIVE_ASSET_MAST_ROOT,
-        ACCOUNT_SEND_ASSET_MAST_ROOT,
-        ACCOUNT_INCR_NONCE_MAST_ROOT,
-        ACCOUNT_SET_ITEM_MAST_ROOT,
-        ACCOUNT_SET_CODE_MAST_ROOT,
-        ACCOUNT_CREATE_NOTE_MAST_ROOT,
-        ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT,
-        ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT,
-    ];
-    assert_eq!(current, expected);
+    assert!(current == MASTS, "const MASTS: [&str; 8] = {:?};", current);
 
     code
 }
@@ -242,7 +234,7 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
-    Account::new(acct_id, AssetVault::default(), account_storage, account_code, Felt::ZERO)
+    Account::new(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
 }
 
 pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {

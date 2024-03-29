@@ -4,8 +4,8 @@ use miden_objects::{
     accounts::AccountId,
     assets::Asset,
     crypto::rand::FeltRng,
-    notes::{Note, NoteType},
-    Felt, NoteError, Word,
+    notes::{Note, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
+    NoteError, Word, ZERO,
 };
 
 use self::utils::build_note_script;
@@ -36,10 +36,12 @@ pub fn create_p2id_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = [target.into()];
-    let tag: Felt = target.into();
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    Note::new(note_script, &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script, &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -66,10 +68,12 @@ pub fn create_p2idr_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = [target.into(), recall_height.into()];
-    let tag: Felt = target.into();
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, note_type, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    Note::new(note_script.clone(), &inputs, &assets, serial_num, metadata)
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -93,6 +97,7 @@ pub fn create_swap_note<R: FeltRng>(
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
     let asset_word: Word = requested_asset.into();
+    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
 
     let inputs = [
         payback_recipient[0],
@@ -103,21 +108,16 @@ pub fn create_swap_note<R: FeltRng>(
         asset_word[1],
         asset_word[2],
         asset_word[3],
-        sender.into(),
+        payback_tag.inner().into(),
     ];
 
-    let tag: Felt = Felt::new(0);
+    // TODO: build the tag for the SWAP use case
+    let tag = 0.into();
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    let note = Note::new(
-        note_script.clone(),
-        &inputs,
-        &[offered_asset],
-        serial_num,
-        sender,
-        note_type,
-        tag,
-    )?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, metadata)?;
 
     Ok((note, payback_serial_num))
 }

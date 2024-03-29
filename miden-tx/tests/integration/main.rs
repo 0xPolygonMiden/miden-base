@@ -7,11 +7,11 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteId, NoteScript, NoteType},
+    notes::{Note, NoteId, NoteMetadata, NoteScript, NoteType},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
     },
-    BlockHeader, Felt, Word,
+    BlockHeader, Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
@@ -177,14 +177,6 @@ pub fn get_note_with_fungible_asset_and_script(
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    Note::new(
-        note_script.clone(),
-        &[],
-        &[fungible_asset.into()],
-        SERIAL_NUM,
-        sender_id,
-        NoteType::Public,
-        Felt::new(1),
-    )
-    .unwrap()
+    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1.into(), ZERO).unwrap();
+    Note::new(note_script.clone(), &[], &[fungible_asset.into()], SERIAL_NUM, metadata).unwrap()
 }

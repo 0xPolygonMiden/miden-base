@@ -6,7 +6,7 @@ use core::fmt;
 
 use super::{
     get_account_seed, Account, AccountError, ByteReader, Deserializable, DeserializationError,
-    Digest, Felt, FieldElement, Hasher, Serializable, Word,
+    Digest, Felt, Hasher, Serializable, Word, ZERO,
 };
 use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
 
@@ -350,7 +350,7 @@ pub fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Di
     elements.extend(seed);
     elements.extend(*code_root);
     elements.extend(*storage_root);
-    elements.resize(16, Felt::ZERO);
+    elements.resize(16, ZERO);
     Hasher::hash_elements(&elements)
 }
 

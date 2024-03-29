@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::utils::collections::*;
+use crate::{notes::NoteType, utils::collections::*};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -204,14 +204,16 @@ pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
+    InconsistentNoteTag(NoteType, u64),
     InconsistentStubAssetHash(Digest, Digest),
     InconsistentStubId(NoteId, NoteId),
     InvalidAssetData(AssetError),
     InvalidOriginIndex(String),
     InvalidStubDataLen(usize),
+    InvalidNoteSender(AccountError),
+    InvalidNoteType(u64),
+    NetworkExecutionRequiresOnChainAccount,
     NoteDeserializationError(DeserializationError),
-    NoteMetadataSenderInvalid(AccountError),
-    NoteTypeInvalid(u64),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),

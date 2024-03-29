@@ -17,10 +17,13 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::NoteMetadata;
+pub use metadata::{NoteExecutionMode, NoteMetadata};
 
 mod note_id;
 pub use note_id::NoteId;
+
+mod note_tag;
+pub use note_tag::NoteTag;
 
 mod note_type;
 pub use note_type::NoteType;
@@ -94,13 +97,10 @@ impl Note {
         inputs: &[Felt],
         assets: &[Asset],
         serial_num: Word,
-        sender: AccountId,
-        note_type: NoteType,
-        tag: Felt,
+        metadata: NoteMetadata,
     ) -> Result<Self, NoteError> {
         let inputs = NoteInputs::new(inputs.to_vec())?;
         let assets = NoteAssets::new(assets)?;
-        let metadata = NoteMetadata::new(sender, note_type, tag);
 
         Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
     }
