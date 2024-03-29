@@ -17,10 +17,13 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::{NoteExecution, NoteMetadata};
+pub use metadata::{NoteExecutionMode, NoteMetadata};
 
 mod note_id;
 pub use note_id::NoteId;
+
+mod note_tag;
+pub use note_tag::NoteTag;
 
 mod note_type;
 pub use note_type::NoteType;

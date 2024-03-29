@@ -204,19 +204,19 @@ pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
+    InconsistentNoteTag(NoteType, u64),
     InconsistentStubAssetHash(Digest, Digest),
     InconsistentStubId(NoteId, NoteId),
     InvalidAssetData(AssetError),
     InvalidOriginIndex(String),
     InvalidStubDataLen(usize),
+    InvalidNoteSender(AccountError),
+    InvalidNoteType(u64),
+    NetworkExecutionRequiresOnChainAccount,
     NoteDeserializationError(DeserializationError),
-    NoteMetadataSenderInvalid(AccountError),
-    NoteTypeInvalid(u64),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
-    InvalidTag(NoteType, u64),
-    TagError(TagError),
 }
 
 impl NoteError {
@@ -286,23 +286,6 @@ impl fmt::Display for ChainMmrError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
-
-// TAG ERROR
-// ================================================================================================
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TagError {
-    NetworkExecutionRequiresOnChainAccount,
-}
-
-impl fmt::Display for TagError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for TagError {}
 
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================

@@ -55,7 +55,7 @@ pub fn mock_notes(
 
     // Created Notes
     const SERIAL_NUM_4: Word = [Felt::new(13), Felt::new(14), Felt::new(15), Felt::new(16)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let created_note_1 = Note::new(
         note_script.clone(),
         &[Felt::new(1)],
@@ -66,7 +66,7 @@ pub fn mock_notes(
     .unwrap();
 
     const SERIAL_NUM_5: Word = [Felt::new(17), Felt::new(18), Felt::new(19), Felt::new(20)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let created_note_2 = Note::new(
         note_script.clone(),
         &[Felt::new(2)],
@@ -77,7 +77,7 @@ pub fn mock_notes(
     .unwrap();
 
     const SERIAL_NUM_6: Word = [Felt::new(21), Felt::new(22), Felt::new(23), Felt::new(24)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let created_note_3 =
         Note::new(note_script, &[Felt::new(2)], &[fungible_asset_3], SERIAL_NUM_6, metadata)
             .unwrap();
@@ -145,13 +145,13 @@ pub fn mock_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let consumed_note_1 =
         Note::new(note_1_script, &[Felt::new(1)], &[fungible_asset_1], SERIAL_NUM_1, metadata)
             .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let consumed_note_2 = Note::new(
         note_2_script,
         &[Felt::new(2)],
@@ -165,7 +165,7 @@ pub fn mock_notes(
     let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
 
     const SERIAL_NUM_3: Word = [Felt::new(9), Felt::new(10), Felt::new(11), Felt::new(12)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let consumed_note_3 = Note::new(
         note_3_script.clone(),
         &[Felt::new(2)],
@@ -179,7 +179,7 @@ pub fn mock_notes(
     let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
 
     const SERIAL_NUM_7: Word = [Felt::new(25), Felt::new(26), Felt::new(27), Felt::new(28)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let consumed_note_4 = Note::new(
         note_4_script,
         &[Felt::new(1)],
@@ -221,7 +221,7 @@ pub fn mock_notes(
     .unwrap();
     let (note_5_script, _) = NoteScript::new(note_5_script_ast, assembler).unwrap();
     const SERIAL_NUM_8: Word = [Felt::new(29), Felt::new(30), Felt::new(31), Felt::new(32)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let consumed_note_5 = Note::new(
         note_5_script,
         &[],

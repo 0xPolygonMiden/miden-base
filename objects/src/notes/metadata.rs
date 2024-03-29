@@ -1,10 +1,8 @@
 use alloc::string::ToString;
 
-use vm_processor::DeserializationError;
-
 use super::{
-    AccountId, ByteReader, ByteWriter, Deserializable, Felt, NoteError, NoteType, Serializable,
-    Word,
+    AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, NoteError,
+    NoteTag, NoteType, Serializable, Word,
 };
 
 // CONSTANTS
@@ -16,7 +14,7 @@ const LOCAL_EXECUTION: u8 = 1;
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum NoteExecution {
+pub enum NoteExecutionMode {
     Network = NETWORK_EXECUTION,
     Local = LOCAL_EXECUTION,
 }
@@ -41,7 +39,7 @@ pub enum NoteExecution {
 pub struct NoteMetadata {
     sender: AccountId,
     note_type: NoteType,
-    tag: u32,
+    tag: NoteTag,
     aux: Felt,
 }
 
@@ -53,16 +51,10 @@ impl NoteMetadata {
     pub fn new(
         sender: AccountId,
         note_type: NoteType,
-        tag: u32,
+        tag: NoteTag,
         aux: Felt,
     ) -> Result<Self, NoteError> {
-        // check consistency between note type and note tag taking advantage of how discriminants
-        // for note type are defined
-        let tag_mask = note_type as u32;
-        if (tag >> 30) & tag_mask != 0 {
-            return Err(NoteError::InvalidTag(note_type, tag as u64));
-        }
-
+        let tag = tag.validate(note_type)?;
         Ok(Self { sender, note_type, tag, aux })
     }
 
@@ -77,7 +69,7 @@ impl NoteMetadata {
     }
 
     /// Returns the tag associated with the note.
-    pub fn tag(&self) -> u32 {
+    pub fn tag(&self) -> NoteTag {
         self.tag
     }
 
@@ -96,7 +88,7 @@ impl From<NoteMetadata> for Word {
 impl From<&NoteMetadata> for Word {
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();
-        elements[0] = metadata.tag.into();
+        elements[0] = metadata.tag.inner().into();
         elements[1] = metadata.sender.into();
         elements[2] = metadata.note_type.into();
         elements[3] = metadata.aux;
@@ -108,11 +100,12 @@ impl TryFrom<Word> for NoteMetadata {
     type Error = NoteError;
 
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
-        let sender = elements[1].try_into().map_err(NoteError::NoteMetadataSenderInvalid)?;
+        let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
         let note_type = elements[2].try_into()?;
         let tag: u64 = elements[0].into();
-        let tag: u32 = tag.try_into().map_err(|_| NoteError::InvalidTag(note_type, tag))?;
-        Self::new(sender, note_type, tag, elements[3])
+        let tag: u32 =
+            tag.try_into().map_err(|_| NoteError::InconsistentNoteTag(note_type, tag))?;
+        Self::new(sender, note_type, tag.into(), elements[3])
     }
 }
 
@@ -132,7 +125,7 @@ impl Deserializable for NoteMetadata {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let sender = AccountId::read_from(source)?;
         let note_type = NoteType::read_from(source)?;
-        let tag = u32::read_from(source)?;
+        let tag = NoteTag::read_from(source)?;
         let aux = Felt::read_from(source)?;
 
         Self::new(sender, note_type, tag, aux)

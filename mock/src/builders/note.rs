@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteMetadata, NoteScript, NoteType},
+    notes::{Note, NoteInclusionProof, NoteInputs, NoteMetadata, NoteScript, NoteTag, NoteType},
     Felt, NoteError, Word, ZERO,
 };
 use rand::Rng;
@@ -27,7 +27,7 @@ pub struct NoteBuilder {
     assets: Vec<Asset>,
     note_type: NoteType,
     serial_num: Word,
-    tag: u32,
+    tag: NoteTag,
     code: String,
     proof: Option<NoteInclusionProof>,
     aux: Felt,
@@ -48,7 +48,7 @@ impl NoteBuilder {
             assets: vec![],
             note_type: NoteType::Public,
             serial_num,
-            tag: 0,
+            tag: 0.into(),
             code: DEFAULT_NOTE_CODE.to_string(),
             proof: None,
             aux: ZERO,
@@ -67,7 +67,7 @@ impl NoteBuilder {
     }
 
     pub fn tag(mut self, tag: u32) -> Self {
-        self.tag = tag;
+        self.tag = tag.into();
         self
     }
 

@@ -184,7 +184,7 @@ fn test_get_output_notes_hash() {
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
-    let output_tag_1 = 8888;
+    let output_tag_1 = 8888.into();
     let metadata =
         NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
     let output_note_1 = Note::new(
@@ -198,7 +198,7 @@ fn test_get_output_notes_hash() {
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
-    let output_tag_2 = 1111;
+    let output_tag_2 = 1111.into();
     let metadata =
         NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
     let output_note_2 = Note::new(

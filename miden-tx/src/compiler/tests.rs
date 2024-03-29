@@ -156,7 +156,7 @@ fn mock_consumed_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let note_1 = Note::new(
         note_script.clone(),
         &[Felt::new(1)],
@@ -167,7 +167,7 @@ fn mock_consumed_notes(
     .unwrap();
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0, ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let note_2 = Note::new(
         note_script,
         &[Felt::new(2)],

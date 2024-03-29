@@ -4,7 +4,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteExecution, NoteMetadata, NoteType},
+    notes::{NoteAssets, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
     transaction::{OutputNote, TransactionArgs},
     Felt, ZERO,
 };
@@ -95,14 +95,10 @@ fn prove_swap_script() {
 
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
+    let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionMode::Local).unwrap();
 
-    let note_metadata = NoteMetadata::new(
-        target_account_id,
-        NoteType::OffChain,
-        sender_account_id.to_tag(NoteExecution::Local).unwrap(),
-        ZERO,
-    )
-    .unwrap();
+    let note_metadata =
+        NoteMetadata::new(target_account_id, NoteType::OffChain, tag, ZERO).unwrap();
 
     let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
 
