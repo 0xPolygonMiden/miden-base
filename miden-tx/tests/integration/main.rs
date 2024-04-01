@@ -6,7 +6,7 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
+    crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteId, NoteMetadata, NoteScript, NoteType},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
@@ -132,14 +132,14 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
-    let keypair: KeyPair = KeyPair::new().unwrap();
-
-    let pk: Word = keypair.public_key().into();
-    let pk_sk_bytes = keypair.to_bytes();
+    let sec_key = SecretKey::new();
+    let pub_key: Word = sec_key.public_key().into();
+    let mut pk_sk_bytes = sec_key.to_bytes();
+    pk_sk_bytes.append(&mut pub_key.to_bytes());
     let pk_sk_felts: Vec<Felt> =
         pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    (pk, pk_sk_felts)
+    (pub_key, pk_sk_felts)
 }
 
 #[allow(dead_code)]

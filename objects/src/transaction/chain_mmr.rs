@@ -121,7 +121,7 @@ mod tests {
     use super::ChainMmr;
     use crate::{
         crypto::merkle::{Mmr, PartialMmr},
-        utils::collections::*,
+        utils::Vec,
         BlockHeader, Digest, ZERO,
     };
 

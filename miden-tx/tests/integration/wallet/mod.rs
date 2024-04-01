@@ -3,7 +3,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    crypto::dsa::rpo_falcon512::SecretKey,
     notes::NoteType,
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
@@ -195,8 +195,8 @@ fn wallet_creation() {
     // we need a Falcon Public Key to create the wallet account
 
     use miden_objects::accounts::AccountType;
-    let key_pair: KeyPair = KeyPair::new().unwrap();
-    let pub_key: PublicKey = key_pair.public_key();
+    let sec_key = SecretKey::new();
+    let pub_key = sec_key.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 
     // we need to use an initial seed to create the wallet account

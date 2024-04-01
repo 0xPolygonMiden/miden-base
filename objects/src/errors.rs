@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::{notes::NoteType, utils::collections::*};
+use crate::{notes::NoteType, utils::Vec};
 
 // ACCOUNT ERROR
 // ================================================================================================

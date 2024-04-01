@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::string::{String, ToString};
 
 pub use miden_objects::utils::*;
 use miden_objects::{notes::NoteAssets, Word};

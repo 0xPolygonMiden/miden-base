@@ -1,7 +1,7 @@
 use miden_objects::{
     assembly::ProgramAst,
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
-    utils::collections::*,
+    utils::{BTreeMap, Vec},
     Digest,
 };
 use mock::{

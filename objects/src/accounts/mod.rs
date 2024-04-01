@@ -273,7 +273,7 @@ impl serde::Serialize for Account {
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Account {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use crate::utils::collections::*;
+        use crate::utils::Vec;
 
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
         Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
@@ -316,7 +316,7 @@ mod tests {
     };
     use crate::{
         assets::{Asset, AssetVault, FungibleAsset},
-        utils::collections::*,
+        utils::Vec,
     };
 
     fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
