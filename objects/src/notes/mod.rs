@@ -38,6 +38,9 @@ pub use origin::{NoteInclusionProof, NoteOrigin};
 mod script;
 pub use script::NoteScript;
 
+mod tree;
+pub use tree::NotesTree;
+
 // CONSTANTS
 // ================================================================================================
 
