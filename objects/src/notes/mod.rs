@@ -39,7 +39,7 @@ mod script;
 pub use script::NoteScript;
 
 mod tree;
-pub use tree::NotesTree;
+pub use tree::{BatchOutputNotesTree, BlockOutputNotesTree};
 
 // CONSTANTS
 // ================================================================================================
