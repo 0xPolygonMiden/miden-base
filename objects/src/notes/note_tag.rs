@@ -1,5 +1,4 @@
-use core::fmt;
-use std::num::TryFromIntError;
+use core::{fmt, num::TryFromIntError};
 
 use super::{
     AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError,
