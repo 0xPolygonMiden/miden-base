@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{fmt, num::TryFromIntError};
 
 use super::{
     AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError,
@@ -123,6 +123,20 @@ impl From<u32> for NoteTag {
 impl From<NoteTag> for u32 {
     fn from(value: NoteTag) -> Self {
         value.0
+    }
+}
+
+impl TryFrom<u64> for NoteTag {
+    type Error = TryFromIntError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
+    }
+}
+
+impl From<NoteTag> for u64 {
+    fn from(value: NoteTag) -> Self {
+        value.0 as u64
     }
 }
 
