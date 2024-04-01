@@ -177,7 +177,7 @@ mod log {
     use assembly::utils::to_hex;
 
     use super::{
-        super::{digest_pow, Digest, FieldElement, Word},
+        super::{super::FieldElement, digest_pow, Digest, Word},
         AccountId, AccountType,
     };
 

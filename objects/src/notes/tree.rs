@@ -7,7 +7,8 @@ use super::NoteMetadata;
 use crate::{BATCH_OUTPUT_NOTES_TREE_DEPTH, BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH};
 
 /// Wrapper over [SimpleSmt] for notes tree
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NotesTree<const DEPTH: u8>(SimpleSmt<DEPTH>);
 
 impl<const DEPTH: u8> NotesTree<DEPTH> {
@@ -70,7 +71,8 @@ impl<const DEPTH: u8> NotesTree<DEPTH> {
 pub type BatchOutputNotesTree = NotesTree<BATCH_OUTPUT_NOTES_TREE_DEPTH>;
 
 /// Wrapper over [SimpleSmt] for notes tree
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockOutputNotesTree(NotesTree<BLOCK_OUTPUT_NOTES_TREE_DEPTH>);
 
 impl BlockOutputNotesTree {

@@ -2,7 +2,7 @@ use crate::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::AssetVault,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    AccountError, Digest, Felt, FieldElement, Hasher, Word, ZERO,
+    AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
 mod account_id;
