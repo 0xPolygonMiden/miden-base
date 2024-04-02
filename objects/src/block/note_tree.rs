@@ -20,7 +20,7 @@ impl BlockNoteTree {
 
     /// Returns a new [BlockOutputNotesTree] instantiated with entries set as specified by the provided entries.
     ///
-    /// Entry format: (batch_index, note_index, (note_id, &note_metadata)).
+    /// Entry format: (batch_index, note_index, (note_id, note_metadata)).
     ///
     /// All leaves omitted from the entries list are set to [ZERO; 4].
     ///
@@ -28,8 +28,8 @@ impl BlockNoteTree {
     /// Returns an error if:
     /// - The number of entries exceeds the maximum notes tree capacity, that is 2^21.
     /// - The provided entries contain multiple values for the same key.
-    pub fn with_entries<'a>(
-        entries: impl IntoIterator<Item = (usize, usize, (RpoDigest, &'a NoteMetadata))>,
+    pub fn with_entries(
+        entries: impl IntoIterator<Item = (usize, usize, (RpoDigest, NoteMetadata))>,
     ) -> Result<Self, MerkleError> {
         let interleaved =
             entries.into_iter().flat_map(|(batch_index, note_index, (note_id, metadata))| {
