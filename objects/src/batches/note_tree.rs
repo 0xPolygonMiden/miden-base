@@ -3,7 +3,10 @@ use miden_crypto::{
     merkle::{MerkleError, SimpleSmt},
 };
 
-use crate::{notes::NoteMetadata, BATCH_OUTPUT_NOTES_TREE_DEPTH};
+use crate::{
+    notes::{NoteId, NoteMetadata},
+    BATCH_OUTPUT_NOTES_TREE_DEPTH,
+};
 
 /// Wrapper over [SimpleSmt] for batch note tree
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +27,7 @@ impl BatchNoteTree {
     /// # Errors
     /// Returns an error if the number of entries exceeds the maximum tree capacity, that is 2^{depth}.
     pub fn with_contiguous_leaves<'a>(
-        entries: impl IntoIterator<Item = (RpoDigest, &'a NoteMetadata)>,
+        entries: impl IntoIterator<Item = (NoteId, &'a NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let interleaved = entries
             .into_iter()
