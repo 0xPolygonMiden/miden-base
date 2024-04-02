@@ -8,19 +8,14 @@ use crate::{
     BATCH_OUTPUT_NOTES_TREE_DEPTH,
 };
 
-/// Wrapper over [SimpleSmt] for batch note tree
+/// Wrapper over [SimpleSmt<BATCH_OUTPUT_NOTES_TREE_DEPTH>] for batch note tree.
+///
+/// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BatchNoteTree(SimpleSmt<BATCH_OUTPUT_NOTES_TREE_DEPTH>);
 
 impl BatchNoteTree {
-    /// Returns a new [BatchNoteTree].
-    ///
-    /// All leaves in the returned tree are set to [ZERO; 4].
-    pub fn new() -> Self {
-        Self(SimpleSmt::new().expect("Unreachable"))
-    }
-
     /// Wrapper around [`SimpleSmt::with_contiguous_leaves`] which populates notes at contiguous indices
     /// starting at index 0.
     ///
@@ -39,11 +34,5 @@ impl BatchNoteTree {
     /// Returns the root of the tree
     pub fn root(&self) -> RpoDigest {
         self.0.root()
-    }
-}
-
-impl Default for BatchNoteTree {
-    fn default() -> Self {
-        Self::new()
     }
 }

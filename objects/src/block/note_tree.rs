@@ -1,27 +1,28 @@
+use alloc::string::ToString;
+
 use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
+    Word,
 };
 
 use crate::{
     notes::{NoteMetadata, NOTE_LEAF_DEPTH},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH,
 };
 
-/// Wrapper over [SimpleSmt] for notes tree
+/// Wrapper over [SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>] for notes tree.
+///
+/// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
+/// Id leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
+/// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockNoteTree(SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockOutputNotesTree].
-    ///
-    /// All leaves in the returned tree are set to [ZERO; 4].
-    pub fn new() -> Self {
-        Self(SimpleSmt::new().expect("Unreachable"))
-    }
-
-    /// Returns a new [BlockOutputNotesTree] instantiated with entries set as specified by the provided entries.
+    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided entries.
     ///
     /// Entry format: (batch_index, note_index, (note_id, note_metadata)).
     ///
@@ -72,8 +73,60 @@ impl BlockNoteTree {
     }
 }
 
-impl Default for BlockNoteTree {
-    fn default() -> Self {
-        Self::new()
+// SERIALIZATION
+// ================================================================================================
+
+const EOF_INDEX: u32 = 0xFFFF_FFFF;
+
+impl Serializable for BlockNoteTree {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        for (index, node) in self.0.leaves() {
+            target.write_u32(index as u32);
+            target.write(node);
+        }
+        target.write_u32(EOF_INDEX);
+    }
+}
+
+impl Deserializable for BlockNoteTree {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mut leaves = vec![];
+        loop {
+            let index = source.read_u32()?;
+            if index == EOF_INDEX {
+                break;
+            }
+            let value: Word = source.read()?;
+            leaves.push((index as u64, value));
+        }
+
+        SimpleSmt::with_leaves(leaves)
+            .map(Self)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::{
+        merkle::SimpleSmt,
+        utils::{Deserializable, Serializable},
+        Felt, ONE, ZERO,
+    };
+
+    use super::BlockNoteTree;
+
+    #[test]
+    fn test_serialization() {
+        let data = core::iter::repeat(())
+            .enumerate()
+            .map(|(idx, ())| (idx as u64, [ONE, ZERO, ONE, Felt::new(idx as u64)]))
+            .take(100);
+        let initial_tree = BlockNoteTree(SimpleSmt::with_leaves(data).unwrap());
+
+        let serialized = initial_tree.to_bytes();
+        let deserialized_tree = BlockNoteTree::read_from_bytes(&serialized).unwrap();
+
+        assert_eq!(deserialized_tree, initial_tree);
     }
 }
