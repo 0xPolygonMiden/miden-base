@@ -1,9 +1,12 @@
 use miden_crypto::{
     hash::rpo::RpoDigest,
-    merkle::{MerkleError, SimpleSmt},
+    merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
 };
 
-use crate::{notes::NoteMetadata, BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH};
+use crate::{
+    notes::{NoteMetadata, NOTE_LEAF_DEPTH},
+    BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH,
+};
 
 /// Wrapper over [SimpleSmt] for notes tree
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +36,7 @@ impl BlockNoteTree {
     ) -> Result<Self, MerkleError> {
         let interleaved =
             entries.into_iter().flat_map(|(batch_index, note_index, (note_id, metadata))| {
-                let id_index = (batch_index * MAX_NOTES_PER_BATCH + note_index * 2) as u64;
+                let id_index = Self::leaf_index(batch_index, note_index);
                 [(id_index, note_id.into()), (id_index + 1, metadata.into())]
             });
 
@@ -43,6 +46,29 @@ impl BlockNoteTree {
     /// Returns the root of the tree
     pub fn root(&self) -> RpoDigest {
         self.0.root()
+    }
+
+    /// Returns merkle path for the note with specified batch/note indexes
+    pub fn merkle_path(
+        &self,
+        batch_idx: usize,
+        note_idx_in_batch: usize,
+    ) -> Result<MerklePath, MerkleError> {
+        let leaf_index =
+            LeafIndex::<NOTE_LEAF_DEPTH>::new(Self::note_index(batch_idx, note_idx_in_batch))?;
+
+        Ok(self.0.open(&leaf_index).path)
+    }
+
+    // HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    fn note_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
+        (batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) as u64
+    }
+
+    fn leaf_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
+        Self::note_index(batch_idx, note_idx_in_batch) * 2
     }
 }
 
