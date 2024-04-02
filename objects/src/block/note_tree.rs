@@ -73,6 +73,12 @@ impl BlockNoteTree {
     }
 }
 
+impl Default for BlockNoteTree {
+    fn default() -> Self {
+        Self(SimpleSmt::new().expect("Unreachable"))
+    }
+}
+
 // SERIALIZATION
 // ================================================================================================
 
