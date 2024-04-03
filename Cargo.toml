@@ -1,7 +1,11 @@
 [workspace]
-members = ["miden-lib", "miden-tx", "mock", "objects"]
-
 resolver = "2"
+members = [
+    "miden-lib",
+    "miden-tx",
+    "mock",
+    "objects",
+]
 
 [workspace.package]
 edition = "2021"
