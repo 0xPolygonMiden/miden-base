@@ -3,7 +3,6 @@ use alloc::string::ToString;
 use miden_crypto::{
     hash::rpo::RpoDigest,
     merkle::{LeafIndex, MerkleError, MerklePath, SimpleSmt},
-    Word,
 };
 
 use crate::{
@@ -82,29 +81,17 @@ impl Default for BlockNoteTree {
 // SERIALIZATION
 // ================================================================================================
 
-const EOF_INDEX: u32 = 0xFFFF_FFFF;
-
 impl Serializable for BlockNoteTree {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        for (index, node) in self.0.leaves() {
-            target.write_u32(index as u32);
-            target.write(node);
-        }
-        target.write_u32(EOF_INDEX);
+        target.write_u32(self.0.num_leaves() as u32);
+        target.write_many(self.0.leaves());
     }
 }
 
 impl Deserializable for BlockNoteTree {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mut leaves = vec![];
-        loop {
-            let index = source.read_u32()?;
-            if index == EOF_INDEX {
-                break;
-            }
-            let value: Word = source.read()?;
-            leaves.push((index as u64, value));
-        }
+        let count = source.read_u32()?;
+        let leaves = source.read_many(count as usize)?;
 
         SimpleSmt::with_leaves(leaves)
             .map(Self)
