@@ -48,20 +48,40 @@ disabled = true
 [tasks.test-default]
 description = "Run default tests excluding `prove`"
 workspace = false
+env = { "RUSTFLAGS" = "-C debug-assertions" }
 command = "cargo"
-args = ["test", "--profile", "test-release", "--features", "concurrent,testing", "--", "--skip", "prove"]
+args = ["nextest", "run", "--profile", "default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(prove)"]
 
 [tasks.test-prove]
 description = "Run `prove` tests (tests which use the Miden prover)"
 workspace = false
+env = { "RUSTFLAGS" = "-C debug-assertions" }
 command = "cargo"
-args = ["test", "--release", "--features", "concurrent,testing", "prove"]
+args = ["nextest", "run", "--profile", "prove", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(prove)"]
 
 [tasks.test-all]
 description = "Run all tests"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
 run_task = { name = ["test-default", "test-prove"], parallel = true }
+
+[tasks.ci-test-default]
+description = "Run default tests excluding `prove`"
+workspace = false
+command = "cargo"
+args = ["nextest", "run", "--profile", "ci-default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(prove)"]
+
+[tasks.ci-test-prove]
+description = "Run `prove` tests (tests which use the Miden prover)"
+workspace = false
+command = "cargo"
+args = ["nextest", "run", "--profile", "ci-prove", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(prove)"]
+
+[tasks.ci-test-all]
+description = "Run all tests"
+workspace = false
+env = { "RUSTFLAGS" = "-C debug-assertions" }
+run_task = { name = ["nextest-default", "nextest-prove"], parallel = true }
 
 # --- building ------------------------------------------------------------------------------------
 [tasks.build]
