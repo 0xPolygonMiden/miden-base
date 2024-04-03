@@ -88,9 +88,10 @@ impl Host for MockHost {
             )));
         }
 
-        use TransactionEvent::*;
         match event {
-            AccountPushProcedureIndex => self.on_push_account_procedure_index(process),
+            TransactionEvent::AccountPushProcedureIndex => {
+                self.on_push_account_procedure_index(process)
+            },
             _ => Ok(()),
         }?;
 

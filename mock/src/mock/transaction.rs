@@ -4,8 +4,8 @@ use miden_objects::{
     accounts::{Account, AccountDelta, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN},
     notes::Note,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
-        TransactionArgs, TransactionInputs, TransactionOutputs,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNotes, TransactionArgs,
+        TransactionInputs, TransactionOutputs,
     },
     BlockHeader, Felt, FieldElement, ZERO,
 };
@@ -34,10 +34,8 @@ pub fn mock_inputs_with_account_seed(
     asset_preservation: AssetPreservationStatus,
     account_seed: Option<Word>,
 ) -> TransactionInputs {
-    // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
-    // Create an account with storage items
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => mock_account(
@@ -53,17 +51,13 @@ pub fn mock_inputs_with_account_seed(
         },
     };
 
-    // mock notes
     let (input_notes, _output_notes) = mock_notes(&assembler, &asset_preservation);
 
-    // Chain data
     let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
 
-    // Block header
     let block_header =
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
-    // Transaction inputs
     let input_notes = InputNotes::new(recorded_notes).unwrap();
     TransactionInputs::new(account, account_seed, block_header, chain_mmr, input_notes).unwrap()
 }
@@ -114,7 +108,6 @@ pub fn mock_inputs_with_existing(
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
     let initial_account = mock_account(
@@ -130,15 +123,9 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account.code().clone(),
     );
 
-    // mock notes
     let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
-
-    let output_notes = output_notes.into_iter().map(OutputNote::from).collect::<Vec<_>>();
-
-    // Chain data
     let (block_chain, input_notes) = mock_chain_data(input_notes);
 
-    // Block header
     let block_header = mock_block_header(
         4,
         Some(block_chain.peaks().hash_peaks()),
@@ -166,7 +153,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let advice_witness = AdviceInputs::default();
     let tx_args: TransactionArgs = TransactionArgs::default();
 
-    // Executed Transaction
     ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, tx_args, advice_witness)
 }
 

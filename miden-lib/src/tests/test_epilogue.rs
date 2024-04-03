@@ -109,7 +109,8 @@ fn test_compute_created_note_id() {
         .unwrap();
 
         // assert the note asset hash is correct
-        let expected_asset_hash = note.assets().commitment();
+        let expected_asset_hash =
+            note.assets().expect("Output note should be full note").commitment();
         let asset_hash_memory_address =
             CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
         let actual_asset_hash =

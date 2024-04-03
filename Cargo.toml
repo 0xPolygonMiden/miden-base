@@ -9,7 +9,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.77"
 license = "MIT"
 authors = ["Miden contributors"]
 readme = "README.md"

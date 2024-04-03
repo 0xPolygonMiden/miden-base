@@ -287,12 +287,15 @@ fn add_input_notes_to_advice_inputs(
     let mut note_data = Vec::new();
     for input_note in notes.iter() {
         let note = input_note.note();
+        let assets = note.assets();
         let proof = input_note.proof();
+        let recipient = note.recipient();
         let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
         // insert note inputs and assets into the advice map
-        inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
-        inputs.extend_map([(note.assets().commitment(), note.assets().to_padded_assets())]);
+        inputs
+            .extend_map([(recipient.inputs().commitment(), recipient.inputs().to_padded_values())]);
+        inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
@@ -303,18 +306,18 @@ fn add_input_notes_to_advice_inputs(
         );
 
         // add the note elements to the combined vector of note data
-        note_data.extend(note.serial_num());
-        note_data.extend(*note.script().hash());
-        note_data.extend(*note.inputs().commitment());
-        note_data.extend(*note.assets().commitment());
+        note_data.extend(recipient.serial_num());
+        note_data.extend(*recipient.script().hash());
+        note_data.extend(*recipient.inputs().commitment());
+        note_data.extend(*assets.commitment());
 
         note_data.extend(Word::from(note.metadata()));
         note_data.extend(Word::from(*note_arg));
 
-        note_data.push(note.inputs().num_values().into());
+        note_data.push(recipient.inputs().num_values().into());
 
-        note_data.push((note.assets().num_assets() as u32).into());
-        note_data.extend(note.assets().to_padded_assets());
+        note_data.push((assets.num_assets() as u32).into());
+        note_data.extend(assets.to_padded_assets());
 
         note_data.push(proof.origin().block_num.into());
         note_data.extend(*proof.sub_hash());

@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     accounts::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    notes::{Note, NoteMetadata, NoteType},
+    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
     transaction::{OutputNote, OutputNotes},
     Word, ONE, ZERO,
 };
@@ -184,35 +184,27 @@ fn test_get_output_notes_hash() {
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
     let output_tag_1 = 8888.into();
+    let assets = NoteAssets::new(vec![input_asset_1]).unwrap();
     let metadata =
         NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
-    let output_note_1 = Note::new(
-        input_note_1.script().clone(),
-        &[],
-        &[input_asset_1],
-        output_serial_no_1,
-        metadata,
-    )
-    .unwrap();
+    let inputs = NoteInputs::new(vec![]).unwrap();
+    let recipient = NoteRecipient::new(output_serial_no_1, input_note_1.script().clone(), inputs);
+    let output_note_1 = Note::new(assets, metadata, recipient);
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
     let output_tag_2 = 1111.into();
+    let assets = NoteAssets::new(vec![input_asset_2]).unwrap();
     let metadata =
         NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
-    let output_note_2 = Note::new(
-        input_note_2.script().clone(),
-        &[],
-        &[input_asset_2],
-        output_serial_no_2,
-        metadata,
-    )
-    .unwrap();
+    let inputs = NoteInputs::new(vec![]).unwrap();
+    let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
+    let output_note_2 = Note::new(assets, metadata, recipient);
 
     // compute expected output notes hash
     let expected_output_notes_hash = OutputNotes::new(vec![
-        OutputNote::from(output_note_1.clone()),
-        OutputNote::from(output_note_2.clone()),
+        OutputNote::Public(output_note_1.clone()),
+        OutputNote::Public(output_note_2.clone()),
     ])
     .unwrap()
     .commitment();
@@ -255,12 +247,12 @@ fn test_get_output_notes_hash() {
     end
     ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient_1 = prepare_word(&output_note_1.recipient()),
+        recipient_1 = prepare_word(&output_note_1.recipient_digest()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&output_note_2.recipient()),
+        recipient_2 = prepare_word(&output_note_2.recipient_digest()),
         tag_2 = output_note_2.metadata().tag(),
         asset_2 = prepare_word(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
