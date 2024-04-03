@@ -28,10 +28,10 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+assembly = { package = "miden-assembly", version = "0.9", default-features = false }
 miden-crypto = { version = "0.9", default-features = false }
-miden-prover = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-stdlib = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-miden-verifier = { git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
-vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", branch = "next", default-features = false }
+miden-prover = { version = "0.9", default-features = false }
+miden-stdlib = { version = "0.9", default-features = false }
+miden-verifier = { version = "0.9", default-features = false }
+vm-core = { package = "miden-core", version = "0.9", default-features = false }
+vm-processor = { package = "miden-processor", version = "0.9", default-features = false }
