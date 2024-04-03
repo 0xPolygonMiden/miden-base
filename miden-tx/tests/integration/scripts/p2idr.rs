@@ -6,7 +6,6 @@ use miden_objects::{
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
     transaction::TransactionArgs,
-    utils::collections::*,
     Felt,
 };
 use miden_tx::TransactionExecutor;

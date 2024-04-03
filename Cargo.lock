@@ -577,8 +577,7 @@ checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 [[package]]
 name = "miden-air"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74fe3da3cee72178aa6d8cdd0e88a4d11a983f6c79a0257abfb6f04056177bee"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-core",
  "winter-air",
@@ -588,8 +587,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f4261c0b2593e540004ddff8eb4e04419cf06d4c3794dbaa03bac6b51d09bf5"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-core",
  "num_enum",
@@ -599,8 +597,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb50725295351f6f01e68a03b6f43724a727c3545ddd849a94e21290fbae2ce"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-crypto",
  "winter-math",
@@ -609,14 +606,19 @@ dependencies = [
 
 [[package]]
 name = "miden-crypto"
-version = "0.8.4"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a186bed6fd782e0af049164f7e3b565aabf30227ce75e3405550930eebf14627"
+checksum = "ed06c4ed5b06838ecba9030d9f3905642790c8ed7051a24dac062f16c73ae356"
 dependencies = [
  "blake3",
  "cc",
  "glob",
+ "num",
+ "num-complex",
+ "rand",
+ "rand_core",
  "serde",
+ "sha3",
  "winter-crypto",
  "winter-math",
  "winter-utils",
@@ -670,8 +672,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e355306e8495f40685aac012d7ec62f86c42b89dcd8d88d26a507b363d4e5de5"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -682,8 +683,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "757e94100fd703d9b76ef0b4772a6e983e895454fd43da8ba8145b57976e9f69"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -694,8 +694,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a560cf74e712c121b4f531aa6df2de5f9daef29dfc328a0ee91064ce6720d5d"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-assembly",
 ]
@@ -715,13 +714,78 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83a54fb6a52f8a3a0874718bf2cb41526e4a59972e8918db9a7796a7a73ab37f"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?branch=next#d5de23133353ee78cbc0754e7091d94a5449d353"
 dependencies = [
  "miden-air",
  "miden-core",
  "tracing",
  "winter-verifier",
+]
+
+[[package]]
+name = "num"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b05180d69e3da0e530ba2a1dae5110317e49e3b7f3d41be227dc5f92e49ee7af"
+dependencies = [
+ "num-bigint",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "608e7659b5c3d7cba262d894801b9ec9d00de989e8a82bd4bef91d08da45cdc0"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23c6602fda94a57c990fe0df199a035d83576b496aa29f4e634a8ac6004e68a6"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7969661fd2958a5cb096e56c8e1ad0444ac2bbcd0061bd28660485a44879858f"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d869c01cc0c455284163fd0092f1f93835385ccab5a98a0dcc497b2f8bf055a9"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0638a1c9d0a3c0914158145bc76cff373a75a627e6ecbfb71cbe6f453a5a19b0"
+dependencies = [
+ "autocfg",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
 ]
 
 [[package]]
@@ -731,6 +795,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -768,9 +833,9 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8afb450f006bf6385ca15ef45d71d2288452bc3683ce2e2cacc0d18e4be60b58"
+checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
 
 [[package]]
 name = "postcard"
@@ -1019,9 +1084,9 @@ checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
 
 [[package]]
 name = "syn"
-version = "2.0.55"
+version = "2.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "002a1b3dbf967edfafc32655d0f377ab0bb7b994aa1d32c8cc7e9b8bf3ebb8f0"
+checksum = "11a6ae1e52eb25aab8f3fb9fca13be982a373b8f1157ca14b897a825ba4a2d35"
 dependencies = [
  "proc-macro2",
  "quote",

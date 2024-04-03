@@ -141,7 +141,7 @@ pub fn test_account_type() {
             let process = run_within_tx_kernel(
                 "",
                 &code,
-                StackInputs::new(vec![account_id.into()]),
+                StackInputs::new(vec![account_id.into()]).unwrap(),
                 MemAdviceProvider::default(),
                 None,
             )

@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
-    crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteMetadata, NoteType},
     transaction::{OutputNote, TransactionArgs},
     Felt, Word, ZERO,
@@ -221,8 +221,8 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 #[test]
 fn faucet_contract_creation() {
     // we need a Falcon Public Key to create the wallet account
-    let key_pair: KeyPair = KeyPair::new().unwrap();
-    let pub_key: PublicKey = key_pair.public_key();
+    let sec_key = SecretKey::new();
+    let pub_key = sec_key.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 
     // we need to use an initial seed to create the wallet account

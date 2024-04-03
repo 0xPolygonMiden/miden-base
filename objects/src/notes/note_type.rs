@@ -1,8 +1,5 @@
 use crate::{
-    utils::{
-        format,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, NoteError,
 };
 

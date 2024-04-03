@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
 use miden_objects::{
     accounts::AccountId,
@@ -112,6 +112,8 @@ impl TransactionKernel {
         inputs.push(acct_id.into());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
+            .map_err(|e| e.to_string())
+            .expect("Invalid stack input")
     }
 
     pub fn build_output_stack(
@@ -124,7 +126,9 @@ impl TransactionKernel {
         outputs.extend(output_notes_hash);
         outputs.extend(tx_script_root.unwrap_or_default());
         outputs.reverse();
-        StackOutputs::from_elements(outputs, Vec::new()).unwrap()
+        StackOutputs::new(outputs, Vec::new())
+            .map_err(|e| e.to_string())
+            .expect("Invalid stack output")
     }
 
     /// Extracts transaction output data from the provided stack outputs.
