@@ -91,6 +91,12 @@ impl NoteId {
 // CONVERSIONS FROM NOTE ID
 // ================================================================================================
 
+impl From<NoteId> for Digest {
+    fn from(id: NoteId) -> Self {
+        id.inner()
+    }
+}
+
 impl From<NoteId> for Word {
     fn from(id: NoteId) -> Self {
         id.0.into()

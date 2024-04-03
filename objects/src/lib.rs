@@ -8,6 +8,7 @@ extern crate std;
 
 pub mod accounts;
 pub mod assets;
+pub mod batches;
 pub mod block;
 pub mod notes;
 pub mod transaction;
