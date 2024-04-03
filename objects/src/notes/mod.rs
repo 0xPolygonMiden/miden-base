@@ -2,13 +2,11 @@ use crate::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     assets::Asset,
-    utils::{
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        Vec,
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
+use alloc::vec::Vec;
 
 mod assets;
 pub use assets::NoteAssets;

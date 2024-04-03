@@ -1,9 +1,9 @@
+use alloc::vec::Vec;
 use miden_objects::{
     accounts::{AccountId, AccountStub},
     assets::Asset,
     notes::{NoteAssets, NoteId, NoteMetadata},
     transaction::OutputNote,
-    utils::Vec,
     AccountError, Digest, NoteError, Word,
 };
 

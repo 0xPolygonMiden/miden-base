@@ -120,8 +120,8 @@ impl ChainMmr {
 mod tests {
     use super::ChainMmr;
     use crate::{
+        alloc::vec::Vec,
         crypto::merkle::{Mmr, PartialMmr},
-        utils::Vec,
         BlockHeader, Digest, ZERO,
     };
 

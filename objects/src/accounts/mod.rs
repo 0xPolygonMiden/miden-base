@@ -273,7 +273,7 @@ impl serde::Serialize for Account {
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Account {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use crate::utils::Vec;
+        use alloc::vec::Vec;
 
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
         Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
@@ -314,10 +314,8 @@ mod tests {
         Word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
-    use crate::{
-        assets::{Asset, AssetVault, FungibleAsset},
-        utils::Vec,
-    };
+    use crate::assets::{Asset, AssetVault, FungibleAsset};
+    use alloc::vec::Vec;
 
     fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
         // build account code

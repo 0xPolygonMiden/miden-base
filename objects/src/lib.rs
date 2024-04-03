@@ -40,7 +40,6 @@ pub mod crypto {
 }
 
 pub mod utils {
-    pub use alloc::{collections::BTreeMap, vec::Vec};
     pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
 

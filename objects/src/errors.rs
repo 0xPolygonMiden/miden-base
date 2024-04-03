@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use assembly::AssemblyError;
@@ -11,7 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word,
 };
-use crate::{notes::NoteType, utils::Vec};
+use crate::notes::NoteType;
 
 // ACCOUNT ERROR
 // ================================================================================================
