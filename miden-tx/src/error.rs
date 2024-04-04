@@ -12,7 +12,7 @@ use super::{AccountError, AccountId, Digest, ExecutionError};
 // TRANSACTION COMPILER ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionCompilerError {
     AccountInterfaceNotFound(AccountId),
     BuildCodeBlockTableFailed(AssemblyError),
@@ -37,7 +37,7 @@ impl std::error::Error for TransactionCompilerError {}
 // TRANSACTION EXECUTOR ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
     CompileTransactionScriptFailed(TransactionCompilerError),
@@ -69,7 +69,7 @@ impl std::error::Error for TransactionExecutorError {}
 // TRANSACTION PROVER ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
     InvalidTransactionOutput(TransactionOutputError),
@@ -98,7 +98,7 @@ impl std::error::Error for TransactionProverError {}
 // TRANSACTION VERIFIER ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionVerifierError {
     TransactionVerificationFailed(VerificationError),
     InsufficientProofSecurityLevel(u32, u32),
@@ -116,7 +116,7 @@ impl std::error::Error for TransactionVerifierError {}
 // DATA STORE ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DataStoreError {
     AccountNotFound(AccountId),
     BlockNotFound(u32),
