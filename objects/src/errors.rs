@@ -16,7 +16,7 @@ use crate::notes::NoteType;
 // ACCOUNT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
@@ -67,7 +67,7 @@ impl std::error::Error for AccountError {}
 // ACCOUNT DELTA ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
     DuplicateStorageItemUpdate(usize),
     DuplicateVaultUpdate(Asset),
@@ -91,7 +91,7 @@ impl fmt::Display for AccountDeltaError {
 // ASSET ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssetError {
     AmountTooBig(u64),
     AssetAmountNotSufficient(u64, u64),
@@ -199,7 +199,7 @@ impl std::error::Error for AssetVaultError {}
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
@@ -257,7 +257,7 @@ impl std::error::Error for NoteError {}
 // CHAIN MMR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChainMmrError {
     BlockNumTooBig { chain_length: usize, block_num: u32 },
     DuplicateBlock { block_num: u32 },
@@ -290,7 +290,7 @@ impl std::error::Error for ChainMmrError {}
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionScriptError {
     ScriptCompilationError(AssemblyError),
 }
@@ -307,7 +307,7 @@ impl std::error::Error for TransactionScriptError {}
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
@@ -332,7 +332,7 @@ impl std::error::Error for TransactionInputError {}
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
     FinalAccountDataNotFound,
@@ -355,7 +355,7 @@ impl std::error::Error for TransactionOutputError {}
 // PROVEN TRANSACTION ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProvenTransactionError {
     AccountFinalHashMismatch(Digest, Digest),
     AccountIdMismatch(AccountId, AccountId),

@@ -28,7 +28,7 @@ pub enum AccountDetails {
 
 /// Result of executing and proving a transaction. Contains all the data required to verify that a
 /// transaction was executed correctly.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenTransaction {
     /// A unique identifier for the transaction, see [TransactionId] for additional details.
     id: TransactionId,
