@@ -88,7 +88,7 @@ impl Deserializable for AccountData {
 /// for Account serialisation and deserialisation for transport of Account data
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuthData {
-    RpoFalcon512Seed([u8; 40]),
+    RpoFalcon512Seed([u8; 32]),
 }
 
 // SERIALIZATION
@@ -110,7 +110,7 @@ impl Deserializable for AuthData {
         let scheme = u8::read_from(source)?;
         match scheme {
             0 => {
-                let seed = <[u8; 40]>::read_from(source)?;
+                let seed = <[u8; 32]>::read_from(source)?;
                 Ok(AuthData::RpoFalcon512Seed(seed))
             },
             value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
@@ -166,7 +166,7 @@ mod tests {
         let nonce = Felt::new(0);
         let account = Account::new(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());
-        let auth_seed = [0u8; 40];
+        let auth_seed = [0u8; 32];
         let auth = AuthData::RpoFalcon512Seed(auth_seed);
 
         // create AccountData
