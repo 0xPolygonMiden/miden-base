@@ -25,6 +25,7 @@ use mock::{
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
 };
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
 // MOCK DATA STORE
@@ -132,7 +133,10 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
-    let sec_key = SecretKey::new();
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+
+    let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
     let mut pk_sk_bytes = sec_key.to_bytes();
     pk_sk_bytes.append(&mut pub_key.to_bytes());

@@ -17,6 +17,7 @@ use mock::{
     },
     utils::prepare_word,
 };
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -192,10 +193,13 @@ fn prove_send_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    // we need a Falcon Public Key to create the wallet account
-
     use miden_objects::accounts::AccountType;
-    let sec_key = SecretKey::new();
+
+    // we need a Falcon Public Key to create the wallet account
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+
+    let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key = sec_key.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 

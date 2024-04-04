@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
@@ -6,7 +8,6 @@ use crate::{
     vm::CodeBlock,
     Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
-use alloc::vec::Vec;
 
 mod assets;
 pub use assets::NoteAssets;
