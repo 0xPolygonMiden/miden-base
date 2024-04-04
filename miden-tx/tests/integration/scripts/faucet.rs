@@ -14,6 +14,7 @@ use miden_objects::{
 };
 use miden_tx::TransactionExecutor;
 use mock::{mock::account::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, utils::prepare_word};
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
@@ -221,7 +222,10 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 #[test]
 fn faucet_contract_creation() {
     // we need a Falcon Public Key to create the wallet account
-    let sec_key = SecretKey::new();
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+
+    let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key = sec_key.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 

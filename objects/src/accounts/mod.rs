@@ -308,6 +308,8 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use super::{
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
         AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
@@ -315,7 +317,6 @@ mod tests {
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     };
     use crate::assets::{Asset, AssetVault, FungibleAsset};
-    use alloc::vec::Vec;
 
     fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
         // build account code

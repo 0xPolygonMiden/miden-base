@@ -715,6 +715,7 @@ dependencies = [
  "miden-processor",
  "miden-prover",
  "miden-verifier",
+ "rand_chacha",
 ]
 
 [[package]]

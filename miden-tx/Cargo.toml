@@ -30,3 +30,4 @@ vm-processor = { workspace = true }
 
 [dev-dependencies]
 mock = { package = "miden-mock", path = "../mock", default-features = false }
+rand_chacha = { version = "0.3", default-features = false }
