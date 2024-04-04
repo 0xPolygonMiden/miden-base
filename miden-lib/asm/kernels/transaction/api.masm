@@ -224,6 +224,7 @@ end
 #! Panics if 
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
+#! - the procedure is called from a non-account context
 #!
 #! Stack: [index, KEY, NEW_VALUE, ...]
 #! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]

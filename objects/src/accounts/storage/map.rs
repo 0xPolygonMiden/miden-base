@@ -7,7 +7,7 @@ use crate::crypto::{
 // ACCOUNT STORAGE MAP
 // ================================================================================================
 
-/// Account storage map is a Sparse Merkle Trees of depth 64. It can be used to store more data as
+/// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
 /// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
 /// slot.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]

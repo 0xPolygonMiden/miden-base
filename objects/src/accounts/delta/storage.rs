@@ -2,7 +2,7 @@ use alloc::{string::ToString, vec::Vec};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    Word,
+    Word, Felt,
 };
 
 // CONSTANTS
@@ -32,6 +32,7 @@ impl AccountStorageDelta {
     /// - The number of cleared or updated items is greater than 255.
     /// - Any of cleared or updated items are at slot 255 (i.e., immutable slot).
     /// - Any of the cleared or updated items is referenced more than once (e.g., updated twice).
+    /// - There is a storage map delta without a corresponding storage item update.
     pub fn validate(&self) -> Result<(), AccountDeltaError> {
         let num_cleared_items = self.cleared_items.len();
         let num_updated_items = self.updated_items.len();
@@ -221,12 +222,28 @@ impl StorageMapDelta {
     /// Returns an error if:
     /// - Any of the cleared or updated leaves is referenced more than once (e.g., updated twice).
     pub fn validate(&self) -> Result<(), AccountDeltaError> {
-        let mut updated_keys = [];
+        // we add all keys to a single vector and sort them to check for duplicates
+        // we don't use a hash set because we want to use no-std compatible code
+        let mut all_updated_keys = Vec::with_capacity(self.cleared_leaves.len() + self.updated_leaves.len());
 
-        updated_keys.sort();
-        for key in updated_keys.windows(2) {
+        // in order to sort the keys, we need to convert them to integers
+        for &key in &self.cleared_leaves {
+            let key_as_ints = key.iter().map(|x| x.as_int()).collect::<Vec<_>>();
+            all_updated_keys.push(key_as_ints);
+        }
+        for &(key, _) in &self.updated_leaves {
+            let key_as_ints = key.iter().map(|x| x.as_int()).collect::<Vec<_>>();
+            all_updated_keys.push(key_as_ints);
+        }
+
+        all_updated_keys.sort();
+
+        for key in all_updated_keys.windows(2) {
             if key[0] == key[1] {
-                return Err(AccountDeltaError::DuplicateStorageMapLeaf { key: key[0] });
+                let mut iter = key[0].iter().map(|&x| Felt::new(x));
+                // we know that the key is 4 elements long
+                let key_duplicate = Word::from([iter.next().unwrap(), iter.next().unwrap(), iter.next().unwrap(), iter.next().unwrap()]);
+                return Err(AccountDeltaError::DuplicateStorageMapLeaf { key: key_duplicate.into() });
             }
         }
 

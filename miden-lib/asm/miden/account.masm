@@ -101,7 +101,7 @@ export.set_item
     # => [R', V]
 end
 
-#! Sets a map item in the account storage. Panics if the index for the map is out of 
+#! Gets a map item from the account storage. Panics if the index for the map is out of 
 #! bounds, means >255.
 #!
 #! Stack: [index, KEY]

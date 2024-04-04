@@ -127,7 +127,6 @@ impl AccountStorageDeltaTracker {
 
     /// Tracks a slot change
     pub fn maps_update(&mut self, slot_index: u8, key: [Felt; 4], new_value: [Felt; 4]) {
-
         self.maps_updates
             .entry(slot_index)
             .or_insert(Vec::new())

@@ -33,9 +33,7 @@ impl AccountStorageBuilder {
     }
 
     pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
-        for map in maps.into_iter() {
-            self.add_map(map);
-        }
+        self.maps.extend(maps);
         self
     }
 
