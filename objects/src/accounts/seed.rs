@@ -32,7 +32,7 @@ pub fn get_account_seed(
         let send = send.clone();
         let stop = Arc::clone(&stop);
         let mut init_seed = init_seed;
-        init_seed[0] += count as u8;
+        init_seed[0] = init_seed[0].wrapping_add(count as u8);
         spawn(move || {
             get_account_seed_inner(
                 send,
