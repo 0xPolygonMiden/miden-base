@@ -55,7 +55,7 @@ impl BlockNoteTree {
         note_idx_in_batch: usize,
     ) -> Result<MerklePath, MerkleError> {
         let leaf_index =
-            LeafIndex::<NOTE_LEAF_DEPTH>::new(Self::note_index(batch_idx, note_idx_in_batch))?;
+            LeafIndex::<NOTE_LEAF_DEPTH>::new(Self::leaf_index(batch_idx, note_idx_in_batch))?;
 
         Ok(self.0.open(&leaf_index).path)
     }
@@ -63,12 +63,9 @@ impl BlockNoteTree {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    fn note_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
-        (batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) as u64
-    }
-
-    fn leaf_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
-        Self::note_index(batch_idx, note_idx_in_batch) * 2
+    /// Returns the leaf index for a Note. The metadata is located on the adjacent index.
+    pub fn leaf_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
+        (batch_idx * MAX_NOTES_PER_BATCH * 2 + (note_idx_in_batch * 2)) as u64
     }
 }
 
