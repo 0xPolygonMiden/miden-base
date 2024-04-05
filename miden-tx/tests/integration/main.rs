@@ -3,7 +3,9 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot, ACCOUNT_ID_SENDER,
+    },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
@@ -20,7 +22,7 @@ use miden_tx::{
 use mock::{
     constants::MIN_PROOF_SECURITY_LEVEL,
     mock::{
-        account::{MockAccountType, ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE},
+        account::{MockAccountType, DEFAULT_ACCOUNT_CODE},
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },

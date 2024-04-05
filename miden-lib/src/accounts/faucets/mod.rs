@@ -2,7 +2,8 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountType, SlotItem, StorageSlot,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        StorageSlot,
     },
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
@@ -84,7 +85,7 @@ pub fn create_basic_fungible_faucet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
-        false,
+        AccountStorageType::OffChain,
         account_code.root(),
         account_storage.root(),
     )?;

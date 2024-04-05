@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use miden_objects::{
-    accounts::{Account, AccountStorage, AccountType, SlotItem},
+    accounts::{Account, AccountStorage, AccountStorageType, AccountType, SlotItem},
     assets::{Asset, AssetVault},
     Felt, Word, ZERO,
 };
@@ -75,8 +75,8 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn on_chain(mut self, on_chain: bool) -> Self {
-        self.account_id_builder.on_chain(on_chain);
+    pub fn storage_type(mut self, storage_type: AccountStorageType) -> Self {
+        self.account_id_builder.storage_type(storage_type);
         self
     }
 

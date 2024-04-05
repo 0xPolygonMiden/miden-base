@@ -3,9 +3,9 @@ use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 use clap::Parser;
 use miden_mock::mock::{
     account::DEFAULT_ACCOUNT_CODE,
-    chain::{Immutable, MockChain, OnChain},
+    chain::{Immutable, MockChain},
 };
-use miden_objects::Digest;
+use miden_objects::{accounts::AccountStorageType, Digest};
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 
@@ -80,8 +80,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut mock_chain = MockChain::new(small_rng);
     let start = Instant::now();
 
-    let faucet =
-        mock_chain.build_fungible_faucet(OnChain::Yes, DEFAULT_FAUCET_CODE, Digest::default());
+    let faucet = mock_chain.build_fungible_faucet(
+        AccountStorageType::OnChain,
+        DEFAULT_FAUCET_CODE,
+        Digest::default(),
+    );
     println!("Fungible faucet created {} [took: {}s]", faucet, start.elapsed().as_secs());
     mock_chain.seal_block();
 
@@ -93,22 +96,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage = vec![];
     let assets = vec![asset];
     let start = Instant::now();
-    let account0 =
-        mock_chain.build_account(DEFAULT_ACCOUNT_CODE, storage, assets, Immutable::No, OnChain::No);
+    let account0 = mock_chain.build_account(
+        DEFAULT_ACCOUNT_CODE,
+        storage,
+        assets,
+        Immutable::No,
+        AccountStorageType::OffChain,
+    );
     println!("Account created {} [took: {}s]", account0, start.elapsed().as_secs());
 
     let storage = vec![];
     let assets = vec![];
     let start = Instant::now();
-    let account1 =
-        mock_chain.build_account(DEFAULT_ACCOUNT_CODE, storage, assets, Immutable::No, OnChain::No);
+    let account1 = mock_chain.build_account(
+        DEFAULT_ACCOUNT_CODE,
+        storage,
+        assets,
+        Immutable::No,
+        AccountStorageType::OffChain,
+    );
     println!("Account created {} [took: {}s]", account1, start.elapsed().as_secs());
 
     let storage = vec![];
     let assets = vec![];
     let start = Instant::now();
-    let account2 =
-        mock_chain.build_account(DEFAULT_ACCOUNT_CODE, storage, assets, Immutable::No, OnChain::No);
+    let account2 = mock_chain.build_account(
+        DEFAULT_ACCOUNT_CODE,
+        storage,
+        assets,
+        Immutable::No,
+        AccountStorageType::OffChain,
+    );
     println!("Account created {} [took: {}s]", account2, start.elapsed().as_secs());
 
     mock_chain.seal_block();

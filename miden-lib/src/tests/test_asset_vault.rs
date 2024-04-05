@@ -1,17 +1,14 @@
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{
+        AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+    AssetVaultError,
 };
 use mock::{
     constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-    mock::{
-        account::{
-            MockAccountType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
-        notes::AssetPreservationStatus,
-        transaction::mock_inputs,
-    },
+    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
     prepare_transaction,
     procedures::prepare_word,
     run_tx,
@@ -54,7 +51,7 @@ fn test_get_balance_non_fungible_fails() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
-        "
+        r#"
         use.miden::kernels::tx::prologue
         use.miden::account
 
@@ -63,7 +60,7 @@ fn test_get_balance_non_fungible_fails() {
             push.{ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.account::get_balance
         end
-    "
+    "#
     );
 
     let transaction = prepare_transaction(tx_inputs, None, &code, None);
@@ -353,16 +350,23 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 }
 
 #[test]
-fn test_remove_non_fungible_asset_fail_doesnt_exist() {
+fn test_remove_inexisting_non_fungible_asset_fails() {
     let tx_inputs =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    let faucet_id: AccountId = (ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN + 1).try_into().unwrap();
+    let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
     let mut account_vault = tx_inputs.account().vault().clone();
+
     let non_fungible_asset_details =
         NonFungibleAssetDetails::new(faucet_id, NON_FUNGIBLE_ASSET_DATA.to_vec()).unwrap();
-    let non_existent_non_fungible_asset =
-        Asset::NonFungible(NonFungibleAsset::new(&non_fungible_asset_details).unwrap());
+    let nonfungible = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
+    let non_existent_non_fungible_asset = Asset::NonFungible(nonfungible);
+
+    assert_eq!(
+        account_vault.remove_asset(non_existent_non_fungible_asset),
+        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
+        "Asset must not be in the vault before the test",
+    );
 
     let code = format!(
         "
@@ -382,7 +386,11 @@ fn test_remove_non_fungible_asset_fail_doesnt_exist() {
     let process = run_tx(&transaction);
 
     assert!(process.is_err());
-    assert!(account_vault.remove_asset(non_existent_non_fungible_asset).is_err());
+    assert_eq!(
+        account_vault.remove_asset(non_existent_non_fungible_asset),
+        Err(AssetVaultError::NonFungibleAssetNotFound(nonfungible)),
+        "Asset should not be in the vault after the test",
+    );
 }
 
 #[test]

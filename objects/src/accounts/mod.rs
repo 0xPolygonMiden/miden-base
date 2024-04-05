@@ -6,7 +6,10 @@ use crate::{
 };
 
 mod account_id;
-pub use account_id::{compute_digest, digest_pow, validate_account_seed, AccountId, AccountType};
+pub use account_id::{
+    AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
+    ACCOUNT_TYPE_MASK_SHIFT,
+};
 
 mod code;
 pub use code::AccountCode;
@@ -25,27 +28,6 @@ pub use stub::AccountStub;
 
 mod data;
 pub use data::{AccountData, AuthData};
-
-// TESTING CONSTANTS
-// ================================================================================================
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = 0b0110011011u64 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0b0001101110 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 = 0b1010011101 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 = 0b1101100110 << 54;
-
-#[cfg(any(feature = "testing", test))]
-pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 = 0b1100000110 << 54;
 
 // ACCOUNT
 // ================================================================================================
@@ -111,7 +93,7 @@ impl Account {
     ///
     /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
     /// accounts this value is set to [ZERO; 4]. This is because when a transaction is executed
-    /// agains a new account, public input for the initial account state is set to [ZERO; 4] to
+    /// against a new account, public input for the initial account state is set to [ZERO; 4] to
     /// distinguish new accounts from existing accounts. The actual hash of the initial account
     /// state (and the initial state itself), are provided to the VM via the advice provider.
     pub fn proof_init_hash(&self) -> Digest {
@@ -301,6 +283,110 @@ pub fn hash_account(
     elements[8..12].copy_from_slice(&*storage_root);
     elements[12..].copy_from_slice(&*code_root);
     Hasher::hash_elements(&elements)
+}
+
+// TESTING ACCOUNT IDs
+// ================================================================================================
+
+#[cfg(any(feature = "testing", test))]
+pub use testing::*;
+
+#[cfg(any(feature = "testing", test))]
+mod testing {
+    use super::{
+        AccountStorageType, AccountType, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
+    };
+
+    const fn account_id(account_type: AccountType, storage: AccountStorageType, rest: u64) -> u64 {
+        let mut id = 0;
+
+        id ^= (storage as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
+        id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
+        id ^= rest;
+
+        id
+    }
+
+    // REGULAR ACCOUNTS - OFF-CHAIN
+    pub const ACCOUNT_ID_SENDER: u64 = account_id(
+        AccountType::RegularAccountImmutableCode,
+        AccountStorageType::OffChain,
+        0b0001_1111,
+    );
+    pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = account_id(
+        AccountType::RegularAccountImmutableCode,
+        AccountStorageType::OffChain,
+        0b0010_1111,
+    );
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = account_id(
+        AccountType::RegularAccountUpdatableCode,
+        AccountStorageType::OffChain,
+        0b0011_1111,
+    );
+    // REGULAR ACCOUNTS - ON-CHAIN
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
+        AccountType::RegularAccountImmutableCode,
+        AccountStorageType::OnChain,
+        0b0001_1111,
+    );
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u64 = account_id(
+        AccountType::RegularAccountImmutableCode,
+        AccountStorageType::OnChain,
+        0b0010_1111,
+    );
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = account_id(
+        AccountType::RegularAccountUpdatableCode,
+        AccountStorageType::OnChain,
+        0b0011_1111,
+    );
+    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
+        AccountType::RegularAccountUpdatableCode,
+        AccountStorageType::OnChain,
+        0b0100_1111,
+    );
+
+    // FUNGIBLE TOKENS - OFF-CHAIN
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
+        account_id(AccountType::FungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
+    // FUNGIBLE TOKENS - ON-CHAIN
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
+        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0001_1111);
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
+        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
+        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
+    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
+        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0100_1111);
+
+    // NON-FUNGIBLE TOKENS - OFF-CHAIN
+    pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0000_0000); // invalid
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
+    // NON-FUNGIBLE TOKENS - ON-CHAIN
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
+    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
+        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
+
+    #[test]
+    fn test_account_id() {
+        use crate::accounts::AccountId;
+
+        for account_type in [
+            AccountType::RegularAccountImmutableCode,
+            AccountType::RegularAccountUpdatableCode,
+            AccountType::NonFungibleFaucet,
+            AccountType::FungibleFaucet,
+        ] {
+            for storage_type in [AccountStorageType::OnChain, AccountStorageType::OffChain] {
+                let acc = AccountId::try_from(account_id(account_type, storage_type, 0b1111_1111))
+                    .unwrap();
+                assert_eq!(acc.account_type(), account_type);
+                assert_eq!(acc.storage_type(), storage_type);
+            }
+        }
+    }
 }
 
 // TESTS
