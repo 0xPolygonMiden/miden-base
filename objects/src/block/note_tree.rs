@@ -57,7 +57,7 @@ impl BlockNoteTree {
         note_idx_in_batch: usize,
     ) -> Result<MerklePath, MerkleError> {
         // get the path to the leaf containing the note (path len = 21)
-        let leaf_index = LeafIndex::new(Self::note_index(batch_idx, note_idx_in_batch))?;
+        let leaf_index = LeafIndex::new(Self::leaf_index(batch_idx, note_idx_in_batch))?;
 
         // move up the path by removing the first node, this path now points to the parent of the
         // note path
