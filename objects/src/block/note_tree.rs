@@ -6,7 +6,7 @@ use miden_crypto::{
 };
 
 use crate::{
-    notes::{NoteMetadata, NOTE_LEAF_DEPTH},
+    notes::NoteMetadata,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH,
 };
@@ -48,24 +48,31 @@ impl BlockNoteTree {
         self.0.root()
     }
 
-    /// Returns merkle path for the note with specified batch/note indexes
-    pub fn merkle_path(
+    /// Returns merkle path for the note with specified batch/note indexes.
+    ///
+    /// The returned path is to the node which is the parent of both note and note metadata node.
+    pub fn get_note_path(
         &self,
         batch_idx: usize,
         note_idx_in_batch: usize,
     ) -> Result<MerklePath, MerkleError> {
-        let leaf_index =
-            LeafIndex::<NOTE_LEAF_DEPTH>::new(Self::note_index(batch_idx, note_idx_in_batch))?;
+        // get the path to the leaf containing the note (path len = 21)
+        let leaf_index = LeafIndex::new(Self::leaf_index(batch_idx, note_idx_in_batch))?;
 
-        Ok(self.0.open(&leaf_index).path)
+        // move up the path by removing the first node, this path now points to the parent of the
+        // note path
+        let note_path = self.0.open(&leaf_index).path[1..].to_vec();
+
+        Ok(note_path.into())
+    }
+
+    /// Returns an index to the node which the parent of both the note and note metadata.
+    pub fn note_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
+        (batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) as u64
     }
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
-
-    fn note_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
-        (batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) as u64
-    }
 
     fn leaf_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
         Self::note_index(batch_idx, note_idx_in_batch) * 2
