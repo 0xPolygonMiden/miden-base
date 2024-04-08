@@ -167,7 +167,7 @@ There are four types of accounts in Miden:
 ## Account storage modes
 Account data - stored by the Miden node - can be public, private, or encrypted. The third and fourth most significant bits of the account ID specifies whether the account data is public `00`, encrypted `01`, or private `11`.
 
-* Accounts with **public state**, where the actual state is stored onchain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
-* Accounts with **private state**, where only the hash of the account is stored onchain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
+* Accounts with **public state**, where the actual state is stored on-chain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
+* Accounts with **private state**, where only the hash of the account is stored on-chain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
 
-In the future we will also support **encrypted state** which will be onchain but encrypted. * Depending on the account storage mode (private vs. encrypted vs. public) and transaction type (local vs. network) the operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
+In the future we will also support **encrypted state** which will be on-chain but encrypted. * Depending on the account storage mode (private vs. encrypted vs. public) and transaction type (local vs. network) the operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
