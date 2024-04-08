@@ -9,7 +9,9 @@ Miden's goals include:
 * Parallel transactions executed concurrently by distinct actors.
 * Concurrent state model that allows block production without knowing the full state.
 
-Privacy is enforced by a UTXO-like state model consisting of notes and nullifiers combined with off-chain execution using zero-knowledge proofs. State bloat describes the ever growing state stored in blockchain nodes. Polygon Miden addresses this challenge via its state model that enables concurrent off-chain execution and off-chain storage. Simply put, users can store their own data locally which reduces the burden on the network while integrity is ensured using zero-knowledge.
+Privacy is enforced by a UTXO-like state model consisting of notes and nullifiers combined with off-chain execution using zero-knowledge proofs. 
+
+State bloat describes the ever growing state stored in blockchain nodes. Polygon Miden addresses this challenge via its state model that enables concurrent off-chain execution and off-chain storage. Simply put, users can store their own data locally which reduces the burden on the network while integrity is ensured using zero-knowledge.
 
 ## State components
 
@@ -29,7 +31,7 @@ Polygon Miden has two databases to capture the note states. The note database is
 
 ### Account database
 
-The latest account states - and data for onchain accounts - are recorded in a Sparse Merkle Tree which maps account IDs to account hashes, and account data if needed.
+The latest account states - and data for onchain accounts - are recorded in a sparse Merkle tree which maps account IDs to account hashes, and account data if needed.
 
 <center>
 ![Architecture core concepts](../img/architecture/state/account-db.png){ width="80%" }
@@ -73,7 +75,7 @@ However, the size of the note database does not grow indefinitely. Theoretically
 
 ### Nullifier database
 
-Nullifiers are stored in a Sparse Merkle Tree, which maps [note nullifiers](notes.md#note-nullifier-to-ensure-private-consumption) to block numbers at which the nullifiers are inserted into the chain (or to $0$ for nullifiers which haven't been recorded yet). Nullifiers provide information on whether a specific note has been consumed. The database allows proving that a given nullifier is not in the database.
+Nullifiers are stored in a sparse Merkle tree, which maps [note nullifiers](notes.md#note-nullifier-to-ensure-private-consumption) to block numbers at which the nullifiers are inserted into the chain (or to `0` for nullifiers which haven't been recorded yet). Nullifiers provide information on whether a specific note has been consumed. The database allows proving that a given nullifier is not in the database.
 
 <center>
 ![Architecture core concepts](../img/architecture/state/nullifier-db.png){ width="80%" }

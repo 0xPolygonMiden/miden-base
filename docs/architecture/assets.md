@@ -9,7 +9,7 @@ Native assets in Polygon Miden have four goals:
 * Asset usage should be censorship resistant.
 * Fees can be paid using any asset.
 
-All native assets in Miden are stored directly in accounts, like Ether in Ethereum. Miden does not track asset ownership using global hashmaps, e.g., ERC20 contracts. Local asset storage in accounts provides privacy and the ability for client-side proofs. That is because ownership changes are reflected only on an account and not on a global hashmap. Thus, these changes can happen in parallel. Additionally, asset exchange is censorship resistant at this level because there is no global contract the transfer must pass through. Finally, users can pay fees in any asset.
+All native assets in Miden are stored directly in accounts, like Ether in Ethereum. Miden does not track asset ownership using global hashmaps, e.g., ERC20 contracts. Local asset storage in accounts provides privacy and the ability for client-side proofs. That is because ownership changes are reflected only on an account and not in an ERC20 account (global hashmap). Thus, these changes can happen in parallel. Additionally, asset exchange is censorship resistant at this level because there is no global contract the transfer must pass through. Finally, users can pay fees in any asset.
 
 ## Native assets
 
@@ -43,7 +43,7 @@ Examples of non-fungible assets are all NFTs, e.g., a DevCon ticket. The ticket'
 
 ### Storage
 
-[Accounts](accounts.md) and [notes](notes.md) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a Sparse Merkle Tree called `account vault`. Notes can store up to `255` distinct assets.
+[Accounts](accounts.md) and [notes](notes.md) contain asset vaults that are used to store assets. Accounts can keep unlimited assets in a sparse Merkle tree called `account vault`. Notes can store up to `255` distinct assets.
 
 <center>
 ![Architecture core concepts](../img/architecture/asset/asset-storage.png)
