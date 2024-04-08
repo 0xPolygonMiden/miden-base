@@ -6,7 +6,7 @@ It is a modular execution layer that extends Ethereum's capabilities using power
 
 Miden allows users to prove state changes locally while the network only tracks a commitment, leading to privacy and high-throughput. Users can also let the operator prove public state changes like other rollups.
 
-With Miden, developers can create novel, high-throughput, privacy-preserving dApps for DeFi, [RWA](https://en.wikipedia.org/wiki/Risk-weighted_asset), and [Autonomous Worlds](https://autonomousworlds.com/) with languages such as Rust and TypeScript.
+With Miden, developers can create novel, high-throughput, privacy-preserving dApps for DeFi, RWA, and on-chain games with languages such as Rust and TypeScript.
 
 If you want to join the technical discussion, please check out the following:
 
