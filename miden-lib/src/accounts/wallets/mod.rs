@@ -30,6 +30,7 @@ pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
     account_type: AccountType,
+    account_storage_type: AccountStorageType,
 ) -> Result<(Account, Word), AccountError> {
     if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
         return Err(AccountError::AccountIdInvalidFieldElement(
@@ -68,7 +69,7 @@ pub fn create_basic_wallet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        AccountStorageType::OffChain,
+        account_storage_type,
         account_code.root(),
         account_storage.root(),
     )?;

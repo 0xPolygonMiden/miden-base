@@ -36,6 +36,7 @@ pub fn create_basic_fungible_faucet(
     decimals: u8,
     max_supply: Felt,
     auth_scheme: AuthScheme,
+    account_storage_type: AccountStorageType,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract, so we can just use the public key as storage slot 0.
@@ -85,7 +86,7 @@ pub fn create_basic_fungible_faucet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
-        AccountStorageType::OffChain,
+        account_storage_type,
         account_code.root(),
         account_storage.root(),
     )?;
