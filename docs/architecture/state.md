@@ -25,13 +25,13 @@ Miden nodes maintain three databases to describe state:
 ![Architecture core concepts](../img/architecture/state/state.png){ width="80%" }
 </center>
 
-These databases are represented by authenticated data structures; for easily proving that items were added to or removed from a database, and so that a commitment to the database is very small.
+These databases are represented by authenticated data structures that enable easy proof of items added to or removed from a database. This ensures that the commitment to the database remains very small.
 
 Polygon Miden has two databases to capture the note states. The note database is append-only and stores all notes permanently. The nullifier database stores nullifiers that indicate that a note has been previously consumed. Separating note storage into these two databases gives Polygon Miden client-side proving and advanced privacy.
 
 ### Account database
 
-The latest account states - and data for onchain accounts - are recorded in a sparse Merkle tree which maps account IDs to account hashes, and account data if needed.
+The latest account states - and data for on-chain accounts - are recorded in a sparse Merkle tree which maps account IDs to account hashes, and account data if needed.
 
 <center>
 ![Architecture core concepts](../img/architecture/state/account-db.png){ width="80%" }
@@ -39,15 +39,15 @@ The latest account states - and data for onchain accounts - are recorded in a sp
 
 As described in the [accounts section](accounts.md##account-storage-modes), there are two types of accounts:
 
-* Public accounts where all account data is stored onchain.
-* Private accounts where only the hashes of accounts are stored onchain.
+* Public accounts where all account data is stored on-chain.
+* Private accounts where only the hashes of accounts are stored on-chain.
 
 Private accounts significantly reduce the storage overhead for nodes. A private account contributes only $40$ bytes to the global state ($8$ bytes account ID + $32$ bytes account hash). Or, said another way, 1 billion private accounts takes up only $40$ GB of state.
 
 !!! warning
      Losing the state of a private account means loss of funds in a similar manner as a loss of a private key - as the user won't be able to execute transactions. This problem can be mitigated by storing encrypted account state in the cloud or backing it up somewhere else. Unlike storing private keys in the cloud, this does not compromise privacy or account security.
 
-     In the future we hope to enable encrypted accounts where the account data is stored onchain but in an encrypted format. This is especially interesting for shared accounts like advanced multi-sig wallets.
+     In the future we hope to enable encrypted accounts where the account data is stored on-chain but in an encrypted format. This is especially interesting for shared accounts like advanced multi-sig wallets.
 
 ### Note database
 

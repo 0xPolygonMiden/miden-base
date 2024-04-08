@@ -34,7 +34,7 @@ In Miden, there are accounts and notes which can hold assets. Accounts consume a
 The state model captures all individual states of all accounts and notes. Finally, the execution model describes state progress in a sequence of blocks.
 
 ### State model
-[State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored onchain and offchain. This chapter describes the three different state databases in Miden.
+[State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored on-chain and off-chain. This chapter describes the three different state databases in Miden.
 
 ### Execution model
 [Execution](execution.md) describes how the state progresses as aggregated state updates in batches, blocks, and epochs. This chapter describes the execution model and how blocks are built.
