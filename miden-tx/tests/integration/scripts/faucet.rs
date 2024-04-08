@@ -56,6 +56,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -65,6 +66,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
+            note_type = NoteType::Public as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
@@ -90,7 +92,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let expected_note = OutputNote::new(
         recipient.into(),
         NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap(),
+        NoteMetadata::new(faucet_account.id(), NoteType::Public, tag, ZERO).unwrap(),
     );
 
     let created_note = executed_transaction.output_notes().get_note(0).clone();
@@ -128,6 +130,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -137,6 +140,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
             end
             ",
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
