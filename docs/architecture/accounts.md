@@ -161,7 +161,7 @@ The first function `distribute` can only be called by the faucet owner, otherwis
 The second function `burn` burns the tokens that are contained in a note and can be called by anyone.
 
 !!! info "Difference between `burn` and `distribute`"
-    The `burn` procedure exposes `exec.account::incr_nonce`, so by calling `burn` the nonce of the executing account gets increased by 1 and the transaction will pass the epilogue check. The `distribute` procedure does not expose that. That means the executing user needs to call `basic::auth_tx_rpo_falcon512` which requires the private key.*
+    The `burn` procedure exposes `exec.account::incr_nonce`, so by calling `burn` the nonce of the executing account gets increased by `1` and the transaction will pass the epilogue check. The `distribute` procedure does not expose that. That means the executing user needs to call `basic::auth_tx_rpo_falcon512` which requires the private key.*
 
 ## Account creation
 
