@@ -40,7 +40,7 @@ Miden uses _accounts_ and _notes_, both of which hold assets. Accounts consume a
 
 Executing a transaction always results in a STARK proof. 
 
-The [transaction chapter](transactions/overview.md) describes the transaction design and implementation, including an indepth discussion of how transaction execution happens in the transaction kernel program.
+The [transaction chapter](transactions/overview.md) describes the transaction design and implementation, including an in-depth discussion of how transaction execution happens in the transaction kernel program.
 
 ##### Accounts produce and consume notes to communicate
 
@@ -54,7 +54,7 @@ Miden's state model captures the individual states of all accounts and notes, an
 
 ### State model
 
-[State](state.md) describes the state of everything at a certain point in time. Individual account or note states can be stored onchain and offchain. The [state chapter](state.md) describes the three different state databases in Miden.
+[State](state.md) describes the condition of all accounts and notes at a certain point in time. Individual account or note states can be stored onchain and offchain. The [state chapter](state.md) describes the three different state databases in Miden.
 
 ### Execution model
 
