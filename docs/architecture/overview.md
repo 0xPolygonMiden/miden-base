@@ -8,7 +8,7 @@ However, user generated zero-knowledge proofs allow state transitions, e.g. tran
 
 ## Miden design goals
 
-* [High throughput](https://en.wikipedia.org/wiki/High-throughput_computing): The ability to process a high number of transactions (state changes) over a given time interval.
+* High throughput: The ability to process a high number of transactions (state changes) over a given time interval.
 * [Privacy](https://en.wikipedia.org/wiki/Privacy_and_blockchain): The ability to keep data secret and anonymous while processing and/or storing it.
 * Asset safety: Maintaining a low risk of mistakes or malicious behavior leading to asset loss.
 
