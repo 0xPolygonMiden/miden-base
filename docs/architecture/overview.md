@@ -53,8 +53,7 @@ The actor-based execution model requires a radically different approach to recor
 Miden's state model captures the individual states of all accounts and notes, and the execution model describes state progress in a sequence of blocks.
 
 ### State model
-
-[State](state.md) describes the condition of all accounts and notes at a certain point in time. Individual account or note states can be stored onchain and offchain. The [state chapter](state.md) describes the three different state databases in Miden.
+[State](state.md) describes everything that is the case at a certain point in time. Individual states of accounts or notes can be stored on-chain and off-chain. This chapter describes the three different state databases in Miden.
 
 ### Execution model
 
