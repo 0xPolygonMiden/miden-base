@@ -56,6 +56,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -65,6 +66,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
@@ -126,6 +128,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -135,6 +138,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
             end
             ",
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
