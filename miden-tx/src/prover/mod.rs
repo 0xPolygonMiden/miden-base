@@ -7,7 +7,7 @@ use miden_objects::{
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
-use vm_processor::{Digest, MemAdviceProvider};
+use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
 
@@ -48,7 +48,6 @@ impl TransactionProver {
         let input_notes: InputNotes<Nullifier> = (tx_witness.tx_inputs().input_notes()).into();
 
         let account_id = tx_witness.account().id();
-        let initial_account_hash = tx_witness.account().hash();
         let block_hash = tx_witness.block_header().hash();
         let tx_script_root = tx_witness.tx_args().tx_script().map(|script| *script.hash());
 
@@ -65,15 +64,9 @@ impl TransactionProver {
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
                 .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
-        let initial_hash = if tx_witness.account().is_new() {
-            Digest::default()
-        } else {
-            initial_account_hash
-        };
-
         let builder = ProvenTransactionBuilder::new(
             account_id,
-            initial_hash,
+            tx_witness.account().proof_init_hash(),
             tx_outputs.account.hash(),
             block_hash,
             proof,
@@ -89,7 +82,12 @@ impl TransactionProver {
         let builder = match account_id.is_on_chain() {
             true => {
                 let account_details = if tx_witness.account().is_new() {
-                    AccountDetails::Full(tx_witness.account().clone())
+                    let mut account = tx_witness.account().clone();
+                    account
+                        .apply_delta(&account_delta)
+                        .map_err(TransactionProverError::InvalidAccountDelta)?;
+
+                    AccountDetails::Full(account)
                 } else {
                     AccountDetails::Delta(account_delta)
                 };

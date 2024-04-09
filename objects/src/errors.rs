@@ -363,13 +363,13 @@ pub enum ProvenTransactionError {
 impl fmt::Display for ProvenTransactionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            ProvenTransactionError::AccountFinalHashMismatch(tx_digest, details_hash) => {
-                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", tx_digest, details_hash)
+            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
+                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", account_final_hash, details_hash)
             },
             ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
                 write!(
                     f,
-                    "Provent transaction account_id {} and account_details.id must match {}.",
+                    "Proven transaction account_id {} and account_details.id must match {}.",
                     tx_id, details_id,
                 )
             },

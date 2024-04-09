@@ -58,6 +58,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
 impl ToTransactionKernelInputs for TransactionWitness {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
+
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.proof_init_hash(),
