@@ -251,8 +251,8 @@ fn faucet_contract_creation() {
         token_symbol,
         decimals,
         max_supply,
-        auth_scheme,
         storage_type,
+        auth_scheme,
     )
     .unwrap();
 
