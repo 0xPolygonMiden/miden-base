@@ -1,5 +1,7 @@
 use core::{fmt, num::TryFromIntError};
 
+use miden_crypto::Felt;
+
 use super::{
     AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError,
     NoteExecutionMode, NoteType, Serializable,
@@ -114,15 +116,12 @@ impl fmt::Display for NoteTag {
     }
 }
 
+// CONVERSIONS INTO NOTE TAG
+// ================================================================================================
+
 impl From<u32> for NoteTag {
     fn from(value: u32) -> Self {
         Self(value)
-    }
-}
-
-impl From<NoteTag> for u32 {
-    fn from(value: NoteTag) -> Self {
-        value.0
     }
 }
 
@@ -134,9 +133,32 @@ impl TryFrom<u64> for NoteTag {
     }
 }
 
+impl TryFrom<Felt> for NoteTag {
+    type Error = TryFromIntError;
+
+    fn try_from(value: Felt) -> Result<Self, Self::Error> {
+        Ok(Self(value.as_int().try_into()?))
+    }
+}
+
+// CONVERSIONS FROM NOTE TAG
+// ================================================================================================
+
+impl From<NoteTag> for u32 {
+    fn from(value: NoteTag) -> Self {
+        value.0
+    }
+}
+
 impl From<NoteTag> for u64 {
     fn from(value: NoteTag) -> Self {
         value.0 as u64
+    }
+}
+
+impl From<NoteTag> for Felt {
+    fn from(value: NoteTag) -> Self {
+        Felt::from(value.0)
     }
 }
 

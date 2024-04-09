@@ -39,12 +39,12 @@ impl TryFrom<Felt> for NoteType {
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
         let value = value.as_int();
-        let note_type: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteType(value))?;
+        let note_type: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
         match note_type {
             OFF_CHAIN => Ok(NoteType::OffChain),
             ENCRYPTED => Ok(NoteType::Encrypted),
             PUBLIC => Ok(NoteType::Public),
-            _ => Err(NoteError::InvalidNoteType(value)),
+            _ => Err(NoteError::InvalidNoteTypeValue(value)),
         }
     }
 }

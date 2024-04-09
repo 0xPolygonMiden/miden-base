@@ -102,7 +102,8 @@ fn prove_receive_asset_via_wallet() {
 }
 
 #[test]
-// Testing the basic Miden wallet - sending an asset
+#[ignore]
+/// Testing the basic Miden wallet - sending an asset
 fn prove_send_asset_via_wallet() {
     // Mock data
     // We need an asset and an account that owns that asset

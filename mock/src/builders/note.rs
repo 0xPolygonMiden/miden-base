@@ -7,7 +7,10 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteMetadata, NoteScript, NoteTag, NoteType},
+    notes::{
+        Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
+        NoteTag, NoteType,
+    },
     Felt, NoteError, Word, ZERO,
 };
 use rand::Rng;
@@ -90,7 +93,10 @@ impl NoteBuilder {
         let assembler = TransactionKernel::assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
+        let vault = NoteAssets::new(self.assets)?;
         let metadata = NoteMetadata::new(self.sender, self.note_type, self.tag, self.aux)?;
-        Note::new(note_script, &self.inputs, &self.assets, self.serial_num, metadata)
+        let inputs = NoteInputs::new(self.inputs)?;
+        let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
+        Ok(Note::new(vault, metadata, recipient))
     }
 }

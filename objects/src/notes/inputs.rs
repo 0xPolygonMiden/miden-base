@@ -9,7 +9,7 @@ use crate::MAX_INPUTS_PER_NOTE;
 // NOTE INPUTS
 // ================================================================================================
 
-/// An container for note inputs.
+/// A container for note inputs.
 ///
 /// A note can be associated with up to 128 input values. Each value is represented by a single
 /// field element. Thus, note input values can contain up to ~1 KB of data.
@@ -58,6 +58,10 @@ impl NoteInputs {
     ///
     /// The returned value is guaranteed to be smaller than or equal to 128.
     pub fn num_values(&self) -> u8 {
+        debug_assert!(
+            self.values.len() < 128,
+            "The constructor should have checked the number of inputs"
+        );
         self.values.len() as u8
     }
 

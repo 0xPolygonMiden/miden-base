@@ -216,14 +216,13 @@ fn build_executed_transaction(
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-    let (advice_recorder, account_delta) = host.into_parts();
+    let (advice_recorder, account_delta, output_notes) = host.into_parts();
 
-    // finalize the advice recorder
     let (advice_witness, _, map, _store) = advice_recorder.finalize();
 
-    // parse transaction results
-    let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
+    let tx_outputs =
+        TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
+            .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
     let final_account = &tx_outputs.account;
 
     let initial_account = tx_inputs.account();
