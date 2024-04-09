@@ -1,5 +1,4 @@
 use alloc::vec::Vec;
-use std::println;
 
 use miden_objects::{
     accounts::Account,
