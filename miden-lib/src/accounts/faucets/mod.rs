@@ -19,7 +19,7 @@ const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic fungible faucet interface,
-/// specified authentication scheme, account storage type, and provided meta data (token symbol, decimals, max supply).
+/// account storage type, specified authentication scheme, and provided meta data (token symbol, decimals, max supply).
 ///
 /// The basic faucet interface exposes two procedures:
 /// - `distribute`, which mints an assets and create a note for the provided recipient.
@@ -35,8 +35,8 @@ pub fn create_basic_fungible_faucet(
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
-    auth_scheme: AuthScheme,
     account_storage_type: AccountStorageType,
+    auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract, so we can just use the public key as storage slot 0.
