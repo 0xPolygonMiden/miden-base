@@ -66,7 +66,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
-            note_type = NoteType::Public as u8,
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
@@ -95,7 +95,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(created_note.id(), id);
     assert_eq!(
         created_note.metadata(),
-        NoteMetadata::new(faucet_account.id(), NoteType::Public, tag, ZERO).unwrap()
+        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
     );
 }
 
