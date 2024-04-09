@@ -14,10 +14,11 @@ use crate::utils::{
 ///
 /// Note ID is computed as:
 ///
-///   hash(recipient, asset_hash),
+/// > hash(recipient, asset_hash),
 ///
 /// where `recipient` is defined as:
-///   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+///
+/// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
@@ -65,7 +66,7 @@ impl Display for NoteId {
 
 impl From<&Note> for NoteId {
     fn from(note: &Note) -> Self {
-        Self::new(note.recipient(), note.assets().commitment())
+        Self::new(note.recipient().digest(), note.assets().commitment())
     }
 }
 

@@ -22,24 +22,27 @@ pub enum NoteExecutionMode {
 // NOTE METADATA
 // ================================================================================================
 
-/// Represents metadata associated with a note.
-///
-/// The metadata consists of:
-/// - sender is the ID of the account which created the note.
-/// - note_type defines how the note is to be stored (e.g., on-chain or off-chain).
-/// - tag is a value which can be used by the recipient(s) to identify notes intended for them.
-/// - aux is arbitrary user-defined value.
+/// Metadata associated with a note.
 ///
 /// Note type and tag must be internally consistent according to the following rules:
+///
 /// - For off-chain notes, the most significant bit of the tag must be 0.
 /// - For public notes, the second most significant bit of the tag must be 0.
 /// - For encrypted notes, two most significant bits of the tag must be 00.
+///
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
+    /// The ID of the account which created the note.
     sender: AccountId,
+
+    /// Defines how the note is to be stored (e.g., on-chain or off-chain).
     note_type: NoteType,
+
+    /// A value which can be used by the recipient(s) to identify notes intended for them.
     tag: NoteTag,
+
+    /// An arbitrary user-defined value.
     aux: Felt,
 }
 

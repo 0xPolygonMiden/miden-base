@@ -17,6 +17,7 @@ use crate::MAX_ASSETS_PER_NOTE;
 /// sequentially hashing the assets. Note that the same list of assets can result in two different
 /// commitments if the asset ordering is different.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteAssets {
     assets: Vec<Asset>,
     hash: Digest,
@@ -37,7 +38,7 @@ impl NoteAssets {
     /// - The asset list is empty.
     /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
-    pub fn new(assets: &[Asset]) -> Result<Self, NoteError> {
+    pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
         if assets.is_empty() {
             return Err(NoteError::EmptyAssetList);
         } else if assets.len() > Self::MAX_NUM_ASSETS {
@@ -56,10 +57,8 @@ impl NoteAssets {
             }
         }
 
-        Ok(Self {
-            assets: assets.to_vec(),
-            hash: compute_asset_commitment(assets),
-        })
+        let hash = compute_asset_commitment(&assets);
+        Ok(Self { assets, hash })
     }
 
     // PUBLIC ACCESSORS
@@ -161,6 +160,6 @@ impl Deserializable for NoteAssets {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u8()? + 1;
         let assets = source.read_many::<Asset>(count.into())?;
-        Self::new(&assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
+        Self::new(assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
     }
 }
