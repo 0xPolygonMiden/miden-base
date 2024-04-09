@@ -38,6 +38,7 @@ export.basic::auth_tx_rpo_falcon512
 #!
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.
+#! - note_type is the type of the note that holds the asset.
 #! - RECIPIENT is the recipient of the asset, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
 #! - note_ptr is the pointer to the memory address in the kernel.
