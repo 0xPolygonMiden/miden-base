@@ -72,6 +72,7 @@ impl std::error::Error for TransactionExecutorError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionProverError {
     ProveTransactionProgramFailed(ExecutionError),
+    InvalidAccountDelta(AccountError),
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
 }
@@ -81,6 +82,9 @@ impl Display for TransactionProverError {
         match self {
             TransactionProverError::ProveTransactionProgramFailed(inner) => {
                 write!(f, "Proving transaction failed: {}", inner)
+            },
+            TransactionProverError::InvalidAccountDelta(account_error) => {
+                write!(f, "Applying account delta failed: {}", account_error)
             },
             TransactionProverError::InvalidTransactionOutput(inner) => {
                 write!(f, "Transaction ouptut invalid: {}", inner)
