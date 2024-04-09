@@ -1,9 +1,11 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
+use vm_processor::AdviceMap;
+
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::NoteId,
+    notes::{Note, NoteId},
     vm::CodeBlock,
     TransactionScriptError,
 };
@@ -13,16 +15,17 @@ use crate::{
 
 /// A struct that represents optional transaction arguments.
 ///
-/// Transaction arguments consist of:
 /// - Transaction script: a program that is executed in a transaction after all input notes
 ///   scripts have been executed.
 /// - Note arguments: data put onto the the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
+/// - Advice map: Provides data needed by the runtime, like the details of a public note.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
+    advice_map: AdviceMap,
 }
 
 impl TransactionArgs {
@@ -34,10 +37,12 @@ impl TransactionArgs {
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
+        advice_map: AdviceMap,
     ) -> Self {
         Self {
             tx_script,
             note_args: note_args.unwrap_or_default(),
+            advice_map,
         }
     }
 
@@ -46,12 +51,56 @@ impl TransactionArgs {
         Self {
             tx_script: Some(tx_script),
             note_args: BTreeMap::default(),
+            advice_map: AdviceMap::default(),
         }
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(not_args: BTreeMap<NoteId, Word>) -> Self {
-        Self { tx_script: None, note_args: not_args }
+        Self {
+            tx_script: None,
+            note_args: not_args,
+            advice_map: AdviceMap::default(),
+        }
+    }
+
+    // MODIFIERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Populates the advice inputs with the details of [Note]s.
+    ///
+    /// The map is extended with the following keys:
+    ///
+    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
+    /// - intputs_hash |-> inputs
+    /// - script_hash |-> script
+    ///
+    pub fn add_expected_output_note(&mut self, note: &Note) {
+        let recipient = note.recipient();
+        let inputs = note.inputs();
+        let script = note.script();
+        let script_encoded: Vec<Felt> = script.into();
+
+        self.advice_map.insert(recipient.digest(), recipient.to_elements());
+        self.advice_map.insert(inputs.commitment(), inputs.to_padded_values());
+        self.advice_map.insert(script.hash(), script_encoded);
+    }
+
+    /// Populates the advice inputs with the details of [Note]s.
+    ///
+    /// The map is extended with the following keys:
+    ///
+    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
+    /// - intputs_hash |-> inputs
+    /// - script_hash |-> script
+    ///
+    pub fn extend_expected_output_notes<T>(&mut self, notes: T)
+    where
+        T: IntoIterator<Item = Note>,
+    {
+        for note in notes {
+            self.add_expected_output_note(&note);
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -65,6 +114,16 @@ impl TransactionArgs {
     /// Returns a reference to a specific note argument.
     pub fn get_note_args(&self, note_id: NoteId) -> Option<&Word> {
         self.note_args.get(&note_id)
+    }
+
+    /// Returns a reference to the args [AdviceMap].
+    pub fn get_advice_map(&self) -> &AdviceMap {
+        &self.advice_map
+    }
+
+    /// Returns a mutable reference to the args [AdviceMap].
+    pub fn get_advice_map_mut(&mut self) -> &mut AdviceMap {
+        &mut self.advice_map
     }
 }
 

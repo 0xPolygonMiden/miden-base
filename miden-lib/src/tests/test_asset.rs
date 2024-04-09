@@ -14,7 +14,7 @@ use super::{Hasher, Word, ONE};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
-    let tx_inputs = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
@@ -41,7 +41,7 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
@@ -57,7 +57,7 @@ fn test_create_fungible_asset_succeeds() {
 
 #[test]
 fn test_create_non_fungible_asset_succeeds() {
-    let tx_inputs = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
@@ -84,14 +84,14 @@ fn test_create_non_fungible_asset_succeeds() {
         non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction).unwrap();
     assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
 }
 
 #[test]
 fn test_validate_non_fungible_asset() {
-    let tx_inputs = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
@@ -113,7 +113,7 @@ fn test_validate_non_fungible_asset() {
         asset = prepare_word(&encoded)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction).unwrap();
     assert_eq!(process.get_stack_word(0), encoded);
 }

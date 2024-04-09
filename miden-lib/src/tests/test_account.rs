@@ -33,7 +33,7 @@ use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -46,7 +46,7 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
 
     // assert the code root is not changed
@@ -241,7 +241,7 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let tx_inputs =
+        let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -268,14 +268,14 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.slot.value)
         );
 
-        let transaction = prepare_transaction(tx_inputs, None, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let _process = run_tx(&transaction).unwrap();
     }
 }
 
 #[test]
 fn test_set_item() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // copy the initial account slots (SMT)
@@ -322,7 +322,7 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -330,7 +330,7 @@ fn test_set_item() {
 #[ignore]
 #[test]
 fn test_get_map_item() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
@@ -361,7 +361,7 @@ fn test_get_map_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, code.as_str(), None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -370,7 +370,7 @@ fn test_get_map_item() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let account = tx_inputs.account();
@@ -392,7 +392,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -401,7 +401,7 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let tx_inputs =
+    let (tx_inputs, _tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account = tx_inputs.account();
 
@@ -415,7 +415,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let tx_inputs =
+        let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -437,7 +437,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(tx_inputs, None, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let process = run_tx(&transaction);
 
         match valid {

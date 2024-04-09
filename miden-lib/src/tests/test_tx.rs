@@ -25,7 +25,7 @@ use crate::transaction::memory::{
 
 #[test]
 fn test_create_note() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account_id = tx_inputs.account().id();
 
@@ -55,7 +55,7 @@ fn test_create_note() {
         asset = prepare_word(&asset),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
@@ -98,7 +98,7 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -127,7 +127,7 @@ fn test_create_note_with_invalid_tag() {
         asset = prepare_word(&asset),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction);
 
     assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
@@ -172,7 +172,7 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // extract input note data
@@ -259,7 +259,7 @@ fn test_get_output_notes_hash() {
         )),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let process = run_tx(&transaction).unwrap();
 
     assert_eq!(
