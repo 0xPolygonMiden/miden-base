@@ -2,6 +2,7 @@
 
 ## 0.2.0
 
+* [BREAKING] Added account storage type parameter to `create_basic_wallet` and `create_basic_fungible_faucet` (miden-lib crate only) (#587)
 * Added state delta to the ProvenTransaction (#485).
 * [BREAKING] Added `NoteType` to notes (#515).
 * Improved `ProvenTransaction` validation (#532).

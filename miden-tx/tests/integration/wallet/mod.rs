@@ -191,7 +191,7 @@ fn prove_send_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    use miden_objects::accounts::{AccountType, ACCOUNT_ID_SENDER};
+    use miden_objects::accounts::{AccountStorageType, AccountType, ACCOUNT_ID_SENDER};
 
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];
@@ -207,9 +207,11 @@ fn wallet_creation() {
         204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
+    let account_type = AccountType::RegularAccountImmutableCode;
+    let storage_type = AccountStorageType::OffChain;
+
     let (wallet, _) =
-        create_basic_wallet(init_seed, auth_scheme, AccountType::RegularAccountImmutableCode)
-            .unwrap();
+        create_basic_wallet(init_seed, auth_scheme, account_type, storage_type).unwrap();
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();

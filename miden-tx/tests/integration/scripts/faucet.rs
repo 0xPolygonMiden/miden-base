@@ -5,7 +5,7 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
         ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
     },
     assembly::{ModuleAst, ProgramAst},
@@ -244,10 +244,17 @@ fn faucet_contract_creation() {
     let token_symbol_string = "POL";
     let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
     let decimals = 2u8;
+    let storage_type = AccountStorageType::OffChain;
 
-    let (faucet_account, _) =
-        create_basic_fungible_faucet(init_seed, token_symbol, decimals, max_supply, auth_scheme)
-            .unwrap();
+    let (faucet_account, _) = create_basic_fungible_faucet(
+        init_seed,
+        token_symbol,
+        decimals,
+        max_supply,
+        storage_type,
+        auth_scheme,
+    )
+    .unwrap();
 
     // check that max_supply (slot 1) is 123
     assert_eq!(
