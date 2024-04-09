@@ -19,7 +19,7 @@ const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic fungible faucet interface,
-/// specified authentication scheme, and provided meta data (token symbol, decimals, max supply).
+/// specified authentication scheme, account storage type, and provided meta data (token symbol, decimals, max supply).
 ///
 /// The basic faucet interface exposes two procedures:
 /// - `distribute`, which mints an assets and create a note for the provided recipient.

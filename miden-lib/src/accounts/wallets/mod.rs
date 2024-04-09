@@ -15,7 +15,7 @@ use super::{AuthScheme, TransactionKernel};
 // BASIC WALLET
 // ================================================================================================
 
-/// Creates a new account with basic wallet interface and the specified authentication scheme.
+/// Creates a new account with basic wallet interface, the specified authentication scheme and the account storage type.
 /// Basic wallets can be specified to have either mutable or immutable code.
 ///
 /// The basic wallet interface exposes two procedures:
