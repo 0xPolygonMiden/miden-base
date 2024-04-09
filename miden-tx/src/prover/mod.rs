@@ -1,6 +1,6 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    notes::{NoteEnvelope, Nullifier},
+    notes::Nullifier,
     transaction::{
         AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
     },
@@ -59,10 +59,11 @@ impl TransactionProver {
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, account_delta) = host.into_parts();
+        let (advice_provider, account_delta, output_notes) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
-        let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-            .map_err(TransactionProverError::InvalidTransactionOutput)?;
+        let tx_outputs =
+            TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
+                .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
         let initial_hash = if tx_witness.account().is_new() {
             Digest::default()
@@ -78,7 +79,7 @@ impl TransactionProver {
             proof,
         )
         .add_input_notes(input_notes)
-        .add_output_notes(tx_outputs.output_notes.into_iter().map(NoteEnvelope::from));
+        .add_output_notes(tx_outputs.output_notes.iter().cloned());
 
         let builder = match tx_script_root {
             Some(tx_script_root) => builder.tx_script_root(tx_script_root),

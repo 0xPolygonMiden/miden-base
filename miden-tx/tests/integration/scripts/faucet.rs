@@ -11,8 +11,8 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteAssets, NoteMetadata, NoteType},
-    transaction::{OutputNote, TransactionArgs},
+    notes::{NoteAssets, NoteId, NoteMetadata, NoteType},
+    transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -78,12 +78,10 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .unwrap();
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
-    // Execute the transaction and get the witness
     let executed_transaction = executor
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args))
         .unwrap();
 
-    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let fungible_asset: Asset =
@@ -96,9 +94,15 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     );
 
     let created_note = executed_transaction.output_notes().get_note(0).clone();
-    assert_eq!(created_note.recipient(), expected_note.recipient());
-    assert_eq!(created_note.assets(), expected_note.assets());
-    assert_eq!(created_note.metadata(), expected_note.metadata());
+
+    let assets = NoteAssets::new(vec![fungible_asset]).unwrap();
+    let id = NoteId::new(recipient.into(), assets.commitment());
+
+    assert_eq!(created_note.id(), id);
+    assert_eq!(
+        created_note.metadata(),
+        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+    );
 }
 
 #[test]

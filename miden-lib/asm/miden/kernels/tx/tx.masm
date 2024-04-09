@@ -27,6 +27,12 @@ const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
 # The note's tag high bits must be set to zero.
 const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
 
+# EVENTS
+# =================================================================================================
+
+# Event emitted when a new note is created.
+const.NEW_NOTE_EVENT=131077
+
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
 #! Inputs: []
@@ -117,8 +123,13 @@ export.create_note
     # => [note_ptr, ASSET, tag, note_type, RECIPIENT]
 
     # populate the metadata
-    movup.5 exec.account::get_id movup.7 push.0
-    # => [0, note_type, acct_id, tag, note_ptr, ASSET, RECIPIENT]
+    movup.5 exec.account::get_id movup.7
+    # => [note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+
+    push.0 # TODO: allow the user to push the aux data
+    # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+
+    emit.NEW_NOTE_EVENT
 
     # set the metadata for the new created note
     dup.4 exec.memory::set_created_note_metadata

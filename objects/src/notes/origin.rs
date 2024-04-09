@@ -10,30 +10,32 @@ use crate::crypto::merkle::{MerklePath, NodeIndex};
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteOrigin {
+    /// The block number the note was created in.
     pub block_num: u32,
+
+    /// The index of the note in the note Merkle tree of the block the note was created in.
     pub node_index: NodeIndex, // TODO: should be a u32 because the depth is always the same
 }
 
 /// Contains the data required to prove inclusion of a note in the canonical chain.
-///
-/// block_num  - the block number the note was created in.
-/// sub_hash   - the sub hash of the block the note was created in.
-/// note_root  - the note root of the block the note was created in.
-/// note_index - the index of the note in the note Merkle tree of the block the note was created
-///              in.
-/// note_path  - the Merkle path to the note in the note Merkle tree of the block the note was
-///              created in.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInclusionProof {
+    /// Details about the note's origin.
     origin: NoteOrigin,
+
+    /// The sub hash of the block the note was created in.
     sub_hash: Digest,
+
+    /// The note root of the block the note was created in.
     note_root: Digest,
+
+    /// The note's authentication Merkle path its block's the note root.
     note_path: MerklePath,
 }
 
 impl NoteInclusionProof {
-    /// Creates a new note origin.
+    /// Returns a new [NoteInclusionProof].
     pub fn new(
         block_num: u32,
         sub_hash: Digest,

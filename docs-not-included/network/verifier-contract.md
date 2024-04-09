@@ -1,2 +1,0 @@
-# Verifier Contract
-[WIP]

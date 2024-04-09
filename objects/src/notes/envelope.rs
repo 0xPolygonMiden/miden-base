@@ -2,22 +2,16 @@ use alloc::vec::Vec;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
-    Serializable, Word,
+    NoteType, Serializable, Word,
 };
+use crate::NoteError;
 
 // NOTE ENVELOPE
 // ================================================================================================
 
-/// Holds information that is relevant to the recipient of a note.
+/// Holds the strictly required, public information of a note.
 ///
-/// Contains:
-/// - note_id: ID of the note that was created
-/// - note_metadata: metadata of the note that was created. Metadata is padded with ZERO such that
-///   it is four elements in size (a word). The metadata includes the following elements:
-///     - sender
-///     - tag
-///     - num assets
-///     - ZERO
+/// See [NoteId] and [NoteMetadata] for additional details.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteEnvelope {
@@ -26,17 +20,23 @@ pub struct NoteEnvelope {
 }
 
 impl NoteEnvelope {
-    /// Creates a new [NoteEnvelope] object.
-    pub fn new(note_id: NoteId, note_metadata: NoteMetadata) -> Self {
-        Self { note_id, note_metadata }
+    /// Returns a new [NoteEnvelope] object.
+    pub fn new(note_id: NoteId, note_metadata: NoteMetadata) -> Result<Self, NoteError> {
+        let note_type = note_metadata.note_type();
+        if note_type != NoteType::OffChain {
+            return Err(NoteError::InvalidNoteType(note_type));
+        }
+        Ok(Self { note_id, note_metadata })
     }
 
-    /// Returns a unique identifier of the note that was created.
-    pub fn note_id(&self) -> NoteId {
+    /// Returns the note's identifier.
+    ///
+    /// The [NoteId] value is both an unique identifier and a commitment to the note.
+    pub fn id(&self) -> NoteId {
         self.note_id
     }
 
-    /// Returns the metadata of the note that was created.
+    /// Returns the note's metadata.
     pub fn metadata(&self) -> &NoteMetadata {
         &self.note_metadata
     }

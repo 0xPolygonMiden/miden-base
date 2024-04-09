@@ -4,7 +4,10 @@ use miden_objects::{
     accounts::AccountId,
     assets::Asset,
     crypto::rand::FeltRng,
-    notes::{Note, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
+    notes::{
+        Note, NoteAssets, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
+        NoteType,
+    },
     NoteError, Word, ZERO,
 };
 
@@ -35,13 +38,15 @@ pub fn create_p2id_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into()];
+    let inputs = NoteInputs::new(vec![target.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
-    Note::new(note_script, &inputs, &assets, serial_num, metadata)
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    Ok(Note::new(vault, metadata, recipient))
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -67,13 +72,15 @@ pub fn create_p2idr_note<R: FeltRng>(
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into(), recall_height.into()];
+    let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
+    let vault = NoteAssets::new(assets)?;
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, metadata)
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    Ok(Note::new(vault, metadata, recipient))
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -99,7 +106,7 @@ pub fn create_swap_note<R: FeltRng>(
     let asset_word: Word = requested_asset.into();
     let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
 
-    let inputs = [
+    let inputs = NoteInputs::new(vec![
         payback_recipient[0],
         payback_recipient[1],
         payback_recipient[2],
@@ -109,7 +116,7 @@ pub fn create_swap_note<R: FeltRng>(
         asset_word[2],
         asset_word[3],
         payback_tag.inner().into(),
-    ];
+    ])?;
 
     // TODO: build the tag for the SWAP use case
     let tag = 0.into();
@@ -117,7 +124,9 @@ pub fn create_swap_note<R: FeltRng>(
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
-    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, metadata)?;
+    let vault = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    let note = Note::new(vault, metadata, recipient);
 
     Ok((note, payback_serial_num))
 }
