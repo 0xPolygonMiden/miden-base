@@ -87,12 +87,6 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
 
-    let expected_note = OutputNote::new(
-        recipient.into(),
-        NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), NoteType::Public, tag, ZERO).unwrap(),
-    );
-
     let created_note = executed_transaction.output_notes().get_note(0).clone();
 
     let assets = NoteAssets::new(vec![fungible_asset]).unwrap();
@@ -101,7 +95,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(created_note.id(), id);
     assert_eq!(
         created_note.metadata(),
-        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+        NoteMetadata::new(faucet_account.id(), NoteType::Public, tag, ZERO).unwrap()
     );
 }
 
