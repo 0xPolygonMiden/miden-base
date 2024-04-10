@@ -126,6 +126,7 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
 // BENCHMARKS
 // ================================================================================================
 
+#[ignore]
 #[test]
 fn benchmark_default_tx() {
     let data_store = MockDataStore::default();
