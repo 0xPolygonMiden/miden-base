@@ -157,7 +157,7 @@ impl Eq for AccountCode {}
 
 impl Serializable for AccountCode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // module imports and source locations are not serialized on account code
+        // debug info (this includes module imports and source locations) is not serialized with account code
         self.module.write_into(target, MODULE_SERDE_OPTIONS);
         // since the number of procedures is guaranteed to be between 1 and 256, we can store the
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
@@ -168,7 +168,7 @@ impl Serializable for AccountCode {
 
 impl Deserializable for AccountCode {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // module imports and source locations are not serialized on account code
+        // debug info (this includes module imports and source locations) is not serialized with account code
         let module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<Digest>(num_procedures)?;
