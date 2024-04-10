@@ -64,18 +64,15 @@ proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop
-    emit.131077
-
     # execute the transaction prologue
     exec.prologue::prepare_transaction
     # => []
 
+    push.0 drop
+    trace.0
+
     # Note Processing
     # ---------------------------------------------------------------------------------------------
-
-    push.0 drop
-    emit.131077
 
     # get the total number of consumed notes
     exec.memory::get_total_num_consumed_notes
@@ -115,11 +112,11 @@ proc.main.1
     exec.note::note_processing_teardown
     # => []
 
+    push.0 drop
+    trace.1
+
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
-
-    push.0 drop
-    emit.131077
 
     # execute the transaction script
     exec.memory::get_tx_script_root
@@ -142,18 +139,18 @@ proc.main.1
         # => []
     end
 
+    push.0 drop
+    trace.2
+
     # Epilogue
     # ---------------------------------------------------------------------------------------------
-
-    push.0 drop
-    emit.131077
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     push.0 drop
-    emit.131077
+    trace.3
 end
 
 begin

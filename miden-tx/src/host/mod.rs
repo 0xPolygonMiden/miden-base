@@ -1,8 +1,5 @@
 use alloc::{collections::BTreeMap, string::ToString};
 
-#[cfg(feature = "std")]
-use std::println;
-
 use miden_lib::transaction::{TransactionEvent, TransactionKernelError};
 use miden_objects::{
     accounts::{AccountDelta, AccountStub},
@@ -64,15 +61,6 @@ impl<A: AdviceProvider> TransactionHost<A> {
             .expect("failed to push value onto advice stack");
         Ok(())
     }
-
-    fn on_account_print_cycle_data<S: ProcessState>(
-        &self,
-        process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        #[cfg(feature = "std")]
-        println!("Event emitted at step {} in context {}", process.clk(), process.ctx(),);
-        Ok(())
-    }
 }
 
 impl<A: AdviceProvider> Host for TransactionHost<A> {
@@ -113,7 +101,6 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             AccountStorageSetItem => self.on_account_storage_set_item(process),
             AccountIncrementNonce => self.on_account_increment_nonce(process),
             AccountPushProcedureIndex => self.on_account_push_procedure_index(process),
-            AccountBenchData => self.on_account_print_cycle_data(process),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 
