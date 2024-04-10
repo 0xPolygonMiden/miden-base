@@ -158,7 +158,8 @@ impl Eq for AccountCode {}
 impl Serializable for AccountCode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.module.write_into(target, MODULE_SERDE_OPTIONS);
-        self.module.write_source_locations(target);
+        // FIXME: this is failing even when serializing and de-serializing a proven mint tx
+        // self.module.write_source_locations(target);
         // since the number of procedures is guaranteed to be between 1 and 256, we can store the
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
         target.write_u8((self.procedures.len() - 1) as u8);
@@ -168,8 +169,9 @@ impl Serializable for AccountCode {
 
 impl Deserializable for AccountCode {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mut module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
-        module.load_source_locations(source)?;
+        let module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
+        // FIXME: this is failing even when serializing and de-serializing a proven mint tx
+        // module.load_source_locations(source)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<Digest>(num_procedures)?;
 
