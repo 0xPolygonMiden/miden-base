@@ -10,10 +10,19 @@ use vm_processor::{
 // CONSTANTS
 // ================================================================================================
 
-const END_OF_PROLOGUE: u8 = 0;
-const END_OF_NODE_PROCESSING: u8 = 1;
-const END_OF_TX_SCRIPT_PROCESSING: u8 = 2;
-const END_OF_EPILOGUE: u8 = 3;
+const PROLOGUE_START: u8 = 0;
+const PROLOGUE_END: u8 = 1;
+
+const NOTE_PROCESSING_START: u8 = 2;
+const NOTE_PROCESSING_END: u8 = 3;
+
+const TX_SCRIPT_PROCESSING_START: u8 = 4;
+const TX_SCRIPT_PROCESSING_END: u8 = 5;
+
+const EPILOGUE_START: u8 = 6;
+const EPILOGUE_END: u8 = 7;
+
+const SPAN_CREATION_SHIFT: u32 = 2;
 
 // BENCHMARK HOST
 // ================================================================================================
@@ -21,37 +30,21 @@ const END_OF_EPILOGUE: u8 = 3;
 /// Wrapper around [TransactionHost] used for benchmarking
 pub struct BenchHost<A: AdviceProvider> {
     host: TransactionHost<A>,
-    prologue: u32,
-    note_processing: u32,
-    tx_script_processing: u32,
-    epilogue: u32,
+    prologue_start: Option<u32>,
+    note_processing_start: Option<u32>,
+    tx_script_processing_start: Option<u32>,
+    epilogue_start: Option<u32>,
 }
 
 impl<A: AdviceProvider> BenchHost<A> {
     pub fn new(account: AccountStub, adv_provider: A) -> Self {
         Self {
             host: TransactionHost::new(account, adv_provider),
-            prologue: 0,
-            note_processing: 0,
-            tx_script_processing: 0,
-            epilogue: 0,
+            prologue_start: None,
+            note_processing_start: None,
+            tx_script_processing_start: None,
+            epilogue_start: None,
         }
-    }
-
-    /// Calculate the final amount of cycles spent for each stage
-    fn print_stages_cycle(&self) {
-        std::println!(
-            "Number of cycles it takes to execule:
-    - Prologue: {},
-    - Note processing: {},
-    - Transaction script processing: {},
-    - Epilogue: {}
-    ",
-            self.prologue - 2,
-            self.note_processing - self.prologue - 2,
-            self.tx_script_processing - self.note_processing - 2,
-            self.epilogue - self.tx_script_processing - 2
-        )
     }
 }
 
@@ -79,12 +72,41 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
         match trace_id as u8 {
-            END_OF_PROLOGUE => self.prologue = process.clk(),
-            END_OF_NODE_PROCESSING => self.note_processing = process.clk(),
-            END_OF_TX_SCRIPT_PROCESSING => self.tx_script_processing = process.clk(),
-            END_OF_EPILOGUE => {
-                self.epilogue = process.clk();
-                self.print_stages_cycle()
+            PROLOGUE_START => self.prologue_start = Some(process.clk()),
+            PROLOGUE_END => {
+                if let Some(prologue_start) = self.prologue_start {
+                    std::println!(
+                        "Number of cycles it takes to execute the prologue: {}",
+                        process.clk() - prologue_start - SPAN_CREATION_SHIFT
+                    )
+                }
+            },
+            NOTE_PROCESSING_START => self.note_processing_start = Some(process.clk()),
+            NOTE_PROCESSING_END => {
+                if let Some(note_processing_start) = self.note_processing_start {
+                    std::println!(
+                        "Number of cycles it takes to execute the note processing: {}",
+                        process.clk() - note_processing_start - SPAN_CREATION_SHIFT
+                    )
+                }
+            },
+            TX_SCRIPT_PROCESSING_START => self.tx_script_processing_start = Some(process.clk()),
+            TX_SCRIPT_PROCESSING_END => {
+                if let Some(tx_script_processing_start) = self.tx_script_processing_start {
+                    std::println!(
+                        "Number of cycles it takes to execute the transaction script processing: {}", 
+                        process.clk() - tx_script_processing_start - SPAN_CREATION_SHIFT
+                    )
+                }
+            },
+            EPILOGUE_START => self.epilogue_start = Some(process.clk()),
+            EPILOGUE_END => {
+                if let Some(epilogue_start) = self.epilogue_start {
+                    std::println!(
+                        "Number of cycles it takes to execute the epilogue: {}",
+                        process.clk() - epilogue_start - SPAN_CREATION_SHIFT
+                    )
+                }
             },
             _ => println!("Invalid trace id was used: {}", trace_id),
         }
