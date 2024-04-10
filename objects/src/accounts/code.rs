@@ -220,13 +220,15 @@ mod tests {
         ";
 
         // build account code from source
-        let module = ModuleAst::parse(source).unwrap();
+        let mut module = ModuleAst::parse(source).unwrap();
+        module.clear_locations();
         let assembler = Assembler::default();
         let code1 = AccountCode::new(module, &assembler).unwrap();
 
         // serialize and deserialize the code; make sure deserialized version matches the original
         let bytes = code1.to_bytes();
         let code2 = AccountCode::read_from_bytes(&bytes).unwrap();
+
         assert_eq!(code1, code2)
     }
 }
