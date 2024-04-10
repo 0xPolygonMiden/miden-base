@@ -15,7 +15,7 @@ use mock::{
     },
     prepare_transaction, run_tx, run_tx_with_inputs,
 };
-use vm_processor::{AdviceInputs, AdviceMap};
+use vm_processor::AdviceInputs;
 
 use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
 use crate::transaction::{
@@ -75,9 +75,11 @@ fn test_transaction_prologue() {
         (tx_inputs.input_notes().get_note(1).note().id(), note_args[1]),
     ]);
 
-    let mut tx_args =
-        TransactionArgs::new(Some(tx_script), Some(note_args_map), AdviceMap::default());
-    tx_args.get_advice_map_mut().extend(tx_args_notes.get_advice_map().clone());
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        Some(note_args_map),
+        tx_args_notes.advice_map().clone(),
+    );
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, Some(assembly_file));
 

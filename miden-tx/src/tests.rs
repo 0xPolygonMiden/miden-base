@@ -210,8 +210,8 @@ fn executed_transaction_account_delta() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let mut tx_args = TransactionArgs::with_tx_script(tx_script);
-    tx_args.get_advice_map_mut().extend(data_store.tx_args.get_advice_map().clone());
+    let tx_args =
+        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -340,8 +340,8 @@ fn test_tx_script() {
             vec![],
         )
         .unwrap();
-    let mut tx_args = TransactionArgs::with_tx_script(tx_script);
-    tx_args.get_advice_map_mut().extend(data_store.tx_args.get_advice_map().clone());
+    let tx_args =
+        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);

@@ -117,7 +117,7 @@ impl TransactionArgs {
     }
 
     /// Returns a reference to the args [AdviceMap].
-    pub fn get_advice_map(&self) -> &AdviceMap {
+    pub fn advice_map(&self) -> &AdviceMap {
         &self.advice_map
     }
 

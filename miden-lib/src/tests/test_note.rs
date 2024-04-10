@@ -15,7 +15,6 @@ use mock::{
     procedures::prepare_word,
     run_tx,
 };
-use vm_processor::AdviceMap;
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
 use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
@@ -351,8 +350,8 @@ fn test_note_script_and_note_args() {
         (tx_inputs.input_notes().get_note(1).note().id(), note_args[0]),
     ]);
 
-    let mut tx_args = TransactionArgs::new(None, Some(note_args_map), AdviceMap::default());
-    tx_args.get_advice_map_mut().extend(tx_args_notes.get_advice_map().clone());
+    let tx_args =
+        TransactionArgs::new(None, Some(note_args_map), tx_args_notes.advice_map().clone());
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
