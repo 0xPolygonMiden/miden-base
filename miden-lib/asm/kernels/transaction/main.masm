@@ -64,21 +64,24 @@ proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.0
+    trace.131072
 
     # execute the transaction prologue
     exec.prologue::prepare_transaction
     # => []
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.1
+    trace.131073
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.2
+    trace.131074
 
     # get the total number of consumed notes
     exec.memory::get_total_num_consumed_notes
@@ -118,14 +121,16 @@ proc.main.1
     exec.note::note_processing_teardown
     # => []
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.3
+    trace.131075
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.4
+    trace.131076
 
     # execute the transaction script
     exec.memory::get_tx_script_root
@@ -148,21 +153,24 @@ proc.main.1
         # => []
     end
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.5
+    trace.131077
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.6
+    trace.131078
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
+    # add redundant instructions to make span non-empty
     push.0 drop
-    trace.7
+    trace.131079
 end
 
 begin

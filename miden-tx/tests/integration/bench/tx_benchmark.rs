@@ -10,17 +10,17 @@ use vm_processor::{
 // CONSTANTS
 // ================================================================================================
 
-const PROLOGUE_START: u8 = 0;
-const PROLOGUE_END: u8 = 1;
+const PROLOGUE_START: u32 = 0x2_0000; // 131072
+const PROLOGUE_END: u32 = 0x2_0001; // 131073
 
-const NOTE_PROCESSING_START: u8 = 2;
-const NOTE_PROCESSING_END: u8 = 3;
+const NOTE_PROCESSING_START: u32 = 0x2_0002; // 131074
+const NOTE_PROCESSING_END: u32 = 0x2_0003; // 131075
 
-const TX_SCRIPT_PROCESSING_START: u8 = 4;
-const TX_SCRIPT_PROCESSING_END: u8 = 5;
+const TX_SCRIPT_PROCESSING_START: u32 = 0x2_0004; // 131076
+const TX_SCRIPT_PROCESSING_END: u32 = 0x2_0005; // 131077
 
-const EPILOGUE_START: u8 = 6;
-const EPILOGUE_END: u8 = 7;
+const EPILOGUE_START: u32 = 0x2_0006; // 131078
+const EPILOGUE_END: u32 = 0x2_0007; // 131079
 
 const SPAN_CREATION_SHIFT: u32 = 2;
 
@@ -71,7 +71,7 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
-        match trace_id as u8 {
+        match trace_id {
             PROLOGUE_START => self.prologue_start = Some(process.clk()),
             PROLOGUE_END => {
                 if let Some(prologue_start) = self.prologue_start {
