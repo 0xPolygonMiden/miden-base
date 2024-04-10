@@ -15,7 +15,6 @@ use miden_objects::{
 };
 use miden_tx::TransactionExecutor;
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
-use vm_processor::AdviceMap;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -71,7 +70,7 @@ fn prove_p2id_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
@@ -113,8 +112,7 @@ fn prove_p2id_script() {
         )
         .unwrap();
 
-    let tx_args_malicious =
-        TransactionArgs::new(Some(tx_script_malicious), None, AdviceMap::default());
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_ids = data_store_malicious_account
@@ -185,7 +183,7 @@ fn p2id_script_multiple_assets() {
         )
         .unwrap();
 
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
@@ -223,8 +221,7 @@ fn p2id_script_multiple_assets() {
             vec![],
         )
         .unwrap();
-    let tx_args_malicious =
-        TransactionArgs::new(Some(tx_script_malicious), None, AdviceMap::default());
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_origins = data_store_malicious_account

@@ -14,7 +14,6 @@ use miden_objects::{
 };
 use miden_tx::TransactionExecutor;
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
-use vm_processor::AdviceMap;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
@@ -108,7 +107,7 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None, AdviceMap::default());
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction_1 = executor_1
@@ -140,7 +139,7 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_sender = TransactionArgs::new(Some(tx_script_sender), None, AdviceMap::default());
+    let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
     let block_ref_2 = data_store_2.block_header.block_num();
     let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -172,8 +171,7 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_malicious =
-        TransactionArgs::new(Some(tx_script_malicious), None, AdviceMap::default());
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref_3 = data_store_3.block_header.block_num();
     let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
