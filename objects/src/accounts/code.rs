@@ -12,7 +12,7 @@ use crate::crypto::merkle::SimpleSmt;
 // ================================================================================================
 
 /// Default serialization options for account code AST.
-const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
+const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(false);
 
 /// The depth of the Merkle tree that is used to commit to the account's public interface.
 pub const PROCEDURE_TREE_DEPTH: u8 = 8;
@@ -157,9 +157,8 @@ impl Eq for AccountCode {}
 
 impl Serializable for AccountCode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // module imports and source locations are not serialized on account code
         self.module.write_into(target, MODULE_SERDE_OPTIONS);
-        // FIXME: this is failing even when serializing and de-serializing a proven mint tx
-        // self.module.write_source_locations(target);
         // since the number of procedures is guaranteed to be between 1 and 256, we can store the
         // number as a single byte - but we do have to subtract 1 to store 256 as 255.
         target.write_u8((self.procedures.len() - 1) as u8);
@@ -169,9 +168,8 @@ impl Serializable for AccountCode {
 
 impl Deserializable for AccountCode {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        // module imports and source locations are not serialized on account code
         let module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
-        // FIXME: this is failing even when serializing and de-serializing a proven mint tx
-        // module.load_source_locations(source)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<Digest>(num_procedures)?;
 
@@ -221,6 +219,8 @@ mod tests {
 
         // build account code from source
         let mut module = ModuleAst::parse(source).unwrap();
+        // clears are needed since they're not serialized for account code
+        module.clear_imports();
         module.clear_locations();
         let assembler = Assembler::default();
         let code1 = AccountCode::new(module, &assembler).unwrap();
