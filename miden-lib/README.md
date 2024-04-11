@@ -1,6 +1,6 @@
 # Transaction kernel
 
-This library contains the code of the Miden transaction kernel.
+This crate contains the code of the Miden rollup kernels and standardized smart contracts.
 
 ## Status
 

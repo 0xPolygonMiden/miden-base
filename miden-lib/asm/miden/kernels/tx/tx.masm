@@ -4,11 +4,34 @@ use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 
+# CONSTANTS
+# =================================================================================================
+
+# Constants for different note types
+const.PUBLIC_NOTE=1     # 0b01
+const.OFFCHAIN_NOTE=2   # 0b10
+const.ENCRYPTED_NOTE=3  # 0b11
+
 # ERRORS
 # =================================================================================================
 
 # Output notes exceeded the maximum limit
 const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
+
+# Invalid note type
+const.ERR_INVALID_NOTE_TYPE=0x00020044
+
+# The note's tag failed the most significant validation.
+const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
+
+# The note's tag high bits must be set to zero.
+const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
+
+# EVENTS
+# =================================================================================================
+
+# Event emitted when a new note is created.
+const.NEW_NOTE_EVENT=131077
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -64,7 +87,7 @@ end
 
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
-#! Inputs: [ASSET, tag, RECIPIENT]
+#! Inputs: [ASSET, tag, note_type, RECIPIENT]
 #! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
 #!
 #! ASSET is the asset to be included in the note.
@@ -74,19 +97,39 @@ end
 export.create_note
     # validate the asset
     exec.asset::validate_asset
-    # => [ASSET, tag, RECIPIENT]
+    # => [ASSET, tag, note_type, RECIPIENT]
+
+    # validate the note type
+    # NOTE: encrypted notes are currently unsupported `dup.6 push.ENCRYPTED_NOTE eq or`
+    dup.5 push.OFFCHAIN_NOTE eq dup.6 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    # => [ASSET, tag, note_type, RECIPIENT]
+
+    # validate the tag against the note type
+    dup.5 dup.5 u32split
+    # => [tag_high, tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+
+    assertz.err=ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
+    # => [tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+
+    u32shr.30 u32and assertz.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
+    # => [ASSET, tag, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
     exec.increment_num_created_notes
-    # => [note_idx, ASSET, tag, RECIPIENT]
+    # => [note_idx, ASSET, tag, note_type, RECIPIENT]
 
     # get a pointer to the memory address at which the note will be stored
     exec.memory::get_created_note_ptr
-    # => [note_ptr, ASSET, tag, RECIPIENT]
+    # => [note_ptr, ASSET, tag, note_type, RECIPIENT]
 
     # populate the metadata
-    movup.5 exec.account::get_id push.0.0
-    # => [0, 0, acct_id, tag, note_ptr, ASSET,  RECIPIENT]
+    movup.5 exec.account::get_id movup.7
+    # => [note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+
+    push.0 # TODO: allow the user to push the aux data
+    # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+
+    emit.NEW_NOTE_EVENT
 
     # set the metadata for the new created note
     dup.4 exec.memory::set_created_note_metadata

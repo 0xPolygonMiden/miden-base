@@ -1,7 +1,9 @@
+use alloc::collections::BTreeMap;
+
 use miden_lib::transaction::TransactionKernelError;
 use miden_objects::accounts::AccountCode;
 
-use super::{AdviceProvider, BTreeMap, Digest, NodeIndex, ProcessState};
+use super::{AdviceProvider, Digest, NodeIndex, ProcessState};
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================

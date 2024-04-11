@@ -1,18 +1,20 @@
-use miden_lib::notes::create_p2id_note;
+use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{
+        Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
+    notes::{NoteScript, NoteType},
     transaction::TransactionArgs,
-    utils::collections::*,
     Felt,
 };
 use miden_tx::TransactionExecutor;
-use mock::constants::{
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
-};
+use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -33,7 +35,7 @@ fn prove_p2id_script() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
@@ -43,6 +45,7 @@ fn prove_p2id_script() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset],
+        NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
@@ -67,11 +70,11 @@ fn prove_p2id_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -92,7 +95,7 @@ fn prove_p2id_script() {
     // A "malicious" account tries to consume the note, we expect an error
 
     let malicious_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
@@ -109,7 +112,7 @@ fn prove_p2id_script() {
         )
         .unwrap();
 
-    let tx_args_malicious = TransactionArgs::new(Some(tx_script_malicious), None);
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_ids = data_store_malicious_account
@@ -123,7 +126,7 @@ fn prove_p2id_script() {
         malicious_account_id,
         block_ref,
         &note_ids,
-        Some(tx_args_malicious),
+        tx_args_malicious,
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -155,6 +158,7 @@ fn p2id_script_multiple_assets() {
         sender_account_id,
         target_account_id,
         vec![fungible_asset_1, fungible_asset_2],
+        NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
@@ -179,11 +183,11 @@ fn p2id_script_multiple_assets() {
         )
         .unwrap();
 
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     // vault delta
@@ -201,7 +205,7 @@ fn p2id_script_multiple_assets() {
     // A "malicious" account tries to consume the note, we expect an error
 
     let malicious_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
     let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
@@ -217,7 +221,7 @@ fn p2id_script_multiple_assets() {
             vec![],
         )
         .unwrap();
-    let tx_args_malicious = TransactionArgs::new(Some(tx_script_malicious), None);
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
     let note_origins = data_store_malicious_account
@@ -231,9 +235,22 @@ fn p2id_script_multiple_assets() {
         malicious_account_id,
         block_ref,
         &note_origins,
-        Some(tx_args_malicious),
+        tx_args_malicious,
     );
 
     // Check that we got the expected result - TransactionExecutorError
     assert!(executed_transaction_2.is_err());
+}
+
+#[test]
+fn test_note_script_to_from_felt() {
+    let assembler = TransactionKernel::assembler();
+
+    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_script, _) = NoteScript::new(note_program_ast, &assembler).unwrap();
+
+    let encoded: Vec<Felt> = (&note_script).into();
+    let decoded: NoteScript = encoded.try_into().unwrap();
+
+    assert_eq!(note_script, decoded);
 }

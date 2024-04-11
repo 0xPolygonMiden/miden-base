@@ -1,20 +1,18 @@
+use alloc::{string::ToString, vec::Vec};
+
 use miden_verifier::ExecutionProof;
 
-use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
+use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
 use crate::{
     accounts::{Account, AccountDelta},
-    notes::{Note, NoteId},
-    utils::{
-        collections::*,
-        format,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    },
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    ProvenTransactionError,
 };
 
 // PROVEN TRANSACTION
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AccountDetails {
     /// The whole state is needed for new accounts
     Full(Account),
@@ -25,7 +23,7 @@ pub enum AccountDetails {
 
 /// Result of executing and proving a transaction. Contains all the data required to verify that a
 /// transaction was executed correctly.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenTransaction {
     /// A unique identifier for the transaction, see [TransactionId] for additional details.
     id: TransactionId,
@@ -34,6 +32,8 @@ pub struct ProvenTransaction {
     account_id: AccountId,
 
     /// The hash of the account before the transaction was executed.
+    ///
+    /// Set to `Digest::default()` for new accounts.
     initial_account_hash: Digest,
 
     /// The hash of the account after the transaction was executed.
@@ -43,14 +43,11 @@ pub struct ProvenTransaction {
     /// on-chain account's state after a local transaction execution.
     account_details: Option<AccountDetails>,
 
-    /// A list of nullifier for all notes consumed by the transaction.
+    /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
 
     /// The id and  metadata of all notes created by the transaction.
-    output_notes: OutputNotes<NoteEnvelope>,
-
-    /// Optionally the output note's data, used to share the note with the network.
-    output_note_details: BTreeMap<NoteId, Note>,
+    output_notes: OutputNotes,
 
     /// The script root of the transaction, if one was used.
     tx_script_root: Option<Digest>,
@@ -63,43 +60,6 @@ pub struct ProvenTransaction {
 }
 
 impl ProvenTransaction {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a new [ProvenTransaction] instantiated from the provided parameters.
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        account_id: AccountId,
-        initial_account_hash: Digest,
-        final_account_hash: Digest,
-        input_notes: InputNotes<Nullifier>,
-        output_notes: OutputNotes<NoteEnvelope>,
-        tx_script_root: Option<Digest>,
-        block_ref: Digest,
-        proof: ExecutionProof,
-    ) -> Self {
-        let id = TransactionId::new(
-            initial_account_hash,
-            final_account_hash,
-            input_notes.commitment(),
-            output_notes.commitment(),
-        );
-
-        Self {
-            id,
-            account_id,
-            initial_account_hash,
-            final_account_hash,
-            account_details: None,
-            input_notes,
-            output_notes,
-            output_note_details: BTreeMap::new(),
-            tx_script_root,
-            block_ref,
-            proof,
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -134,13 +94,8 @@ impl ProvenTransaction {
     }
 
     /// Returns a reference to the notes produced by the transaction.
-    pub fn output_notes(&self) -> &OutputNotes<NoteEnvelope> {
+    pub fn output_notes(&self) -> &OutputNotes {
         &self.output_notes
-    }
-
-    /// Returns the [NoteId] details, if present.
-    pub fn get_output_note_details(&self, note_id: &NoteId) -> Option<&Note> {
-        self.output_note_details.get(note_id)
     }
 
     /// Returns the script root of the transaction.
@@ -156,6 +111,191 @@ impl ProvenTransaction {
     /// Returns the block reference the transaction was executed against.
     pub fn block_ref(&self) -> Digest {
         self.block_ref
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn validate(self) -> Result<Self, ProvenTransactionError> {
+        if !self.account_id.is_on_chain() && self.account_details.is_some() {
+            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
+        }
+
+        if self.account_id.is_on_chain() {
+            match self.account_details {
+                None => {
+                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
+                        self.account_id,
+                    ))
+                },
+                Some(ref details) => {
+                    let is_new_account = self.initial_account_hash == Digest::default();
+
+                    match (is_new_account, details) {
+                        (true, AccountDetails::Delta(_)) => {
+                            return Err(
+                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (true, AccountDetails::Full(account)) => {
+                            if account.id() != self.account_id {
+                                return Err(ProvenTransactionError::AccountIdMismatch(
+                                    self.account_id,
+                                    account.id(),
+                                ));
+                            }
+                            if account.hash() != self.final_account_hash {
+                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
+                                    self.final_account_hash,
+                                    account.hash(),
+                                ));
+                            }
+                        },
+                        (false, AccountDetails::Full(_)) => {
+                            return Err(
+                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                                    self.account_id,
+                                ),
+                            )
+                        },
+                        (false, AccountDetails::Delta(_)) => (),
+                    }
+                },
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+// PROVEN TRANSACTION BUILDER
+// ================================================================================================
+
+/// Builder for a proven transaction.
+#[derive(Clone, Debug)]
+pub struct ProvenTransactionBuilder {
+    /// ID of the account that the transaction was executed against.
+    account_id: AccountId,
+
+    /// The hash of the account before the transaction was executed.
+    initial_account_hash: Digest,
+
+    /// The hash of the account after the transaction was executed.
+    final_account_hash: Digest,
+
+    /// State changes to the account due to the transaction.
+    account_details: Option<AccountDetails>,
+
+    /// List of [Nullifier]s of all consumed notes by the transaction.
+    input_notes: Vec<Nullifier>,
+
+    /// List of [NoteEnvelope]s of all notes created by the transaction.
+    output_notes: Vec<OutputNote>,
+
+    /// The script root of the transaction, if one was used.
+    tx_script_root: Option<Digest>,
+
+    /// Block [Digest] of the transaction's reference block.
+    block_ref: Digest,
+
+    /// A STARK proof that attests to the correct execution of the transaction.
+    proof: ExecutionProof,
+}
+
+impl ProvenTransactionBuilder {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
+    pub fn new(
+        account_id: AccountId,
+        initial_account_hash: Digest,
+        final_account_hash: Digest,
+        block_ref: Digest,
+        proof: ExecutionProof,
+    ) -> Self {
+        Self {
+            account_id,
+            initial_account_hash,
+            final_account_hash,
+            account_details: None,
+            input_notes: Vec::new(),
+            output_notes: Vec::new(),
+            tx_script_root: None,
+            block_ref,
+            proof,
+        }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Sets the account's details.
+    pub fn account_details(mut self, account_details: AccountDetails) -> Self {
+        self.account_details = Some(account_details);
+        self
+    }
+
+    /// Add notes consumed by the transaction.
+    pub fn add_input_notes<T>(mut self, notes: T) -> Self
+    where
+        T: IntoIterator<Item = Nullifier>,
+    {
+        self.input_notes.extend(notes);
+        self
+    }
+
+    /// Add notes produced by the transaction.
+    pub fn add_output_notes<T>(mut self, notes: T) -> Self
+    where
+        T: IntoIterator<Item = OutputNote>,
+    {
+        self.output_notes.extend(notes);
+        self
+    }
+
+    /// Set transaction's script root.
+    pub fn tx_script_root(mut self, tx_script_root: Digest) -> Self {
+        self.tx_script_root = Some(tx_script_root);
+        self
+    }
+
+    /// Builds the [ProvenTransaction].
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned if an on-chain account is used without provided on-chain detail.
+    /// Or if the account details, i.e. account id and final hash, don't match the transaction.
+    pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
+        let account_details = self.account_details.take();
+        let input_notes =
+            InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
+        let output_notes = OutputNotes::new(self.output_notes)
+            .map_err(ProvenTransactionError::OutputNotesError)?;
+        let tx_script_root = self.tx_script_root;
+        let id = TransactionId::new(
+            self.initial_account_hash,
+            self.final_account_hash,
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
+        let proven_transaction = ProvenTransaction {
+            id,
+            account_id: self.account_id,
+            initial_account_hash: self.initial_account_hash,
+            final_account_hash: self.final_account_hash,
+            account_details,
+            input_notes,
+            output_notes,
+            tx_script_root,
+            block_ref: self.block_ref,
+            proof: self.proof,
+        };
+
+        proven_transaction.validate()
     }
 }
 
@@ -197,10 +337,6 @@ impl Serializable for ProvenTransaction {
         self.account_details.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
-
-        target.write_usize(self.output_note_details.len());
-        target.write_many(self.output_note_details.iter());
-
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
         self.proof.write_into(target);
@@ -215,11 +351,7 @@ impl Deserializable for ProvenTransaction {
         let account_details = <Option<AccountDetails>>::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
-        let output_notes = OutputNotes::<NoteEnvelope>::read_from(source)?;
-
-        let output_notes_details_len = usize::read_from(source)?;
-        let details = source.read_many(output_notes_details_len)?;
-        let output_note_details = BTreeMap::from_iter(details);
+        let output_notes = OutputNotes::read_from(source)?;
 
         let tx_script_root = Deserializable::read_from(source)?;
 
@@ -233,7 +365,7 @@ impl Deserializable for ProvenTransaction {
             output_notes.commitment(),
         );
 
-        Ok(Self {
+        let proven_transaction = Self {
             id,
             account_id,
             initial_account_hash,
@@ -241,11 +373,14 @@ impl Deserializable for ProvenTransaction {
             account_details,
             input_notes,
             output_notes,
-            output_note_details,
             tx_script_root,
             block_ref,
             proof,
-        })
+        };
+
+        proven_transaction
+            .validate()
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 

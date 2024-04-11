@@ -19,7 +19,7 @@ const.ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_ZERO=0x00020036
 const.ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_FUNGIBLE=0x00020037
 
 # The felt at position 3 must be zero
-const.ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_HAS_HIGH_BIT_SET=0x00020038
+const.ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET=0x00020038
 
 # Fungible asset origin validation failed
 const.ERR_FUNGIBLE_ASSET_MISMATCH=0x00020039
@@ -31,6 +31,10 @@ const.ERR_NON_FUNGIBLE_ASSET_MISMATCH=0x0002003A
 # =================================================================================================
 
 const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
+
+# This mask defines the  bit in the most significant half of the element which
+# is used to identify the asset type
+const.FUNGIBLE_BITMASK_U32=0x20000000
 
 #! Returns the maximum amount of a fungible asset.
 #!
@@ -104,11 +108,8 @@ export.validate_non_fungible_asset
     dup.2 exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_FUNGIBLE
     # => [ASSET]
 
-    # assert the most significant bit of the most significant element (ASSET[3]) is 0
-    dup u32split swap drop
-    u32assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_HAS_HIGH_BIT_SET
-    u32shr.31 not
-    assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_HAS_HIGH_BIT_SET
+    # assert the fungible bit is set to 0
+    dup u32split push.FUNGIBLE_BITMASK_U32 u32and assertz.err=ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET drop
     # => [ASSET]
 end
 

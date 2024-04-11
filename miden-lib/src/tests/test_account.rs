@@ -9,11 +9,10 @@ use miden_objects::{
 };
 use mock::{
     constants::{
-        storage_item_0, storage_item_1, CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH,
-        CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
+        CHILD_ROOT_PARENT_LEAF_INDEX, CHILD_SMT_DEPTH, CHILD_STORAGE_INDEX_0, CHILD_STORAGE_VALUE_0,
     },
     mock::{
-        account::MockAccountType,
+        account::{storage_item_0, storage_item_1, MockAccountType},
         host::MockHost,
         notes::AssetPreservationStatus,
         transaction::{mock_executed_tx, mock_inputs},
@@ -34,7 +33,7 @@ use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
@@ -47,7 +46,7 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, None, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
 
     // assert the code root is not changed
@@ -124,6 +123,8 @@ pub fn test_account_type() {
     ];
 
     for (procedure, expected_type) in procedures {
+        let mut has_type = false;
+
         for account_id in test_cases.iter() {
             let account_id = AccountId::try_from(*account_id).unwrap();
 
@@ -142,19 +143,30 @@ pub fn test_account_type() {
             let process = run_within_tx_kernel(
                 "",
                 &code,
-                StackInputs::new(vec![account_id.into()]),
+                StackInputs::new(vec![account_id.into()]).unwrap(),
                 MemAdviceProvider::default(),
                 None,
             )
             .unwrap();
 
             let expected_result = if account_id.account_type() == expected_type {
+                has_type = true;
                 ONE
             } else {
                 ZERO
             };
-            assert_eq!(process.stack.get(0), expected_result);
+            assert_eq!(
+                process.stack.get(0),
+                expected_result,
+                "Rust and Masm check on account type diverge. proc: {} account_id: {} account_type: {:?} expected_type: {:?}",
+                procedure,
+                account_id,
+                account_id.account_type(),
+                expected_type,
+            );
         }
+
+        assert!(has_type, "missing test for type {:?}", expected_type);
     }
 }
 
@@ -200,16 +212,12 @@ fn test_is_faucet_procedure() {
 
             # execute is_faucet procedure
             exec.account::is_faucet
-
-            # assert it matches expected result
-            eq.{expected} assert
         end
     ",
             account_id = account_id,
-            expected = if account_id.is_faucet() { 1 } else { 0 },
         );
 
-        let _process = run_within_tx_kernel(
+        let process = run_within_tx_kernel(
             "",
             &code,
             StackInputs::default(),
@@ -217,6 +225,13 @@ fn test_is_faucet_procedure() {
             None,
         )
         .unwrap();
+        let is_faucet = account_id.is_faucet();
+        assert_eq!(
+            process.stack.get(0),
+            Felt::new(is_faucet as u64),
+            "Rust and Masm is_faucet diverged. account_id: {}",
+            account_id
+        );
     }
 }
 
@@ -226,7 +241,7 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let tx_inputs =
+        let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -249,18 +264,18 @@ fn test_get_item() {
             push.{item_value} assert_eqw
         end
         ",
-            item_index = storage_item.0,
-            item_value = prepare_word(&storage_item.1 .1)
+            item_index = storage_item.index,
+            item_value = prepare_word(&storage_item.slot.value)
         );
 
-        let transaction = prepare_transaction(tx_inputs, None, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let _process = run_tx(&transaction).unwrap();
     }
 }
 
 #[test]
 fn test_set_item() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // copy the initial account slots (SMT)
@@ -307,7 +322,7 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -315,7 +330,7 @@ fn test_set_item() {
 #[ignore]
 #[test]
 fn test_get_map_item() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
@@ -346,7 +361,7 @@ fn test_get_map_item() {
         child_value = prepare_word(&CHILD_STORAGE_VALUE_0)
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, code.as_str(), None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -355,7 +370,7 @@ fn test_get_map_item() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let account = tx_inputs.account();
@@ -377,7 +392,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, None, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
 
@@ -386,7 +401,7 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let tx_inputs =
+    let (tx_inputs, _tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account = tx_inputs.account();
 
@@ -400,7 +415,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let tx_inputs =
+        let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
@@ -422,7 +437,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(tx_inputs, None, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let process = run_tx(&transaction);
 
         match valid {

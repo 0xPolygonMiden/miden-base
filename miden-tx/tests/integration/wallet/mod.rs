@@ -1,20 +1,20 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorage, StorageSlotType},
+    accounts::{
+        Account, AccountId, AccountStorage, SlotItem, StorageSlot,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::dsa::rpo_falcon512::{KeyPair, PublicKey},
+    crypto::dsa::rpo_falcon512::SecretKey,
+    notes::NoteType,
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::{
-    constants::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
-    },
-    utils::prepare_word,
-};
+use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -29,7 +29,7 @@ fn prove_receive_asset_via_wallet() {
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
 
     let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
@@ -74,7 +74,7 @@ fn prove_receive_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -84,9 +84,11 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, target_pub_key))])
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(target_pub_key),
+    }])
+    .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::new(
@@ -100,15 +102,12 @@ fn prove_receive_asset_via_wallet() {
 }
 
 #[test]
-// Testing the basic Miden wallet - sending an asset
+/// Testing the basic Miden wallet - sending an asset
 fn prove_send_asset_via_wallet() {
-    // Mock data
-    // We need an asset and an account that owns that asset
-    // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
-    let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,
@@ -137,14 +136,16 @@ fn prove_send_asset_via_wallet() {
 
         begin
             push.{recipient}
+            push.{note_type}
             push.{tag}
             push.{asset}
-            call.wallet::send_asset drop
-            dropw dropw
+            call.wallet::send_asset
+            drop drop dropw dropw
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
             recipient = prepare_word(&recipient),
+            note_type = NoteType::OffChain as u8,
             tag = tag,
             asset = prepare_word(&fungible_asset_1.into())
         )
@@ -156,18 +157,18 @@ fn prove_send_asset_via_wallet() {
         .unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
-    // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
-    let sender_account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, sender_pub_key))])
-            .unwrap();
+    let sender_account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(sender_pub_key),
+    }])
+    .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
@@ -184,11 +185,14 @@ fn prove_send_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    // we need a Falcon Public Key to create the wallet account
+    use miden_objects::accounts::{AccountStorageType, AccountType, ACCOUNT_ID_SENDER};
 
-    use miden_objects::accounts::AccountType;
-    let key_pair: KeyPair = KeyPair::new().unwrap();
-    let pub_key: PublicKey = key_pair.public_key();
+    // we need a Falcon Public Key to create the wallet account
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+
+    let sec_key = SecretKey::with_rng(&mut rng);
+    let pub_key = sec_key.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 
     // we need to use an initial seed to create the wallet account
@@ -197,9 +201,11 @@ fn wallet_creation() {
         204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
+    let account_type = AccountType::RegularAccountImmutableCode;
+    let storage_type = AccountStorageType::OffChain;
+
     let (wallet, _) =
-        create_basic_wallet(init_seed, auth_scheme, AccountType::RegularAccountImmutableCode)
-            .unwrap();
+        create_basic_wallet(init_seed, auth_scheme, account_type, storage_type).unwrap();
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();

@@ -1,17 +1,20 @@
+use alloc::string::String;
 use core::fmt::{Debug, Display, Formatter};
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
     Serializable, Word, WORD_SIZE, ZERO,
 };
-use crate::utils::{hex_to_bytes, string::*, HexParseError};
+use crate::utils::{hex_to_bytes, HexParseError};
 
 // NULLIFIER
 // ================================================================================================
 
 /// A note's nullifier.
 ///
-/// A note's nullifier is computed as hash(serial_num, script_hash, input_hash, asset_hash).
+/// A note's nullifier is computed as:
+///
+/// > hash(serial_num, script_hash, input_hash, asset_hash).
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique nullifier.
@@ -86,10 +89,10 @@ impl Debug for Nullifier {
 impl From<&Note> for Nullifier {
     fn from(note: &Note) -> Self {
         Self::new(
-            note.script.hash(),
-            note.inputs.commitment(),
-            note.assets.commitment(),
-            note.serial_num,
+            note.script().hash(),
+            note.inputs().commitment(),
+            note.assets().commitment(),
+            note.serial_num(),
         )
     }
 }

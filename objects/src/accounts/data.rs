@@ -3,6 +3,7 @@ use std::{
     fs::{self, File},
     io::{self, Read},
     path::Path,
+    vec::Vec,
 };
 
 use miden_crypto::utils::SliceReader;
@@ -13,7 +14,6 @@ use super::{
     },
     Account, Word,
 };
-use crate::utils::format;
 
 // ACCOUNT DATA
 // ================================================================================================
@@ -88,7 +88,7 @@ impl Deserializable for AccountData {
 /// for Account serialisation and deserialisation for transport of Account data
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AuthData {
-    RpoFalcon512Seed([u8; 40]),
+    RpoFalcon512Seed([u8; 32]),
 }
 
 // SERIALIZATION
@@ -110,7 +110,7 @@ impl Deserializable for AuthData {
         let scheme = u8::read_from(source)?;
         match scheme {
             0 => {
-                let seed = <[u8; 40]>::read_from(source)?;
+                let seed = <[u8; 32]>::read_from(source)?;
                 Ok(AuthData::RpoFalcon512Seed(seed))
             },
             value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
@@ -130,6 +130,7 @@ mod tests {
     use assembly::{ast::ModuleAst, Assembler};
     use miden_crypto::utils::{Deserializable, Serializable};
     use storage::AccountStorage;
+    #[cfg(feature = "std")]
     use tempfile::tempdir;
 
     use super::{AccountData, AuthData};
@@ -155,7 +156,10 @@ mod tests {
                 push.1 push.2 add
             end
         ";
-        let module = ModuleAst::parse(source).unwrap();
+        let mut module = ModuleAst::parse(source).unwrap();
+        // clears are needed since imports and source locations are not serialized for account code
+        module.clear_locations();
+        module.clear_imports();
         let assembler = Assembler::default();
         let code = AccountCode::new(module, &assembler).unwrap();
 
@@ -165,7 +169,7 @@ mod tests {
         let nonce = Felt::new(0);
         let account = Account::new(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());
-        let auth_seed = [0u8; 40];
+        let auth_seed = [0u8; 32];
         let auth = AuthData::RpoFalcon512Seed(auth_seed);
 
         // create AccountData
@@ -183,6 +187,7 @@ mod tests {
         assert_eq!(account_data, account_data_2);
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn account_data_is_correctly_writen_and_read_to_and_from_file() {
         // setup temp directory

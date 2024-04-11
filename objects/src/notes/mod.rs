@@ -1,11 +1,19 @@
+use miden_crypto::{
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    Word,
+};
+use vm_processor::DeserializationError;
+
 use crate::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
     assets::Asset,
-    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     vm::CodeBlock,
-    Digest, Felt, Hasher, NoteError, Word, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
+    Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
 };
+
+mod assets;
+pub use assets::NoteAssets;
 
 mod envelope;
 pub use envelope::NoteEnvelope;
@@ -14,10 +22,16 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::NoteMetadata;
+pub use metadata::{NoteExecutionMode, NoteMetadata};
 
 mod note_id;
 pub use note_id::NoteId;
+
+mod note_tag;
+pub use note_tag::NoteTag;
+
+mod note_type;
+pub use note_type::NoteType;
 
 mod nullifier;
 pub use nullifier::Nullifier;
@@ -25,11 +39,11 @@ pub use nullifier::Nullifier;
 mod origin;
 pub use origin::{NoteInclusionProof, NoteOrigin};
 
+mod recipient;
+pub use recipient::NoteRecipient;
+
 mod script;
 pub use script::NoteScript;
-
-mod assets;
-pub use assets::NoteAssets;
 
 // CONSTANTS
 // ================================================================================================
@@ -42,97 +56,47 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 // NOTE
 // ================================================================================================
 
+/// A note with all the data required for it to be consumed by executing it against the transaction
+/// kernel.
+///
+/// Notes are created with a script, inputs, assets, and a serial number. Fungible and non-fungible
+/// asset transfers are done by moving assets to the note's assets. The note's script determines the
+/// conditions required for the note consumpution, i.e. the target account of a P2ID or conditions
+/// of a SWAP, and the effects of the note. The serial number has a double duty of preventing double
+/// spend, and providing unlikability to the consumer of a note. The note's inputs allow for
+/// customization of its script.
+///
+/// To create a note, the kernel does not require all the information above, a user can create a
+/// note only with the commitment to the script, inputs, the serial number, and the kernel only
+/// verifies the source account has the assets necessary for the note creation. See [NoteRecipient]
+/// for more details.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NoteType {
-    /// Notes with this type have only their hash published to the network.
-    OffChain,
-
-    /// Notes with type are shared with the network encrypted.
-    Encrypted,
-
-    /// Notes with this type are known by the network, intended to be used in local transactions.
-    Local,
-
-    /// Notes with this type are known by the network, intended for network transactions.
-    Network,
-}
-
-/// A note which can be used to transfer assets between accounts.
-///
-/// This struct is a full description of a note which is needed to execute a note in a transaction.
-/// A note consists of:
-///
-/// Core on-chain data which is used to execute a note:
-/// - A script which must be executed in a context of some account to claim the assets.
-/// - A set of inputs which can be read to memory during script execution via the invocation of the
-///   `note::get_inputs` in the kernel API.
-/// - A set of assets stored in the note.
-/// - A serial number which can be used to break linkability between note hash and note nullifier.
-///
-/// Auxiliary data which is used to verify authenticity and signal additional information:
-/// - A metadata object which contains information about the sender, the tag and the number of
-///   assets in the note.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
-    script: NoteScript,
-    inputs: NoteInputs,
     assets: NoteAssets,
-    serial_num: Word,
     metadata: NoteMetadata,
+    recipient: NoteRecipient,
 
     id: NoteId,
-    recipient: Digest,
     nullifier: Nullifier,
-}
-
-fn compute_recipient(serial_num: Word, script: &NoteScript, inputs: &NoteInputs) -> Digest {
-    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
-    let merge_script = Hasher::merge(&[serial_num_hash, script.hash()]);
-    Hasher::merge(&[merge_script, inputs.commitment()])
 }
 
 impl Note {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new note created with the specified parameters.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The number of inputs exceeds 16.
-    /// - The number of provided assets exceeds 1000.
-    /// - The list of assets contains duplicates.
-    pub fn new(
-        script: NoteScript,
-        inputs: &[Felt],
-        assets: &[Asset],
-        serial_num: Word,
-        sender: AccountId,
-        tag: Felt,
-    ) -> Result<Self, NoteError> {
-        let inputs = NoteInputs::new(inputs.to_vec())?;
-        let assets = NoteAssets::new(assets)?;
-        let metadata = NoteMetadata::new(sender, tag);
+    pub fn new(assets: NoteAssets, metadata: NoteMetadata, recipient: NoteRecipient) -> Self {
+        let id = NoteId::new(recipient.digest(), assets.commitment());
+        let nullifier = Nullifier::new(
+            recipient.script().hash(),
+            recipient.inputs().commitment(),
+            assets.commitment(),
+            recipient.serial_num(),
+        );
 
-        Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
-    }
-
-    /// Returns a note instance created from the provided parts.
-    pub fn from_parts(
-        script: NoteScript,
-        inputs: NoteInputs,
-        assets: NoteAssets,
-        serial_num: Word,
-        metadata: NoteMetadata,
-    ) -> Self {
-        let recipient = compute_recipient(serial_num, &script, &inputs);
-        let id = NoteId::new(recipient, assets.commitment());
-        let nullifier =
-            Nullifier::new(script.hash(), inputs.commitment(), assets.commitment(), serial_num);
         Self {
-            script,
-            inputs,
             assets,
-            serial_num,
             metadata,
             id,
             recipient,
@@ -143,55 +107,65 @@ impl Note {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a reference script which locks the assets of this note.
-    pub fn script(&self) -> &NoteScript {
-        &self.script
-    }
-
-    /// Returns a reference to the note inputs.
-    pub fn inputs(&self) -> &NoteInputs {
-        &self.inputs
-    }
-
-    /// Returns a reference to the asset of this note.
+    /// Returns the note's assets.
     pub fn assets(&self) -> &NoteAssets {
         &self.assets
     }
 
-    /// Returns a serial number of this note.
-    pub fn serial_num(&self) -> Word {
-        self.serial_num
-    }
-
-    /// Returns the metadata associated with this note.
+    /// Returns the note's metadata.
     pub fn metadata(&self) -> &NoteMetadata {
         &self.metadata
     }
 
-    /// Returns the recipient of this note.
-    ///
-    /// Recipient is defined and calculated as:
-    ///
-    /// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-    ///
-    pub fn recipient(&self) -> Digest {
-        self.recipient
+    /// Returns the note's recipient.
+    pub fn recipient(&self) -> &NoteRecipient {
+        &self.recipient
     }
 
-    /// Returns a unique identifier of this note, which is simultaneously a commitment to the note.
+    /// Returns the note's unique identifier.
+    ///
+    /// This value is both an unique identifier and a commitment to the note.
     pub fn id(&self) -> NoteId {
         self.id
     }
 
-    /// Returns the value used to authenticate a notes existence in the note tree. This is computed
-    /// as a 2-to-1 hash of the note hash and note metadata [hash(note_id, note_metadata)]
+    /// Returns the note's authentication hash.
+    ///
+    /// This value is used authenticate the note's presence in the note tree, it is computed as:
+    ///
+    /// > hash(note_id, note_metadata)
+    ///
     pub fn authentication_hash(&self) -> Digest {
         Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
     }
 
-    /// Returns the nullifier for this note.
+    /// Returns the note's nullifier.
+    ///
+    /// This is public data, used to prevent double spend.
     pub fn nullifier(&self) -> Nullifier {
         self.nullifier
+    }
+
+    /// Returns the note's recipient serial_num, the secret required to consume the note.
+    pub fn serial_num(&self) -> Word {
+        self.recipient.serial_num()
+    }
+
+    /// Returns the note's recipient script which locks the assets of this note.
+    pub fn script(&self) -> &NoteScript {
+        self.recipient.script()
+    }
+
+    /// Returns the note's recipient inputs which customizes the script's behavior.
+    pub fn inputs(&self) -> &NoteInputs {
+        self.recipient.inputs()
+    }
+
+    /// Returns the note's recipient digest, which commits to its details.
+    ///
+    /// This is the public data required to create a note.
+    pub fn recipient_digest(&self) -> Digest {
+        self.recipient.digest()
     }
 }
 
@@ -200,52 +174,29 @@ impl Note {
 
 impl Serializable for Note {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Note {
-            script,
-            inputs,
+        let Self {
             assets,
-            serial_num,
             metadata,
+            recipient,
 
+            // These attributes don't have to be serialized, they can be re-computed from the rest
+            // of the data
             id: _,
-            recipient: _,
             nullifier: _,
         } = self;
 
-        script.write_into(target);
-        inputs.write_into(target);
         assets.write_into(target);
-        serial_num.write_into(target);
         metadata.write_into(target);
+        recipient.write_into(target);
     }
 }
 
 impl Deserializable for Note {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let script = NoteScript::read_from(source)?;
-        let inputs = NoteInputs::read_from(source)?;
         let assets = NoteAssets::read_from(source)?;
-        let serial_num = Word::read_from(source)?;
         let metadata = NoteMetadata::read_from(source)?;
+        let recipient = NoteRecipient::read_from(source)?;
 
-        Ok(Self::from_parts(script, inputs, assets, serial_num, metadata))
-    }
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for Note {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let bytes = self.to_bytes();
-        serializer.serialize_bytes(&bytes)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Note {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use crate::utils::collections::*;
-
-        let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
-        Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
+        Ok(Self::new(assets, metadata, recipient))
     }
 }

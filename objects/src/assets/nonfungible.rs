@@ -1,7 +1,10 @@
+use alloc::{string::ToString, vec::Vec};
 use core::fmt;
 
-use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word};
-use crate::utils::{collections::*, string::*};
+use super::{
+    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
+    ACCOUNT_ISFAUCET_MASK,
+};
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -10,10 +13,11 @@ const FAUCET_ID_POS: usize = 1;
 // ================================================================================================
 /// A commitment to a non-fungible asset.
 ///
-/// A non-fungible asset consists of 4 field elements which are computed by hashing asset data
-/// (which can be of arbitrary length) to produce: [d0, d1, d2, d3].  We then replace d1 with the
-/// faucet_id that issued the asset: [d0, faucet_id, d2, d3]. We then set the most significant bit
-/// of the most significant element to ZERO.
+/// The commitment is constructed as follows:
+///
+/// - Hash the asset data producing `[d0, d1, d2, d3]`.
+/// - Replace the value of `d1` with the fauce id producing `[d0, faucet_id, d2, d3]`.
+/// - Force the bit position [ACCOUNT_ISFAUCET_MASK] of `d3` to be `0`.
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
@@ -47,14 +51,28 @@ impl NonFungibleAsset {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
             return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
         }
-        // set the element 1 to the faucet_id
         data_hash[FAUCET_ID_POS] = faucet_id.into();
 
-        // set the first bit of the asset to 0; we can do this because setting the first bit to 0
-        // will always result in a valid field element.
-        data_hash[3] = Felt::new((data_hash[3].as_int() << 1) >> 1);
+        // Forces the bit at position `ACCOUNT_ISFAUCET_MASK` to `0`.
+        //
+        // Explanation of the bit flip:
+        //
+        // - assets require a faucet account, the id of such accounts always has the bit at the mask
+        //   position.
+        // - fungible assets have the account id at position `3`, meaning the 3rd bit is always of
+        //   the element at the 3rd position is always 1.
+        // - non-fungible assets, have the account id at position `FAUCET_ID_POS`, so the bit at
+        //   position `3` can be used to identify fungible vs. non-fungible assets
+        //
+        // This is done as an optimization, since the field element at position `3` is used as index
+        // when storing the assets into the asset vault. This strategy forces fungible assets to be
+        // assigned to the same slot because it uses the faucet's account id, and allows for easy
+        // merging of fungible faucets. At the same time, it spreads the non-fungible assets evenly
+        // across the vault, because in this case the element is the result of a cryptographic hash
+        // function.
+        let d3 = data_hash[3].as_int();
+        data_hash[3] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
 
-        // construct an asset
         let asset = Self(data_hash);
 
         Ok(asset)
@@ -92,12 +110,9 @@ impl NonFungibleAsset {
         let faucet_id = AccountId::try_from(self.0[FAUCET_ID_POS])
             .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
 
-        if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(faucet_id));
-        }
-
-        if self.0[3].as_int() >> 63 != 0 {
-            return Err(AssetError::non_fungible_asset_invalid_first_bit());
+        let account_type = faucet_id.account_type();
+        if !matches!(account_type, AccountType::NonFungibleFaucet) {
+            return Err(AssetError::not_a_fungible_faucet_id(faucet_id, account_type));
         }
 
         Ok(())
@@ -147,8 +162,8 @@ impl TryFrom<[u8; 32]> for NonFungibleAsset {
 }
 
 impl fmt::Display for NonFungibleAsset {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

@@ -1,12 +1,10 @@
+use alloc::string::ToString;
+
 use super::{
-    accounts::{AccountId, AccountType},
-    utils::{
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-        string::*,
-    },
+    accounts::{AccountId, AccountType, ACCOUNT_ISFAUCET_MASK},
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
-use crate::utils::format;
 
 mod fungible;
 pub use fungible::FungibleAsset;
@@ -30,9 +28,9 @@ pub use vault::AssetVault;
 ///   Element 1 will be:
 ///    - ZERO for a fungible asset
 ///    - non-ZERO for a non-fungible asset
-///   The most significant bit will be:
-///    - ONE for a fungible asset
-///    - ZERO for a non-fungible asset
+///   The 3rd most significant bit will be:
+///    - 1 for a fungible asset
+///    - 0 for a non-fungible asset
 ///
 /// The above properties guarantee that there can never be a collision between a fungible and a
 /// non-fungible asset.
@@ -41,7 +39,7 @@ pub use vault::AssetVault;
 ///
 /// # Fungible assets
 /// The most significant element of a fungible asset is set to the ID of the faucet which issued
-/// the asset. This guarantees the properties described above (the first bit is ONE).
+/// the asset. This guarantees the properties described above (the 3rd most significant bit is ONE).
 ///
 /// The least significant element is set to the amount of the asset. This amount cannot be greater
 /// than 2^63 - 1 and thus requires 63-bits to store.
@@ -57,7 +55,7 @@ pub use vault::AssetVault;
 /// - First the asset data is hashed. This compresses an asset of an arbitrary length to 4 field
 ///   elements: [d0, d1, d2, d3].
 /// - d1 is then replaced with the faucet_id which issues the asset: [d0, faucet_id, d2, d3].
-/// - Lastly, the most significant bit of d3 is set to ZERO.
+/// - Lastly, the 3rd most significant bit of d3 is set to ZERO.
 ///
 /// It is impossible to find a collision between two non-fungible assets issued by different faucets
 /// as the faucet_id is included in the description of the non-fungible asset and this is guaranteed
@@ -73,11 +71,10 @@ pub enum Asset {
 impl Asset {
     /// Creates a new [Asset] without checking its validity.
     pub(crate) fn new_unchecked(value: Word) -> Asset {
-        let first_bit = value[3].as_int() >> 63;
-        match first_bit {
-            0 => Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(value) }),
-            1 => Asset::Fungible(FungibleAsset::new_unchecked(value)),
-            _ => unreachable!(),
+        if is_not_a_non_fungible_asset(value) {
+            Asset::Fungible(FungibleAsset::new_unchecked(value))
+        } else {
+            Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(value) })
         }
     }
 
@@ -111,10 +108,9 @@ impl Asset {
 
 impl From<Asset> for Word {
     fn from(asset: Asset) -> Self {
-        use Asset::*;
         match asset {
-            Fungible(asset) => asset.into(),
-            NonFungible(asset) => asset.into(),
+            Asset::Fungible(asset) => asset.into(),
+            Asset::NonFungible(asset) => asset.into(),
         }
     }
 }
@@ -127,10 +123,9 @@ impl From<&Asset> for Word {
 
 impl From<Asset> for [u8; 32] {
     fn from(asset: Asset) -> Self {
-        use Asset::*;
         match asset {
-            Fungible(asset) => asset.into(),
-            NonFungible(asset) => asset.into(),
+            Asset::Fungible(asset) => asset.into(),
+            Asset::NonFungible(asset) => asset.into(),
         }
     }
 }
@@ -141,15 +136,22 @@ impl From<&Asset> for [u8; 32] {
     }
 }
 
+impl TryFrom<&Word> for Asset {
+    type Error = AssetError;
+
+    fn try_from(value: &Word) -> Result<Self, Self::Error> {
+        (*value).try_into()
+    }
+}
+
 impl TryFrom<Word> for Asset {
     type Error = AssetError;
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
-        let first_bit = value[3].as_int() >> 63;
-        match first_bit {
-            0 => NonFungibleAsset::try_from(value).map(Asset::from),
-            1 => FungibleAsset::try_from(value).map(Asset::from),
-            _ => unreachable!(),
+        if is_not_a_non_fungible_asset(value) {
+            FungibleAsset::try_from(value).map(Asset::from)
+        } else {
+            NonFungibleAsset::try_from(value).map(Asset::from)
         }
     }
 }
@@ -158,12 +160,7 @@ impl TryFrom<[u8; 32]> for Asset {
     type Error = AssetError;
 
     fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let first_bit = value[31] >> 7;
-        match first_bit {
-            0 => NonFungibleAsset::try_from(value).map(Asset::from),
-            1 => FungibleAsset::try_from(value).map(Asset::from),
-            _ => unreachable!(),
-        }
+        parse_word(value)?.try_into()
     }
 }
 
@@ -191,7 +188,7 @@ impl Deserializable for Asset {
         let data_array: [u8; 32] = data_vec.try_into().expect("Vec must be of size 32");
 
         let asset = Asset::try_from(&data_array)
-            .map_err(|v| DeserializationError::InvalidValue(format!("{v:?}")))?;
+            .map_err(|error| DeserializationError::InvalidValue(format!("{error}")))?;
         Ok(asset)
     }
 }
@@ -210,4 +207,88 @@ fn parse_word(bytes: [u8; 32]) -> Result<Word, AssetError> {
 
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AssetError> {
     Felt::try_from(bytes).map_err(|err| AssetError::invalid_field_element(err.to_string()))
+}
+
+/// Returns `true` if asset in [Word] is not a non-fungible asset.
+///
+/// Note: this does not mean that the word is a fungible asset as the word may contain an value
+/// which is not a valid asset.
+fn is_not_a_non_fungible_asset(asset: Word) -> bool {
+    // For fungible assets, the position `3` contains the faucet's account id, in which case the
+    // bit is set. For non-fungible assets have the bit always set to `0`.
+    (asset[3].as_int() & ACCOUNT_ISFAUCET_MASK) == ACCOUNT_ISFAUCET_MASK
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::{
+        utils::{Deserializable, Serializable},
+        Word,
+    };
+
+    use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
+    use crate::accounts::{
+        AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+    };
+
+    #[test]
+    fn test_asset_serde() {
+        for fungible_account_id in [
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+        ] {
+            let account_id = AccountId::try_from(fungible_account_id).unwrap();
+            let fungible_asset: Asset = FungibleAsset::new(account_id, 10).unwrap().into();
+            assert_eq!(fungible_asset, Asset::read_from_bytes(&fungible_asset.to_bytes()).unwrap());
+        }
+
+        for non_fungible_account_id in [
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ] {
+            let account_id = AccountId::try_from(non_fungible_account_id).unwrap();
+            let details = NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap();
+            let non_fungible_asset: Asset = NonFungibleAsset::new(&details).unwrap().into();
+            assert_eq!(
+                non_fungible_asset,
+                Asset::read_from_bytes(&non_fungible_asset.to_bytes()).unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn test_new_unchecked() {
+        for fungible_account_id in [
+            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
+        ] {
+            let account_id = AccountId::try_from(fungible_account_id).unwrap();
+            let fungible_asset: Asset = FungibleAsset::new(account_id, 10).unwrap().into();
+            assert_eq!(fungible_asset, Asset::new_unchecked(Word::from(&fungible_asset)));
+        }
+
+        for non_fungible_account_id in [
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ] {
+            let account_id = AccountId::try_from(non_fungible_account_id).unwrap();
+            let details = NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap();
+            let non_fungible_asset: Asset = NonFungibleAsset::new(&details).unwrap().into();
+            assert_eq!(non_fungible_asset, Asset::new_unchecked(Word::from(non_fungible_asset)));
+        }
+    }
 }

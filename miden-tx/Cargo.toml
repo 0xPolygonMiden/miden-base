@@ -1,15 +1,16 @@
 [package]
 name = "miden-tx"
-version = "0.1.0"
+version = "0.2.0"
 description = "Miden rollup transaction compiler, executor, and prover"
-authors = ["miden contributors"]
-readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = ["no-std"]
 keywords = ["miden", "transaction"]
-edition = "2021"
-rust-version = "1.75"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [[test]]
 name = "miden-tx"
@@ -21,11 +22,12 @@ default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
 
 [dependencies]
-miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.1", default-features = false }
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.1", default-features = false }
+miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.2", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.2", default-features = false }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
 mock = { package = "miden-mock", path = "../mock", default-features = false }
+rand_chacha = { version = "0.3", default-features = false }

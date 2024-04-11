@@ -1,7 +1,9 @@
+use alloc::string::String;
+use core::fmt::Display;
+
 use super::{Digest, Felt, Hasher, Note, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    string::*,
     HexParseError,
 };
 
@@ -12,10 +14,11 @@ use crate::utils::{
 ///
 /// Note ID is computed as:
 ///
-///   hash(recipient, asset_hash),
+/// > hash(recipient, asset_hash),
 ///
 /// where `recipient` is defined as:
-///   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+///
+/// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
@@ -52,12 +55,18 @@ impl NoteId {
     }
 }
 
+impl Display for NoteId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
+    }
+}
+
 // CONVERSIONS INTO NOTE ID
 // ================================================================================================
 
 impl From<&Note> for NoteId {
     fn from(note: &Note) -> Self {
-        Self::new(note.recipient(), note.assets().commitment())
+        Self::new(note.recipient().digest(), note.assets().commitment())
     }
 }
 
@@ -82,6 +91,12 @@ impl NoteId {
 
 // CONVERSIONS FROM NOTE ID
 // ================================================================================================
+
+impl From<NoteId> for Digest {
+    fn from(id: NoteId) -> Self {
+        id.inner()
+    }
+}
 
 impl From<NoteId> for Word {
     fn from(id: NoteId) -> Self {
@@ -125,6 +140,8 @@ impl Deserializable for NoteId {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::NoteId;
 
     #[test]

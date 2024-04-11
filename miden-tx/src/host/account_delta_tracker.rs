@@ -1,24 +1,10 @@
-use miden_lib::transaction::{memory::ACCT_STORAGE_ROOT_PTR, TransactionKernelError};
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use miden_objects::{
-    accounts::{
-        AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountStub,
-        AccountVaultDelta,
-    },
+    accounts::{AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     Digest, Felt, Word, EMPTY_WORD, ZERO,
 };
-use vm_processor::{ContextId, ProcessState};
-
-use super::{AdviceProvider, TransactionHost};
-use crate::utils::{
-    collections::{btree_map::*, *},
-    string::*,
-};
-
-// CONSTANTS
-// ================================================================================================
-
-const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPTH as u64);
 
 // ACCOUNT DELTA TRACKER
 // ================================================================================================
@@ -64,100 +50,20 @@ impl AccountDeltaTracker {
 
         AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta")
     }
-}
 
-// EVENT HANDLERS
-// ================================================================================================
-
-impl<A: AdviceProvider> TransactionHost<A> {
-    /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
-    pub(super) fn on_account_increment_nonce<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        let value = process.get_stack_item(0);
-        self.account_delta.nonce_delta += value;
-        Ok(())
+    /// Tracks nonce delta.
+    pub fn increment_nonce(&mut self, value: Felt) {
+        self.nonce_delta += value;
     }
 
-    // ACCOUNT STORAGE UPDATE HANDLERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Extracts information from the process state about the storage slot being updated and
-    /// records the latest value of this storage slot.
-    pub(super) fn on_account_storage_set_item<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        let storage_root = process
-            .get_mem_value(ContextId::root(), ACCT_STORAGE_ROOT_PTR)
-            .expect("no storage root");
-
-        // get slot index from the stack and make sure it is valid
-        let slot_index = process.get_stack_item(0);
-        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
-            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
-        }
-
-        // get the value to which the slot is being updated
-        let new_slot_value = [
-            process.get_stack_item(4),
-            process.get_stack_item(3),
-            process.get_stack_item(2),
-            process.get_stack_item(1),
-        ];
-
-        // try to get the current value for the slot from the advice provider
-        let current_slot_value = self
-            .adv_provider
-            .get_tree_node(storage_root, &STORAGE_TREE_DEPTH, &slot_index)
-            .map_err(|err| {
-                TransactionKernelError::MissingStorageSlotValue(
-                    slot_index.as_int() as u8,
-                    err.to_string(),
-                )
-            })?;
-
-        // update the delta tracker only if the current and new values are different
-        if current_slot_value != new_slot_value {
-            let slot_index = slot_index.as_int() as u8;
-            self.account_delta.storage.slot_updates.insert(slot_index, new_slot_value);
-        }
-
-        Ok(())
+    /// Get the vault tracker
+    pub fn vault_tracker(&mut self) -> &mut AccountVaultDeltaTracker {
+        &mut self.vault
     }
 
-    // ACCOUNT VAULT UPDATE HANDLERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Extracts the asset that is being added to the account's vault from the process state and
-    /// updates the appropriate fungible or non-fungible asset map.
-    pub(super) fn on_account_vault_add_asset<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        let asset: Asset = process
-            .get_stack_word(0)
-            .try_into()
-            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
-
-        self.account_delta.vault.add_asset(asset);
-        Ok(())
-    }
-
-    /// Extracts the asset that is being removed from the account's vault from the process state
-    /// and updates the appropriate fungible or non-fungible asset map.
-    pub(super) fn on_account_vault_remove_asset<S: ProcessState>(
-        &mut self,
-        process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        let asset: Asset = process
-            .get_stack_word(0)
-            .try_into()
-            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
-
-        self.account_delta.vault.remove_asset(asset);
-        Ok(())
+    /// Get the storage tracker
+    pub fn storage_tracker(&mut self) -> &mut AccountStorageDeltaTracker {
+        &mut self.storage
     }
 }
 
@@ -170,7 +76,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
 /// The delta tracker is composed of:
 /// - A map which records the latest states for the updated storage slots.
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-struct AccountStorageDeltaTracker {
+pub struct AccountStorageDeltaTracker {
     slot_updates: BTreeMap<u8, Word>,
 }
 
@@ -191,6 +97,11 @@ impl AccountStorageDeltaTracker {
 
         AccountStorageDelta { cleared_items, updated_items }
     }
+
+    /// Tracks a slot change
+    pub fn slot_update(&mut self, slot_index: u8, new_slot_value: [Felt; 4]) {
+        self.slot_updates.insert(slot_index, new_slot_value);
+    }
 }
 
 // ACCOUNT VAULT DELTA TRACKER
@@ -207,7 +118,7 @@ impl AccountStorageDeltaTracker {
 ///   the non-fungible asset, and the value is either 1 or -1 depending on whether the asset is
 ///   being added or removed from the vault.
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-struct AccountVaultDeltaTracker {
+pub struct AccountVaultDeltaTracker {
     fungible_assets: BTreeMap<AccountId, i128>,
     non_fungible_assets: BTreeMap<Digest, i8>,
 }
@@ -231,6 +142,7 @@ impl AccountVaultDeltaTracker {
         }
     }
 
+    /// Track asset removal.
     pub fn remove_asset(&mut self, asset: Asset) {
         match asset {
             Asset::Fungible(asset) => {
@@ -310,6 +222,8 @@ where
     V: Copy,
     K: Ord,
 {
+    use alloc::collections::btree_map::Entry;
+
     match delta_map.entry(key) {
         Entry::Occupied(mut entry) => {
             if entry.get() == &-amount {

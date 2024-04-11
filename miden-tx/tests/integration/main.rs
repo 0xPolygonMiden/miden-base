@@ -3,28 +3,34 @@ mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot, ACCOUNT_ID_SENDER,
+    },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::KeyPair, utils::Serializable},
-    notes::{Note, NoteId, NoteScript},
-    transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
+    crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
+    notes::{
+        Note, NoteAssets, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType,
     },
-    BlockHeader, Felt, Word,
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
+        TransactionArgs, TransactionInputs,
+    },
+    BlockHeader, Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use miden_tx::{
     DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
 };
 use mock::{
-    constants::{ACCOUNT_ID_SENDER, DEFAULT_ACCOUNT_CODE, MIN_PROOF_SECURITY_LEVEL},
+    constants::MIN_PROOF_SECURITY_LEVEL,
     mock::{
-        account::MockAccountType,
+        account::{MockAccountType, DEFAULT_ACCOUNT_CODE},
         notes::AssetPreservationStatus,
         transaction::{mock_inputs, mock_inputs_with_existing},
     },
 };
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
 // MOCK DATA STORE
@@ -36,34 +42,50 @@ pub struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<InputNote>,
+    pub tx_args: TransactionArgs,
 }
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, _, block_header, block_chain, notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
-                .into_parts();
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
         Self {
             account,
             block_header,
             block_chain,
             notes: notes.into_vec(),
+            tx_args,
         }
     }
 
     pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, consumed_notes, _auxiliary_data_inputs) =
-            mock_inputs_with_existing(
-                MockAccountType::StandardExisting,
-                AssetPreservationStatus::Preserved,
-                account,
-                input_notes,
-            );
+        let (
+            account,
+            block_header,
+            block_chain,
+            consumed_notes,
+            _auxiliary_data_inputs,
+            created_notes,
+        ) = mock_inputs_with_existing(
+            MockAccountType::StandardExisting,
+            AssetPreservationStatus::Preserved,
+            account,
+            input_notes,
+        );
+        let output_notes = created_notes.into_iter().filter_map(|note| match note {
+            OutputNote::Public(note) => Some(note),
+            OutputNote::Private(_) => None,
+        });
+        let mut tx_args = TransactionArgs::default();
+        tx_args.extend_expected_output_notes(output_notes);
+
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
+            tx_args,
         }
     }
 }
@@ -132,17 +154,20 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
-    let keypair: KeyPair = KeyPair::new().unwrap();
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
 
-    let pk: Word = keypair.public_key().into();
-    let pk_sk_bytes = keypair.to_bytes();
+    let sec_key = SecretKey::with_rng(&mut rng);
+    let pub_key: Word = sec_key.public_key().into();
+    let mut pk_sk_bytes = sec_key.to_bytes();
+    pk_sk_bytes.append(&mut pub_key.to_bytes());
     let pk_sk_felts: Vec<Felt> =
         pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    (pk, pk_sk_felts)
+    (pub_key, pk_sk_felts)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn get_account_with_default_account_code(
     account_id: AccountId,
     public_key: Word,
@@ -153,9 +178,11 @@ pub fn get_account_with_default_account_code(
     let account_assembler = TransactionKernel::assembler();
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![(0, (StorageSlotType::Value { value_arity: 0 }, public_key))])
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(public_key),
+    }])
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),
@@ -165,7 +192,7 @@ pub fn get_account_with_default_account_code(
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
     note_script: ProgramAst,
@@ -175,13 +202,10 @@ pub fn get_note_with_fungible_asset_and_script(
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
-    Note::new(
-        note_script.clone(),
-        &[],
-        &[fungible_asset.into()],
-        SERIAL_NUM,
-        sender_id,
-        Felt::new(1),
-    )
-    .unwrap()
+    let vault = NoteAssets::new(vec![fungible_asset.into()]).unwrap();
+    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1.into(), ZERO).unwrap();
+    let inputs = NoteInputs::new(vec![]).unwrap();
+    let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
+
+    Note::new(vault, metadata, recipient)
 }

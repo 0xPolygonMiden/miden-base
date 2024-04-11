@@ -1,4 +1,9 @@
-use miden_objects::utils::string::*;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
+use miden_objects::transaction::OutputNote;
 
 use super::{
     memory::{
@@ -10,19 +15,28 @@ use super::{
 };
 
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
-    let note_0_metadata = prepare_word(&notes.get_note(0).metadata().into());
-    let note_0_recipient = prepare_word(notes.get_note(0).recipient());
-    let note_0_assets = prepare_assets(notes.get_note(0).assets());
+    let OutputNote::Public(note0) = notes.get_note(0) else {
+        panic!("Note 0 must be a full note")
+    };
+    let note_0_metadata = prepare_word(&note0.metadata().into());
+    let note_0_recipient = prepare_word(&note0.recipient().digest());
+    let note_0_assets = prepare_assets(note0.assets());
     let note_0_num_assets = 1;
 
-    let note_1_metadata = prepare_word(&notes.get_note(1).metadata().into());
-    let note_1_recipient = prepare_word(notes.get_note(1).recipient());
-    let note_1_assets = prepare_assets(notes.get_note(1).assets());
+    let OutputNote::Public(note1) = notes.get_note(1) else {
+        panic!("Note 1 must be a full note")
+    };
+    let note_1_metadata = prepare_word(&note1.metadata().into());
+    let note_1_recipient = prepare_word(&note1.recipient().digest());
+    let note_1_assets = prepare_assets(note1.assets());
     let note_1_num_assets = 1;
 
-    let note_2_metadata = prepare_word(&notes.get_note(2).metadata().into());
-    let note_2_recipient = prepare_word(notes.get_note(2).recipient());
-    let note_2_assets = prepare_assets(notes.get_note(2).assets());
+    let OutputNote::Public(note2) = notes.get_note(2) else {
+        panic!("Note 2 must be a full note")
+    };
+    let note_2_metadata = prepare_word(&note2.metadata().into());
+    let note_2_recipient = prepare_word(&note2.recipient().digest());
+    let note_2_assets = prepare_assets(note2.assets());
     let note_2_num_assets = 1;
 
     const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;

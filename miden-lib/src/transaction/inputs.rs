@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::Account,
     transaction::{
@@ -9,7 +11,6 @@ use miden_objects::{
 };
 
 use super::TransactionKernel;
-use crate::utils::{collections::*, vec};
 
 // TRANSACTION KERNEL INPUTS
 // ================================================================================================
@@ -57,6 +58,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
 impl ToTransactionKernelInputs for TransactionWitness {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
+
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.proof_init_hash(),
@@ -92,7 +94,7 @@ fn extend_advice_inputs(
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
-    add_tx_script_inputs_to_advice_map(tx_args.tx_script(), advice_inputs);
+    advice_inputs.extend_map(tx_args.advice_map().clone());
 }
 
 // ADVICE STACK BUILDER
@@ -286,12 +288,15 @@ fn add_input_notes_to_advice_inputs(
     let mut note_data = Vec::new();
     for input_note in notes.iter() {
         let note = input_note.note();
+        let assets = note.assets();
         let proof = input_note.proof();
+        let recipient = note.recipient();
         let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
         // insert note inputs and assets into the advice map
-        inputs.extend_map([(note.inputs().commitment(), note.inputs().to_padded_values())]);
-        inputs.extend_map([(note.assets().commitment(), note.assets().to_padded_assets())]);
+        inputs
+            .extend_map([(recipient.inputs().commitment(), recipient.inputs().to_padded_values())]);
+        inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
         inputs.extend_merkle_store(
@@ -302,18 +307,18 @@ fn add_input_notes_to_advice_inputs(
         );
 
         // add the note elements to the combined vector of note data
-        note_data.extend(note.serial_num());
-        note_data.extend(*note.script().hash());
-        note_data.extend(*note.inputs().commitment());
-        note_data.extend(*note.assets().commitment());
+        note_data.extend(recipient.serial_num());
+        note_data.extend(*recipient.script().hash());
+        note_data.extend(*recipient.inputs().commitment());
+        note_data.extend(*assets.commitment());
 
         note_data.extend(Word::from(note.metadata()));
         note_data.extend(Word::from(*note_arg));
 
-        note_data.push(note.inputs().num_values().into());
+        note_data.push(recipient.inputs().num_values().into());
 
-        note_data.push((note.assets().num_assets() as u32).into());
-        note_data.extend(note.assets().to_padded_assets());
+        note_data.push((assets.num_assets() as u32).into());
+        note_data.extend(assets.to_padded_assets());
 
         note_data.push(proof.origin().block_num.into());
         note_data.extend(*proof.sub_hash());
@@ -330,18 +335,4 @@ fn add_input_notes_to_advice_inputs(
 
     // insert the combined note data into the advice map
     inputs.extend_map([(notes.commitment(), note_data)]);
-}
-
-// TRANSACTION SCRIPT INJECTOR
-// ------------------------------------------------------------------------------------------------
-
-/// Inserts the following entries into the advice map:
-/// - input_hash |-> input, for each tx_script input
-fn add_tx_script_inputs_to_advice_map(
-    tx_script: Option<&TransactionScript>,
-    inputs: &mut AdviceInputs,
-) {
-    if let Some(tx_script) = tx_script {
-        inputs.extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())));
-    }
 }

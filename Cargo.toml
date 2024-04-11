@@ -1,6 +1,21 @@
 [workspace]
-members = ["miden-lib", "miden-tx", "mock", "objects"]
 resolver = "2"
+members = [
+    "miden-lib",
+    "miden-tx",
+    "mock",
+    "objects",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.77"
+license = "MIT"
+authors = ["Miden contributors"]
+readme = "README.md"
+homepage = "https://polygon.technology/polygon-miden"
+repository = "https://github.com/0xPolygonMiden/miden-base"
+exclude = [".github/"]
 
 [profile.release]
 codegen-units = 1
@@ -17,10 +32,10 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", version = "0.8", default-features = false }
-miden-crypto = { version = "0.8", default-features = false }
-miden-prover = { version = "0.8", default-features = false }
-miden-stdlib = { version = "0.8", default-features = false }
-miden-verifier = { version = "0.8", default-features = false }
-vm-core = { package = "miden-core", version = "0.8", default-features = false }
-vm-processor = { package = "miden-processor", version = "0.8", default-features = false }
+assembly = { package = "miden-assembly", version = "0.9", default-features = false }
+miden-crypto = { version = "0.9", default-features = false }
+miden-prover = { version = "0.9", default-features = false }
+miden-stdlib = { version = "0.9", default-features = false }
+miden-verifier = { version = "0.9", default-features = false }
+vm-core = { package = "miden-core", version = "0.9", default-features = false }
+vm-processor = { package = "miden-processor", version = "0.9", default-features = false }
