@@ -34,11 +34,19 @@ impl TransactionArgs {
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script and note
     /// arguments.
+    ///
+    /// If tx_script is provided, this also adds all mappings from the transaction script inputs
+    /// to the advice map.
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
-        advice_map: AdviceMap,
+        mut advice_map: AdviceMap,
     ) -> Self {
+        // add transaction script inputs to the advice map
+        if let Some(ref tx_script) = tx_script {
+            advice_map.extend(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())))
+        }
+
         Self {
             tx_script,
             note_args: note_args.unwrap_or_default(),
@@ -48,20 +56,12 @@ impl TransactionArgs {
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
     pub fn with_tx_script(tx_script: TransactionScript) -> Self {
-        Self {
-            tx_script: Some(tx_script),
-            note_args: BTreeMap::default(),
-            advice_map: AdviceMap::default(),
-        }
+        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default())
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
-    pub fn with_note_args(not_args: BTreeMap<NoteId, Word>) -> Self {
-        Self {
-            tx_script: None,
-            note_args: not_args,
-            advice_map: AdviceMap::default(),
-        }
+    pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
+        Self::new(None, Some(note_args), AdviceMap::default())
     }
 
     // MODIFIERS
