@@ -38,10 +38,7 @@ impl NoteInputs {
             return Err(NoteError::too_many_inputs(values.len()));
         }
 
-        let hash = {
-            let padded_values = pad_inputs(&values);
-            Hasher::hash_elements(&padded_values)
-        };
+        let hash = Hasher::hash_elements(&values);
 
         Ok(Self { values, hash })
     }
