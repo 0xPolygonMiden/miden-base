@@ -1,5 +1,10 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use miden_objects::{
-    accounts::{Account, AccountStorage, AccountType, SlotItem},
+    accounts::{Account, AccountStorage, AccountStorageType, AccountType, SlotItem},
     assets::{Asset, AssetVault},
     Felt, Word, ZERO,
 };
@@ -7,8 +12,7 @@ use rand::Rng;
 
 use crate::{
     builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
-    constants::DEFAULT_ACCOUNT_CODE,
-    utils::{collections::*, string::*},
+    mock::account::DEFAULT_ACCOUNT_CODE,
 };
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each
@@ -71,8 +75,8 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn on_chain(mut self, on_chain: bool) -> Self {
-        self.account_id_builder.on_chain(on_chain);
+    pub fn storage_type(mut self, storage_type: AccountStorageType) -> Self {
+        self.account_id_builder.storage_type(storage_type);
         self
     }
 
@@ -111,7 +115,10 @@ impl<T: Rng> AccountBuilder<T> {
         let inner_storage = self.storage_builder.build();
 
         for (key, value) in inner_storage.slots().leaves() {
-            storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
+            if key != 255 {
+                // don't copy the reserved key
+                storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
+            }
         }
 
         self.account_id_builder.code(&self.code);

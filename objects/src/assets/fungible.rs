@@ -1,7 +1,10 @@
+use alloc::string::ToString;
 use core::fmt;
 
-use super::{parse_word, AccountId, AccountType, Asset, AssetError, Felt, Word, ZERO};
-use crate::utils::string::*;
+use super::{
+    is_not_a_non_fungible_asset, parse_word, AccountId, AccountType, Asset, AssetError, Felt, Word,
+    ZERO,
+};
 
 // FUNGIBLE ASSET
 // ================================================================================================
@@ -31,10 +34,7 @@ impl FungibleAsset {
     /// - The faucet_id is not a valid fungible faucet ID.
     /// - The provided amount is greater than 2^63 - 1.
     pub fn new(faucet_id: AccountId, amount: u64) -> Result<Self, AssetError> {
-        // construct the asset and make sure it passes the validation logic
         let asset = Self { faucet_id, amount };
-
-        // validate fungible asset
         asset.validate()?;
 
         Ok(asset)
@@ -118,8 +118,9 @@ impl FungibleAsset {
     /// - The faucet_id is not a valid fungible faucet ID.
     /// - The provided amount is greater than 2^63 - 1.
     fn validate(&self) -> Result<(), AssetError> {
-        if !matches!(self.faucet_id.account_type(), AccountType::FungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(self.faucet_id));
+        let account_type = self.faucet_id.account_type();
+        if !matches!(account_type, AccountType::FungibleFaucet) {
+            return Err(AssetError::not_a_fungible_faucet_id(self.faucet_id, account_type));
         }
 
         if self.amount > Self::MAX_AMOUNT {
@@ -135,6 +136,7 @@ impl From<FungibleAsset> for Word {
         let mut result = Word::default();
         result[0] = Felt::new(asset.amount);
         result[3] = asset.faucet_id.into();
+        debug_assert!(is_not_a_non_fungible_asset(result));
         result
     }
 }
@@ -159,7 +161,6 @@ impl TryFrom<Word> for FungibleAsset {
     type Error = AssetError;
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
-        // return an error if elements 1 and 2 are not zero
         if (value[1], value[2]) != (ZERO, ZERO) {
             return Err(AssetError::fungible_asset_invalid_word(value));
         }

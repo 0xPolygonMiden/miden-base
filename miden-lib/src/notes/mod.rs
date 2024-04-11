@@ -1,6 +1,14 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
-    accounts::AccountId, assets::Asset, crypto::rand::FeltRng, notes::Note, utils::collections::*,
-    Felt, NoteError, Word,
+    accounts::AccountId,
+    assets::Asset,
+    crypto::rand::FeltRng,
+    notes::{
+        Note, NoteAssets, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
+        NoteType,
+    },
+    NoteError, Word, ZERO,
 };
 
 use self::utils::build_note_script;
@@ -24,16 +32,21 @@ pub fn create_p2id_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
     assets: Vec<Asset>,
+    note_type: NoteType,
     mut rng: R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into()];
-    let tag: Felt = target.into();
+    let inputs = NoteInputs::new(vec![target.into()])?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    Note::new(note_script, &inputs, &assets, serial_num, sender, tag)
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    Ok(Note::new(vault, metadata, recipient))
 }
 
 /// Generates a P2IDR note - pay to id with recall after a certain block height.
@@ -52,17 +65,22 @@ pub fn create_p2idr_note<R: FeltRng>(
     sender: AccountId,
     target: AccountId,
     assets: Vec<Asset>,
+    note_type: NoteType,
     recall_height: u32,
     mut rng: R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let note_script = build_note_script(bytes)?;
 
-    let inputs = [target.into(), recall_height.into()];
-    let tag: Felt = target.into();
+    let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    Note::new(note_script.clone(), &inputs, &assets, serial_num, sender, tag)
+    let vault = NoteAssets::new(assets)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    Ok(Note::new(vault, metadata, recipient))
 }
 
 /// Generates a SWAP note - swap of assets between two accounts.
@@ -77,6 +95,7 @@ pub fn create_swap_note<R: FeltRng>(
     sender: AccountId,
     offered_asset: Asset,
     requested_asset: Asset,
+    note_type: NoteType,
     mut rng: R,
 ) -> Result<(Note, Word), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
@@ -85,8 +104,9 @@ pub fn create_swap_note<R: FeltRng>(
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
     let asset_word: Word = requested_asset.into();
+    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
 
-    let inputs = [
+    let inputs = NoteInputs::new(vec![
         payback_recipient[0],
         payback_recipient[1],
         payback_recipient[2],
@@ -95,13 +115,18 @@ pub fn create_swap_note<R: FeltRng>(
         asset_word[1],
         asset_word[2],
         asset_word[3],
-        sender.into(),
-    ];
+        payback_tag.inner().into(),
+    ])?;
 
-    let tag: Felt = Felt::new(0);
+    // TODO: build the tag for the SWAP use case
+    let tag = 0.into();
     let serial_num = rng.draw_word();
+    let aux = ZERO;
 
-    let note = Note::new(note_script.clone(), &inputs, &[offered_asset], serial_num, sender, tag)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let vault = NoteAssets::new(vec![offered_asset])?;
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    let note = Note::new(vault, metadata, recipient);
 
     Ok((note, payback_serial_num))
 }

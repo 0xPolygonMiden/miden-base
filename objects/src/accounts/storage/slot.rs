@@ -1,5 +1,6 @@
+use alloc::string::{String, ToString};
+
 use super::Felt;
-use crate::utils::string::*;
 
 // CONSTANTS
 // ================================================================================================

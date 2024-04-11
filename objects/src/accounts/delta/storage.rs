@@ -1,8 +1,9 @@
+use alloc::{string::ToString, vec::Vec};
+
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     Word,
 };
-use crate::utils::{collections::*, string::*};
 
 // CONSTANTS
 // ================================================================================================

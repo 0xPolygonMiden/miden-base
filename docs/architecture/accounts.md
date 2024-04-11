@@ -107,33 +107,33 @@ There is also a standard for a [basic fungible faucet](https://github.com/0xPoly
   #!
   #! ...
   export.distribute
-      # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
-      push.METADATA_SLOT exec.account::get_item drop drop drop
-      # => [max_supply, amount, tag, RECIPIENT, ...]
+    # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
+    push.METADATA_SLOT exec.account::get_item drop drop drop
+    # => [max_supply, amount, tag, note_type, RECIPIENT, ...]
 
-      # get total issuance of this faucet so far and add amount to be minted
-      exec.faucet::get_total_issuance
-      # => [total_issuance, max_supply, amount, tag, RECIPIENT, ...]
+    # get total issuance of this faucet so far and add amount to be minted
+    exec.faucet::get_total_issuance
+    # => [total_issuance, max_supply, amount, tag, note_type RECIPIENT, ...]
 
-      # compute maximum amount that can be minted, max_mint_amount = max_supply - total_issuance
-      sub
-      # => [max_supply - total_issuance, amount, tag, RECIPIENT, ...]
+    # compute maximum amount that can be minted, max_mint_amount = max_supply - total_issuance
+    sub
+    # => [max_supply - total_issuance, amount, tag, note_type, RECIPIENT, ...]
 
-      # check that amount =< max_supply - total_issuance, fails if otherwise
-      dup.1 gte assert
-      # => [asset, tag, RECIPIENT, ...]
+    # check that amount =< max_supply - total_issuance, fails if otherwise
+    dup.1 gte assert.err=ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
+    # => [asset, tag, note_type, RECIPIENT, ...]
 
-      # creating the asset
-      exec.asset::create_fungible_asset
-      # => [ASSET, tag, RECIPIENT, ...]
+    # creating the asset
+    exec.asset::create_fungible_asset
+    # => [ASSET, tag, note_type, RECIPIENT, ...]
 
-      # mint the asset; this is needed to satisfy asset preservation logic.
-      exec.faucet::mint
-      # => [ASSET, tag, RECIPIENT, ...]
+    # mint the asset; this is needed to satisfy asset preservation logic.
+    exec.faucet::mint
+    # => [ASSET, tag, note_type, RECIPIENT, ...]
 
-      # create a note containing the asset
-      exec.tx::create_note
-      # => [note_ptr, ZERO, ZERO, ...]
+    # create a note containing the asset
+    exec.tx::create_note
+    # => [note_ptr, ZERO, ZERO, ...]
   end
 
   #! Burns fungible assets.

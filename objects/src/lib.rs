@@ -1,10 +1,14 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 pub mod accounts;
 pub mod assets;
+pub mod batches;
 pub mod block;
 pub mod notes;
 pub mod transaction;
@@ -19,7 +23,7 @@ pub use block::BlockHeader;
 pub use constants::*;
 pub use errors::{
     AccountDeltaError, AccountError, AssetError, AssetVaultError, ChainMmrError, NoteError,
-    TransactionInputError, TransactionOutputError, TransactionScriptError,
+    ProvenTransactionError, TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 pub use miden_crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
@@ -37,7 +41,7 @@ pub mod crypto {
 }
 
 pub mod utils {
-    pub use miden_crypto::utils::{bytes_to_hex_string, format, hex_to_bytes, vec, HexParseError};
+    pub use miden_crypto::utils::{bytes_to_hex_string, collections, hex_to_bytes, HexParseError};
     pub use vm_core::utils::*;
 
     pub mod serde {

@@ -1,18 +1,19 @@
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
-    accounts::{Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN},
+    accounts::{
+        Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
+    },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteMetadata},
-    transaction::{OutputNote, TransactionArgs},
-    Felt,
+    notes::{NoteAssets, NoteEnvelope, NoteExecutionMode, NoteId, NoteMetadata, NoteTag, NoteType},
+    transaction::TransactionArgs,
+    Felt, ZERO,
 };
 use miden_tx::TransactionExecutor;
-use mock::constants::{
-    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
-};
+use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
@@ -36,7 +37,7 @@ fn prove_swap_script() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let target_account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, target_sk_felt) = get_new_key_pair_with_advice_map();
     let target_account = get_account_with_default_account_code(
         target_account_id,
@@ -49,6 +50,7 @@ fn prove_swap_script() {
         sender_account_id,
         fungible_asset,
         non_fungible_asset,
+        NoteType::Public,
         RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
@@ -68,12 +70,11 @@ fn prove_swap_script() {
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
-    // Execute the transaction
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
-        .unwrap();
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
@@ -95,14 +96,15 @@ fn prove_swap_script() {
 
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
-
-    let note_metadata = NoteMetadata::new(target_account_id, sender_account_id.into());
-
-    let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
-
-    let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
+    let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionMode::Local).unwrap();
+    let note_metadata =
+        NoteMetadata::new(target_account_id, NoteType::OffChain, tag, ZERO).unwrap();
+    let assets = NoteAssets::new(vec![non_fungible_asset]).unwrap();
+    let note_id = NoteId::new(recipient, assets.commitment());
 
     let created_note = executed_transaction.output_notes().get_note(0);
-
-    assert_eq!(created_note, &requested_note);
+    assert_eq!(
+        NoteEnvelope::from(created_note),
+        NoteEnvelope::new(note_id, note_metadata).unwrap()
+    );
 }

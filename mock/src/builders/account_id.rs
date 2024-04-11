@@ -1,13 +1,14 @@
+use alloc::string::{String, ToString};
+
 use miden_objects::{
-    accounts::{AccountId, AccountType},
-    utils::string::*,
+    accounts::{AccountId, AccountStorageType, AccountType},
     Digest, Word,
 };
 use rand::Rng;
 
 use crate::{
     builders::{str_to_account_code, AccountBuilderError},
-    constants::DEFAULT_ACCOUNT_CODE,
+    mock::account::DEFAULT_ACCOUNT_CODE,
 };
 
 /// Builder for an `AccountId`, the builder can be configured and used multiple times.
@@ -15,7 +16,7 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountIdBuilder<T> {
     account_type: AccountType,
-    on_chain: bool,
+    storage_type: AccountStorageType,
     code: String,
     storage_root: Digest,
     rng: T,
@@ -25,7 +26,7 @@ impl<T: Rng> AccountIdBuilder<T> {
     pub fn new(rng: T) -> Self {
         Self {
             account_type: AccountType::RegularAccountUpdatableCode,
-            on_chain: false,
+            storage_type: AccountStorageType::OffChain,
             code: DEFAULT_ACCOUNT_CODE.to_string(),
             storage_root: Digest::default(),
             rng,
@@ -37,8 +38,8 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn on_chain(&mut self, on_chain: bool) -> &mut Self {
-        self.on_chain = on_chain;
+    pub fn storage_type(&mut self, storage_type: AccountStorageType) -> &mut Self {
+        self.storage_type = storage_type;
         self
     }
 
@@ -57,7 +58,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             &mut self.rng,
             &self.code,
             self.account_type,
-            self.on_chain,
+            self.storage_type,
             self.storage_root,
         )?;
 
@@ -76,7 +77,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             return Err(AccountBuilderError::SeedAndAccountTypeMismatch);
         }
 
-        if account_id.is_on_chain() != self.on_chain {
+        if account_id.storage_type() != self.storage_type {
             return Err(AccountBuilderError::SeedAndOnChainMismatch);
         }
 
@@ -94,14 +95,14 @@ pub fn accountid_build_details<T: Rng>(
     rng: &mut T,
     code: &str,
     account_type: AccountType,
-    on_chain: bool,
+    storage_type: AccountStorageType,
     storage_root: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
     let code = str_to_account_code(code).map_err(AccountBuilderError::AccountError)?;
     let code_root = code.root();
     let seed =
-        AccountId::get_account_seed(init_seed, account_type, on_chain, code_root, storage_root)
+        AccountId::get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
     Ok((seed, code_root))

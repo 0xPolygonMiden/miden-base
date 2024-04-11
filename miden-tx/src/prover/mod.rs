@@ -1,11 +1,13 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::Nullifier,
-    transaction::{InputNotes, ProvenTransaction, TransactionWitness},
+    transaction::{
+        AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
+    },
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
-use vm_processor::{Digest, MemAdviceProvider};
+use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
 
@@ -46,7 +48,6 @@ impl TransactionProver {
         let input_notes: InputNotes<Nullifier> = (tx_witness.tx_inputs().input_notes()).into();
 
         let account_id = tx_witness.account().id();
-        let initial_account_hash = tx_witness.account().hash();
         let block_hash = tx_witness.block_header().hash();
         let tx_script_root = tx_witness.tx_args().tx_script().map(|script| *script.hash());
 
@@ -57,24 +58,45 @@ impl TransactionProver {
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, _event_handler) = host.into_parts();
+        let (advice_provider, account_delta, output_notes) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
-        let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-            .map_err(TransactionProverError::InvalidTransactionOutput)?;
+        let tx_outputs =
+            TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
+                .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
-        Ok(ProvenTransaction::new(
+        let builder = ProvenTransactionBuilder::new(
             account_id,
-            if tx_witness.account().is_new() {
-                Digest::default()
-            } else {
-                initial_account_hash
-            },
+            tx_witness.account().proof_init_hash(),
             tx_outputs.account.hash(),
-            input_notes,
-            tx_outputs.output_notes.into(),
-            tx_script_root,
             block_hash,
             proof,
-        ))
+        )
+        .add_input_notes(input_notes)
+        .add_output_notes(tx_outputs.output_notes.iter().cloned());
+
+        let builder = match tx_script_root {
+            Some(tx_script_root) => builder.tx_script_root(tx_script_root),
+            _ => builder,
+        };
+
+        let builder = match account_id.is_on_chain() {
+            true => {
+                let account_details = if tx_witness.account().is_new() {
+                    let mut account = tx_witness.account().clone();
+                    account
+                        .apply_delta(&account_delta)
+                        .map_err(TransactionProverError::InvalidAccountDelta)?;
+
+                    AccountDetails::Full(account)
+                } else {
+                    AccountDetails::Delta(account_delta)
+                };
+
+                builder.account_details(account_details)
+            },
+            false => builder,
+        };
+
+        builder.build().map_err(TransactionProverError::ProvenTransactionError)
     }
 }

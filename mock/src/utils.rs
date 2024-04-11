@@ -1,5 +1,10 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 pub use miden_objects::utils::*;
-use miden_objects::{notes::NoteAssets, utils::string::*, Word};
+use miden_objects::{notes::NoteAssets, Word};
 
 // TODO: These functions are duplicates from miden-lib/test/common/procedures.rs
 pub fn prepare_word(word: &Word) -> String {

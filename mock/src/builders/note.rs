@@ -1,14 +1,21 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
-    notes::{Note, NoteInclusionProof, NoteInputs, NoteScript},
-    Felt, NoteError, Word,
+    notes::{
+        Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
+        NoteTag, NoteType,
+    },
+    Felt, NoteError, Word, ZERO,
 };
 use rand::Rng;
 
 use super::TransactionKernel;
-use crate::utils::{collections::*, string::*};
 
 const DEFAULT_NOTE_CODE: &str = "\
 begin
@@ -21,10 +28,12 @@ pub struct NoteBuilder {
     sender: AccountId,
     inputs: Vec<Felt>,
     assets: Vec<Asset>,
+    note_type: NoteType,
     serial_num: Word,
-    tag: Felt,
+    tag: NoteTag,
     code: String,
     proof: Option<NoteInclusionProof>,
+    aux: Felt,
 }
 
 impl NoteBuilder {
@@ -40,10 +49,12 @@ impl NoteBuilder {
             sender,
             inputs: vec![],
             assets: vec![],
+            note_type: NoteType::Public,
             serial_num,
-            tag: Felt::default(),
+            tag: 0.into(),
             code: DEFAULT_NOTE_CODE.to_string(),
             proof: None,
+            aux: ZERO,
         }
     }
 
@@ -58,8 +69,8 @@ impl NoteBuilder {
         self
     }
 
-    pub fn tag(mut self, tag: Felt) -> Self {
-        self.tag = tag;
+    pub fn tag(mut self, tag: u32) -> Self {
+        self.tag = tag.into();
         self
     }
 
@@ -73,10 +84,19 @@ impl NoteBuilder {
         self
     }
 
+    pub fn aux(mut self, aux: Felt) -> Self {
+        self.aux = aux;
+        self
+    }
+
     pub fn build(self) -> Result<Note, NoteError> {
         let assembler = TransactionKernel::assembler();
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
-        Note::new(note_script, &self.inputs, &self.assets, self.serial_num, self.sender, self.tag)
+        let vault = NoteAssets::new(self.assets)?;
+        let metadata = NoteMetadata::new(self.sender, self.note_type, self.tag, self.aux)?;
+        let inputs = NoteInputs::new(self.inputs)?;
+        let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
+        Ok(Note::new(vault, metadata, recipient))
     }
 }

@@ -1,15 +1,16 @@
 [package]
 name = "miden-objects"
-version = "0.1.1"
+version = "0.2.0"
 description = "Core components of the Miden rollup"
-authors = ["miden contributors"]
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-base"
 categories = ["no-std"]
 keywords = ["miden", "objects"]
-edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [[bench]]
 name = "account_seed"

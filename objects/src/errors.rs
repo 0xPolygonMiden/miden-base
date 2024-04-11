@@ -1,3 +1,4 @@
+use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use assembly::AssemblyError;
@@ -8,26 +9,26 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    utils::string::*,
     Digest, Word,
 };
+use crate::{accounts::AccountType, notes::NoteType};
 
 // ACCOUNT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes,
+    AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
-    InconsistentAccountIdSeed { expected: AccountId, actual: AccountId },
+    InvalidAccountStorageType,
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
@@ -41,8 +42,8 @@ impl AccountError {
         Self::AccountIdInvalidFieldElement(msg)
     }
 
-    pub fn account_id_too_few_ones() -> Self {
-        Self::AccountIdTooFewOnes
+    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
+        Self::AccountIdTooFewOnes(expected, actual)
     }
 
     pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
@@ -66,7 +67,7 @@ impl std::error::Error for AccountError {}
 // ACCOUNT DELTA ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
     DuplicateStorageItemUpdate(usize),
     DuplicateVaultUpdate(Asset),
@@ -90,19 +91,17 @@ impl fmt::Display for AccountDeltaError {
 // ASSET ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssetError {
     AmountTooBig(u64),
     AssetAmountNotSufficient(u64, u64),
-    FungibleAssetInvalidFirstBit,
     FungibleAssetInvalidTag(u32),
     FungibleAssetInvalidWord(Word),
     InconsistentFaucetIds(AccountId, AccountId),
     InvalidAccountId(String),
     InvalidFieldElement(String),
-    NonFungibleAssetInvalidFirstBit,
     NonFungibleAssetInvalidTag(u32),
-    NotAFungibleFaucetId(AccountId),
+    NotAFungibleFaucetId(AccountId, AccountType),
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
     TokenSymbolError(String),
@@ -115,10 +114,6 @@ impl AssetError {
 
     pub fn asset_amount_not_sufficient(available: u64, requested: u64) -> Self {
         Self::AssetAmountNotSufficient(available, requested)
-    }
-
-    pub fn fungible_asset_invalid_first_bit() -> Self {
-        Self::FungibleAssetInvalidFirstBit
     }
 
     pub fn fungible_asset_invalid_tag(tag: u32) -> Self {
@@ -141,16 +136,12 @@ impl AssetError {
         Self::InvalidFieldElement(msg)
     }
 
-    pub fn non_fungible_asset_invalid_first_bit() -> Self {
-        Self::NonFungibleAssetInvalidFirstBit
-    }
-
     pub fn non_fungible_asset_invalid_tag(tag: u32) -> Self {
         Self::NonFungibleAssetInvalidTag(tag)
     }
 
-    pub fn not_a_fungible_faucet_id(id: AccountId) -> Self {
-        Self::NotAFungibleFaucetId(id)
+    pub fn not_a_fungible_faucet_id(id: AccountId, account_type: AccountType) -> Self {
+        Self::NotAFungibleFaucetId(id, account_type)
     }
 
     pub fn not_a_non_fungible_faucet_id(id: AccountId) -> Self {
@@ -198,18 +189,22 @@ impl std::error::Error for AssetVaultError {}
 // NOTE ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     EmptyAssetList,
-    InconsistentStubId(NoteId, NoteId),
+    InconsistentNoteTag(NoteType, u64),
     InconsistentStubAssetHash(Digest, Digest),
-    InvalidStubDataLen(usize),
-    InvalidOriginIndex(String),
+    InconsistentStubId(NoteId, NoteId),
     InvalidAssetData(AssetError),
+    InvalidOriginIndex(String),
+    InvalidStubDataLen(usize),
+    InvalidNoteSender(AccountError),
+    InvalidNoteType(NoteType),
+    InvalidNoteTypeValue(u64),
+    NetworkExecutionRequiresOnChainAccount,
     NoteDeserializationError(DeserializationError),
-    NoteMetadataSenderInvalid(AccountError),
     ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
@@ -253,7 +248,7 @@ impl std::error::Error for NoteError {}
 // CHAIN MMR ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChainMmrError {
     BlockNumTooBig { chain_length: usize, block_num: u32 },
     DuplicateBlock { block_num: u32 },
@@ -286,7 +281,7 @@ impl std::error::Error for ChainMmrError {}
 // TRANSACTION SCRIPT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionScriptError {
     ScriptCompilationError(AssemblyError),
 }
@@ -303,11 +298,12 @@ impl std::error::Error for TransactionScriptError {}
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionInputError {
     AccountSeedNotProvidedForNewAccount,
     AccountSeedProvidedForExistingAccount,
     DuplicateInputNote(Digest),
+    InconsistentAccountSeed { expected: AccountId, actual: AccountId },
     InconsistentChainLength { expected: u32, actual: u32 },
     InconsistentChainRoot { expected: Digest, actual: Digest },
     InputNoteBlockNotInChainMmr(NoteId),
@@ -328,7 +324,7 @@ impl std::error::Error for TransactionInputError {}
 // TRANSACTION OUTPUT ERROR
 // ===============================================================================================
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
     FinalAccountDataNotFound,
@@ -347,3 +343,60 @@ impl fmt::Display for TransactionOutputError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionOutputError {}
+
+// PROVEN TRANSACTION ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProvenTransactionError {
+    AccountFinalHashMismatch(Digest, Digest),
+    AccountIdMismatch(AccountId, AccountId),
+    InputNotesError(TransactionInputError),
+    NoteDetailsForUnknownNotes(Vec<NoteId>),
+    OffChainAccountWithDetails(AccountId),
+    OnChainAccountMissingDetails(AccountId),
+    NewOnChainAccountRequiresFullDetails(AccountId),
+    ExistingOnChainAccountRequiresDeltaDetails(AccountId),
+    OutputNotesError(TransactionOutputError),
+}
+
+impl fmt::Display for ProvenTransactionError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
+                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", account_final_hash, details_hash)
+            },
+            ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
+                write!(
+                    f,
+                    "Proven transaction account_id {} and account_details.id must match {}.",
+                    tx_id, details_id,
+                )
+            },
+            ProvenTransactionError::InputNotesError(inner) => {
+                write!(f, "Invalid input notes: {}", inner)
+            },
+            ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
+                write!(f, "Note details for unknown note ids: {:?}", note_ids)
+            },
+            ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
+                write!(f, "Off-chain account {} should not have account details", account_id)
+            },
+            ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
+                write!(f, "On-chain account {} missing account details", account_id)
+            },
+            ProvenTransactionError::OutputNotesError(inner) => {
+                write!(f, "Invalid output notes: {}", inner)
+            },
+            ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
+                write!(f, "New on-chain account {} missing full details", account_id)
+            },
+            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
+                write!(f, "Existing on-chain account {} should only provide deltas", account_id)
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ProvenTransactionError {}

@@ -1,12 +1,16 @@
+use alloc::string::ToString;
+
 use miden_objects::{
-    accounts::{Account, AccountCode, AccountId, AccountStorage, AccountType, StorageSlotType},
+    accounts::{
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        StorageSlot,
+    },
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
     AccountError, Felt, Word, ZERO,
 };
 
 use super::{AuthScheme, Library, MidenLib, TransactionKernel};
-use crate::utils::{string::*, vec};
 
 // FUNGIBLE FAUCET
 // ================================================================================================
@@ -15,7 +19,7 @@ const MAX_MAX_SUPPLY: u64 = (1 << 63) - 1;
 const MAX_DECIMALS: u8 = 12;
 
 /// Creates a new faucet account with basic fungible faucet interface,
-/// specified authentication scheme, and provided meta data (token symbol, decimals, max supply).
+/// account storage type, specified authentication scheme, and provided meta data (token symbol, decimals, max supply).
 ///
 /// The basic faucet interface exposes two procedures:
 /// - `distribute`, which mints an assets and create a note for the provided recipient.
@@ -31,6 +35,7 @@ pub fn create_basic_fungible_faucet(
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
+    account_storage_type: AccountStorageType,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
@@ -67,15 +72,21 @@ pub fn create_basic_fungible_faucet(
     // - slot 0: authentication data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage = AccountStorage::new(vec![
-        (0, (StorageSlotType::Value { value_arity: 0 }, auth_data)),
-        (1, (StorageSlotType::Value { value_arity: 0 }, metadata)),
+        SlotItem {
+            index: 0,
+            slot: StorageSlot::new_value(auth_data),
+        },
+        SlotItem {
+            index: 1,
+            slot: StorageSlot::new_value(metadata),
+        },
     ])?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
-        false,
+        account_storage_type,
         account_code.root(),
         account_storage.root(),
     )?;

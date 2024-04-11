@@ -1,9 +1,17 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
-    accounts::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    accounts::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+    },
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteInclusionProof},
+    notes::{
+        Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
+    },
     transaction::{InputNote, InputNotes},
-    Felt, FieldElement, Word,
+    Felt, Word, ZERO,
 };
 
 use super::{AccountId, ModuleAst, ProgramAst, ScriptTarget, TransactionCompiler};
@@ -111,7 +119,7 @@ fn test_compile_valid_note_script() {
 
     // TODO: replace this with anonymous call targets once they are implemented
     let account_id =
-        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN + 1).unwrap();
+        AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2).unwrap();
     let account_code_ast = ModuleAst::parse(ADDITIONAL_PROCEDURES).unwrap();
     tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
@@ -131,18 +139,14 @@ fn mock_consumed_notes(
     tx_compiler: &mut TransactionCompiler,
     target_account: AccountId,
 ) -> Vec<Note> {
-    pub const ACCOUNT_ID_SENDER: u64 = 0b0110111011u64 << 54;
-
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0b1010011100 << 54;
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 10).unwrap();
-    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN + 20).unwrap();
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
     let fungible_asset_2: Asset = FungibleAsset::new(faucet_id_2, 200).unwrap().into();
     let fungible_asset_3: Asset = FungibleAsset::new(faucet_id_3, 300).unwrap().into();
 
-    // Sender account
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     // create note script
@@ -154,26 +158,20 @@ fn mock_consumed_notes(
 
     // Consumed Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-    let note_1 = Note::new(
-        note_script.clone(),
-        &[Felt::new(1)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
-        SERIAL_NUM_1,
-        sender,
-        Felt::ZERO,
-    )
-    .unwrap();
+    let vault =
+        NoteAssets::new(vec![fungible_asset_1, fungible_asset_2, fungible_asset_3]).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
+    let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
+    let recipient = NoteRecipient::new(SERIAL_NUM_1, note_script.clone(), inputs);
+    let note_1 = Note::new(vault, metadata, recipient);
 
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-    let note_2 = Note::new(
-        note_script,
-        &[Felt::new(2)],
-        &[fungible_asset_1, fungible_asset_2, fungible_asset_3],
-        SERIAL_NUM_2,
-        sender,
-        Felt::ZERO,
-    )
-    .unwrap();
+    let vault =
+        NoteAssets::new(vec![fungible_asset_1, fungible_asset_2, fungible_asset_3]).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
+    let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
+    let recipient = NoteRecipient::new(SERIAL_NUM_2, note_script, inputs);
+    let note_2 = Note::new(vault, metadata, recipient);
 
     vec![note_1, note_2]
 }

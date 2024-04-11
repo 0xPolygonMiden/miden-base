@@ -1,7 +1,9 @@
+use alloc::{string::ToString, vec::Vec};
+
 use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    transaction::{OutputNotes, TransactionOutputs},
+    transaction::{OutputNote, OutputNotes, TransactionOutputs},
     utils::{group_slice_elements, serde::DeserializationError},
     vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word,
@@ -9,7 +11,6 @@ use miden_objects::{
 use miden_stdlib::StdLibrary;
 
 use super::MidenLib;
-use crate::utils::collections::*;
 
 pub mod memory;
 
@@ -21,8 +22,8 @@ pub use inputs::ToTransactionKernelInputs;
 
 mod outputs;
 pub use outputs::{
-    notes_try_from_elements, parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX,
-    OUTPUT_NOTES_COMMITMENT_WORD_IDX, TX_SCRIPT_ROOT_WORD_IDX,
+    parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    TX_SCRIPT_ROOT_WORD_IDX,
 };
 
 mod errors;
@@ -111,6 +112,8 @@ impl TransactionKernel {
         inputs.push(acct_id.into());
         inputs.extend_from_slice(block_hash.as_elements());
         StackInputs::new(inputs)
+            .map_err(|e| e.to_string())
+            .expect("Invalid stack input")
     }
 
     pub fn build_output_stack(
@@ -123,7 +126,9 @@ impl TransactionKernel {
         outputs.extend(output_notes_hash);
         outputs.extend(tx_script_root.unwrap_or_default());
         outputs.reverse();
-        StackOutputs::from_elements(outputs, Vec::new()).unwrap()
+        StackOutputs::new(outputs, Vec::new())
+            .map_err(|e| e.to_string())
+            .expect("Invalid stack output")
     }
 
     /// Extracts transaction output data from the provided stack outputs.
@@ -163,13 +168,14 @@ impl TransactionKernel {
     ///
     /// The actual data describing the new account state and output notes is expected to be located
     /// in the provided advice map under keys CNC and FAH.
-    pub fn parse_transaction_outputs(
+    pub fn from_transaction_parts(
         stack: &StackOutputs,
         adv_map: &AdviceMap,
+        output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
         let (final_acct_hash, output_notes_hash, _tx_script_root) = Self::parse_output_stack(stack);
 
-        // --- parse final account state --------------------------------------
+        // parse final account state
         let final_account_data: &[Word] = group_slice_elements(
             adv_map
                 .get(&final_acct_hash)
@@ -178,36 +184,14 @@ impl TransactionKernel {
         let account = parse_final_account_stub(final_account_data)
             .map_err(TransactionOutputError::FinalAccountStubDataInvalid)?;
 
-        // --- parse output notes ---------------------------------------------
-
-        // if output_notes_hash is an empty digest, no outputs notes have been created
-        let output_notes = if output_notes_hash == Digest::default() {
-            OutputNotes::default()
-        } else {
-            let output_notes_data: &[Word] = group_slice_elements(
-                adv_map
-                    .get(&output_notes_hash)
-                    .ok_or(TransactionOutputError::OutputNoteDataNotFound)?,
-            );
-
-            let mut output_notes = Vec::new();
-            let mut output_note_ptr = 0;
-            while output_note_ptr < output_notes_data.len() {
-                let output_note = notes_try_from_elements(&output_notes_data[output_note_ptr..])
-                    .map_err(TransactionOutputError::OutputNoteDataInvalid)?;
-                output_notes.push(output_note);
-                output_note_ptr += memory::NOTE_MEM_SIZE as usize;
-            }
-
-            let output_notes = OutputNotes::new(output_notes)?;
-            if output_notes_hash != output_notes.commitment() {
-                return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
-                    output_notes_hash,
-                    output_notes.commitment(),
-                ));
-            }
-            output_notes
-        };
+        // validate output notes
+        let output_notes = OutputNotes::new(output_notes)?;
+        if output_notes_hash != output_notes.commitment() {
+            return Err(TransactionOutputError::OutputNotesCommitmentInconsistent(
+                output_notes_hash,
+                output_notes.commitment(),
+            ));
+        }
 
         Ok(TransactionOutputs { account, output_notes })
     }
