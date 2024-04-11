@@ -12,7 +12,6 @@ edition = "2021"
 rust-version = "1.77"
 license = "MIT"
 authors = ["Miden contributors"]
-readme = "README.md"
 homepage = "https://polygon.technology/polygon-miden"
 repository = "https://github.com/0xPolygonMiden/miden-base"
 exclude = [".github/"]
