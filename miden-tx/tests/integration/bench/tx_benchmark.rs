@@ -1,5 +1,5 @@
 use crate::MockDataStore;
-use miden_lib::transaction::ToTransactionKernelInputs;
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionTrace};
 use miden_objects::{accounts::AccountStub, transaction::TransactionArgs};
 use miden_tx::{TransactionExecutor, TransactionHost};
 use vm_processor::{
@@ -10,40 +10,23 @@ use vm_processor::{
 // CONSTANTS
 // ================================================================================================
 
-const PROLOGUE_START: u32 = 0x2_0000; // 131072
-const PROLOGUE_END: u32 = 0x2_0001; // 131073
-
-const NOTE_PROCESSING_START: u32 = 0x2_0002; // 131074
-const NOTE_PROCESSING_END: u32 = 0x2_0003; // 131075
-
-const TX_SCRIPT_PROCESSING_START: u32 = 0x2_0004; // 131076
-const TX_SCRIPT_PROCESSING_END: u32 = 0x2_0005; // 131077
-
-const EPILOGUE_START: u32 = 0x2_0006; // 131078
-const EPILOGUE_END: u32 = 0x2_0007; // 131079
-
+/// Number of cycles needed to create an empty span whithout changing the stack state.
 const SPAN_CREATION_SHIFT: u32 = 2;
 
 // BENCHMARK HOST
 // ================================================================================================
 
-/// Wrapper around [TransactionHost] used for benchmarking
+/// Wrapper around [TransactionHost] used for benchmarking.
 pub struct BenchHost<A: AdviceProvider> {
     host: TransactionHost<A>,
-    prologue_start: Option<u32>,
-    note_processing_start: Option<u32>,
-    tx_script_processing_start: Option<u32>,
-    epilogue_start: Option<u32>,
+    tx_progress: TransactionProgress,
 }
 
 impl<A: AdviceProvider> BenchHost<A> {
     pub fn new(account: AccountStub, adv_provider: A) -> Self {
         Self {
             host: TransactionHost::new(account, adv_provider),
-            prologue_start: None,
-            note_processing_start: None,
-            tx_script_processing_start: None,
-            epilogue_start: None,
+            tx_progress: TransactionProgress::default(),
         }
     }
 }
@@ -70,45 +53,33 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
         process: &S,
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
-        #[cfg(feature = "std")]
-        match trace_id {
-            PROLOGUE_START => self.prologue_start = Some(process.clk()),
-            PROLOGUE_END => {
-                if let Some(prologue_start) = self.prologue_start {
-                    std::println!(
-                        "Number of cycles it takes to execute the prologue: {}",
-                        process.clk() - prologue_start - SPAN_CREATION_SHIFT
-                    )
+        let event = TransactionTrace::try_from(trace_id)
+            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+
+        use TransactionTrace::*;
+        match event {
+            PrologueStart => self.tx_progress.prologue.set_start(process.clk()),
+            PrologueEnd => self.tx_progress.prologue.set_end(process.clk()),
+            NotesProcessingStart => self.tx_progress.notes_processing.set_start(process.clk()),
+            NotesProcessingEnd => self.tx_progress.notes_processing.set_end(process.clk()),
+            NoteConsumingStart => {
+                self.tx_progress.note_consuming.push(CycleInterval::new(process.clk()))
+            },
+            NoteConsumingEnd => {
+                if let Some(interval) = self.tx_progress.note_consuming.last_mut() {
+                    interval.set_end(process.clk())
                 }
             },
-            NOTE_PROCESSING_START => self.note_processing_start = Some(process.clk()),
-            NOTE_PROCESSING_END => {
-                if let Some(note_processing_start) = self.note_processing_start {
-                    std::println!(
-                        "Number of cycles it takes to execute the note processing: {}",
-                        process.clk() - note_processing_start - SPAN_CREATION_SHIFT
-                    )
-                }
+            TxScriptProcessingStart => {
+                self.tx_progress.tx_script_processing.set_start(process.clk())
             },
-            TX_SCRIPT_PROCESSING_START => self.tx_script_processing_start = Some(process.clk()),
-            TX_SCRIPT_PROCESSING_END => {
-                if let Some(tx_script_processing_start) = self.tx_script_processing_start {
-                    std::println!(
-                        "Number of cycles it takes to execute the transaction script processing: {}", 
-                        process.clk() - tx_script_processing_start - SPAN_CREATION_SHIFT
-                    )
-                }
+            TxScriptProcessingEnd => self.tx_progress.tx_script_processing.set_end(process.clk()),
+            EpilogueStart => self.tx_progress.epilogue.set_start(process.clk()),
+            EpilogueEnd => self.tx_progress.epilogue.set_end(process.clk()),
+            ExecutionEnd => {
+                #[cfg(feature = "std")]
+                self.tx_progress.print_stages();
             },
-            EPILOGUE_START => self.epilogue_start = Some(process.clk()),
-            EPILOGUE_END => {
-                if let Some(epilogue_start) = self.epilogue_start {
-                    std::println!(
-                        "Number of cycles it takes to execute the epilogue: {}",
-                        process.clk() - epilogue_start - SPAN_CREATION_SHIFT
-                    )
-                }
-            },
-            _ => println!("Invalid trace id was used: {}", trace_id),
         }
 
         Ok(HostResponse::None)
@@ -120,6 +91,92 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         self.host.on_event(process, event_id)
+    }
+}
+
+// TRANSACTION PROGRESS
+// ================================================================================================
+
+/// Contains the information about the number of cycles for each of the transaction execution
+/// stages.
+#[derive(Default)]
+struct TransactionProgress {
+    prologue: CycleInterval,
+    notes_processing: CycleInterval,
+    note_consuming: Vec<CycleInterval>,
+    tx_script_processing: CycleInterval,
+    epilogue: CycleInterval,
+}
+
+impl TransactionProgress {
+    /// Prints out the lengths of cycle intervals for each execution stage.
+    #[cfg(feature = "std")]
+    pub fn print_stages(&self) {
+        std::println!(
+            "Number of cycles it takes to execule:\n- Prologue: {},\n- Notes processing: {},",
+            self.prologue
+                .get_interval_len()
+                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                .unwrap_or("invalid interval".to_string()),
+            self.notes_processing
+                .get_interval_len()
+                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                .unwrap_or("invalid interval".to_string())
+        );
+
+        for (index, note) in self.note_consuming.iter().enumerate() {
+            std::println!(
+                "--- Note #{}: {}",
+                index,
+                note.get_interval_len()
+                    .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                    .unwrap_or("invalid interval".to_string())
+            )
+        }
+
+        std::println!(
+            "- Transaction script processing: {},\n- Epilogue: {}",
+            self.tx_script_processing
+                .get_interval_len()
+                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                .unwrap_or("invalid interval".to_string()),
+            self.epilogue
+                .get_interval_len()
+                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                .unwrap_or("invalid interval".to_string())
+        );
+    }
+}
+
+#[derive(Default)]
+struct CycleInterval {
+    start: Option<u32>,
+    end: Option<u32>,
+}
+
+impl CycleInterval {
+    pub fn new(start: u32) -> Self {
+        Self { start: Some(start), end: None }
+    }
+
+    pub fn set_start(&mut self, s: u32) {
+        self.start = Some(s);
+    }
+
+    pub fn set_end(&mut self, e: u32) {
+        self.end = Some(e);
+    }
+
+    /// Calculate the length of the described interval
+    pub fn get_interval_len(&self) -> Option<u32> {
+        if let Some(start) = self.start {
+            if let Some(end) = self.end {
+                if end >= start {
+                    return Some(end - start);
+                }
+            }
+        }
+        None
     }
 }
 
