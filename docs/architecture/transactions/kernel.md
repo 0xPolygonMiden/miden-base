@@ -139,7 +139,7 @@ The transaction script can be used to authenticate the transaction by increasing
 
 ## Epilogue
 
-The Epilogue finalizes the transaction. It does the following:
+The epilogue finalizes the transaction. It does the following:
 
 1. Computes the final account hash.
 2. If the account has changed, it asserts that the final account nonce is greater than the initial account nonce.

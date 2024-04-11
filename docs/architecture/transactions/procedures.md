@@ -15,19 +15,19 @@ Any procedure that changes the account state must be invoked in the account cont
 
 | Procedure name            | Stack      | Output       | Context | Description                                                         |
 |---------------------------|------------|--------------|---------|---------------------------------------------------------------------|
-| `get_id`                  | `[]`       | `[acct_id]`  | account, note | Returns the account id. |
-| `get_nonce`               | `[]`       | `[nonce]`    | account, note | Returns the account nonce. |
-| `get_initial_hash`        | `[]`       | `[H]`        | account, note | Returns the initial account hash. |
-| `get_current_hash`        | `[]`       | `[ACCT_HASH]`| account, note | Computes and returns the account hash from account data stored in memory.
-| `incr_nonce`              | `[value]`  | `[]`         | account | Increments the account nonce by the provided `value` which can be at most `2^32 - 1` otherwise the procedure panics. |
-| `get_item`                | `[index]`  | `[VALUE]`    | account, note | Gets an item `VALUE` by `index` from the account storage. Panics if the index is out of bounds. |
-| `set_item`                | `[index, V']` | `[R', V]` | account | Sets an index/value pair in the account storage. Panics if the index is out of bounds. `R` is the new storage root. |
-| `set_code`                | `[CODE_ROOT]`| `[]`       | account | Sets the code (`CODE_ROOT`) of the account the transaction is being executed against. This procedure can only be executed on regular accounts with updatable code. Otherwise, the procedure fails.  |
-| `get_balance`             | `[faucet_id]`| `[balance]`| account, note | Returns the `balance` of a fungible asset associated with a `faucet_id`. Panics if the asset is not a fungible asset. |
-| `has_non_fungible_asset`  | `[ASSET]`   | `[has_asset]`| account, note | Returns a boolean `has_asset` indicating whether the non-fungible asset is present in the vault. Panics if the `ASSET` is a fungible asset.  |
-| `add_asset`               | `[ASSET]`   | `[ASSET']`  | account | Adds the specified asset `ASSET` to the vault. Panics under various conditions. If `ASSET` is a non-fungible asset, then `ASSET'` is the same as `ASSET`. If `ASSET` is a fungible asset, then `ASSET'` is the total fungible asset in the account vault after `ASSET` was added to it. |
-| `remove_asset`            | `[ASSET]`   | `[ASSET]`   | account | Remove the specified `ASSET` from the vault. Panics under various conditions.  |
-| `get_vault_commitment`    | `[]`        | `[COM]`     | account, note | Returns a commitment `COM` to the account vault.  |
+| `get_id`                  | `[]`       | `[acct_id]`  | account, note | <ul> <li>Returns the account id.</li> </ul> |
+| `get_nonce`               | `[]`       | `[nonce]`    | account, note | <ul> <li>Returns the account nonce.</li> </ul> |
+| `get_initial_hash`        | `[]`       | `[H]`        | account, note | <ul> <li>Returns the initial account hash.</li> </ul> |
+| `get_current_hash`        | `[]`       | `[ACCT_HASH]`| account, note | <ul> <li>Computes and returns the account hash from account data stored in memory.</li> </ul>
+| `incr_nonce`              | `[value]`  | `[]`         | account | <ul> <li>Increments the account nonce by the provided `value` which can be at most `2^32 - 1` otherwise the procedure panics.</li> </ul> |
+| `get_item`                | `[index]`  | `[VALUE]`    | account, note | <ul> <li>Gets an item `VALUE` by `index` from the account storage. </li><li>Panics if the index is out of bounds.</li> </ul> |
+| `set_item`                | `[index, V']` | `[R', V]` | account | <ul> <li>Sets an index/value pair in the account storage. </li><li> Panics if the index is out of bounds. `R` is the new storage root.</li> </ul> |
+| `set_code`                | `[CODE_ROOT]`| `[]`       | account | <ul> <li>Sets the code (`CODE_ROOT`) of the account the transaction is being executed against. </li><li>This procedure can only be executed on regular accounts with updatable code. Otherwise, the procedure fails.</li> </ul>  |
+| `get_balance`             | `[faucet_id]`| `[balance]`| account, note | <ul> <li>Returns the `balance` of a fungible asset associated with a `faucet_id`.</li><li> Panics if the asset is not a fungible asset.</li> </ul> |
+| `has_non_fungible_asset`  | `[ASSET]`   | `[has_asset]`| account, note | <ul> <li>Returns a boolean `has_asset` indicating whether the non-fungible asset is present in the vault. </li><li> Panics if the `ASSET` is a fungible asset. </li> </ul> |
+| `add_asset`               | `[ASSET]`   | `[ASSET']`  | account | <ul> <li>Adds the specified asset `ASSET` to the vault. Panics under various conditions.</li><li> If `ASSET` is a non-fungible asset, then `ASSET'` is the same as `ASSET`.</li><li> If `ASSET` is a fungible asset, then `ASSET'` is the total fungible asset in the account vault after `ASSET` was added to it.</li> </ul> |
+| `remove_asset`            | `[ASSET]`   | `[ASSET]`   | account | <ul> <li>Removes the specified `ASSET` from the vault. </li><li>Panics under various conditions. </li> </ul> |
+| `get_vault_commitment`    | `[]`        | `[COM]`     | account, note | <ul> <li>Returns a commitment `COM` to the account vault. </li> </ul> |
 
 ### Note
 
@@ -35,9 +35,9 @@ To import the note procedures, set `use.miden::note` at the beginning of the fil
 
 | Procedure name           | Inputs              | Outputs               | Context | Description                                                                                                                         |
 |--------------------------|---------------------|-----------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `get_assets`             | `[dest_ptr]`        | `[num_assets, dest_ptr]` | note | Writes the assets of the currently executing note into memory starting at the specified address `dest_ptr `. is the memory address to write the assets. `num_assets` is the number of assets in the currently executing note. |
-| `get_inputs`             | `[dest_ptr]`        | `[dest_ptr]`            | note | Writes the inputs of the currently executed note into memory starting at the specified address, `dest_ptr`. |
-| `get_sender`             | `[]`                | `[sender]`             | note | Returns the `sender` of the note currently being processed. Panics if a note is not being processed.  |
+| `get_assets`             | `[dest_ptr]`        | `[num_assets, dest_ptr]` | note | <ul> <li>Writes the assets of the currently executing note into memory starting at the specified address `dest_ptr `. </li><li> `num_assets` is the number of assets in the currently executing note.</li> </ul>  |
+| `get_inputs`             | `[dest_ptr]`        | `[dest_ptr]`            | note | <ul> <li>Writes the inputs of the currently executed note into memory starting at the specified address, `dest_ptr`. </li> </ul> |
+| `get_sender`             | `[]`                | `[sender]`             | note | <ul> <li>Returns the `sender` of the note currently being processed. Panics if a note is not being processed. </li> </ul>  |
 
 
 ### Tx
@@ -45,11 +45,11 @@ To import the transaction procedures set `use.miden::tx` at the beginning of the
 
 | Procedure name           | Inputs           | Outputs     | Context | Description                                                                                                                                                                  |
 |--------------------------|------------------|-------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `get_block_number`       | `[]`             | `[num]`     | account, note | Returns the block number `num` of the last known block at the time of transaction execution. |
-| `get_block_hash`         | `[]`             | `[H]`       |  account, note | Returns the block hash `H` of the last known block at the time of transaction execution. |
-| `get_input_notes_hash`   | `[]`             | `[COM]`     |  account, note | Returns the input notes hash `COM`. This is computed as a sequential hash of (nullifier, script_root) tuples over all input notes.  |
-| `get_output_notes_hash`  | `[0, 0, 0, 0]`   | `[COM]`     |  account, note | Returns the output notes hash `COM`. This is computed as a sequential hash of (note_hash, note_metadata) tuples over all output notes.  |
-| `create_note`            | `[ASSET, tag, RECIPIENT]` | `[ptr]` | account | Creates a new note and returns a pointer to the memory address at which the note is stored. `ASSET` is the asset to be included in the note. `tag` is the tag to be included in the note. `RECIPIENT` is the recipient of the note. `ptr` is the pointer to the memory address at which the note is stored. |
+| `get_block_number`       | `[]`             | `[num]`     | account, note | <ul> <li>Returns the block number `num` of the last known block at the time of transaction execution. |
+| `get_block_hash`         | `[]`             | `[H]`       |  account, note | <ul> <li>Returns the block hash `H` of the last known block at the time of transaction execution.</li> </ul> |
+| `get_input_notes_hash`   | `[]`             | `[COM]`     |  account, note | <ul> <li>Returns the input notes hash `COM`. </li><li>This is computed as a sequential hash of (nullifier, script_root) tuples over all input notes. </li> </ul> |
+| `get_output_notes_hash`  | `[0, 0, 0, 0]`   | `[COM]`     |  account, note | <ul> <li>Returns the output notes hash `COM`. </li><li>This is computed as a sequential hash of (note_hash, note_metadata) tuples over all output notes. </li> </ul> |
+| `create_note`            | `[ASSET, tag, RECIPIENT]` | `[ptr]` | account | <ul> <li>Creates a new note and returns a pointer to the memory address at which the note is stored.</li><li> `ASSET` is the asset to be included in the note. </li><li>`tag` is the tag to be included in the note. `RECIPIENT` is the recipient of the note.</li><li> `ptr` is the pointer to the memory address at which the note is stored.</li> </ul> |
 
 
 ### Asset
@@ -57,10 +57,10 @@ To import the asset procedures set `use.miden::asset` at the beginning of the fi
 
 | Procedure name               | Stack               | Output    | Context | Description                                                                                                                                                 |
 |------------------------------|---------------------|-----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `build_fungible_asset`       | `[faucet_id, amount]` | `[ASSET]` | faucet | Builds a fungible asset `ASSET` for the specified fungible faucet `faucet_id`, and `amount` of asset to create. |
-| `create_fungible_asset`      | `[amount]`          | `[ASSET]` | faucet | Creates a fungible asset `ASSET` for the faucet the transaction is being executed against and `amount` of the asset to create.  |
-| `build_non_fungible_asset`   | `[faucet_id, DATA_HASH]` | `[ASSET]` | faucet | Builds a non-fungible asset `ASSET` for the specified non-fungible faucet where `faucet_id` is the faucet to create the asset for and `DATA_HASH` is the data hash of the non-fungible asset to build. |
-| `create_non_fungible_asset`  | `[DATA_HASH]`        | `[ASSET]` | faucet | Creates a non-fungible asset `ASSET` for the faucet the transaction is being executed against. `DATA_HASH` is the data hash of the non-fungible asset to create.  |
+| `build_fungible_asset`       | `[faucet_id, amount]` | `[ASSET]` | faucet | <ul> <li> Builds a fungible asset `ASSET` for the specified fungible faucet `faucet_id`, and `amount` of asset to create.</li> </ul> |
+| `create_fungible_asset`      | `[amount]`          | `[ASSET]` | faucet | <ul> <li> Creates a fungible asset `ASSET` for the faucet the transaction is being executed against and `amount` of the asset to create. </li> </ul> |
+| `build_non_fungible_asset`   | `[faucet_id, DATA_HASH]` | `[ASSET]` | faucet | <ul> <li> Builds a non-fungible asset `ASSET` for the specified non-fungible faucet. </li><li> `faucet_id` is the faucet to create the asset for. </li><li> `DATA_HASH` is the data hash of the non-fungible asset to build.</li> </ul> |
+| `create_non_fungible_asset`  | `[DATA_HASH]`        | `[ASSET]` | faucet | <ul> <li> Creates a non-fungible asset `ASSET` for the faucet the transaction is being executed against. </li><li>`DATA_HASH` is the data hash of the non-fungible asset to create. </li> </ul> |
 
 ### Faucet
 
@@ -68,8 +68,8 @@ To import the faucet procedures, set `use.miden::faucet` at the beginning of the
 
 | Procedure name           | Stack      | Outputs           | Context | Description                 |
 |--------------------------|------------|-------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `mint`                   | `[ASSET]`  | `[ASSET]`         | faucet | Mint an asset `ASSET` from the faucet the transaction is being executed against. Panics under various conditions.  |
-| `burn`                   | `[ASSET]`  | `[ASSET]`         | faucet | Burn an asset `ASSET` from the faucet the transaction is being executed against. Panics under various conditions.  |
-| `get_total_issuance`     | `[]`       | `[total_issuance]`| faucet | Returns the `total_issuance` of the fungible faucet the transaction is being executed against. Panics if the transaction is not being executed against a fungible faucet. |
+| `mint`                   | `[ASSET]`  | `[ASSET]`         | faucet | <ul> <li> Mint an asset `ASSET` from the faucet the transaction is being executed against. </li><li>Panics under various conditions. </li> </ul> |
+| `burn`                   | `[ASSET]`  | `[ASSET]`         | faucet | <ul> <li> Burn an asset `ASSET` from the faucet the transaction is being executed against. </li><li>Panics under various conditions. </li> </ul> |
+| `get_total_issuance`     | `[]`       | `[total_issuance]`| faucet | <ul> <li> Returns the `total_issuance` of the fungible faucet the transaction is being executed against. </li><li>Panics if the transaction is not being executed against a fungible faucet.</li> </ul> |
 
 

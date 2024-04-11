@@ -1,12 +1,12 @@
 ## Context overview
 
-Miden assembly program execution can span multiple isolated contexts. An execution context defines its own memory space which is inaccessible from other execution contexts. Note scripts cannot directly write to account data which should only be possible if the account exposes relevant functions.
+Miden assembly program execution, the code the transaction kernel runs, spans multiple isolated contexts. An execution context defines its own memory space which is inaccessible from other execution contexts. Note scripts cannot directly write to account data which should only be possible if the account exposes relevant functions.
 
 ## Specific contexts
 
-The kernel program always starts execution from a root context. Thus, the prologue sets the memory for the root context. To move execution into a different context, we can invoke a procedure using the `call` or `dyncall` instruction. In fact, any time we invoke a procedure using the `call` instruction, the procedure is executed in a new context.
+The kernel program always starts executing from a root context. Thus, the prologue sets the memory for the root context. To move execution into a different context, the kernel invokes a procedure using the `call` or `dyncall` instruction. In fact, any time the kernel invokes a procedure using the `call` instruction, it executes in a new context.
 
-While executing in a note, account, or tx script context, we can execute some procedures in the kernel context, which is where all necessary information was stored during the prologue. You can switch to the kernel context via the `syscall` instruction. The set of procedures invoked via the `syscall` instruction is limited by the [transaction kernel API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/kernels/transaction/api.masm). Once the procedure call via `syscall` returns, the execution moves back to the note, account, or tx script from which it was invoked.
+While executing in a note, account, or tx script context, the kernel executes some procedures in the kernel context, which is where all necessary information was stored during the prologue. The kernel switches context via the `syscall` instruction. The set of procedures invoked via the `syscall` instruction is limited by the [transaction kernel API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/kernels/transaction/api.masm). When the procedure called via `syscall` returns, execution moves back to the note, account, or tx script where it was invoked.
 
 ## Context switches
 
