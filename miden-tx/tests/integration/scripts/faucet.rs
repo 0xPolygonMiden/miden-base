@@ -79,7 +79,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
@@ -152,7 +152,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // Execute the transaction and get the witness
     let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args));
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args);
 
     assert!(executed_transaction.is_err());
 }
@@ -210,7 +210,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

@@ -13,7 +13,8 @@ use miden_objects::{
         Note, NoteAssets, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType,
     },
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, ProvenTransaction, TransactionInputs,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
+        TransactionArgs, TransactionInputs,
     },
     BlockHeader, Felt, Word, ZERO,
 };
@@ -41,34 +42,50 @@ pub struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<InputNote>,
+    pub tx_args: TransactionArgs,
 }
 
 impl MockDataStore {
     pub fn new() -> Self {
-        let (account, _, block_header, block_chain, notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
-                .into_parts();
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
         Self {
             account,
             block_header,
             block_chain,
             notes: notes.into_vec(),
+            tx_args,
         }
     }
 
     pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let (account, block_header, block_chain, consumed_notes, _auxiliary_data_inputs) =
-            mock_inputs_with_existing(
-                MockAccountType::StandardExisting,
-                AssetPreservationStatus::Preserved,
-                account,
-                input_notes,
-            );
+        let (
+            account,
+            block_header,
+            block_chain,
+            consumed_notes,
+            _auxiliary_data_inputs,
+            created_notes,
+        ) = mock_inputs_with_existing(
+            MockAccountType::StandardExisting,
+            AssetPreservationStatus::Preserved,
+            account,
+            input_notes,
+        );
+        let output_notes = created_notes.into_iter().filter_map(|note| match note {
+            OutputNote::Public(note) => Some(note),
+            OutputNote::Private(_) => None,
+        });
+        let mut tx_args = TransactionArgs::default();
+        tx_args.extend_expected_output_notes(output_notes);
+
         Self {
             account,
             block_header,
             block_chain,
             notes: consumed_notes,
+            tx_args,
         }
     }
 }
