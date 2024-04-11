@@ -5,7 +5,7 @@ use vm_processor::AdviceMap;
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::{Note, NoteId},
+    notes::{Note, NoteId, NoteInputs},
     vm::CodeBlock,
     TransactionScriptError,
 };
@@ -71,9 +71,10 @@ impl TransactionArgs {
     ///
     /// The map is extended with the following keys:
     ///
-    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
-    /// - intputs_hash |-> inputs
-    /// - script_hash |-> script
+    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
+    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
+    ///   adding ONE to its most significant element.
+    /// - script_hash |-> script.
     ///
     pub fn add_expected_output_note(&mut self, note: &Note) {
         let recipient = note.recipient();
@@ -81,8 +82,10 @@ impl TransactionArgs {
         let script = note.script();
         let script_encoded: Vec<Felt> = script.into();
 
+        let inputs_key = NoteInputs::commitment_to_key(inputs.commitment());
+
         self.advice_map.insert(recipient.digest(), recipient.to_elements());
-        self.advice_map.insert(inputs.commitment(), inputs.to_padded_values());
+        self.advice_map.insert(inputs_key, inputs.to_vec());
         self.advice_map.insert(script.hash(), script_encoded);
     }
 
@@ -91,7 +94,8 @@ impl TransactionArgs {
     /// The map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
-    /// - intputs_hash |-> inputs
+    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
+    ///   adding ONE to its most significant element.
     /// - script_hash |-> script
     ///
     pub fn extend_expected_output_notes<T>(&mut self, notes: T)
