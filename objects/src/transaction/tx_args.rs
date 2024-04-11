@@ -120,11 +120,6 @@ impl TransactionArgs {
     pub fn advice_map(&self) -> &AdviceMap {
         &self.advice_map
     }
-
-    /// Returns a mutable reference to the args [AdviceMap].
-    pub fn get_advice_map_mut(&mut self) -> &mut AdviceMap {
-        &mut self.advice_map
-    }
 }
 
 // TRANSACTION SCRIPT
