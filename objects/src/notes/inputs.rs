@@ -86,7 +86,7 @@ impl NoteInputs {
     /// Returns the key under which the raw (un-padded inputs) are located in the advice map.
     ///
     /// TODO: eventually, this should go away. for now we need it because note inputs for input
-    /// notes are padded, while note inputs for expected output notes are note. switching to a
+    /// notes are padded, while note inputs for expected output notes are not. switching to a
     /// different padding scheme (e.g., RPX) would eliminate the need to have two different keys.
     pub fn commitment_to_key(commitment: Digest) -> Digest {
         let mut key: Word = commitment.into();
