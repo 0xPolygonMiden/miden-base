@@ -57,9 +57,7 @@ impl TryFrom<u16> for NoteType {
     type Error = NoteError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        let value: u8 =
-            value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value.into()))?;
-        value.try_into()
+        Self::try_from(value as u64)
     }
 }
 
@@ -67,9 +65,7 @@ impl TryFrom<u32> for NoteType {
     type Error = NoteError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        let value: u8 =
-            value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value.into()))?;
-        value.try_into()
+        Self::try_from(value as u64)
     }
 }
 
