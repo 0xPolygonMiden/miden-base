@@ -1,10 +1,20 @@
-use crate::MockDataStore;
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionTrace};
-use miden_objects::{accounts::AccountStub, transaction::TransactionArgs};
-use miden_tx::{TransactionExecutor, TransactionHost};
+// use crate::MockDataStore;
+use miden_lib::transaction::TransactionTrace;
+use miden_objects::{
+    accounts::{Account, AccountId, AccountStub},
+    assembly::ModuleAst,
+    notes::NoteId,
+    transaction::{ChainMmr, InputNote, InputNotes},
+    BlockHeader,
+};
+use miden_tx::{DataStore, DataStoreError, TransactionHost, TransactionInputs};
+use mock::mock::{
+    account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs,
+};
+// use miden_tx::MockDataStore;
 use vm_processor::{
-    AdviceExtractor, AdviceInjector, AdviceProvider, ExecutionError, ExecutionOptions, Host,
-    HostResponse, ProcessState, RecAdviceProvider,
+    AdviceExtractor, AdviceInjector, AdviceProvider, ExecutionError, Host, HostResponse,
+    ProcessState,
 };
 
 // CONSTANTS
@@ -180,34 +190,67 @@ impl CycleInterval {
     }
 }
 
-// BENCHMARKS
+// MOCK DATA STORE
 // ================================================================================================
 
-#[ignore]
-#[test]
-fn benchmark_default_tx() {
-    let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
+#[derive(Clone)]
+pub struct MockDataStore {
+    pub account: Account,
+    pub block_header: BlockHeader,
+    pub block_chain: ChainMmr,
+    pub notes: Vec<InputNote>,
+}
 
-    let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+impl MockDataStore {
+    pub fn new() -> Self {
+        let (account, _, block_header, block_chain, notes) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
+                .into_parts();
+        Self {
+            account,
+            block_header,
+            block_chain,
+            notes: notes.into_vec(),
+        }
+    }
+}
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+impl Default for MockDataStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
-    let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, TransactionArgs::default())
-        .unwrap();
+impl DataStore for MockDataStore {
+    fn get_transaction_inputs(
+        &self,
+        account_id: AccountId,
+        block_num: u32,
+        notes: &[NoteId],
+    ) -> Result<TransactionInputs, DataStoreError> {
+        assert_eq!(account_id, self.account.id());
+        assert_eq!(block_num, self.block_header.block_num());
+        assert_eq!(notes.len(), self.notes.len());
 
-    let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
-    let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = BenchHost::new(transaction.account().into(), advice_recorder);
+        let notes = self
+            .notes
+            .iter()
+            .filter(|note| notes.contains(&note.id()))
+            .cloned()
+            .collect::<Vec<_>>();
 
-    vm_processor::execute(
-        transaction.program(),
-        stack_inputs,
-        &mut host,
-        ExecutionOptions::default().with_tracing(),
-    )
-    .unwrap();
+        Ok(TransactionInputs::new(
+            self.account.clone(),
+            None,
+            self.block_header,
+            self.block_chain.clone(),
+            InputNotes::new(notes).unwrap(),
+        )
+        .unwrap())
+    }
+
+    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
+        assert_eq!(account_id, self.account.id());
+        Ok(self.account.code().module().clone())
+    }
 }

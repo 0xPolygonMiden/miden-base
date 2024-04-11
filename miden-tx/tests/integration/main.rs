@@ -1,4 +1,3 @@
-mod bench;
 mod scripts;
 mod wallet;
 
