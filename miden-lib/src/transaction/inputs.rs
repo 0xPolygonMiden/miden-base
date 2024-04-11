@@ -94,7 +94,7 @@ fn extend_advice_inputs(
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
-    add_tx_script_inputs_to_advice_map(tx_args.tx_script(), advice_inputs);
+    advice_inputs.extend_map(tx_args.advice_map().clone());
 }
 
 // ADVICE STACK BUILDER
@@ -335,18 +335,4 @@ fn add_input_notes_to_advice_inputs(
 
     // insert the combined note data into the advice map
     inputs.extend_map([(notes.commitment(), note_data)]);
-}
-
-// TRANSACTION SCRIPT INJECTOR
-// ------------------------------------------------------------------------------------------------
-
-/// Inserts the following entries into the advice map:
-/// - input_hash |-> input, for each tx_script input
-fn add_tx_script_inputs_to_advice_map(
-    tx_script: Option<&TransactionScript>,
-    inputs: &mut AdviceInputs,
-) {
-    if let Some(tx_script) = tx_script {
-        inputs.extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())));
-    }
 }

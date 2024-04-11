@@ -68,8 +68,8 @@ impl NoteScript {
 // CONVERSIONS INTO NOTE SCRIPT
 // ================================================================================================
 
-impl From<NoteScript> for Vec<Felt> {
-    fn from(value: NoteScript) -> Self {
+impl From<&NoteScript> for Vec<Felt> {
+    fn from(value: &NoteScript) -> Self {
         let mut bytes = value.code.to_bytes(AstSerdeOptions { serialize_imports: true });
         let len = bytes.len();
 
@@ -86,7 +86,7 @@ impl From<NoteScript> for Vec<Felt> {
 
         // A Felt can not represent all u64 values, so the data is encoded using u32.
         let mut encoded: &[u8] = &bytes;
-        while encoded.len() > 4 {
+        while encoded.len() >= 4 {
             let (data, rest) =
                 encoded.split_first_chunk::<4>().expect("The length has been checked");
             let number = u32::from_le_bytes(*data);
@@ -96,6 +96,12 @@ impl From<NoteScript> for Vec<Felt> {
         }
 
         result
+    }
+}
+
+impl From<NoteScript> for Vec<Felt> {
+    fn from(value: NoteScript) -> Self {
+        (&value).into()
     }
 }
 
@@ -113,7 +119,8 @@ impl TryFrom<&[Felt]> for NoteScript {
         let hash = Digest::new([value[0], value[1], value[2], value[3]]);
         let len = value[4].as_int();
         let mut data = Vec::with_capacity(value.len() * 4);
-        for felt in &value[1..] {
+
+        for felt in &value[5..] {
             let v = u32::try_from(felt.as_int())
                 .map_err(|v| DeserializationError::InvalidValue(format!("{v}")))?;
             data.extend(v.to_le_bytes())
@@ -123,6 +130,14 @@ impl TryFrom<&[Felt]> for NoteScript {
         // TODO: validate the hash matches the code
         let code = ProgramAst::from_bytes(&data)?;
         Ok(NoteScript::from_parts(code, hash))
+    }
+}
+
+impl TryFrom<Vec<Felt>> for NoteScript {
+    type Error = DeserializationError;
+
+    fn try_from(value: Vec<Felt>) -> Result<Self, Self::Error> {
+        value.as_slice().try_into()
     }
 }
 

@@ -70,10 +70,10 @@ fn prove_swap_script() {
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction

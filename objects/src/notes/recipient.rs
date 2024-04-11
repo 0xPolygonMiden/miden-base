@@ -1,4 +1,7 @@
+use alloc::vec::Vec;
 use core::fmt::Debug;
+
+use miden_crypto::Felt;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Hasher, NoteInputs,
@@ -54,6 +57,15 @@ impl NoteRecipient {
     pub fn digest(&self) -> Digest {
         self.digest
     }
+
+    /// Returns the recipient encoded as [Felt]s.
+    pub fn to_elements(&self) -> Vec<Felt> {
+        let mut result = Vec::with_capacity(12);
+        result.extend(self.inputs.commitment());
+        result.extend(self.script.hash());
+        result.extend(self.serial_num);
+        result
+    }
 }
 
 fn compute_recipient_digest(serial_num: Word, script: &NoteScript, inputs: &NoteInputs) -> Digest {
@@ -104,7 +116,6 @@ impl serde::Serialize for NoteRecipient {
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for NoteRecipient {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use alloc::vec::Vec;
         let bytes: Vec<u8> = <Vec<u8> as serde::Deserialize>::deserialize(deserializer)?;
         Self::read_from_bytes(&bytes).map_err(serde::de::Error::custom)
     }

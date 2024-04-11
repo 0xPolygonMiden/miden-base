@@ -74,7 +74,7 @@ fn prove_receive_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -102,12 +102,8 @@ fn prove_receive_asset_via_wallet() {
 }
 
 #[test]
-#[ignore]
 /// Testing the basic Miden wallet - sending an asset
 fn prove_send_asset_via_wallet() {
-    // Mock data
-    // We need an asset and an account that owns that asset
-    // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
@@ -149,7 +145,7 @@ fn prove_send_asset_via_wallet() {
         end
         ",
             recipient = prepare_word(&recipient),
-            note_type = NoteType::Public as u8,
+            note_type = NoteType::OffChain as u8,
             tag = tag,
             asset = prepare_word(&fungible_asset_1.into())
         )
@@ -161,12 +157,10 @@ fn prove_send_asset_via_wallet() {
         .unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
-    // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info

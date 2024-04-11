@@ -107,16 +107,11 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction_1 = executor_1
-        .execute_transaction(
-            target_account_id,
-            block_ref_1,
-            &note_ids,
-            Some(tx_args_target.clone()),
-        )
+        .execute_transaction(target_account_id, block_ref_1, &note_ids, tx_args_target.clone())
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
@@ -144,7 +139,7 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_sender = TransactionArgs::new(Some(tx_script_sender), None);
+    let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
     let block_ref_2 = data_store_2.block_header.block_num();
     let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -154,7 +149,7 @@ fn p2idr_script() {
         sender_account_id,
         block_ref_2,
         &note_ids_2,
-        Some(tx_args_sender.clone()),
+        tx_args_sender.clone(),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -176,7 +171,7 @@ fn p2idr_script() {
             vec![],
         )
         .unwrap();
-    let tx_args_malicious = TransactionArgs::new(Some(tx_script_malicious), None);
+    let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref_3 = data_store_3.block_header.block_num();
     let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -186,7 +181,7 @@ fn p2idr_script() {
         malicious_account_id,
         block_ref_3,
         &note_ids_3,
-        Some(tx_args_malicious.clone()),
+        tx_args_malicious.clone(),
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -207,7 +202,7 @@ fn p2idr_script() {
 
     // Execute the transaction and get the witness
     let executed_transaction_4 = executor_4
-        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, Some(tx_args_target))
+        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, tx_args_target)
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
@@ -240,7 +235,7 @@ fn p2idr_script() {
 
     // Execute the transaction and get the witness
     let executed_transaction_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, Some(tx_args_sender))
+        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, tx_args_sender)
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -275,7 +270,7 @@ fn p2idr_script() {
         malicious_account_id,
         block_ref_6,
         &note_ids_6,
-        Some(tx_args_malicious),
+        tx_args_malicious,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
