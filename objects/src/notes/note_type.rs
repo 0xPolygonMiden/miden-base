@@ -28,9 +28,53 @@ pub enum NoteType {
     Public = PUBLIC,
 }
 
+// CONVERSIONS FROM NOTE TYPE
+// ================================================================================================
+
 impl From<NoteType> for Felt {
     fn from(id: NoteType) -> Self {
         Felt::new(id as u64)
+    }
+}
+
+// CONVERSIONS INTO NOTE TYPE
+// ================================================================================================
+
+impl TryFrom<u8> for NoteType {
+    type Error = NoteError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            OFF_CHAIN => Ok(NoteType::OffChain),
+            ENCRYPTED => Ok(NoteType::Encrypted),
+            PUBLIC => Ok(NoteType::Public),
+            _ => Err(NoteError::InvalidNoteTypeValue(value.into())),
+        }
+    }
+}
+
+impl TryFrom<u16> for NoteType {
+    type Error = NoteError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        Self::try_from(value as u64)
+    }
+}
+
+impl TryFrom<u32> for NoteType {
+    type Error = NoteError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Self::try_from(value as u64)
+    }
+}
+
+impl TryFrom<u64> for NoteType {
+    type Error = NoteError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let value: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
+        value.try_into()
     }
 }
 
@@ -38,14 +82,7 @@ impl TryFrom<Felt> for NoteType {
     type Error = NoteError;
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
-        let value = value.as_int();
-        let note_type: u8 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
-        match note_type {
-            OFF_CHAIN => Ok(NoteType::OffChain),
-            ENCRYPTED => Ok(NoteType::Encrypted),
-            PUBLIC => Ok(NoteType::Public),
-            _ => Err(NoteError::InvalidNoteTypeValue(value)),
-        }
+        value.as_int().try_into()
     }
 }
 

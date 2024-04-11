@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.2.0
+## 0.2.1 (2024-04-12)
+
+* [BREAKING] Return a reference to `NoteMetadata` from output notes (#593).
+* Add more type conversions for `NoteType` (#597).
+* Fix note input padding for expected output notes (#598).
+
+## 0.2.0 (2024-04-11)
 
 * [BREAKING] Implement support for public accounts (#481, #485, #538).
 * [BREAKING] Implement support for public notes (#515, #540, #572).
