@@ -32,7 +32,7 @@ In this section, we show you how to make off-chain transactions and send funds t
     To do this, run:
 
     ```shell
-    miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50
+    miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 --note-type private
     ```
 
     !!! note
@@ -55,7 +55,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> 
+    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> --note-type private
     ```
 
     !!! tip
@@ -98,3 +98,6 @@ You have performed basic Miden rollup operations like sending transactions, gene
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
 
+```sh
+miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+```
