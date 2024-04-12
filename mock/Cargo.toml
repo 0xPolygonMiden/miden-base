@@ -1,6 +1,6 @@
 [package]
 name = "miden-mock"
-version = "0.2.0"
+version = "0.3.0"
 description = "Library for mocking and testing core Miden rollup components"
 readme = "README.md"
 keywords = ["miden", "mock"]
@@ -28,8 +28,8 @@ std = ["miden-lib/std", "miden-objects/std"]
 clap = { version = "4.4", features = ["derive"], optional = true }
 env_logger = { version = "0.11" }
 hex = { version = "0.4" }
-miden-lib = { path = "../miden-lib", version = "0.2" }
-miden-objects = { path = "../objects", version = "0.2", features = [
+miden-lib = { path = "../miden-lib", version = "0.3" }
+miden-objects = { path = "../objects", version = "0.3", features = [
     "log",
     "serde",
     "testing",

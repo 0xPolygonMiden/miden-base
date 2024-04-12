@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "miden-lib"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "miden-assembly",
  "miden-mock",
@@ -640,7 +640,7 @@ dependencies = [
 
 [[package]]
 name = "miden-mock"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "env_logger",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "miden-objects"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "criterion",
  "log",
@@ -707,7 +707,7 @@ dependencies = [
 
 [[package]]
 name = "miden-tx"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "miden-lib",
  "miden-mock",

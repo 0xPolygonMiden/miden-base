@@ -1,6 +1,6 @@
 [package]
 name = "miden-lib"
-version = "0.2.1"
+version = "0.3.0"
 description = "Standard library of the Miden rollup"
 readme = "README.md"
 categories = ["no-std"]
@@ -30,11 +30,11 @@ std = [
 testing = ["miden-objects/testing"]
 
 [dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.2", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false }
 miden-stdlib = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.2", default-features = false, features = [
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false, features = [
     "testing",
 ] }
 mock = { package = "miden-mock", path = "../mock", default-features = false }

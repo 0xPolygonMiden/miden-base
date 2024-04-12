@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.0 (TBD)
+
 ## 0.2.1 (2024-04-12)
 
 * [BREAKING] Return a reference to `NoteMetadata` from output notes (#593).
