@@ -97,7 +97,3 @@ You have successfully configured and used the Miden client to interact with a Mi
 You have performed basic Miden rollup operations like sending transactions, generating and consuming notes.
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
-
-```sh
-miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
-```
