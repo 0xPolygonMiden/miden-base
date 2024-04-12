@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::ACCT_STORAGE_ROOT_PTR, TransactionEvent, TransactionKernelError,
+    memory::ACCT_STORAGE_ROOT_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
@@ -23,6 +23,9 @@ use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
+
+mod tx_progress;
+pub use tx_progress::TransactionProgress;
 
 // CONSTANTS
 // ================================================================================================
@@ -46,6 +49,10 @@ pub struct TransactionHost<A> {
 
     /// The list of notes created while executing a transaction.
     output_notes: Vec<OutputNote>,
+
+    /// Contains the information about the number of cycles for each of the transaction execution
+    /// stages.
+    tx_progress: TransactionProgress,
 }
 
 impl<A: AdviceProvider> TransactionHost<A> {
@@ -57,12 +64,18 @@ impl<A: AdviceProvider> TransactionHost<A> {
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: Vec::new(),
+            tx_progress: TransactionProgress::default(),
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>) {
         (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
+    }
+
+    /// Returns a reference to the `output_notes` vector.
+    pub fn output_notes(&self) -> &Vec<OutputNote> {
+        &self.output_notes
     }
 
     // EVENT HANDLERS
@@ -271,6 +284,38 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             TransactionEvent::NoteCreated => self.on_note_created(process),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+
+        Ok(HostResponse::None)
+    }
+
+    fn on_trace<S: ProcessState>(
+        &mut self,
+        process: &S,
+        trace_id: u32,
+    ) -> Result<HostResponse, ExecutionError> {
+        let event = TransactionTrace::try_from(trace_id)
+            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+
+        use TransactionTrace::*;
+        match event {
+            PrologueStart => self.tx_progress.start_prologue(process.clk()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
+            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
+            NoteExecutionStart => self.tx_progress.start_note_execution(process.clk()),
+            NoteExecutionEnd => {
+                let note_id = self.output_notes().last().map(|note| note.id());
+                self.tx_progress.end_note_execution(process.clk(), note_id)
+            },
+            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
+            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
+            ExecutionEnd => {
+                #[cfg(feature = "std")]
+                self.tx_progress.print_stages();
+            },
+        }
 
         Ok(HostResponse::None)
     }

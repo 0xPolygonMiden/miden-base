@@ -1,8 +1,20 @@
+use miden_lib::notes::create_p2id_note;
 use miden_lib::transaction::ToTransactionKernelInputs;
-use miden_tx::TransactionExecutor;
-use vm_processor::{ExecutionOptions, RecAdviceProvider};
+use miden_lib::utils::Serializable;
+use miden_objects::{
+    accounts::AccountId,
+    assembly::ProgramAst,
+    assets::{Asset, FungibleAsset},
+    crypto::dsa::rpo_falcon512::SecretKey,
+    crypto::rand::RpoRandomCoin,
+    notes::NoteType,
+    transaction::TransactionArgs,
+    Felt,
+};
+use miden_tx::{TransactionExecutor, TransactionHost};
+use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
-use crate::utils::{BenchHost, MockDataStore, String, ToString, Vec};
+use crate::utils::{MockDataStore, String, ToString, Vec, DEFAULT_AUTH_SCRIPT};
 
 // BENCHMARKS
 // ================================================================================================
@@ -24,7 +36,7 @@ pub fn benchmark_default_tx() -> Result<(), String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = BenchHost::new(transaction.account().into(), advice_recorder);
+    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
 
     vm_processor::execute(
         transaction.program(),

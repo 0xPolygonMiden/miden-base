@@ -95,11 +95,17 @@ command = "cargo"
 args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock"]
 
 # --- benchmarking --------------------------------------------------------------------------------
-[tasks.bench-simple]
+[tasks.bench-tx]
 description = "Run transaction benchmark with default transaction script and notes"
 workspace = false
 command = "cargo"
 args = ["run", "--bin", "benchmarks", "--features", "executable", "simple"]
+
+[tasks.bench-p2id]
+description = "Run the transaction which consumes a P2ID note into a basic wallet"
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "benchmarks", "--features", "executable", "p2id"]
 
 # --- utilities -----------------------------------------------------------------------------------
 [tasks.watch]

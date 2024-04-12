@@ -72,8 +72,8 @@ pub enum TransactionTrace {
     PrologueEnd = 0x2_0001,             // 131073
     NotesProcessingStart = 0x2_0002,    // 131074
     NotesProcessingEnd = 0x2_0003,      // 131075
-    NoteConsumingStart = 0x2_0004,      // 131076
-    NoteConsumingEnd = 0x2_0005,        // 131077
+    NoteExecutionStart = 0x2_0004,      // 131076
+    NoteExecutionEnd = 0x2_0005,        // 131077
     TxScriptProcessingStart = 0x2_0006, // 131078
     TxScriptProcessingEnd = 0x2_0007,   // 131079
     EpilogueStart = 0x2_0008,           // 131080
@@ -101,8 +101,8 @@ impl TryFrom<u32> for TransactionTrace {
             0x2_0001 => Ok(TransactionTrace::PrologueEnd),
             0x2_0002 => Ok(TransactionTrace::NotesProcessingStart),
             0x2_0003 => Ok(TransactionTrace::NotesProcessingEnd),
-            0x2_0004 => Ok(TransactionTrace::NoteConsumingStart),
-            0x2_0005 => Ok(TransactionTrace::NoteConsumingEnd),
+            0x2_0004 => Ok(TransactionTrace::NoteExecutionStart),
+            0x2_0005 => Ok(TransactionTrace::NoteExecutionEnd),
             0x2_0006 => Ok(TransactionTrace::TxScriptProcessingStart),
             0x2_0007 => Ok(TransactionTrace::TxScriptProcessingEnd),
             0x2_0008 => Ok(TransactionTrace::EpilogueStart),

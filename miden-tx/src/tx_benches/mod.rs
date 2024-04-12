@@ -1,5 +1,5 @@
 mod benchmarks;
-use benchmarks::benchmark_default_tx;
+use benchmarks::*;
 
 mod utils;
 
@@ -22,6 +22,7 @@ pub struct Cli {
 #[derive(Debug, Parser)]
 pub enum Benchmarks {
     Simple,
+    P2ID,
 }
 
 /// CLI entry point
@@ -29,6 +30,7 @@ impl Cli {
     pub fn execute(&self) -> Result<(), String> {
         match &self.bench_program {
             Benchmarks::Simple => benchmark_default_tx(),
+            Benchmarks::P2ID => todo!(),
         }
     }
 }
