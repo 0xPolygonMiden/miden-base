@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.0 (TBD)
+
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 
 * Fixed handling of debug mode in `TransactionExecutor` (#627)
