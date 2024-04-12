@@ -25,7 +25,7 @@ use super::{
 pub fn mock_inputs(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
-) -> TransactionInputs {
+) -> (TransactionInputs, TransactionArgs) {
     mock_inputs_with_account_seed(account_type, asset_preservation, None)
 }
 
@@ -33,11 +33,9 @@ pub fn mock_inputs_with_account_seed(
     account_type: MockAccountType,
     asset_preservation: AssetPreservationStatus,
     account_seed: Option<Word>,
-) -> TransactionInputs {
-    // Create assembler and assembler context
+) -> (TransactionInputs, TransactionArgs) {
     let assembler = TransactionKernel::assembler();
 
-    // Create an account with storage items
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => mock_account(
@@ -53,19 +51,26 @@ pub fn mock_inputs_with_account_seed(
         },
     };
 
-    // mock notes
-    let (input_notes, _output_notes) = mock_notes(&assembler, &asset_preservation);
+    let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
 
-    // Chain data
     let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
 
-    // Block header
     let block_header =
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
-    // Transaction inputs
     let input_notes = InputNotes::new(recorded_notes).unwrap();
-    TransactionInputs::new(account, account_seed, block_header, chain_mmr, input_notes).unwrap()
+    let tx_inputs =
+        TransactionInputs::new(account, account_seed, block_header, chain_mmr, input_notes)
+            .unwrap();
+
+    let output_notes = output_notes.into_iter().filter_map(|n| match n {
+        OutputNote::Public(note) => Some(note),
+        OutputNote::Private(_) => None,
+    });
+    let mut tx_args = TransactionArgs::default();
+    tx_args.extend_expected_output_notes(output_notes);
+
+    (tx_inputs, tx_args)
 }
 
 pub fn mock_inputs_with_existing(
@@ -73,14 +78,9 @@ pub fn mock_inputs_with_existing(
     asset_preservation: AssetPreservationStatus,
     account: Option<Account>,
     consumed_notes_from: Option<Vec<Note>>,
-) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>, AdviceInputs) {
-    // create auxiliary data object
+) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>, AdviceInputs, Vec<OutputNote>) {
     let auxiliary_data = AdviceInputs::default();
-
-    // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
-
-    // Create an account with storage items
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
@@ -97,24 +97,20 @@ pub fn mock_inputs_with_existing(
         },
     };
 
-    let (mut consumed_notes, _created_notes) = mock_notes(&assembler, &asset_preservation);
+    let (mut consumed_notes, created_notes) = mock_notes(&assembler, &asset_preservation);
     if let Some(ref notes) = consumed_notes_from {
         consumed_notes = notes.to_vec();
     }
 
-    // Chain data
     let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
 
-    // Block header
     let block_header =
         mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
 
-    // Transaction inputs
-    (account, block_header, chain_mmr, recorded_notes, auxiliary_data)
+    (account, block_header, chain_mmr, recorded_notes, auxiliary_data, created_notes)
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    // Create assembler and assembler context
     let assembler = TransactionKernel::assembler();
 
     let initial_account = mock_account(
@@ -130,15 +126,9 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account.code().clone(),
     );
 
-    // mock notes
     let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
-
-    let output_notes = output_notes.into_iter().map(OutputNote::from).collect::<Vec<_>>();
-
-    // Chain data
     let (block_chain, input_notes) = mock_chain_data(input_notes);
 
-    // Block header
     let block_header = mock_block_header(
         4,
         Some(block_chain.peaks().hash_peaks()),
@@ -155,18 +145,22 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     )
     .unwrap();
 
+    let mut tx_args: TransactionArgs = TransactionArgs::default();
+    for note in &output_notes {
+        if let OutputNote::Public(note) = note {
+            tx_args.add_expected_output_note(note);
+        }
+    }
+
     let tx_outputs = TransactionOutputs {
         account: final_account.into(),
         output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
-    // dummy components
     let program = build_dummy_tx_program();
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
-    let tx_args: TransactionArgs = TransactionArgs::default();
 
-    // Executed Transaction
     ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, tx_args, advice_witness)
 }
 

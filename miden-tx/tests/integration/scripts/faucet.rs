@@ -5,14 +5,14 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
         ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteAssets, NoteMetadata, NoteType},
-    transaction::{OutputNote, TransactionArgs},
+    notes::{NoteAssets, NoteId, NoteMetadata, NoteType},
+    transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -56,6 +56,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -65,6 +66,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
@@ -76,27 +78,25 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .unwrap();
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
-    // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args))
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
 
-    let expected_note = OutputNote::new(
-        recipient.into(),
-        NoteAssets::new(&[fungible_asset]).unwrap(),
-        NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap(),
-    );
-
     let created_note = executed_transaction.output_notes().get_note(0).clone();
-    assert_eq!(created_note.recipient(), expected_note.recipient());
-    assert_eq!(created_note.assets(), expected_note.assets());
-    assert_eq!(created_note.metadata(), expected_note.metadata());
+
+    let assets = NoteAssets::new(vec![fungible_asset]).unwrap();
+    let id = NoteId::new(recipient.into(), assets.commitment());
+
+    assert_eq!(created_note.id(), id);
+    assert_eq!(
+        created_note.metadata(),
+        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+    );
 }
 
 #[test]
@@ -128,6 +128,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
             begin
 
                 push.{recipient}
+                push.{note_type}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -137,6 +138,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
             end
             ",
+            note_type = NoteType::OffChain as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),
@@ -150,7 +152,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // Execute the transaction and get the witness
     let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, Some(tx_args));
+        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args);
 
     assert!(executed_transaction.is_err());
 }
@@ -208,7 +210,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, None)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -242,10 +244,17 @@ fn faucet_contract_creation() {
     let token_symbol_string = "POL";
     let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
     let decimals = 2u8;
+    let storage_type = AccountStorageType::OffChain;
 
-    let (faucet_account, _) =
-        create_basic_fungible_faucet(init_seed, token_symbol, decimals, max_supply, auth_scheme)
-            .unwrap();
+    let (faucet_account, _) = create_basic_fungible_faucet(
+        init_seed,
+        token_symbol,
+        decimals,
+        max_supply,
+        storage_type,
+        auth_scheme,
+    )
+    .unwrap();
 
     // check that max_supply (slot 1) is 123
     assert_eq!(

@@ -1,15 +1,10 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    string::ToString,
-    vec::Vec,
-};
+use alloc::{string::ToString, vec::Vec};
 
 use miden_verifier::ExecutionProof;
 
-use super::{AccountId, Digest, InputNotes, NoteEnvelope, Nullifier, OutputNotes, TransactionId};
+use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
 use crate::{
     accounts::{Account, AccountDelta},
-    notes::{Note, NoteId},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     ProvenTransactionError,
 };
@@ -52,10 +47,7 @@ pub struct ProvenTransaction {
     input_notes: InputNotes<Nullifier>,
 
     /// The id and  metadata of all notes created by the transaction.
-    output_notes: OutputNotes<NoteEnvelope>,
-
-    /// Optionally the output note's data, used to share the note with the network.
-    output_note_details: BTreeMap<NoteId, Note>,
+    output_notes: OutputNotes,
 
     /// The script root of the transaction, if one was used.
     tx_script_root: Option<Digest>,
@@ -102,13 +94,8 @@ impl ProvenTransaction {
     }
 
     /// Returns a reference to the notes produced by the transaction.
-    pub fn output_notes(&self) -> &OutputNotes<NoteEnvelope> {
+    pub fn output_notes(&self) -> &OutputNotes {
         &self.output_notes
-    }
-
-    /// Returns the [NoteId] details, if present.
-    pub fn get_output_note_details(&self, note_id: &NoteId) -> Option<&Note> {
-        self.output_note_details.get(note_id)
     }
 
     /// Returns the script root of the transaction.
@@ -130,17 +117,6 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        let known_output_ids = BTreeSet::from_iter(self.output_notes.iter().map(|n| n.note_id()));
-        let unknown_ids: Vec<_> = self
-            .output_note_details
-            .keys()
-            .filter(|&k| !known_output_ids.contains(k))
-            .cloned()
-            .collect();
-        if !unknown_ids.is_empty() {
-            return Err(ProvenTransactionError::NoteDetailsForUnknownNotes(unknown_ids));
-        }
-
         if !self.account_id.is_on_chain() && self.account_details.is_some() {
             return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
         }
@@ -216,10 +192,7 @@ pub struct ProvenTransactionBuilder {
     input_notes: Vec<Nullifier>,
 
     /// List of [NoteEnvelope]s of all notes created by the transaction.
-    output_notes: Vec<NoteEnvelope>,
-
-    /// State of the output notes.
-    output_note_details: BTreeMap<NoteId, Note>,
+    output_notes: Vec<OutputNote>,
 
     /// The script root of the transaction, if one was used.
     tx_script_root: Option<Digest>,
@@ -250,7 +223,6 @@ impl ProvenTransactionBuilder {
             account_details: None,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
-            output_note_details: BTreeMap::new(),
             tx_script_root: None,
             block_ref,
             proof,
@@ -278,18 +250,9 @@ impl ProvenTransactionBuilder {
     /// Add notes produced by the transaction.
     pub fn add_output_notes<T>(mut self, notes: T) -> Self
     where
-        T: IntoIterator<Item = NoteEnvelope>,
+        T: IntoIterator<Item = OutputNote>,
     {
         self.output_notes.extend(notes);
-        self
-    }
-
-    /// Add produced notes details.
-    pub fn add_output_note_details<T>(mut self, notes: T) -> Self
-    where
-        T: IntoIterator<Item = (NoteId, Note)>,
-    {
-        self.output_note_details.extend(notes);
         self
     }
 
@@ -306,7 +269,6 @@ impl ProvenTransactionBuilder {
     /// An error will be returned if an on-chain account is used without provided on-chain detail.
     /// Or if the account details, i.e. account id and final hash, don't match the transaction.
     pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
-        let output_note_details = self.output_note_details;
         let account_details = self.account_details.take();
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
@@ -328,7 +290,6 @@ impl ProvenTransactionBuilder {
             account_details,
             input_notes,
             output_notes,
-            output_note_details,
             tx_script_root,
             block_ref: self.block_ref,
             proof: self.proof,
@@ -376,10 +337,6 @@ impl Serializable for ProvenTransaction {
         self.account_details.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
-
-        target.write_usize(self.output_note_details.len());
-        target.write_many(self.output_note_details.values());
-
         self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
         self.proof.write_into(target);
@@ -394,15 +351,7 @@ impl Deserializable for ProvenTransaction {
         let account_details = <Option<AccountDetails>>::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
-        let output_notes = OutputNotes::<NoteEnvelope>::read_from(source)?;
-
-        let output_notes_details_len = usize::read_from(source)?;
-        let notes = source.read_many(output_notes_details_len)?;
-        let details = notes
-            .iter()
-            .map(|note: &Note| (note.id(), note.clone()))
-            .collect::<Vec<(NoteId, Note)>>();
-        let output_note_details = BTreeMap::from_iter(details);
+        let output_notes = OutputNotes::read_from(source)?;
 
         let tx_script_root = Deserializable::read_from(source)?;
 
@@ -424,7 +373,6 @@ impl Deserializable for ProvenTransaction {
             account_details,
             input_notes,
             output_notes,
-            output_note_details,
             tx_script_root,
             block_ref,
             proof,

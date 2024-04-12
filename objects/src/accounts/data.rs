@@ -156,7 +156,10 @@ mod tests {
                 push.1 push.2 add
             end
         ";
-        let module = ModuleAst::parse(source).unwrap();
+        let mut module = ModuleAst::parse(source).unwrap();
+        // clears are needed since imports and source locations are not serialized for account code
+        module.clear_locations();
+        module.clear_imports();
         let assembler = Assembler::default();
         let code = AccountCode::new(module, &assembler).unwrap();
 

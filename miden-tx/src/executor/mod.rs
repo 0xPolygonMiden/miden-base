@@ -148,10 +148,9 @@ impl<D: DataStore> TransactionExecutor<D> {
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
-        tx_args: Option<TransactionArgs>,
+        tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction =
-            self.prepare_transaction(account_id, block_ref, notes, tx_args.unwrap_or_default())?;
+        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
@@ -223,14 +222,13 @@ fn build_executed_transaction(
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-    let (advice_recorder, account_delta) = host.into_parts();
+    let (advice_recorder, account_delta, output_notes) = host.into_parts();
 
-    // finalize the advice recorder
     let (advice_witness, _, map, _store) = advice_recorder.finalize();
 
-    // parse transaction results
-    let tx_outputs = TransactionKernel::parse_transaction_outputs(&stack_outputs, &map.into())
-        .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
+    let tx_outputs =
+        TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
+            .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
     let final_account = &tx_outputs.account;
 
     let initial_account = tx_inputs.account();

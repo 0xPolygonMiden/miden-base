@@ -9,7 +9,7 @@ use miden_objects::{
     accounts::{Account, AccountId, AccountStub},
     assembly::ModuleAst,
     notes::NoteId,
-    transaction::{ChainMmr, InputNote, InputNotes},
+    transaction::{ChainMmr, InputNote, InputNotes, TransactionArgs},
     BlockHeader,
 };
 use miden_tx::{DataStore, DataStoreError, TransactionHost, TransactionInputs};
@@ -203,25 +203,32 @@ pub struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<InputNote>,
+    pub tx_args: TransactionArgs,
 }
 
 impl MockDataStore {
-    pub fn new() -> Self {
-        let (account, _, block_header, block_chain, notes) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved)
-                .into_parts();
+    pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
+        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
+
         Self {
             account,
             block_header,
             block_chain,
             notes: notes.into_vec(),
+            tx_args,
         }
+    }
+
+    pub fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 }
 
 impl Default for MockDataStore {
     fn default() -> Self {
-        Self::new()
+        Self::new(AssetPreservationStatus::Preserved)
     }
 }
 

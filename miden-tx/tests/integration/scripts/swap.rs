@@ -8,8 +8,8 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteExecutionMode, NoteMetadata, NoteTag, NoteType},
-    transaction::{OutputNote, TransactionArgs},
+    notes::{NoteAssets, NoteEnvelope, NoteExecutionMode, NoteId, NoteMetadata, NoteTag, NoteType},
+    transaction::TransactionArgs,
     Felt, ZERO,
 };
 use miden_tx::TransactionExecutor;
@@ -70,10 +70,10 @@ fn prove_swap_script() {
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
-    let tx_args_target = TransactionArgs::new(Some(tx_script_target), None);
+    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, Some(tx_args_target))
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction
@@ -97,15 +97,14 @@ fn prove_swap_script() {
     // Check if the created `Note` is what we expect
     let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
     let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionMode::Local).unwrap();
-
     let note_metadata =
         NoteMetadata::new(target_account_id, NoteType::OffChain, tag, ZERO).unwrap();
-
-    let note_assets = NoteAssets::new(&[non_fungible_asset]).unwrap();
-
-    let requested_note = OutputNote::new(recipient, note_assets, note_metadata);
+    let assets = NoteAssets::new(vec![non_fungible_asset]).unwrap();
+    let note_id = NoteId::new(recipient, assets.commitment());
 
     let created_note = executed_transaction.output_notes().get_note(0);
-
-    assert_eq!(created_note, &requested_note);
+    assert_eq!(
+        NoteEnvelope::from(created_note),
+        NoteEnvelope::new(note_id, note_metadata).unwrap()
+    );
 }

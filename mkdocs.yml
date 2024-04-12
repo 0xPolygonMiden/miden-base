@@ -22,10 +22,13 @@ theme:
 
 nav:
   - Welcome: introduction/welcome.md
-  - Getting started: introduction/getting-started.md
+  - Get started: 
+      - Prerequisite steps: introduction/get-started/prerequisites.md
+      - Create account and use the faucet: introduction/get-started/create-account-use-faucet.md
+      - Private peer-to-peer off-chain txs: introduction/get-started/p2p-private-offchain-txs.md
   - Roadmap: introduction/roadmap.md
-  - Architecture:
-      - Architecture overview: architecture/overview.md
+  - Miden architecture:
+      - Overview: architecture/overview.md
       - Accounts: architecture/accounts.md
       - Notes: architecture/notes.md
       - Assets: architecture/assets.md

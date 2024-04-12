@@ -11,6 +11,13 @@ pub const EVENT_ID_PREFIX: u32 = 2;
 // TRANSACTION EVENT
 // ================================================================================================
 
+const ACCOUNT_VAULT_ADD_ASSET: u32 = 0x2_0000; // 131072
+const ACCOUNT_VAULT_REMOVE_ASSET: u32 = 0x2_0001; // 131073
+const ACCOUNT_STORAGE_SET_ITEM: u32 = 0x2_0002; // 131074
+const ACCOUNT_INCREMENT_NONCE: u32 = 0x2_0003; // 131075
+const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_0004; // 131076
+const NOTE_CREATED: u32 = 0x2_0005; // 131077
+
 /// Events which may be emitted by a transaction kernel.
 ///
 /// The events are emitted via the `emit.<event_id>` instruction. The event ID is a 32-bit
@@ -21,11 +28,12 @@ pub const EVENT_ID_PREFIX: u32 = 2;
 #[repr(u32)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionEvent {
-    AccountVaultAddAsset = 0x2_0000,      // 131072
-    AccountVaultRemoveAsset = 0x2_0001,   // 131073
-    AccountStorageSetItem = 0x2_0002,     // 131074
-    AccountIncrementNonce = 0x2_0003,     // 131075
-    AccountPushProcedureIndex = 0x2_0004, // 131076
+    AccountVaultAddAsset = ACCOUNT_VAULT_ADD_ASSET,
+    AccountVaultRemoveAsset = ACCOUNT_VAULT_REMOVE_ASSET,
+    AccountStorageSetItem = ACCOUNT_STORAGE_SET_ITEM,
+    AccountIncrementNonce = ACCOUNT_INCREMENT_NONCE,
+    AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
+    NoteCreated = NOTE_CREATED,
 }
 
 impl fmt::Display for TransactionEvent {
@@ -43,11 +51,12 @@ impl TryFrom<u32> for TransactionEvent {
         }
 
         match value {
-            0x2_0000 => Ok(TransactionEvent::AccountVaultAddAsset),
-            0x2_0001 => Ok(TransactionEvent::AccountVaultRemoveAsset),
-            0x2_0002 => Ok(TransactionEvent::AccountStorageSetItem),
-            0x2_0003 => Ok(TransactionEvent::AccountIncrementNonce),
-            0x2_0004 => Ok(TransactionEvent::AccountPushProcedureIndex),
+            ACCOUNT_VAULT_ADD_ASSET => Ok(TransactionEvent::AccountVaultAddAsset),
+            ACCOUNT_VAULT_REMOVE_ASSET => Ok(TransactionEvent::AccountVaultRemoveAsset),
+            ACCOUNT_STORAGE_SET_ITEM => Ok(TransactionEvent::AccountStorageSetItem),
+            ACCOUNT_INCREMENT_NONCE => Ok(TransactionEvent::AccountIncrementNonce),
+            ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
+            NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

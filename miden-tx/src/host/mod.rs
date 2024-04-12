@@ -1,35 +1,51 @@
-use alloc::{collections::BTreeMap, string::ToString};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
-use miden_lib::transaction::{TransactionEvent, TransactionKernelError};
+use miden_lib::transaction::{
+    memory::ACCT_STORAGE_ROOT_PTR, TransactionEvent, TransactionKernelError,
+};
 use miden_objects::{
-    accounts::{AccountDelta, AccountStub},
+    accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
+    assets::Asset,
+    notes::{
+        Note, NoteAssets, NoteEnvelope, NoteId, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteScript, NoteTag, NoteType,
+    },
+    transaction::OutputNote,
     Digest,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, ProcessState,
+    ExecutionError, Felt, Host, HostResponse, ProcessState,
 };
 
-mod account_delta;
-use account_delta::AccountDeltaTracker;
+mod account_delta_tracker;
+use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
+
+// CONSTANTS
+// ================================================================================================
+
+pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPTH as u64);
 
 // TRANSACTION HOST
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-///
-/// Transaction host is composed of two components:
-/// - An advice provider which is used to provide non-deterministic inputs to the transaction
-///   runtime.
-/// - An account vault delta tracker which is used to keep track of changes made to the asset
-///   of the account the transaction is being executed against.
 pub struct TransactionHost<A> {
+    /// Advice provider which is used to provide non-deterministic inputs to the transaction
+    /// runtime.
     adv_provider: A,
+
+    /// Accumulates the state changes notified via events.
     account_delta: AccountDeltaTracker,
+
+    /// A map for the account's procedures.
     acct_procedure_index_map: AccountProcedureIndexMap,
+
+    /// The list of notes created while executing a transaction.
+    output_notes: Vec<OutputNote>,
 }
 
 impl<A: AdviceProvider> TransactionHost<A> {
@@ -40,16 +56,74 @@ impl<A: AdviceProvider> TransactionHost<A> {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
+            output_notes: Vec::new(),
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta) {
-        (self.adv_provider, self.account_delta.into_delta())
+    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>) {
+        (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
     }
 
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
+
+    fn on_note_created<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let stack = process.get_stack_state();
+
+        // Stack:
+        // # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+        let aux = stack[0];
+        let note_type =
+            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let sender =
+            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
+        let tag = NoteTag::try_from(stack[3])
+            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
+        let asset = Asset::try_from([stack[8], stack[7], stack[6], stack[5]])
+            .map_err(TransactionKernelError::MalformedAsset)?;
+        let recipient = Digest::new([stack[12], stack[11], stack[10], stack[9]]);
+        let vault =
+            NoteAssets::new(vec![asset]).map_err(TransactionKernelError::MalformedNoteType)?;
+
+        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
+            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
+
+        let note = if metadata.note_type() == NoteType::Public {
+            let data = self.adv_provider.get_mapped_values(&recipient).ok_or(
+                TransactionKernelError::MissingNoteDetails(metadata, vault.clone(), recipient),
+            )?;
+            if data.len() != 12 {
+                return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
+            }
+            let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
+            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
+            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
+            let serial_num = [data[8], data[9], data[10], data[11]];
+            let input_els = self.adv_provider.get_mapped_values(&inputs_key);
+            let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
+
+            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
+                .map_err(TransactionKernelError::MalformedNoteInputs)?;
+
+            let script = NoteScript::try_from(script_data)
+                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
+            let recipient = NoteRecipient::new(serial_num, script, inputs);
+            OutputNote::Public(Note::new(vault, metadata, recipient))
+        } else {
+            let note_id = NoteId::new(recipient, vault.commitment());
+            OutputNote::Private(
+                NoteEnvelope::new(note_id, metadata).expect("NoteType checked above"),
+            )
+        };
+
+        self.output_notes.push(note);
+
+        Ok(())
+    }
 
     fn on_account_push_procedure_index<S: ProcessState>(
         &mut self,
@@ -59,6 +133,96 @@ impl<A: AdviceProvider> TransactionHost<A> {
         self.adv_provider
             .push_stack(AdviceSource::Value(proc_idx.into()))
             .expect("failed to push value onto advice stack");
+        Ok(())
+    }
+
+    /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
+    pub fn on_account_increment_nonce<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let value = process.get_stack_item(0);
+        self.account_delta.increment_nonce(value);
+        Ok(())
+    }
+
+    // ACCOUNT STORAGE UPDATE HANDLERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Extracts information from the process state about the storage slot being updated and
+    /// records the latest value of this storage slot.
+    pub fn on_account_storage_set_item<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let storage_root = process
+            .get_mem_value(ContextId::root(), ACCT_STORAGE_ROOT_PTR)
+            .expect("no storage root");
+
+        // get slot index from the stack and make sure it is valid
+        let slot_index = process.get_stack_item(0);
+        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
+            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
+        }
+
+        // get the value to which the slot is being updated
+        let new_slot_value = [
+            process.get_stack_item(4),
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+        ];
+
+        // try to get the current value for the slot from the advice provider
+        let current_slot_value = self
+            .adv_provider
+            .get_tree_node(storage_root, &STORAGE_TREE_DEPTH, &slot_index)
+            .map_err(|err| {
+                TransactionKernelError::MissingStorageSlotValue(
+                    slot_index.as_int() as u8,
+                    err.to_string(),
+                )
+            })?;
+
+        // update the delta tracker only if the current and new values are different
+        if current_slot_value != new_slot_value {
+            let slot_index = slot_index.as_int() as u8;
+            self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
+        }
+
+        Ok(())
+    }
+
+    // ACCOUNT VAULT UPDATE HANDLERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Extracts the asset that is being added to the account's vault from the process state and
+    /// updates the appropriate fungible or non-fungible asset map.
+    pub fn on_account_vault_add_asset<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let asset: Asset = process
+            .get_stack_word(0)
+            .try_into()
+            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
+
+        self.account_delta.vault_tracker().add_asset(asset);
+        Ok(())
+    }
+
+    /// Extracts the asset that is being removed from the account's vault from the process state
+    /// and updates the appropriate fungible or non-fungible asset map.
+    pub fn on_account_vault_remove_asset<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let asset: Asset = process
+            .get_stack_word(0)
+            .try_into()
+            .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
+
+        self.account_delta.vault_tracker().remove_asset(asset);
         Ok(())
     }
 }
@@ -94,13 +258,17 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             )));
         }
 
-        use TransactionEvent::*;
         match event {
-            AccountVaultAddAsset => self.on_account_vault_add_asset(process),
-            AccountVaultRemoveAsset => self.on_account_vault_remove_asset(process),
-            AccountStorageSetItem => self.on_account_storage_set_item(process),
-            AccountIncrementNonce => self.on_account_increment_nonce(process),
-            AccountPushProcedureIndex => self.on_account_push_procedure_index(process),
+            TransactionEvent::AccountVaultAddAsset => self.on_account_vault_add_asset(process),
+            TransactionEvent::AccountVaultRemoveAsset => {
+                self.on_account_vault_remove_asset(process)
+            },
+            TransactionEvent::AccountStorageSetItem => self.on_account_storage_set_item(process),
+            TransactionEvent::AccountIncrementNonce => self.on_account_increment_nonce(process),
+            TransactionEvent::AccountPushProcedureIndex => {
+                self.on_account_push_procedure_index(process)
+            },
+            TransactionEvent::NoteCreated => self.on_note_created(process),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 

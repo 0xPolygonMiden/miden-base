@@ -52,9 +52,9 @@ fn transaction_executor_witness() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
@@ -65,10 +65,14 @@ fn transaction_executor_witness() {
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
 
-    let (advice_provider, _event_handler) = host.into_parts();
+    let (advice_provider, _, output_notes) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
-    let tx_outputs =
-        TransactionKernel::parse_transaction_outputs(result.stack_outputs(), &map.into()).unwrap();
+    let tx_outputs = TransactionKernel::from_transaction_parts(
+        result.stack_outputs(),
+        &map.into(),
+        output_notes,
+    )
+    .unwrap();
 
     assert_eq!(executed_transaction.final_account().hash(), tx_outputs.account.hash());
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
@@ -164,7 +168,7 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
-            push.{PUBLIC_NOTE}      # note_type
+            push.{OFFCHAIN}         # note_type
             push.999                # tag
             push.{REMOVED_ASSET_1}  # asset
             call.wallet::send_asset dropw dropw drop drop
@@ -172,7 +176,7 @@ fn executed_transaction_account_delta() {
 
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
-            push.{PUBLIC_NOTE}      # note_type
+            push.{OFFCHAIN}         # note_type
             push.998                # tag
             push.{REMOVED_ASSET_2}  # asset
             call.wallet::send_asset dropw dropw drop drop
@@ -180,7 +184,7 @@ fn executed_transaction_account_delta() {
 
             # send non-fungible asset
             push.0.1.2.3            # recipient
-            push.{PUBLIC_NOTE}      # note_type
+            push.{OFFCHAIN}         # note_type
             push.997                # tag
             push.{REMOVED_ASSET_3}  # asset
             call.wallet::send_asset dropw dropw drop drop
@@ -202,11 +206,12 @@ fn executed_transaction_account_delta() {
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        PUBLIC_NOTE = NoteType::Public as u8,
+        OFFCHAIN = NoteType::OffChain as u8,
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let tx_args = TransactionArgs::with_tx_script(tx_script);
+    let tx_args =
+        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -214,9 +219,8 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, Some(tx_args))
-        .unwrap();
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -281,20 +285,17 @@ fn prove_witness_and_verify() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, None).unwrap();
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .unwrap();
 
-    // Prove the transaction with the witness
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
     let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
-    // Serialize & deserialize the ProvenTransaction
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
-    // Verify that the generated proof is valid
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }
@@ -339,10 +340,11 @@ fn test_tx_script() {
             vec![],
         )
         .unwrap();
-    let tx_args = TransactionArgs::with_tx_script(tx_script);
+    let tx_args =
+        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, Some(tx_args));
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
 
     assert!(
         executed_transaction.is_ok(),
@@ -360,19 +362,26 @@ pub struct MockDataStore {
     pub block_header: BlockHeader,
     pub block_chain: ChainMmr,
     pub notes: Vec<InputNote>,
+    pub tx_args: TransactionArgs,
 }
 
 impl MockDataStore {
     pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (account, _, block_header, block_chain, notes) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation).into_parts();
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
+        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
 
         Self {
             account,
             block_header,
             block_chain,
             notes: notes.into_vec(),
+            tx_args,
         }
+    }
+
+    fn tx_args(&self) -> &TransactionArgs {
+        &self.tx_args
     }
 }
 

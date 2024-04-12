@@ -1,5 +1,4 @@
 use miden_lib::transaction::ToTransactionKernelInputs;
-use miden_objects::transaction::TransactionArgs;
 use miden_tx::TransactionExecutor;
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 
@@ -20,7 +19,7 @@ pub fn benchmark_default_tx() -> Result<(), String> {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, TransactionArgs::default())
+        .prepare_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();

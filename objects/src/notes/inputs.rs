@@ -2,14 +2,14 @@ use alloc::vec::Vec;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, NoteError,
-    Serializable, WORD_SIZE, ZERO,
+    Serializable, Word, WORD_SIZE, ZERO,
 };
-use crate::MAX_INPUTS_PER_NOTE;
+use crate::{MAX_INPUTS_PER_NOTE, ONE};
 
 // NOTE INPUTS
 // ================================================================================================
 
-/// An container for note inputs.
+/// A container for note inputs.
 ///
 /// A note can be associated with up to 128 input values. Each value is represented by a single
 /// field element. Thus, note input values can contain up to ~1 KB of data.
@@ -58,6 +58,10 @@ impl NoteInputs {
     ///
     /// The returned value is guaranteed to be smaller than or equal to 128.
     pub fn num_values(&self) -> u8 {
+        debug_assert!(
+            self.values.len() < 128,
+            "The constructor should have checked the number of inputs"
+        );
         self.values.len() as u8
     }
 
@@ -74,6 +78,20 @@ impl NoteInputs {
     /// Returns a vector of input values.
     pub fn to_vec(&self) -> Vec<Felt> {
         self.values.to_vec()
+    }
+
+    // UTILITIES
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the key under which the raw (un-padded inputs) are located in the advice map.
+    ///
+    /// TODO: eventually, this should go away. for now we need it because note inputs for input
+    /// notes are padded, while note inputs for expected output notes are not. switching to a
+    /// different padding scheme (e.g., RPX) would eliminate the need to have two different keys.
+    pub fn commitment_to_key(commitment: Digest) -> Digest {
+        let mut key: Word = commitment.into();
+        key[3] += ONE;
+        key.into()
     }
 }
 
