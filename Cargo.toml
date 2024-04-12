@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "benchmarks",
+members = [
     "miden-lib",
     "miden-tx",
     "mock",

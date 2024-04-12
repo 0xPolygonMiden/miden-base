@@ -39,6 +39,6 @@ fn main() {
 
     // execute cli action
     if let Err(error) = cli.execute() {
-        println!("{}", error);
+        std::println!("{}", error);
     }
 }

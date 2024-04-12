@@ -1,16 +1,14 @@
-// use crate::MockDataStore;
 use miden_lib::transaction::ToTransactionKernelInputs;
 use miden_objects::transaction::TransactionArgs;
 use miden_tx::TransactionExecutor;
-
-// use miden_tx::MockDataStore;
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 
-use crate::utils::{BenchHost, MockDataStore};
+use crate::utils::{BenchHost, MockDataStore, String, ToString, Vec};
 
 // BENCHMARKS
 // ================================================================================================
 
+/// Runs the default transaction with empty transaction script and two default notes.
 pub fn benchmark_default_tx() -> Result<(), String> {
     let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();

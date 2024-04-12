@@ -12,6 +12,13 @@ readme.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[[bin]]
+name = "benchmarks"
+path = "src/tx_benches/mod.rs"
+bench = false
+doctest = false
+required-features = ["executable"]
+
 [[test]]
 name = "miden-tx"
 path = "tests/integration/main.rs"
@@ -20,14 +27,16 @@ path = "tests/integration/main.rs"
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
+executable = ["std", "dep:clap"]
 
 [dependencies]
+clap = { version = "4.4", features = ["derive"], optional = true }
 miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.2", default-features = false }
 miden-objects = { package = "miden-objects", path = "../objects", version = "0.2", default-features = false }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
+mock = { package = "miden-mock", path = "../mock", default-features = false }
 
 [dev-dependencies]
-mock = { package = "miden-mock", path = "../mock", default-features = false }
 rand_chacha = { version = "0.3", default-features = false }

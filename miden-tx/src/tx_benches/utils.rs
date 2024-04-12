@@ -1,4 +1,9 @@
-// use crate::MockDataStore;
+extern crate alloc;
+pub use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 use miden_lib::transaction::TransactionTrace;
 use miden_objects::{
     accounts::{Account, AccountId, AccountStub},
@@ -11,7 +16,6 @@ use miden_tx::{DataStore, DataStoreError, TransactionHost, TransactionInputs};
 use mock::mock::{
     account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs,
 };
-// use miden_tx::MockDataStore;
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceProvider, ExecutionError, Host, HostResponse,
     ProcessState,
@@ -26,7 +30,8 @@ const SPAN_CREATION_SHIFT: u32 = 2;
 // BENCHMARK HOST
 // ================================================================================================
 
-/// Wrapper around [TransactionHost] used for benchmarking.
+/// Wrapper around [TransactionHost] used for benchmarking: `tx_progress` allows to track the
+/// progression of the transaction execution.
 pub struct BenchHost<A: AdviceProvider> {
     host: TransactionHost<A>,
     tx_progress: TransactionProgress,
@@ -87,7 +92,6 @@ impl<A: AdviceProvider> Host for BenchHost<A> {
             EpilogueStart => self.tx_progress.epilogue.set_start(process.clk()),
             EpilogueEnd => self.tx_progress.epilogue.set_end(process.clk()),
             ExecutionEnd => {
-                #[cfg(feature = "std")]
                 self.tx_progress.print_stages();
             },
         }
@@ -120,9 +124,8 @@ struct TransactionProgress {
 
 impl TransactionProgress {
     /// Prints out the lengths of cycle intervals for each execution stage.
-    #[cfg(feature = "std")]
     pub fn print_stages(&self) {
-        std::println!(
+        println!(
             "Number of cycles it takes to execule:\n- Prologue: {},\n- Notes processing: {},",
             self.prologue
                 .get_interval_len()
@@ -135,7 +138,7 @@ impl TransactionProgress {
         );
 
         for (index, note) in self.note_consuming.iter().enumerate() {
-            std::println!(
+            println!(
                 "--- Note #{}: {}",
                 index,
                 note.get_interval_len()
@@ -144,7 +147,7 @@ impl TransactionProgress {
             )
         }
 
-        std::println!(
+        println!(
             "- Transaction script processing: {},\n- Epilogue: {}",
             self.tx_script_processing
                 .get_interval_len()
@@ -158,6 +161,7 @@ impl TransactionProgress {
     }
 }
 
+/// Stores the cycles corresponding to the start and the end of an interval.
 #[derive(Default)]
 struct CycleInterval {
     start: Option<u32>,
@@ -177,7 +181,7 @@ impl CycleInterval {
         self.end = Some(e);
     }
 
-    /// Calculate the length of the described interval
+    /// Calculate the length of the interval
     pub fn get_interval_len(&self) -> Option<u32> {
         if let Some(start) = self.start {
             if let Some(end) = self.end {

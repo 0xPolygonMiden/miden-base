@@ -94,7 +94,14 @@ description = "Build using no-std"
 command = "cargo"
 args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock"]
 
-# --- utilities ----------------------------------------------------------------------------------------
+# --- benchmarking --------------------------------------------------------------------------------
+[tasks.bench-simple]
+description = "Run transaction benchmark with default transaction script and notes"
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "benchmarks", "--features", "executable", "simple"]
+
+# --- utilities -----------------------------------------------------------------------------------
 [tasks.watch]
 description = "Watch for changes and rebuild"
 workspace = false
