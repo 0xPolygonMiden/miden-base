@@ -1,7 +1,8 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::ACCT_STORAGE_ROOT_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
+    TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
@@ -71,11 +72,6 @@ impl<A: AdviceProvider> TransactionHost<A> {
     /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>) {
         (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
-    }
-
-    /// Returns a reference to the `output_notes` vector.
-    pub fn output_notes(&self) -> &Vec<OutputNote> {
-        &self.output_notes
     }
 
     // EVENT HANDLERS
@@ -302,11 +298,17 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             PrologueEnd => self.tx_progress.end_prologue(process.clk()),
             NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
             NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
-            NoteExecutionStart => self.tx_progress.start_note_execution(process.clk()),
-            NoteExecutionEnd => {
-                let note_id = self.output_notes().last().map(|note| note.id());
-                self.tx_progress.end_note_execution(process.clk(), note_id)
+            NoteExecutionStart => {
+                let note_address_felt = process
+                    .get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR)
+                    .expect("current consumed note pointer invalid")[0];
+                let note_address: u32 = note_address_felt.try_into().map_err(|_| {
+                    ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int())
+                })?;
+                let note_id = process.get_mem_value(process.ctx(), note_address).map(NoteId::from);
+                self.tx_progress.start_note_execution(process.clk(), note_id);
             },
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
             TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
             TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
             EpilogueStart => self.tx_progress.start_epilogue(process.clk()),

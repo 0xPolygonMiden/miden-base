@@ -30,7 +30,7 @@ impl Cli {
     pub fn execute(&self) -> Result<(), String> {
         match &self.bench_program {
             Benchmarks::Simple => benchmark_default_tx(),
-            Benchmarks::P2ID => todo!(),
+            Benchmarks::P2ID => benchmark_p2id(),
         }
     }
 }

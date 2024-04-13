@@ -45,13 +45,12 @@ impl TransactionProgress {
         self.notes_processing.set_end(cycle);
     }
 
-    pub fn start_note_execution(&mut self, cycle: u32) {
-        self.note_execution.push((None, CycleInterval::new(cycle)));
+    pub fn start_note_execution(&mut self, cycle: u32, note_id: Option<NoteId>) {
+        self.note_execution.push((note_id, CycleInterval::new(cycle)));
     }
 
-    pub fn end_note_execution(&mut self, cycle: u32, note_id: Option<NoteId>) {
-        if let Some((id, interval)) = self.note_execution.last_mut() {
-            *id = note_id;
+    pub fn end_note_execution(&mut self, cycle: u32) {
+        if let Some((_, interval)) = self.note_execution.last_mut() {
             interval.set_end(cycle)
         }
     }

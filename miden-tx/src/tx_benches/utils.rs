@@ -3,13 +3,14 @@ pub use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot},
     assembly::ModuleAst,
+    assets::{Asset, AssetVault},
     notes::{Note, NoteId},
     transaction::{ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs},
-    BlockHeader,
+    BlockHeader, Felt, Word,
 };
 use miden_tx::{DataStore, DataStoreError, TransactionInputs};
 use mock::mock::{
@@ -21,12 +22,25 @@ use mock::mock::{
 // CONSTANTS
 // ================================================================================================
 
+pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001F;
+pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001F;
+pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003F;
+
 pub const DEFAULT_AUTH_SCRIPT: &str = "
     use.miden::contracts::auth::basic->auth_tx
 
     begin
         call.auth_tx::auth_tx_rpo_falcon512
     end
+";
+
+pub const DEFAULT_ACCOUNT_CODE: &str = "
+    use.miden::contracts::wallets::basic->basic_wallet
+    use.miden::contracts::auth::basic->basic_eoa
+
+    export.basic_wallet::receive_asset
+    export.basic_wallet::send_asset
+    export.basic_eoa::auth_tx_rpo_falcon512
 ";
 
 // MOCK DATA STORE
@@ -129,4 +143,31 @@ impl DataStore for MockDataStore {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+pub fn get_account_with_default_account_code(
+    account_id: AccountId,
+    public_key: Word,
+    assets: Option<Asset>,
+) -> Account {
+    let account_code_src = DEFAULT_ACCOUNT_CODE;
+    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
+    let account_assembler = TransactionKernel::assembler();
+
+    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_storage = AccountStorage::new(vec![SlotItem {
+        index: 0,
+        slot: StorageSlot::new_value(public_key),
+    }])
+    .unwrap();
+
+    let account_vault = match assets {
+        Some(asset) => AssetVault::new(&[asset]).unwrap(),
+        None => AssetVault::new(&[]).unwrap(),
+    };
+
+    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
