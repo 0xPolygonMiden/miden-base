@@ -1,8 +1,10 @@
 pub use alloc::{string::ToString, vec::Vec};
+use vm_processor::{ExecutionError, ProcessState};
 
 #[cfg(feature = "std")]
 use std::println;
 
+use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::notes::NoteId;
 
 // CONSTANTS
@@ -145,4 +147,17 @@ impl CycleInterval {
         }
         None
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+pub fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
+    let note_address_felt = process
+        .get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR)
+        .expect("current consumed note pointer invalid")[0];
+    let note_address: u32 = note_address_felt
+        .try_into()
+        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int()))?;
+    Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
 }
