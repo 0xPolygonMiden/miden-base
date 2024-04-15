@@ -2,7 +2,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 
 !!! important "Prerequisite steps"
     - You should have already followed all previous sections.
-    - You should have *not* reset the state of your local client. 
+    - You should *not* have reset the state of your local client. 
 
 ## Create a second account
 
@@ -60,8 +60,6 @@ In this section, we show you how to make off-chain transactions and send funds t
 
     !!! tip
         It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient.
-
-That's it! 
 
 You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
 

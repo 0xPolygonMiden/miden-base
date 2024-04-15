@@ -26,6 +26,7 @@ nav:
       - Prerequisite steps: introduction/get-started/prerequisites.md
       - Create account and use the faucet: introduction/get-started/create-account-use-faucet.md
       - Private peer-to-peer off-chain txs: introduction/get-started/p2p-private-offchain-txs.md
+      - Public peer-to-peer note transactions: introduction/get-started/p2p-public-note-txs.md
   - Roadmap: introduction/roadmap.md
   - Miden architecture:
       - Overview: architecture/overview.md
