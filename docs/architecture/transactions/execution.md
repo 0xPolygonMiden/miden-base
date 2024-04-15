@@ -5,7 +5,7 @@ Transaction execution consists of the following steps and results in a `Executed
 1. Fetch the data required to execute a transaction from the data store.
 2. Compile the transaction into an executable [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) program using the transaction compiler.
 3. Execute the transaction program and create an `ExecutedTransaction` object.
-4. Prove the `ExecutedTransaction` using the Transaction Prover.
+4. Prove the `ExecutedTransaction` using the transaction prover.
 
 <center>
 ![Transaction execution process](../../img/architecture/transaction/transaction-execution-process.png)

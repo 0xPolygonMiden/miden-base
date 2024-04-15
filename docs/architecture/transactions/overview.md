@@ -1,6 +1,6 @@
 # Transactions overview
 
-Transactions in Miden facilitate account state changes and asset transfers.
+Transactions in Miden facilitate single account state changes. Miden requires two transactions to transfer assets between accounts.
 
 A transaction takes a single account and some [notes](../notes.md) as input, and outputs the same account with a new state, together with some other notes.
 
@@ -65,6 +65,6 @@ This is where the operator executes the transaction and generates the proofs.
 Network transactions are useful for two reasons:
 
 1. Clients may not have sufficient resources to generate zk-proofs.
-2. Executing many transactions against the same public account by different clients is challenging as the account state changes after every transaction. In this case, the Miden Node / Operator acts as a "synchronizer" as they can execute transactions sequentially and feed the output of the previous transaction into the subsequent one.
+2. Executing many transactions against the same public account by different clients is challenging, as the account state changes after every transaction. Due to this, the Miden node/operator acts as a "synchronizer" to execute transactions sequentially by feeding the output of the previous transaction into the input of the next.
 
 </br>

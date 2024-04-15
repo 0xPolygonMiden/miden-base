@@ -12,7 +12,7 @@ The kernel has a well-defined structure which does the following:
 1. The [prologue](#prologue) prepares the transaction for processing by parsing the transaction data and setting up the root context.
 2. Note processing executes the note processing loop which consumes each `InputNote` and invokes the note script of each note.
 3. Transaction script processing executes the optional transaction script.
-4. The epilogue finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
+4. The [epilogue](#epilogue) finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
 
 <center>
 ![Transaction program](../../img/architecture/transaction/transaction-program.png)
@@ -20,7 +20,7 @@ The kernel has a well-defined structure which does the following:
 
 ## Input
 
-The transaction kernel program receives two type of inputs, public inputs via the `operand_stack` and secret inputs via the `advice_provider`. 
+The transaction kernel program receives two types of inputs, public inputs via the `operand_stack` and secret inputs via the `advice_provider`. 
 
 The operand stack holds the global inputs which serve as a commitment to the data being provided via the advice provider. 
 
@@ -70,7 +70,7 @@ As the account data is read from the advice provider, the account hash is comput
 
 ### Input note data
 
-Input note processing involves each note reading the data from the advice provider and storing it at the appropriate memory addresses. 
+Input note processing involves the kernel reading the data from each note and storing it at the appropriate memory addresses. All the data (note, account, and blockchain data) comes from the advice provider and global inputs. 
 
 Next to the total number of consumed notes, input note data consists of a serial number, the roots of the script, the inputs and asset vault, its metadata, and all its assets. 
 
