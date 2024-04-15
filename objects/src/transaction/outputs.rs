@@ -181,10 +181,10 @@ impl OutputNote {
     }
 
     /// Note's metadata.
-    pub fn metadata(&self) -> NoteMetadata {
+    pub fn metadata(&self) -> &NoteMetadata {
         match self {
-            OutputNote::Public(note) => *note.metadata(),
-            OutputNote::Private(note) => *note.metadata(),
+            OutputNote::Public(note) => note.metadata(),
+            OutputNote::Private(note) => note.metadata(),
         }
     }
 }

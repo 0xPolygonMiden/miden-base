@@ -100,9 +100,10 @@ impl<A: AdviceProvider> TransactionHost<A> {
                 return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
             }
             let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
+            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
             let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
             let serial_num = [data[8], data[9], data[10], data[11]];
-            let input_els = self.adv_provider.get_mapped_values(&inputs_hash);
+            let input_els = self.adv_provider.get_mapped_values(&inputs_key);
             let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
 
             let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
