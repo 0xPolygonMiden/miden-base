@@ -10,7 +10,7 @@ The Miden execution model describes how state progresses on an individual level 
 
 Every transaction results in a ZK proof that attests to its correctness.
 
-As mentioned in [transaction modes](transactions/modes.md), there are two types of transactions: local and network. For every transaction there is a proof which is either created by the user in the Miden client or by the operator using the Miden node.
+There are two types of transactions: local and network. For every transaction there is a proof which is either created by the user in the Miden client or by the operator using the Miden node.
 
 ## Transaction batching
 
