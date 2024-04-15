@@ -13,7 +13,7 @@ The diagram shows the components responsible for Miden transactions and how they
 !!! tip "Key to diagram"
     - The [transaction executor](execution.md) prepares, executes, and proves transactions. 
     - The executor compiles the [transaction kernel](kernel.md) plus user-defined notes and transaction scripts into a single executable program for the Miden VM.
-    - Users rite scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
+    - Users write scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
 
 ## Miden transactions
 
