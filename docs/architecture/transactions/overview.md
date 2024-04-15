@@ -1,5 +1,22 @@
 # Transactions overview
 
+## Architecture overview
+
+The Miden transaction architecture comprises a set of components that interact with each other. This section of the documentation discusses each component.
+
+The diagram shows the components responsible for Miden transactions and how they fit together. 
+
+<center>
+![Transactions architecture overview](../../img/architecture/transaction/tx-overview.png)
+</center>
+
+!!! tip "Key to diagram"
+    - The [transaction executor](execution.md) prepares, executes, and proves transactions. 
+    - The executor compiles the [transaction kernel](kernel.md) plus user-defined notes and transaction scripts into a single executable program for the Miden VM.
+    - Users rite scripts using [kernel procedures](procedures.md) and [contexts](contexts.md).
+
+## Miden transactions
+
 Transactions in Miden facilitate single account state changes. Miden requires two transactions to transfer assets between accounts.
 
 A transaction takes a single account and some [notes](../notes.md) as input, and outputs the same account with a new state, together with some other notes.
