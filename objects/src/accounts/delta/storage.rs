@@ -117,10 +117,7 @@ impl Serializable for AccountStorageDelta {
 
         assert!(self.updated_maps.len() <= u8::MAX as usize, "too many updated storage maps");
         target.write_u8(self.updated_maps.len() as u8);
-        for (idx, value) in self.updated_maps.iter() {
-            idx.write_into(target);
-            value.write_into(target);
-        }
+        self.updated_maps.write_into(target);
     }
 }
 
@@ -266,35 +263,15 @@ impl StorageMapDelta {
 
 impl Serializable for StorageMapDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(self.cleared_leaves.len() as u8);
-        for leaf in self.cleared_leaves.iter() {
-            leaf.write_into(target);
-        }
-
-        target.write_u8(self.updated_leaves.len() as u8);
-        for (key, value) in self.updated_leaves.iter() {
-            key.write_into(target);
-            value.write_into(target);
-        }
+        self.cleared_leaves.write_into(target);
+        self.updated_leaves.write_into(target);
     }
 }
 
 impl Deserializable for StorageMapDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_cleared_leaves = source.read_u8()? as usize;
-        let mut cleared_leaves = Vec::with_capacity(num_cleared_leaves);
-        for _ in 0..num_cleared_leaves {
-            cleared_leaves.push(Word::read_from(source)?);
-        }
-
-        let num_updated_leaves = source.read_u8()? as usize;
-        let mut updated_leaves = Vec::with_capacity(num_updated_leaves);
-        for _ in 0..num_updated_leaves {
-            let key = Word::read_from(source)?;
-            let value = Word::read_from(source)?;
-            updated_leaves.push((key, value));
-        }
-
+        let cleared_leaves = Vec::<_>::read_from(source)?;
+        let updated_leaves = Vec::<_>::read_from(source)?;
         Ok(Self { cleared_leaves, updated_leaves })
     }
 }
