@@ -306,19 +306,7 @@ impl Serializable for AccountStorage {
 
         // serialize storage maps
         for storage_map in &self.maps {
-            let filled_leaves = storage_map
-                .entries()
-                .filter(|(_, value)| *value != SimpleSmt::<STORAGE_TREE_DEPTH>::EMPTY_VALUE)
-                .collect::<Vec<_>>();
-
-            // Write the number of filled leaves for this map
-            target.write_u8(filled_leaves.len() as u8);
-
-            // Write each (key, value) pair
-            for (key, value) in filled_leaves {
-                target.write(key);
-                target.write(value);
-            }
+            storage_map.write_into(target);
         }
     }
 }
@@ -352,19 +340,9 @@ impl Deserializable for AccountStorage {
         let num_storage_maps = source.read_u8()?;
 
         let mut maps = Vec::with_capacity(num_storage_maps as usize);
-
         for _ in 0..num_storage_maps {
-            // read the number of filled leaves for this StorageMap
-            let num_filled_leaves = source.read_u8()?;
-            let mut entries = Vec::with_capacity(num_filled_leaves as usize);
-
-            for _ in 0..num_filled_leaves {
-                let key = source.read()?;
-                let value = source.read()?;
-                entries.push((key, value));
-            }
             maps.push(
-                StorageMap::with_entries(entries)
+                StorageMap::read_from(source)
                     .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?,
             );
         }
@@ -380,8 +358,11 @@ impl Deserializable for AccountStorage {
 mod tests {
     use alloc::vec::Vec;
 
+    use miden_crypto::hash::rpo::RpoDigest;
+
     use super::{
-        AccountStorage, Deserializable, Serializable, SlotItem, StorageSlot, StorageSlotType,
+        AccountStorage, Deserializable, Felt, Serializable, SlotItem, StorageMap, StorageSlot,
+        StorageSlotType, Word,
     };
     use crate::{ONE, ZERO};
 
@@ -416,7 +397,18 @@ mod tests {
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
-        // storage with a mix of types
+        // storage with values for complex types
+        let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
+            (
+                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+                [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+            ),
+            (
+                RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+                [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+            ),
+        ];
+        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
         let storage = AccountStorage::new(
             vec![
                 SlotItem {
@@ -432,10 +424,7 @@ mod tests {
                 },
                 SlotItem {
                     index: 2,
-                    slot: StorageSlot {
-                        slot_type: StorageSlotType::Map { value_arity: 2 },
-                        value: [ONE, ONE, ZERO, ZERO],
-                    },
+                    slot: StorageSlot::new_map(Word::from(storage_map.root())),
                 },
                 SlotItem {
                     index: 3,
@@ -445,7 +434,7 @@ mod tests {
                     },
                 },
             ],
-            vec![],
+            vec![storage_map],
         )
         .unwrap();
         let bytes = storage.to_bytes();

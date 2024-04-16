@@ -1,4 +1,8 @@
-use super::{AccountError, Word};
+use alloc::{string::ToString, vec::Vec};
+
+use super::{
+    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, Word,
+};
 use crate::crypto::{
     hash::rpo::RpoDigest,
     merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
@@ -94,5 +98,75 @@ impl StorageMap {
 impl Default for StorageMap {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for StorageMap {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // serialize storage maps
+        let filled_leaves = self
+            .entries()
+            .filter(|(_, value)| *value != Smt::EMPTY_VALUE)
+            .collect::<Vec<_>>();
+
+        // Write the number of filled leaves for this map
+        target.write_u8(filled_leaves.len() as u8);
+
+        // Write each (key, value) pair
+        for (key, value) in filled_leaves {
+            target.write(key);
+            target.write(value);
+        }
+    }
+}
+
+impl Deserializable for StorageMap {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        // read the number of filled leaves for this StorageMap
+        let num_filled_leaves = source.read_u8()?;
+        let mut entries = Vec::with_capacity(num_filled_leaves as usize);
+
+        for _ in 0..num_filled_leaves {
+            let key = source.read()?;
+            let value = source.read()?;
+            entries.push((key, value));
+        }
+
+        Self::with_entries(entries)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::{hash::rpo::RpoDigest, Felt};
+
+    use super::{Deserializable, Serializable, StorageMap, Word};
+
+    #[test]
+    fn account_storage_serialization() {
+        // StorageMap for default types (empty map)
+        let storage_map_default = StorageMap::default();
+        let bytes = storage_map_default.to_bytes();
+        assert_eq!(storage_map_default, StorageMap::read_from_bytes(&bytes).unwrap());
+
+        // StorageMap with values
+        let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
+            (
+                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+                [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+            ),
+            (
+                RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+                [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+            ),
+        ];
+        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+
+        let bytes = storage_map.to_bytes();
+        assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());
     }
 }
