@@ -1,16 +1,15 @@
+use alloc::vec::Vec;
+
 use mock::{
     mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
     procedures::output_notes_data_procedure,
     run_within_tx_kernel,
 };
 
-use super::{
-    build_module_path, ContextId, MemAdviceProvider, ProcessState, Word, TX_KERNEL_DIR, ZERO,
-};
+use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
 use crate::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
-    ToTransactionKernelInputs, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
-    TX_SCRIPT_ROOT_WORD_IDX,
+    ToTransactionKernelInputs,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
@@ -46,35 +45,23 @@ fn test_epilogue() {
     )
     .unwrap();
 
-    // assert tx script root is correct
+    let mut expected_stack = Vec::with_capacity(16);
+    expected_stack
+        .extend(executed_transaction.output_notes().commitment().as_elements().iter().rev());
+    expected_stack.extend(executed_transaction.final_account().hash().as_elements().iter().rev());
+    expected_stack.extend((8..16).map(|_| ZERO));
+
     assert_eq!(
-        process.stack.get_word(TX_SCRIPT_ROOT_WORD_IDX),
-        executed_transaction
-            .tx_args()
-            .tx_script()
-            .as_ref()
-            .map_or_else(Word::default, |s| **s.hash())
+        process.stack.build_stack_outputs().stack(),
+        &expected_stack,
+        "Stack state after finalize_transaction does not contain the expected values"
     );
 
-    // assert created notes commitment is correct
     assert_eq!(
-        process.stack.get_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX),
-        executed_transaction.output_notes().commitment().as_elements()
+        process.stack.depth(),
+        16,
+        "The stack must be truncated to 16 elements after finalize_transaction"
     );
-
-    // assert final account hash is correct
-    assert_eq!(
-        process.stack.get_word(FINAL_ACCOUNT_HASH_WORD_IDX),
-        executed_transaction.final_account().hash().as_elements(),
-    );
-
-    // assert stack has been truncated correctly
-    assert_eq!(process.stack.depth(), 16);
-
-    // assert the bottom of the stack is filled with zeros
-    for i in 12..16 {
-        assert_eq!(process.stack.get(i), ZERO);
-    }
 }
 
 #[test]

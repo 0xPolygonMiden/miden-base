@@ -23,7 +23,6 @@ pub use inputs::ToTransactionKernelInputs;
 mod outputs;
 pub use outputs::{
     parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
-    TX_SCRIPT_ROOT_WORD_IDX,
 };
 
 mod errors;
@@ -116,15 +115,10 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
-    pub fn build_output_stack(
-        final_acct_hash: Digest,
-        output_notes_hash: Digest,
-        tx_script_root: Option<Digest>,
-    ) -> StackOutputs {
+    pub fn build_output_stack(final_acct_hash: Digest, output_notes_hash: Digest) -> StackOutputs {
         let mut outputs: Vec<Felt> = Vec::with_capacity(9);
         outputs.extend(final_acct_hash);
         outputs.extend(output_notes_hash);
-        outputs.extend(tx_script_root.unwrap_or_default());
         outputs.reverse();
         StackOutputs::new(outputs, Vec::new())
             .map_err(|e| e.to_string())
@@ -135,20 +129,23 @@ impl TransactionKernel {
     ///
     /// The data on the stack is expected to be arranged as follows:
     ///
-    /// Stack: [TXSR, CNC, FAH]
+    /// Stack: [CNC, FAH]
     ///
     /// Where:
-    /// - TXSR is the transaction script root.
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being
     ///   executed against.
-    pub fn parse_output_stack(stack: &StackOutputs) -> (Digest, Digest, Digest) {
-        // TODO: use constants
-        let tx_script_root = stack.get_stack_word(0).expect("first word missing").into();
-        let output_notes_hash = stack.get_stack_word(4).expect("second word missing").into();
-        let final_account_hash = stack.get_stack_word(8).expect("third word missing").into();
+    pub fn parse_output_stack(stack: &StackOutputs) -> (Digest, Digest) {
+        let output_notes_hash = stack
+            .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
+            .expect("first word missing")
+            .into();
+        let final_account_hash = stack
+            .get_stack_word(FINAL_ACCOUNT_HASH_WORD_IDX * 4)
+            .expect("second word missing")
+            .into();
 
-        (final_account_hash, output_notes_hash, tx_script_root)
+        (final_account_hash, output_notes_hash)
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -158,10 +155,9 @@ impl TransactionKernel {
     ///
     /// The output stack is expected to be arrange as follows:
     ///
-    /// Stack: [TXSR, CNC, FAH]
+    /// Stack: [CNC, FAH]
     ///
     /// Where:
-    /// - TXSR is the transaction script root.
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being
     ///   executed against.
@@ -173,7 +169,7 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash, _tx_script_root) = Self::parse_output_stack(stack);
+        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack);
 
         // parse final account state
         let final_account_data: &[Word] = group_slice_elements(
