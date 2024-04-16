@@ -69,14 +69,14 @@ const.MAX_SLOT_TYPE=64
 const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
 
 # Event emitted to signal that an account storage map item is being updated.
-const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131075
+const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131078
 
 # Event emitted to signal that account nonce is being incremented.
-const.ACCOUNT_INCREMENT_NONCE_EVENT=131076
+const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
 
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
-const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131077
+const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131076
 
 # CONSTANT ACCESSORS
 # =================================================================================================
@@ -396,19 +396,19 @@ export.authenticate_procedure.1
     # load the account code root onto the stack
     exec.memory::get_acct_code_root swapw
     # => [PROC_ROOT, CODE_ROOT]
-
+    
     # load the index of the procedure root onto the advice stack, and move it to the operand stack
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
     # => [PROC_ROOT, index, CODE_ROOT]
-
+    
     # push the depth of the code Merkle tree onto the stack
     push.ACCOUNT_CODE_TREE_DEPTH movdn.4
     # => [PROC_ROOT, depth, index, CODE_ROOT]
-
+    
     # verify the procedure exists in the account code Merkle tree
     mtree_verify
     # => [PROC_ROOT, depth, index, CODE_ROOT]
-
+    
     # drop accessory variables
     movup.4 drop movup.4 drop swapw dropw
     # => [PROC_ROOT]

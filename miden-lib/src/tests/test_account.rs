@@ -327,10 +327,9 @@ fn test_set_item() {
 }
 
 // Test different account storage types
-#[test] 
+#[test]
 fn test_get_storage_data_type() {
     for storage_item in [storage_item_0(), storage_item_1(), storage_item_2()] {
-        
         let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
@@ -354,8 +353,9 @@ fn test_get_storage_data_type() {
             item_index = storage_item.index,
         );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
-    let _process = run_tx(&transaction).unwrap();
+        let transaction =
+            prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
+        let _process = run_tx(&transaction).unwrap();
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let process = run_tx(&transaction).unwrap();
 
@@ -401,7 +401,8 @@ fn test_get_map_item() {
             map_key = prepare_word(&key),
         );
 
-        let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code.as_str(), None);
+        let transaction =
+            prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
         let process = run_tx(&transaction).unwrap();
         assert_eq!(value, process.get_stack_word(0));
     }
@@ -414,7 +415,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let tx_inputs =
+    let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let storage_item = storage_item_2();
@@ -437,7 +438,7 @@ fn test_set_map_item() {
             # push the account storage item index
             push.{item_index}
 
-            # get the map item
+            # set the map item
             exec.account::set_map_item
 
             # double check that on storage slot is indeed the new map
@@ -451,7 +452,7 @@ fn test_set_map_item() {
         new_value = prepare_word(&new_value),
     );
 
-    let transaction = prepare_transaction(tx_inputs.clone(), None, code.as_str(), None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
     let process = run_tx(&transaction).unwrap();
 
     let mut new_storage_map = storage_map_2();

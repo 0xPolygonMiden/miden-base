@@ -237,9 +237,10 @@ end
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
 export.set_account_map_item.1
     # authenticate that the procedure invocation originates from the account context
+
     exec.authenticate_account_origin
     # => [index, KEY, NEW_VALUE, ...]
-    
+
     # check if storage type is map
     dup exec.account::get_storage_slot_type_info drop
     # => [slot_type, index, KEY, NEW_VALUE, ...]

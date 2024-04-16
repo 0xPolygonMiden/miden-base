@@ -129,11 +129,12 @@ end
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.
 export.set_map_item
-    push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
-    # => [index, KEY, VALUE, 0, 0, 0]
-
     syscall.set_account_map_item
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
+
+    # prepare stack for return
+    push.0 movdn.9
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only

@@ -2,7 +2,7 @@ use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
-        AccountStorageType, AccountType, SlotItem, StorageSlot, StorageMap,
+        AccountStorageType, AccountType, SlotItem, StorageMap, StorageSlot,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
@@ -105,11 +105,12 @@ pub fn mock_account_storage() -> AccountStorage {
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 8] = [
+const MASTS: [&str; 9] = [
     "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
     "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
+    "0x8f6abddf9215c9fcb8cd02dfeb8cbfbba3130a6da3477bb918d17cfec91176ce",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
     "0xef07641ea1aa8fe85d8f854d29bf729b92251e1433244892138fd9ca898a5a22",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
@@ -119,10 +120,11 @@ pub const ACCOUNT_RECEIVE_ASSET_MAST_ROOT: &str = MASTS[0];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[4];
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[5];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
+pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
+pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[8];
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -229,8 +231,9 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
         code.procedures()[5].to_hex(),
         code.procedures()[6].to_hex(),
         code.procedures()[7].to_hex(),
+        code.procedures()[8].to_hex(),
     ];
-    assert!(current == MASTS, "const MASTS: [&str; 8] = {:?};", current);
+    assert!(current == MASTS, "const MASTS: [&str; 9] = {:?};", current);
 
     code
 }

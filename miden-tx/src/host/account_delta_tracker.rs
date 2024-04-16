@@ -1,7 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta, StorageMapDelta},
+    accounts::{
+        AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta,
+        StorageMapDelta,
+    },
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     Digest, Felt, Word, EMPTY_WORD, ZERO,
 };
@@ -127,12 +130,8 @@ impl AccountStorageDeltaTracker {
 
     /// Tracks a slot change
     pub fn maps_update(&mut self, slot_index: u8, key: [Felt; 4], new_value: [Felt; 4]) {
-        self.maps_updates
-            .entry(slot_index)
-            .or_insert(Vec::new())
-            .push((key, new_value));
+        self.maps_updates.entry(slot_index).or_default().push((key, new_value));
     }
-
 }
 
 // ACCOUNT VAULT DELTA TRACKER

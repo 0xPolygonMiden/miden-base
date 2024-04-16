@@ -21,7 +21,8 @@ use mock::{
     mock::{
         account::{
             MockAccountType, ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT,
-            ACCOUNT_SET_ITEM_MAST_ROOT, STORAGE_INDEX_0, STORAGE_INDEX_2
+            ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT, STORAGE_INDEX_0,
+            STORAGE_INDEX_2,
         },
         notes::AssetPreservationStatus,
         transaction::mock_inputs,
@@ -119,15 +120,6 @@ fn executed_transaction_account_delta() {
     let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
-    let account_procedure_incr_nonce_mast_root =
-        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_INCR_NONCE_PROC_IDX].to_hex();
-    let account_procedure_set_code_mast_root =
-        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_SET_CODE_PROC_IDX].to_hex();
-    let account_procedure_set_item_mast_root =
-        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_SET_ITEM_PROC_IDX].to_hex();
-    let account_procedure_set_map_item_mast_root =
-        &data_store.account.code().procedures()[ACCOUNT_PROCEDURE_SET_MAP_ITEM_PROC_IDX].to_hex();
-
     let tx_script = format!(
         "\
         use.miden::account
@@ -148,7 +140,7 @@ fn executed_transaction_account_delta() {
             #push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
             # => [index, KEY, VALUE, 0, 0, 0]
 
-            call.{account_procedure_set_map_item_mast_root}
+            call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
             # => [R', V]
         end
 

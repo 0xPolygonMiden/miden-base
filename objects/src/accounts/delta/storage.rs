@@ -1,8 +1,8 @@
 use alloc::{string::ToString, vec::Vec};
 
 use super::{
-    AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    Word, Felt,
+    AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
+    Serializable, Word,
 };
 
 // CONSTANTS
@@ -224,7 +224,8 @@ impl StorageMapDelta {
     pub fn validate(&self) -> Result<(), AccountDeltaError> {
         // we add all keys to a single vector and sort them to check for duplicates
         // we don't use a hash set because we want to use no-std compatible code
-        let mut all_updated_keys = Vec::with_capacity(self.cleared_leaves.len() + self.updated_leaves.len());
+        let mut all_updated_keys =
+            Vec::with_capacity(self.cleared_leaves.len() + self.updated_leaves.len());
 
         // in order to sort the keys, we need to convert them to integers
         for &key in &self.cleared_leaves {
@@ -242,8 +243,15 @@ impl StorageMapDelta {
             if key[0] == key[1] {
                 let mut iter = key[0].iter().map(|&x| Felt::new(x));
                 // we know that the key is 4 elements long
-                let key_duplicate = Word::from([iter.next().unwrap(), iter.next().unwrap(), iter.next().unwrap(), iter.next().unwrap()]);
-                return Err(AccountDeltaError::DuplicateStorageMapLeaf { key: key_duplicate.into() });
+                let key_duplicate = Word::from([
+                    iter.next().unwrap(),
+                    iter.next().unwrap(),
+                    iter.next().unwrap(),
+                    iter.next().unwrap(),
+                ]);
+                return Err(AccountDeltaError::DuplicateStorageMapLeaf {
+                    key: key_duplicate.into(),
+                });
             }
         }
 
