@@ -60,8 +60,8 @@ fn prove_receive_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(target_account.id()).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(target_account.id(), &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -74,7 +74,7 @@ fn prove_receive_asset_via_wallet() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args)
+        .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args, &data_store)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -119,8 +119,8 @@ fn prove_send_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(sender_account.id()).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(sender_account.id(), &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -158,7 +158,7 @@ fn prove_send_asset_via_wallet() {
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
-        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args, &data_store)
         .unwrap();
 
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());

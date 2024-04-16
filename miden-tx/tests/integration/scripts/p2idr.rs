@@ -92,15 +92,15 @@ fn p2idr_script() {
         Some(target_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_1 = TransactionExecutor::new(data_store_1.clone());
+    let mut executor = TransactionExecutor::new();
 
-    executor_1.load_account(target_account_id).unwrap();
+    executor.load_account(target_account_id, &data_store_1).unwrap();
 
     let block_ref_1 = data_store_1.block_header.block_num();
     let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target = executor_1
+    let tx_script_target = executor
         .compile_tx_script(
             tx_script_code.clone(),
             vec![(target_pub_key, target_keypair_felt)],
@@ -110,8 +110,14 @@ fn p2idr_script() {
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
-    let executed_transaction_1 = executor_1
-        .execute_transaction(target_account_id, block_ref_1, &note_ids, tx_args_target.clone())
+    let executed_transaction_1 = executor
+        .execute_transaction(
+            target_account_id,
+            block_ref_1,
+            &note_ids,
+            tx_args_target.clone(),
+            &data_store_1,
+        )
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
@@ -130,9 +136,9 @@ fn p2idr_script() {
         Some(sender_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
-    executor_2.load_account(sender_account_id).unwrap();
-    let tx_script_sender = executor_2
+
+    executor.load_account(sender_account_id, &data_store_2).unwrap();
+    let tx_script_sender = executor
         .compile_tx_script(
             tx_script_code.clone(),
             vec![(sender_pub_key, sender_keypair_felt)],
@@ -145,11 +151,12 @@ fn p2idr_script() {
     let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_2 = executor_2.execute_transaction(
+    let executed_transaction_2 = executor.execute_transaction(
         sender_account_id,
         block_ref_2,
         &note_ids_2,
         tx_args_sender.clone(),
+        &data_store_2,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -162,9 +169,8 @@ fn p2idr_script() {
         Some(malicious_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
-    executor_3.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor_3
+    executor.load_account(malicious_account_id, &data_store_3).unwrap();
+    let tx_script_malicious = executor
         .compile_tx_script(
             tx_script_code,
             vec![(malicious_pub_key, malicious_keypair_felt)],
@@ -177,11 +183,12 @@ fn p2idr_script() {
     let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_3 = executor_3.execute_transaction(
+    let executed_transaction_3 = executor.execute_transaction(
         malicious_account_id,
         block_ref_3,
         &note_ids_3,
         tx_args_malicious.clone(),
+        &data_store_3,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction
@@ -194,15 +201,20 @@ fn p2idr_script() {
         Some(target_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
-    executor_4.load_account(target_account_id).unwrap();
+    executor.load_account(target_account_id, &data_store_4).unwrap();
 
     let block_ref_4 = data_store_4.block_header.block_num();
     let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_4 = executor_4
-        .execute_transaction(target_account_id, block_ref_4, &note_ids_4, tx_args_target)
+    let executed_transaction_4 = executor
+        .execute_transaction(
+            target_account_id,
+            block_ref_4,
+            &note_ids_4,
+            tx_args_target,
+            &data_store_4,
+        )
         .unwrap();
 
     // Check that we got the expected result - ExecutedTransaction
@@ -226,16 +238,20 @@ fn p2idr_script() {
         Some(sender_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
-
-    executor_5.load_account(sender_account_id).unwrap();
+    executor.load_account(sender_account_id, &data_store_5).unwrap();
 
     let block_ref_5 = data_store_5.block_header.block_num();
     let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_5 = executor_5
-        .execute_transaction(sender_account_id, block_ref_5, &note_ids_5, tx_args_sender)
+    let executed_transaction_5 = executor
+        .execute_transaction(
+            sender_account_id,
+            block_ref_5,
+            &note_ids_5,
+            tx_args_sender,
+            &data_store_5,
+        )
         .unwrap();
 
     // Assert that the sender_account received the funds and the nonce increased by 1
@@ -258,19 +274,19 @@ fn p2idr_script() {
         Some(malicious_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
 
-    executor_6.load_account(malicious_account_id).unwrap();
+    executor.load_account(malicious_account_id, &data_store_6).unwrap();
 
     let block_ref_6 = data_store_6.block_header.block_num();
     let note_ids_6 = data_store_6.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
-    let executed_transaction_6 = executor_6.execute_transaction(
+    let executed_transaction_6 = executor.execute_transaction(
         malicious_account_id,
         block_ref_6,
         &note_ids_6,
         tx_args_malicious,
+        &data_store_6,
     );
 
     // Check that we got the expected result - TransactionExecutorError and not ExecutedTransaction

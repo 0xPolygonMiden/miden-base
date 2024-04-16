@@ -7,7 +7,7 @@ use miden_objects::{
     },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
-    crypto::rand::RpoRandomCoin,
+    crypto::{rand::RpoRandomCoin},
     notes::{NoteAssets, NoteEnvelope, NoteExecutionMode, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionArgs,
     Felt, ZERO,
@@ -60,8 +60,8 @@ fn prove_swap_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(target_account_id).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(target_account_id, &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -70,10 +70,11 @@ fn prove_swap_script() {
     let tx_script_target = executor
         .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
         .unwrap();
-    let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
+    let tx_args_target =
+        TransactionArgs::new(Some(tx_script_target), None, data_store.tx_args.advice_map().clone());
 
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target, &data_store)
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction

@@ -34,19 +34,23 @@ pub use data::DataStore;
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D: DataStore> {
-    data_store: D,
+pub struct TransactionExecutor {
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
 }
 
-impl<D: DataStore> TransactionExecutor<D> {
+impl Default for TransactionExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TransactionExecutor {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
-    pub fn new(data_store: D) -> Self {
+    pub fn new() -> Self {
         Self {
-            data_store,
             compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
         }
@@ -64,12 +68,12 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If the account code cannot be fetched from the [DataStore].
     /// - If the account code fails to be loaded into the compiler.
-    pub fn load_account(
+    pub fn load_account<D: DataStore>(
         &mut self,
         account_id: AccountId,
+        data_store: &D,
     ) -> Result<AccountCode, TransactionExecutorError> {
-        let account_code = self
-            .data_store
+        let account_code = data_store
             .get_account_code(account_id)
             .map_err(TransactionExecutorError::FetchAccountCodeFailed)?;
         self.compiler
@@ -136,14 +140,16 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
-    pub fn execute_transaction(
+    pub fn execute_transaction<D: DataStore>(
         &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
         tx_args: TransactionArgs,
+        data_store: &D,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
+        let transaction =
+            self.prepare_transaction(account_id, block_ref, notes, tx_args, data_store)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
@@ -179,15 +185,15 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    fn prepare_transaction(
+    fn prepare_transaction<D: DataStore>(
         &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
         tx_args: TransactionArgs,
+        data_store: &D,
     ) -> Result<PreparedTransaction, TransactionExecutorError> {
-        let tx_inputs = self
-            .data_store
+        let tx_inputs = data_store
             .get_transaction_inputs(account_id, block_ref, notes)
             .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 

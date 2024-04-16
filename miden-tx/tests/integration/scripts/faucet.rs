@@ -37,8 +37,8 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(faucet_account.id()).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(faucet_account.id(), &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -79,7 +79,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args, &data_store)
         .unwrap();
 
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
@@ -109,8 +109,8 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(faucet_account.id()).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(faucet_account.id(), &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -151,8 +151,13 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args);
+    let executed_transaction = executor.execute_transaction(
+        faucet_account.id(),
+        block_ref,
+        &note_ids,
+        tx_args,
+        &data_store,
+    );
 
     assert!(executed_transaction.is_err());
 }
@@ -202,15 +207,21 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let data_store =
         MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
-    executor.load_account(faucet_account.id()).unwrap();
+    let mut executor = TransactionExecutor::new();
+    executor.load_account(faucet_account.id(), &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
+        .execute_transaction(
+            faucet_account.id(),
+            block_ref,
+            &note_ids,
+            data_store.tx_args.clone(),
+            &data_store,
+        )
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

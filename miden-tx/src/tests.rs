@@ -44,16 +44,22 @@ use super::{
 #[test]
 fn transaction_executor_witness() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new();
 
     let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    executor.load_account(account_id, &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(
+            account_id,
+            block_ref,
+            &note_ids,
+            data_store.tx_args().clone(),
+            &data_store,
+        )
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
@@ -81,9 +87,9 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new();
     let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    executor.load_account(account_id, &data_store).unwrap();
 
     let new_acct_code_src = "\
     export.account_proc_1
@@ -219,8 +225,9 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, &note_ids, tx_args, &data_store)
+        .unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -277,16 +284,22 @@ fn executed_transaction_account_delta() {
 #[test]
 fn prove_witness_and_verify() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new();
 
     let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    executor.load_account(account_id, &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(
+            account_id,
+            block_ref,
+            &note_ids,
+            data_store.tx_args().clone(),
+            &data_store,
+        )
         .unwrap();
 
     let proof_options = ProvingOptions::default();
@@ -306,10 +319,10 @@ fn prove_witness_and_verify() {
 #[test]
 fn test_tx_script() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new();
 
     let account_id = data_store.account.id();
-    executor.load_account(account_id).unwrap();
+    executor.load_account(account_id, &data_store).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -344,7 +357,7 @@ fn test_tx_script() {
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args, &data_store);
 
     assert!(
         executed_transaction.is_ok(),
