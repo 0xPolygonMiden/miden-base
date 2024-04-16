@@ -20,18 +20,37 @@ use crate::{accounts::AccountType, notes::NoteType};
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
-    AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeTooManyProcedures {
+        max: usize,
+        actual: usize,
+    },
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
+    AssetVaultCreateError {
+        account_id: AccountId,
+        error: AssetVaultError,
+    },
     AssetVaultUpdateError(AssetVaultError),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InvalidAccountStorageType,
-    NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
-    SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
+    NewOnChainAccountMissingCode(AccountId),
+    NewOnChainAccountMissingNonce(AccountId),
+    NonceNotMonotonicallyIncreasing {
+        current: u64,
+        new: u64,
+    },
+    SeedDigestTooFewTrailingZeros {
+        expected: u32,
+        actual: u32,
+    },
+    StorageSlotInvalidValueArity {
+        slot: u8,
+        expected: u8,
+        actual: u8,
+    },
     StorageSlotIsReserved(u8),
     StorageSlotNotValueSlot(u8, StorageSlotType),
     StubDataIncorrectLength(usize, usize),
@@ -76,7 +95,6 @@ pub enum AccountDeltaError {
     TooManyAddedAsset { actual: usize, max: usize },
     TooManyClearedStorageItems { actual: usize, max: usize },
     TooManyRemovedAssets { actual: usize, max: usize },
-    TooManyUpdatedStorageItems { actual: usize, max: usize },
 }
 
 #[cfg(feature = "std")]
@@ -349,16 +367,27 @@ impl std::error::Error for TransactionOutputError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProvenTransactionError {
+    AccountError(AccountError),
+    AccountFinalHashMismatch(Digest, Digest),
     InputNotesError(TransactionInputError),
     OutputNotesError(TransactionOutputError),
     NoteDetailsForUnknownNotes(Vec<NoteId>),
     OffChainAccountWithDelta(AccountId),
     OnChainAccountMissingDelta(AccountId),
+    NewOnChainAccountMissingNonce(AccountId),
+    NewOnChainAccountMissingCode(AccountId),
 }
 
 impl fmt::Display for ProvenTransactionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            ProvenTransactionError::AccountError(error) => {
+                write!(f, "Account error: {error}")
+            },
+            ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, actual_hash) => {
+                write!(f, "Proven transaction `account_final_hash` {account_final_hash} and account's hash \
+                    {actual_hash} must match.")
+            },
             ProvenTransactionError::InputNotesError(inner) => {
                 write!(f, "Invalid input notes: {inner}")
             },
@@ -373,6 +402,12 @@ impl fmt::Display for ProvenTransactionError {
             },
             ProvenTransactionError::OutputNotesError(inner) => {
                 write!(f, "Invalid output notes: {inner}")
+            },
+            ProvenTransactionError::NewOnChainAccountMissingNonce(account_id) => {
+                write!(f, "New on-chain account {account_id} missing nonce")
+            },
+            ProvenTransactionError::NewOnChainAccountMissingCode(account_id) => {
+                write!(f, "New on-chain account {account_id} missing code")
             },
         }
     }

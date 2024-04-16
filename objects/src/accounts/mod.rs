@@ -71,6 +71,27 @@ impl Account {
         Self { id, vault, storage, code, nonce }
     }
 
+    /// Creates and returns a new account constructed from the specified ID and delta.
+    pub fn from_delta(id: AccountId, delta: &AccountDelta) -> Result<Self, AccountError> {
+        let vault = AssetVault::new(&delta.vault().added_assets)
+            .map_err(|error| AccountError::AssetVaultCreateError { account_id: id, error })?;
+        let storage = AccountStorage::new(
+            delta
+                .storage()
+                .updated_items
+                .iter()
+                .map(|&(index, value)| SlotItem {
+                    index,
+                    slot: StorageSlot::new_value(value),
+                })
+                .collect(),
+        )?;
+        let code = delta.code().ok_or(AccountError::NewOnChainAccountMissingCode(id))?.clone();
+        let nonce = delta.nonce().ok_or(AccountError::NewOnChainAccountMissingNonce(id))?;
+
+        Ok(Self { id, vault, storage, code, nonce })
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -450,7 +471,7 @@ mod tests {
 
         let vault_delta = AccountVaultDelta { added_assets, removed_assets };
 
-        AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
+        AccountDelta::new(storage_delta, vault_delta, None, Some(nonce)).unwrap()
     }
 
     fn build_assets() -> (Asset, Asset) {
@@ -529,6 +550,7 @@ mod tests {
         let account_delta = AccountDelta::new(
             AccountStorageDelta::default(),
             AccountVaultDelta::default(),
+            None,
             Some(final_nonce),
         )
         .unwrap();

@@ -1,7 +1,8 @@
 use alloc::string::ToString;
 
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, Word, ZERO,
+    AccountCode, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
+    Word, ZERO,
 };
 use crate::{assets::Asset, AccountDeltaError};
 
@@ -26,6 +27,7 @@ pub use vault::AccountVaultDelta;
 pub struct AccountDelta {
     storage: AccountStorageDelta,
     vault: AccountVaultDelta,
+    code: Option<AccountCode>,
     nonce: Option<Felt>,
 }
 
@@ -42,6 +44,7 @@ impl AccountDelta {
     pub fn new(
         storage: AccountStorageDelta,
         vault: AccountVaultDelta,
+        code: Option<AccountCode>,
         nonce: Option<Felt>,
     ) -> Result<Self, AccountDeltaError> {
         // make sure storage and vault deltas are valid
@@ -49,9 +52,9 @@ impl AccountDelta {
         vault.validate()?;
 
         // nonce must be updated if and only if either account storage or vault were updated
-        validate_nonce(nonce, &storage, &vault)?;
+        validate_nonce(nonce, &storage, code.as_ref(), &vault)?;
 
-        Ok(Self { storage, vault, nonce })
+        Ok(Self { storage, vault, code, nonce })
     }
 
     // PUBLIC ACCESSORS
@@ -72,6 +75,11 @@ impl AccountDelta {
         &self.vault
     }
 
+    /// Returns initial code for this account delta (for new accounts).
+    pub fn code(&self) -> Option<&AccountCode> {
+        self.code.as_ref()
+    }
+
     /// Returns the new nonce, if the nonce was changes.
     pub fn nonce(&self) -> Option<Felt> {
         self.nonce
@@ -87,6 +95,7 @@ impl Serializable for AccountDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.storage.write_into(target);
         self.vault.write_into(target);
+        self.code.write_into(target);
         self.nonce.write_into(target);
     }
 }
@@ -95,12 +104,13 @@ impl Deserializable for AccountDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let storage = AccountStorageDelta::read_from(source)?;
         let vault = AccountVaultDelta::read_from(source)?;
+        let code = <Option<AccountCode>>::read_from(source)?;
         let nonce = <Option<Felt>>::read_from(source)?;
 
-        validate_nonce(nonce, &storage, &vault)
+        validate_nonce(nonce, &storage, code.as_ref(), &vault)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
 
-        Ok(Self { storage, vault, nonce })
+        Ok(Self { storage, vault, code, nonce })
     }
 }
 
@@ -116,9 +126,10 @@ impl Deserializable for AccountDelta {
 fn validate_nonce(
     nonce: Option<Felt>,
     storage: &AccountStorageDelta,
+    code: Option<&AccountCode>,
     vault: &AccountVaultDelta,
 ) -> Result<(), AccountDeltaError> {
-    if !storage.is_empty() || !vault.is_empty() {
+    if !storage.is_empty() || code.is_some() || !vault.is_empty() {
         match nonce {
             Some(nonce) => {
                 if nonce == ZERO {
@@ -163,8 +174,10 @@ mod tests {
             removed_assets: vec![],
         };
 
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_ok());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_err());
+        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None, None).is_ok());
+        assert!(
+            AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None, Some(ONE)).is_err()
+        );
 
         // non-empty delta
         let storage_delta = AccountStorageDelta {
@@ -172,8 +185,11 @@ mod tests {
             updated_items: vec![],
         };
 
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
+        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None, None).is_err());
+        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None, Some(ZERO))
+            .is_err());
+        assert!(
+            AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None, Some(ONE)).is_ok()
+        );
     }
 }

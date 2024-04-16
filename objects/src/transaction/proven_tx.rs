@@ -4,12 +4,8 @@ use miden_verifier::ExecutionProof;
 
 use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
 use crate::{
-    accounts::AccountDelta,
-    notes::{Note, NoteId},
-    utils::{
-        collections::*,
-        serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    },
+    accounts::{Account, AccountDelta},
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     ProvenTransactionError,
 };
 
@@ -112,53 +108,39 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if !self.account_id.is_on_chain() && self.account_details.is_some() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
-        }
-
         if self.account_id.is_on_chain() {
-            match self.account_details {
+            match self.account_delta {
                 None => {
-                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
-                        self.account_id,
-                    ))
+                    return Err(ProvenTransactionError::OnChainAccountMissingDelta(self.account_id))
                 },
-                Some(ref details) => {
+                Some(ref delta) => {
                     let is_new_account = self.initial_account_hash == Digest::default();
+                    if is_new_account {
+                        if delta.nonce().is_none() {
+                            return Err(ProvenTransactionError::NewOnChainAccountMissingNonce(
+                                self.account_id,
+                            ));
+                        }
 
-                    match (is_new_account, details) {
-                        (true, AccountDetails::Delta(_)) => {
-                            return Err(
-                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (true, AccountDetails::Full(account)) => {
-                            if account.id() != self.account_id {
-                                return Err(ProvenTransactionError::AccountIdMismatch(
-                                    self.account_id,
-                                    account.id(),
-                                ));
-                            }
-                            if account.hash() != self.final_account_hash {
-                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                                    self.final_account_hash,
-                                    account.hash(),
-                                ));
-                            }
-                        },
-                        (false, AccountDetails::Full(_)) => {
-                            return Err(
-                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (false, AccountDetails::Delta(_)) => (),
+                        if delta.code().is_none() {
+                            return Err(ProvenTransactionError::NewOnChainAccountMissingCode(
+                                self.account_id,
+                            ));
+                        }
+
+                        let final_account = Account::from_delta(self.account_id, delta)
+                            .map_err(ProvenTransactionError::AccountError)?;
+                        if final_account.hash() != self.final_account_hash {
+                            return Err(ProvenTransactionError::AccountFinalHashMismatch(
+                                self.final_account_hash,
+                                final_account.hash(),
+                            ));
+                        }
                     }
                 },
             }
+        } else if self.account_delta.is_some() {
+            return Err(ProvenTransactionError::OffChainAccountWithDelta(self.account_id));
         }
 
         Ok(self)

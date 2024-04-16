@@ -48,7 +48,8 @@ impl AccountDeltaTracker {
             Some(self.init_nonce + self.nonce_delta)
         };
 
-        AccountDelta::new(storage_delta, vault_delta, nonce_delta).expect("invalid account delta")
+        AccountDelta::new(storage_delta, vault_delta, None, nonce_delta)
+            .expect("invalid account delta")
     }
 
     /// Tracks nonce delta.
