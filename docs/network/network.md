@@ -14,7 +14,7 @@
 
 ## Overview of the Miden network
 
-![Miden architecture overview](../img/network/architecture-overview.svg)
+![Miden architecture overview](../img/network/architecture-overview.png)
 
 ## Miden clients
 
