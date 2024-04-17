@@ -98,7 +98,9 @@ proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the execution of the prologue has started
     push.0 drop
     trace.PROLOGUE_START
 
@@ -106,14 +108,18 @@ proc.main.1
     exec.prologue::prepare_transaction
     # => []
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the execution of the prologue has ended
     push.0 drop
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the notes processing has started
     push.0 drop
     trace.NOTES_PROCESSING_START
 
@@ -132,7 +138,9 @@ proc.main.1
 
     # loop while we have notes to consume
     while.true
-        # add redundant instructions to make span non-empty
+        # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+        # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+        # emit trace to signal that the note execution has started
         push.0 drop
         trace.NOTE_CONSUMING_START
 
@@ -154,7 +162,9 @@ proc.main.1
         neq
         # => [should_loop]
 
-        # add redundant instructions to make span non-empty
+        # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+        # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+        # emit trace to signal that the note execution has ended
         push.0 drop
         trace.NOTE_CONSUMING_END
     end
@@ -163,14 +173,18 @@ proc.main.1
     exec.note::note_processing_teardown
     # => []
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the notes processing has ended
     push.0 drop
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the processing of the transaction script has started
     push.0 drop
     trace.TX_SCRIPT_PROCESSING_START
 
@@ -195,14 +209,18 @@ proc.main.1
         # => []
     end
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the processing of the transaction script has ended
     push.0 drop
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the execution of the epilogue has started
     push.0 drop
     trace.EPILOGUE_START
 
@@ -210,7 +228,9 @@ proc.main.1
     exec.epilogue::finalize_transaction
     # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    # add redundant instructions to make span non-empty
+    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit trace to signal that the execution of the epilogue has ended
     push.0 drop
     trace.EPILOGUE_END
 end
