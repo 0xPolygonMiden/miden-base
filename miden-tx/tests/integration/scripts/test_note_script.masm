@@ -11,14 +11,8 @@ begin
     push.0 exec.note::get_inputs 
     # => [num_inputs, des_pointer, ...]
 
-    dup push.8 eq assert
-    # => [des_pointer = 0, ...]
-
-    push.0 mem_loadw push.100 call.account::set_item push.0 assert.err=1313
-    push.1 mem_loadw push.101 call.account::set_item
-
     # Debugging https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/debugging.html
-    #debug.stack
+    debug.stack
     
     # All account and note procedures
     # https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-procedures 
