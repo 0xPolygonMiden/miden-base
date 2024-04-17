@@ -49,9 +49,6 @@ pub struct ProvenTransaction {
     /// The id and  metadata of all notes created by the transaction.
     output_notes: OutputNotes,
 
-    /// The script root of the transaction, if one was used.
-    tx_script_root: Option<Digest>,
-
     /// The block hash of the last known block at the time the transaction was executed.
     block_ref: Digest,
 
@@ -96,11 +93,6 @@ impl ProvenTransaction {
     /// Returns a reference to the notes produced by the transaction.
     pub fn output_notes(&self) -> &OutputNotes {
         &self.output_notes
-    }
-
-    /// Returns the script root of the transaction.
-    pub fn tx_script_root(&self) -> Option<Digest> {
-        self.tx_script_root
     }
 
     /// Returns the proof of the transaction.
@@ -194,9 +186,6 @@ pub struct ProvenTransactionBuilder {
     /// List of [NoteEnvelope]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
 
-    /// The script root of the transaction, if one was used.
-    tx_script_root: Option<Digest>,
-
     /// Block [Digest] of the transaction's reference block.
     block_ref: Digest,
 
@@ -223,7 +212,6 @@ impl ProvenTransactionBuilder {
             account_details: None,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
-            tx_script_root: None,
             block_ref,
             proof,
         }
@@ -256,12 +244,6 @@ impl ProvenTransactionBuilder {
         self
     }
 
-    /// Set transaction's script root.
-    pub fn tx_script_root(mut self, tx_script_root: Digest) -> Self {
-        self.tx_script_root = Some(tx_script_root);
-        self
-    }
-
     /// Builds the [ProvenTransaction].
     ///
     /// # Errors
@@ -274,7 +256,6 @@ impl ProvenTransactionBuilder {
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
-        let tx_script_root = self.tx_script_root;
         let id = TransactionId::new(
             self.initial_account_hash,
             self.final_account_hash,
@@ -290,7 +271,6 @@ impl ProvenTransactionBuilder {
             account_details,
             input_notes,
             output_notes,
-            tx_script_root,
             block_ref: self.block_ref,
             proof: self.proof,
         };
@@ -337,7 +317,6 @@ impl Serializable for ProvenTransaction {
         self.account_details.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
-        self.tx_script_root.write_into(target);
         self.block_ref.write_into(target);
         self.proof.write_into(target);
     }
@@ -352,8 +331,6 @@ impl Deserializable for ProvenTransaction {
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
-
-        let tx_script_root = Deserializable::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
@@ -373,7 +350,6 @@ impl Deserializable for ProvenTransaction {
             account_details,
             input_notes,
             output_notes,
-            tx_script_root,
             block_ref,
             proof,
         };
