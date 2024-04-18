@@ -1,7 +1,10 @@
+<<<<<<< HEAD
 ---
 comments: true
 ---
 
+=======
+>>>>>>> 88482d7 (Fix grammar: create-account-use-faucet.md (#605))
 In this section, we show you how to create a new local Miden account and how to receive funds from the public Miden faucet website.
 
 ## Configure the Miden client
