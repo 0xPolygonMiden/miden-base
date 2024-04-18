@@ -1,6 +1,6 @@
 {
   "p2id": {
-    "epilogue": 280,
+    "epilogue": 270,
     "note_execution": [
       {
         "0xb9fa30eb43d80d579be02dc004338e06b5ad565e81e0bac11a94ab01abfdd40a": 881
@@ -11,7 +11,7 @@
     "tx_script_processing": 88207
   },
   "simple": {
-    "epilogue": 2230,
+    "epilogue": 2220,
     "note_execution": [
       {
         "0x8a55c3531cdd5725aa805475093ed3006c6773b71a008e8ca840da8364a67cd6": 713

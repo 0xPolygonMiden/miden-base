@@ -1,0 +1,29 @@
+[package]
+name = "benchmarks"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+exclude.workspace = true
+
+[[bin]]
+name = "benchmarks"
+path = "src/main.rs"
+required-features = ["executable"]
+
+[features]
+default = ["std"]
+std = ["miden-lib/std", "miden-objects/std", "miden-tx/std", "vm-processor/std", "mock/std", "serde_json/std"]
+executable = ["std"]
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.3", default-features = false }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false }
+miden-tx = { package = "miden-tx", path = "../miden-tx", version = "0.3", default-features = false }
+mock = { package = "miden-mock", path = "../mock", features = ["std"], default-features = false, optional = true}
+vm-processor = { workspace = true }
+serde_json = { package = "serde_json", version = "1.0", default-features = false, optional = true }

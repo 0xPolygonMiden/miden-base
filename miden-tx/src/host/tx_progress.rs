@@ -2,9 +2,7 @@ pub use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use vm_processor::{ExecutionError, ProcessState};
 
-use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::notes::NoteId;
 
 // CONSTANTS
@@ -84,7 +82,7 @@ impl TransactionProgress {
         json_string.push_str(&format!(
             "\"prologue\": {}, ",
             self.prologue
-                .get_interval_len()
+                .len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
         ));
@@ -93,7 +91,7 @@ impl TransactionProgress {
         json_string.push_str(&format!(
             "\"notes_processing\": {}, ",
             self.notes_processing
-                .get_interval_len()
+                .len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
         ));
@@ -110,7 +108,7 @@ impl TransactionProgress {
                     .map(|id| format!("\"{}\"", id.to_hex()))
                     .unwrap_or("id_unavailable".to_string()),
                 interval
-                    .get_interval_len()
+                    .len()
                     .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                     .unwrap_or("invalid interval".to_string())
             ));
@@ -124,7 +122,7 @@ impl TransactionProgress {
         json_string.push_str(&format!(
             "\"tx_script_processing\": {},",
             self.tx_script_processing
-                .get_interval_len()
+                .len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
         ));
@@ -133,7 +131,7 @@ impl TransactionProgress {
         json_string.push_str(&format!(
             "\"epilogue\": {}",
             self.epilogue
-                .get_interval_len()
+                .len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
         ));
@@ -165,7 +163,7 @@ impl CycleInterval {
     }
 
     /// Calculate the length of the interval
-    pub fn get_interval_len(&self) -> Option<u32> {
+    pub fn len(&self) -> Option<u32> {
         if let Some(start) = self.start {
             if let Some(end) = self.end {
                 if end >= start {
@@ -175,17 +173,4 @@ impl CycleInterval {
         }
         None
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-pub fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
-    let note_address_felt = process
-        .get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR)
-        .expect("current consumed note pointer invalid")[0];
-    let note_address: u32 = note_address_felt
-        .try_into()
-        .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int()))?;
-    Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
 }

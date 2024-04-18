@@ -1,7 +1,8 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::ACCT_STORAGE_ROOT_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
+    TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
@@ -25,7 +26,7 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_progress;
-pub use tx_progress::{get_current_note_id, TransactionProgress};
+pub use tx_progress::TransactionProgress;
 
 // CONSTANTS
 // ================================================================================================
@@ -238,6 +239,20 @@ impl<A: AdviceProvider> TransactionHost<A> {
         self.account_delta.vault_tracker().remove_asset(asset);
         Ok(())
     }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the ID of the consumed note being executed.
+    fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
+        let note_address_felt = process
+            .get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR)
+            .expect("current consumed note pointer invalid")[0];
+        let note_address: u32 = note_address_felt
+            .try_into()
+            .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int()))?;
+        Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
+    }
 }
 
 impl<A: AdviceProvider> Host for TransactionHost<A> {
@@ -303,7 +318,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
             NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
-                let note_id = get_current_note_id(process)?;
+                let note_id = Self::get_current_note_id(process)?;
                 self.tx_progress.start_note_execution(process.clk(), note_id);
             },
             NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
