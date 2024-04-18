@@ -106,17 +106,11 @@ impl Default for StorageMap {
 
 impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // serialize storage maps
-        let filled_leaves = self
-            .entries()
-            .filter(|(_, value)| *value != Smt::EMPTY_VALUE)
-            .collect::<Vec<_>>();
-
-        // Write the number of filled leaves for this map
-        target.write_u8(filled_leaves.len() as u8);
+        // Write the number of filled leaves for this StorageMap
+        target.write_usize(self.entries().count());
 
         // Write each (key, value) pair
-        for (key, value) in filled_leaves {
+        for (key, value) in self.entries() {
             target.write(key);
             target.write(value);
         }
@@ -125,9 +119,9 @@ impl Serializable for StorageMap {
 
 impl Deserializable for StorageMap {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // read the number of filled leaves for this StorageMap
-        let num_filled_leaves = source.read_u8()?;
-        let mut entries = Vec::with_capacity(num_filled_leaves as usize);
+        // Read the number of filled leaves for this Smt
+        let num_filled_leaves = source.read_usize()?;
+        let mut entries = Vec::with_capacity(num_filled_leaves);
 
         for _ in 0..num_filled_leaves {
             let key = source.read()?;
