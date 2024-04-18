@@ -1,0 +1,16 @@
+{
+  "simple": {
+    "epilogue": 2220,
+    "note_execution": [
+      {
+        "0x8a55c3531cdd5725aa805475093ed3006c6773b71a008e8ca840da8364a67cd6": 713
+      },
+      {
+        "0xae832786b774651bb0e5b71615fcf9f01427c054a8919cda6d2fd4a0c8948167": 390
+      }
+    ],
+    "notes_processing": 1149,
+    "prologue": 3642,
+    "tx_script_processing": 30
+  }
+}

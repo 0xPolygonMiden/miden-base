@@ -14,19 +14,21 @@ use miden_objects::{
 use miden_tx::{TransactionExecutor, TransactionHost};
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
-#[cfg(feature = "std")]
-use crate::utils::write_cycles_to_json;
-use crate::utils::{
-    get_account_with_default_account_code, MockDataStore, String, ToString, Vec,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+use crate::{
+    utils::{
+        get_account_with_default_account_code, write_cycles_to_json, MockDataStore, String,
+        ToString, Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
+        DEFAULT_AUTH_SCRIPT,
+    },
+    Path,
 };
 
 // BENCHMARKS
 // ================================================================================================
 
 /// Runs the default transaction with empty transaction script and two default notes.
-pub fn benchmark_default_tx() -> Result<(), String> {
+pub fn benchmark_default_tx(path: &Path) -> Result<(), String> {
     let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
 
@@ -53,13 +55,13 @@ pub fn benchmark_default_tx() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     #[cfg(feature = "std")]
-    write_cycles_to_json(crate::Benchmarks::Simple, host.tx_progress())?;
+    write_cycles_to_json(path, crate::Benchmark::Simple, host.tx_progress())?;
 
     Ok(())
 }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
-pub fn benchmark_p2id() -> Result<(), String> {
+pub fn benchmark_p2id(path: &Path) -> Result<(), String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -126,7 +128,13 @@ pub fn benchmark_p2id() -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     #[cfg(feature = "std")]
-    write_cycles_to_json(crate::Benchmarks::P2ID, host.tx_progress())?;
+    write_cycles_to_json(path, crate::Benchmark::P2ID, host.tx_progress())?;
 
     Ok(())
+}
+
+/// Runs all available benchmarks.
+pub fn benchmark_all(path: &Path) -> Result<(), String> {
+    benchmark_default_tx(path)?;
+    benchmark_p2id(path)
 }

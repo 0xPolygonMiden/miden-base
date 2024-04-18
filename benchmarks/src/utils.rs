@@ -1,5 +1,4 @@
 extern crate alloc;
-use super::Benchmarks;
 pub use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -19,12 +18,10 @@ use mock::mock::{
     notes::AssetPreservationStatus,
     transaction::{mock_inputs, mock_inputs_with_existing},
 };
-
-#[cfg(feature = "std")]
-use std::fs::{read_to_string, write};
-
 #[cfg(feature = "std")]
 use serde_json::{from_str, to_string_pretty, Value};
+
+use super::{read_to_string, write, Benchmark, Path};
 
 // CONSTANTS
 // ================================================================================================
@@ -181,23 +178,24 @@ pub fn get_account_with_default_account_code(
 
 #[cfg(feature = "std")]
 pub fn write_cycles_to_json(
-    bench_type: Benchmarks,
+    path: &Path,
+    bench_type: Benchmark,
     tx_progress: &TransactionProgress,
 ) -> Result<(), String> {
-    let benchmark_file =
-        read_to_string("benchmarks/src/bench_results.json").map_err(|e| e.to_string())?;
+    let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
     let tx_progress_json: Value =
         from_str(&tx_progress.to_json_string()).map_err(|e| e.to_string())?;
 
     match bench_type {
-        Benchmarks::Simple => benchmark_json["simple"] = tx_progress_json,
-        Benchmarks::P2ID => benchmark_json["p2id"] = tx_progress_json,
+        Benchmark::Simple => benchmark_json["simple"] = tx_progress_json,
+        Benchmark::P2ID => benchmark_json["p2id"] = tx_progress_json,
+        _ => return Err(format!("Invalid benchmark type: {bench_type}")),
     }
 
     write(
-        "benchmarks/src/bench_results.json",
+        path,
         to_string_pretty(&benchmark_json).expect("failed to convert json to String"),
     )
     .map_err(|e| e.to_string())?;
