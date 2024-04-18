@@ -30,8 +30,9 @@ pub struct ProvenTransaction {
     /// The hash of the account after the transaction was executed.
     final_account_hash: Digest,
 
-    /// Optional account state changes used for on-chain accounts, This data is used to update an
-    /// on-chain account's state after a local transaction execution.
+    /// Optional account state changes used for on-chain accounts, This data is used to initialize
+    /// a new on-chain account or update an on-chain account's state after a local transaction
+    /// execution.
     account_delta: Option<AccountDelta>,
 
     /// A list of nullifiers for all notes consumed by the transaction.

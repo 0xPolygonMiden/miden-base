@@ -31,7 +31,11 @@ impl AccountStorageDelta {
     /// - The number of cleared or updated items is greater than 255.
     /// - Any of cleared or updated items are at slot 255 (i.e., immutable slot).
     /// - Any of the cleared or updated items is referenced more than once (e.g., updated twice).
-    pub fn validate(&self) -> Result<(), AccountDeltaError> {
+    pub fn validate(&self, is_new_account: bool) -> Result<(), AccountDeltaError> {
+        if is_new_account && !self.cleared_items.is_empty() {
+            return Err(AccountDeltaError::ClearedStorageItemsForNewAccount);
+        }
+
         let num_cleared_items = self.cleared_items.len();
         let num_updated_items = self.updated_items.len();
 
@@ -173,7 +177,7 @@ mod tests {
             cleared_items: vec![1, 2, 3],
             updated_items: vec![(4, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
         };
-        assert!(delta.validate().is_ok());
+        assert!(delta.validate(false).is_ok());
 
         let bytes = delta.to_bytes();
         assert_eq!(AccountStorageDelta::read_from_bytes(&bytes), Ok(delta));
@@ -183,7 +187,7 @@ mod tests {
             cleared_items: vec![1, 2, 255],
             updated_items: vec![],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
@@ -193,7 +197,7 @@ mod tests {
             cleared_items: vec![1, 2, 1],
             updated_items: vec![],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
@@ -203,7 +207,7 @@ mod tests {
             cleared_items: vec![],
             updated_items: vec![(4, [ONE, ONE, ONE, ONE]), (255, [ONE, ONE, ONE, ZERO])],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
@@ -217,7 +221,7 @@ mod tests {
                 (4, [ONE, ONE, ZERO, ZERO]),
             ],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
@@ -227,7 +231,7 @@ mod tests {
             cleared_items: vec![1, 2, 3],
             updated_items: vec![(2, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());

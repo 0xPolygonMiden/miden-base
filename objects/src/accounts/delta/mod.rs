@@ -34,6 +34,7 @@ pub struct AccountDelta {
 impl AccountDelta {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns new [AccountDelta] instantiated from the provided components.
     ///
     /// # Errors
@@ -47,12 +48,14 @@ impl AccountDelta {
         code: Option<AccountCode>,
         nonce: Option<Felt>,
     ) -> Result<Self, AccountDeltaError> {
+        let is_new_account = code.is_some();
+
         // make sure storage and vault deltas are valid
-        storage.validate()?;
-        vault.validate()?;
+        storage.validate(is_new_account)?;
+        vault.validate(is_new_account)?;
 
         // nonce must be updated if and only if either account storage or vault were updated
-        validate_nonce(nonce, &storage, code.as_ref(), &vault)?;
+        validate_nonce(is_new_account, nonce, &storage, &vault)?;
 
         Ok(Self { storage, vault, code, nonce })
     }
@@ -107,7 +110,7 @@ impl Deserializable for AccountDelta {
         let code = <Option<AccountCode>>::read_from(source)?;
         let nonce = <Option<Felt>>::read_from(source)?;
 
-        validate_nonce(nonce, &storage, code.as_ref(), &vault)
+        validate_nonce(code.is_some(), nonce, &storage, &vault)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
 
         Ok(Self { storage, vault, code, nonce })
@@ -124,12 +127,19 @@ impl Deserializable for AccountDelta {
 /// - Storage or vault were updated, but the nonce was either not updated or set to 0.
 /// - Storage and vault were not updated, but the nonce was updated.
 fn validate_nonce(
+    is_new_account: bool,
     nonce: Option<Felt>,
     storage: &AccountStorageDelta,
-    code: Option<&AccountCode>,
     vault: &AccountVaultDelta,
 ) -> Result<(), AccountDeltaError> {
-    if !storage.is_empty() || code.is_some() || !vault.is_empty() {
+    if is_new_account {
+        if nonce != Some(ZERO) {
+            return Err(AccountDeltaError::IncorrectNonceForNewAccount(nonce));
+        }
+        return Ok(());
+    }
+
+    if !storage.is_empty() || !vault.is_empty() {
         match nonce {
             Some(nonce) => {
                 if nonce == ZERO {

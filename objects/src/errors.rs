@@ -9,7 +9,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::merkle::MerkleError,
     notes::NoteId,
-    Digest, Word,
+    Digest, Felt, Word,
 };
 use crate::{accounts::AccountType, notes::NoteType};
 
@@ -88,10 +88,13 @@ impl std::error::Error for AccountError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
+    ClearedStorageItemsForNewAccount,
     DuplicateStorageItemUpdate(usize),
     DuplicateVaultUpdate(Asset),
+    IncorrectNonceForNewAccount(Option<Felt>),
     InconsistentNonceUpdate(String),
     ImmutableStorageSlot(usize),
+    RemovedAssetsForNewAccount,
     TooManyAddedAsset { actual: usize, max: usize },
     TooManyClearedStorageItems { actual: usize, max: usize },
     TooManyRemovedAssets { actual: usize, max: usize },

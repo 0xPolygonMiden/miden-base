@@ -28,7 +28,11 @@ impl AccountVaultDelta {
     /// - The number of removed assets is greater than [u16::MAX].
     /// - The same asset was added more than once, removed more than once, or both added and
     ///   removed.
-    pub fn validate(&self) -> Result<(), AccountDeltaError> {
+    pub fn validate(&self, is_new_account: bool) -> Result<(), AccountDeltaError> {
+        if is_new_account && !self.removed_assets.is_empty() {
+            return Err(AccountDeltaError::RemovedAssetsForNewAccount);
+        }
+
         if self.added_assets.len() > u16::MAX as usize {
             return Err(AccountDeltaError::TooManyAddedAsset {
                 actual: self.added_assets.len(),
@@ -163,7 +167,7 @@ mod tests {
             added_assets: vec![asset1, asset4, asset5],
             removed_assets: vec![asset3, asset6],
         };
-        assert!(delta.validate().is_ok());
+        assert!(delta.validate(false).is_ok());
 
         let bytes = delta.to_bytes();
         assert_eq!(AccountVaultDelta::read_from_bytes(&bytes), Ok(delta));
@@ -173,7 +177,7 @@ mod tests {
             added_assets: vec![asset1, asset4, asset5, asset2],
             removed_assets: vec![],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
@@ -183,7 +187,7 @@ mod tests {
             added_assets: vec![],
             removed_assets: vec![asset1, asset4, asset5, asset2],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
@@ -193,7 +197,7 @@ mod tests {
             added_assets: vec![asset1, asset3],
             removed_assets: vec![asset4, asset5, asset2],
         };
-        assert!(delta.validate().is_err());
+        assert!(delta.validate(false).is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
