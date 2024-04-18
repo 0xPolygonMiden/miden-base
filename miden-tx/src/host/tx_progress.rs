@@ -1,8 +1,8 @@
-pub use alloc::{string::ToString, vec::Vec};
+pub use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use vm_processor::{ExecutionError, ProcessState};
-
-#[cfg(feature = "std")]
-use std::println;
 
 use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::notes::NoteId;
@@ -76,43 +76,71 @@ impl TransactionProgress {
     // DATA PRINT
     // --------------------------------------------------------------------------------------------
 
-    /// Prints out the lengths of cycle intervals for each execution stage.
-    #[cfg(feature = "std")]
-    pub fn print_stages(&self) {
-        println!(
-            "Number of cycles it takes to execule:\n- Prologue: {},\n- Notes processing: {},",
+    pub fn to_json_string(&self) -> String {
+        let mut json_string = String::new();
+        json_string.push('{');
+
+        // push lenght of the prologue cycle interval
+        json_string.push_str(&format!(
+            "\"prologue\": {}, ",
             self.prologue
                 .get_interval_len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string()),
+                .unwrap_or("invalid interval".to_string())
+        ));
+
+        // push lenght of the notes processing cycle interval
+        json_string.push_str(&format!(
+            "\"notes_processing\": {}, ",
             self.notes_processing
                 .get_interval_len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
-        );
+        ));
 
-        for (note_id, interval) in self.note_execution.iter() {
-            println!(
-                "--- Note {}: {}",
-                note_id.map(|id| id.to_hex()).unwrap_or("id_unavailable".to_string()),
+        // prepare string with executed notes
+        let mut notes = String::new();
+        self.note_execution.iter().fold(true, |first, (note_id, interval)| {
+            if !first {
+                notes.push_str(", ");
+            }
+            notes.push_str(&format!(
+                "{{{}: {}}}",
+                note_id
+                    .map(|id| format!("\"{}\"", id.to_hex()))
+                    .unwrap_or("id_unavailable".to_string()),
                 interval
                     .get_interval_len()
                     .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                     .unwrap_or("invalid interval".to_string())
-            )
-        }
+            ));
+            false
+        });
 
-        println!(
-            "- Transaction script processing: {},\n- Epilogue: {}",
+        // push lenghts of the note execution cycle intervals
+        json_string.push_str(&format!("\"note_execution\": [{}], ", notes));
+
+        // push lenght of the transaction script processing cycle interval
+        json_string.push_str(&format!(
+            "\"tx_script_processing\": {},",
             self.tx_script_processing
                 .get_interval_len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string()),
+                .unwrap_or("invalid interval".to_string())
+        ));
+
+        // push lenght of the epilogue cycle interval
+        json_string.push_str(&format!(
+            "\"epilogue\": {}",
             self.epilogue
                 .get_interval_len()
                 .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
                 .unwrap_or("invalid interval".to_string())
-        );
+        ));
+
+        json_string.push('}');
+
+        json_string
     }
 }
 

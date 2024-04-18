@@ -73,6 +73,11 @@ impl<A: AdviceProvider> TransactionHost<A> {
         (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
     }
 
+    /// Returns a reference to the `tx_progress` field of the [`TransactionHost`].
+    pub fn tx_progress(&self) -> &TransactionProgress {
+        &self.tx_progress
+    }
+
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
@@ -306,10 +311,6 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
             EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
             EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
-            ExecutionEnd => {
-                #[cfg(feature = "std")]
-                self.tx_progress.print_stages();
-            },
         }
 
         Ok(HostResponse::None)

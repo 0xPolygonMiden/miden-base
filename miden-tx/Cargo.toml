@@ -26,7 +26,7 @@ path = "tests/integration/main.rs"
 [features]
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
-std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std", "mock/std"]
+std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std", "mock/std", "serde_json/std", "serde/std"]
 executable = ["std", "dep:clap"]
 
 [dependencies]
@@ -37,6 +37,8 @@ miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 vm-processor = { workspace = true }
 mock = { package = "miden-mock", path = "../mock", default-features = false, optional = true }
+serde = { package = "serde", version = "1.0", default-features = false, optional = true }
+serde_json = { package = "serde_json", version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 rand_chacha = { version = "0.3", default-features = false }

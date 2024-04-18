@@ -717,6 +717,8 @@ dependencies = [
  "miden-prover",
  "miden-verifier",
  "rand_chacha",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

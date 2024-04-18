@@ -1,0 +1,27 @@
+{
+  "p2id": {
+    "epilogue": 280,
+    "note_execution": [
+      {
+        "0xb9fa30eb43d80d579be02dc004338e06b5ad565e81e0bac11a94ab01abfdd40a": 881
+      }
+    ],
+    "notes_processing": 918,
+    "prologue": 2002,
+    "tx_script_processing": 88207
+  },
+  "simple": {
+    "epilogue": 2230,
+    "note_execution": [
+      {
+        "0x8a55c3531cdd5725aa805475093ed3006c6773b71a008e8ca840da8364a67cd6": 713
+      },
+      {
+        "0xae832786b774651bb0e5b71615fcf9f01427c054a8919cda6d2fd4a0c8948167": 390
+      }
+    ],
+    "notes_processing": 1149,
+    "prologue": 3642,
+    "tx_script_processing": 30
+  }
+}

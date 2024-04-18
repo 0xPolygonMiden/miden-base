@@ -1,4 +1,5 @@
 extern crate alloc;
+use super::Benchmarks;
 pub use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -12,7 +13,7 @@ use miden_objects::{
     transaction::{ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs},
     BlockHeader, Felt, Word,
 };
-use miden_tx::{DataStore, DataStoreError, TransactionInputs};
+use miden_tx::{DataStore, DataStoreError, TransactionInputs, TransactionProgress};
 use mock::mock::{
     account::MockAccountType,
     notes::AssetPreservationStatus,
@@ -170,4 +171,30 @@ pub fn get_account_with_default_account_code(
     };
 
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
+}
+
+pub fn write_cycles_to_json(
+    bench_type: Benchmarks,
+    tx_progress: &TransactionProgress,
+) -> Result<(), String> {
+    let benchmark_file = std::fs::read_to_string("miden-tx/src/tx_benches/bench_results.json")
+        .map_err(|e| e.to_string())?;
+    let mut benchmark_json: serde_json::Value =
+        serde_json::from_str(&benchmark_file).map_err(|e| e.to_string())?;
+
+    let tx_progress_json: serde_json::Value =
+        serde_json::from_str(&tx_progress.to_json_string()).map_err(|e| e.to_string())?;
+
+    match bench_type {
+        Benchmarks::Simple => benchmark_json["simple"] = tx_progress_json,
+        Benchmarks::P2ID => benchmark_json["p2id"] = tx_progress_json,
+    }
+
+    std::fs::write(
+        "miden-tx/src/tx_benches/bench_results.json",
+        serde_json::to_string_pretty(&benchmark_json).expect("failed to convert json to String"),
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

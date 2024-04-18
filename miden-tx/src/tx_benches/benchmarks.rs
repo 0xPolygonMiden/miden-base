@@ -15,8 +15,8 @@ use miden_tx::{TransactionExecutor, TransactionHost};
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 use crate::utils::{
-    get_account_with_default_account_code, MockDataStore, String, ToString, Vec,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    get_account_with_default_account_code, write_cycles_to_json, MockDataStore, String, ToString,
+    Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
@@ -49,6 +49,8 @@ pub fn benchmark_default_tx() -> Result<(), String> {
         ExecutionOptions::default().with_tracing(),
     )
     .map_err(|e| e.to_string())?;
+
+    write_cycles_to_json(crate::Benchmarks::Simple, host.tx_progress())?;
 
     Ok(())
 }
@@ -119,6 +121,8 @@ pub fn benchmark_p2id() -> Result<(), String> {
         ExecutionOptions::default().with_tracing(),
     )
     .map_err(|e| e.to_string())?;
+
+    write_cycles_to_json(crate::Benchmarks::P2ID, host.tx_progress())?;
 
     Ok(())
 }

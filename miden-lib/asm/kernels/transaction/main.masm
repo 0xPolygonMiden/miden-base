@@ -33,9 +33,6 @@ const.EPILOGUE_START=131080
 # Trace emitted to signal that an execution of the transaction epilogue has ended.
 const.EPILOGUE_END=131081
 
-# Trace emmited to signal that an execution of the program has ended.
-const.EXECUTION_END=196607
-
 # MAIN
 # =================================================================================================
 
@@ -237,8 +234,4 @@ end
 
 begin
     exec.main
-
-    # add redundant instructions to make span non-empty
-    push.0 drop
-    trace.EXECUTION_END
 end

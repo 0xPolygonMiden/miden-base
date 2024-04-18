@@ -78,8 +78,6 @@ pub enum TransactionTrace {
     TxScriptProcessingEnd = 0x2_0007,   // 131079
     EpilogueStart = 0x2_0008,           // 131080
     EpilogueEnd = 0x2_0009,             // 131081
-
-    ExecutionEnd = 0x2_FFFF, // 196607
 }
 
 impl fmt::Display for TransactionTrace {
@@ -107,7 +105,6 @@ impl TryFrom<u32> for TransactionTrace {
             0x2_0007 => Ok(TransactionTrace::TxScriptProcessingEnd),
             0x2_0008 => Ok(TransactionTrace::EpilogueStart),
             0x2_0009 => Ok(TransactionTrace::EpilogueEnd),
-            0x2_FFFF => Ok(TransactionTrace::ExecutionEnd),
             _ => Err(TransactionTraceParsingError::InvalidTransactionTrace(value)),
         }
     }
