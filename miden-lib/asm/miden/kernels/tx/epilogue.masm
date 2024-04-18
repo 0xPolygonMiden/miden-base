@@ -172,9 +172,8 @@ end
 #! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
-#! Output: [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
-#! - TX_SCRIPT_ROOT is the transaction script root
 #! - OUTPUT_NOTES_COMMITMENT is the commitment of the created notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
@@ -241,15 +240,11 @@ export.finalize_transaction
     exec.copy_output_notes_to_advice_map
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    # load the transaction script root on to the top of the stack
-    exec.memory::get_tx_script_root
-    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
-
     # truncate stack
-    swapw.3 dropw swapw.3 dropw swapw.3 dropw
-    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    swapdw dropw dropw
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     # assert no net creation or destruction of assets over the transaction
     exec.memory::get_input_vault_root exec.memory::get_output_vault_root assert_eqw.err=ERR_KERNEL_ASSET_MISMATCH
-    # => [TX_SCRIPT_ROOT, OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end
