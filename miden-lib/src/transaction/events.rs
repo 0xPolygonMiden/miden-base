@@ -16,8 +16,9 @@ const ACCOUNT_VAULT_REMOVE_ASSET: u32 = 0x2_0001; // 131073
 const ACCOUNT_STORAGE_SET_ITEM: u32 = 0x2_0002; // 131074
 const ACCOUNT_INCREMENT_NONCE: u32 = 0x2_0003; // 131075
 const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_0004; // 131076
-const NOTE_CREATED: u32 = 0x2_0005; // 131077
-const ACCOUNT_STORAGE_SET_MAP_ITEM: u32 = 0x2_0006; // 131078
+const ACCOUNT_STORAGE_SET_MAP_ITEM: u32 = 0x2_0005; // 131077
+const NOTE_CREATED: u32 = 0x2_0006; // 131078
+const NOTE_ADD_ASSET: u32 = 0x2_0007; // 131079
 
 /// Events which may be emitted by a transaction kernel.
 ///
@@ -36,6 +37,12 @@ pub enum TransactionEvent {
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
     NoteCreated = NOTE_CREATED,
     AccountStorageSetMapItem = ACCOUNT_STORAGE_SET_MAP_ITEM,
+    NoteAddAsset = NOTE_ADD_ASSET,
+}
+
+impl TransactionEvent {
+    /// Value of the top 16 bits of a transaction kernel event ID.
+    pub const EVENT_ID_PREFIX: u16 = 2;
 }
 
 impl fmt::Display for TransactionEvent {
@@ -60,6 +67,7 @@ impl TryFrom<u32> for TransactionEvent {
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
             NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
             ACCOUNT_STORAGE_SET_MAP_ITEM => Ok(TransactionEvent::AccountStorageSetMapItem),
+            NOTE_ADD_ASSET => Ok(TransactionEvent::NoteAddAsset),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

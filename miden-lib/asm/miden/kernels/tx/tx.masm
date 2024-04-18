@@ -27,11 +27,15 @@ const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
 # The note's tag high bits must be set to zero.
 const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
 
+# The non-fungible asset already exists in the current note.
+const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020047
+
 # EVENTS
 # =================================================================================================
 
 # Event emitted when a new note is created.
-const.NEW_NOTE_EVENT=131077
+const.NEW_NOTE_EVENT=131078
+const.NEW_ASSET_TO_NOTE_EVENT=131079
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -85,71 +89,178 @@ proc.increment_num_created_notes
     # => [note_idx]
 end
 
+#! This is a helper function that is used to check if the asset already exists in the note
+#! 
+#! Inputs: [ASSET, ptr, num_of_assets]
+#! Outputs: # => [asset_ptr, ASSET'', ptr, num_of_assets]
+proc.check_if_asset_already_exists
+    dup.4 exec.memory::get_created_note_asset_data_ptr dup
+    # => [asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+    # compute the pointer at which we should stop iterating
+    dup dup.8 add
+    # => [end_asset_ptr, asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+    # pad the stack and move the pointer to the top
+    padw movup.5
+    # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+    # compute the loop latch (actually not needed I could do push.1)
+    dup dup.6 neq
+    # => [latch, asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+    while.true
+        # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+        # load the first ASSET to compare
+        mem_loadw 
+        # => [ASSET', end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
+
+        # prepare stack for comparisson
+        push.0 movdn.4 push.0 movdn.4 movupw.2
+        # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
+
+        # compare the faucet-ids
+        dup dup.5 eq
+
+        if.true
+            # we know its a non-fungible asset that already exists, so we throw an error
+            exec.asset::is_non_fungible_asset 
+            
+            if.true
+                eqw assert.err=ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS
+            end
+            # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
+
+            # we know its a fugible asset that already exists, so we add the quantity together
+            drop drop drop movup.4 add movdn.3
+            # => [ASSET'', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
+
+            # reduce the num_of_assets by 1, we increase it later again
+            movup.9 sub.1 movdn.9 swapw
+            # => [0, 0, end_asset_ptr, asset_ptr, ASSET'', ptr, num_of_assets - 1 ]
+
+            # prepare end of the loop
+            push.0.0 dup.4
+            # => [end_asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET'', ptr, num_of_assets - 1]
+        else 
+            # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
+            
+            # increment the pointer
+            movdnw.2 dropw push.0.0 movup.5 add.1 dup movdn.6
+            # => [asset_ptr + 1, 0, 0, 0, 0, end_asset_ptr, asset_ptr + 1, ASSET, ptr, num_of_assets]
+        end
+
+        # check if we reached the end of the loop
+        dup dup.6 neq
+    end
+
+    # preapre stack for return
+    dropw drop drop
+    # => [asset_ptr, ASSET'', ptr, num_of_assets]
+end 
+
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
-#! Inputs: [ASSET, tag, note_type, RECIPIENT]
-#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Outputs: [ptr]
 #!
-#! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary data to be included in the note.
+#! note_type is the type of the note - public or private.
 #! RECIPIENT is the recipient of the note.
 #! ptr is the pointer to the memory address at which the note is stored.
-export.create_note
-    # validate the asset
-    exec.asset::validate_asset
-    # => [ASSET, tag, note_type, RECIPIENT]
-
+export.create_note   
     # validate the note type
     # NOTE: encrypted notes are currently unsupported `dup.6 push.ENCRYPTED_NOTE eq or`
-    dup.5 push.OFFCHAIN_NOTE eq dup.6 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
-    # => [ASSET, tag, note_type, RECIPIENT]
+    dup.2 push.OFFCHAIN_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    # => [tag, aux, note_type, RECIPIENT]
 
     # validate the tag against the note type
-    dup.5 dup.5 u32split
-    # => [tag_high, tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+    dup.2 dup.1 u32split
+    # => [tag_high, tag_low, note_type, tag, aux, note_type, RECIPIENT]
 
     assertz.err=ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
-    # => [tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+    # => [tag_low, note_type, tag, note_type, RECIPIENT]
 
     u32shr.30 u32and assertz.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
-    # => [ASSET, tag, note_type, RECIPIENT]
+    # => [tag, aux, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
     exec.increment_num_created_notes
-    # => [note_idx, ASSET, tag, note_type, RECIPIENT]
+    # => [note_idx, tag, aux, note_type, RECIPIENT]
 
     # get a pointer to the memory address at which the note will be stored
     exec.memory::get_created_note_ptr
-    # => [note_ptr, ASSET, tag, note_type, RECIPIENT]
+    # => [note_ptr, tag, aux, note_type, RECIPIENT]
 
     # populate the metadata
-    movup.5 exec.account::get_id movup.7
-    # => [note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
-
-    push.0 # TODO: allow the user to push the aux data
-    # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
-
+    movdn.3 movdn.2 exec.account::get_id movdn.2
+    # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
+    
     emit.NEW_NOTE_EVENT
 
     # set the metadata for the new created note
     dup.4 exec.memory::set_created_note_metadata
-    # => [note_ptr, ASSET, RECIPIENT]
+    # => [note_ptr, RECIPIENT]
 
-    # set the number of assets for the note to 1
-    push.1 dup.1 exec.memory::set_created_note_num_assets
-    # => [note_ptr, ASSET, RECIPIENT]
-
-    movdn.4 padw swapw movup.8
-    # => [note_ptr, ASSET, 0, 0, 0, 0, RECIPIENT]
-
-    # add the asset to the note
-    dup movdn.5 exec.memory::get_created_note_asset_data_ptr mem_storew dropw
-    # => [note_ptr, 0, 0, 0, 0, RECIPIENT]
-
-    movdn.8 swapw padw swapw movup.12
-    # => [note_ptr, RECIPIENT, 0, 0, 0, 0, 0, 0, 0, 0]
-
-    # set the recipient
+    # set the RECIPIENT
     dup movdn.5 exec.memory::set_created_note_recipient
-    # => [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+    # => [note_ptr]
+
+    # set the number of assets to 0
+    dup push.0 swap exec.memory::set_created_note_num_assets
+    # => [note_ptr]
+end
+
+#! Adds an ASSET to the specified note and returns a pointer to the memory address
+#! at which the note is stored.
+#!
+#! Inputs: [ptr, ASSET]
+#! Outputs: [ptr]
+#!
+#! ptr is the pointer to the memory address at which the note is stored.
+#! ASSET can be a fungible or non-fungible asset.
+export.add_asset_to_note
+    # validate the ASSET
+    movdn.4 exec.asset::validate_asset
+    # => [ASSET, ptr]
+
+    # check if the note has at least one ASSET already
+    dup.4 exec.memory::get_created_note_num_assets dup movdn.6 neq.0
+    # => [num_of_assets>0?, ASSET, ptr, num_of_assets]
+
+    if.true
+        # Here we check if the ASSET already exists in the note. If there exists an
+        # identical non-fungible ASSET, the kernel throws an error. The procedure 
+        # returns if 
+        # a, there is a fungible ASSET of the same type (same faucet-id), or
+        # b, there is not an identical non-fungible ASSET in the note. 
+        # 
+        # For a, the kernel adds the amounts of both ASSETs together and returns the 
+        # asset_ptr to store the new amount at the old address. Also it reduces the 
+        # number_of_assets by 1. For b, the kernel returns the next available asset_ptr 
+        # to store the NFT.
+        exec.check_if_asset_already_exists
+        # => [asset_ptr, ASSET'', ptr, num_of_assets]
+    else
+        # There is no asset in the note yet, so we add the asset at the first position
+        dup.4 exec.memory::get_created_note_asset_data_ptr
+        # => [asset_ptr, ASSET, ptr, num_of_assets]
+    end
+
+
+    movdn.5
+    # => [ASSET, ptr, asset_ptr, num_of_assets]
+
+    emit.NEW_ASSET_TO_NOTE_EVENT movup.5
+    # => [asset_ptr, ASSET, ptr, num_of_assets]
+
+    mem_storew dropw
+    # => [ptr, num_of_assets]
+
+    # increment the number of assets in the note
+    swap add.1 swap dup movdn.2 exec.memory::set_created_note_num_assets
+    # => [ptr]
+
 end

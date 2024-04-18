@@ -37,7 +37,7 @@ pub fn mock_inputs_with_account_seed(
     asset_preservation: AssetPreservationStatus,
     account_seed: Option<Word>,
 ) -> (TransactionInputs, TransactionArgs) {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
@@ -83,7 +83,7 @@ pub fn mock_inputs_with_existing(
     consumed_notes_from: Option<Vec<Note>>,
 ) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>, AdviceInputs, Vec<OutputNote>) {
     let auxiliary_data = AdviceInputs::default();
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account = match account_type {
         MockAccountType::StandardNew => mock_new_account(&assembler),
@@ -114,7 +114,7 @@ pub fn mock_inputs_with_existing(
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let initial_account = mock_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,

@@ -24,11 +24,12 @@ end
 #! Creates a note which sends the specified asset out of the current account
 #! to the specified recipient.
 #!
-#! Inputs: [ASSET, tag, note_type, RECIPIENT, ...]
+#! Inputs: [ASSET, tag, aux, note_type, RECIPIENT, ...]
 #! Outputs: [note_ptr, ZERO, ZERO, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
+#! - aux is the auxiliary data to be included in the note.
 #! - note_type is the note's storage type
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
@@ -39,9 +40,13 @@ end
 #! - The fungible asset is not found in the vault.
 #! - The amount of the fungible asset in the vault is less than the amount to be removed.
 #! - The non-fungible asset is not found in the vault.
-export.send_asset
+export.send_asset.1
     exec.account::remove_asset
-    # => [ASSET, tag, note_type, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, RECIPIENT, ...]
+
+    # Store the ASSET for later 
+    loc_storew.0 dropw
+    # => [tag, aux, note_type, RECIPIENT, ...]
 
     # This procedure is written to be executed with `exec` or `call`. When this
     # procedure is `call`ed the stack has to be carefully manipulated to avoid
@@ -53,9 +58,18 @@ export.send_asset
     # is because the VM stack has a minimum size of 16 elements, trying to push
     # elements after the call to `create_note` would increase the stack in
     # addition to the minimum 16 elements.
-    push.0.0 padw movdnw.3 padw movdnw.3 movdn.11 drop
-    # => [ASSET, tag, note_type, RECIPIENT, ZERO, ZERO, 0, ...]
+    push.0 movdn.7 padw movdnw.2 padw movdnw.2
+    # => [tag, aux, note_type, RECIPIENT, 0, ZERO, ZERO, ...]
 
     exec.tx::create_note
-    # => [note_ptr, ZERO, ZERO, 0, ...]
+    # => [note_ptr, 0, 0, 0, ZERO, ZERO, ZERO, ...]
+    
+    padw loc_loadw.0 movup.4
+    # => [note_ptr, ASSET, 0, 0, 0, ZERO, ZERO, ...]
+
+    exec.tx::add_asset_to_note
+    # => [note_ptr, ZERO, 0, ...]
+
+    # organize the stack for return
+    swapw dropw swapw dropw swapw dropw swapw dropw
 end

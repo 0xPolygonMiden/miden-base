@@ -12,6 +12,7 @@ use miden_objects::{
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionKernelError {
+    CantFindOutputNote(usize),
     InvalidStorageSlotIndex(u64),
     MalformedAccountId(AccountError),
     MalformedAsset(AssetError),
@@ -30,6 +31,9 @@ pub enum TransactionKernelError {
 impl fmt::Display for TransactionKernelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            TransactionKernelError::CantFindOutputNote(index) => {
+                write!(f, "output note could not be found at index {index}")
+            },
             TransactionKernelError::InvalidStorageSlotIndex(index) => {
                 let num_slots = AccountStorage::NUM_STORAGE_SLOTS;
                 write!(f, "storage slot index {index} is invalid, must be smaller than {num_slots}")

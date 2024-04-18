@@ -82,7 +82,7 @@ where
     // mock account method for testing from root context
     adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
 
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
@@ -107,7 +107,7 @@ pub fn run_within_host<H: Host>(
     host: H,
     file_path: Option<PathBuf>,
 ) -> Result<Process<H>, ExecutionError> {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
         None => format!("{imports}{code}"),

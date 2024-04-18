@@ -213,3 +213,18 @@ pub fn get_note_with_fungible_asset_and_script(
 
     Note::new(vault, metadata, recipient)
 }
+
+#[cfg(test)]
+pub fn get_note_without_asset(note_script: ProgramAst) -> Note {
+    let note_assembler = TransactionKernel::assembler();
+    let (note_script, _) = NoteScript::new(note_script, &note_assembler).unwrap();
+    const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+    let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    let vault = NoteAssets::new(vec![]).unwrap();
+    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1.into(), ZERO).unwrap();
+    let inputs = NoteInputs::new(vec![]).unwrap();
+    let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
+
+    Note::new(vault, metadata, recipient)
+}

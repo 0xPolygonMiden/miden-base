@@ -73,7 +73,6 @@ impl<D: DataStore> TransactionExecutor<D> {
             )
             .expect("failed to clone execution options");
         }
-
         self
     }
 

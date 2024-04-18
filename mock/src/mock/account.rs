@@ -107,14 +107,15 @@ pub fn mock_account_storage() -> AccountStorage {
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 9] = [
+const MASTS: [&str; 10] = [
     "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
-    "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
+    "0xa6462d2b515d70d9c70d2a06e3ad78aafa1970b644597a13baef836d5e8bd9a0",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
     "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0xef07641ea1aa8fe85d8f854d29bf729b92251e1433244892138fd9ca898a5a22",
+    "0x6c400847f3f0d01a76c568cf4c3e7bc85c0038c564fb169902f0cab6c105401c",
+    "0xec1353da46e05795e5dd7fe2e54b56a7c6b9323394385090e6da9374f5fbf6ed",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
@@ -125,8 +126,10 @@ pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
 pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
 pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
 pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[7];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[8];
+pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[8];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[9];
+pub const ACCOUNT_CREATE_NOTE_WITHOUT_ASSET_MAST_ROOT: &str = MASTS[9];
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -156,6 +159,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
 
             # acct proc 0
             export.wallet::receive_asset
+            
             # acct proc 1
             export.wallet::send_asset
 
@@ -199,15 +203,22 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
             export.create_note
                 exec.tx::create_note
                 # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+   
             end
 
             # acct proc 7
+            export.add_asset_to_note
+                exec.tx::add_asset_to_note
+                # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            end
+
+            # acct proc 8
             export.account_procedure_1
                 push.1.2
                 add
             end
 
-            # acct proc 8
+            # acct proc 9
             export.account_procedure_2
                 push.2.1
                 sub
@@ -234,8 +245,9 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
         code.procedures()[6].to_hex(),
         code.procedures()[7].to_hex(),
         code.procedures()[8].to_hex(),
+        code.procedures()[9].to_hex(),
     ];
-    assert!(current == MASTS, "const MASTS: [&str; 9] = {:?};", current);
+    assert!(current == MASTS, "const MASTS: [&str; 10] = {:?};", current);
 
     code
 }

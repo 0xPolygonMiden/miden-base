@@ -12,20 +12,20 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::{NoteId, NoteType},
+    notes::{NoteAssets, NoteEnvelope, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::{
         ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
     },
-    Felt, Word,
+    Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use mock::{
     constants::{non_fungible_asset, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
     mock::{
         account::{
-            MockAccountType, ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT,
-            ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT, STORAGE_INDEX_0,
-            STORAGE_INDEX_2,
+            MockAccountType, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
+            ACCOUNT_SET_MAP_ITEM_MAST_ROOT, STORAGE_INDEX_0, STORAGE_INDEX_2,
         },
         notes::AssetPreservationStatus,
         transaction::mock_inputs,
@@ -85,7 +85,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone()).with_debug_mode(true);
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
@@ -96,7 +96,9 @@ fn executed_transaction_account_delta() {
     end
     ";
     let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
-    let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+    let new_acct_code =
+        AccountCode::new(new_acct_code_ast.clone(), &Assembler::default().with_debug_mode(true))
+            .unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -163,6 +165,18 @@ fn executed_transaction_account_delta() {
             # => []
         end
 
+        proc.create_note
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # => [ptr]
+        end
+
+        proc.add_asset_to_note
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+
+            drop
+            # => []
+        end
+
         ## TRANSACTION SCRIPT
         ## ========================================================================================
         begin
@@ -203,6 +217,7 @@ fn executed_transaction_account_delta() {
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
+            push.0                  # aux_data
             push.999                # tag
             push.{REMOVED_ASSET_1}  # asset
             call.wallet::send_asset dropw dropw drop drop
@@ -211,6 +226,7 @@ fn executed_transaction_account_delta() {
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
+            push.0                  # aux_data
             push.998                # tag
             push.{REMOVED_ASSET_2}  # asset
             call.wallet::send_asset dropw dropw drop drop
@@ -219,9 +235,18 @@ fn executed_transaction_account_delta() {
             # send non-fungible asset
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
+            push.0                  # aux_data
             push.997                # tag
             push.{REMOVED_ASSET_3}  # asset
             call.wallet::send_asset dropw dropw drop drop
+            # => []
+
+            # send note without asset
+            push.0.1.2.3            # recipient
+            push.{OFFCHAIN}         # note_type
+            push.0                  # aux_data
+            push.996                # tag
+            exec.create_note dropw dropw drop drop
             # => []
 
             ## Update account code
@@ -255,6 +280,7 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
+
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
@@ -317,6 +343,20 @@ fn executed_transaction_account_delta() {
     assert_eq!(
         removed_assets.len(),
         executed_transaction.account_delta().vault().removed_assets.len()
+    );
+
+    // assert that there is a new note without assets
+    // Check if the created `Note` is what we expect
+    let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let tag = NoteTag::from(996);
+    let note_metadata = NoteMetadata::new(account_id, NoteType::OffChain, tag, ZERO).unwrap();
+    let assets = NoteAssets::new(vec![]).unwrap();
+    let note_id = NoteId::new(recipient.into(), assets.commitment());
+
+    let created_note = executed_transaction.output_notes().get_note(6);
+    assert_eq!(
+        NoteEnvelope::from(created_note),
+        NoteEnvelope::new(note_id, note_metadata).unwrap()
     );
 }
 

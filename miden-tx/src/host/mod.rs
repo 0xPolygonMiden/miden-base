@@ -27,6 +27,8 @@ use account_procs::AccountProcedureIndexMap;
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
+mod note_tracker;
+use note_tracker::OutputNoteData;
 
 // CONSTANTS
 // ================================================================================================
@@ -48,6 +50,9 @@ pub struct TransactionHost<A> {
     /// A map for the account's procedures.
     acct_procedure_index_map: AccountProcedureIndexMap,
 
+    /// The data for the notes created while executing a transaction.
+    output_notes_data: Vec<OutputNoteData>,
+
     /// The list of notes created while executing a transaction.
     output_notes: Vec<OutputNote>,
 
@@ -64,13 +69,15 @@ impl<A: AdviceProvider> TransactionHost<A> {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
+            output_notes_data: Vec::new(),
             output_notes: Vec::new(),
             tx_progress: TransactionProgress::default(),
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>) {
+    pub fn into_parts(mut self) -> (A, AccountDelta, Vec<OutputNote>) {
+        self.build_output_notes().expect("Failed to build output notes");
         (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
     }
 
@@ -89,7 +96,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
         let stack = process.get_stack_state();
 
         // Stack:
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
         let aux = stack[0];
         let note_type =
             NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
@@ -97,44 +104,46 @@ impl<A: AdviceProvider> TransactionHost<A> {
             AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
         let tag = NoteTag::try_from(stack[3])
             .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
-        let asset = Asset::try_from([stack[8], stack[7], stack[6], stack[5]])
-            .map_err(TransactionKernelError::MalformedAsset)?;
-        let recipient = Digest::new([stack[12], stack[11], stack[10], stack[9]]);
-        let vault =
-            NoteAssets::new(vec![asset]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let note_ptr = stack[4];
+        let recipient = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
+
+        // Notes are created with empty asset vaults
+        let vault = Vec::new();
 
         let metadata = NoteMetadata::new(sender, note_type, tag, aux)
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
-        let note = if metadata.note_type() == NoteType::Public {
-            let data = self.adv_provider.get_mapped_values(&recipient).ok_or(
-                TransactionKernelError::MissingNoteDetails(metadata, vault.clone(), recipient),
+        let note_data = OutputNoteData::new(metadata, note_ptr, recipient, vault);
+
+        self.output_notes_data.push(note_data);
+
+        Ok(())
+    }
+
+    fn on_note_add_asset<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        let stack = process.get_stack_state();
+
+        // Stack:
+        // # => [ASSET, ptr, asset_ptr, num_of_assets]
+
+        let asset = Asset::try_from([stack[3], stack[2], stack[1], stack[0]])
+            .map_err(TransactionKernelError::MalformedAsset)?;
+        let note_ptr = stack[4];
+
+        // we don't need asset_ptr, num_of_assets
+
+        let note_data = self
+            .output_notes_data
+            .iter_mut()
+            .find(|note| note.note_ptr() == note_ptr)
+            .ok_or_else(
+                || TransactionKernelError::CantFindOutputNote(note_ptr.as_int() as usize),
             )?;
-            if data.len() != 12 {
-                return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
-            }
-            let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
-            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
-            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
-            let serial_num = [data[8], data[9], data[10], data[11]];
-            let input_els = self.adv_provider.get_mapped_values(&inputs_key);
-            let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
 
-            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
-                .map_err(TransactionKernelError::MalformedNoteInputs)?;
-
-            let script = NoteScript::try_from(script_data)
-                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
-            let recipient = NoteRecipient::new(serial_num, script, inputs);
-            OutputNote::Public(Note::new(vault, metadata, recipient))
-        } else {
-            let note_id = NoteId::new(recipient, vault.commitment());
-            OutputNote::Private(
-                NoteEnvelope::new(note_id, metadata).expect("NoteType checked above"),
-            )
-        };
-
-        self.output_notes.push(note);
+        note_data.assets_mut().push(asset);
 
         Ok(())
     }
@@ -305,6 +314,50 @@ impl<A: AdviceProvider> TransactionHost<A> {
             Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
         }
     }
+
+    /// ToDo: pretty ugly function, refactor
+    fn build_output_notes(&mut self) -> Result<Vec<OutputNote>, TransactionKernelError> {
+        for mut note_data in self.output_notes_data.clone().into_iter() {
+            let metadata = note_data.metadata();
+            let assets = note_data.assets_mut();
+            let vault = NoteAssets::new(assets.to_vec())
+                .map_err(TransactionKernelError::MalformedNoteType)?;
+            let recipient = note_data.recipient();
+
+            if note_data.metadata().note_type() == NoteType::Public {
+                let data = self.adv_provider.get_mapped_values(&recipient).ok_or(
+                    TransactionKernelError::MissingNoteDetails(metadata, vault.clone(), recipient),
+                )?;
+                if data.len() != 12 {
+                    return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
+                }
+
+                let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
+                let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
+                let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
+                let serial_num = [data[8], data[9], data[10], data[11]];
+                let input_els = self.adv_provider.get_mapped_values(&inputs_key);
+                let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
+
+                let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
+                    .map_err(TransactionKernelError::MalformedNoteInputs)?;
+
+                let script = NoteScript::try_from(script_data).map_err(|_| {
+                    TransactionKernelError::MalformedNoteScript(script_data.to_vec())
+                })?;
+                let recipient = NoteRecipient::new(serial_num, script, inputs);
+                self.output_notes
+                    .push(OutputNote::Public(Note::new(vault, metadata, recipient)))
+            } else {
+                let note_id = NoteId::new(recipient, vault.commitment());
+                self.output_notes.push(OutputNote::Private(
+                    NoteEnvelope::new(note_id, metadata).expect("NoteType checked above"),
+                ))
+            };
+        }
+
+        Ok(self.output_notes.clone())
+    }
 }
 
 impl<A: AdviceProvider> Host for TransactionHost<A> {
@@ -352,6 +405,7 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             TransactionEvent::AccountStorageSetMapItem => {
                 self.on_account_storage_set_map_item(process)
             },
+            TransactionEvent::NoteAddAsset => self.on_note_add_asset(process),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 

@@ -45,6 +45,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = 4.into();
+    let aux = Felt::new(77);
     let amount = Felt::new(100);
 
     let tx_script_code = ProgramAst::parse(
@@ -54,9 +55,12 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             use.miden::contracts::auth::basic->auth_tx
 
             begin
+                dropw
+                # => drop tx script root
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -95,7 +99,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(created_note.id(), id);
     assert_eq!(
         created_note.metadata(),
-        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, Felt::new(77)).unwrap()
     );
 }
 
@@ -116,6 +120,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(0);
     let tag = Felt::new(4);
     let amount = Felt::new(250);
 
@@ -129,6 +134,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute

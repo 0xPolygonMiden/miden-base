@@ -60,7 +60,7 @@ impl TransactionKernel {
     /// Panics if the transaction kernel source is not well-formed.
     pub fn program_info() -> ProgramInfo {
         // TODO: construct kernel_main and kernel using lazy static or at build time
-        let assembler = Self::assembler();
+        let assembler = Self::assembler().with_debug_mode(true);
         let main_ast = TransactionKernel::main().expect("main is well formed");
         let kernel_main = assembler
             .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
@@ -82,6 +82,7 @@ impl TransactionKernel {
             .expect("failed to load std-lib")
             .with_kernel(Self::kernel())
             .expect("kernel must be well formed")
+            .with_debug_mode(true)
     }
 
     // STACK INPUTS / OUTPUTS

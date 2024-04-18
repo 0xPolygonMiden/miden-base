@@ -35,13 +35,10 @@ impl NoteAssets {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The asset list is empty.
     /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
-        if assets.is_empty() {
-            return Err(NoteError::EmptyAssetList);
-        } else if assets.len() > Self::MAX_NUM_ASSETS {
+        if assets.len() > Self::MAX_NUM_ASSETS {
             return Err(NoteError::too_many_assets(assets.len()));
         }
 

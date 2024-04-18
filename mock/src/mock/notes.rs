@@ -21,7 +21,7 @@ use crate::{
         non_fungible_asset_2, CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT,
         CONSUMED_ASSET_3_AMOUNT,
     },
-    mock::account::ACCOUNT_CREATE_NOTE_MAST_ROOT,
+    mock::account::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
     utils::{prepare_assets, prepare_word},
 };
 
@@ -86,28 +86,34 @@ pub fn mock_notes(
             # create note 0
             push.{recipient0}
             push.{PUBLIC_NOTE}
+            push.{aux0}
             push.{tag0}
-            push.{asset0}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            push.{asset0} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+            dropw dropw dropw dropw
 
             # create note 1
             push.{recipient1}
             push.{PUBLIC_NOTE}
+            push.{aux1}
             push.{tag1}
-            push.{asset1}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            push.{asset1} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+            dropw dropw dropw dropw
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient0 = prepare_word(&created_note_1.recipient_digest()),
         tag0 = created_note_1.metadata().tag(),
+        aux0 = created_note_1.metadata().aux(),
         asset0 = prepare_assets(created_note_1.assets())[0],
         recipient1 = prepare_word(&created_note_2.recipient_digest()),
         tag1 = created_note_2.metadata().tag(),
+        aux1 = created_note_2.metadata().aux(),
         asset1 = prepare_assets(created_note_2.assets())[0],
     );
     let note_1_script_ast = ProgramAst::parse(&note_1_script_src).unwrap();
@@ -124,15 +130,18 @@ pub fn mock_notes(
             # create note 2
             push.{recipient}
             push.{PUBLIC_NOTE}
+            push.{aux}
             push.{tag}
-            push.{asset}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            push.{asset} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+            dropw dropw dropw dropw
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient = prepare_word(&created_note_3.recipient_digest()),
+        aux = created_note_3.metadata().aux(),
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );

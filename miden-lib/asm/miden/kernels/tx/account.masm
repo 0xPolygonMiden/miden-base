@@ -69,15 +69,15 @@ const.MAX_SLOT_TYPE=64
 # Event emitted to signal that an account storage item is being updated.
 const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
 
-# Event emitted to signal that an account storage map item is being updated.
-const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131078
-
 # Event emitted to signal that account nonce is being incremented.
 const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
 
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
 const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131076
+
+# Event emitted to signal that an account storage map item is being updated.
+const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131077
 
 # CONSTANT ACCESSORS
 # =================================================================================================

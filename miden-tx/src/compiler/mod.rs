@@ -36,7 +36,7 @@ impl TransactionCompiler {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [TransactionCompiler].
     pub fn new() -> TransactionCompiler {
-        let assembler = TransactionKernel::assembler();
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
         // compile transaction kernel main
         let main_ast = TransactionKernel::main().expect("main is well formed");

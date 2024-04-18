@@ -71,6 +71,9 @@ begin
     push.OFFCHAIN_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
 
+    push.0 movdn.5
+    # => [ASSET, tag, aux_data, note_type, RECIPIENT]
+
     # create a note using inputs
     call.wallet::send_asset
     # => [ptr, ZERO, ZERO, 0]

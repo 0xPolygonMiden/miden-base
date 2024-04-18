@@ -64,11 +64,11 @@ export.validate_fungible_asset
     # assert that ASSET[2] == ZERO
     dup.2 not assert.err=ERR_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO
     # => [ASSET]
-
+    
     # assert that ASSET[3] is a valid account id
     dup exec.account::validate_id
     # => [ASSET]
-
+    
     # assert that ASSET[3] is a fungible faucet
     dup exec.account::is_fungible_faucet assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_ZERO
     # => [ASSET]
