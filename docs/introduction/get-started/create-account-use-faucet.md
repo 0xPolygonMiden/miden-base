@@ -1,4 +1,4 @@
-In this second, we show you how to create a new local Miden account and how to receive funds from the public Miden faucet website.
+In this section, we show you how to create a new local Miden account and how to receive funds from the public Miden faucet website.
 
 ## Configure the Miden client
 
