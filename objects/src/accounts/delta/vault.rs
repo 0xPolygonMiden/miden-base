@@ -145,19 +145,22 @@ mod tests {
     use super::{AccountVaultDelta, Asset, Deserializable, Serializable};
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, testing::build_assets,
-            AccountId, AccountType,
+            account_id::testing::{
+                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            },
+            testing::build_assets,
+            AccountId,
         },
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
     #[test]
     fn account_vault_delta_validation() {
-        // generate test data
-        let ffid1 = AccountId::new_dummy([0; 32], AccountType::FungibleFaucet);
-        let ffid2 = AccountId::new_dummy([1; 32], AccountType::FungibleFaucet);
-        let nffid1 = AccountId::new_dummy([0; 32], AccountType::NonFungibleFaucet);
-        let nffid2 = AccountId::new_dummy([1; 32], AccountType::NonFungibleFaucet);
+        let ffid1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let ffid2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let nffid2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
 
         let asset1: Asset = FungibleAsset::new(ffid1, 10).unwrap().into();
         let asset2: Asset = FungibleAsset::new(ffid1, 30).unwrap().into();

@@ -167,7 +167,7 @@ mod tests {
 
     #[cfg(feature = "std")]
     #[test]
-    fn teste_serde_file() {
+    fn test_serde_file() {
         let dir = tempdir().unwrap();
         let filepath = dir.path().join("account_data.mac");
 
