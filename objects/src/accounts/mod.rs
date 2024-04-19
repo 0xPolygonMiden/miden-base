@@ -297,9 +297,9 @@ pub mod tests {
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
-        Word,
+        code::testing::make_account_code,
+        Account, AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
+        Felt, SlotItem, StorageSlot, StorageSlotType, Word,
     };
     use crate::assets::{Asset, AssetVault, FungibleAsset};
 
@@ -307,18 +307,8 @@ pub mod tests {
     // --------------------------------------------------------------------------------------------
 
     pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
-        // build account code
-        let source = "
-            export.foo
-                push.1 push.2 mul
-            end
-            export.bar
-                push.1 push.2 add
-            end
-        ";
-        let module = ModuleAst::parse(source).unwrap();
-        let assembler = Assembler::default();
-        let code = AccountCode::new(module, &assembler).unwrap();
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+        let code = make_account_code();
 
         // build account data
         let vault = AssetVault::new(&assets).unwrap();
@@ -334,8 +324,6 @@ pub mod tests {
             .collect();
         let storage = AccountStorage::new(slot_items, vec![]).unwrap();
 
-        // create account
-        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
         Account::new(id, vault, storage, code, nonce)
     }
 
