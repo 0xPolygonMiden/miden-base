@@ -69,7 +69,7 @@ pub fn mock_notes(
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
     let created_note_2 = Note::new(vault, metadata, recipient);
 
-    let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
+    let inputs = NoteInputs::new(vec![Felt::new(3)]).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_3]).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
