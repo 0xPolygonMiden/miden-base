@@ -1,7 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta},
+    accounts::{
+        AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta,
+        StorageMapDelta,
+    },
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     Digest, Felt, Word, EMPTY_WORD, ZERO,
 };
@@ -12,7 +15,7 @@ use miden_objects::{
 /// Keeps track of changes made to the account during transaction execution.
 ///
 /// Currently, this tracks:
-/// - Changes to the account storage slots.
+/// - Changes to the account storage, slots and maps.
 /// - Changes to the account vault.
 /// - Changes to the account nonce.
 ///
@@ -75,9 +78,11 @@ impl AccountDeltaTracker {
 ///
 /// The delta tracker is composed of:
 /// - A map which records the latest states for the updated storage slots.
+/// - A map which records the latest states for the updates storage maps
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorageDeltaTracker {
     slot_updates: BTreeMap<u8, Word>,
+    maps_updates: BTreeMap<u8, Vec<(Word, Word)>>,
 }
 
 impl AccountStorageDeltaTracker {
@@ -86,6 +91,7 @@ impl AccountStorageDeltaTracker {
     pub fn into_delta(self) -> AccountStorageDelta {
         let mut cleared_items = Vec::new();
         let mut updated_items = Vec::new();
+        let mut updated_maps: Vec<(u8, StorageMapDelta)> = Vec::new();
 
         for (idx, value) in self.slot_updates {
             if value == EMPTY_WORD {
@@ -95,12 +101,36 @@ impl AccountStorageDeltaTracker {
             }
         }
 
-        AccountStorageDelta { cleared_items, updated_items }
+        for (idx, map_deltas) in self.maps_updates {
+            let mut updated_leafs = Vec::new();
+            let mut cleared_leafs = Vec::new();
+
+            for map_delta in map_deltas {
+                if map_delta.1 == EMPTY_WORD {
+                    cleared_leafs.push(map_delta.0);
+                } else {
+                    updated_leafs.push(map_delta);
+                }
+            }
+            let storage_map_delta = StorageMapDelta::from(cleared_leafs, updated_leafs);
+            updated_maps.push((idx, storage_map_delta));
+        }
+
+        AccountStorageDelta {
+            cleared_items,
+            updated_items,
+            updated_maps,
+        }
     }
 
     /// Tracks a slot change
     pub fn slot_update(&mut self, slot_index: u8, new_slot_value: [Felt; 4]) {
         self.slot_updates.insert(slot_index, new_slot_value);
+    }
+
+    /// Tracks a slot change
+    pub fn maps_update(&mut self, slot_index: u8, key: [Felt; 4], new_value: [Felt; 4]) {
+        self.maps_updates.entry(slot_index).or_default().push((key, new_value));
     }
 }
 

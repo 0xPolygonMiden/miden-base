@@ -9,6 +9,9 @@ use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
 mod slot;
 pub use slot::StorageSlotType;
 
+mod map;
+pub use map::StorageMap;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -89,10 +92,15 @@ impl StorageSlot {
 ///
 /// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
 /// and contains information about slot types of all other slots.
+///
+/// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
+/// they can hold more data as there is in plain usage of the storage slots. The root of the SMT
+/// consumes one storage slot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: SimpleSmt<STORAGE_TREE_DEPTH>,
     layout: Vec<StorageSlotType>,
+    maps: Vec<StorageMap>,
 }
 
 impl AccountStorage {
@@ -111,7 +119,10 @@ impl AccountStorage {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
-    pub fn new(items: Vec<SlotItem>) -> Result<AccountStorage, AccountError> {
+    pub fn new(
+        items: Vec<SlotItem>,
+        maps: Vec<StorageMap>,
+    ) -> Result<AccountStorage, AccountError> {
         // initialize storage layout
         let mut layout = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
 
@@ -142,7 +153,20 @@ impl AccountStorage {
         let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        Ok(Self { slots, layout })
+        // check if the number of provided maps is bigger than the number of slots reserved for maps
+        let count = layout
+            .iter()
+            .filter(|&slot| matches!(slot, StorageSlotType::Map { .. }))
+            .count();
+
+        if maps.len() > count {
+            return Err(AccountError::StorageMapToManyMaps {
+                expected: (count),
+                actual: (maps.len()),
+            });
+        }
+
+        Ok(Self { slots, layout, maps })
     }
 
     // PUBLIC ACCESSORS
@@ -175,6 +199,11 @@ impl AccountStorage {
     /// Returns a commitment to the storage layout.
     pub fn layout_commitment(&self) -> Digest {
         Hasher::hash_elements(&self.layout.iter().map(Felt::from).collect::<Vec<_>>())
+    }
+
+    /// Returns the storage maps for this storage.
+    pub fn maps(&self) -> &[StorageMap] {
+        &self.maps
     }
 
     // DATA MUTATORS
@@ -271,6 +300,14 @@ impl Serializable for AccountStorage {
             target.write_u8(idx as u8);
             target.write(value);
         }
+
+        // serialize the number of StorageMaps
+        target.write_u8(self.maps.len() as u8);
+
+        // serialize storage maps
+        for storage_map in &self.maps {
+            storage_map.write_into(target);
+        }
     }
 }
 
@@ -299,7 +336,18 @@ impl Deserializable for AccountStorage {
             });
         }
 
-        Self::new(items).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        // read the number of StorageMap instances
+        let num_storage_maps = source.read_u8()?;
+
+        let mut maps = Vec::with_capacity(num_storage_maps as usize);
+        for _ in 0..num_storage_maps {
+            maps.push(
+                StorageMap::read_from(source)
+                    .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?,
+            );
+        }
+
+        Self::new(items, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -310,67 +358,84 @@ impl Deserializable for AccountStorage {
 mod tests {
     use alloc::vec::Vec;
 
+    use miden_crypto::hash::rpo::RpoDigest;
+
     use super::{
-        AccountStorage, Deserializable, Serializable, SlotItem, StorageSlot, StorageSlotType,
+        AccountStorage, Deserializable, Felt, Serializable, SlotItem, StorageMap, StorageSlot,
+        StorageSlotType, Word,
     };
     use crate::{ONE, ZERO};
 
     #[test]
     fn account_storage_serialization() {
         // empty storage
-        let storage = AccountStorage::new(Vec::new()).unwrap();
+        let storage = AccountStorage::new(Vec::new(), Vec::new()).unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
         // storage with values for default types
-        let storage = AccountStorage::new(vec![
-            SlotItem {
-                index: 0,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::default(),
-                    value: [ONE, ONE, ONE, ONE],
+        let storage = AccountStorage::new(
+            vec![
+                SlotItem {
+                    index: 0,
+                    slot: StorageSlot {
+                        slot_type: StorageSlotType::default(),
+                        value: [ONE, ONE, ONE, ONE],
+                    },
                 },
-            },
-            SlotItem {
-                index: 2,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::default(),
-                    value: [ONE, ONE, ONE, ZERO],
+                SlotItem {
+                    index: 2,
+                    slot: StorageSlot {
+                        slot_type: StorageSlotType::default(),
+                        value: [ONE, ONE, ONE, ZERO],
+                    },
                 },
-            },
-        ])
+            ],
+            vec![],
+        )
         .unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
-        // storage with a mix of types
-        let storage = AccountStorage::new(vec![
-            SlotItem {
-                index: 0,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::Value { value_arity: 1 },
-                    value: [ONE, ONE, ONE, ONE],
+        // storage with values for complex types
+        let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
+            (
+                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+                [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+            ),
+            (
+                RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+                [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+            ),
+        ];
+        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+        let storage = AccountStorage::new(
+            vec![
+                SlotItem {
+                    index: 0,
+                    slot: StorageSlot {
+                        slot_type: StorageSlotType::Value { value_arity: 1 },
+                        value: [ONE, ONE, ONE, ONE],
+                    },
                 },
-            },
-            SlotItem {
-                index: 1,
-                slot: StorageSlot::new_value([ONE, ONE, ONE, ZERO]),
-            },
-            SlotItem {
-                index: 2,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::Map { value_arity: 2 },
-                    value: [ONE, ONE, ZERO, ZERO],
+                SlotItem {
+                    index: 1,
+                    slot: StorageSlot::new_value([ONE, ONE, ONE, ZERO]),
                 },
-            },
-            SlotItem {
-                index: 3,
-                slot: StorageSlot {
-                    slot_type: StorageSlotType::Array { depth: 4, value_arity: 3 },
-                    value: [ONE, ZERO, ZERO, ZERO],
+                SlotItem {
+                    index: 2,
+                    slot: StorageSlot::new_map(Word::from(storage_map.root())),
                 },
-            },
-        ])
+                SlotItem {
+                    index: 3,
+                    slot: StorageSlot {
+                        slot_type: StorageSlotType::Array { depth: 4, value_arity: 3 },
+                        value: [ONE, ZERO, ZERO, ZERO],
+                    },
+                },
+            ],
+            vec![storage_map],
+        )
         .unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());

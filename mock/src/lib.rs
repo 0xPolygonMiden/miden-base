@@ -133,7 +133,7 @@ pub fn prepare_transaction(
     code: &str,
     file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let code = match file_path {
         Some(file_path) => load_file_with_code("", code, file_path),
