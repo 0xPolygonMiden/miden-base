@@ -4,8 +4,8 @@ mod wallet;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
-        tests::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage, SlotItem,
-        StorageSlot,
+        account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
+        SlotItem, StorageSlot,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},

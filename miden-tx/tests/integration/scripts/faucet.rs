@@ -5,7 +5,7 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        tests::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
+        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
         AccountStorage, AccountStorageType, SlotItem, StorageSlot,
     },
     assembly::{ModuleAst, ProgramAst},

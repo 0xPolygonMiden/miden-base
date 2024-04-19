@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{
-        tests::{
+        account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },

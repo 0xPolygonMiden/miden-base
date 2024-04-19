@@ -136,8 +136,8 @@ mod tests {
     use super::{AccountData, AuthData};
     use crate::{
         accounts::{
-            storage, tests::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, Account,
-            AccountCode, AccountId, Felt, Word,
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, storage,
+            Account, AccountCode, AccountId, Felt, Word,
         },
         assets::AssetVault,
     };

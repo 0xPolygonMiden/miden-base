@@ -5,7 +5,7 @@ use crate::{
     AccountError, Digest, Felt, Hasher, Word, ZERO,
 };
 
-mod account_id;
+pub mod account_id;
 pub use account_id::{
     AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
     ACCOUNT_TYPE_MASK_SHIFT,
@@ -293,76 +293,15 @@ pub mod tests {
     use alloc::vec::Vec;
 
     use super::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        },
         Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountStorageType, AccountType, AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem,
-        StorageSlot, StorageSlotType, Word, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
+        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
+        Word,
     };
     use crate::assets::{Asset, AssetVault, FungibleAsset};
-
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    // REGULAR ACCOUNTS - OFF-CHAIN
-    pub const ACCOUNT_ID_SENDER: u64 = account_id(
-        AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OffChain,
-        0b0001_1111,
-    );
-    pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = account_id(
-        AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OffChain,
-        0b0010_1111,
-    );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = account_id(
-        AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OffChain,
-        0b0011_1111,
-    );
-    // REGULAR ACCOUNTS - ON-CHAIN
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
-        AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OnChain,
-        0b0001_1111,
-    );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u64 = account_id(
-        AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OnChain,
-        0b0010_1111,
-    );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = account_id(
-        AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OnChain,
-        0b0011_1111,
-    );
-    pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
-        AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OnChain,
-        0b0100_1111,
-    );
-
-    // FUNGIBLE TOKENS - OFF-CHAIN
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
-    // FUNGIBLE TOKENS - ON-CHAIN
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0001_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
-    pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0100_1111);
-
-    // NON-FUNGIBLE TOKENS - OFF-CHAIN
-    pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0000_0000); // invalid
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
-    // NON-FUNGIBLE TOKENS - ON-CHAIN
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
-    pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
 
     // UTILITIES
     // --------------------------------------------------------------------------------------------
@@ -427,35 +366,6 @@ pub mod tests {
         let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
 
         (asset_0, asset_1)
-    }
-
-    const fn account_id(account_type: AccountType, storage: AccountStorageType, rest: u64) -> u64 {
-        let mut id = 0;
-
-        id ^= (storage as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
-        id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
-        id ^= rest;
-
-        id
-    }
-
-    #[test]
-    fn test_account_id() {
-        use crate::accounts::AccountId;
-
-        for account_type in [
-            AccountType::RegularAccountImmutableCode,
-            AccountType::RegularAccountUpdatableCode,
-            AccountType::NonFungibleFaucet,
-            AccountType::FungibleFaucet,
-        ] {
-            for storage_type in [AccountStorageType::OnChain, AccountStorageType::OffChain] {
-                let acc = AccountId::try_from(account_id(account_type, storage_type, 0b1111_1111))
-                    .unwrap();
-                assert_eq!(acc.account_type(), account_type);
-                assert_eq!(acc.storage_type(), storage_type);
-            }
-        }
     }
 
     #[test]

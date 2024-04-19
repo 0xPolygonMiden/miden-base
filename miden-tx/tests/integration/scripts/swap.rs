@@ -1,7 +1,7 @@
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
     accounts::{
-        tests::{
+        account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
         },

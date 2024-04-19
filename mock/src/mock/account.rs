@@ -1,15 +1,14 @@
 use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
-        get_account_seed_single,
-        tests::{
+        account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
-        StorageMap, StorageSlot,
+        get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
+        AccountStorageType, AccountType, SlotItem, StorageMap, StorageSlot,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},

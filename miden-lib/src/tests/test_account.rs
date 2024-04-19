@@ -1,6 +1,6 @@
 use miden_objects::{
     accounts::{
-        tests::{
+        account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
