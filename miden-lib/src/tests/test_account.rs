@@ -353,9 +353,6 @@ fn test_get_storage_data_type() {
             item_index = storage_item.index,
         );
 
-        let transaction =
-            prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
-        let _process = run_tx(&transaction).unwrap();
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
         let process = run_tx(&transaction).unwrap();
 
@@ -367,6 +364,13 @@ fn test_get_storage_data_type() {
 
         assert_eq!(process.get_stack_item(0), Felt::from(storage_slot_data_type.0));
         assert_eq!(process.get_stack_item(1), Felt::from(storage_slot_data_type.1));
+
+        // check that the rest of the stack is empty
+        assert_eq!(process.get_stack_item(2), ZERO);
+        assert_eq!(process.get_stack_item(3), ZERO);
+        assert_eq!(Word::default(), process.get_stack_word(1));
+        assert_eq!(Word::default(), process.get_stack_word(2));
+        assert_eq!(Word::default(), process.get_stack_word(3));
     }
 }
 
@@ -405,6 +409,11 @@ fn test_get_map_item() {
             prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
         let process = run_tx(&transaction).unwrap();
         assert_eq!(value, process.get_stack_word(0));
+
+        // check that the rest of the stack is empty
+        assert_eq!(Word::default(), process.get_stack_word(1));
+        assert_eq!(Word::default(), process.get_stack_word(2));
+        assert_eq!(Word::default(), process.get_stack_word(3));
     }
 }
 

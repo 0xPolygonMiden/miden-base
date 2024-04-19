@@ -215,7 +215,7 @@ export.get_account_map_item
     exec.smt::get 
     # => [VALUE, ROOT, ...]
 
-    # organize the stack for return
+    # prepare the stack for return
     swapw dropw
     # => [VALUE, 0]
 end
@@ -237,7 +237,6 @@ end
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
 export.set_account_map_item.1
     # authenticate that the procedure invocation originates from the account context
-
     exec.authenticate_account_origin
     # => [index, KEY, NEW_VALUE, ...]
 
@@ -264,6 +263,10 @@ export.set_account_map_item.1
     # set the root of the map in the respective account storage slot
     loc_load.0 exec.account::set_item
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
+
+    # organize the stack for return (16 elements)
+    movupw.2 dropw
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only

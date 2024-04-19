@@ -101,13 +101,15 @@ export.set_item
     # => [R', V]
 end
 
-#! Gets a map item from the account storage. Panics if the index for the map is out of 
-#! bounds, means >255.
+#! Gets a map item from the account storage. Panics if 
+#! - the index for the map is out of bounds, means >255
+#! - the slot item at index is not a map
 #!
 #! Stack: [index, KEY]
 #! Output: [VALUE]
 #!
 #! - index is the index of the map where the KEY VALUE should be read.
+#! - KEY is the key of the item to get.
 #! - VALUE is the value of the item.
 export.get_map_item
     syscall.get_account_map_item
@@ -118,13 +120,15 @@ export.get_map_item
     # => [VALUE, 0]
 end
 
-#! Sets a map item in the account storage. Panics if the index for the map is out of 
-#! bounds, means >255.
+#! Sets a map item in the account storage. Panics if 
+#! - the index for the map is out of bounds, means >255
+#! - the slot item at index is not a map
 #!
 #! Stack: [index, KEY, VALUE]
-#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE]
+#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
 #!
 #! - index is the index of the map where the KEY VALUE should be set.
+#! - KEY is the key to set at VALUE.
 #! - VALUE is the value to set at KEY.
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.

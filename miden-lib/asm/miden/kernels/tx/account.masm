@@ -362,10 +362,10 @@ end
 
 #! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
 #!
-#! Stack: [index, KEY, VALUE, ROOT, ...]
+#! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
 #!
-#! - ROOT is the root of the map to set the KEY NEW_VALUE pair.
+#! - OLD_ROOT is the root of the map to set the KEY NEW_VALUE pair.
 #! - NEW_VALUE is the value to set under KEY.
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
@@ -377,12 +377,9 @@ export.set_map_item
     push.1 drop emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop
 
     # set the NEW_VALUE under KEY in the tree
-    # note smt::set expects the stack to be [VALUE, KEY, ROOT, ...]
+    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_VALUE, NEW_ROOT, ...]
-    
-    # prepare stack for return
-    movupw.3 dropw
 end
 
 #! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
@@ -396,19 +393,19 @@ export.authenticate_procedure.1
     # load the account code root onto the stack
     exec.memory::get_acct_code_root swapw
     # => [PROC_ROOT, CODE_ROOT]
-    
+
     # load the index of the procedure root onto the advice stack, and move it to the operand stack
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
     # => [PROC_ROOT, index, CODE_ROOT]
-    
+
     # push the depth of the code Merkle tree onto the stack
     push.ACCOUNT_CODE_TREE_DEPTH movdn.4
     # => [PROC_ROOT, depth, index, CODE_ROOT]
-    
+
     # verify the procedure exists in the account code Merkle tree
     mtree_verify
     # => [PROC_ROOT, depth, index, CODE_ROOT]
-    
+
     # drop accessory variables
     movup.4 drop movup.4 drop swapw dropw
     # => [PROC_ROOT]
