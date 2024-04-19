@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    accounts::tests::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
     transaction::{OutputNote, OutputNotes},
     Word, ONE, ZERO,

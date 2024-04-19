@@ -5,8 +5,8 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
+        tests::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
+        AccountStorage, AccountStorageType, SlotItem, StorageSlot,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},

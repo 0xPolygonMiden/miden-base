@@ -1,7 +1,10 @@
 use miden_objects::{
     accounts::{
-        AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        tests::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        },
+        AccountId,
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     AssetVaultError,

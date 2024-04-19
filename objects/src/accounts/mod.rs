@@ -285,27 +285,22 @@ pub fn hash_account(
     Hasher::hash_elements(&elements)
 }
 
-// TESTING ACCOUNT IDs
+// TESTING
 // ================================================================================================
 
 #[cfg(any(feature = "testing", test))]
-pub use testing::*;
+pub mod tests {
+    use alloc::vec::Vec;
 
-#[cfg(any(feature = "testing", test))]
-mod testing {
     use super::{
-        AccountStorageType, AccountType, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
+        Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
+        AccountStorageType, AccountType, AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem,
+        StorageSlot, StorageSlotType, Word, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
     };
+    use crate::assets::{Asset, AssetVault, FungibleAsset};
 
-    const fn account_id(account_type: AccountType, storage: AccountStorageType, rest: u64) -> u64 {
-        let mut id = 0;
-
-        id ^= (storage as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
-        id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
-        id ^= rest;
-
-        id
-    }
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
 
     // REGULAR ACCOUNTS - OFF-CHAIN
     pub const ACCOUNT_ID_SENDER: u64 = account_id(
@@ -369,42 +364,10 @@ mod testing {
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
         account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
 
-    #[test]
-    fn test_account_id() {
-        use crate::accounts::AccountId;
+    // UTILITIES
+    // --------------------------------------------------------------------------------------------
 
-        for account_type in [
-            AccountType::RegularAccountImmutableCode,
-            AccountType::RegularAccountUpdatableCode,
-            AccountType::NonFungibleFaucet,
-            AccountType::FungibleFaucet,
-        ] {
-            for storage_type in [AccountStorageType::OnChain, AccountStorageType::OffChain] {
-                let acc = AccountId::try_from(account_id(account_type, storage_type, 0b1111_1111))
-                    .unwrap();
-                assert_eq!(acc.account_type(), account_type);
-                assert_eq!(acc.storage_type(), storage_type);
-            }
-        }
-    }
-}
-
-// TESTS
-// ================================================================================================
-
-#[cfg(test)]
-mod tests {
-    use alloc::vec::Vec;
-
-    use super::{
-        Account, AccountCode, AccountDelta, AccountId, AccountStorage, AccountStorageDelta,
-        AccountVaultDelta, Assembler, Felt, ModuleAst, SlotItem, StorageSlot, StorageSlotType,
-        Word, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-    };
-    use crate::assets::{Asset, AssetVault, FungibleAsset};
-
-    fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
+    pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
         // build account code
         let source = "
             export.foo
@@ -437,7 +400,7 @@ mod tests {
         Account::new(id, vault, storage, code, nonce)
     }
 
-    fn build_account_delta(
+    pub fn build_account_delta(
         added_assets: Vec<Asset>,
         removed_assets: Vec<Asset>,
         nonce: Felt,
@@ -454,7 +417,7 @@ mod tests {
         AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
     }
 
-    fn build_assets() -> (Asset, Asset) {
+    pub fn build_assets() -> (Asset, Asset) {
         // build asset 0
         let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
@@ -464,6 +427,35 @@ mod tests {
         let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
 
         (asset_0, asset_1)
+    }
+
+    const fn account_id(account_type: AccountType, storage: AccountStorageType, rest: u64) -> u64 {
+        let mut id = 0;
+
+        id ^= (storage as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
+        id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
+        id ^= rest;
+
+        id
+    }
+
+    #[test]
+    fn test_account_id() {
+        use crate::accounts::AccountId;
+
+        for account_type in [
+            AccountType::RegularAccountImmutableCode,
+            AccountType::RegularAccountUpdatableCode,
+            AccountType::NonFungibleFaucet,
+            AccountType::FungibleFaucet,
+        ] {
+            for storage_type in [AccountStorageType::OnChain, AccountStorageType::OffChain] {
+                let acc = AccountId::try_from(account_id(account_type, storage_type, 0b1111_1111))
+                    .unwrap();
+                assert_eq!(acc.account_type(), account_type);
+                assert_eq!(acc.storage_type(), storage_type);
+            }
+        }
     }
 
     #[test]

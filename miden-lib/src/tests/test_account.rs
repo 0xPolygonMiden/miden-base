@@ -1,9 +1,12 @@
 use miden_objects::{
     accounts::{
-        AccountId, AccountType, StorageSlotType, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_INSUFFICIENT_ONES, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        tests::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
+        AccountId, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
 };
@@ -398,7 +401,7 @@ fn test_get_map_item() {
 
                 # get the map item
                 exec.account::get_map_item
-                
+
             end
             ",
             item_index = storage_item.index,
@@ -453,7 +456,7 @@ fn test_set_map_item() {
             # double check that on storage slot is indeed the new map
             push.{item_index}
             exec.account::get_item
-            
+
         end
         ",
         item_index = storage_item.index,
