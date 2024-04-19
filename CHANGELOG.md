@@ -2,6 +2,8 @@
 
 ## 0.3.0 (TBD)
 
+* [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
+
 ## 0.2.1 (2024-04-12)
 
 * [BREAKING] Return a reference to `NoteMetadata` from output notes (#593).
