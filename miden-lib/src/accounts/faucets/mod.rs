@@ -71,16 +71,19 @@ pub fn create_basic_fungible_faucet(
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: authentication data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
-    let account_storage = AccountStorage::new(vec![
-        SlotItem {
-            index: 0,
-            slot: StorageSlot::new_value(auth_data),
-        },
-        SlotItem {
-            index: 1,
-            slot: StorageSlot::new_value(metadata),
-        },
-    ])?;
+    let account_storage = AccountStorage::new(
+        vec![
+            SlotItem {
+                index: 0,
+                slot: StorageSlot::new_value(auth_data),
+            },
+            SlotItem {
+                index: 1,
+                slot: StorageSlot::new_value(metadata),
+            },
+        ],
+        vec![],
+    )?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(

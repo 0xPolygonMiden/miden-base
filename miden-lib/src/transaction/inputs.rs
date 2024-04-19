@@ -191,12 +191,14 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// - The Merkle nodes associated with the storage slots tree.
 /// - The Merkle nodes associated with the account vault tree.
 /// - The Merkle nodes associated with the account code procedures tree.
+/// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
 /// - The storage types commitment |-> storage slot types vector.
 /// - The account procedure root |-> procedure index, for each account procedure.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
+/// - If present, the Merkle leaves associated with the account storage maps.
 fn add_account_to_advice_inputs(
     account: &Account,
     account_seed: Option<Word>,
@@ -213,6 +215,17 @@ fn add_account_to_advice_inputs(
         storage.layout_commitment(),
         storage.layout().iter().map(Felt::from).collect(),
     )]);
+
+    // If there are storage maps, we populate the merkle store and advice map
+    if !(account.storage().maps().is_empty()) {
+        for map in account.storage().maps() {
+            // extend the merkle store and map with the storage maps
+            inputs.extend_merkle_store(map.inner_nodes());
+
+            // populate advice map with Sparse Merkle Tree leaf nodes
+            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+        }
+    }
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();

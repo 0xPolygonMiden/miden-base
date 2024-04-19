@@ -165,7 +165,7 @@ mod tests {
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();
-        let storage = AccountStorage::new(vec![]).unwrap();
+        let storage = AccountStorage::new(vec![], vec![]).unwrap();
         let nonce = Felt::new(0);
         let account = Account::new(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());
