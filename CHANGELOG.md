@@ -2,6 +2,8 @@
 
 ## 0.3.0 (TBD)
 
+* [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
+
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 
 * Fixed handling of debug mode in `TransactionExecutor` (#627)
