@@ -21,14 +21,13 @@ In Miden every account is a smart contract. The diagram below illustrates the ba
 
 ### Account ID
 
-!!! info
-    Its `~63` bits long identifier for the account id (one field element). 
+A `~63` bits long identifier for the account ID (one field element `felt`). 
 
-The four most significant bits specify the [account type](#account-types) - regular, immutable, faucet - and the [storage mode](#account-storage-modes) - public or private.
+The four most significant bits specify the [account type](#account-types) - regular or faucet - and the [storage mode](#account-storage-modes) - public or private.
 
-### Account storage
+### Account data storage
 
-Account storage for user-defined data is composed of two components.
+A storage for user-defined data that is composed of two components.
 
 1. A simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `word` slots.
 
@@ -38,7 +37,7 @@ Account storage for user-defined data is composed of two components.
 
 A counter which increments whenever the account state changes. 
 
-Nonce values must be strictly monotonically increasing and increment by any value smaller than `2^{32}` for every account update.
+Nonce values must be strictly monotonically increasing and increment by any value smaller than `2^32` for every account update.
 
 ### Vault
 
@@ -56,12 +55,12 @@ An account vault can be reduced to a single hash which is the root of the sparse
 
 ### Code
 
-Interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](notes.md#the-note-script) and transaction scripts. Users cannot call those functions directly.
+The interface for accounts. In Miden every account is a smart contract. It has an interface that exposes functions that can be called by [note scripts](notes.md#the-note-script) and transaction scripts. Users cannot call those functions directly.
 
 Functions exposed by the account have the following properties:
 
-* Functions are actually roots of [Miden program MASTs](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) (i.e., a 32-byte hash). Thus, the function identifier is a commitment to the code which is executed when a function is invoked.
-* Only account functions have mutable access to an account's storage and vault. Therefore, the only way to modify an account's internal state is through one of the account's functions.
+* Functions are actually roots of [Miden program MASTs](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) (i.e., a `32`-byte hash). Thus, the function identifier is a commitment to the code which is executed when a function is invoked.
+* Only account functions have [mutable access](transactions/contexts.md) to an account's storage and vault. Therefore, the only way to modify an account's internal state is through one of the account's functions.
 * Account functions can take parameters and can create new notes.
 
 !!! note
@@ -71,7 +70,7 @@ Functions exposed by the account have the following properties:
 
 Currently, Miden provides two standard implementations for account code.
 
-##### Basic user account (Regular updatable account)
+##### Basic user account
 
 There is a standard for a basic user account. It exposes three functions via its interface.
 
@@ -183,19 +182,21 @@ A user can create an account in one of the following manners:
 
 ## Account types
 
-There are four types of accounts in Miden:
+There are two basic account types in Miden: Regular accounts and faucets. Only faucets can mint new assets. Regular accounts can be mutable or immutable, which simply means that it is possible to change the account code after creation. 
 
-| | Regular updatable account | Regular immutable account | Faucet for fungible assets | Faucet for non-fungible assets |
+Type and mutability is encoded in the most significant bits of the account's ID. 
+
+| | Basic mutable | Basic immutable | Fungible faucet | Non-fungible faucet |
 |---|---|---|---|---|
 | **Description** | For most users, e.g. a wallet. Code changes allowed, including public API. | For most smart contracts. Once deployed code is immutable. | Users can issue fungible assets and customize them. | Users can issue non-fungible assets and customize them. |
 | **Code updatability** | yes | no | no | no |
 | **Most significant bits** | `00` | `01` | `10` | `11` |
 
-## Account storage modes
+## Public and private accounts
 
-* Accounts with **public state**, where the actual state is stored on-chain. These would be similar to how accounts work in public blockchains. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
-* Accounts with **private state**, where only the hash of the account is stored on-chain. Users who want stay private and take care of their own data should choose this mode. The hash is defined as: `hash([account ID, 0, 0, nonce], [vault root], [storage root], [code root])`.
+Users can decide whether to keep their accounts private or public at account creation. The account ID encodes this preference on the third and fourth most significant bit.
 
-In the future we will also support **encrypted state** which will be on-chain but encrypted. * Depending on the account storage mode (private vs. encrypted vs. public) and transaction type (local vs. network) the operator receives the new Account ID eventually and - if the transaction is correct - adds the ID to the Account DB
+* Accounts with public state: The actual state is stored on-chain. This is similar to how accounts work in public blockchains, like Ethereum. Smart contracts that depend on public shared state should be stored public on Miden, e.g., DEX contract.
+* Accounts with private state: Only the hash of the account is stored on-chain. Users who want to stay private, and manage their own data, should choose this option. Users who want to interact with private accounts need to know the account's interface.
 
 </br>

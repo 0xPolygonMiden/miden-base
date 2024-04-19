@@ -28,7 +28,7 @@ use.miden::kernels::tx::prologue
 #!                CN2_A1, CN2_A2, ...,
 #!                ...,
 #!                TXSR]
-#! Output:       [TXSR, CNC, FAH]
+#! Output:       [CNC, FAH]
 #!
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
@@ -56,7 +56,6 @@ use.miden::kernels::tx::prologue
 #! - CN1_NA are optional note args of consumed note 1.
 #! - CN1_A1 is the first asset of consumed note 1.
 #! - CN1_A2 is the second asset of consumed note 1.
-#! - TXSR is the transaction script root.
 #! - CNC is the commitment to the notes created by the transaction.
 #! - FAH is the final account hash of the account that the transaction is being
 #!   executed against.
@@ -138,7 +137,7 @@ proc.main.1
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
-    # => [TX_SCRIPT_ROOT, CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end
 
 begin

@@ -2,7 +2,8 @@
 
 ## 0.3.0 (TBD)
 
-* [BREAKING] Simplified account details for on-chain accounts, now only delta provided
+* [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
+* [BREAKING] Simplified account details for on-chain accounts, now only delta provided (#530).
 
 ## 0.2.1 (2024-04-12)
 

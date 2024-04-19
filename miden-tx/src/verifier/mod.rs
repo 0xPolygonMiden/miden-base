@@ -41,7 +41,6 @@ impl TransactionVerifier {
         let stack_outputs = TransactionKernel::build_output_stack(
             transaction.final_account_hash(),
             transaction.output_notes().commitment(),
-            transaction.tx_script_root(),
         );
 
         // verify transaction proof

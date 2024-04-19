@@ -47,7 +47,6 @@ impl TransactionProver {
 
         let account_id = tx_witness.account().id();
         let block_hash = tx_witness.block_header().hash();
-        let tx_script_root = tx_witness.tx_args().tx_script().map(|script| *script.hash());
 
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(tx_witness.account().into(), advice_provider);
@@ -71,11 +70,6 @@ impl TransactionProver {
         )
         .add_input_notes(input_notes)
         .add_output_notes(tx_outputs.output_notes.iter().cloned());
-
-        let builder = match tx_script_root {
-            Some(tx_script_root) => builder.tx_script_root(tx_script_root),
-            _ => builder,
-        };
 
         let builder = match account_id.is_on_chain() {
             true => builder.account_delta(account_delta),
