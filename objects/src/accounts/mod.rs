@@ -345,11 +345,9 @@ pub mod testing {
     }
 
     pub fn build_assets() -> (Asset, Asset) {
-        // build asset 0
         let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
 
-        // build asset 1
         let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
         let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
 

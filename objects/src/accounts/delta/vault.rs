@@ -20,6 +20,23 @@ pub struct AccountVaultDelta {
 }
 
 impl AccountVaultDelta {
+    /// Creates an empty [AccountVaultDelta].
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    /// Creates an [AccountVaultDelta] from the given iterators.
+    pub fn from_iterators<A, B>(added_assets: A, removed_assets: B) -> Self
+    where
+        A: IntoIterator<Item = Asset>,
+        B: IntoIterator<Item = Asset>,
+    {
+        Self {
+            added_assets: Vec::from_iter(added_assets),
+            removed_assets: Vec::from_iter(removed_assets),
+        }
+    }
+
     /// Checks whether this vault delta is valid.
     ///
     /// # Errors
@@ -127,7 +144,10 @@ impl Deserializable for AccountVaultDelta {
 mod tests {
     use super::{AccountVaultDelta, Asset, Deserializable, Serializable};
     use crate::{
-        accounts::{AccountId, AccountType},
+        accounts::{
+            account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, testing::build_assets,
+            AccountId, AccountType,
+        },
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
@@ -197,5 +217,25 @@ mod tests {
 
         let bytes = delta.to_bytes();
         assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_serde_account_vault() {
+        let (asset_0, asset_1) = build_assets();
+        let delta = AccountVaultDelta::from_iterators([asset_0], [asset_1]);
+
+        let serialized = delta.to_bytes();
+        let deserialized = AccountVaultDelta::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, delta);
+    }
+
+    #[test]
+    fn test_is_empty_account_vault() {
+        let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let asset: Asset = FungibleAsset::new(faucet, 123).unwrap().into();
+
+        assert!(AccountVaultDelta::empty().is_empty());
+        assert!(!AccountVaultDelta::from_iterators([asset], []).is_empty());
+        assert!(!AccountVaultDelta::from_iterators([], [asset]).is_empty());
     }
 }
