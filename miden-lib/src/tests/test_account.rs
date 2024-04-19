@@ -401,7 +401,6 @@ fn test_get_map_item() {
 
                 # get the map item
                 exec.account::get_map_item
-
             end
             ",
             item_index = storage_item.index,
@@ -456,7 +455,6 @@ fn test_set_map_item() {
             # double check that on storage slot is indeed the new map
             push.{item_index}
             exec.account::get_item
-
         end
         ",
         item_index = storage_item.index,
