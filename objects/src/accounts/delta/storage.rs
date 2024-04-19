@@ -104,20 +104,15 @@ impl Serializable for AccountStorageDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         assert!(self.cleared_items.len() <= u8::MAX as usize, "too many cleared storage items");
         target.write_u8(self.cleared_items.len() as u8);
-        for idx in self.cleared_items.iter() {
-            idx.write_into(target);
-        }
+        target.write_many(self.cleared_items.iter());
 
         assert!(self.updated_items.len() <= u8::MAX as usize, "too many updated storage items");
         target.write_u8(self.updated_items.len() as u8);
-        for (idx, value) in self.updated_items.iter() {
-            idx.write_into(target);
-            value.write_into(target);
-        }
+        target.write_many(self.updated_items.iter());
 
         assert!(self.updated_maps.len() <= u8::MAX as usize, "too many updated storage maps");
         target.write_u8(self.updated_maps.len() as u8);
-        self.updated_maps.write_into(target);
+        target.write_many(self.updated_maps.iter());
     }
 }
 

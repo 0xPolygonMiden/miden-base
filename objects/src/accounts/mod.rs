@@ -289,7 +289,7 @@ pub fn hash_account(
 // ================================================================================================
 
 #[cfg(any(feature = "testing", test))]
-pub mod tests {
+pub mod testing {
     use alloc::vec::Vec;
 
     use super::{
@@ -354,6 +354,43 @@ pub mod tests {
         let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
 
         (asset_0, asset_1)
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::{
+        utils::{Deserializable, Serializable},
+        Felt, Word,
+    };
+
+    use super::{testing::*, AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use crate::accounts::Account;
+
+    #[test]
+    fn test_serde_account() {
+        let init_nonce = Felt::new(1);
+        let (asset_0, _) = build_assets();
+        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let account = build_account(vec![asset_0], init_nonce, vec![word]);
+
+        let serialized = account.to_bytes();
+        let deserialized = Account::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, account);
+    }
+
+    #[test]
+    fn test_serde_account_delta() {
+        let final_nonce = Felt::new(2);
+        let (asset_0, asset_1) = build_assets();
+        let account_delta = build_account_delta(vec![asset_1], vec![asset_0], final_nonce);
+
+        let serialized = account_delta.to_bytes();
+        let deserialized = AccountDelta::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, account_delta);
     }
 
     #[test]
