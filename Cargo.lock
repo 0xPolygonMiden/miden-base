@@ -134,12 +134,13 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17f6e324229dc011159fcc089755d1e2e216a90d43a7dea6853ca740b84f35e7"
+checksum = "d32a725bc159af97c3e629873bb9f88fb8cf8a4867175f76dc987815ea07c83b"
 dependencies = [
  "jobserver",
  "libc",
+ "once_cell",
 ]
 
 [[package]]
@@ -609,9 +610,9 @@ dependencies = [
 
 [[package]]
 name = "miden-crypto"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1e339568704e3135360528e65edde5a47e585c007b7d14b55d010ba44c735b2"
+checksum = "2354079aba5325d514bcacc9f0396fe0679949400efcda363c8702a157aa3f77"
 dependencies = [
  "blake3",
  "cc",
