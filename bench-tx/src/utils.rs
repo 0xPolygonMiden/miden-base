@@ -18,13 +18,15 @@ use mock::mock::{
     notes::AssetPreservationStatus,
     transaction::{mock_inputs, mock_inputs_with_existing},
 };
-#[cfg(feature = "std")]
-use serde_json::{from_str, to_string_pretty, Value};
 
 use super::{read_to_string, write, Benchmark, Path};
+use serde_json::{from_str, to_string_pretty, Value};
 
 // CONSTANTS
 // ================================================================================================
+
+/// Number of cycles needed to create an empty span whithout changing the stack state.
+const SPAN_CREATION_SHIFT: u32 = 2;
 
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001F; // 2305843009213693983
 pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001F; // 9223372036854775839
@@ -149,6 +151,80 @@ impl DataStore for MockDataStore {
     }
 }
 
+// TRANSACTION PROGRESS PRINTER
+// ================================================================================================
+
+pub fn tx_progress_to_json_string(tx_progress: &TransactionProgress) -> String {
+    let mut json_string = String::new();
+    json_string.push('{');
+
+    // push lenght of the prologue cycle interval
+    json_string.push_str(&format!(
+        "\"prologue\": {}, ",
+        tx_progress
+            .prologue()
+            .len()
+            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+            .unwrap_or("invalid interval".to_string())
+    ));
+
+    // push lenght of the notes processing cycle interval
+    json_string.push_str(&format!(
+        "\"notes_processing\": {}, ",
+        tx_progress
+            .notes_processing()
+            .len()
+            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+            .unwrap_or("invalid interval".to_string())
+    ));
+
+    // prepare string with executed notes
+    let mut notes = String::new();
+    tx_progress.note_execution().iter().fold(true, |first, (note_id, interval)| {
+        if !first {
+            notes.push_str(", ");
+        }
+        notes.push_str(&format!(
+            "{{{}: {}}}",
+            note_id
+                .map(|id| format!("\"{}\"", id.to_hex()))
+                .unwrap_or("id_unavailable".to_string()),
+            interval
+                .len()
+                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+                .unwrap_or("invalid interval".to_string())
+        ));
+        false
+    });
+
+    // push lenghts of the note execution cycle intervals
+    json_string.push_str(&format!("\"note_execution\": [{}], ", notes));
+
+    // push lenght of the transaction script processing cycle interval
+    json_string.push_str(&format!(
+        "\"tx_script_processing\": {},",
+        tx_progress
+            .tx_script_processing()
+            .len()
+            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+            .unwrap_or("invalid interval".to_string())
+    ));
+
+    // push lenght of the epilogue cycle interval
+    json_string.push_str(&format!(
+        "\"epilogue\": {}",
+        tx_progress
+            .epilogue()
+            .len()
+            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
+            .unwrap_or("invalid interval".to_string())
+    ));
+
+    json_string.push('}');
+
+    json_string
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -176,7 +252,6 @@ pub fn get_account_with_default_account_code(
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
-#[cfg(feature = "std")]
 pub fn write_cycles_to_json(
     path: &Path,
     bench_type: Benchmark,
@@ -186,12 +261,11 @@ pub fn write_cycles_to_json(
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
     let tx_progress_json: Value =
-        from_str(&tx_progress.to_json_string()).map_err(|e| e.to_string())?;
+        from_str(&tx_progress_to_json_string(tx_progress)).map_err(|e| e.to_string())?;
 
     match bench_type {
         Benchmark::Simple => benchmark_json["simple"] = tx_progress_json,
         Benchmark::P2ID => benchmark_json["p2id"] = tx_progress_json,
-        _ => return Err(format!("Invalid benchmark type: {bench_type}")),
     }
 
     write(

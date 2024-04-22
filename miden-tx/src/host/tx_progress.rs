@@ -1,15 +1,6 @@
-pub use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+pub use alloc::vec::Vec;
 
 use miden_objects::notes::NoteId;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Number of cycles needed to create an empty span whithout changing the stack state.
-const SPAN_CREATION_SHIFT: u32 = 2;
 
 // TRANSACTION PROGRESS
 // ================================================================================================
@@ -26,6 +17,29 @@ pub struct TransactionProgress {
 }
 
 impl TransactionProgress {
+    // STATE ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    pub fn prologue(&self) -> &CycleInterval {
+        &self.prologue
+    }
+
+    pub fn notes_processing(&self) -> &CycleInterval {
+        &self.notes_processing
+    }
+
+    pub fn note_execution(&self) -> &Vec<(Option<NoteId>, CycleInterval)> {
+        &self.note_execution
+    }
+
+    pub fn tx_script_processing(&self) -> &CycleInterval {
+        &self.tx_script_processing
+    }
+
+    pub fn epilogue(&self) -> &CycleInterval {
+        &self.epilogue
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -70,81 +84,11 @@ impl TransactionProgress {
     pub fn end_epilogue(&mut self, cycle: u32) {
         self.epilogue.set_end(cycle);
     }
-
-    // DATA PRINT
-    // --------------------------------------------------------------------------------------------
-
-    pub fn to_json_string(&self) -> String {
-        let mut json_string = String::new();
-        json_string.push('{');
-
-        // push lenght of the prologue cycle interval
-        json_string.push_str(&format!(
-            "\"prologue\": {}, ",
-            self.prologue
-                .len()
-                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string())
-        ));
-
-        // push lenght of the notes processing cycle interval
-        json_string.push_str(&format!(
-            "\"notes_processing\": {}, ",
-            self.notes_processing
-                .len()
-                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string())
-        ));
-
-        // prepare string with executed notes
-        let mut notes = String::new();
-        self.note_execution.iter().fold(true, |first, (note_id, interval)| {
-            if !first {
-                notes.push_str(", ");
-            }
-            notes.push_str(&format!(
-                "{{{}: {}}}",
-                note_id
-                    .map(|id| format!("\"{}\"", id.to_hex()))
-                    .unwrap_or("id_unavailable".to_string()),
-                interval
-                    .len()
-                    .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                    .unwrap_or("invalid interval".to_string())
-            ));
-            false
-        });
-
-        // push lenghts of the note execution cycle intervals
-        json_string.push_str(&format!("\"note_execution\": [{}], ", notes));
-
-        // push lenght of the transaction script processing cycle interval
-        json_string.push_str(&format!(
-            "\"tx_script_processing\": {},",
-            self.tx_script_processing
-                .len()
-                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string())
-        ));
-
-        // push lenght of the epilogue cycle interval
-        json_string.push_str(&format!(
-            "\"epilogue\": {}",
-            self.epilogue
-                .len()
-                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string())
-        ));
-
-        json_string.push('}');
-
-        json_string
-    }
 }
 
 /// Stores the cycles corresponding to the start and the end of an interval.
 #[derive(Default)]
-struct CycleInterval {
+pub struct CycleInterval {
     start: Option<u32>,
     end: Option<u32>,
 }

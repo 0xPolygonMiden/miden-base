@@ -19,9 +19,9 @@ const.NOTES_PROCESSING_START=131074
 const.NOTES_PROCESSING_END=131075
 
 # Trace emitted to signal that the note consuming has started.
-const.NOTE_CONSUMING_START=131076
+const.NOTE_EXECUTION_START=131076
 # Trace emitted to signal that the note consuming has ended.
-const.NOTE_CONSUMING_END=131077
+const.NOTE_EXECUTION_END=131077
 
 # Trace emitted to signal that the transaction script processing has started.
 const.TX_SCRIPT_PROCESSING_START=131078
@@ -138,7 +138,7 @@ proc.main.1
         # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
         # emit trace to signal that the note execution has started
         push.0 drop
-        trace.NOTE_CONSUMING_START
+        trace.NOTE_EXECUTION_START
 
         # execute the note setup script
         exec.note::prepare_note
@@ -162,7 +162,7 @@ proc.main.1
         # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
         # emit trace to signal that the note execution has ended
         push.0 drop
-        trace.NOTE_CONSUMING_END
+        trace.NOTE_EXECUTION_END
     end
 
     # execute note processing teardown

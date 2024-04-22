@@ -12,17 +12,36 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{TransactionExecutor, TransactionHost};
+use std::{
+    fs::{read_to_string, write, File},
+    io::Write,
+    path::Path,
+};
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
-use crate::{
-    utils::{
-        get_account_with_default_account_code, write_cycles_to_json, MockDataStore, String,
-        ToString, Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER,
-        DEFAULT_AUTH_SCRIPT,
-    },
-    Path,
+mod utils;
+use utils::{
+    get_account_with_default_account_code, write_cycles_to_json, MockDataStore, String, ToString,
+    Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
+
+pub enum Benchmark {
+    Simple,
+    P2ID,
+}
+
+fn main() -> Result<(), String> {
+    let path = Path::new("bench-tx/src/bench-tx.json");
+    let mut file = File::create(path).map_err(|e| e.to_string())?;
+    file.write_all(b"{}").map_err(|e| e.to_string())?;
+
+    // run all available benchmarks
+    benchmark_default_tx(path)?;
+    benchmark_p2id(path)?;
+
+    Ok(())
+}
 
 // BENCHMARKS
 // ================================================================================================
@@ -54,7 +73,6 @@ pub fn benchmark_default_tx(path: &Path) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    #[cfg(feature = "std")]
     write_cycles_to_json(path, crate::Benchmark::Simple, host.tx_progress())?;
 
     Ok(())
@@ -127,14 +145,7 @@ pub fn benchmark_p2id(path: &Path) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    #[cfg(feature = "std")]
     write_cycles_to_json(path, crate::Benchmark::P2ID, host.tx_progress())?;
 
     Ok(())
-}
-
-/// Runs all available benchmarks.
-pub fn benchmark_all(path: &Path) -> Result<(), String> {
-    benchmark_default_tx(path)?;
-    benchmark_p2id(path)
 }
