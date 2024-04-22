@@ -24,6 +24,13 @@ pub enum AccountUpdateDetails {
     Delta(AccountDelta),
 }
 
+impl AccountUpdateDetails {
+    /// Returns `true` if the account update details are for private account.
+    pub fn is_private(&self) -> bool {
+        matches!(self, Self::Private)
+    }
+}
+
 /// Account update data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdate {
@@ -59,7 +66,7 @@ impl AccountUpdate {
 
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
-        matches!(self.details, AccountUpdateDetails::Private)
+        self.details.is_private()
     }
 }
 
