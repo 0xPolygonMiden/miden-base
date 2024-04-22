@@ -99,7 +99,7 @@ args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", 
 description = "Run all available transaction benchmarks"
 workspace = false
 command = "cargo"
-args = ["run", "--bin", "bench-tx"]
+args = ["run", "--bin", "bench-tx", "--features", "std"]
 
 # --- utilities -----------------------------------------------------------------------------------
 [tasks.watch]
