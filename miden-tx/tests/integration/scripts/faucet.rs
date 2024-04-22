@@ -3,6 +3,7 @@ use miden_lib::{
     transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
     AuthScheme,
 };
+use miden_mock::utils::prepare_word;
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
@@ -15,13 +16,12 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::utils::prepare_word;
+use miden_tx::{testing::MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 // TESTS MINT FUNGIBLE ASSET

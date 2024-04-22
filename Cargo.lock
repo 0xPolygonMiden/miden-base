@@ -715,6 +715,7 @@ dependencies = [
  "miden-objects",
  "miden-processor",
  "miden-prover",
+ "miden-tx",
  "miden-verifier",
  "rand_chacha",
 ]

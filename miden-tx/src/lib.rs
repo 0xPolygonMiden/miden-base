@@ -38,8 +38,8 @@ pub use error::{
     TransactionVerifierError,
 };
 
-#[cfg(test)]
-mod tests;
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 
 // RE-EXPORTS
 // ================================================================================================

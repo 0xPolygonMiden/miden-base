@@ -1,4 +1,5 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
+use miden_mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
 use miden_objects::{
     accounts::{
         Account, AccountId, AccountStorage, SlotItem, StorageSlot,
@@ -12,13 +13,12 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
+use miden_tx::{testing::MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
-    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 #[test]

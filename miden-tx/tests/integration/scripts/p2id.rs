@@ -1,4 +1,5 @@
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
+use miden_mock::mock::account::DEFAULT_AUTH_SCRIPT;
 use miden_objects::{
     accounts::{
         Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -13,12 +14,11 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::TransactionExecutor;
-use mock::mock::account::DEFAULT_AUTH_SCRIPT;
+use miden_tx::{testing::MockDataStore, TransactionExecutor};
 
 use crate::{
     get_account_with_default_account_code, get_new_key_pair_with_advice_map,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 // P2ID TESTS

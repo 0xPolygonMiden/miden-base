@@ -2,6 +2,7 @@ mod scripts;
 mod wallet;
 
 use miden_lib::transaction::TransactionKernel;
+use miden_mock::{constants::MIN_PROOF_SECURITY_LEVEL, mock::account::DEFAULT_ACCOUNT_CODE};
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, SlotItem, StorageSlot, ACCOUNT_ID_SENDER,
@@ -9,126 +10,14 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
-    notes::{
-        Note, NoteAssets, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType,
-    },
-    transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ProvenTransaction,
-        TransactionArgs, TransactionInputs,
-    },
-    BlockHeader, Felt, Word, ZERO,
+    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
+    transaction::{ExecutedTransaction, ProvenTransaction},
+    Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
-use miden_tx::{
-    DataStore, DataStoreError, TransactionProver, TransactionVerifier, TransactionVerifierError,
-};
-use mock::{
-    constants::MIN_PROOF_SECURITY_LEVEL,
-    mock::{
-        account::{MockAccountType, DEFAULT_ACCOUNT_CODE},
-        notes::AssetPreservationStatus,
-        transaction::{mock_inputs, mock_inputs_with_existing},
-    },
-};
+use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
-
-// MOCK DATA STORE
-// ================================================================================================
-
-#[derive(Clone)]
-pub struct MockDataStore {
-    pub account: Account,
-    pub block_header: BlockHeader,
-    pub block_chain: ChainMmr,
-    pub notes: Vec<InputNote>,
-    pub tx_args: TransactionArgs,
-}
-
-impl MockDataStore {
-    pub fn new() -> Self {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
-        Self {
-            account,
-            block_header,
-            block_chain,
-            notes: notes.into_vec(),
-            tx_args,
-        }
-    }
-
-    pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let (
-            account,
-            block_header,
-            block_chain,
-            consumed_notes,
-            _auxiliary_data_inputs,
-            created_notes,
-        ) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            input_notes,
-        );
-        let output_notes = created_notes.into_iter().filter_map(|note| match note {
-            OutputNote::Public(note) => Some(note),
-            OutputNote::Private(_) => None,
-        });
-        let mut tx_args = TransactionArgs::default();
-        tx_args.extend_expected_output_notes(output_notes);
-
-        Self {
-            account,
-            block_header,
-            block_chain,
-            notes: consumed_notes,
-            tx_args,
-        }
-    }
-}
-
-impl Default for MockDataStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl DataStore for MockDataStore {
-    fn get_transaction_inputs(
-        &self,
-        account_id: AccountId,
-        block_num: u32,
-        notes: &[NoteId],
-    ) -> Result<TransactionInputs, DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num, self.block_header.block_num());
-        assert_eq!(notes.len(), self.notes.len());
-
-        let notes = self
-            .notes
-            .iter()
-            .filter(|note| notes.contains(&note.id()))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        Ok(TransactionInputs::new(
-            self.account.clone(),
-            None,
-            self.block_header,
-            self.block_chain.clone(),
-            InputNotes::new(notes).unwrap(),
-        )
-        .unwrap())
-    }
-
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        Ok(self.account.code().module().clone())
-    }
-}
 
 // HELPER FUNCTIONS
 // ================================================================================================
