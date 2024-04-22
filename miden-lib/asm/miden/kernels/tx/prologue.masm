@@ -604,18 +604,17 @@ proc.process_input_note
     dup exec.memory::get_consumed_note_core_ptr
     # => [note_data_ptr, note_ptr, idx]
 
-    # read note data from the advice provider
-    padw padw padw
-    adv_pipe hperm adv_pipe hperm
+    # read nullifier data from the advice provider (serial_num, script_hash, input_hash, asset_hash)
+    padw padw padw adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, idx]
 
     # extract nullifier
     exec.native::state_to_digest movup.4 drop
-    # => [DIG, note_ptr, idx]
+    # => [NULLIFIER, note_ptr, idx]
 
     # compute address for nullifier
     movup.6 exec.memory::get_consumed_note_nullifier_ptr
-    # => [nullifier_ptr, DIG, note_ptr]
+    # => [nullifier_ptr, NULLIFIER, note_ptr]
 
     # store nullifier in memory and drop from stack
     mem_storew dropw
