@@ -15,8 +15,8 @@ use super::{
     TransactionHost,
 };
 
-mod data;
-pub use data::DataStore;
+mod data_store;
+pub use data_store::DataStore;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -34,7 +34,7 @@ pub use data::DataStore;
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D: DataStore> {
+pub struct TransactionExecutor<D> {
     data_store: D,
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
