@@ -49,6 +49,11 @@ pub struct AccountUpdate {
 }
 
 impl AccountUpdate {
+    /// Creates a new [AccountUpdate].
+    pub const fn new(init_hash: Digest, final_hash: Digest, details: AccountUpdateDetails) -> Self {
+        Self { init_hash, final_hash, details }
+    }
+
     /// Returns the initial account state hash.
     pub fn init_hash(&self) -> Digest {
         self.init_hash
