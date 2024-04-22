@@ -2,7 +2,8 @@ use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::Nullifier,
     transaction::{
-        AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
+        AccountUpdateDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder,
+        TransactionWitness,
     },
 };
 use miden_prover::prove;
@@ -81,12 +82,12 @@ impl TransactionProver {
                         .apply_delta(&account_delta)
                         .map_err(TransactionProverError::InvalidAccountDelta)?;
 
-                    AccountDetails::Full(account)
+                    AccountUpdateDetails::New(account)
                 } else {
-                    AccountDetails::Delta(account_delta)
+                    AccountUpdateDetails::Delta(account_delta)
                 };
 
-                builder.account_details(account_details)
+                builder.account_update_details(account_details)
             },
             false => builder,
         };

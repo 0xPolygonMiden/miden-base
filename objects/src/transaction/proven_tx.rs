@@ -13,12 +13,54 @@ use crate::{
 // ================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AccountDetails {
-    /// The whole state is needed for new accounts
-    Full(Account),
+pub enum AccountUpdateDetails {
+    /// Account is private (no on-chain state change).
+    Private,
+
+    /// The whole state is needed for new accounts.
+    New(Account),
 
     /// For existing accounts, only the delta is needed.
     Delta(AccountDelta),
+}
+
+/// Account update data.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountUpdate {
+    /// The hash of the account before the transaction was executed.
+    ///
+    /// Set to `Digest::default()` for new accounts.
+    init_hash: Digest,
+
+    /// The hash of the account after the transaction was executed.
+    final_hash: Digest,
+
+    /// Optional account state changes used for on-chain accounts. This data is used to update an
+    /// on-chain account's state after a local transaction execution. For private accounts, this
+    /// is [AccountUpdateDetails::Private].
+    details: AccountUpdateDetails,
+}
+
+impl AccountUpdate {
+    /// Returns the initial account state hash.
+    pub fn init_hash(&self) -> Digest {
+        self.init_hash
+    }
+
+    /// Returns the final account state hash.
+    pub fn final_hash(&self) -> Digest {
+        self.final_hash
+    }
+
+    /// Returns the account update details.
+    pub fn details(&self) -> &AccountUpdateDetails {
+        &self.details
+    }
+
+    /// Returns `true` if the account update details are for private account.
+    pub fn is_private(&self) -> bool {
+        matches!(self.details, AccountUpdateDetails::Private)
+    }
 }
 
 /// Result of executing and proving a transaction. Contains all the data required to verify that a
@@ -31,17 +73,8 @@ pub struct ProvenTransaction {
     /// ID of the account that the transaction was executed against.
     account_id: AccountId,
 
-    /// The hash of the account before the transaction was executed.
-    ///
-    /// Set to `Digest::default()` for new accounts.
-    initial_account_hash: Digest,
-
-    /// The hash of the account after the transaction was executed.
-    final_account_hash: Digest,
-
-    /// Optional account state changes used for on-chain accounts, This data is used to update an
-    /// on-chain account's state after a local transaction execution.
-    account_details: Option<AccountDetails>,
+    /// Account update data.
+    account_update: AccountUpdate,
 
     /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
@@ -70,19 +103,9 @@ impl ProvenTransaction {
         self.account_id
     }
 
-    /// Returns the initial account state hash.
-    pub fn initial_account_hash(&self) -> Digest {
-        self.initial_account_hash
-    }
-
-    /// Returns the final account state hash.
-    pub fn final_account_hash(&self) -> Digest {
-        self.final_account_hash
-    }
-
-    /// Returns the account details.
-    pub fn account_details(&self) -> Option<&AccountDetails> {
-        self.account_details.as_ref()
+    /// Returns the account update details.
+    pub fn account_update(&self) -> &AccountUpdate {
+        &self.account_update
     }
 
     /// Returns a reference to the notes consumed by the transaction.
@@ -109,53 +132,45 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if !self.account_id.is_on_chain() && self.account_details.is_some() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
-        }
-
         if self.account_id.is_on_chain() {
-            match self.account_details {
-                None => {
+            let is_new_account = self.account_update.init_hash == Digest::default();
+            match self.account_update.details {
+                AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::OnChainAccountMissingDetails(
                         self.account_id,
                     ))
                 },
-                Some(ref details) => {
-                    let is_new_account = self.initial_account_hash == Digest::default();
-
-                    match (is_new_account, details) {
-                        (true, AccountDetails::Delta(_)) => {
-                            return Err(
-                                ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (true, AccountDetails::Full(account)) => {
-                            if account.id() != self.account_id {
-                                return Err(ProvenTransactionError::AccountIdMismatch(
-                                    self.account_id,
-                                    account.id(),
-                                ));
-                            }
-                            if account.hash() != self.final_account_hash {
-                                return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                                    self.final_account_hash,
-                                    account.hash(),
-                                ));
-                            }
-                        },
-                        (false, AccountDetails::Full(_)) => {
-                            return Err(
-                                ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
-                                    self.account_id,
-                                ),
-                            )
-                        },
-                        (false, AccountDetails::Delta(_)) => (),
+                AccountUpdateDetails::New(ref account) => {
+                    if !is_new_account {
+                        return Err(
+                            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
+                                self.account_id,
+                            ),
+                        );
+                    }
+                    if account.id() != self.account_id {
+                        return Err(ProvenTransactionError::AccountIdMismatch(
+                            self.account_id,
+                            account.id(),
+                        ));
+                    }
+                    if account.hash() != self.account_update.final_hash {
+                        return Err(ProvenTransactionError::AccountFinalHashMismatch(
+                            self.account_update.final_hash,
+                            account.hash(),
+                        ));
+                    }
+                },
+                AccountUpdateDetails::Delta(_) => {
+                    if is_new_account {
+                        return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
+                            self.account_id,
+                        ));
                     }
                 },
             }
+        } else if !self.account_update.is_private() {
+            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
         }
 
         Ok(self)
@@ -178,7 +193,7 @@ pub struct ProvenTransactionBuilder {
     final_account_hash: Digest,
 
     /// State changes to the account due to the transaction.
-    account_details: Option<AccountDetails>,
+    account_update_details: AccountUpdateDetails,
 
     /// List of [Nullifier]s of all consumed notes by the transaction.
     input_notes: Vec<Nullifier>,
@@ -209,7 +224,7 @@ impl ProvenTransactionBuilder {
             account_id,
             initial_account_hash,
             final_account_hash,
-            account_details: None,
+            account_update_details: AccountUpdateDetails::Private,
             input_notes: Vec::new(),
             output_notes: Vec::new(),
             block_ref,
@@ -220,9 +235,9 @@ impl ProvenTransactionBuilder {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Sets the account's details.
-    pub fn account_details(mut self, account_details: AccountDetails) -> Self {
-        self.account_details = Some(account_details);
+    /// Sets the account's update details.
+    pub fn account_update_details(mut self, details: AccountUpdateDetails) -> Self {
+        self.account_update_details = details;
         self
     }
 
@@ -250,8 +265,12 @@ impl ProvenTransactionBuilder {
     ///
     /// An error will be returned if an on-chain account is used without provided on-chain detail.
     /// Or if the account details, i.e. account id and final hash, don't match the transaction.
-    pub fn build(mut self) -> Result<ProvenTransaction, ProvenTransactionError> {
-        let account_details = self.account_details.take();
+    pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
+        let account_update = AccountUpdate {
+            init_hash: self.initial_account_hash,
+            final_hash: self.final_account_hash,
+            details: self.account_update_details,
+        };
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
@@ -266,9 +285,7 @@ impl ProvenTransactionBuilder {
         let proven_transaction = ProvenTransaction {
             id,
             account_id: self.account_id,
-            initial_account_hash: self.initial_account_hash,
-            final_account_hash: self.final_account_hash,
-            account_details,
+            account_update,
             input_notes,
             output_notes,
             block_ref: self.block_ref,
@@ -282,26 +299,30 @@ impl ProvenTransactionBuilder {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for AccountDetails {
+impl Serializable for AccountUpdateDetails {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            AccountDetails::Full(account) => {
+            AccountUpdateDetails::Private => {
                 0_u8.write_into(target);
+            },
+            AccountUpdateDetails::New(account) => {
+                1_u8.write_into(target);
                 account.write_into(target);
             },
-            AccountDetails::Delta(delta) => {
-                1_u8.write_into(target);
+            AccountUpdateDetails::Delta(delta) => {
+                2_u8.write_into(target);
                 delta.write_into(target);
             },
         }
     }
 }
 
-impl Deserializable for AccountDetails {
+impl Deserializable for AccountUpdateDetails {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match u8::read_from(source)? {
-            0_u8 => Ok(Self::Full(Account::read_from(source)?)),
-            1_u8 => Ok(Self::Delta(AccountDelta::read_from(source)?)),
+            0 => Ok(Self::Private),
+            1 => Ok(Self::New(Account::read_from(source)?)),
+            2 => Ok(Self::Delta(AccountDelta::read_from(source)?)),
             v => Err(DeserializationError::InvalidValue(format!(
                 "Unknown variant {v} for AccountDetails"
             ))),
@@ -309,12 +330,28 @@ impl Deserializable for AccountDetails {
     }
 }
 
+impl Serializable for AccountUpdate {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.init_hash.write_into(target);
+        self.final_hash.write_into(target);
+        self.details.write_into(target);
+    }
+}
+
+impl Deserializable for AccountUpdate {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            init_hash: Digest::read_from(source)?,
+            final_hash: Digest::read_from(source)?,
+            details: AccountUpdateDetails::read_from(source)?,
+        })
+    }
+}
+
 impl Serializable for ProvenTransaction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
-        self.initial_account_hash.write_into(target);
-        self.final_account_hash.write_into(target);
-        self.account_details.write_into(target);
+        self.account_update.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
         self.block_ref.write_into(target);
@@ -325,9 +362,7 @@ impl Serializable for ProvenTransaction {
 impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let account_id = AccountId::read_from(source)?;
-        let initial_account_hash = Digest::read_from(source)?;
-        let final_account_hash = Digest::read_from(source)?;
-        let account_details = <Option<AccountDetails>>::read_from(source)?;
+        let account_update = AccountUpdate::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
@@ -336,8 +371,8 @@ impl Deserializable for ProvenTransaction {
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
-            initial_account_hash,
-            final_account_hash,
+            account_update.init_hash,
+            account_update.final_hash,
             input_notes.commitment(),
             output_notes.commitment(),
         );
@@ -345,9 +380,7 @@ impl Deserializable for ProvenTransaction {
         let proven_transaction = Self {
             id,
             account_id,
-            initial_account_hash,
-            final_account_hash,
-            account_details,
+            account_update,
             input_notes,
             output_notes,
             block_ref,
