@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 # Miden architecture overview
 
 Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution. 

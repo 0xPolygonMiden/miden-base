@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 Miden rollup state describes the current condition of all accounts and notes; i.e. what is currently the case. 
 
 As the state model uses concurrent off-chain state, Polygon Miden aims for private, and parallel transaction execution and state bloat minimization. 

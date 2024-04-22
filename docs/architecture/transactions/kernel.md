@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 The transaction kernel program, written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html), is responsible for executing a Miden rollup transaction within the Miden VM. It is defined as MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels). 
 
 The kernel provides context-sensitive security which prevents unwanted read and write access. It defines a set of procedures which can be invoked from other [contexts](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#execution-contexts); e.g. notes executed in the root context.

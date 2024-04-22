@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 Accounts are basic building blocks representing a user or an autonomous smart contract.
 
 For smart contracts the go-to solution is account-based state. Miden supports expressive smart contracts via a Turing-complete language and the use of accounts.

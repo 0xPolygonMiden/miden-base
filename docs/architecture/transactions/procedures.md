@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 There are user-facing procedures and kernel procedures. Users don't directly invoke kernel procedures, but instead they invoke them indirectly via account code, note, or transaction scripts. In these cases, kernel procedures are invoked by a `syscall` instruction which always executes in the kernel context.
 
 ## User-facing procedures (APIs)
