@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 In this section, we show you how to make off-chain transactions and send funds to another account using the Miden client. 
 
 !!! important "Prerequisite steps"

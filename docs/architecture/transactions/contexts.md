@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## Context overview
 
 Miden assembly program execution, the code the transaction kernel runs, spans multiple isolated contexts. An execution context defines its own memory space which is inaccessible from other execution contexts. Note scripts cannot directly write to account data which should only be possible if the account exposes relevant functions.

@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 # Polygon Miden
 
 Polygon Miden is a zero-knowledge rollup for private, high-throughput applications.

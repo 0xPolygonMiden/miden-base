@@ -62,6 +62,41 @@ cargo make test-all
 
 Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
 
+## Documentation
+
+### Running locally
+
+#### Prerequisites
+
+1. [Python 3.12](https://www.python.org/downloads/).
+2. [`virtualenv`](https://pypi.org/project/virtualenv/): Install using `pip3 install virtualenv`.
+
+#### Setup
+
+1. Clone the repository.
+2. `cd` to the root.
+3. Run the `run.sh` script. You may need to make the script executable: `chmod +x run.sh`
+
+```sh
+./run.sh
+```
+
+The site comes up at http://127.0.0.1:8000/ 
+
+### Style guide
+
+We are using the [Microsoft Style Guide](https://learn.microsoft.com/en-us/style-guide/welcome/).
+
+### Contributing
+
+1. Fork the `main` branch into your own GitHub account and create a feature branch for your changes.
+2. Commit changes and create a PR.
+
+### Contact
+
+- For docs issues (technical or language) open an issue here.
+- For anything else, join our [Discord](https://discord.gg/0xpolygondevs).
+
 ## License
 
 This project is [MIT licensed](./LICENSE)
