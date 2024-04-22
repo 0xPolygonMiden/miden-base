@@ -21,7 +21,8 @@ use mock::{
     mock::{
         account::{
             MockAccountType, ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT,
-            ACCOUNT_SET_ITEM_MAST_ROOT, STORAGE_INDEX_0,
+            ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT, STORAGE_INDEX_0,
+            STORAGE_INDEX_2,
         },
         notes::AssetPreservationStatus,
         transaction::mock_inputs,
@@ -97,6 +98,10 @@ fn executed_transaction_account_delta() {
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
 
+    // updated storage map
+    let updated_map_key = [Felt::new(14), Felt::new(15), Felt::new(16), Felt::new(17)];
+    let updated_map_value = [Felt::new(18), Felt::new(19), Felt::new(20), Felt::new(21)];
+
     // removed assets
     let removed_asset_1 = Asset::Fungible(
         FungibleAsset::new(
@@ -131,6 +136,14 @@ fn executed_transaction_account_delta() {
             # => [R', V]
         end
 
+        proc.set_map_item
+            #push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
+            # => [index, KEY, VALUE, 0, 0, 0]
+
+            call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
+            # => [R', V]
+        end
+
         proc.set_code
             call.{ACCOUNT_SET_CODE_MAST_ROOT}
             # => [0, 0, 0, 0]
@@ -162,6 +175,24 @@ fn executed_transaction_account_delta() {
 
             # update the storage value
             exec.set_item dropw dropw
+            # => []
+
+            ## Update account storage map
+            ## ------------------------------------------------------------------------------------
+            # push a new VALUE for the storage map onto the stack
+            push.{UPDATED_MAP_VALUE}
+            # => [18, 19, 20, 21]
+
+            # push a new KEY for the storage map onto the stack
+            push.{UPDATED_MAP_KEY}
+            # => [14, 15, 16, 17, 18, 19, 20, 21]
+
+            # get the index of account storage slot
+            push.{STORAGE_INDEX_2}
+            # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
+
+            # update the storage value
+            exec.set_map_item dropw dropw dropw    
             # => []
 
             ## Send some assets from the account vault
@@ -203,6 +234,8 @@ fn executed_transaction_account_delta() {
     ",
         NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
+        UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
+        UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
@@ -228,7 +261,7 @@ fn executed_transaction_account_delta() {
 
     // storage delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 2);
     assert_eq!(
         executed_transaction.account_delta().storage().updated_items[0].0,
         STORAGE_INDEX_0
@@ -236,6 +269,16 @@ fn executed_transaction_account_delta() {
     assert_eq!(
         executed_transaction.account_delta().storage().updated_items[0].1,
         updated_slot_value
+    );
+
+    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 1);
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_maps[0].0,
+        STORAGE_INDEX_2
+    );
+    assert_eq!(
+        executed_transaction.account_delta().storage().updated_maps[0].1.updated_leaves[0],
+        (updated_map_key, updated_map_value)
     );
 
     // vault delta

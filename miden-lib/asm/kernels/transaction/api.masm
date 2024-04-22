@@ -1,3 +1,5 @@
+use.std::collections::smt
+
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
 use.miden::kernels::tx::faucet
@@ -22,6 +24,14 @@ const.ACCOUNT_VAULT_ADD_ASSET_EVENT=131072
 
 # Event emitted to signal that an asset is being removed from the account vault.
 const.ACCOUNT_VAULT_REMOVE_ASSET_EVENT=131073
+
+# TYPES
+# =================================================================================================
+
+# Type of storage slot item in the account storage
+const.STORAGE_VALUE=0
+const.STORAGE_MAP=1
+const.STORAGE_ARRAY=2
 
 # AUTHENTICATION
 # =================================================================================================
@@ -176,6 +186,87 @@ export.set_account_item
     # organize the stack for return
     movup.8 drop movup.8 drop movup.8 drop
     # => [R', V]
+end
+
+#! Returns VALUE located under specified KEY in map in specified account storage slot. 
+#! Panics if 
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
+#!
+#! Stack: [index, KEY, ...]
+#! Output: [VALUE, 0]
+#!
+#! - index is the index of the item to get.
+#! - VALUE is the value of the item.
+export.get_account_map_item
+    # check if storage type is map
+    dup exec.account::get_storage_slot_type_info drop
+    # => [slot_type, index, KEY, ...]
+
+    # fails if slot_type is not 1 = map
+    push.STORAGE_MAP eq assert
+    # => [index, KEY, ...]
+    
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item swapw
+    # => [KEY, ROOT ...]
+
+    # fetch the VALUE located under KEY in the tree
+    exec.smt::get 
+    # => [VALUE, ROOT, ...]
+
+    # prepare the stack for return
+    swapw dropw
+    # => [VALUE, 0]
+end
+
+#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot. 
+#! Panics if 
+#! - the index is out of bounds (>255).
+#! - the requested storage slot type is not map
+#! - the procedure is called from a non-account context
+#!
+#! Stack: [index, KEY, NEW_VALUE, ...]
+#! Output: [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
+#!
+#! - index is the index of the item to get.
+#! - NEW_VALUE is the value of the new map item for the respective KEY.
+#! - OLD_VALUE is the value of the old map item for the respective KEY.
+#! - KEY is the key of the new item.
+#! - OLD_MAP_ROOT is the root of the old map before insertion
+#! - NEW_MAP_ROOT is the root of the new map after insertion.
+export.set_account_map_item.1
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [index, KEY, NEW_VALUE, ...]
+
+    # check if storage type is map
+    dup exec.account::get_storage_slot_type_info drop
+    # => [slot_type, index, KEY, NEW_VALUE, ...]
+
+    # fails if slot_type is not 1 = map
+    push.STORAGE_MAP eq assert
+    # => [index, KEY, NEW_VALUE, ...]
+
+    # stores index for later
+    dup loc_store.0
+    # => [index, KEY, NEW_VALUE, ...]
+
+    # fetch the account storage item, which is ROOT of the map
+    exec.account::get_item movdnw.2
+    # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
+
+    # set the new map item
+    loc_load.0 exec.account::set_map_item swapw
+    # => [NEW_MAP_ROOT, OLD_MAP_VALUE, ...]
+
+    # set the root of the map in the respective account storage slot
+    loc_load.0 exec.account::set_item
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
+
+    # organize the stack for return (16 elements)
+    movupw.2 dropw
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only

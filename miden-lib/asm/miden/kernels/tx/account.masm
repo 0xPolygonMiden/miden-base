@@ -1,3 +1,5 @@
+use.std::collections::smt
+
 use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 
@@ -65,6 +67,9 @@ const.MAX_SLOT_TYPE=64
 
 # Event emitted to signal that an account storage item is being updated.
 const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
+
+# Event emitted to signal that an account storage map item is being updated.
+const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131078
 
 # Event emitted to signal that account nonce is being incremented.
 const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
@@ -317,7 +322,7 @@ end
 export.get_item
     # get the storage root
     exec.memory::get_acct_storage_root
-    # => [storage_root, index]
+    # => [STORAGE_ROOT, index]
 
     # get the item from storage
     movup.4 push.STORAGE_TREE_DEPTH mtree_get
@@ -353,6 +358,28 @@ export.set_item
     # set the new storage root
     swapw exec.memory::set_acct_storage_root
     # => [V]
+end
+
+#! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
+#!
+#! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
+#! Output: [OLD_VALUE, NEW_ROOT, ...]
+#!
+#! - OLD_ROOT is the root of the map to set the KEY NEW_VALUE pair.
+#! - NEW_VALUE is the value to set under KEY.
+#! - KEY is the key to set.
+#! - OLD_VALUE is the previous value of the item.
+#! - NEW_ROOT is the new root of the map.
+export.set_map_item
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    # emit event to signal that an account storage item is being updated
+    push.1 drop emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop
+
+    # set the NEW_VALUE under KEY in the tree
+    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
+    swapw exec.smt::set
+    # => [OLD_VALUE, NEW_ROOT, ...]
 end
 
 #! Verifies that the procedure root is part of the account code Merkle tree. Panics if the

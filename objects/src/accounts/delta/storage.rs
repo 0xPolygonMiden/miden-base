@@ -1,8 +1,8 @@
 use alloc::{string::ToString, vec::Vec};
 
 use super::{
-    AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    Word,
+    AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
+    Serializable, Word,
 };
 
 // CONSTANTS
@@ -21,6 +21,7 @@ const MAX_MUTABLE_STORAGE_SLOT_IDX: u8 = 254;
 pub struct AccountStorageDelta {
     pub cleared_items: Vec<u8>,
     pub updated_items: Vec<(u8, Word)>,
+    pub updated_maps: Vec<(u8, StorageMapDelta)>,
 }
 
 impl AccountStorageDelta {
@@ -31,6 +32,7 @@ impl AccountStorageDelta {
     /// - The number of cleared or updated items is greater than 255.
     /// - Any of cleared or updated items are at slot 255 (i.e., immutable slot).
     /// - Any of the cleared or updated items is referenced more than once (e.g., updated twice).
+    /// - There is a storage map delta without a corresponding storage item update.
     pub fn validate(&self) -> Result<(), AccountDeltaError> {
         let num_cleared_items = self.cleared_items.len();
         let num_updated_items = self.updated_items.len();
@@ -73,6 +75,22 @@ impl AccountStorageDelta {
             }
         }
 
+        // make sure storage map deltas are valid
+        for (index, storage_map_delta) in self.updated_maps.iter() {
+            if index > &MAX_MUTABLE_STORAGE_SLOT_IDX {
+                return Err(AccountDeltaError::ImmutableStorageSlot(*index as usize));
+            }
+            // for every storage map delta there should be one corresponding storage item update
+            if !self.updated_items.iter().any(|(idx, _)| idx == index) {
+                return Err(AccountDeltaError::StorageMapDeltaWithoutStorageItemChange(
+                    *index as usize,
+                ));
+            }
+            if !storage_map_delta.is_empty() {
+                storage_map_delta.validate()?;
+            }
+        }
+
         Ok(())
     }
 
@@ -96,6 +114,10 @@ impl Serializable for AccountStorageDelta {
             idx.write_into(target);
             value.write_into(target);
         }
+
+        assert!(self.updated_maps.len() <= u8::MAX as usize, "too many updated storage maps");
+        target.write_u8(self.updated_maps.len() as u8);
+        self.updated_maps.write_into(target);
     }
 }
 
@@ -155,7 +177,92 @@ impl Deserializable for AccountStorageDelta {
             updated_items.push((idx, value));
         }
 
-        Ok(Self { cleared_items, updated_items })
+        // deserialize and validate storage map deltas
+        let num_updated_maps = source.read_u8()? as usize;
+        let mut updated_maps = Vec::with_capacity(num_updated_maps);
+        for _ in 0..num_updated_maps {
+            let idx = source.read_u8()?;
+            let value = StorageMapDelta::read_from(source)?;
+            updated_maps.push((idx, value));
+        }
+
+        Ok(Self {
+            cleared_items,
+            updated_items,
+            updated_maps,
+        })
+    }
+}
+
+// STORAGE MAP DELTA
+// ================================================================================================
+
+/// [StorageMapDelta] stores the differences between two states of account storage maps.
+///
+/// The differences are represented as follows:
+/// - leave updates: represented by `cleared_leaves` and `updated_leaves` field.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct StorageMapDelta {
+    pub cleared_leaves: Vec<Word>,
+    pub updated_leaves: Vec<(Word, Word)>,
+}
+
+impl StorageMapDelta {
+    /// Creates a new storage map delta from the provided cleared and updated leaves.
+    pub fn from(cleared_leaves: Vec<Word>, updated_leaves: Vec<(Word, Word)>) -> Self {
+        StorageMapDelta { cleared_leaves, updated_leaves }
+    }
+
+    /// Checks whether this storage map delta is valid.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Any of the cleared or updated leaves is referenced more than once (e.g., updated twice).
+    pub fn validate(&self) -> Result<(), AccountDeltaError> {
+        // we add all keys to a single vector and sort them to check for duplicates
+        // we don't use a hash set because we want to use no-std compatible code
+        let mut all_keys: Vec<Vec<u64>> = self
+            .cleared_leaves
+            .iter()
+            .chain(self.updated_leaves.iter().map(|(key, _)| key))
+            .map(|x| x.iter().map(|x| x.as_int()).collect::<Vec<_>>())
+            .collect();
+
+        all_keys.sort_unstable();
+
+        if let Some(key) = all_keys.windows(2).find(|els| els[0] == els[1]) {
+            let mut iter = key[0].iter().map(|&x| Felt::new(x));
+            // we know that the key is 4 elements long
+            let digest = Word::from([
+                iter.next().unwrap(),
+                iter.next().unwrap(),
+                iter.next().unwrap(),
+                iter.next().unwrap(),
+            ]);
+            return Err(AccountDeltaError::DuplicateStorageMapLeaf { key: digest.into() });
+        }
+
+        Ok(())
+    }
+
+    /// Returns true if storage map delta contains no updates.
+    pub fn is_empty(&self) -> bool {
+        self.cleared_leaves.is_empty() && self.updated_leaves.is_empty()
+    }
+}
+
+impl Serializable for StorageMapDelta {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.cleared_leaves.write_into(target);
+        self.updated_leaves.write_into(target);
+    }
+}
+
+impl Deserializable for StorageMapDelta {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let cleared_leaves = Vec::<_>::read_from(source)?;
+        let updated_leaves = Vec::<_>::read_from(source)?;
+        Ok(Self { cleared_leaves, updated_leaves })
     }
 }
 
@@ -172,6 +279,7 @@ mod tests {
         let delta = AccountStorageDelta {
             cleared_items: vec![1, 2, 3],
             updated_items: vec![(4, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_ok());
 
@@ -182,6 +290,7 @@ mod tests {
         let delta = AccountStorageDelta {
             cleared_items: vec![1, 2, 255],
             updated_items: vec![],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_err());
 
@@ -192,6 +301,7 @@ mod tests {
         let delta = AccountStorageDelta {
             cleared_items: vec![1, 2, 1],
             updated_items: vec![],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_err());
 
@@ -202,6 +312,7 @@ mod tests {
         let delta = AccountStorageDelta {
             cleared_items: vec![],
             updated_items: vec![(4, [ONE, ONE, ONE, ONE]), (255, [ONE, ONE, ONE, ZERO])],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_err());
 
@@ -216,6 +327,7 @@ mod tests {
                 (5, [ONE, ONE, ONE, ZERO]),
                 (4, [ONE, ONE, ZERO, ZERO]),
             ],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_err());
 
@@ -226,6 +338,7 @@ mod tests {
         let delta = AccountStorageDelta {
             cleared_items: vec![1, 2, 3],
             updated_items: vec![(2, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
+            updated_maps: vec![],
         };
         assert!(delta.validate().is_err());
 

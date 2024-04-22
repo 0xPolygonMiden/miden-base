@@ -27,11 +27,11 @@ The four most significant bits specify the [account type](#account-types) - regu
 
 ### Account data storage
 
-A storage for user-defined data that is composed of two components.
+A storage for user-defined data. Users can choose between different storage options
 
-1. A simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `word` slots.
+1. Storage slots: Users have access to `254` slots. Per slot, users can store a `word` (~64 bytes). Currently, we reserve slot `0` for the account owner's key and slot `255` for information about the storage layout.
 
-2. Users requiring additional storage can use the second component a `MerkleStore`. It allows users to store any Merkle structures they need. The root of the Merkle structure can be stored as a leaf in a simple sparse Merkle tree. When `AccountStorage` is serialized it checks if any of the leaves in the simple sparse Merkle tree are Merkle roots of other Merkle structures. If any Merkle roots are found then the Merkle structures will be persisted in the `AccountStorage`'s `MerkleStore`.
+2. Storage maps: Users requiring additional storage can use the second component a `StorageMap`. It provides way more space than storage slots. `StorageMaps` are sparse Merkle trees of depth `64`. Each leave is a list of (key, value) pairs of which each key and value are `word`s (~64 bytes). The root of the tree will be stored in a storage slot. In theory, users can use `254` `StorageMaps`.
 
 ### Nonce
 

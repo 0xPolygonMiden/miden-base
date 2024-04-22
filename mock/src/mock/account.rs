@@ -2,7 +2,7 @@ use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
-        AccountStorageType, AccountType, SlotItem, StorageSlot,
+        AccountStorageType, AccountType, SlotItem, StorageMap, StorageSlot,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
@@ -10,7 +10,7 @@ use miden_objects::{
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::merkle::Smt,
+    crypto::{hash::rpo::RpoDigest, merkle::Smt},
     Felt, FieldElement, Word, ZERO,
 };
 
@@ -30,6 +30,18 @@ pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Fel
 pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
 
+pub const STORAGE_INDEX_2: u8 = 40;
+pub const STORAGE_LEAVES_2: [(RpoDigest, Word); 2] = [
+    (
+        RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+        [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+    ),
+    (
+        RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+        [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+    ),
+];
+
 pub fn storage_item_0() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_0,
@@ -41,6 +53,17 @@ pub fn storage_item_1() -> SlotItem {
     SlotItem {
         index: STORAGE_INDEX_1,
         slot: StorageSlot::new_value(STORAGE_VALUE_1),
+    }
+}
+
+pub fn storage_map_2() -> StorageMap {
+    StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
+}
+
+pub fn storage_item_2() -> SlotItem {
+    SlotItem {
+        index: STORAGE_INDEX_2,
+        slot: StorageSlot::new_map(Word::from(storage_map_2().root())),
     }
 }
 
@@ -73,16 +96,21 @@ fn mock_account_vault() -> AssetVault {
 
 pub fn mock_account_storage() -> AccountStorage {
     // create account storage
-    AccountStorage::new(vec![storage_item_0(), storage_item_1()]).unwrap()
+    AccountStorage::new(
+        vec![storage_item_0(), storage_item_1(), storage_item_2()],
+        vec![storage_map_2()],
+    )
+    .unwrap()
 }
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 8] = [
+const MASTS: [&str; 9] = [
     "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
     "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
+    "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
     "0xef07641ea1aa8fe85d8f854d29bf729b92251e1433244892138fd9ca898a5a22",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
@@ -92,10 +120,11 @@ pub const ACCOUNT_RECEIVE_ASSET_MAST_ROOT: &str = MASTS[0];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[4];
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[5];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
+pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
+pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[8];
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
@@ -146,7 +175,16 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [R', V]
             end
 
-            # acct proc 4
+            # acct proc 4
+            export.set_map_item
+                exec.account::set_map_item
+                # => [R', V, 0, 0, 0]
+
+                movup.8 drop movup.8 drop movup.8 drop
+                # => [R', V]
+            end
+
+            # acct proc 5
             export.set_code
                 padw swapw
                 # => [CODE_ROOT, 0, 0, 0, 0]
@@ -155,19 +193,19 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0, 0, 0, 0]
             end
 
-            # acct proc 5
+            # acct proc 6
             export.create_note
                 exec.tx::create_note
                 # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             end
 
-            # acct proc 6
+            # acct proc 7
             export.account_procedure_1
                 push.1.2
                 add
             end
 
-            # acct proc 7
+            # acct proc 8
             export.account_procedure_2
                 push.2.1
                 sub
@@ -193,8 +231,9 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
         code.procedures()[5].to_hex(),
         code.procedures()[6].to_hex(),
         code.procedures()[7].to_hex(),
+        code.procedures()[8].to_hex(),
     ];
-    assert!(current == MASTS, "const MASTS: [&str; 8] = {:?};", current);
+    assert!(current == MASTS, "const MASTS: [&str; 9] = {:?};", current);
 
     code
 }
@@ -247,10 +286,13 @@ pub fn mock_fungible_faucet(
     } else {
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
-    let account_storage = AccountStorage::new(vec![SlotItem {
-        index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-    }])
+    let account_storage = AccountStorage::new(
+        vec![SlotItem {
+            index: FAUCET_STORAGE_DATA_SLOT,
+            slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
+        }],
+        vec![],
+    )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
@@ -276,10 +318,13 @@ pub fn mock_non_fungible_faucet(
 
     // TODO: add nft tree data to account storage?
 
-    let account_storage = AccountStorage::new(vec![SlotItem {
-        index: FAUCET_STORAGE_DATA_SLOT,
-        slot: StorageSlot::new_map(*nft_tree.root()),
-    }])
+    let account_storage = AccountStorage::new(
+        vec![SlotItem {
+            index: FAUCET_STORAGE_DATA_SLOT,
+            slot: StorageSlot::new_map(*nft_tree.root()),
+        }],
+        vec![],
+    )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
