@@ -42,21 +42,19 @@ impl TransactionProver {
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let tx_witness: TransactionWitness = transaction.into();
 
-        // extract required data from the transaction witness
-        let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
-
-        let input_notes: InputNotes<Nullifier> = (tx_witness.tx_inputs().input_notes()).into();
-
+        let input_notes: InputNotes<Nullifier> = tx_witness.tx_inputs().input_notes().into();
         let account_id = tx_witness.account().id();
         let block_hash = tx_witness.block_header().hash();
 
+        // execute and prove
+        let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host = TransactionHost::new(tx_witness.account().into(), advice_provider);
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
-        // extract transaction outputs and process transaction data
+        // extract outputs
         let (advice_provider, account_delta, output_notes) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs =
