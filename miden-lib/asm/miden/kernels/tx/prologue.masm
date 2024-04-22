@@ -1,5 +1,6 @@
 use.std::collections::smt
 use.std::collections::mmr
+use.std::crypto::hashes::native
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
@@ -138,8 +139,8 @@ proc.process_block_data
     adv_pipe hperm adv_pipe hperm adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, block_data_ptr']
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [DIG, block_data_ptr']
 
     # load the note root from the advice provider
@@ -248,7 +249,7 @@ proc.ingest_acct_storage_types
     end
 
     # extract the digest and drop the memory pointer
-    dropw swapw dropw movup.4 drop
+    exec.native::state_to_digest movup.4 drop
     # => [DIGEST, TYPES_COM]
 
     # assert the digest matches the commitment
@@ -440,8 +441,8 @@ proc.process_acct_data
     adv_pipe hperm adv_pipe hperm
     # => [RATE1, RATE0, CAPACITY, act_data_ptr']
 
-    # extract digest from hasher rate state and drop pointer
-    dropw swapw dropw movup.4 drop
+    # extract digest and drop pointer
+    exec.native::state_to_digest movup.4 drop
     # => [ACCT_HASH]
 
     # Validate the account
@@ -608,8 +609,8 @@ proc.process_input_note
     adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, idx]
 
-    # extract nullifier (digest)
-    dropw swapw dropw movup.4 drop
+    # extract nullifier
+    exec.native::state_to_digest movup.4 drop
     # => [DIG, note_ptr, idx]
 
     # compute address for nullifier
@@ -694,8 +695,8 @@ proc.process_input_note
     end
     # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [DIG, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # clean and rearrange stack
@@ -901,7 +902,7 @@ proc.process_input_notes_data
     end
 
     # extract nullifier hash
-    dropw swapw dropw
+    exec.native::state_to_digest
     # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
