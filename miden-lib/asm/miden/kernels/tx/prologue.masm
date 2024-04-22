@@ -570,50 +570,47 @@ proc.authenticate_note.2
     # => []
 end
 
-#! Reads data for the input note i from the advice provider and stores it in memory at the
+#! Reads data for the ith input note from the advice provider and stores it in memory at the
 #! appropriate memory address. This includes computing and storing the nullifier and the
 #! note hash.
 #!
-#! Stack: [i]
-#! Advice stack: [CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!               C1_NI, CN1_NA, CN1_A1, CN1_A2, ...]
-#!
+#! Stack: [idx]
+#! Advice stack: [SN, SR, IR, VR, NI, NA, A0, ..., An]
 #! Output: []
 #!
 #! Where:
-#! - i is the index of the input note.
-#! - CN1_SN is the serial number of input note 1.
-#! - CN1_SR is the script root of input note 1.
-#! - CN1_IR is the inputs root of input note 1.
-#! - CN1_VR is the vault root of input note 1.
-#! - CN1_NI is the number of inputs in input note 1.
-#! - CN1_NA is the number of assets in input note 1.
-#! - CN1_A1 is the first asset of input note 1.
-#! - CN1_A2 is the second asset of input note 1.
+#! - idx is the index of the input note.
+#! - SN is the serial number of input note `idx`.
+#! - SR is the script root of input note `idx`.
+#! - IR is the inputs root of input note `idx`.
+#! - VR is the vault root of input note `idx`.
+#! - NI is the number of inputs in input note `idx`.
+#! - NA is the number of assets in input note `idx`.
+#! - A0..An are the assets of input note `idx`.
 proc.process_input_note
     # read core note data
     # ---------------------------------------------------------------------------------------------
 
     # dup the note index
     dup
-    # => [i, i]
+    # => [idx, idx]
 
     # compute address to store note hash
     exec.memory::get_consumed_note_ptr
-    # => [note_ptr, i]
+    # => [note_ptr, idx]
 
     # compute address to store core note data
     dup exec.memory::get_consumed_note_core_ptr
-    # => [note_data_ptr, note_ptr, i]
+    # => [note_data_ptr, note_ptr, idx]
 
     # read note data from the advice provider
     padw padw padw
     adv_pipe hperm adv_pipe hperm
-    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, i]
+    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, idx]
 
     # extract nullifier (digest)
     dropw swapw dropw movup.4 drop
-    # => [DIG, note_ptr, i]
+    # => [DIG, note_ptr, idx]
 
     # compute address for nullifier
     movup.6 exec.memory::get_consumed_note_nullifier_ptr
