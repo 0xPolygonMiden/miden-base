@@ -367,11 +367,15 @@ mod tests {
     fn check_if_sync<T: Sync>() {}
     fn check_if_send<T: Send>() {}
 
+    /// [ProvenTransaction] being Sync is part of its public API and changing it is backwards
+    /// incompatible.
     #[test]
     fn proven_transaction_is_sync() {
         check_if_sync::<ProvenTransaction>();
     }
 
+    /// [ProvenTransaction] being Send is part of its public API and changing it is backwards
+    /// incompatible.
     #[test]
     fn proven_transaction_is_send() {
         check_if_send::<ProvenTransaction>();
