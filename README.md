@@ -64,6 +64,8 @@ Some of the functions in this project are computationally intensive and may take
 
 ## Documentation
 
+Our documentation is published on the [Polygon Knowledge Layer](https://docs.polygon.technology/miden/).
+
 ### Running locally
 
 #### Prerequisites
@@ -86,16 +88,6 @@ The site comes up at http://127.0.0.1:8000/
 ### Style guide
 
 We are using the [Microsoft Style Guide](https://learn.microsoft.com/en-us/style-guide/welcome/).
-
-### Contributing
-
-1. Fork the `main` branch into your own GitHub account and create a feature branch for your changes.
-2. Commit changes and create a PR.
-
-### Contact
-
-- For docs issues (technical or language) open an issue here.
-- For anything else, join our [Discord](https://discord.gg/0xpolygondevs).
 
 ## License
 
