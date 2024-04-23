@@ -1,4 +1,4 @@
-use std::prelude::rust_2015::Vec;
+use alloc::vec::Vec;
 
 use super::{Digest, Felt, Hasher, ZERO};
 
