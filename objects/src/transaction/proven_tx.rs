@@ -90,7 +90,7 @@ pub struct AccountUpdateData {
 
 impl AccountUpdateData {
     /// Creates a new [AccountUpdateData].
-    pub fn new(
+    pub const fn new(
         account_id: AccountId,
         final_state_hash: Digest,
         details: AccountUpdateDetails,

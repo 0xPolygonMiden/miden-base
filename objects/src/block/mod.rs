@@ -35,7 +35,7 @@ pub struct Block {
 
 impl Block {
     /// Creates a new block.
-    pub fn new(
+    pub const fn new(
         header: BlockHeader,
         updated_accounts: Vec<AccountUpdateData>,
         created_notes: Vec<NoteBatch>,
