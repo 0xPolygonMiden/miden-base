@@ -4,6 +4,7 @@
 
 * [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
 * [BREAKING] Refactored account update details (#618).
+* [BREAKING] Moved `Block` and `AccountUpdataData` to `miden-objects` (#621).
 
 ## 0.2.1 (2024-04-12)
 
