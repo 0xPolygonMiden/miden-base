@@ -5,11 +5,12 @@ use super::{Digest, Felt, Hasher, ZERO};
 mod header;
 pub use header::BlockHeader;
 mod note_tree;
-pub use note_tree::BlockNoteTree;
+pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
     notes::Nullifier,
     transaction::{AccountUpdateData, OutputNote},
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
 pub type NoteBatch = Vec<OutputNote>;
@@ -27,10 +28,9 @@ pub struct Block {
     created_notes: Vec<NoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
-    produced_nullifiers: Vec<Nullifier>,
-    // TODO:
-    // - full states for created public notes
-    // - zk proof
+    created_nullifiers: Vec<Nullifier>,
+    //
+    // TODO: add zk proof
 }
 
 impl Block {
@@ -39,13 +39,13 @@ impl Block {
         header: BlockHeader,
         updated_accounts: Vec<AccountUpdateData>,
         created_notes: Vec<NoteBatch>,
-        produced_nullifiers: Vec<Nullifier>,
+        created_nullifiers: Vec<Nullifier>,
     ) -> Self {
         Self {
             header,
             updated_accounts,
             created_notes,
-            produced_nullifiers,
+            created_nullifiers,
         }
     }
 
@@ -65,7 +65,39 @@ impl Block {
     }
 
     /// Returns the nullifiers.
-    pub fn produced_nullifiers(&self) -> &Vec<Nullifier> {
-        &self.produced_nullifiers
+    pub fn created_nullifiers(&self) -> &Vec<Nullifier> {
+        &self.created_nullifiers
+    }
+
+    /// Returns an iterator over created notes in the block.
+    pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
+        self.created_notes.iter().enumerate().flat_map(|(batch_idx, notes)| {
+            notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
+                (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note)
+            })
+        })
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for Block {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.header.write_into(target);
+        self.updated_accounts.write_into(target);
+        self.created_notes.write_into(target);
+        self.created_nullifiers.write_into(target);
+    }
+}
+
+impl Deserializable for Block {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self {
+            header: BlockHeader::read_from(source)?,
+            updated_accounts: <Vec<AccountUpdateData>>::read_from(source)?,
+            created_notes: <Vec<NoteBatch>>::read_from(source)?,
+            created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
+        })
     }
 }
