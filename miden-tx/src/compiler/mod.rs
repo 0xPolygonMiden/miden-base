@@ -51,6 +51,16 @@ impl TransactionCompiler {
         }
     }
 
+    /// Puts the [TransactionCompiler] into debug mode.
+    /// 
+    /// When transaction compiler is in debug mode, all transaction-related code (note scripts,
+    /// account code) will be compiled in debug mode which will preserve debug artifacts from the
+    /// original source code.
+    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
+        self.assembler = self.assembler.with_debug_mode(in_debug_mode);
+        self
+    }
+
     // ACCOUNT CODE AND NOTE SCRIPT COMPILERS
     // --------------------------------------------------------------------------------------------
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2024-04-23)
+
+* Added `with_debug_mode()` methods to `TransactionCompiler` and `TransactionExecutor` (#562).
+
 ## 0.2.1 (2024-04-12)
 
 * [BREAKING] Return a reference to `NoteMetadata` from output notes (#593).
