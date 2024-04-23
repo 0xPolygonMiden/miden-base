@@ -21,7 +21,8 @@ pub use inputs::{InputNote, InputNotes, ToNullifier, TransactionInputs};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use prepared_tx::PreparedTransaction;
 pub use proven_tx::{
-    AccountUpdate, AccountUpdateDetails, ProvenTransaction, ProvenTransactionBuilder,
+    AccountUpdate, AccountUpdateData, AccountUpdateDetails, ProvenTransaction,
+    ProvenTransactionBuilder,
 };
 pub use transaction_id::TransactionId;
 pub use tx_args::{TransactionArgs, TransactionScript};

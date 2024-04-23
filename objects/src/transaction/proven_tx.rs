@@ -75,6 +75,45 @@ impl AccountUpdate {
     }
 }
 
+/// Account update data.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountUpdateData {
+    /// Account ID.
+    account_id: AccountId,
+
+    /// The hash of the account after the transaction was executed.
+    final_state_hash: Digest,
+
+    /// Account update details.
+    details: AccountUpdateDetails,
+}
+
+impl AccountUpdateData {
+    /// Creates a new [AccountUpdateData].
+    pub fn new(
+        account_id: AccountId,
+        final_state_hash: Digest,
+        details: AccountUpdateDetails,
+    ) -> Self {
+        Self { account_id, final_state_hash, details }
+    }
+
+    /// Returns the account ID.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns the hash of the account after the transaction was executed.
+    pub fn final_state_hash(&self) -> Digest {
+        self.final_state_hash
+    }
+
+    /// Returns the account update details.
+    pub fn details(&self) -> &AccountUpdateDetails {
+        &self.details
+    }
+}
+
 /// Result of executing and proving a transaction. Contains all the data required to verify that a
 /// transaction was executed correctly.
 #[derive(Debug, Clone, PartialEq, Eq)]
