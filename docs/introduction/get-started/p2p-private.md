@@ -55,7 +55,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> --note-type private
+    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
