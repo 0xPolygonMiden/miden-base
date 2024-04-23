@@ -52,9 +52,11 @@ impl<D: DataStore> TransactionExecutor<D> {
         }
     }
 
-    // Debugger
-    // --------------------------------------------------------------------------------------------
-    /// Puts the [TransactionCompiler] instance into debug mode.
+    /// Puts the [TransactionExecutor] into debug mode.
+    /// 
+    /// When transaction executor is in debug mode, all transaction-related code (note scripts,
+    /// account code) will be compiled and executed in debug mode. This will ensure that all debug
+    /// instructions present in the original source code are executed.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
         self.compiler = self.compiler.with_debug_mode(in_debug_mode);
         self
