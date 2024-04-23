@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -58,7 +60,7 @@ fn prove_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
+    let data_store = Arc::new(MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note])));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account.id()).unwrap();
@@ -117,7 +119,7 @@ fn prove_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
+    let data_store = Arc::new(MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![])));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(sender_account.id()).unwrap();
