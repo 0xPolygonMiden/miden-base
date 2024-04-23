@@ -51,6 +51,14 @@ impl TransactionCompiler {
         }
     }
 
+    // Debugger
+    // --------------------------------------------------------------------------------------------
+    /// Puts the [Assembler] instance into debug mode.
+    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
+        self.assembler = self.assembler.with_debug_mode(in_debug_mode);
+        self
+    }
+
     // ACCOUNT CODE AND NOTE SCRIPT COMPILERS
     // --------------------------------------------------------------------------------------------
 

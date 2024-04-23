@@ -52,6 +52,14 @@ impl<D: DataStore> TransactionExecutor<D> {
         }
     }
 
+    // Debugger
+    // --------------------------------------------------------------------------------------------
+    /// Puts the [TransactionCompiler] instance into debug mode.
+    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
+        self.compiler = self.compiler.with_debug_mode(in_debug_mode);
+        self
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
