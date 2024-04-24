@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
@@ -53,7 +55,7 @@ fn prove_p2id_script() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+        Arc::new(MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()])));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -101,7 +103,7 @@ fn prove_p2id_script() {
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+        Arc::new(MockDataStore::with_existing(Some(malicious_account), Some(vec![note])));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor
@@ -166,7 +168,7 @@ fn p2id_script_multiple_assets() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+        Arc::new(MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()])));
 
     let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
@@ -211,7 +213,7 @@ fn p2id_script_multiple_assets() {
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
     let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+        Arc::new(MockDataStore::with_existing(Some(malicious_account), Some(vec![note])));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor

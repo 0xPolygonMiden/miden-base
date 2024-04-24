@@ -92,6 +92,6 @@ To clear all state, delete this file. It recreates on any command execution.
 
 You have successfully configured and used the Miden client to interact with a Miden rollup and faucet. 
 
-You have performed basic Miden rollup operations like sending transactions, generating and consuming notes.
+You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
