@@ -34,7 +34,7 @@ jobs:
           components: rustfmt
           override: true
       - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - format
+      - name: cargo make - format-check
         run: cargo make format-check
 
   clippy:
