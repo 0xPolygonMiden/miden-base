@@ -1,9 +1,11 @@
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        },
         Account, AccountId, AccountStorage, SlotItem, StorageSlot,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
@@ -191,7 +193,9 @@ fn prove_send_asset_via_wallet() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn wallet_creation() {
-    use miden_objects::accounts::{AccountStorageType, AccountType, ACCOUNT_ID_SENDER};
+    use miden_objects::accounts::{
+        account_id::testing::ACCOUNT_ID_SENDER, AccountStorageType, AccountType,
+    };
 
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];
