@@ -35,7 +35,7 @@ impl BlockNoteTree {
         entries: impl IntoIterator<Item = (BlockNoteIndex, RpoDigest, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let interleaved = entries.into_iter().flat_map(|(index, note_id, metadata)| {
-            let id_index = Self::leaf_index(index);
+            let id_index = index.leaf_index();
             [(id_index, note_id.into()), (id_index + 1, metadata.into())]
         });
 
@@ -52,25 +52,13 @@ impl BlockNoteTree {
     /// The returned path is to the node which is the parent of both note and note metadata node.
     pub fn get_note_path(&self, index: BlockNoteIndex) -> Result<MerklePath, MerkleError> {
         // get the path to the leaf containing the note (path len = 21)
-        let leaf_index = LeafIndex::new(Self::leaf_index(index))?;
+        let leaf_index = LeafIndex::new(index.leaf_index())?;
 
         // move up the path by removing the first node, this path now points to the parent of the
         // note path
         let note_path = self.0.open(&leaf_index).path[1..].to_vec();
 
         Ok(note_path.into())
-    }
-
-    /// Returns an index to the node which the parent of both the note and note metadata.
-    pub fn note_index(index: BlockNoteIndex) -> u64 {
-        (index.batch_idx() * MAX_NOTES_PER_BATCH + index.note_idx_in_batch()) as u64
-    }
-
-    // HELPERS
-    // --------------------------------------------------------------------------------------------
-
-    fn leaf_index(index: BlockNoteIndex) -> u64 {
-        Self::note_index(index) * 2
     }
 }
 
@@ -101,6 +89,15 @@ impl BlockNoteIndex {
     /// Returns the note index in the batch.
     pub fn note_idx_in_batch(&self) -> usize {
         self.note_idx_in_batch
+    }
+
+    /// Returns an index to the node which the parent of both the note and note metadata.
+    pub fn note_index(&self) -> u64 {
+        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64
+    }
+
+    fn leaf_index(&self) -> u64 {
+        self.note_index() * 2
     }
 }
 

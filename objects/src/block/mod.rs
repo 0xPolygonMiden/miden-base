@@ -55,17 +55,17 @@ impl Block {
     }
 
     /// Returns the account updates.
-    pub fn updated_accounts(&self) -> &Vec<AccountUpdateData> {
+    pub fn updated_accounts(&self) -> &[AccountUpdateData] {
         &self.updated_accounts
     }
 
     /// Returns the note batches.
-    pub fn created_notes(&self) -> &Vec<NoteBatch> {
+    pub fn created_notes(&self) -> &[NoteBatch] {
         &self.created_notes
     }
 
     /// Returns the nullifiers.
-    pub fn created_nullifiers(&self) -> &Vec<Nullifier> {
+    pub fn created_nullifiers(&self) -> &[Nullifier] {
         &self.created_nullifiers
     }
 
