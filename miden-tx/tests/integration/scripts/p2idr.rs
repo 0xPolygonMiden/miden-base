@@ -1,9 +1,12 @@
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
     accounts::{
-        Account, AccountId, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+        },
+        Account, AccountId,
     },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},

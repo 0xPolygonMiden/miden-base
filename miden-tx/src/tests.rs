@@ -3,8 +3,11 @@ use alloc::vec::Vec;
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{
-        Account, AccountCode, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        Account, AccountCode,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
@@ -192,7 +195,7 @@ fn executed_transaction_account_delta() {
             # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
 
             # update the storage value
-            exec.set_map_item dropw dropw dropw    
+            exec.set_map_item dropw dropw dropw
             # => []
 
             ## Send some assets from the account vault
