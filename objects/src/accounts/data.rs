@@ -127,7 +127,6 @@ impl Deserializable for AuthData {
 
 #[cfg(test)]
 mod tests {
-    use assembly::{ast::ModuleAst, Assembler};
     use miden_crypto::utils::{Deserializable, Serializable};
     use storage::AccountStorage;
     #[cfg(feature = "std")]
@@ -136,32 +135,15 @@ mod tests {
     use super::{AccountData, AuthData};
     use crate::{
         accounts::{
-            storage, Account, AccountCode, AccountId, Felt, Word,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            code::testing::make_account_code, storage, Account, AccountId, Felt, Word,
         },
         assets::AssetVault,
     };
 
     fn build_account_data() -> AccountData {
-        // create account id
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-
-        // build account code
-        let source = "
-            export.foo
-                push.1 push.2 mul
-            end
-
-            export.bar
-                push.1 push.2 add
-            end
-        ";
-        let mut module = ModuleAst::parse(source).unwrap();
-        // clears are needed since imports and source locations are not serialized for account code
-        module.clear_locations();
-        module.clear_imports();
-        let assembler = Assembler::default();
-        let code = AccountCode::new(module, &assembler).unwrap();
+        let code = make_account_code();
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();
@@ -172,38 +154,27 @@ mod tests {
         let auth_seed = [0u8; 32];
         let auth = AuthData::RpoFalcon512Seed(auth_seed);
 
-        // create AccountData
         AccountData::new(account, account_seed, auth)
     }
 
     #[test]
-    fn account_data_correctly_serialises_and_deserialises() {
-        // create AccountData
+    fn test_serde() {
         let account_data = build_account_data();
-
-        // serialize and deserialize the code; make sure deserialized version matches the original
-        let bytes = account_data.to_bytes();
-        let account_data_2 = AccountData::read_from_bytes(&bytes).unwrap();
-        assert_eq!(account_data, account_data_2);
+        let serialized = account_data.to_bytes();
+        let deserialized = AccountData::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, account_data);
     }
 
     #[cfg(feature = "std")]
     #[test]
-    fn account_data_is_correctly_writen_and_read_to_and_from_file() {
-        // setup temp directory
+    fn test_serde_file() {
         let dir = tempdir().unwrap();
         let filepath = dir.path().join("account_data.mac");
 
-        // create AccountData
         let account_data = build_account_data();
-
-        // write AccountData to file
         account_data.write(filepath.as_path()).unwrap();
+        let deserialized = AccountData::read(filepath.as_path()).unwrap();
 
-        // read AccountData from file
-        let account_data_2 = AccountData::read(filepath.as_path()).unwrap();
-
-        // make sure deserialized version matches the original
-        assert_eq!(account_data, account_data_2)
+        assert_eq!(deserialized, account_data)
     }
 }

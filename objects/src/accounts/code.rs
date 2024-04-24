@@ -198,37 +198,43 @@ fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt<PROCEDURE_TREE_DEPTH
     .expect("failed to build procedure tree")
 }
 
+// TESTING
+// ================================================================================================
+
+#[cfg(any(feature = "testing", test))]
+pub mod testing {
+    use super::{AccountCode, Assembler, ModuleAst};
+
+    pub const CODE: &str = "
+        export.foo
+            push.1 push.2 mul
+        end
+
+        export.bar
+            push.1 push.2 add
+        end
+    ";
+
+    pub fn make_account_code() -> AccountCode {
+        let mut module = ModuleAst::parse(CODE).unwrap();
+        // clears are needed since they're not serialized for account code
+        module.clear_imports();
+        module.clear_locations();
+        AccountCode::new(module, &Assembler::default()).unwrap()
+    }
+}
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
-    use super::{AccountCode, Assembler, Deserializable, ModuleAst, Serializable};
+    use super::{testing::*, AccountCode, Deserializable, Serializable};
 
     #[test]
-    fn serialize_code() {
-        let source = "
-            export.foo
-                push.1 push.2 mul
-            end
-
-            export.bar
-                push.1 push.2 add
-            end
-        ";
-
-        // build account code from source
-        let mut module = ModuleAst::parse(source).unwrap();
-        // clears are needed since they're not serialized for account code
-        module.clear_imports();
-        module.clear_locations();
-        let assembler = Assembler::default();
-        let code1 = AccountCode::new(module, &assembler).unwrap();
-
-        // serialize and deserialize the code; make sure deserialized version matches the original
-        let bytes = code1.to_bytes();
-        let code2 = AccountCode::read_from_bytes(&bytes).unwrap();
-
-        assert_eq!(code1, code2)
+    fn test_serde() {
+        let code = make_account_code();
+        let serialized = code.to_bytes();
+        let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, code)
     }
 }
