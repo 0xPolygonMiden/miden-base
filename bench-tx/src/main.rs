@@ -32,7 +32,7 @@ pub enum Benchmark {
 }
 
 fn main() -> Result<(), String> {
-    let path = Path::new("bench-tx/src/bench-tx.json");
+    let path = Path::new("bench-tx/bench-tx.json");
     let mut file = File::create(path).map_err(|e| e.to_string())?;
     file.write_all(b"{}").map_err(|e| e.to_string())?;
 

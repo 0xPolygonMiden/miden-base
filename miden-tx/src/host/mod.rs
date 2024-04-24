@@ -279,15 +279,31 @@ impl<A: AdviceProvider> TransactionHost<A> {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the ID of the consumed note being executed.
+    /// Returns:
+    /// - The ID of the consumed note being executed if the note pointer is valid.
+    /// - `None` if note execution has not started yet or has already ended.
+    ///
+    /// # Errors
+    /// Returns an error if the provided note address is greater than u32::MAX.
     fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
-        let note_address_felt = process
-            .get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR)
-            .expect("current consumed note pointer invalid")[0];
+        // get the word where note address is stored
+        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR);
+        // get the note address in `Felt` from or return `None` if the address hasn't been accessed
+        // previously.
+        let note_address_felt = match note_address_word {
+            Some(w) => w[0],
+            None => return Ok(None),
+        };
+        // get the note address
         let note_address: u32 = note_address_felt
             .try_into()
             .map_err(|_| ExecutionError::MemoryAddressOutOfBounds(note_address_felt.as_int()))?;
-        Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
+        // if `note_address` == 0 note execution has ended and there is no valid note address
+        if note_address == 0 {
+            Ok(None)
+        } else {
+            Ok(process.get_mem_value(process.ctx(), note_address).map(NoteId::from))
+        }
     }
 }
 
@@ -357,7 +373,8 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
             NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
-                let note_id = Self::get_current_note_id(process)?;
+                let note_id = Self::get_current_note_id(process)?
+                    .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
                 self.tx_progress.start_note_execution(process.clk(), note_id);
             },
             NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),

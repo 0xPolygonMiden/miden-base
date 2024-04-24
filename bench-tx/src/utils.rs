@@ -1,5 +1,6 @@
 extern crate alloc;
 pub use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -20,6 +21,7 @@ use mock::mock::{
 };
 
 use super::{read_to_string, write, Benchmark, Path};
+use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
 
 // CONSTANTS
@@ -151,78 +153,44 @@ impl DataStore for MockDataStore {
     }
 }
 
-// TRANSACTION PROGRESS PRINTER
+// TRANSACTION BENCHMARK
 // ================================================================================================
 
-pub fn tx_progress_to_json_string(tx_progress: &TransactionProgress) -> String {
-    let mut json_string = String::new();
-    json_string.push('{');
+#[derive(Serialize)]
+pub struct TransactionBenchmark {
+    prologue: Option<u32>,
+    notes_processing: Option<u32>,
+    note_execution: BTreeMap<String, Option<u32>>,
+    tx_script_processing: Option<u32>,
+    epilogue: Option<u32>,
+}
 
-    // push lenght of the prologue cycle interval
-    json_string.push_str(&format!(
-        "\"prologue\": {}, ",
-        tx_progress
-            .prologue()
-            .len()
-            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-            .unwrap_or("invalid interval".to_string())
-    ));
+impl From<&TransactionProgress> for TransactionBenchmark {
+    fn from(tx_progress: &TransactionProgress) -> Self {
+        let prologue = tx_progress.prologue().len().map(|len| (len - SPAN_CREATION_SHIFT));
 
-    // push lenght of the notes processing cycle interval
-    json_string.push_str(&format!(
-        "\"notes_processing\": {}, ",
-        tx_progress
-            .notes_processing()
-            .len()
-            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-            .unwrap_or("invalid interval".to_string())
-    ));
+        let notes_processing =
+            tx_progress.notes_processing().len().map(|len| (len - SPAN_CREATION_SHIFT));
 
-    // prepare string with executed notes
-    let mut notes = String::new();
-    tx_progress.note_execution().iter().fold(true, |first, (note_id, interval)| {
-        if !first {
-            notes.push_str(", ");
+        let mut note_execution = BTreeMap::new();
+        tx_progress.note_execution().iter().for_each(|(note_id, interval)| {
+            note_execution
+                .insert(note_id.to_hex(), interval.len().map(|len| (len - SPAN_CREATION_SHIFT)));
+        });
+
+        let tx_script_processing =
+            tx_progress.tx_script_processing().len().map(|len| (len - SPAN_CREATION_SHIFT));
+
+        let epilogue = tx_progress.epilogue().len().map(|len| (len - SPAN_CREATION_SHIFT));
+
+        Self {
+            prologue,
+            notes_processing,
+            note_execution,
+            tx_script_processing,
+            epilogue,
         }
-        notes.push_str(&format!(
-            "{{{}: {}}}",
-            note_id
-                .map(|id| format!("\"{}\"", id.to_hex()))
-                .unwrap_or("id_unavailable".to_string()),
-            interval
-                .len()
-                .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-                .unwrap_or("invalid interval".to_string())
-        ));
-        false
-    });
-
-    // push lenghts of the note execution cycle intervals
-    json_string.push_str(&format!("\"note_execution\": [{}], ", notes));
-
-    // push lenght of the transaction script processing cycle interval
-    json_string.push_str(&format!(
-        "\"tx_script_processing\": {},",
-        tx_progress
-            .tx_script_processing()
-            .len()
-            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-            .unwrap_or("invalid interval".to_string())
-    ));
-
-    // push lenght of the epilogue cycle interval
-    json_string.push_str(&format!(
-        "\"epilogue\": {}",
-        tx_progress
-            .epilogue()
-            .len()
-            .map(|len| (len - SPAN_CREATION_SHIFT).to_string())
-            .unwrap_or("invalid interval".to_string())
-    ));
-
-    json_string.push('}');
-
-    json_string
+    }
 }
 
 // HELPER FUNCTIONS
@@ -263,12 +231,12 @@ pub fn write_cycles_to_json(
     let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
-    let tx_progress_json: Value =
-        from_str(&tx_progress_to_json_string(tx_progress)).map_err(|e| e.to_string())?;
+    let tx_benchmark = TransactionBenchmark::from(tx_progress);
+    let tx_benchmark_json = serde_json::to_value(tx_benchmark).map_err(|e| e.to_string())?;
 
     match bench_type {
-        Benchmark::Simple => benchmark_json["simple"] = tx_progress_json,
-        Benchmark::P2ID => benchmark_json["p2id"] = tx_progress_json,
+        Benchmark::Simple => benchmark_json["simple"] = tx_benchmark_json,
+        Benchmark::P2ID => benchmark_json["p2id"] = tx_benchmark_json,
     }
 
     write(

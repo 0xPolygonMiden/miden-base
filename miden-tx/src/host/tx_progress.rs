@@ -11,7 +11,7 @@ use miden_objects::notes::NoteId;
 pub struct TransactionProgress {
     prologue: CycleInterval,
     notes_processing: CycleInterval,
-    note_execution: Vec<(Option<NoteId>, CycleInterval)>,
+    note_execution: Vec<(NoteId, CycleInterval)>,
     tx_script_processing: CycleInterval,
     epilogue: CycleInterval,
 }
@@ -28,7 +28,7 @@ impl TransactionProgress {
         &self.notes_processing
     }
 
-    pub fn note_execution(&self) -> &Vec<(Option<NoteId>, CycleInterval)> {
+    pub fn note_execution(&self) -> &Vec<(NoteId, CycleInterval)> {
         &self.note_execution
     }
 
@@ -59,7 +59,7 @@ impl TransactionProgress {
         self.notes_processing.set_end(cycle);
     }
 
-    pub fn start_note_execution(&mut self, cycle: u32, note_id: Option<NoteId>) {
+    pub fn start_note_execution(&mut self, cycle: u32, note_id: NoteId) {
         self.note_execution.push((note_id, CycleInterval::new(cycle)));
     }
 
