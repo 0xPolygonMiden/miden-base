@@ -92,7 +92,7 @@ args = ["build", "--release"]
 [tasks.build-no-std]
 description = "Build using no-std"
 command = "cargo"
-args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock"]
+args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock", "--exclude", "miden-bench-tx"]
 
 # --- benchmarking --------------------------------------------------------------------------------
 [tasks.bench-tx]
