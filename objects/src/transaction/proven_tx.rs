@@ -3,7 +3,7 @@ use alloc::{string::ToString, vec::Vec};
 use miden_verifier::ExecutionProof;
 
 use super::{
-    AccountId, AccountUpdate, AccountUpdateDetails, Digest, InputNotes, Nullifier, OutputNote,
+    AccountId, AccountUpdateDetails, AccountUpdateInfo, Digest, InputNotes, Nullifier, OutputNote,
     OutputNotes, TransactionId,
 };
 use crate::{
@@ -21,11 +21,8 @@ pub struct ProvenTransaction {
     /// A unique identifier for the transaction, see [TransactionId] for additional details.
     id: TransactionId,
 
-    /// ID of the account that the transaction was executed against.
-    account_id: AccountId,
-
     /// Account update data.
-    account_update: AccountUpdate,
+    account_update: AccountUpdateInfo,
 
     /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
@@ -51,11 +48,11 @@ impl ProvenTransaction {
 
     /// Returns ID of the account against which this transaction was executed.
     pub fn account_id(&self) -> AccountId {
-        self.account_id
+        self.account_update.account_id()
     }
 
     /// Returns the account update details.
-    pub fn account_update(&self) -> &AccountUpdate {
+    pub fn account_update(&self) -> &AccountUpdateInfo {
         &self.account_update
     }
 
@@ -83,31 +80,31 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if self.account_id.is_on_chain() {
-            let is_new_account = self.account_update.init_hash() == Digest::default();
+        if self.account_id().is_on_chain() {
+            let is_new_account = self.account_update.init_state_hash() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::OnChainAccountMissingDetails(
-                        self.account_id,
+                        self.account_id(),
                     ))
                 },
                 AccountUpdateDetails::New(ref account) => {
                     if !is_new_account {
                         return Err(
                             ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
-                                self.account_id,
+                                self.account_id(),
                             ),
                         );
                     }
-                    if account.id() != self.account_id {
+                    if account.id() != self.account_id() {
                         return Err(ProvenTransactionError::AccountIdMismatch(
-                            self.account_id,
+                            self.account_id(),
                             account.id(),
                         ));
                     }
-                    if account.hash() != self.account_update.final_hash() {
+                    if account.hash() != self.account_update.new_state_hash() {
                         return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                            self.account_update.final_hash(),
+                            self.account_update.new_state_hash(),
                             account.hash(),
                         ));
                     }
@@ -115,13 +112,13 @@ impl ProvenTransaction {
                 AccountUpdateDetails::Delta(_) => {
                     if is_new_account {
                         return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
-                            self.account_id,
+                            self.account_id(),
                         ));
                     }
                 },
             }
         } else if !self.account_update.is_private() {
-            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id));
+            return Err(ProvenTransactionError::OffChainAccountWithDetails(self.account_id()));
         }
 
         Ok(self)
@@ -217,11 +214,6 @@ impl ProvenTransactionBuilder {
     /// An error will be returned if an on-chain account is used without provided on-chain detail.
     /// Or if the account details, i.e. account id and final hash, don't match the transaction.
     pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
-        let account_update = AccountUpdate::new(
-            self.initial_account_hash,
-            self.final_account_hash,
-            self.account_update_details,
-        );
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
@@ -232,10 +224,15 @@ impl ProvenTransactionBuilder {
             input_notes.commitment(),
             output_notes.commitment(),
         );
+        let account_update = AccountUpdateInfo::new(
+            self.account_id,
+            self.initial_account_hash,
+            self.final_account_hash,
+            self.account_update_details,
+        );
 
         let proven_transaction = ProvenTransaction {
             id,
-            account_id: self.account_id,
             account_update,
             input_notes,
             output_notes,
@@ -252,7 +249,6 @@ impl ProvenTransactionBuilder {
 
 impl Serializable for ProvenTransaction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.account_id.write_into(target);
         self.account_update.write_into(target);
         self.input_notes.write_into(target);
         self.output_notes.write_into(target);
@@ -263,8 +259,7 @@ impl Serializable for ProvenTransaction {
 
 impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let account_id = AccountId::read_from(source)?;
-        let account_update = AccountUpdate::read_from(source)?;
+        let account_update = AccountUpdateInfo::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
@@ -273,15 +268,14 @@ impl Deserializable for ProvenTransaction {
         let proof = ExecutionProof::read_from(source)?;
 
         let id = TransactionId::new(
-            account_update.init_hash(),
-            account_update.final_hash(),
+            account_update.init_state_hash(),
+            account_update.new_state_hash(),
             input_notes.commitment(),
             output_notes.commitment(),
         );
 
         let proven_transaction = Self {
             id,
-            account_id,
             account_update,
             input_notes,
             output_notes,

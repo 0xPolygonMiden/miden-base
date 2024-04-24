@@ -26,13 +26,11 @@ impl AccountUpdateDetails {
 /// Account update data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdate {
-    /// The hash of the account before the transaction was executed.
-    ///
-    /// Set to `Digest::default()` for new accounts.
-    init_hash: Digest,
+    /// Account ID.
+    account_id: AccountId,
 
     /// The hash of the account after the transaction was executed.
-    final_hash: Digest,
+    new_state_hash: Digest,
 
     /// Optional account state changes used for on-chain accounts. This data is used to update an
     /// on-chain account's state after a local transaction execution. For private accounts, this
@@ -42,18 +40,22 @@ pub struct AccountUpdate {
 
 impl AccountUpdate {
     /// Creates a new [AccountUpdate].
-    pub const fn new(init_hash: Digest, final_hash: Digest, details: AccountUpdateDetails) -> Self {
-        Self { init_hash, final_hash, details }
+    pub const fn new(
+        account_id: AccountId,
+        new_state_hash: Digest,
+        details: AccountUpdateDetails,
+    ) -> Self {
+        Self { account_id, new_state_hash, details }
     }
 
-    /// Returns the initial account state hash.
-    pub fn init_hash(&self) -> Digest {
-        self.init_hash
+    /// Returns the account ID.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
     }
 
     /// Returns the final account state hash.
-    pub fn final_hash(&self) -> Digest {
-        self.final_hash
+    pub fn new_state_hash(&self) -> Digest {
+        self.new_state_hash
     }
 
     /// Returns the account update details.
@@ -69,40 +71,58 @@ impl AccountUpdate {
 
 /// Account update data.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AccountUpdateData {
-    /// Account ID.
-    account_id: AccountId,
+pub struct AccountUpdateInfo {
+    /// The hash of the account before the transaction was executed.
+    ///
+    /// Set to `Digest::default()` for new accounts.
+    init_state_hash: Digest,
 
-    /// The hash of the account after the transaction was executed.
-    final_state_hash: Digest,
-
-    /// Account update details.
-    details: AccountUpdateDetails,
+    /// Account update information.
+    update: AccountUpdate,
 }
 
-impl AccountUpdateData {
-    /// Creates a new [AccountUpdateData].
+impl AccountUpdateInfo {
+    /// Creates a new [AccountUpdateInfo].
     pub const fn new(
         account_id: AccountId,
-        final_state_hash: Digest,
+        init_state_hash: Digest,
+        new_state_hash: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
-        Self { account_id, final_state_hash, details }
+        Self {
+            init_state_hash,
+            update: AccountUpdate::new(account_id, new_state_hash, details),
+        }
     }
 
     /// Returns the account ID.
     pub fn account_id(&self) -> AccountId {
-        self.account_id
+        self.update.account_id()
+    }
+
+    /// Returns the initial account state hash.
+    pub fn init_state_hash(&self) -> Digest {
+        self.init_state_hash
     }
 
     /// Returns the hash of the account after the transaction was executed.
-    pub fn final_state_hash(&self) -> Digest {
-        self.final_state_hash
+    pub fn new_state_hash(&self) -> Digest {
+        self.update.new_state_hash()
     }
 
     /// Returns the account update details.
     pub fn details(&self) -> &AccountUpdateDetails {
-        &self.details
+        self.update.details()
+    }
+
+    /// Returns `true` if the account update details are for private account.
+    pub fn is_private(&self) -> bool {
+        self.update.is_private()
+    }
+
+    /// Returns the account update.
+    pub fn update(&self) -> &AccountUpdate {
+        &self.update
     }
 }
 
@@ -142,8 +162,8 @@ impl Deserializable for AccountUpdateDetails {
 
 impl Serializable for AccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.init_hash.write_into(target);
-        self.final_hash.write_into(target);
+        self.account_id.write_into(target);
+        self.new_state_hash.write_into(target);
         self.details.write_into(target);
     }
 }
@@ -151,27 +171,25 @@ impl Serializable for AccountUpdate {
 impl Deserializable for AccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
-            init_hash: Digest::read_from(source)?,
-            final_hash: Digest::read_from(source)?,
+            account_id: AccountId::read_from(source)?,
+            new_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
     }
 }
 
-impl Serializable for AccountUpdateData {
+impl Serializable for AccountUpdateInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.account_id.write_into(target);
-        self.final_state_hash.write_into(target);
-        self.details.write_into(target);
+        self.init_state_hash.write_into(target);
+        self.update.write_into(target);
     }
 }
 
-impl Deserializable for AccountUpdateData {
+impl Deserializable for AccountUpdateInfo {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
-            account_id: AccountId::read_from(source)?,
-            final_state_hash: Digest::read_from(source)?,
-            details: AccountUpdateDetails::read_from(source)?,
+            init_state_hash: Digest::read_from(source)?,
+            update: AccountUpdate::read_from(source)?,
         })
     }
 }

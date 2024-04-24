@@ -9,7 +9,7 @@ pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
     notes::Nullifier,
-    transaction::{AccountUpdateData, OutputNote},
+    transaction::{AccountUpdate, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -22,7 +22,7 @@ pub struct Block {
     header: BlockHeader,
 
     /// Account updates for the block.
-    updated_accounts: Vec<AccountUpdateData>,
+    updated_accounts: Vec<AccountUpdate>,
 
     /// Note batches created in transactions in the block.
     created_notes: Vec<NoteBatch>,
@@ -37,7 +37,7 @@ impl Block {
     /// Creates a new block.
     pub const fn new(
         header: BlockHeader,
-        updated_accounts: Vec<AccountUpdateData>,
+        updated_accounts: Vec<AccountUpdate>,
         created_notes: Vec<NoteBatch>,
         created_nullifiers: Vec<Nullifier>,
     ) -> Self {
@@ -55,7 +55,7 @@ impl Block {
     }
 
     /// Returns the account updates.
-    pub fn updated_accounts(&self) -> &[AccountUpdateData] {
+    pub fn updated_accounts(&self) -> &[AccountUpdate] {
         &self.updated_accounts
     }
 
@@ -95,7 +95,7 @@ impl Deserializable for Block {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             header: BlockHeader::read_from(source)?,
-            updated_accounts: <Vec<AccountUpdateData>>::read_from(source)?,
+            updated_accounts: <Vec<AccountUpdate>>::read_from(source)?,
             created_notes: <Vec<NoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
         })
