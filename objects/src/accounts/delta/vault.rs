@@ -20,6 +20,23 @@ pub struct AccountVaultDelta {
 }
 
 impl AccountVaultDelta {
+    /// Creates an empty [AccountVaultDelta].
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    /// Creates an [AccountVaultDelta] from the given iterators.
+    pub fn from_iterators<A, B>(added_assets: A, removed_assets: B) -> Self
+    where
+        A: IntoIterator<Item = Asset>,
+        B: IntoIterator<Item = Asset>,
+    {
+        Self {
+            added_assets: Vec::from_iter(added_assets),
+            removed_assets: Vec::from_iter(removed_assets),
+        }
+    }
+
     /// Checks whether this vault delta is valid.
     ///
     /// # Errors
@@ -127,17 +144,23 @@ impl Deserializable for AccountVaultDelta {
 mod tests {
     use super::{AccountVaultDelta, Asset, Deserializable, Serializable};
     use crate::{
-        accounts::{AccountId, AccountType},
+        accounts::{
+            account_id::testing::{
+                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            },
+            testing::build_assets,
+            AccountId,
+        },
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     };
 
     #[test]
     fn account_vault_delta_validation() {
-        // generate test data
-        let ffid1 = AccountId::new_dummy([0; 32], AccountType::FungibleFaucet);
-        let ffid2 = AccountId::new_dummy([1; 32], AccountType::FungibleFaucet);
-        let nffid1 = AccountId::new_dummy([0; 32], AccountType::NonFungibleFaucet);
-        let nffid2 = AccountId::new_dummy([1; 32], AccountType::NonFungibleFaucet);
+        let ffid1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let ffid2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+        let nffid2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
 
         let asset1: Asset = FungibleAsset::new(ffid1, 10).unwrap().into();
         let asset2: Asset = FungibleAsset::new(ffid1, 30).unwrap().into();
@@ -197,5 +220,25 @@ mod tests {
 
         let bytes = delta.to_bytes();
         assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_serde_account_vault() {
+        let (asset_0, asset_1) = build_assets();
+        let delta = AccountVaultDelta::from_iterators([asset_0], [asset_1]);
+
+        let serialized = delta.to_bytes();
+        let deserialized = AccountVaultDelta::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, delta);
+    }
+
+    #[test]
+    fn test_is_empty_account_vault() {
+        let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+        let asset: Asset = FungibleAsset::new(faucet, 123).unwrap().into();
+
+        assert!(AccountVaultDelta::empty().is_empty());
+        assert!(!AccountVaultDelta::from_iterators([asset], []).is_empty());
+        assert!(!AccountVaultDelta::from_iterators([], [asset]).is_empty());
     }
 }
