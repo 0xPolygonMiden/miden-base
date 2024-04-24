@@ -22,7 +22,7 @@ jobs:
         run: ./scripts/check-rust-version.sh
 
   rustfmt:
-    name: rustfmt nightly on ubuntu-latest
+    name: rustfmt check nightly on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
           override: true
       - uses: davidB/rust-cargo-make@v1
       - name: cargo make - format
-        run: cargo make format
+        run: cargo make format-check
 
   clippy:
     name: clippy stable on ubuntu-latest
