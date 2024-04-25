@@ -279,12 +279,12 @@ impl<A: AdviceProvider> TransactionHost<A> {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns:
-    /// - The ID of the consumed note being executed if the note pointer is valid.
-    /// - `None` if note execution has not started yet or has already ended.
+    /// Returns the ID of the currently executing input note, or None if the note execution hasn't
+    /// started yet or has already ended.
     ///
     /// # Errors
-    /// Returns an error if the provided note address is greater than u32::MAX.
+    /// Returns an error if the address of the currently executing input note is invalid (e.g.,
+    /// greater than `u32::MAX`).
     fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
         // get the word where note address is stored
         let note_address_word = process.get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR);

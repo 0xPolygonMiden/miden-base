@@ -28,9 +28,6 @@ use super::{read_to_string, write, Benchmark, Path};
 // CONSTANTS
 // ================================================================================================
 
-/// Number of cycles needed to create an empty span whithout changing the stack state.
-const SPAN_CREATION_SHIFT: u32 = 2;
-
 pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 = 0x200000000000001F; // 2305843009213693983
 pub const ACCOUNT_ID_SENDER: u64 = 0x800000000000001F; // 9223372036854775839
 pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = 0x900000000000003F; // 10376293541461622847
@@ -166,23 +163,20 @@ pub struct TransactionBenchmark {
     epilogue: Option<u32>,
 }
 
-impl From<&TransactionProgress> for TransactionBenchmark {
-    fn from(tx_progress: &TransactionProgress) -> Self {
-        let prologue = tx_progress.prologue().len().map(|len| (len - SPAN_CREATION_SHIFT));
+impl From<TransactionProgress> for TransactionBenchmark {
+    fn from(tx_progress: TransactionProgress) -> Self {
+        let prologue = tx_progress.prologue().len();
 
-        let notes_processing =
-            tx_progress.notes_processing().len().map(|len| (len - SPAN_CREATION_SHIFT));
+        let notes_processing = tx_progress.notes_processing().len();
 
         let mut note_execution = BTreeMap::new();
         tx_progress.note_execution().iter().for_each(|(note_id, interval)| {
-            note_execution
-                .insert(note_id.to_hex(), interval.len().map(|len| (len - SPAN_CREATION_SHIFT)));
+            note_execution.insert(note_id.to_hex(), interval.len());
         });
 
-        let tx_script_processing =
-            tx_progress.tx_script_processing().len().map(|len| (len - SPAN_CREATION_SHIFT));
+        let tx_script_processing = tx_progress.tx_script_processing().len();
 
-        let epilogue = tx_progress.epilogue().len().map(|len| (len - SPAN_CREATION_SHIFT));
+        let epilogue = tx_progress.epilogue().len();
 
         Self {
             prologue,
@@ -224,22 +218,23 @@ pub fn get_account_with_default_account_code(
     Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
-pub fn write_cycles_to_json(
+pub fn write_bench_results_to_json(
     path: &Path,
-    bench_type: Benchmark,
-    tx_progress: &TransactionProgress,
+    tx_benchmarks: Vec<(Benchmark, TransactionProgress)>,
 ) -> Result<(), String> {
+    // convert benchmark file internals to the JSON Value
     let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;
     let mut benchmark_json: Value = from_str(&benchmark_file).map_err(|e| e.to_string())?;
 
-    let tx_benchmark = TransactionBenchmark::from(tx_progress);
-    let tx_benchmark_json = serde_json::to_value(tx_benchmark).map_err(|e| e.to_string())?;
+    // fill becnhmarks JSON with results of each benchmark
+    for (bench_type, tx_progress) in tx_benchmarks {
+        let tx_benchmark = TransactionBenchmark::from(tx_progress);
+        let tx_benchmark_json = serde_json::to_value(tx_benchmark).map_err(|e| e.to_string())?;
 
-    match bench_type {
-        Benchmark::Simple => benchmark_json["simple"] = tx_benchmark_json,
-        Benchmark::P2ID => benchmark_json["p2id"] = tx_benchmark_json,
+        benchmark_json[bench_type.to_string()] = tx_benchmark_json;
     }
 
+    // write the becnhmarks JSON to the results file
     write(
         path,
         to_string_pretty(&benchmark_json).expect("failed to convert json to String"),

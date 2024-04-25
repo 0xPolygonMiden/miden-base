@@ -7,7 +7,7 @@ use miden_objects::notes::NoteId;
 
 /// Contains the information about the number of cycles for each of the transaction execution
 /// stages.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct TransactionProgress {
     prologue: CycleInterval,
     notes_processing: CycleInterval,
@@ -87,7 +87,7 @@ impl TransactionProgress {
 }
 
 /// Stores the cycles corresponding to the start and the end of an interval.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CycleInterval {
     start: Option<u32>,
     end: Option<u32>,

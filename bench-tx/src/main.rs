@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     fs::{read_to_string, write, File},
     io::Write,
@@ -16,14 +17,14 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::{TransactionExecutor, TransactionHost};
+use miden_tx::{TransactionExecutor, TransactionHost, TransactionProgress};
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, write_cycles_to_json, MockDataStore, String, ToString,
-    Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    get_account_with_default_account_code, write_bench_results_to_json, MockDataStore, String,
+    ToString, Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
 pub enum Benchmark {
@@ -31,14 +32,29 @@ pub enum Benchmark {
     P2ID,
 }
 
+impl fmt::Display for Benchmark {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Benchmark::Simple => write!(f, "simple"),
+            Benchmark::P2ID => write!(f, "p2id"),
+        }
+    }
+}
+
 fn main() -> Result<(), String> {
+    // create a template file for benchmark results
     let path = Path::new("bench-tx/bench-tx.json");
     let mut file = File::create(path).map_err(|e| e.to_string())?;
     file.write_all(b"{}").map_err(|e| e.to_string())?;
 
     // run all available benchmarks
-    benchmark_default_tx(path)?;
-    benchmark_p2id(path)?;
+    let benchmark_results = vec![
+        (Benchmark::Simple, benchmark_default_tx()?),
+        (Benchmark::P2ID, benchmark_p2id()?),
+    ];
+
+    // store benchmark results in the JSON file
+    write_bench_results_to_json(path, benchmark_results)?;
 
     Ok(())
 }
@@ -47,7 +63,7 @@ fn main() -> Result<(), String> {
 // ================================================================================================
 
 /// Runs the default transaction with empty transaction script and two default notes.
-pub fn benchmark_default_tx(path: &Path) -> Result<(), String> {
+pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
 
@@ -73,13 +89,11 @@ pub fn benchmark_default_tx(path: &Path) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    write_cycles_to_json(path, crate::Benchmark::Simple, host.tx_progress())?;
-
-    Ok(())
+    Ok(host.tx_progress().clone())
 }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
-pub fn benchmark_p2id(path: &Path) -> Result<(), String> {
+pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -145,7 +159,5 @@ pub fn benchmark_p2id(path: &Path) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    write_cycles_to_json(path, crate::Benchmark::P2ID, host.tx_progress())?;
-
-    Ok(())
+    Ok(host.tx_progress().clone())
 }
