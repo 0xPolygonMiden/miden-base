@@ -43,6 +43,7 @@ pub struct TransactionExecutor<D: DataStore> {
 impl<D: DataStore> TransactionExecutor<D> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
     pub fn new(data_store: D) -> Self {
         Self {
@@ -73,6 +74,16 @@ impl<D: DataStore> TransactionExecutor<D> {
             .expect("failed to clone execution options");
         }
 
+        self
+    }
+
+    /// Enables tracing for the created instance of [TransactionExecutor].
+    /// 
+    /// When tracing is enabled, the executor will receive tracing events as various stages of the
+    /// transaction kernel complete. This enables collecting basic stats about how long different
+    /// stages of transaction execution take.
+    pub fn with_tracing(mut self) -> Self {
+        self.exec_options = self.exec_options.with_tracing();
         self
     }
 
@@ -203,7 +214,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction can not be compiled.
-    fn prepare_transaction(
+    pub fn prepare_transaction(
         &self,
         account_id: AccountId,
         block_ref: u32,
