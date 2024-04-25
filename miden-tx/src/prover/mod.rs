@@ -74,7 +74,7 @@ impl TransactionProver {
 
         let builder = match account_id.is_on_chain() {
             true => {
-                let account_details = if tx_witness.account().is_new() {
+                let account_update_details = if tx_witness.account().is_new() {
                     let mut account = tx_witness.account().clone();
                     account
                         .apply_delta(&account_delta)
@@ -85,7 +85,7 @@ impl TransactionProver {
                     AccountUpdateDetails::Delta(account_delta)
                 };
 
-                builder.account_update_details(account_details)
+                builder.account_update_details(account_update_details)
             },
             false => builder,
         };

@@ -103,55 +103,6 @@ impl Block {
     }
 }
 
-/// Account update data.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlockAccountUpdate {
-    /// Account ID.
-    account_id: AccountId,
-
-    /// The hash of the account after the transaction was executed.
-    new_state_hash: Digest,
-
-    /// Optional account state changes used for on-chain accounts. This data is used to update an
-    /// on-chain account's state after a local transaction execution. For private accounts, this
-    /// is [AccountUpdateDetails::Private].
-    details: AccountUpdateDetails,
-}
-
-impl BlockAccountUpdate {
-    /// Creates a new [BlockAccountUpdate].
-    pub const fn new(
-        account_id: AccountId,
-        new_state_hash: Digest,
-        details: AccountUpdateDetails,
-    ) -> Self {
-        Self { account_id, new_state_hash, details }
-    }
-
-    /// Returns the account ID.
-    pub fn account_id(&self) -> AccountId {
-        self.account_id
-    }
-
-    /// Returns the final account state hash.
-    pub fn new_state_hash(&self) -> Digest {
-        self.new_state_hash
-    }
-
-    /// Returns the account update details.
-    pub fn details(&self) -> &AccountUpdateDetails {
-        &self.details
-    }
-
-    /// Returns `true` if the account update details are for private account.
-    pub fn is_private(&self) -> bool {
-        self.details.is_private()
-    }
-}
-
-// SERIALIZATION
-// ================================================================================================
-
 impl Serializable for Block {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.header.write_into(target);
@@ -169,6 +120,59 @@ impl Deserializable for Block {
             created_notes: <Vec<NoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
         })
+    }
+}
+
+// BLOCK ACCOUNT UPDATE
+// ================================================================================================
+
+/// Describes the changes made to an account state resulting from executing transactions contained
+/// in a block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockAccountUpdate {
+    /// ID of the updated account.
+    account_id: AccountId,
+
+    /// Hash of the new state of the account.
+    new_state_hash: Digest,
+
+    /// A set of changes which can be applied to the previous account state (i.e., the state as of
+    /// the last block) to get the new account state. For private accounts, this is set to
+    /// [AccountUpdateDetails::Private].
+    details: AccountUpdateDetails,
+}
+
+impl BlockAccountUpdate {
+    /// Returns a new [BlockAccountUpdate] instantiated from the specified components.
+    pub const fn new(
+        account_id: AccountId,
+        new_state_hash: Digest,
+        details: AccountUpdateDetails,
+    ) -> Self {
+        Self { account_id, new_state_hash, details }
+    }
+
+    /// Returns the ID of the updated account.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns the hash of the new account state.
+    pub fn new_state_hash(&self) -> Digest {
+        self.new_state_hash
+    }
+
+    /// Returns the description of the updates for public accounts.
+    ///
+    /// These descriptions can be used to build the new account state from the previous account
+    /// state.
+    pub fn details(&self) -> &AccountUpdateDetails {
+        &self.details
+    }
+
+    /// Returns `true` if the account update details are for private account.
+    pub fn is_private(&self) -> bool {
+        self.details.is_private()
     }
 }
 

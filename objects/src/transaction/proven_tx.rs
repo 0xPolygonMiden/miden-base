@@ -2,10 +2,7 @@ use alloc::{string::ToString, vec::Vec};
 
 use miden_verifier::ExecutionProof;
 
-use super::{
-    AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
-    TxAccountUpdate,
-};
+use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
 use crate::{
     accounts::delta::AccountUpdateDetails,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -39,9 +36,6 @@ pub struct ProvenTransaction {
 }
 
 impl ProvenTransaction {
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
     /// Returns unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
         self.id
@@ -123,6 +117,48 @@ impl ProvenTransaction {
         }
 
         Ok(self)
+    }
+}
+
+impl Serializable for ProvenTransaction {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account_update.write_into(target);
+        self.input_notes.write_into(target);
+        self.output_notes.write_into(target);
+        self.block_ref.write_into(target);
+        self.proof.write_into(target);
+    }
+}
+
+impl Deserializable for ProvenTransaction {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let account_update = TxAccountUpdate::read_from(source)?;
+
+        let input_notes = InputNotes::<Nullifier>::read_from(source)?;
+        let output_notes = OutputNotes::read_from(source)?;
+
+        let block_ref = Digest::read_from(source)?;
+        let proof = ExecutionProof::read_from(source)?;
+
+        let id = TransactionId::new(
+            account_update.init_state_hash(),
+            account_update.final_state_hash(),
+            input_notes.commitment(),
+            output_notes.commitment(),
+        );
+
+        let proven_transaction = Self {
+            id,
+            account_update,
+            input_notes,
+            output_notes,
+            block_ref,
+            proof,
+        };
+
+        proven_transaction
+            .validate()
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -245,50 +281,96 @@ impl ProvenTransactionBuilder {
     }
 }
 
-// SERIALIZATION
+// TRANSACTION ACCOUNT UPDATE
 // ================================================================================================
 
-impl Serializable for ProvenTransaction {
+/// Describes the changes made to the account state resulting from a transaction execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TxAccountUpdate {
+    /// ID of the account updated by a transaction.
+    account_id: AccountId,
+
+    /// The hash of the account before a transaction was executed.
+    ///
+    /// Set to `Digest::default()` for new accounts.
+    init_state_hash: Digest,
+
+    /// The hash of the account state after a transaction was executed.
+    final_state_hash: Digest,
+
+    /// A set of changes which can be applied the the account's state prior to the transaction to
+    /// get the account state after the transaction. For private accounts this is set to
+    /// [AccountUpdateDetails::Private].
+    details: AccountUpdateDetails,
+}
+
+impl TxAccountUpdate {
+    /// Returns a new [TxAccountUpdate] instantiated from the specified components.
+    pub const fn new(
+        account_id: AccountId,
+        init_state_hash: Digest,
+        final_state_hash: Digest,
+        details: AccountUpdateDetails,
+    ) -> Self {
+        Self {
+            account_id,
+            init_state_hash,
+            final_state_hash,
+            details,
+        }
+    }
+
+    /// Returns the ID of the updated account.
+    pub fn account_id(&self) -> AccountId {
+        self.account_id
+    }
+
+    /// Returns the hash of the account's initial state.
+    pub fn init_state_hash(&self) -> Digest {
+        self.init_state_hash
+    }
+
+    /// Returns the hash of the account's after a transaction was executed.
+    pub fn final_state_hash(&self) -> Digest {
+        self.final_state_hash
+    }
+
+    /// Returns the description of the updates for public accounts.
+    ///
+    /// These descriptions can be used to build the new account state from the previous account
+    /// state.
+    pub fn details(&self) -> &AccountUpdateDetails {
+        &self.details
+    }
+
+    /// Returns `true` if the account update details are for a private account.
+    pub fn is_private(&self) -> bool {
+        self.details.is_private()
+    }
+}
+
+impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.account_update.write_into(target);
-        self.input_notes.write_into(target);
-        self.output_notes.write_into(target);
-        self.block_ref.write_into(target);
-        self.proof.write_into(target);
+        self.account_id.write_into(target);
+        self.init_state_hash.write_into(target);
+        self.final_state_hash.write_into(target);
+        self.details.write_into(target);
     }
 }
 
-impl Deserializable for ProvenTransaction {
+impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let account_update = TxAccountUpdate::read_from(source)?;
-
-        let input_notes = InputNotes::<Nullifier>::read_from(source)?;
-        let output_notes = OutputNotes::read_from(source)?;
-
-        let block_ref = Digest::read_from(source)?;
-        let proof = ExecutionProof::read_from(source)?;
-
-        let id = TransactionId::new(
-            account_update.init_state_hash(),
-            account_update.final_state_hash(),
-            input_notes.commitment(),
-            output_notes.commitment(),
-        );
-
-        let proven_transaction = Self {
-            id,
-            account_update,
-            input_notes,
-            output_notes,
-            block_ref,
-            proof,
-        };
-
-        proven_transaction
-            .validate()
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        Ok(Self {
+            account_id: AccountId::read_from(source)?,
+            init_state_hash: Digest::read_from(source)?,
+            final_state_hash: Digest::read_from(source)?,
+            details: AccountUpdateDetails::read_from(source)?,
+        })
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
