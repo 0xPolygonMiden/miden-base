@@ -1,7 +1,8 @@
 use alloc::string::ToString;
 
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, Word, ZERO,
+    Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
+    Word, ZERO,
 };
 use crate::{assets::Asset, AccountDeltaError};
 
@@ -83,6 +84,28 @@ impl AccountDelta {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AccountUpdateDetails {
+    /// Account is private (no on-chain state change).
+    Private,
+
+    /// The whole state is needed for new accounts.
+    New(Account),
+
+    /// For existing accounts, only the delta is needed.
+    Delta(AccountDelta),
+}
+
+impl AccountUpdateDetails {
+    /// Returns `true` if the account update details are for private account.
+    pub fn is_private(&self) -> bool {
+        matches!(self, Self::Private)
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for AccountDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.storage.write_into(target);
@@ -101,6 +124,37 @@ impl Deserializable for AccountDelta {
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
 
         Ok(Self { storage, vault, nonce })
+    }
+}
+
+impl Serializable for AccountUpdateDetails {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            AccountUpdateDetails::Private => {
+                0_u8.write_into(target);
+            },
+            AccountUpdateDetails::New(account) => {
+                1_u8.write_into(target);
+                account.write_into(target);
+            },
+            AccountUpdateDetails::Delta(delta) => {
+                2_u8.write_into(target);
+                delta.write_into(target);
+            },
+        }
+    }
+}
+
+impl Deserializable for AccountUpdateDetails {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        match u8::read_from(source)? {
+            0 => Ok(Self::Private),
+            1 => Ok(Self::New(Account::read_from(source)?)),
+            2 => Ok(Self::Delta(AccountDelta::read_from(source)?)),
+            v => Err(DeserializationError::InvalidValue(format!(
+                "Unknown variant {v} for AccountDetails"
+            ))),
+        }
     }
 }
 

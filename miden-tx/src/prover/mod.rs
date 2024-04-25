@@ -1,10 +1,8 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
+    accounts::delta::AccountUpdateDetails,
     notes::Nullifier,
-    transaction::{
-        AccountUpdateDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder,
-        TransactionWitness,
-    },
+    transaction::{InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;

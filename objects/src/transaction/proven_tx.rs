@@ -3,10 +3,11 @@ use alloc::{string::ToString, vec::Vec};
 use miden_verifier::ExecutionProof;
 
 use super::{
-    AccountId, AccountUpdateDetails, AccountUpdateInfo, Digest, InputNotes, Nullifier, OutputNote,
-    OutputNotes, TransactionId,
+    AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
+    TxAccountUpdate,
 };
 use crate::{
+    accounts::delta::AccountUpdateDetails,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     ProvenTransactionError,
 };
@@ -22,7 +23,7 @@ pub struct ProvenTransaction {
     id: TransactionId,
 
     /// Account update data.
-    account_update: AccountUpdateInfo,
+    account_update: TxAccountUpdate,
 
     /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
@@ -52,7 +53,7 @@ impl ProvenTransaction {
     }
 
     /// Returns the account update details.
-    pub fn account_update(&self) -> &AccountUpdateInfo {
+    pub fn account_update(&self) -> &TxAccountUpdate {
         &self.account_update
     }
 
@@ -224,7 +225,7 @@ impl ProvenTransactionBuilder {
             input_notes.commitment(),
             output_notes.commitment(),
         );
-        let account_update = AccountUpdateInfo::new(
+        let account_update = TxAccountUpdate::new(
             self.account_id,
             self.initial_account_hash,
             self.final_account_hash,
@@ -259,7 +260,7 @@ impl Serializable for ProvenTransaction {
 
 impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let account_update = AccountUpdateInfo::read_from(source)?;
+        let account_update = TxAccountUpdate::read_from(source)?;
 
         let input_notes = InputNotes::<Nullifier>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;

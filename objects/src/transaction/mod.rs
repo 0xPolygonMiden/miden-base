@@ -16,7 +16,7 @@ mod transaction_id;
 mod tx_args;
 mod tx_witness;
 
-pub use account_update::{AccountUpdate, AccountUpdateDetails, AccountUpdateInfo};
+pub use account_update::TxAccountUpdate;
 pub use chain_mmr::ChainMmr;
 pub use executed_tx::ExecutedTransaction;
 pub use inputs::{InputNote, InputNotes, ToNullifier, TransactionInputs};
