@@ -4,7 +4,7 @@ use crate::{
     Digest,
 };
 
-/// Account update data.
+/// Describes the changes made to the account state resulting from a transaction execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxAccountUpdate {
     /// Account ID.
@@ -25,7 +25,7 @@ pub struct TxAccountUpdate {
 }
 
 impl TxAccountUpdate {
-    /// Creates a new [TxAccountUpdate].
+    /// Returns a new [TxAccountUpdate] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
         init_state_hash: Digest,
@@ -40,7 +40,7 @@ impl TxAccountUpdate {
         }
     }
 
-    /// Returns the account ID.
+    /// Returns the ID of the updated account.
     pub fn account_id(&self) -> AccountId {
         self.account_id
     }
@@ -51,7 +51,7 @@ impl TxAccountUpdate {
     }
 
     /// Returns the hash of the account after the transaction was executed.
-    pub fn new_state_hash(&self) -> Digest {
+    pub fn final_state_hash(&self) -> Digest {
         self.new_state_hash
     }
 

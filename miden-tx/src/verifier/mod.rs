@@ -39,7 +39,7 @@ impl TransactionVerifier {
             transaction.block_ref(),
         );
         let stack_outputs = TransactionKernel::build_output_stack(
-            transaction.account_update().new_state_hash(),
+            transaction.account_update().final_state_hash(),
             transaction.output_notes().commitment(),
         );
 
