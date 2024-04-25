@@ -1,6 +1,5 @@
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
-    block::BlockAccountUpdate,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Digest,
 };
@@ -8,13 +7,21 @@ use crate::{
 /// Account update data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxAccountUpdate {
+    /// Account ID.
+    account_id: AccountId,
+
     /// The hash of the account before the transaction was executed.
     ///
     /// Set to `Digest::default()` for new accounts.
     init_state_hash: Digest,
 
-    /// Account update information.
-    update: BlockAccountUpdate,
+    /// The hash of the account after the transaction was executed.
+    new_state_hash: Digest,
+
+    /// Optional account state changes used for on-chain accounts. This data is used to update an
+    /// on-chain account's state after a local transaction execution. For private accounts, this
+    /// is [AccountUpdateDetails::Private].
+    details: AccountUpdateDetails,
 }
 
 impl TxAccountUpdate {
@@ -26,14 +33,16 @@ impl TxAccountUpdate {
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
+            account_id,
             init_state_hash,
-            update: BlockAccountUpdate::new(account_id, new_state_hash, details),
+            new_state_hash,
+            details,
         }
     }
 
     /// Returns the account ID.
     pub fn account_id(&self) -> AccountId {
-        self.update.account_id()
+        self.account_id
     }
 
     /// Returns the initial account state hash.
@@ -43,22 +52,17 @@ impl TxAccountUpdate {
 
     /// Returns the hash of the account after the transaction was executed.
     pub fn new_state_hash(&self) -> Digest {
-        self.update.new_state_hash()
+        self.new_state_hash
     }
 
     /// Returns the account update details.
     pub fn details(&self) -> &AccountUpdateDetails {
-        self.update.details()
+        &self.details
     }
 
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
-        self.update.is_private()
-    }
-
-    /// Returns the account update.
-    pub fn update(&self) -> &BlockAccountUpdate {
-        &self.update
+        self.details.is_private()
     }
 }
 
@@ -67,16 +71,20 @@ impl TxAccountUpdate {
 
 impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.account_id.write_into(target);
         self.init_state_hash.write_into(target);
-        self.update.write_into(target);
+        self.new_state_hash.write_into(target);
+        self.details.write_into(target);
     }
 }
 
 impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
+            account_id: AccountId::read_from(source)?,
             init_state_hash: Digest::read_from(source)?,
-            update: BlockAccountUpdate::read_from(source)?,
+            new_state_hash: Digest::read_from(source)?,
+            details: AccountUpdateDetails::read_from(source)?,
         })
     }
 }
