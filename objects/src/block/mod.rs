@@ -70,7 +70,12 @@ impl Block {
         }
     }
 
-    /// Returns the block header.
+    /// Returns a commitment to this block.
+    pub fn hash(&self) -> Digest {
+        self.header.hash()
+    }
+
+    /// Returns the header of this block.
     pub fn header(&self) -> BlockHeader {
         self.header
     }
