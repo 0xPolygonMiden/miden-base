@@ -16,7 +16,7 @@ pub struct TxAccountUpdate {
     init_state_hash: Digest,
 
     /// The hash of the account after the transaction was executed.
-    new_state_hash: Digest,
+    final_state_hash: Digest,
 
     /// Optional account state changes used for on-chain accounts. This data is used to update an
     /// on-chain account's state after a local transaction execution. For private accounts, this
@@ -29,13 +29,13 @@ impl TxAccountUpdate {
     pub const fn new(
         account_id: AccountId,
         init_state_hash: Digest,
-        new_state_hash: Digest,
+        final_state_hash: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
             account_id,
             init_state_hash,
-            new_state_hash,
+            final_state_hash,
             details,
         }
     }
@@ -52,7 +52,7 @@ impl TxAccountUpdate {
 
     /// Returns the hash of the account after the transaction was executed.
     pub fn final_state_hash(&self) -> Digest {
-        self.new_state_hash
+        self.final_state_hash
     }
 
     /// Returns the account update details.
@@ -73,7 +73,7 @@ impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.account_id.write_into(target);
         self.init_state_hash.write_into(target);
-        self.new_state_hash.write_into(target);
+        self.final_state_hash.write_into(target);
         self.details.write_into(target);
     }
 }
@@ -83,7 +83,7 @@ impl Deserializable for TxAccountUpdate {
         Ok(Self {
             account_id: AccountId::read_from(source)?,
             init_state_hash: Digest::read_from(source)?,
-            new_state_hash: Digest::read_from(source)?,
+            final_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
     }
