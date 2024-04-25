@@ -14,7 +14,7 @@ use crate::{
 /// Wrapper over [SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>] for notes tree.
 ///
 /// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
-/// Id leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
+/// ID's leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
 /// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -23,7 +23,7 @@ pub struct BlockNoteTree(SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>);
 impl BlockNoteTree {
     /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided entries.
     ///
-    /// Entry format: (batch_index, note_index, (note_id, note_metadata)).
+    /// Entry format: (note_index, note_id, note_metadata).
     ///
     /// All leaves omitted from the entries list are set to [ZERO; 4].
     ///
@@ -32,13 +32,12 @@ impl BlockNoteTree {
     /// - The number of entries exceeds the maximum notes tree capacity, that is 2^21.
     /// - The provided entries contain multiple values for the same key.
     pub fn with_entries(
-        entries: impl IntoIterator<Item = (usize, usize, (RpoDigest, NoteMetadata))>,
+        entries: impl IntoIterator<Item = (BlockNoteIndex, RpoDigest, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
-        let interleaved =
-            entries.into_iter().flat_map(|(batch_index, note_index, (note_id, metadata))| {
-                let id_index = Self::leaf_index(batch_index, note_index);
-                [(id_index, note_id.into()), (id_index + 1, metadata.into())]
-            });
+        let interleaved = entries.into_iter().flat_map(|(index, note_id, metadata)| {
+            let id_index = index.leaf_index();
+            [(id_index, note_id.into()), (id_index + 1, metadata.into())]
+        });
 
         SimpleSmt::with_leaves(interleaved).map(Self)
     }
@@ -51,13 +50,9 @@ impl BlockNoteTree {
     /// Returns merkle path for the note with specified batch/note indexes.
     ///
     /// The returned path is to the node which is the parent of both note and note metadata node.
-    pub fn get_note_path(
-        &self,
-        batch_idx: usize,
-        note_idx_in_batch: usize,
-    ) -> Result<MerklePath, MerkleError> {
+    pub fn get_note_path(&self, index: BlockNoteIndex) -> Result<MerklePath, MerkleError> {
         // get the path to the leaf containing the note (path len = 21)
-        let leaf_index = LeafIndex::new(Self::leaf_index(batch_idx, note_idx_in_batch))?;
+        let leaf_index = LeafIndex::new(index.leaf_index())?;
 
         // move up the path by removing the first node, this path now points to the parent of the
         // note path
@@ -65,23 +60,44 @@ impl BlockNoteTree {
 
         Ok(note_path.into())
     }
-
-    /// Returns an index to the node which the parent of both the note and note metadata.
-    pub fn note_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
-        (batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) as u64
-    }
-
-    // HELPERS
-    // --------------------------------------------------------------------------------------------
-
-    fn leaf_index(batch_idx: usize, note_idx_in_batch: usize) -> u64 {
-        Self::note_index(batch_idx, note_idx_in_batch) * 2
-    }
 }
 
 impl Default for BlockNoteTree {
     fn default() -> Self {
         Self(SimpleSmt::new().expect("Unreachable"))
+    }
+}
+
+/// Index of a block note.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlockNoteIndex {
+    batch_idx: usize,
+    note_idx_in_batch: usize,
+}
+
+impl BlockNoteIndex {
+    /// Creates a new [BlockNoteIndex].
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
+        Self { batch_idx, note_idx_in_batch }
+    }
+
+    /// Returns the batch index.
+    pub fn batch_idx(&self) -> usize {
+        self.batch_idx
+    }
+
+    /// Returns the note index in the batch.
+    pub fn note_idx_in_batch(&self) -> usize {
+        self.note_idx_in_batch
+    }
+
+    /// Returns an index to the node which the parent of both the note and note metadata.
+    pub fn note_index(&self) -> u64 {
+        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64
+    }
+
+    fn leaf_index(&self) -> u64 {
+        self.note_index() * 2
     }
 }
 

@@ -3,6 +3,7 @@
 ## 0.3.0 (TBD)
 
 * [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
+* [BREAKING] Refactored account update details, moved `Block` to `miden-objects` (#618, #621).
 
 ## 0.2.1 (2024-04-12)
 
@@ -19,7 +20,8 @@
 * Improved `ProvenTransaction` serialization (#543).
 * Implemented note tree wrapper structs (#560).
 * [BREAKING] Migrated to v0.9 version of Miden VM (#567).
-* [BREAKING] Added account storage type parameter to `create_basic_wallet` and `create_basic_fungible_faucet` (miden-lib crate only) (#587).
+* [BREAKING] Added account storage type parameter to `create_basic_wallet` and `create_basic_fungible_faucet` (miden-lib
+  crate only) (#587).
 * Removed serialization of source locations from account code (#590).
 
 ## 0.1.1 (2024-03-07) - `miden-objects` crate only
