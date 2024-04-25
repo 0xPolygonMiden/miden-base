@@ -78,7 +78,7 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 
     /// Enables tracing for the created instance of [TransactionExecutor].
-    /// 
+    ///
     /// When tracing is enabled, the executor will receive tracing events as various stages of the
     /// transaction kernel complete. This enables collecting basic stats about how long different
     /// stages of transaction execution take.
