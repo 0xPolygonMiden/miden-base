@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, AccountDelta, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN},
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountDelta,
+    },
     notes::Note,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,

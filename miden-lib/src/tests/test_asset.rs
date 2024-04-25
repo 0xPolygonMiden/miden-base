@@ -1,4 +1,4 @@
-use miden_objects::accounts::{
+use miden_objects::accounts::account_id::testing::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
 };
 use mock::{
