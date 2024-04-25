@@ -102,9 +102,9 @@ impl ProvenTransaction {
                             account.id(),
                         ));
                     }
-                    if account.hash() != self.account_update.new_state_hash() {
+                    if account.hash() != self.account_update.final_state_hash() {
                         return Err(ProvenTransactionError::AccountFinalHashMismatch(
-                            self.account_update.new_state_hash(),
+                            self.account_update.final_state_hash(),
                             account.hash(),
                         ));
                     }
@@ -269,7 +269,7 @@ impl Deserializable for ProvenTransaction {
 
         let id = TransactionId::new(
             account_update.init_state_hash(),
-            account_update.new_state_hash(),
+            account_update.final_state_hash(),
             input_notes.commitment(),
             output_notes.commitment(),
         );

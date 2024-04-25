@@ -69,7 +69,7 @@ impl AccountUpdate {
     }
 }
 
-/// Account update data.
+/// Describes the changes made to the account state resulting from a transaction execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUpdateInfo {
     /// The hash of the account before the transaction was executed.
@@ -82,7 +82,7 @@ pub struct AccountUpdateInfo {
 }
 
 impl AccountUpdateInfo {
-    /// Creates a new [AccountUpdateInfo].
+    /// Returns a new [AccountUpdateInfo] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
         init_state_hash: Digest,
@@ -95,7 +95,7 @@ impl AccountUpdateInfo {
         }
     }
 
-    /// Returns the account ID.
+    /// Returns the ID of the updated account.
     pub fn account_id(&self) -> AccountId {
         self.update.account_id()
     }
@@ -106,7 +106,7 @@ impl AccountUpdateInfo {
     }
 
     /// Returns the hash of the account after the transaction was executed.
-    pub fn new_state_hash(&self) -> Digest {
+    pub fn final_state_hash(&self) -> Digest {
         self.update.new_state_hash()
     }
 
@@ -118,11 +118,6 @@ impl AccountUpdateInfo {
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         self.update.is_private()
-    }
-
-    /// Returns the account update.
-    pub fn update(&self) -> &AccountUpdate {
-        &self.update
     }
 }
 
