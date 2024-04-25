@@ -1,9 +1,5 @@
 extern crate alloc;
-pub use alloc::{
-    collections::BTreeMap,
-    string::{String, ToString},
-    vec::Vec,
-};
+pub use alloc::collections::BTreeMap;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
