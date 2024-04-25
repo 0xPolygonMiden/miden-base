@@ -1,7 +1,7 @@
 In this section, we show you how to make off-chain transactions and send funds to another account using the Miden client. 
 
 !!! important "Prerequisite steps"
-    - You should have already followed all previous sections.
+    - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
     - You should *not* have reset the state of your local client. 
 
 ## Create a second account
@@ -61,26 +61,26 @@ In this section, we show you how to make off-chain transactions and send funds t
     !!! tip
         It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient.
 
-You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
+    You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
 
-!!! tip
-    Remember. The original amount was 100 POL.
+    !!! tip
+        Remember. The original amount was 100 POL.
 
-Check the second account:
+5. Check the second account:
 
-```shell
-miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
-```
+    ```shell
+    miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
+    ```
 
-![Result of listing miden accounts](../../img/get-started/account-b.png)
+    ![Result of listing miden accounts](../../img/get-started/account-b.png)
 
-Check the original account:
+6. Check the original account:
 
-```sh
-miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
-```
+    ```sh
+    miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+    ```
 
-![Result of listing miden accounts](../../img/get-started/account-a.png)
+    ![Result of listing miden accounts](../../img/get-started/account-a.png)
 
 ## Clear state
 
@@ -95,3 +95,5 @@ You have successfully configured and used the Miden client to interact with a Mi
 You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
+
+</br>

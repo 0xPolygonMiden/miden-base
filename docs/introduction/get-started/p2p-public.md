@@ -1,7 +1,7 @@
-In this section, we show you how to execute transactions and send funds to another account using the Miden client through [public notes](https://docs.polygon.technology/miden/miden-base/architecture/notes/#note-storage-mode). 
+In this section, we show you how to execute transactions and send funds to another account using the Miden client and [public notes](https://docs.polygon.technology/miden/miden-base/architecture/notes/#note-storage-mode). 
 
 !!! important "Prerequisite steps"
-    - You should have already followed all previous sections.
+    - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
     - You should have *not* reset the state of your local client. 
 
 ## Create a second client
@@ -9,26 +9,42 @@ In this section, we show you how to execute transactions and send funds to anoth
 !!! tip
       Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
 
-This is an alternative to the private off-chain P2P transactions article. For this tutorial, we will utilize two different clients to simulate two different remote users who don't share local state. To do this, we will have two terminals with their own state (using their own `miden-client.toml`).
+This is an alternative to the [private off-chain P2P transactions](p2p-private.md) process. 
 
-1. First, let's create a new directory to store the new client
+In this tutorial, we use two different clients to simulate two different remote users who don't share local state. 
 
-      ```shell
-      mkdir miden-client-2
-      cd miden-client-2
+To do this, we use two terminals with their own state (using their own `miden-client.toml`).
 
-      miden-client init # Create the miden-client.toml
-      ```
+1. Create a new directory to store the new client.
 
-2. On the new client, let's create a new [basic account](https://docs.polygon.technology/miden/miden-base/architecture/accounts/#account-types):
+    ```sh
+    mkdir miden-client-2
+    cd miden-client-2
+    ```
 
-      ```shell
-      miden-client account new basic-mutable -s on-chain
-      ```
+2. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
-We will refer to this account by _Account B_. Note that we set the account's storage mode to `on-chain`, which means that the account details will be public and its latest state can be retrieved from the node.
+    ```sh
+    miden-client init 
+    ```
 
-3. List and view the account with the following command:
+    Accept the defaults for `Protocol`, `Node RPC Port`, and `Sqlite file path`by clicking enter.
+
+    When `Host` comes up, enter the IP that the Miden team supplies:
+
+    ```sh
+    Host (default: localhost): xxx.xxx.xxx.xxx
+    ```
+
+3. On the new client, create a new [basic account](https://docs.polygon.technology/miden/miden-base/architecture/accounts/#account-types):
+
+    ```shell
+    miden-client account new basic-mutable -s on-chain
+    ```
+
+    We refer to this account as _Account B_. Note that we set the account's storage mode to `on-chain`, which means that the account details will be public and its latest state can be retrieved from the node.
+
+4. List and view the account with the following command:
 
       ```shell
       miden-client account -l

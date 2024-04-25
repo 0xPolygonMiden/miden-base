@@ -65,7 +65,7 @@ Save the account ID for a future step.
 
 ## Request tokens from the public faucet
 
-1. To request funds from the faucet navigate to the following website: [Miden faucet website](https://ethdenver.polygonmiden.io/).
+1. To request funds from the faucet navigate to the following website: [Miden faucet website](https://testnet.miden.io/).
 
 2. Copy the **Account ID** printed by the `miden-client account -l` command in the previous step. 
 
@@ -80,7 +80,7 @@ Save the account ID for a future step.
 1. Import the note that you have received using the following commands: 
 
       ```shell
-      miden-client input-notes -i <path-to-note>
+      miden-client input-notes -i <path-to-note>/note.mno
       ```
 
 2. You should see something like this:
@@ -145,7 +145,9 @@ State synced to block 179672
       ```
 
 !!! tip 
-      - You only need to use the first 7 characters of the Note-Id.
+      You only need to copy the top line of characters of the Note ID.
+
+## View confirmations
 
 5. View your updated account's vault containing the tokens sent by the faucet by running the following command: 
 
