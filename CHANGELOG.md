@@ -1,6 +1,12 @@
 # Changelog
 
+<<<<<<< HEAD
 ## 0.3.0 (TBD)
+=======
+## 0.2.2 (2024-04-23) - `miden-tx` crate only
+
+* Added `with_debug_mode()` methods to `TransactionCompiler` and `TransactionExecutor` (#562).
+>>>>>>> 1fb0ac6ce25f060645131e8614164ff942d14fb5
 
 ## 0.2.1 (2024-04-12)
 

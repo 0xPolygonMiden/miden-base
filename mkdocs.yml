@@ -39,7 +39,6 @@ nav:
           - Transaction kernel: architecture/transactions/kernel.md
           - Transaction contexts: architecture/transactions/contexts.md
           - Transaction procedures: architecture/transactions/procedures.md
-          - Transaction modes: architecture/transactions/modes.md
       - State: architecture/state.md
       - Execution: architecture/execution.md
   - Network: network/network.md
