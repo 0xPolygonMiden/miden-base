@@ -1,9 +1,8 @@
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
+    accounts::delta::AccountUpdateDetails,
     notes::Nullifier,
-    transaction::{
-        AccountDetails, InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
-    },
+    transaction::{InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -75,18 +74,18 @@ impl TransactionProver {
 
         let builder = match account_id.is_on_chain() {
             true => {
-                let account_details = if tx_witness.account().is_new() {
+                let account_update_details = if tx_witness.account().is_new() {
                     let mut account = tx_witness.account().clone();
                     account
                         .apply_delta(&account_delta)
                         .map_err(TransactionProverError::InvalidAccountDelta)?;
 
-                    AccountDetails::Full(account)
+                    AccountUpdateDetails::New(account)
                 } else {
-                    AccountDetails::Delta(account_delta)
+                    AccountUpdateDetails::Delta(account_delta)
                 };
 
-                builder.account_details(account_details)
+                builder.account_update_details(account_update_details)
             },
             false => builder,
         };
