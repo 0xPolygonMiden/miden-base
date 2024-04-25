@@ -15,7 +15,7 @@ use super::MidenLib;
 pub mod memory;
 
 mod events;
-pub use events::TransactionEvent;
+pub use events::{TransactionEvent, TransactionTrace};
 
 mod inputs;
 pub use inputs::ToTransactionKernelInputs;
@@ -26,7 +26,9 @@ pub use outputs::{
 };
 
 mod errors;
-pub use errors::{TransactionEventParsingError, TransactionKernelError};
+pub use errors::{
+    TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
+};
 
 // TRANSACTION KERNEL
 // ================================================================================================

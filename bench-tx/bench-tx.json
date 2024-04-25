@@ -1,0 +1,21 @@
+{
+  "simple": {
+    "prologue": 3644,
+    "notes_processing": 1151,
+    "note_execution": {
+      "0x47b2fbff8a3f09e40343238e7b15c8918d7c63e570fd1b3c904ada458c4d74bd": 392,
+      "0x8a55c3531cdd5725aa805475093ed3006c6773b71a008e8ca840da8364a67cd6": 715
+    },
+    "tx_script_processing": 32,
+    "epilogue": 2222
+  },
+  "p2id": {
+    "prologue": 2004,
+    "notes_processing": 920,
+    "note_execution": {
+      "0xb9fa30eb43d80d579be02dc004338e06b5ad565e81e0bac11a94ab01abfdd40a": 883
+    },
+    "tx_script_processing": 88209,
+    "epilogue": 272
+  }
+}

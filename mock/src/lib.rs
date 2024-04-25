@@ -25,9 +25,9 @@ use miden_objects::{
     Felt,
 };
 use mock::host::MockHost;
-use vm_processor::{AdviceInputs, ExecutionError, ExecutionOptions, Process, Word};
+use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
 #[cfg(feature = "std")]
-use vm_processor::{AdviceProvider, DefaultHost, Host, StackInputs};
+use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
 pub mod builders;
 pub mod constants;

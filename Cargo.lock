@@ -598,6 +598,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-bench-tx"
+version = "0.1.0"
+dependencies = [
+ "miden-lib",
+ "miden-mock",
+ "miden-objects",
+ "miden-processor",
+ "miden-tx",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "miden-core"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1055,6 +1068,7 @@ version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
