@@ -1,6 +1,12 @@
 use core::fmt;
 
-use super::TransactionEventParsingError;
+use super::{TransactionEventParsingError, TransactionTraceParsingError};
+
+// CONSTANTS
+// ================================================================================================
+
+/// Value of the top 16 bits of a transaction kernel event ID.
+pub const EVENT_ID_PREFIX: u32 = 2;
 
 // TRANSACTION EVENT
 // ================================================================================================
@@ -32,11 +38,6 @@ pub enum TransactionEvent {
     AccountStorageSetMapItem = ACCOUNT_STORAGE_SET_MAP_ITEM,
 }
 
-impl TransactionEvent {
-    /// Value of the top 16 bits of a transaction kernel event ID.
-    pub const EVENT_ID_PREFIX: u16 = 2;
-}
-
 impl fmt::Display for TransactionEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
@@ -47,7 +48,7 @@ impl TryFrom<u32> for TransactionEvent {
     type Error = TransactionEventParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value >> 16 != Self::EVENT_ID_PREFIX as u32 {
+        if value >> 16 != EVENT_ID_PREFIX {
             return Err(TransactionEventParsingError::NotTransactionEvent(value));
         }
 
@@ -60,6 +61,54 @@ impl TryFrom<u32> for TransactionEvent {
             NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
             ACCOUNT_STORAGE_SET_MAP_ITEM => Ok(TransactionEvent::AccountStorageSetMapItem),
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
+        }
+    }
+}
+
+// TRANSACTION TRACE
+// ================================================================================================
+
+#[repr(u32)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum TransactionTrace {
+    PrologueStart = 0x2_0000,           // 131072
+    PrologueEnd = 0x2_0001,             // 131073
+    NotesProcessingStart = 0x2_0002,    // 131074
+    NotesProcessingEnd = 0x2_0003,      // 131075
+    NoteExecutionStart = 0x2_0004,      // 131076
+    NoteExecutionEnd = 0x2_0005,        // 131077
+    TxScriptProcessingStart = 0x2_0006, // 131078
+    TxScriptProcessingEnd = 0x2_0007,   // 131079
+    EpilogueStart = 0x2_0008,           // 131080
+    EpilogueEnd = 0x2_0009,             // 131081
+}
+
+impl fmt::Display for TransactionTrace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl TryFrom<u32> for TransactionTrace {
+    type Error = TransactionTraceParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value >> 16 != EVENT_ID_PREFIX {
+            return Err(TransactionTraceParsingError::NotTransactionTrace(value));
+        }
+
+        match value {
+            0x2_0000 => Ok(TransactionTrace::PrologueStart),
+            0x2_0001 => Ok(TransactionTrace::PrologueEnd),
+            0x2_0002 => Ok(TransactionTrace::NotesProcessingStart),
+            0x2_0003 => Ok(TransactionTrace::NotesProcessingEnd),
+            0x2_0004 => Ok(TransactionTrace::NoteExecutionStart),
+            0x2_0005 => Ok(TransactionTrace::NoteExecutionEnd),
+            0x2_0006 => Ok(TransactionTrace::TxScriptProcessingStart),
+            0x2_0007 => Ok(TransactionTrace::TxScriptProcessingEnd),
+            0x2_0008 => Ok(TransactionTrace::EpilogueStart),
+            0x2_0009 => Ok(TransactionTrace::EpilogueEnd),
+            _ => Err(TransactionTraceParsingError::InvalidTransactionTrace(value)),
         }
     }
 }

@@ -105,3 +105,28 @@ impl fmt::Display for TransactionEventParsingError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionEventParsingError {}
+
+// TRANSACTION TRACE PARSING ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum TransactionTraceParsingError {
+    InvalidTransactionTrace(u32),
+    NotTransactionTrace(u32),
+}
+
+impl fmt::Display for TransactionTraceParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidTransactionTrace(trace_id) => {
+                write!(f, "trace {trace_id} is invalid")
+            },
+            Self::NotTransactionTrace(trace_id) => {
+                write!(f, "trace {trace_id} is not a transaction kernel trace")
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionTraceParsingError {}

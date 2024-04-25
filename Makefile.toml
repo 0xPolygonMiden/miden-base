@@ -96,9 +96,16 @@ args = ["build", "--release"]
 [tasks.build-no-std]
 description = "Build using no-std"
 command = "cargo"
-args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock"]
+args = ["build", "--no-default-features", "--target", "wasm32-unknown-unknown", "--workspace", "--exclude", "miden-mock", "--exclude", "miden-bench-tx"]
 
-# --- utilities ----------------------------------------------------------------------------------------
+# --- benchmarking --------------------------------------------------------------------------------
+[tasks.bench-tx]
+description = "Run all available transaction benchmarks"
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "bench-tx"]
+
+# --- utilities -----------------------------------------------------------------------------------
 [tasks.watch]
 description = "Watch for changes and rebuild"
 workspace = false
