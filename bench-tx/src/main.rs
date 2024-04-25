@@ -22,9 +22,9 @@ use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, write_bench_results_to_json, MockDataStore, String,
-    ToString, Vec, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    get_account_with_default_account_code, write_bench_results_to_json, MockDataStore,
+    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 
 pub enum Benchmark {
