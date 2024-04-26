@@ -42,7 +42,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     miden-client account new basic-mutable -s on-chain
     ```
 
-    We refer to this account as _Account C_. Note that we set the account's storage mode to `on-chain`, which means that the account details will be public and its latest state can be retrieved from the node.
+    We refer to this account as _Account C_. Note that we set the account's storage mode to `on-chain`, which means that the account details are public and its latest state can be retrieved from the node.
 
 4. List and view the account with the following command:
 
