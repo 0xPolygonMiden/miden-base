@@ -10,8 +10,8 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 1. Open your terminal and create a new directory to store the Miden client.
 
     ```sh
-    mkdir miden-client-2
-    cd miden-client-2
+    mkdir miden-client
+    cd miden-client
     ```
 
 
@@ -33,6 +33,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
    The command sets up the client. Accept the defaults by pressing _Enter_. 
 
       ```shell
+
       ~ % miden-client init
       Protocol (default: http):
 
@@ -43,6 +44,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       Sqlite file path (default: ./store.sqlite3):
 
       Creating config file at: "/<YOUR-FOLDER>/miden-client.toml"
+      
       ```
 
 4. Check you can sync with the blockchain. 

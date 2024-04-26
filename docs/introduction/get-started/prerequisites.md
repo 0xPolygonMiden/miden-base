@@ -13,8 +13,4 @@ By the end of this tutorial, you will have:
 
 Download from [the Rust website](https://www.rust-lang.org/learn/get-started).
 
-### Miden client
-
-Install the [Miden client](https://docs.polygon.technology/miden/miden-client/install-and-run/).
-
 </br>
