@@ -24,7 +24,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 
    You can now use the `miden-client` command.
 
-3. Initialize the client and point it to the Miden testnet. IP: `18.203.155.106`
+3. Initialize the client and point it to the Miden testnet IP: `18.203.155.106`
 
       ```shell
       miden-client init
