@@ -156,8 +156,10 @@ pub fn prove_and_verify_transaction<A: miden_tx::TransactionAuthenticator>(
 }
 
 #[cfg(test)]
-pub fn get_new_pk_and_authenticator() -> (Word, miden_tx::host::FalconAuthenticator) {
+pub fn get_new_pk_and_authenticator(
+) -> (Word, miden_tx::host::FalconAuthenticator<rand::rngs::StdRng>) {
     use miden_tx::host::FalconAuthenticator;
+    use rand::rngs::StdRng;
 
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
@@ -165,7 +167,7 @@ pub fn get_new_pk_and_authenticator() -> (Word, miden_tx::host::FalconAuthentica
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
 
-    (pub_key, FalconAuthenticator::new(sec_key))
+    (pub_key, FalconAuthenticator::<StdRng>::new(sec_key))
 }
 
 #[cfg(test)]

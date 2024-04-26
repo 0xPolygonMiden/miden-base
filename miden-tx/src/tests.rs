@@ -62,7 +62,7 @@ impl NullAuthenticator {
 }
 impl TransactionAuthenticator for NullAuthenticator {
     fn get_signature(
-        &self,
+        &mut self,
         _pub_key: Word,
         _message: Word,
         _delta: &AccountDelta,

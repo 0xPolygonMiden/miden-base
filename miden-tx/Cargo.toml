@@ -26,6 +26,7 @@ miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.3", def
 miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
+rand = { version = "0.8.5", default-features = false }
 vm-processor = { workspace = true }
 
 [dev-dependencies]

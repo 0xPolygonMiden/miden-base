@@ -606,6 +606,7 @@ dependencies = [
  "miden-objects",
  "miden-processor",
  "miden-tx",
+ "rand",
  "serde",
  "serde_json",
 ]
@@ -729,6 +730,7 @@ dependencies = [
  "miden-processor",
  "miden-prover",
  "miden-verifier",
+ "rand",
  "rand_chacha",
 ]
 

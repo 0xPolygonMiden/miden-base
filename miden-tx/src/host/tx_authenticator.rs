@@ -4,6 +4,7 @@ use miden_objects::{
     accounts::AccountDelta,
     crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
 };
+use rand::Rng;
 use vm_processor::{Felt, Word};
 
 use crate::error::AuthenticationError;
@@ -16,7 +17,7 @@ use crate::error::AuthenticationError;
 /// Its main use is to provide a method to create a DSA signature for a message,
 /// based on an [AccountDelta].
 ///
-/// The signature is intended to provide authentication. The implementer can verify 
+/// The signature is intended to provide authentication. The implementer can verify
 /// and approve any changes before the message is signed.
 pub trait TransactionAuthenticator {
     /// Retrieves a signataure for a specific message as a list of [Felt].
@@ -30,7 +31,7 @@ pub trait TransactionAuthenticator {
     ///   authenticator to review any alterations to the account prior to signing.
     ///   It should not be directly used in the signature computation.
     fn get_signature(
-        &self,
+        &mut self,
         pub_key: Word,
         message: Word,
         account_delta: &AccountDelta,
@@ -42,17 +43,26 @@ pub trait TransactionAuthenticator {
 
 /// Represents a signer for Falcon signatures, based on a user's [SecretKey]
 #[derive(Clone, Debug)]
-pub struct FalconAuthenticator {
+pub struct FalconAuthenticator<R> {
     secret_key: SecretKey,
+    rng: R,
 }
 
-impl FalconAuthenticator {
-    pub fn new(secret_key: SecretKey) -> Self {
-        FalconAuthenticator { secret_key }
+impl<R: Rng> FalconAuthenticator<R> {
+    #[cfg(feature = "std")]
+    pub fn new(secret_key: SecretKey) -> FalconAuthenticator<rand::rngs::StdRng> {
+        use rand::{rngs::StdRng, SeedableRng};
+
+        let rng = StdRng::from_entropy();
+        FalconAuthenticator { secret_key, rng }
+    }
+
+    pub fn new_with_rng(secret_key: SecretKey, rng: R) -> Self {
+        FalconAuthenticator { secret_key, rng }
     }
 }
 
-impl TransactionAuthenticator for FalconAuthenticator {
+impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
     /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
     /// outputs a vector of values to be pushed onto the advice stack.
     /// The values are the ones required for a Falcon signature verification inside the VM and they are:
@@ -68,7 +78,7 @@ impl TransactionAuthenticator for FalconAuthenticator {
     /// - The secret key is malformed due to either incorrect length or failed decoding.
     /// - The signature generation failed.
     fn get_signature(
-        &self,
+        &mut self,
         pub_key: Word,
         message: Word,
         account_delta: &AccountDelta,
@@ -81,7 +91,7 @@ impl TransactionAuthenticator for FalconAuthenticator {
         }
 
         // Generate the signature
-        let sig = self.secret_key.sign(message);
+        let sig = self.secret_key.sign_with_rng(message, &mut self.rng);
 
         // The signature is composed of a nonce and a polynomial s2
         // The nonce is represented as 8 field elements.

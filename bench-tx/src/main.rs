@@ -21,6 +21,7 @@ use miden_tx::{
     host::FalconAuthenticator, AuthenticationError, TransactionAuthenticator, TransactionExecutor,
     TransactionHost, TransactionProgress,
 };
+use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
@@ -49,7 +50,7 @@ impl NullAuthenticator {
 }
 impl TransactionAuthenticator for NullAuthenticator {
     fn get_signature(
-        &self,
+        &mut self,
         _pub_key: Word,
         _message: Word,
         _delta: &AccountDelta,
@@ -189,7 +190,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     let mut host = TransactionHost::new(
         transaction.account().into(),
         advice_recorder,
-        FalconAuthenticator::new(sec_key),
+        FalconAuthenticator::<StdRng>::new(sec_key),
     );
 
     vm_processor::execute(
