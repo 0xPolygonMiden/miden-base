@@ -7,7 +7,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode,
+        Account, AccountCode, AccountDelta,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
@@ -41,7 +41,37 @@ use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
     TransactionProver, TransactionVerifier,
 };
-use crate::host::NullAuthenticator;
+use crate::{error::AuthenticationError, TransactionAuthenticator};
+
+// NULL AUTHENTICATOR
+// ================================================================================================
+
+/// Used for initializing test transaction hosts that do not need valid signatures
+#[derive(Clone)]
+pub struct NullAuthenticator;
+impl Default for NullAuthenticator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NullAuthenticator {
+    pub fn new() -> Self {
+        NullAuthenticator {}
+    }
+}
+impl TransactionAuthenticator for NullAuthenticator {
+    fn get_signature(
+        &self,
+        _pub_key: Word,
+        _message: Word,
+        _delta: &AccountDelta,
+    ) -> Result<Vec<Felt>, AuthenticationError> {
+        Err(AuthenticationError::RejectedSignature(
+            "Null authenticator does not provide signatures".into(),
+        ))
+    }
+}
 
 // TESTS
 // ================================================================================================

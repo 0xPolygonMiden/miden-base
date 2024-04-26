@@ -7,17 +7,16 @@ use miden_lib::transaction::{
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
     assets::Asset,
-    crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
     notes::{
         Note, NoteAssets, NoteEnvelope, NoteId, NoteInputs, NoteMetadata, NoteRecipient,
         NoteScript, NoteTag, NoteType,
     },
-    transaction::{OutputNote},
+    transaction::OutputNote,
     Digest,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Felt, Host, HostResponse, ProcessState, Word,
+    ExecutionError, Felt, Host, HostResponse, ProcessState,
 };
 
 mod account_delta_tracker;
@@ -26,10 +25,11 @@ use account_delta_tracker::AccountDeltaTracker;
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
+mod tx_authenticator;
+pub use tx_authenticator::{FalconAuthenticator, TransactionAuthenticator};
+
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
-
-use crate::error::AuthenticationError;
 
 // CONSTANTS
 // ================================================================================================
@@ -60,91 +60,6 @@ pub struct TransactionHost<A, T> {
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
     tx_progress: TransactionProgress,
-}
-
-pub trait TransactionAuthenticator {
-    fn get_signature(&self, pub_key: Word, message: Word)
-        -> Result<Vec<Felt>, AuthenticationError>;
-}
-
-#[derive(Clone, Debug)]
-pub struct FalconAuthenticator {
-    secret_key: SecretKey,
-}
-
-impl FalconAuthenticator {
-    pub fn new(secret_key: SecretKey) -> Self {
-        FalconAuthenticator { secret_key }
-    }
-}
-
-#[derive(Clone)]
-pub struct NullAuthenticator;
-impl Default for NullAuthenticator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl NullAuthenticator {
-    pub fn new() -> Self {
-        NullAuthenticator {}
-    }
-}
-impl TransactionAuthenticator for NullAuthenticator {
-    fn get_signature(
-        &self,
-        _pub_key: Word,
-        _message: Word,
-    ) -> Result<Vec<Felt>, AuthenticationError> {
-        Err(AuthenticationError::RejectedSignature(
-            "Null authenticator does not provide signatures".into(),
-        ))
-    }
-}
-
-impl TransactionAuthenticator for FalconAuthenticator {
-    fn get_signature(
-        &self,
-        pub_key: Word,
-        message: Word,
-    ) -> Result<Vec<Felt>, AuthenticationError> {
-        if pub_key != Word::from(self.secret_key.public_key()) {
-            return Err(AuthenticationError::InvalidKey(
-                "Public key does not match with input".into(),
-            ));
-        }
-
-        // Create the corresponding secret key
-        // We can now generate the signature
-        let sig = self.secret_key.sign(message);
-
-        // The signature is composed of a nonce and a polynomial s2
-
-        // The nonce is represented as 8 field elements.
-        let nonce = sig.nonce();
-
-        // We convert the signature to a polynomial
-        let s2 = sig.sig_poly();
-
-        // We also need in the VM the expanded key corresponding to the public key the was provided
-        // via the operand stack
-        let h = self.secret_key.compute_pub_key_poly().0;
-
-        // Lastly, for the probabilistic product routine that is part of the verification procedure,
-        // we need to compute the product of the expanded key and the signature polynomial in
-        // the ring of polynomials with coefficients in the Miden field.
-        let pi = Polynomial::mul_modulo_p(&h, s2);
-
-        // We now push the nonce, the expanded key, the signature polynomial, and the product of the
-        // expanded key and the signature polynomial to the advice stack.
-        let mut result: Vec<Felt> = nonce.to_elements().to_vec();
-        result.extend(h.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-        result.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-        result.extend(pi.iter().map(|a| Felt::new(*a)));
-        result.reverse();
-        Ok(result)
-    }
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
@@ -419,12 +334,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         match injector {
-            AdviceInjector::SigToStack => {
+            AdviceInjector::SigToStack { .. } => {
                 let pub_key = process.get_stack_word(0);
                 let msg = process.get_stack_word(1);
+                let account_delta = self.account_delta.clone().into_delta();
                 let result: Vec<Felt> = self
                     .tx_authenticator
-                    .get_signature(pub_key, msg)
+                    .get_signature(pub_key, msg, &account_delta)
                     .map_err(|err| ExecutionError::EventError(err.to_string()))?;
                 for r in result {
                     self.adv_provider.push_stack(AdviceSource::Value(r))?;

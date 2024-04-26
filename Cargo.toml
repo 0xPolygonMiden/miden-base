@@ -32,10 +32,10 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { path="../miden-vm/assembly", default-features=false, package="miden-assembly"}
+assembly = { package = "miden-assembly", version = "0.9", default-features = false }
 miden-crypto = { version = "0.9", default-features = false }
-miden-prover = { path="../miden-vm/prover", default-features=false, package="miden-prover"}
-miden-stdlib = { path="../miden-vm/stdlib", default-features=false, package="miden-stdlib"}
-miden-verifier = { path="../miden-vm/verifier", default-features=false, package="miden-verifier"}
-vm-core = { path="../miden-vm/core", default-features=false, package="miden-core"}
-vm-processor = { path= "../miden-vm/processor" , default-features=false, package="miden-processor"}
+miden-prover = { version = "0.9", default-features = false }
+miden-stdlib = { version = "0.9", default-features = false }
+miden-verifier = { version = "0.9", default-features = false }
+vm-core = { package = "miden-core", version = "0.9", default-features = false }
+vm-processor = { package = "miden-processor", version = "0.9", default-features = false }

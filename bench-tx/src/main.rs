@@ -9,7 +9,7 @@ use miden_lib::{
     notes::create_p2id_note, transaction::ToTransactionKernelInputs, utils::Serializable,
 };
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountDelta, AccountId},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
@@ -18,8 +18,8 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::{FalconAuthenticator, NullAuthenticator},
-    TransactionExecutor, TransactionHost, TransactionProgress,
+    host::FalconAuthenticator, AuthenticationError, TransactionAuthenticator, TransactionExecutor,
+    TransactionHost, TransactionProgress,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
@@ -29,6 +29,36 @@ use utils::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
+
+// NULL AUTHENTICATOR
+// ================================================================================================
+
+/// Used for initializing test transaction hosts that do not need valid signatures
+#[derive(Clone)]
+pub struct NullAuthenticator;
+impl Default for NullAuthenticator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NullAuthenticator {
+    pub fn new() -> Self {
+        NullAuthenticator {}
+    }
+}
+impl TransactionAuthenticator for NullAuthenticator {
+    fn get_signature(
+        &self,
+        _pub_key: Word,
+        _message: Word,
+        _delta: &AccountDelta,
+    ) -> Result<Vec<Felt>, AuthenticationError> {
+        Err(AuthenticationError::RejectedSignature(
+            "Null authenticator does not provide signatures".into(),
+        ))
+    }
+}
 
 pub enum Benchmark {
     Simple,

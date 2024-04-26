@@ -14,7 +14,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, ZERO,
 };
-use miden_tx::{TransactionExecutor};
+use miden_tx::TransactionExecutor;
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
