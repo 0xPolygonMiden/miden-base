@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
 
+use miden_crypto::merkle::MerkleError;
+
 use super::{Digest, Felt, Hasher, ZERO};
 
 mod header;
@@ -100,6 +102,15 @@ impl Block {
                 (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note)
             })
         })
+    }
+
+    /// Returns a note tree containing all notes created in this block.
+    pub fn build_note_tree(&self) -> Result<BlockNoteTree, MerkleError> {
+        let entries = self
+            .notes()
+            .map(|(note_index, note)| (note_index, note.id().into(), *note.metadata()));
+
+        BlockNoteTree::with_entries(entries)
     }
 
     /// Returns a set of nullifiers for all notes consumed in the block.
