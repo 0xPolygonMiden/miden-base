@@ -1,4 +1,4 @@
-site_name: Miden documentation
+site_name: Miden base
 theme:
   name: material
   features:
