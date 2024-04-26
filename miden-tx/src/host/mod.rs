@@ -31,8 +31,6 @@ pub use tx_authenticator::{FalconAuthenticator, NullAuthenticator, TransactionAu
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-pub type GeneratedSignatures = BTreeMap<Digest, Vec<Felt>>;
-
 // CONSTANTS
 // ================================================================================================
 
@@ -64,7 +62,7 @@ pub struct TransactionHost<A, T> {
     tx_progress: TransactionProgress,
 
     /// Contains generated signatures for messages
-    generated_signatures: GeneratedSignatures,
+    generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
@@ -78,12 +76,12 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             output_notes: Vec::new(),
             tx_authenticator,
             tx_progress: TransactionProgress::default(),
-            generated_signatures: GeneratedSignatures::new(),
+            generated_signatures: BTreeMap::new(),
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, GeneratedSignatures) {
+    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
         (
             self.adv_provider,
             self.account_delta.into_delta(),
