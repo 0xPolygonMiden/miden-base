@@ -59,7 +59,7 @@ In this section, we show you how to make private transactions and send funds to 
     ```
 
     !!! tip
-        It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`
+        It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`.
 
     You should now see both accounts containing faucet assets with amounts transferred from `Account A` to `Account B`.
 
