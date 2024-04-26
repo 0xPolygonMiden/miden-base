@@ -1,5 +1,6 @@
 use.std::collections::smt
 use.std::collections::mmr
+use.std::crypto::hashes::native
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
@@ -138,8 +139,8 @@ proc.process_block_data
     adv_pipe hperm adv_pipe hperm adv_pipe hperm adv_pipe hperm
     # => [PERM, PERM, PERM, block_data_ptr']
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [DIG, block_data_ptr']
 
     # load the note root from the advice provider
@@ -248,7 +249,7 @@ proc.ingest_acct_storage_types
     end
 
     # extract the digest and drop the memory pointer
-    dropw swapw dropw movup.4 drop
+    exec.native::state_to_digest movup.4 drop
     # => [DIGEST, TYPES_COM]
 
     # assert the digest matches the commitment
@@ -424,7 +425,7 @@ end
 #! Advice stack: [acct_id, 0, 0, nonce, ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
 #! Output: []
 #!
-proc.process_acct_data
+proc.process_account_data
     # Copy the account data from the advice stack to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
@@ -440,8 +441,8 @@ proc.process_acct_data
     adv_pipe hperm adv_pipe hperm
     # => [RATE1, RATE0, CAPACITY, act_data_ptr']
 
-    # extract digest from hasher rate state and drop pointer
-    dropw swapw dropw movup.4 drop
+    # extract digest and drop pointer
+    exec.native::state_to_digest movup.4 drop
     # => [ACCT_HASH]
 
     # Validate the account
@@ -570,54 +571,50 @@ proc.authenticate_note.2
     # => []
 end
 
-#! Reads data for the input note i from the advice provider and stores it in memory at the
+#! Reads data for the ith input note from the advice provider and stores it in memory at the
 #! appropriate memory address. This includes computing and storing the nullifier and the
 #! note hash.
 #!
-#! Stack: [i]
-#! Advice stack: [CN1_SN, CN1_SR, CN1_IR, CN1_VR,
-#!               C1_NI, CN1_NA, CN1_A1, CN1_A2, ...]
-#!
+#! Stack: [idx]
+#! Advice stack: [SN, SR, IR, VR, NI, NA, A0, ..., An]
 #! Output: []
 #!
 #! Where:
-#! - i is the index of the input note.
-#! - CN1_SN is the serial number of input note 1.
-#! - CN1_SR is the script root of input note 1.
-#! - CN1_IR is the inputs root of input note 1.
-#! - CN1_VR is the vault root of input note 1.
-#! - CN1_NI is the number of inputs in input note 1.
-#! - CN1_NA is the number of assets in input note 1.
-#! - CN1_A1 is the first asset of input note 1.
-#! - CN1_A2 is the second asset of input note 1.
+#! - idx is the index of the input note.
+#! - SN is the serial number of input note `idx`.
+#! - SR is the script root of input note `idx`.
+#! - IR is the inputs root of input note `idx`.
+#! - VR is the vault root of input note `idx`.
+#! - NI is the number of inputs in input note `idx`.
+#! - NA is the number of assets in input note `idx`.
+#! - A0..An are the assets of input note `idx`.
 proc.process_input_note
     # read core note data
     # ---------------------------------------------------------------------------------------------
 
     # dup the note index
     dup
-    # => [i, i]
+    # => [idx, idx]
 
     # compute address to store note hash
     exec.memory::get_consumed_note_ptr
-    # => [note_ptr, i]
+    # => [note_ptr, idx]
 
     # compute address to store core note data
     dup exec.memory::get_consumed_note_core_ptr
-    # => [note_data_ptr, note_ptr, i]
+    # => [note_data_ptr, note_ptr, idx]
 
-    # read note data from the advice provider
-    padw padw padw
-    adv_pipe hperm adv_pipe hperm
-    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, i]
+    # read nullifier data from the advice provider (serial_num, script_hash, input_hash, asset_hash)
+    padw padw padw adv_pipe hperm adv_pipe hperm
+    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, idx]
 
-    # extract nullifier (digest)
-    dropw swapw dropw movup.4 drop
-    # => [DIG, note_ptr, i]
+    # extract nullifier
+    exec.native::state_to_digest movup.4 drop
+    # => [NULLIFIER, note_ptr, idx]
 
     # compute address for nullifier
     movup.6 exec.memory::get_consumed_note_nullifier_ptr
-    # => [nullifier_ptr, DIG, note_ptr]
+    # => [nullifier_ptr, NULLIFIER, note_ptr]
 
     # store nullifier in memory and drop from stack
     mem_storew dropw
@@ -697,8 +694,8 @@ proc.process_input_note
     end
     # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [DIG, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # clean and rearrange stack
@@ -790,32 +787,23 @@ end
 
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
-#! processed its hash and nullifier is computed. The transaction nullifier commitment is computed
-#! via a sequential hash of all (nullifier, ZERO) pairs for all input notes.
+#! processed its hash and nullifier are computed. The transaction nullifier commitment is computed via
+#! a sequential hash of all (nullifier, ZERO) pairs for all input notes.
 #!
 #! Stack: []
-#! Advice stack: [num_cn, ...],
-#! Advice map: {
-#!               NC: [
-#!                  CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M, CN1_NA
-#!                  CN1_A1, CN1_A2, ...
-#!
-#!                  CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M, CN2_NA
-#!                  CN2_A1, CN2_A2, ...
-#!                  ...]
-#!              }
+#! Advice stack: [num_notes],
+#! Advice map: { NC => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
 #! Output: []
 #!
-#! - num_cn is the number of input notes.
-#! - NC is the input note nullifier commitment.
-#! - CN1_SN is the serial number of input note 1.
-#! - CN1_SR is the script root of input note 1.
-#! - CN1_IR is the inputs root of input note 1.
-#! - CN1_VR is the vault root of input note 1.
-#! - CN1_M is the metadata of input note 1.
-#! - CN1_NA are optional note args for input note 1.
-#! - CN1_A1 is the first asset of input note 1.
-#! - CN1_A2 is the second asset of input note 1.
+#! - num_notes is the number of input notes.
+#! - NC is the nullifier commitment of all input notes.
+#! - SN is the serial number of the nth input note.
+#! - SR is the script root of the nth input note.
+#! - IR is the inputs root of the nth input note.
+#! - VR is the vault root of the nth input note.
+#! - M is the metadata of the nth input note.
+#! - NA are optional note args for the nth input note.
+#! - A0..An are the assets of the nth input note.
 proc.process_input_notes_data
     # get the number of input notes from the advice stack
     adv_push.1
@@ -823,10 +811,9 @@ proc.process_input_notes_data
 
     # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
-    dup exec.constants::get_max_num_consumed_notes
-    u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
-    u32lte
-    assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
+    dup
+    exec.constants::get_max_num_consumed_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
+    u32lte assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     # => [num_notes, ...]
 
     # if there are input notes, load input notes data from the advice map onto the advice stack
@@ -904,7 +891,7 @@ proc.process_input_notes_data
     end
 
     # extract nullifier hash
-    dropw swapw dropw
+    exec.native::state_to_digest
     # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
@@ -959,15 +946,9 @@ end
 #!  - Any of the input notes do note exist in the note db.
 #!
 #! Operand stack: [BH, acct_id, IAH, NC]
-#! Advice stack:  [NR, PH, CR, SR, BR, PH, BN,
-#!                  acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!                  num_cn, TXSR
-#!                ]
-#! Advice map:  {
-#!                  NC: [NOTE_1_DATA, ..., NOTE_N_DATA],
-#!              }
-#! Output:      []
-#!
+#! Advice stack: [NR, PH, CR, SR, BR, PH, BN, acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR, num_notes, TXSR]
+#! Advice map: {NC: [NOTE_1_DATA, ..., NOTE_N_DATA]}
+#! Output: []
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
@@ -985,25 +966,14 @@ end
 #! - AVR is the account vault root.
 #! - ASR is the account storage root.
 #! - ACR is the account code root.
-#! - num_cn is the number of input notes.
+#! - num_notes is the number of input notes.
 #! - NOTE_X_DATA is the data of the x'th note.
 #! - TXSR is the transaction script root.
 export.prepare_transaction
-    # process global inputs
     exec.process_global_inputs
-
-    # process block data
     exec.process_block_data
-
-    # process chain data
     exec.process_chain_data
-
-    # process account data
-    exec.process_acct_data
-
-    # process input notes data
+    exec.process_account_data
     exec.process_input_notes_data
-
-    # process transaction script root
     exec.process_tx_script_root
 end

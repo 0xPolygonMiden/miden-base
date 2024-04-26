@@ -1,4 +1,5 @@
 use.std::collections::smt
+use.std::crypto::hashes::native
 
 use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
@@ -132,7 +133,7 @@ export.get_current_hash
     mem_stream hperm mem_stream hperm
 
     # extract account hash
-    dropw swapw dropw
+    exec.native::state_to_digest
 
     # drop memory pointer
     movup.4 drop
@@ -444,7 +445,7 @@ export.validate_seed
         # => [RATE, RATE, CAP]
 
         # extract digest
-        dropw swapw dropw
+        exec.native::state_to_digest
         # => [DIG]
 
         # assert the account id matches the account id of the new account and extract pow

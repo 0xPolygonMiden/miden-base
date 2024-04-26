@@ -1,3 +1,5 @@
+use.std::crypto::hashes::native
+
 use.miden::kernels::tx::constants
 use.miden::kernels::tx::memory
 
@@ -205,8 +207,8 @@ proc.compute_output_note_assets_hash
         #     note_data_ptr]
     end
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [ASSETS_HASH, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
 
     # drop accessory variables from stack
@@ -244,7 +246,7 @@ proc.compute_output_note_hash
     dup.8 exec.compute_output_note_assets_hash
 
     # compute output note hash and extract digest
-    hperm dropw swapw dropw
+    hperm exec.native::state_to_digest
 
     # save output note hash to memory
     movup.4 mem_storew
@@ -301,8 +303,8 @@ export.compute_output_notes_commitment
         # => [should_loop, PERM, PERM, PERM, note_ptr + 512, end_ptr, ...]
     end
 
-    # extract digest from hasher rate elements (h_0, ..., h_3)
-    dropw swapw dropw
+    # extract digest
+    exec.native::state_to_digest
     # => [OUTPUT_NOTES_COMMITMENT, end_ptr, end_ptr, ...]
 
     # drop accessory variables from stack
