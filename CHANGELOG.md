@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 (2024-04-26) - `miden-tx` crate only
+
+* Fixed handling of debug mode in `TransactionExecutor` (#627)
+
 ## 0.2.2 (2024-04-23) - `miden-tx` crate only
 
 * Added `with_debug_mode()` methods to `TransactionCompiler` and `TransactionExecutor` (#562).

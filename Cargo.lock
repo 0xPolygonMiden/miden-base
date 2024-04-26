@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "miden-tx"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "miden-lib",
  "miden-mock",
