@@ -510,14 +510,15 @@ export.get_output_notes_hash
     # => [COM]
 end
 
-#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#! Creates a new note and returns a pointer to the memory address 
+#! at which the note is stored.
 #!
 #! Inputs: [tag, aux, note_type, RECIPIENT]
 #! Outputs: [ptr, 0, 0, 0, 0, 0, 0]
 #!
 #! tag is the tag to be included in the note.
 #! aux is an auxiliary field that the user can use.
-#! note_type is the note storage type
+#! note_type is the note storage type.
 #! RECIPIENT is the recipient of the note.
 #! ptr is the pointer to the memory address at which the note is stored.
 export.create_note
@@ -533,7 +534,7 @@ export.create_note
     # => [ptr, 0, 0, 0, 0, 0, 0]
 end
 
-#! Creates a new note without asset and returns a pointer to the memory address 
+#! Adds an ASSET to the specified note and returns a pointer to the memory address 
 #! at which the note is stored.
 #!
 #! Inputs: [ptr, ASSET]

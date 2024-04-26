@@ -59,11 +59,11 @@ end
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
 #! Inputs: [tag, aux, note_type, RECIPIENT]
-#! Outputs: [ptr]
+#! Outputs: [ptr, ZERO, 0, 0]
 #!
 #! tag is the tag to be included in the note.
-#! aux is an auxiliary field that can be used by the user
-#! note_type is the storage type of the note
+#! aux is an auxiliary field that can be used by the user.
+#! note_type is the storage type of the note.
 #! RECIPIENT is the recipient of the note.
 #! ptr is the pointer to the memory address at which the note is stored.
 export.create_note
@@ -75,10 +75,11 @@ export.create_note
     # => [ptr]
 end
 
-#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#! Adds an ASSET to the specified note and returns a pointer to the memory address 
+#! at which the note is stored.
 #!
 #! Inputs: [ptr, ASSET]
-#! Outputs: [ptr]
+#! Outputs: [ptr, ZERO]
 #!
 #! ptr is the pointer to the memory address at which the note is stored.
 #! ASSET can be a fungible or non-fungible asset.

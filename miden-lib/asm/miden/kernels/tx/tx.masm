@@ -89,10 +89,22 @@ proc.increment_num_created_notes
     # => [note_idx]
 end
 
-#! This is a helper function that is used to check if the asset already exists in the note
+#! Checks if an ASSET already exists in the note.
+#! a, If there exists an identical non-fungible ASSET, the procedure throws an error.
+#! b, If there exists a fungible ASSET with the same faucet-id, the procedure adds the 
+#!    new amount to the existing ASSET and returns the asset_ptr of the existing one.
+#!    In this case it also reduces the number_of_assets by 1.  
+#! c, If there is no identical ASSET, the procedure returns the asset_ptr of the next 
+#!    available memory location.
 #! 
 #! Inputs: [ASSET, ptr, num_of_assets]
-#! Outputs: # => [asset_ptr, ASSET'', ptr, num_of_assets]
+#! Outputs: [asset_ptr, ASSET'', ptr, num_of_assets]
+#!
+#! ASSET is the asset to be checked.
+#! ASSET'' is the input ASSET or the ASSET with the increased quantity.
+#! ptr is the pointer to the memory address at which the note is stored.
+#! asset_ptr is the pointer to the memory address at which the asset is stored. 
+#! num_assets is the number of assets in the note.
 proc.check_if_asset_already_exists
     dup.4 exec.memory::get_created_note_asset_data_ptr dup
     # => [asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
@@ -105,7 +117,7 @@ proc.check_if_asset_already_exists
     padw movup.5
     # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
 
-    # compute the loop latch (actually not needed I could do push.1)
+    # compute the loop latch ToDo: check if we can use push.1 instead
     dup dup.6 neq
     # => [latch, asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, ptr, num_of_assets]
 
@@ -124,19 +136,19 @@ proc.check_if_asset_already_exists
         dup dup.5 eq
 
         if.true
-            # we know its a non-fungible asset that already exists, so we throw an error
             exec.asset::is_non_fungible_asset 
             
             if.true
+                # its a non-fungible asset that already exists, so compare the WORD
                 eqw assert.err=ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS
             end
             # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
 
-            # we know its a fugible asset that already exists, so we add the quantity together
+            # its a fugible asset that already exists, so add the quantity together
             drop drop drop movup.4 add movdn.3
             # => [ASSET'', 0, 0, end_asset_ptr, asset_ptr, ptr, num_of_assets]
 
-            # reduce the num_of_assets by 1, we increase it later again
+            # reduce the num_of_assets by 1, will be increased later again
             movup.9 sub.1 movdn.9 swapw
             # => [0, 0, end_asset_ptr, asset_ptr, ASSET'', ptr, num_of_assets - 1 ]
 
@@ -151,11 +163,11 @@ proc.check_if_asset_already_exists
             # => [asset_ptr + 1, 0, 0, 0, 0, end_asset_ptr, asset_ptr + 1, ASSET, ptr, num_of_assets]
         end
 
-        # check if we reached the end of the loop
+        # check if end of the loop is reached
         dup dup.6 neq
     end
 
-    # preapre stack for return
+    # prepare stack for return
     dropw drop drop
     # => [asset_ptr, ASSET'', ptr, num_of_assets]
 end 
@@ -231,16 +243,6 @@ export.add_asset_to_note
     # => [num_of_assets>0?, ASSET, ptr, num_of_assets]
 
     if.true
-        # Here we check if the ASSET already exists in the note. If there exists an
-        # identical non-fungible ASSET, the kernel throws an error. The procedure 
-        # returns if 
-        # a, there is a fungible ASSET of the same type (same faucet-id), or
-        # b, there is not an identical non-fungible ASSET in the note. 
-        # 
-        # For a, the kernel adds the amounts of both ASSETs together and returns the 
-        # asset_ptr to store the new amount at the old address. Also it reduces the 
-        # number_of_assets by 1. For b, the kernel returns the next available asset_ptr 
-        # to store the NFT.
         exec.check_if_asset_already_exists
         # => [asset_ptr, ASSET'', ptr, num_of_assets]
     else
