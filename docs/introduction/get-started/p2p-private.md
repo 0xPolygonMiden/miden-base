@@ -36,7 +36,7 @@ In this section, we show you how to make private transactions and send funds to 
     ```
 
     !!! note
-        The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://ethdenver.polygonmiden.io/) under the title **Miden faucet**.
+        The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://testnet.miden.io/) under the title **Miden faucet**.
 
     This generates a private Pay-to-ID (`P2ID`) note containing `50` assets, transferred from one account to the other. 
 

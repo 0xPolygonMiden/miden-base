@@ -61,7 +61,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     ```
 
     !!! note
-        The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://ethdenver.polygonmiden.io/) under the title **Miden faucet**.
+        The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://testnet.miden.io/) under the title **Miden faucet**.
 
     This generates a Pay-to-ID (`P2ID`) note containing `50` assets, transferred from one account to the other. As the note is public, the second account can receive the necessary details by syncing with the node.
 
