@@ -7,45 +7,55 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 !!! tip
       Check the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for more information.
 
-1. If you haven't already done so as part of another instruction set, clone the Miden client.
+1. Open your terminal and create a new directory to store the Miden client.
+
+    ```sh
+    mkdir miden-client-2
+    cd miden-client-2
+    ```
+
+
+
+2. Build and install the client using cargo:
 
       ```shell
-      git clone https://github.com/0xPolygonMiden/miden-client
+      cargo install miden-client --features testing,concurrent
       ```
 
-2. Navigate to the client directory. 
+   You can now use the `miden-client` command.
+
+3. Initialize the client and point it to the Miden testnet. IP: `18.203.155.106`
 
       ```shell
-      cd miden-client
+      miden-client init
       ```
 
-3. Modify the configuration file at `./miden-client.toml` to point to the remote Miden node. 
-
-      In the `[RPC]` section, replace the `endpoint = { host: }` field with the address provided by the Miden team.
-
-      ```toml
-      [rpc]
-      endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
-
-      [store]
-      database_filepath = "store.sqlite3"
-      ```
-
-4. Build and install the client using cargo:
+   The command will set up the client. You can accept the default by pressing Enter. 
 
       ```shell
-      cargo install --features testing,concurrent --path .
+      ~ % miden-client init
+      Protocol (default: http):
+
+      Host (default: localhost):
+      18.203.155.106
+      Node RPC Port (default: 57291):
+
+      Sqlite file path (default: ./store.sqlite3):
+
+      Creating config file at: "/<YOUR-FOLDER>/miden-client.toml"
       ```
 
-5. Check you can use the help flag.
+4. Check you can sync with the blockchain. 
 
       ```shell
-      miden-client --help
+      ~ % miden-client sync
+      State synced to block 59203
       ```
+   You are all set!
 
 ## Create a new Miden account
 
-1. Create a new account called `basic-immutable` using the following command:
+1. Create a new account called `basic-mutable` using the following command:
 
       ```shell
       miden-client account new basic-immutable
@@ -57,7 +67,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       miden-client account -l
       ```
 
-3. You should something like this:
+   You should see something like this:
 
       ![Result of listing miden accounts](../../img/get-started/miden-account-list.png)
 
@@ -71,13 +81,13 @@ Save the account ID for a future step.
 
 3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 333 tokens!**. 
 
-4. After a few seconds your browser should download - or prompt you to download - a file called `note.mno` (mno = Miden note). It contains the funds the faucet sent to your address.
+4. After a few seconds your browser should download - or prompt you to download - a file called `note.mno` (mno = Miden note). This private note contains the funds the faucet sent to your address.
 
 5. Save this file on your computer, you will need it for the next step. 
 
 ## Import the note into the Miden client
 
-1. Import the note that you have received using the following commands: 
+1. Import the private note that you have received using the following commands: 
 
       ```shell
       miden-client input-notes -i <path-to-note>/note.mno
@@ -101,9 +111,9 @@ Save the account ID for a future step.
 
 !!! tip "The importance of syncing"
       - As you can see, the listed note is lacking a `commit-height`. 
-      - This is because you have received a note off-chain but have not yet synced your view of the rollup to check that the note is valid and exists at the rollup level. 
-      - The nullified check at the operator level prevents double spends after a transaction takes place.
+      - This is because you have received a private note but have not yet synced your view of the rollup to check that the note is the result of a valid transaction.
       - Hence, before consuming the note we will need to update our view of the rollup by syncing.
+      - Many users could have gotten the same private note, we cannot know, but only one user will be able to consume the note in a transaction that gets verified by the Miden operator.
 
 ### Sync the client
 
@@ -118,6 +128,8 @@ You will see something like this as output:
 ```sh
 State synced to block 179672
 ```
+
+And now you note should have a `Commit Height`.
 
 ## Consume the note & receive the funds
 
@@ -143,6 +155,8 @@ State synced to block 179672
       ```shell
       miden-client tx new consume-notes <Account-Id> <Note-Id>
       ```
+
+  Amazing! You just have created a client-side zero-knowledge proof locally on your machine. 
 
 !!! tip 
       You only need to copy the top line of characters of the Note ID.

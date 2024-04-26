@@ -20,7 +20,7 @@ If you want to join the technical discussion, please check out the following:
 
 ## Status and features
 
-Polygon Miden is currently on release v0.1. This is an early version of the protocol and its components. 
+Polygon Miden is currently on release v0.2. This is an early version of the protocol and its components. 
 
 !!! important
     We expect breaking changes on all components.
@@ -36,6 +36,14 @@ The Miden operator only tracks a commitment to account data in the public databa
 #### Private notes
 
 Like private accounts, the Miden operator only tracks a commitment to notes in the public database. Users need to communicate note details to each other off-chain (via a side channel) in order to consume private notes in transactions.
+
+#### Public accounts
+
+Polygon Miden will support public smart contracts like Ethereum. Code and state of those accounts will be visible to the network and anyone can execute transactions against them.
+
+#### Public notes
+
+As with public accounts, public notes will also be supported. That means, the Miden operator will publicly store note data. Note consumption will not be private.
 
 #### Local transaction execution 
 
@@ -63,14 +71,6 @@ The Miden node stores all necessary information in its state DBs and provides th
 
 !!! warning
     The following features are at a planning stage only.
-
-#### Public accounts
-
-Polygon Miden will support public smart contracts like Ethereum. Code and state of those accounts will be visible to the network and anyone can execute transactions against them.
-
-#### Public notes
-
-As with public accounts, public notes will also be supported. That means, the Miden operator will publicly store note data. Note consumption will not be private.
 
 #### Customized smart contracts
 
