@@ -1,5 +1,4 @@
 extern crate alloc;
-use alloc::sync::Arc;
 
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
@@ -63,7 +62,7 @@ fn prove_swap_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(Arc::new(data_store.clone()));
+    let mut executor = TransactionExecutor::new(data_store.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();

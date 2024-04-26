@@ -1,4 +1,4 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -43,7 +43,7 @@ use super::{
 
 #[test]
 fn transaction_executor_witness() {
-    let data_store = Arc::new(MockDataStore::default());
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -80,7 +80,7 @@ fn transaction_executor_witness() {
 
 #[test]
 fn executed_transaction_account_delta() {
-    let data_store = Arc::new(MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta));
+    let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor = TransactionExecutor::new(data_store.clone());
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -276,7 +276,7 @@ fn executed_transaction_account_delta() {
 
 #[test]
 fn prove_witness_and_verify() {
-    let data_store = Arc::new(MockDataStore::default());
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
@@ -305,7 +305,7 @@ fn prove_witness_and_verify() {
 
 #[test]
 fn test_tx_script() {
-    let data_store = Arc::new(MockDataStore::default());
+    let data_store = MockDataStore::default();
     let mut executor = TransactionExecutor::new(data_store.clone());
 
     let account_id = data_store.account.id();
