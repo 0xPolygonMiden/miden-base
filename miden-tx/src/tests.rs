@@ -7,7 +7,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode, AccountDelta,
+        Account, AccountCode,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
@@ -41,37 +41,7 @@ use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
     TransactionProver, TransactionVerifier,
 };
-use crate::{error::AuthenticationError, TransactionAuthenticator};
-
-// NULL AUTHENTICATOR
-// ================================================================================================
-
-/// Used for initializing test transaction hosts that do not need valid signatures
-#[derive(Clone)]
-pub struct NullAuthenticator;
-impl Default for NullAuthenticator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl NullAuthenticator {
-    pub fn new() -> Self {
-        NullAuthenticator {}
-    }
-}
-impl TransactionAuthenticator for NullAuthenticator {
-    fn get_signature(
-        &mut self,
-        _pub_key: Word,
-        _message: Word,
-        _delta: &AccountDelta,
-    ) -> Result<Vec<Felt>, AuthenticationError> {
-        Err(AuthenticationError::RejectedSignature(
-            "Null authenticator does not provide signatures".into(),
-        ))
-    }
-}
+use crate::NullAuthenticator;
 
 // TESTS
 // ================================================================================================
@@ -110,7 +80,7 @@ fn transaction_executor_witness() {
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
 
-    let (advice_provider, _, output_notes, _authenticator) = host.into_parts();
+    let (advice_provider, _, output_notes, _signatures) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
     let tx_outputs = TransactionKernel::from_transaction_parts(
         result.stack_outputs(),
@@ -386,7 +356,7 @@ fn prove_witness_and_verify() {
 
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction, authenticator).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();

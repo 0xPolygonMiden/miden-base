@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
     accounts::{
@@ -164,7 +164,15 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
 
-    ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, tx_args, advice_witness)
+    ExecutedTransaction::new(
+        program,
+        tx_inputs,
+        tx_outputs,
+        account_delta,
+        tx_args,
+        advice_witness,
+        BTreeMap::new(),
+    )
 }
 
 // HELPER FUNCTIONS

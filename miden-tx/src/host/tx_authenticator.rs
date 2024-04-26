@@ -119,3 +119,33 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
         Ok(result)
     }
 }
+
+// NULL AUTHENTICATOR
+// ================================================================================================
+
+/// Used for initializing test transaction hosts that do not need valid signatures
+#[derive(Clone)]
+pub struct NullAuthenticator;
+impl Default for NullAuthenticator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NullAuthenticator {
+    pub fn new() -> Self {
+        NullAuthenticator {}
+    }
+}
+impl TransactionAuthenticator for NullAuthenticator {
+    fn get_signature(
+        &mut self,
+        _pub_key: Word,
+        _message: Word,
+        _delta: &AccountDelta,
+    ) -> Result<Vec<Felt>, AuthenticationError> {
+        Err(AuthenticationError::RejectedSignature(
+            "Null authenticator does not provide signatures".into(),
+        ))
+    }
+}

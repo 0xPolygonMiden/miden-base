@@ -12,7 +12,7 @@ use miden_objects::{
         NoteScript, NoteTag, NoteType,
     },
     transaction::OutputNote,
-    Digest,
+    Digest, Hasher,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
@@ -26,10 +26,12 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_authenticator;
-pub use tx_authenticator::{FalconAuthenticator, TransactionAuthenticator};
+pub use tx_authenticator::{FalconAuthenticator, NullAuthenticator, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
+
+pub type GeneratedSignatures = BTreeMap<Digest, Vec<Felt>>;
 
 // CONSTANTS
 // ================================================================================================
@@ -60,6 +62,9 @@ pub struct TransactionHost<A, T> {
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
     tx_progress: TransactionProgress,
+
+    /// Contains generated signatures for messages
+    generated_signatures: GeneratedSignatures,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
@@ -73,16 +78,17 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             output_notes: Vec::new(),
             tx_authenticator,
             tx_progress: TransactionProgress::default(),
+            generated_signatures: GeneratedSignatures::new(),
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, T) {
+    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, GeneratedSignatures) {
         (
             self.adv_provider,
             self.account_delta.into_delta(),
             self.output_notes,
-            self.tx_authenticator,
+            self.generated_signatures,
         )
     }
 
@@ -337,14 +343,27 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             AdviceInjector::SigToStack { .. } => {
                 let pub_key = process.get_stack_word(0);
                 let msg = process.get_stack_word(1);
-                let account_delta = self.account_delta.clone().into_delta();
-                let result: Vec<Felt> = self
-                    .tx_authenticator
-                    .get_signature(pub_key, msg, &account_delta)
-                    .map_err(|err| ExecutionError::EventError(err.to_string()))?;
-                for r in result {
+                let signature_key = Hasher::hash_elements(&[pub_key, msg].concat());
+
+                let signature =
+                    if let Some(signature) = self.adv_provider.get_mapped_values(&signature_key) {
+                        signature.to_vec()
+                    } else {
+                        let account_delta = self.account_delta.clone().into_delta();
+
+                        let signature: Vec<Felt> = self
+                            .tx_authenticator
+                            .get_signature(pub_key, msg, &account_delta)
+                            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
+
+                        self.generated_signatures.insert(signature_key, signature.clone());
+                        signature
+                    };
+
+                for r in signature {
                     self.adv_provider.push_stack(AdviceSource::Value(r))?;
                 }
+
                 Ok(HostResponse::None)
             },
             injector => self.adv_provider.set_advice(process, &injector),

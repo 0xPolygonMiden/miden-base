@@ -9,8 +9,7 @@ pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::host::TransactionAuthenticator;
-
+use crate::NullAuthenticator;
 /// Transaction prover is a stateless component which is responsible for proving transactions.
 ///
 /// Transaction prover exposes the `prove_transaction` method which takes a [TransactionWitness],
@@ -36,10 +35,9 @@ impl TransactionProver {
     /// - If the consumed note data in the transaction witness is corrupt.
     /// - If the transaction program cannot be proven.
     /// - If the transaction result is corrupt.
-    pub fn prove_transaction<T: Into<TransactionWitness>, A: TransactionAuthenticator>(
+    pub fn prove_transaction<T: Into<TransactionWitness>>(
         &self,
         transaction: T,
-        transaction_authenticator: A,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let tx_witness: TransactionWitness = transaction.into();
 
@@ -53,14 +51,14 @@ impl TransactionProver {
         let mut host = TransactionHost::new(
             tx_witness.account().into(),
             advice_provider,
-            transaction_authenticator,
+            NullAuthenticator::new(),
         );
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, account_delta, output_notes, _authenticator) = host.into_parts();
+        let (advice_provider, account_delta, output_notes, _signatures) = host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs =
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)

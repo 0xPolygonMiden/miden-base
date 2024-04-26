@@ -137,13 +137,13 @@ impl DataStore for MockDataStore {
 #[cfg(test)]
 pub fn prove_and_verify_transaction<A: miden_tx::TransactionAuthenticator>(
     executed_transaction: ExecutedTransaction,
-    authenticator: A,
+    _authenticator: A,
 ) -> Result<(), TransactionVerifierError> {
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction, authenticator).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
 
     // Serialize & deserialize the ProvenTransaction
     let serialised_transaction = proven_transaction.to_bytes();
