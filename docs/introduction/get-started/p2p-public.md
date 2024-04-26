@@ -90,7 +90,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 
 That's it! 
 
-Account C will have now consumed the note and should have new assets in the account:
+Account C has now consumed the note and there should be new assets in the account:
 
 ```sh
 miden-client account show <account-ID-C> -v
