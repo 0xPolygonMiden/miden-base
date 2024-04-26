@@ -44,6 +44,7 @@ impl AccountStub {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
     /// Returns hash of this account.
     ///
     /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).

@@ -1,7 +1,5 @@
 use alloc::vec::Vec;
 
-use core::ops::Not;
-
 use miden_objects::{
     accounts::Account,
     transaction::{
@@ -9,7 +7,7 @@ use miden_objects::{
         TransactionInputs, TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
-    Digest, Felt, Word, ZERO,
+    Felt, Word, ZERO,
 };
 
 use super::TransactionKernel;
@@ -28,7 +26,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            get_init_account_hash(account),
+            account.init_account_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -45,7 +43,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let account = self.initial_account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            get_init_account_hash(account),
+            account.init_account_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -63,7 +61,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            get_init_account_hash(account),
+            account.init_account_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -350,17 +348,4 @@ fn add_input_notes_to_advice_inputs(
 
     // insert the combined note data into the advice map
     inputs.extend_map([(notes.commitment(), note_data)]);
-}
-
-/// Returns hash of the given account as used for the initial account state hash in transaction
-/// proofs.
-///
-/// For existing accounts, this is exactly the same as [Account::hash()], however, for new
-/// accounts this value is set to `None`. This is because when a transaction is executed
-/// against a new account, public input for the initial account state is set to [ZERO; 4] to
-/// distinguish new accounts from existing accounts, and `None` returned from this method.
-/// indicates that `[ZERO; 4]` should be used as a public input. The actual hash of the initial
-/// account state (and the initial state itself), are provided to the VM via the advice provider.
-fn get_init_account_hash(account: &Account) -> Option<Digest> {
-    account.is_new().not().then(|| account.hash())
 }

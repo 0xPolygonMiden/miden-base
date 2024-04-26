@@ -1,5 +1,3 @@
-use core::ops::Not;
-
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
@@ -64,7 +62,7 @@ impl TransactionProver {
 
         let builder = ProvenTransactionBuilder::new(
             account_id,
-            tx_witness.account().proof_init_hash(),
+            tx_witness.account().init_account_hash(),
             tx_outputs.account.hash(),
             block_hash,
             proof,
