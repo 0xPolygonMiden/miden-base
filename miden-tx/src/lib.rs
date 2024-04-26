@@ -25,8 +25,8 @@ pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
 pub use host::{
-    FalconAuthenticator, GeneratedSignatures, NullAuthenticator, TransactionAuthenticator,
-    TransactionHost, TransactionProgress,
+    FalconAuthenticator, NullAuthenticator, TransactionAuthenticator, TransactionHost,
+    TransactionProgress,
 };
 
 mod prover;
