@@ -24,7 +24,7 @@ const.ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET=0x00020038
 # Fungible asset origin validation failed
 const.ERR_FUNGIBLE_ASSET_MISMATCH=0x00020039
 
-# Fungible asset origin validation failed
+# Non-fungible asset origin validation failed
 const.ERR_NON_FUNGIBLE_ASSET_MISMATCH=0x0002003A
 
 # CONSTANTS
