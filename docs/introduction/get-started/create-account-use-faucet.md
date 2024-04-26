@@ -113,7 +113,7 @@ Save the account ID for a future step.
       - As you can see, the listed note is lacking a `commit-height`. 
       - This is because you have received a private note but have not yet synced your view of the rollup to check that the note is the result of a valid transaction.
       - Hence, before consuming the note we will need to update our view of the rollup by syncing.
-      - Many users could have gotten the same private note, we cannot know, but only one user will be able to consume the note in a transaction that gets verified by the Miden operator.
+      - Many users could have received the same private note, but only one user can consume the note in a transaction that gets verified by the Miden operator.
 
 ### Sync the client
 
