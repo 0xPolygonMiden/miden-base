@@ -86,7 +86,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     ```
 
     !!! tip
-        It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`
+        It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`.
 
 That's it! 
 
