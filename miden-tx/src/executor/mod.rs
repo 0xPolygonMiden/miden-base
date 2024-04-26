@@ -53,12 +53,26 @@ impl<D: DataStore> TransactionExecutor<D> {
     }
 
     /// Puts the [TransactionExecutor] into debug mode.
-    /// 
+    ///
     /// When transaction executor is in debug mode, all transaction-related code (note scripts,
     /// account code) will be compiled and executed in debug mode. This will ensure that all debug
     /// instructions present in the original source code are executed.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
         self.compiler = self.compiler.with_debug_mode(in_debug_mode);
+        if in_debug_mode && !self.exec_options.enable_debugging() {
+            self.exec_options = self.exec_options.with_debugging();
+        } else if !in_debug_mode && self.exec_options.enable_debugging() {
+            // since we can't set the debug mode directly, we re-create execution options using
+            // the same values as current execution options (except for debug mode which defaults
+            // to false)
+            self.exec_options = ExecutionOptions::new(
+                Some(self.exec_options.max_cycles()),
+                self.exec_options.expected_cycles(),
+                self.exec_options.enable_tracing(),
+            )
+            .expect("failed to clone execution options");
+        }
+
         self
     }
 
