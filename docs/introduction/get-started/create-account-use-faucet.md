@@ -129,7 +129,7 @@ You will see something like this as output:
 State synced to block 179672
 ```
 
-And now you note should have a `Commit Height`.
+And now your note should have a `Commit Height`.
 
 ## Consume the note & receive the funds
 
