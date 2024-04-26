@@ -16,8 +16,8 @@ use crate::error::AuthenticationError;
 /// Its main use is to provide a method to create a DSA signature for a message,
 /// based on an [AccountDelta].
 ///
-/// The signature is intended to authenticate users by ensuring that the users
-/// can verify and approve any changes before the transaction is authenticated.
+/// The signature is intended to provide authentication. The implementer can verify 
+/// and approve any changes before the message is signed.
 pub trait TransactionAuthenticator {
     /// Retrieves a signataure for a specific message as a list of [Felt].
     /// The request is initiaed by the VM as a consequence of the SigToStack advice
@@ -27,8 +27,8 @@ pub trait TransactionAuthenticator {
     /// - `message`: The message to sign, usually a commitment to the transaction data.
     /// - `account_delta`: An informational parameter describing the changes made to
     ///   the account up to the point of calling `get_signature()`. This allows the
-    ///   authenticator to review any alterations to the account prior to signing,
-    ///   although it is not directly used in the signature computation.
+    ///   authenticator to review any alterations to the account prior to signing.
+    ///   It should not be directly used in the signature computation.
     fn get_signature(
         &self,
         pub_key: Word,
@@ -53,8 +53,8 @@ impl FalconAuthenticator {
 }
 
 impl TransactionAuthenticator for FalconAuthenticator {
-    /// Gets as input a [Word] containing a secret key, and a word representing a message and outputs a
-    /// vector of values to be pushed onto the advice stack.
+    /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
+    /// outputs a vector of values to be pushed onto the advice stack.
     /// The values are the ones required for a Falcon signature verification inside the VM and they are:
     ///
     /// 1. The nonce represented as 8 field elements.
