@@ -11,8 +11,6 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-
-
 [[bin]]
 name = "mock"
 path = "src/main.rs"

@@ -7,7 +7,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 !!! tip
       Check the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for more information.
 
-1. Clone the Miden client.
+1. If you haven't already done so as part of another instruction set, clone the Miden client.
 
       ```shell
       git clone https://github.com/0xPolygonMiden/miden-client
@@ -65,11 +65,11 @@ Save the account ID for a future step.
 
 ## Request tokens from the public faucet
 
-1. To request funds from the faucet navigate to the following website: [Miden faucet website](https://ethdenver.polygonmiden.io/).
+1. To request funds from the faucet navigate to the following website: [Miden faucet website](https://testnet.miden.io/).
 
 2. Copy the **Account ID** printed by the `miden-client account -l` command in the previous step. 
 
-3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 100 tokens!**. 
+3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 333 tokens!**. 
 
 4. After a few seconds your browser should download - or prompt you to download - a file called `note.mno` (mno = Miden note). It contains the funds the faucet sent to your address.
 
@@ -80,7 +80,7 @@ Save the account ID for a future step.
 1. Import the note that you have received using the following commands: 
 
       ```shell
-      miden-client input-notes -i <path-to-note>
+      miden-client input-notes -i <path-to-note>/note.mno
       ```
 
 2. You should see something like this:
@@ -145,7 +145,9 @@ State synced to block 179672
       ```
 
 !!! tip 
-      - You only need to use the first 7 characters of the Note-Id.
+      You only need to copy the top line of characters of the Note ID.
+
+## View confirmations
 
 5. View your updated account's vault containing the tokens sent by the faucet by running the following command: 
 

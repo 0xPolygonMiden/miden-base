@@ -1,8 +1,8 @@
 In this section, we show you how to make off-chain transactions and send funds to another account using the Miden client. 
 
 !!! important "Prerequisite steps"
-    - You should have already followed all previous sections.
-    - You should have *not* reset the state of your local client. 
+    - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
+    - You should *not* have reset the state of your local client. 
 
 ## Create a second account
 
@@ -32,7 +32,7 @@ In this section, we show you how to make off-chain transactions and send funds t
     To do this, run:
 
     ```shell
-    miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50
+    miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 --note-type private
     ```
 
     !!! note
@@ -55,34 +55,32 @@ In this section, we show you how to make off-chain transactions and send funds t
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> 
+    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
         It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient.
 
-That's it! 
+    You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
 
-You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
+    !!! tip
+        Remember. The original amount was 100 POL.
 
-!!! tip
-    Remember. The original amount was 100 POL.
+5. Check the second account:
 
-Check the second account:
+    ```shell
+    miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
+    ```
 
-```shell
-miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
-```
+    ![Result of listing miden accounts](../../img/get-started/account-b.png)
 
-![Result of listing miden accounts](../../img/get-started/account-b.png)
+6. Check the original account:
 
-Check the original account:
+    ```sh
+    miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+    ```
 
-```sh
-miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
-```
-
-![Result of listing miden accounts](../../img/get-started/account-a.png)
+    ![Result of listing miden accounts](../../img/get-started/account-a.png)
 
 ## Clear state
 
@@ -94,7 +92,8 @@ To clear all state, delete this file. It recreates on any command execution.
 
 You have successfully configured and used the Miden client to interact with a Miden rollup and faucet. 
 
-You have performed basic Miden rollup operations like sending transactions, generating and consuming notes.
+You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
 
+</br>

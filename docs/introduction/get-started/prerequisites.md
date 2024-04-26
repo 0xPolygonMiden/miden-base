@@ -22,3 +22,5 @@ Get the IP address of the running Miden node by contacting one of the Miden engi
 ### Miden client
 
 Install the [Miden client](https://docs.polygon.technology/miden/miden-client/install-and-run/).
+
+</br>
