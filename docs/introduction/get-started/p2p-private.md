@@ -96,6 +96,6 @@ You have performed basic Miden rollup operations like submitting proofs of trans
 
 For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
 
-Wanna do more? [Sending Public Notes](p2p-public.md)
+Wanna do more? [Sending public notes](p2p-public.md)
 
 </br>
