@@ -9,7 +9,7 @@ In this section, we show you how to make private transactions and send funds to 
 !!! tip
       Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
 
-1. Create a second account to send funds with. Previously, we created a `basic-mutable` (account A). Now, create `basic-mutable` (account B) using the following command:
+1. Create a second account to send funds with. Previously, we created a type `basic-mutable` account (account A). Now, create another `basic-mutable` (account B) using the following command:
 
       ```shell
       miden-client account new basic-mutable

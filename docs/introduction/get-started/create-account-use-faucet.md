@@ -14,14 +14,12 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
     cd miden-client
     ```
 
-
-
 2. Build and install the client using cargo:
 
       ```shell
       cargo install miden-client --features testing,concurrent
       ```
-      You can now use the `miden-client` command.
+      You can now use the `miden-client --version` command, and you should see `Miden 0.2.1`
 
 3. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
@@ -46,10 +44,10 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 
 ## Create a new Miden account
 
-1. Create a new account called `basic-mutable` using the following command:
+1. Create a new account of type `basic-mutable` using the following command:
 
       ```shell
-      miden-client account new basic-immutable
+      miden-client account new basic-mutable
       ```
 
 2. List all created accounts by running the following command:
@@ -119,11 +117,9 @@ You will see something like this as output:
 State synced to block 179672
 ```
 
-And now your note should have a `Commit Height`.
-
 ## Consume the note & receive the funds
 
-1. Now that we have synced the client, the input-note imported from the faucet should have a `commit-height` confirming it exists at the rollup level: 
+1. Now that we have synced the client, the input-note imported from the faucet should have a `Commit Height` confirming it exists at the rollup level: 
 
       ```shell
       miden-client input-notes -l
