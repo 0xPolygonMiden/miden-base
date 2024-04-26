@@ -1,5 +1,3 @@
-extern crate alloc;
-
 use miden_lib::notes::create_p2idr_note;
 use miden_objects::{
     accounts::{

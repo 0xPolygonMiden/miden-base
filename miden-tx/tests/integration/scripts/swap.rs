@@ -1,5 +1,3 @@
-extern crate alloc;
-
 use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
 use miden_objects::{
     accounts::{
