@@ -123,7 +123,9 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
 // NULL AUTHENTICATOR
 // ================================================================================================
 
-/// Used for initializing test transaction hosts that do not need valid signatures
+/// Used for initializing test transaction hosts that do not need to request signatures (ie, for
+/// transactions that do not need to sign anything or the prover host which gets signatures from
+/// the advice map)
 #[derive(Clone)]
 pub struct NullAuthenticator;
 impl Default for NullAuthenticator {
