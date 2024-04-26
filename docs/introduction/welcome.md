@@ -39,7 +39,7 @@ Like private accounts, the Miden operator only tracks a commitment to notes in t
 
 #### Public accounts
 
-Polygon Miden will support public smart contracts like Ethereum. Code and state of those accounts will be visible to the network and anyone can execute transactions against them.
+Polygon Miden supports public smart contracts like Ethereum. The code and state of those accounts is visible to the network and anyone can execute transactions against them.
 
 #### Public notes
 
