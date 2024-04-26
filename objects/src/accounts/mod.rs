@@ -1,4 +1,4 @@
-use std::ops::Not;
+use core::ops::Not;
 
 use crate::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
