@@ -14,11 +14,11 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, ZERO,
 };
-use miden_tx::TransactionExecutor;
+use miden_tx::{TransactionExecutor};
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction, MockDataStore,
 };
 
@@ -40,7 +40,7 @@ fn prove_swap_script() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let (target_pub_key, target_sk_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account = get_account_with_default_account_code(
         target_account_id,
         target_pub_key,
@@ -69,17 +69,22 @@ fn prove_swap_script() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target = executor
-        .compile_tx_script(tx_script_code.clone(), vec![(target_pub_key, target_sk_felt)], vec![])
-        .unwrap();
+    let tx_script_target =
+        executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(
+            target_account_id,
+            block_ref,
+            &note_ids,
+            tx_args_target,
+            target_falcon_auth.clone(),
+        )
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone(), target_falcon_auth).is_ok());
 
     // target account vault delta
     let target_account_after: Account = Account::new(

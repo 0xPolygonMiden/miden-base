@@ -41,6 +41,7 @@ use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
     TransactionProver, TransactionVerifier,
 };
+use crate::host::NullAuthenticator;
 
 // TESTS
 // ================================================================================================
@@ -57,19 +58,29 @@ fn transaction_executor_witness() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(
+            account_id,
+            block_ref,
+            &note_ids,
+            data_store.tx_args().clone(),
+            NullAuthenticator::new(),
+        )
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider);
+    let mut host = TransactionHost::new(
+        tx_witness.account().into(),
+        mem_advice_provider,
+        NullAuthenticator::new(),
+    );
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
 
-    let (advice_provider, _, output_notes) = host.into_parts();
+    let (advice_provider, _, output_notes, _authenticator) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
     let tx_outputs = TransactionKernel::from_transaction_parts(
         result.stack_outputs(),
@@ -255,8 +266,9 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, &note_ids, tx_args, NullAuthenticator::new())
+        .unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -331,13 +343,20 @@ fn prove_witness_and_verify() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
+    let authenticator = NullAuthenticator::new();
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(
+            account_id,
+            block_ref,
+            &note_ids,
+            data_store.tx_args().clone(),
+            authenticator.clone(),
+        )
         .unwrap();
 
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction, authenticator).unwrap();
 
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
@@ -389,8 +408,13 @@ fn test_tx_script() {
     let tx_args =
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
+    let executed_transaction = executor.execute_transaction(
+        account_id,
+        block_ref,
+        &note_ids,
+        tx_args,
+        NullAuthenticator::new(),
+    );
 
     assert!(
         executed_transaction.is_ok(),

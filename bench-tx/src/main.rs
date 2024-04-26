@@ -17,7 +17,10 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::{TransactionExecutor, TransactionHost, TransactionProgress};
+use miden_tx::{
+    host::{FalconAuthenticator, NullAuthenticator},
+    TransactionExecutor, TransactionHost, TransactionProgress,
+};
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
@@ -79,7 +82,11 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+    let mut host = TransactionHost::new(
+        transaction.account().into(),
+        advice_recorder,
+        NullAuthenticator::new(),
+    );
 
     vm_processor::execute(
         transaction.program(),
@@ -149,7 +156,11 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+    let mut host = TransactionHost::new(
+        transaction.account().into(),
+        advice_recorder,
+        FalconAuthenticator::new(sec_key),
+    );
 
     vm_processor::execute(
         transaction.program(),

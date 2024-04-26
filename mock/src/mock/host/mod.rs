@@ -71,7 +71,10 @@ impl Host for MockHost {
         process: &S,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
+        match injector {
+            AdviceInjector::SigToStack => self.adv_provider.push_signature(process),
+            injector => self.adv_provider.set_advice(process, &injector),
+        }
     }
 
     fn on_event<S: ProcessState>(

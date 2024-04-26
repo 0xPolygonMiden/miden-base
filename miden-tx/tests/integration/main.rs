@@ -135,13 +135,15 @@ impl DataStore for MockDataStore {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn prove_and_verify_transaction(
+pub fn prove_and_verify_transaction<A: miden_tx::TransactionAuthenticator>(
     executed_transaction: ExecutedTransaction,
+    authenticator: A,
 ) -> Result<(), TransactionVerifierError> {
     // Prove the transaction
+
     let proof_options = ProvingOptions::default();
     let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+    let proven_transaction = prover.prove_transaction(executed_transaction, authenticator).unwrap();
 
     // Serialize & deserialize the ProvenTransaction
     let serialised_transaction = proven_transaction.to_bytes();
@@ -154,18 +156,16 @@ pub fn prove_and_verify_transaction(
 }
 
 #[cfg(test)]
-pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
+pub fn get_new_pk_and_authenticator() -> (Word, miden_tx::host::FalconAuthenticator) {
+    use miden_tx::host::FalconAuthenticator;
+
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
 
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
-    let mut pk_sk_bytes = sec_key.to_bytes();
-    pk_sk_bytes.append(&mut pub_key.to_bytes());
-    let pk_sk_felts: Vec<Felt> =
-        pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    (pub_key, pk_sk_felts)
+    (pub_key, FalconAuthenticator::new(sec_key))
 }
 
 #[cfg(test)]

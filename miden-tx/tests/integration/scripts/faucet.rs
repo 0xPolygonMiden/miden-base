@@ -20,7 +20,7 @@ use mock::utils::prepare_word;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
+    get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
     prove_and_verify_transaction, MockDataStore,
 };
 
@@ -29,7 +29,7 @@ use crate::{
 
 #[test]
 fn prove_faucet_contract_mint_fungible_asset_succeeds() {
-    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
@@ -73,16 +73,20 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     )
     .unwrap();
 
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
+        .execute_transaction(
+            faucet_account.id(),
+            block_ref,
+            &note_ids,
+            tx_args,
+            falcon_auth.clone(),
+        )
         .unwrap();
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth).is_ok());
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
@@ -101,7 +105,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
 #[test]
 fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
-    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
@@ -144,15 +148,18 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args);
+    let executed_transaction = executor.execute_transaction(
+        faucet_account.id(),
+        block_ref,
+        &note_ids,
+        tx_args,
+        falcon_auth,
+    );
 
     assert!(executed_transaction.is_err());
 }
@@ -162,7 +169,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
 #[test]
 fn prove_faucet_contract_burn_fungible_asset_succeeds() {
-    let (faucet_pub_key, _faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, Some(100));
 
@@ -210,11 +217,17 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
+        .execute_transaction(
+            faucet_account.id(),
+            block_ref,
+            &note_ids,
+            data_store.tx_args.clone(),
+            falcon_auth.clone(),
+        )
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth.clone()).is_ok());
 
     // check that the account burned the asset
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));

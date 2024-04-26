@@ -20,7 +20,7 @@ use miden_tx::TransactionExecutor;
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
 use crate::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction, MockDataStore,
 };
 
@@ -39,7 +39,7 @@ fn prove_p2id_script() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let (target_pub_key, target_sk_pk_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
@@ -66,22 +66,23 @@ fn prove_p2id_script() {
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
 
-    let tx_script_target = executor
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(target_pub_key, target_sk_pk_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_target =
+        executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(
+            target_account_id,
+            block_ref,
+            &note_ids,
+            tx_args_target,
+            falcon_auth.clone(),
+        )
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth).is_ok());
 
     // vault delta
     let target_account_after: Account = Account::new(
@@ -99,7 +100,7 @@ fn prove_p2id_script() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
-    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
@@ -107,13 +108,7 @@ fn prove_p2id_script() {
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor
-        .compile_tx_script(
-            tx_script_code,
-            vec![(malicious_pub_key, malicious_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_malicious = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
@@ -130,6 +125,7 @@ fn prove_p2id_script() {
         block_ref,
         &note_ids,
         tx_args_malicious,
+        malicious_falcon_auth,
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -152,7 +148,7 @@ fn p2id_script_multiple_assets() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
@@ -178,19 +174,14 @@ fn p2id_script_multiple_assets() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target = executor
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(target_pub_key, target_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_target =
+        executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
 
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target, falcon_auth)
         .unwrap();
 
     // vault delta
@@ -209,7 +200,7 @@ fn p2id_script_multiple_assets() {
 
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
-    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
@@ -217,13 +208,8 @@ fn p2id_script_multiple_assets() {
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
     executor_2.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(malicious_pub_key, malicious_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_malicious =
+        executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = data_store_malicious_account.block_header.block_num();
@@ -239,6 +225,7 @@ fn p2id_script_multiple_assets() {
         block_ref,
         &note_origins,
         tx_args_malicious,
+        malicious_falcon_auth,
     );
 
     // Check that we got the expected result - TransactionExecutorError

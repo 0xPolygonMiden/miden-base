@@ -24,7 +24,7 @@ mod executor;
 pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
-pub use host::{TransactionHost, TransactionProgress};
+pub use host::{TransactionAuthenticator, TransactionHost, TransactionProgress};
 
 mod prover;
 pub use prover::{ProvingOptions, TransactionProver};

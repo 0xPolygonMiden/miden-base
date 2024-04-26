@@ -14,6 +14,7 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
+use crate::host::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
@@ -171,18 +172,20 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
-    pub fn execute_transaction(
+    pub fn execute_transaction<A: TransactionAuthenticator>(
         &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
         tx_args: TransactionArgs,
+        tx_authenticator: A,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-        let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+        let mut host =
+            TransactionHost::new(transaction.account().into(), advice_recorder, tx_authenticator);
 
         let result = vm_processor::execute(
             transaction.program(),
@@ -243,14 +246,14 @@ impl<D: DataStore> TransactionExecutor<D> {
 // ================================================================================================
 
 /// Creates a new [ExecutedTransaction] from the provided data.
-fn build_executed_transaction(
+fn build_executed_transaction<A: TransactionAuthenticator>(
     program: Program,
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
-    host: TransactionHost<RecAdviceProvider>,
+    host: TransactionHost<RecAdviceProvider, A>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-    let (advice_recorder, account_delta, output_notes) = host.into_parts();
+    let (advice_recorder, account_delta, output_notes, _authenticator) = host.into_parts();
 
     let (advice_witness, _, map, _store) = advice_recorder.finalize();
 
