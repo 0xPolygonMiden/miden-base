@@ -10,55 +10,44 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 1. Open your terminal and create a new directory to store the Miden client.
 
     ```sh
-    mkdir miden-client-2
-    cd miden-client-2
+    mkdir miden-client
+    cd miden-client
     ```
-
-
 
 2. Build and install the client using cargo:
 
       ```shell
       cargo install miden-client --features testing,concurrent
       ```
+      You can now use the `miden-client --version` command, and you should see `Miden 0.2.1`
 
-   You can now use the `miden-client` command.
+3. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
-3. Initialize the client and point it to the Miden testnet IP: `18.203.155.106`
+    ```sh
+    miden-client init 
+    ```
 
-      ```shell
-      miden-client init
-      ```
+    Accept the defaults for `Protocol`, `Node RPC Port`, and `Sqlite file path`by clicking enter.
 
-   The command sets up the client. Accept the defaults by pressing _Enter_. 
+    When `Host` comes up, enter `18.203.155.106`
 
-      ```shell
-      ~ % miden-client init
-      Protocol (default: http):
-
-      Host (default: localhost):
-      18.203.155.106
-      Node RPC Port (default: 57291):
-
-      Sqlite file path (default: ./store.sqlite3):
-
-      Creating config file at: "/<YOUR-FOLDER>/miden-client.toml"
-      ```
+    ```sh
+    Host (default: localhost): 18.203.155.106
+    ```
 
 4. Check you can sync with the blockchain. 
 
       ```shell
-      ~ % miden-client sync
-      State synced to block 59203
+      miden-client sync
       ```
-   You are all set!
+   If you see something like `State synced to block 59203`, you are all set!
 
 ## Create a new Miden account
 
-1. Create a new account called `basic-mutable` using the following command:
+1. Create a new account of type `basic-mutable` using the following command:
 
       ```shell
-      miden-client account new basic-immutable
+      miden-client account new basic-mutable
       ```
 
 2. List all created accounts by running the following command:
@@ -66,8 +55,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       ```shell
       miden-client account -l
       ```
-
-   You should see something like this:
+      You should see something like this:
 
       ![Result of listing miden accounts](../../img/get-started/miden-account-list.png)
 
@@ -129,11 +117,9 @@ You will see something like this as output:
 State synced to block 179672
 ```
 
-And now your note should have a `Commit Height`.
-
 ## Consume the note & receive the funds
 
-1. Now that we have synced the client, the input-note imported from the faucet should have a `commit-height` confirming it exists at the rollup level: 
+1. Now that we have synced the client, the input-note imported from the faucet should have a `Commit Height` confirming it exists at the rollup level: 
 
       ```shell
       miden-client input-notes -l
