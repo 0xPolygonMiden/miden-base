@@ -43,7 +43,7 @@ Polygon Miden supports public smart contracts like Ethereum. The code and state 
 
 #### Public notes
 
-As with public accounts, public notes will also be supported. That means, the Miden operator will publicly store note data. Note consumption will not be private.
+As with public accounts, public notes are also supported. That means, the Miden operator publicly stores note data. Note consumption is not private.
 
 #### Local transaction execution 
 
