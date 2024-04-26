@@ -30,7 +30,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       miden-client init
       ```
 
-   The command will set up the client. You can accept the default by pressing Enter. 
+   The command sets up the client. Accept the defaults by pressing _Enter_. 
 
       ```shell
       ~ % miden-client init
