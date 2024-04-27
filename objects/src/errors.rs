@@ -403,29 +403,29 @@ impl fmt::Display for ProvenTransactionError {
 #[cfg(feature = "std")]
 impl std::error::Error for ProvenTransactionError {}
 
-// BLOCK ERROR
+// BLOCK VALIDATION ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BlockError {
+pub enum BlockValidationError {
     TooManyTransactionBatches(usize),
     TooManyNotesInBatch(usize),
     DuplicateNoteFound(NoteId),
 }
 
-impl fmt::Display for BlockError {
+impl fmt::Display for BlockValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BlockError::TooManyTransactionBatches(actual) => {
+            BlockValidationError::TooManyTransactionBatches(actual) => {
                 write!(
                     f,
                     "Too many transaction batches. Max: {MAX_BATCHES_PER_BLOCK}, actual: {actual}"
                 )
             },
-            BlockError::TooManyNotesInBatch(actual) => {
+            BlockValidationError::TooManyNotesInBatch(actual) => {
                 write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
             },
-            BlockError::DuplicateNoteFound(id) => {
+            BlockValidationError::DuplicateNoteFound(id) => {
                 write!(f, "Duplicate note {id} found in the block")
             },
         }
@@ -433,4 +433,4 @@ impl fmt::Display for BlockError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for BlockError {}
+impl std::error::Error for BlockValidationError {}

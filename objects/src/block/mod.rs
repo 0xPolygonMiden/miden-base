@@ -9,7 +9,7 @@ pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
-    errors::BlockError,
+    errors::BlockValidationError,
     notes::Nullifier,
     transaction::OutputNote,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -62,7 +62,7 @@ impl Block {
         updated_accounts: Vec<BlockAccountUpdate>,
         created_notes: Vec<NoteBatch>,
         created_nullifiers: Vec<Nullifier>,
-    ) -> Result<Self, BlockError> {
+    ) -> Result<Self, BlockValidationError> {
         let block = Self {
             header,
             updated_accounts,
@@ -122,15 +122,15 @@ impl Block {
         &self.created_nullifiers
     }
 
-    fn validate(&self) -> Result<(), BlockError> {
+    fn validate(&self) -> Result<(), BlockValidationError> {
         let batch_count = self.created_notes.len();
         if batch_count > MAX_BATCHES_PER_BLOCK {
-            return Err(BlockError::TooManyTransactionBatches(batch_count));
+            return Err(BlockValidationError::TooManyTransactionBatches(batch_count));
         }
 
         for batch in self.created_notes.iter() {
             if batch.len() > MAX_NOTES_PER_BATCH {
-                return Err(BlockError::TooManyNotesInBatch(batch.len()));
+                return Err(BlockValidationError::TooManyNotesInBatch(batch.len()));
             }
         }
 
@@ -138,7 +138,7 @@ impl Block {
         for batch in self.created_notes.iter() {
             for note in batch.iter() {
                 if !notes.insert(note.id()) {
-                    return Err(BlockError::DuplicateNoteFound(note.id()));
+                    return Err(BlockValidationError::DuplicateNoteFound(note.id()));
                 }
             }
         }
