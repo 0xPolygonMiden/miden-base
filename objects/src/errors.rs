@@ -9,7 +9,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
     notes::NoteId,
-    Digest, Word,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
 use crate::{accounts::AccountType, notes::NoteType};
 
@@ -367,35 +367,34 @@ impl fmt::Display for ProvenTransactionError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             ProvenTransactionError::AccountFinalHashMismatch(account_final_hash, details_hash) => {
-                write!(f, "Proven transaction account_final_hash {} and account_details.hash must match {}.", account_final_hash, details_hash)
+                write!(f, "Proven transaction account_final_hash {account_final_hash} and account_details.hash must match {details_hash}.")
             },
             ProvenTransactionError::AccountIdMismatch(tx_id, details_id) => {
                 write!(
                     f,
-                    "Proven transaction account_id {} and account_details.id must match {}.",
-                    tx_id, details_id,
+                    "Proven transaction account_id {tx_id} and account_details.id must match {details_id}.",
                 )
             },
             ProvenTransactionError::InputNotesError(inner) => {
-                write!(f, "Invalid input notes: {}", inner)
+                write!(f, "Invalid input notes: {inner}")
             },
             ProvenTransactionError::NoteDetailsForUnknownNotes(note_ids) => {
-                write!(f, "Note details for unknown note ids: {:?}", note_ids)
+                write!(f, "Note details for unknown note ids: {note_ids:?}")
             },
             ProvenTransactionError::OffChainAccountWithDetails(account_id) => {
-                write!(f, "Off-chain account {} should not have account details", account_id)
+                write!(f, "Off-chain account {account_id} should not have account details")
             },
             ProvenTransactionError::OnChainAccountMissingDetails(account_id) => {
-                write!(f, "On-chain account {} missing account details", account_id)
+                write!(f, "On-chain account {account_id} missing account details")
             },
             ProvenTransactionError::OutputNotesError(inner) => {
-                write!(f, "Invalid output notes: {}", inner)
+                write!(f, "Invalid output notes: {inner}")
             },
             ProvenTransactionError::NewOnChainAccountRequiresFullDetails(account_id) => {
-                write!(f, "New on-chain account {} missing full details", account_id)
+                write!(f, "New on-chain account {account_id} missing full details")
             },
             ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(account_id) => {
-                write!(f, "Existing on-chain account {} should only provide deltas", account_id)
+                write!(f, "Existing on-chain account {account_id} should only provide deltas")
             },
         }
     }
@@ -403,3 +402,35 @@ impl fmt::Display for ProvenTransactionError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for ProvenTransactionError {}
+
+// BLOCK ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BlockError {
+    TooManyTransactionBatches(usize),
+    TooManyNotesInBatch(usize),
+    DuplicateNoteFound(NoteId),
+}
+
+impl fmt::Display for BlockError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BlockError::TooManyTransactionBatches(actual) => {
+                write!(
+                    f,
+                    "Too many transaction batches. Max: {MAX_BATCHES_PER_BLOCK}, actual: {actual}"
+                )
+            },
+            BlockError::TooManyNotesInBatch(actual) => {
+                write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+            },
+            BlockError::DuplicateNoteFound(id) => {
+                write!(f, "Duplicate note {id} found in the block")
+            },
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for BlockError {}
