@@ -97,7 +97,7 @@ impl Block {
 
     /// Returns an iterator over all notes created in this block.
     ///
-    /// Each note is accompanies with a corresponding index specifying where the note is located
+    /// Each note is accompanied by a corresponding index specifying where the note is located
     /// in the blocks note tree.
     pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
         self.created_notes.iter().enumerate().flat_map(|(batch_idx, notes)| {
