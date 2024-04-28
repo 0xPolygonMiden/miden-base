@@ -35,7 +35,7 @@ pub use verifier::TransactionVerifier;
 mod error;
 pub use error::{
     DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
-    TransactionVerifierError,
+    TransactionVerifierError, KERNEL_ERRORS,
 };
 
 #[cfg(test)]

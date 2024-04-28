@@ -28,6 +28,8 @@ use account_procs::AccountProcedureIndexMap;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
+use crate::KERNEL_ERRORS;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -37,7 +39,7 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-pub struct TransactionHost<A> {
+pub struct TransactionHost<'a, A> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
@@ -54,18 +56,23 @@ pub struct TransactionHost<A> {
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
     tx_progress: TransactionProgress,
+
+    /// Contains mapping from assertion error codes to the related error message
+    kernel_assertion_errors: BTreeMap<u32, &'a str>,
 }
 
-impl<A: AdviceProvider> TransactionHost<A> {
+impl<'a, A: AdviceProvider> TransactionHost<'a, A> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(account: AccountStub, adv_provider: A) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+        let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
         Self {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: Vec::new(),
             tx_progress: TransactionProgress::default(),
+            kernel_assertion_errors,
         }
     }
 
@@ -307,7 +314,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for TransactionHost<A> {
+impl<'a, A: AdviceProvider> Host for TransactionHost<'a, A> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,
@@ -388,367 +395,14 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
     }
 
     fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
-        match err_code {
-            131072 => ExecutionError::FailedAssertion { // 0x00020000: ERR_FAUCET_RESERVED_DATA_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item".to_string()),
-            },
-            131073 => ExecutionError::FailedAssertion { // 0x00020001: ERR_ACCT_MUST_BE_A_FAUCET
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Procedure can only be called for faucet accounts".to_string()),
-            },
-            131074 => ExecutionError::FailedAssertion { // 0x00020002: ERR_P2ID_WRONG_NUMBER_OF_INPUTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("P2ID scripts expect exactly 1 note input".to_string()),
-            },
-            131075 => ExecutionError::FailedAssertion { // 0x00020003: ERR_P2ID_TARGET_ACCT_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("P2ID's target account address and transaction address do no match".to_string()),
-            },
-            131076 => ExecutionError::FailedAssertion { // 0x00020004: ERR_P2IDR_WRONG_NUMBER_OF_INPUTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("P2IDR scripts expect exactly 2 note inputs".to_string()),
-            },
-            131077 => ExecutionError::FailedAssertion { // 0x00020005: ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("P2IDR's can only be reclaimed by the sender".to_string()),
-            },
-            131078 => ExecutionError::FailedAssertion { // 0x00020006: ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Transaction's reference block is lower than reclaim height. The P2IDR can not be reclaimed".to_string()),
-            },
-            131079 => ExecutionError::FailedAssertion { // 0x00020007: ERR_SWAP_WRONG_NUMBER_OF_INPUTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("SWAP script expects exactly 9 note inputs".to_string()),
-            },
-            131080 => ExecutionError::FailedAssertion { // 0x00020008: ERR_SWAP_WRONG_NUMBER_OF_ASSETS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("SWAP script requires exactly one note asset".to_string()),
-            },
-            131081 => ExecutionError::FailedAssertion { // 0x00020009: ERR_KERNEL_TX_NONCE_DID_NOT_INCREASE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The nonce did not increase after a state changing transaction".to_string()),
-            },
-            131082 => ExecutionError::FailedAssertion { // 0x0002000A: ERR_KERNEL_ASSET_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Total assets at the transaction end must match".to_string()),
-            },
-            131083 => ExecutionError::FailedAssertion { // 0x0002000B: ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The global inputs provided via the advice provider do not match the block hash commitment".to_string()),
-            },
-            131084 => ExecutionError::FailedAssertion { // 0x0002000C: ERR_PROLOGUE_ACCT_STORAGE_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The account storage data provided via the advice provider do not match its state commitment".to_string()),
-            },
-            131085 => ExecutionError::FailedAssertion { // 0x0002000D: ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Data store in account's storage exceeds the maximum capacity of 256 elements".to_string()),
-            },
-            131086 => ExecutionError::FailedAssertion { // 0x0002000E: ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Data store in account's storage contains invalid type discriminant".to_string()),
-            },
-            131087 => ExecutionError::FailedAssertion { // 0x0002000F: ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("New account must start with an empty vault".to_string()),
-            },
-            131088 => ExecutionError::FailedAssertion { // 0x00020010: ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("New account must have valid slot type s".to_string()),
-            },
-            131089 => ExecutionError::FailedAssertion { // 0x00020011: ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Fungible faucet reserved slot must start empty".to_string()),
-            },
-            131090 => ExecutionError::FailedAssertion { // 0x00020012: ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Fungible faucet reserved slot must start with zero arity".to_string()),
-            },
-            131091 => ExecutionError::FailedAssertion { // 0x00020013: ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Fungible faucet reserved slot must start with no type".to_string()),
-            },
-            131092 => ExecutionError::FailedAssertion { // 0x00020014: ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non-fungible faucet reserved slot must start as an empty SMT".to_string()),
-            },
-            131093 => ExecutionError::FailedAssertion { // 0x00020015: ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non-fungible faucet reserved slot must start with zero arity".to_string()),
-            },
-            131094 => ExecutionError::FailedAssertion { // 0x00020016: ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non-fungible faucet reserved slot must start with no type".to_string()),
-            },
-            131095 => ExecutionError::FailedAssertion { // 0x00020017: ERR_PROLOGUE_ACCT_HASH_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The account data provided via advice provider did not match the initial hash".to_string()),
-            },
-            131096 => ExecutionError::FailedAssertion { // 0x00020018: ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Existing account must not have a zero nonce".to_string()),
-            },
-            131097 => ExecutionError::FailedAssertion { // 0x00020019: ERR_PROLOGUE_ACCT_ID_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Account id and global account id must match".to_string()),
-            },
-            131098 => ExecutionError::FailedAssertion { // 0x0002001A: ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Reference block MMR and note's authentication MMR must match".to_string()),
-            },
-            131099 => ExecutionError::FailedAssertion { // 0x0002001B: ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Note with too many inputs".to_string()),
-            },
-            131100 => ExecutionError::FailedAssertion { // 0x0002001C: ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Note with too many assets".to_string()),
-            },
-            131101 => ExecutionError::FailedAssertion { // 0x0002001D: ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Note's consumed assets provided via advice provider mistmatch its commitment".to_string()),
-            },
-            131102 => ExecutionError::FailedAssertion { // 0x0002001E: ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Number of input notes can no exceed the kernel's maximum limit".to_string()),
-            },
-            131103 => ExecutionError::FailedAssertion { // 0x0002001F: ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Input notes nullifier commitment did not match the provided data".to_string()),
-            },
-            131104 => ExecutionError::FailedAssertion { // 0x00020020: ERR_TX_OUTPUT_NOTES_OVERFLOW
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Output notes exceeded the maximum limit".to_string()),
-            },
-            131105 => ExecutionError::FailedAssertion { // 0x00020021: ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Distribute would cause the max supply to be exceeded".to_string()),
-            },
-            131106 => ExecutionError::FailedAssertion { // 0x00020022: ERR_FAUCET_ISSUANCE_OVERFLOW
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Asset mint operation would acuse a issuance overflow".to_string()),
-            },
-            131107 => ExecutionError::FailedAssertion { // 0x00020023: ERR_FAUCET_BURN_OVER_ISSUANCE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Asset burn can not exceed the existing supply".to_string()),
-            },
-            131108 => ExecutionError::FailedAssertion { // 0x00020024: ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non fungible token already exists, it can be issue only once".to_string()),
-            },
-            131109 => ExecutionError::FailedAssertion { // 0x00020025: ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non fungible burn called on the wrong faucet type".to_string()),
-            },
-            131110 => ExecutionError::FailedAssertion { // 0x00020026: ERR_FAUCET_NONEXISTING_TOKEN
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non fungible burn called on inexisting token".to_string()),
-            },
-            131111 => ExecutionError::FailedAssertion { // 0x00020027: ERR_NOTE_INVALID_SENDER
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Input note can not have an empty sender, procedure was likely called from the wrong context".to_string()),
-            },
-            131112 => ExecutionError::FailedAssertion { // 0x00020028: ERR_NOTE_INVALID_VAULT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Input note can not have an empty vault, procedure was likely called from the wrong context".to_string()),
-            },
-            131113 => ExecutionError::FailedAssertion { // 0x00020029: ERR_NOTE_INVALID_INPUTS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Input note can not have empty inputs, procedure was likely called from the wrong context".to_string()),
-            },
-            131114 => ExecutionError::FailedAssertion { // 0x0002002A: ERR_NOTE_TOO_MANY_ASSETS
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Note's asset must fit in a u32".to_string()),
-            },
-            131115 => ExecutionError::FailedAssertion { // 0x0002002B: ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The get_balance procedure can be called only with a fungible faucet".to_string()),
-            },
-            131116 => ExecutionError::FailedAssertion { // 0x0002002C: ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The has_non_fungible_asset procedure can be called only with a non-fungible faucet".to_string()),
-            },
-            131117 => ExecutionError::FailedAssertion { // 0x0002002D: ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Adding the fungible asset would exceed the max_amount".to_string()),
-            },
-            131118 => ExecutionError::FailedAssertion { // 0x0002002E: ERR_VAULT_ADD_FUNGIBLE_ASSET_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Decorator value did not match the assert commitment".to_string()),
-            },
-            131119 => ExecutionError::FailedAssertion { // 0x0002002F: ERR_VAULT_NON_FUNGIBLE_ALREADY_EXISTED
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The non-fungible asset already existed, can not be added again".to_string()),
-            },
-            131120 => ExecutionError::FailedAssertion { // 0x00020030: ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Removing the fungible asset would have current amount being negative".to_string()),
-            },
-            131121 => ExecutionError::FailedAssertion { // 0x00020031: ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Data provided via decorator did not match the commitment".to_string()),
-            },
-            131122 => ExecutionError::FailedAssertion { // 0x00020032: ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Removing inexisting non-fungible asset".to_string()),
-            },
-            131123 => ExecutionError::FailedAssertion { // 0x00020033: ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 1 must be zero".to_string()),
-            },
-            131124 => ExecutionError::FailedAssertion { // 0x00020034: ERR_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 2 must be zero".to_string()),
-            },
-            131125 => ExecutionError::FailedAssertion { // 0x00020035: ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_ZERO
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 3 must correspond to a fungible".to_string()),
-            },
-            131126 => ExecutionError::FailedAssertion { // 0x00020036: ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_ZERO
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 0 must be within limit".to_string()),
-            },
-            131127 => ExecutionError::FailedAssertion { // 0x00020037: ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_FUNGIBLE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 1 must be zero".to_string()),
-            },
-            131128 => ExecutionError::FailedAssertion { // 0x00020038: ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The felt at position 3 must be zero".to_string()),
-            },
-            131129 => ExecutionError::FailedAssertion { // 0x00020039: ERR_FUNGIBLE_ASSET_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Fungible asset origin validation failed".to_string()),
-            },
-            131130 => ExecutionError::FailedAssertion { // 0x0002003A: ERR_NON_FUNGIBLE_ASSET_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Non-fungible asset origin validation failed".to_string()),
-            },
-            131131 => ExecutionError::FailedAssertion { // 0x0002003B: ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The nonce increase must be a u32".to_string()),
-            },
-            131132 => ExecutionError::FailedAssertion { // 0x0002003C: ERR_ACCOUNT_INSUFFICIENT_ONES
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Account id format is invalid, insufficient ones".to_string()),
-            },
-            131133 => ExecutionError::FailedAssertion { // 0x0002003D: ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Account must be updatable for it to be possible to update its code".to_string()),
-            },
-            131134 => ExecutionError::FailedAssertion { // 0x0002003E: ERR_ACCOUNT_SEED_DIGEST_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Account seed digest mismatch".to_string()),
-            },
-            131135 => ExecutionError::FailedAssertion { // 0x0002003F: ERR_ACCOUNT_INVALID_POW
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Account pow is insufficient".to_string()),
-            },
-            131136 => ExecutionError::FailedAssertion { // 0x00020040: ERR_NOTE_DATA_MISMATCH
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Note's advice data does not match the expected commitment".to_string()),
-            },
-            131137 => ExecutionError::FailedAssertion { // 0x00020041: ERR_ASSET_NOT_FUNGIBLE_ID
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Can not build the fungible asset because provided id is not a fungible id".to_string()),
-            },
-            131138 => ExecutionError::FailedAssertion { // 0x00020042: ERR_ASSET_INVALID_AMOUNT
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Can not build the asset because amount exceeds the maximum".to_string()),
-            },
-            131139 => ExecutionError::FailedAssertion { // 0x00020043: ERR_ASSET_NOT_NON_FUNGIBLE_ID
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Can not build the non-fungible asset because provided id is not a non-fungible id".to_string()),
-            },
-            131140 => ExecutionError::FailedAssertion { // 0x00020044: ERR_INVALID_NOTE_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Invalid note type".to_string()),
-            },
-            131141 => ExecutionError::FailedAssertion { // 0x00020045: ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The note's tag failed the most significant validation".to_string()),
-            },
-            131142 => ExecutionError::FailedAssertion { // 0x00020046: ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("The note's tag high bits must be set to zero".to_string()),
-            },
-            _ => ExecutionError::FailedAssertion {
-                clk: process.clk(),
-                err_code,
-                err_msg: Some("Unknown error code".to_string()),
-            }
+        let err_msg = self
+            .kernel_assertion_errors
+            .get(&err_code)
+            .map_or("Unknown error code".to_string(), |msg| msg.to_string());
+        ExecutionError::FailedAssertion {
+            clk: process.clk(),
+            err_code,
+            err_msg: Some(err_msg),
         }
     }
 }
