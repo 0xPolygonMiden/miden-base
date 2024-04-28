@@ -11,7 +11,7 @@ use miden_objects::{
         Note, NoteAssets, NoteEnvelope, NoteId, NoteInputs, NoteMetadata, NoteRecipient,
         NoteScript, NoteTag, NoteType,
     },
-    transaction::{OutputNote},
+    transaction::OutputNote,
     Digest, Hasher,
 };
 use vm_processor::{

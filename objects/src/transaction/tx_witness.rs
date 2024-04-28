@@ -1,8 +1,3 @@
-
-
-
-
-
 use super::{
     Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs,
 };

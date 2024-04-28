@@ -1,8 +1,4 @@
-
 use core::cell::OnceCell;
-
-
-
 
 use super::{
     Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
