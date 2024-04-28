@@ -18,8 +18,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::FalconAuthenticator, NullAuthenticator, TransactionExecutor, TransactionHost,
-    TransactionProgress,
+    host::FalconAuthenticator, TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
@@ -82,11 +81,7 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(
-        transaction.account().into(),
-        advice_recorder,
-        NullAuthenticator::new(),
-    );
+    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder, ());
 
     vm_processor::execute(
         transaction.program(),

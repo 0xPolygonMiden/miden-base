@@ -11,7 +11,7 @@ use miden_objects::{
         Note, NoteAssets, NoteEnvelope, NoteId, NoteInputs, NoteMetadata, NoteRecipient,
         NoteScript, NoteTag, NoteType,
     },
-    transaction::OutputNote,
+    transaction::{OutputNote},
     Digest, Hasher,
 };
 use vm_processor::{
@@ -26,7 +26,7 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_authenticator;
-pub use tx_authenticator::{FalconAuthenticator, NullAuthenticator, TransactionAuthenticator};
+pub use tx_authenticator::{FalconAuthenticator, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
@@ -292,6 +292,44 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         Ok(())
     }
 
+    // ADVICE INJECTOR HANDLERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a signature as a response to the `SigToStack` injector.
+    ///
+    /// This signature is created during transaction execution and stored for use as advice map
+    /// inputs in the proving host. If not already present in the advice map, it is produced by
+    /// the host's authenticator.
+    pub fn on_signature_requested<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        let pub_key = process.get_stack_word(0);
+        let msg = process.get_stack_word(1);
+        let signature_key = Hasher::merge(&[pub_key.into(), msg.into()]);
+
+        let signature = if let Some(signature) = self.adv_provider.get_mapped_values(&signature_key)
+        {
+            signature.to_vec()
+        } else {
+            let account_delta = self.account_delta.clone().into_delta();
+
+            let signature: Vec<Felt> =
+                self.tx_authenticator.get_signature(pub_key, msg, &account_delta).map_err(
+                    |_| ExecutionError::FailedSignatureGeneration("Error generating signature"),
+                )?;
+
+            self.generated_signatures.insert(signature_key, signature.clone());
+            signature
+        };
+
+        for r in signature {
+            self.adv_provider.push_stack(AdviceSource::Value(r))?;
+        }
+
+        Ok(HostResponse::None)
+    }
+
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -338,32 +376,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         match injector {
-            AdviceInjector::SigToStack { .. } => {
-                let pub_key = process.get_stack_word(0);
-                let msg = process.get_stack_word(1);
-                let signature_key = Hasher::hash_elements(&[pub_key, msg].concat());
-
-                let signature =
-                    if let Some(signature) = self.adv_provider.get_mapped_values(&signature_key) {
-                        signature.to_vec()
-                    } else {
-                        let account_delta = self.account_delta.clone().into_delta();
-
-                        let signature: Vec<Felt> = self
-                            .tx_authenticator
-                            .get_signature(pub_key, msg, &account_delta)
-                            .map_err(|err| ExecutionError::EventError(err.to_string()))?;
-
-                        self.generated_signatures.insert(signature_key, signature.clone());
-                        signature
-                    };
-
-                for r in signature {
-                    self.adv_provider.push_stack(AdviceSource::Value(r))?;
-                }
-
-                Ok(HostResponse::None)
-            },
+            AdviceInjector::SigToStack { .. } => self.on_signature_requested(process),
             injector => self.adv_provider.set_advice(process, &injector),
         }
     }

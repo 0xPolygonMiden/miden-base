@@ -41,7 +41,6 @@ use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
     TransactionProver, TransactionVerifier,
 };
-use crate::NullAuthenticator;
 
 // TESTS
 // ================================================================================================
@@ -58,24 +57,14 @@ fn transaction_executor_witness() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(
-            account_id,
-            block_ref,
-            &note_ids,
-            data_store.tx_args().clone(),
-            NullAuthenticator::new(),
-        )
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone(), ())
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(
-        tx_witness.account().into(),
-        mem_advice_provider,
-        NullAuthenticator::new(),
-    );
+    let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider, ());
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -267,7 +256,7 @@ fn executed_transaction_account_delta() {
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_args, NullAuthenticator::new())
+        .execute_transaction(account_id, block_ref, &note_ids, tx_args, ())
         .unwrap();
 
     // nonce delta
@@ -343,15 +332,8 @@ fn prove_witness_and_verify() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let authenticator = NullAuthenticator::new();
     let executed_transaction = executor
-        .execute_transaction(
-            account_id,
-            block_ref,
-            &note_ids,
-            data_store.tx_args().clone(),
-            authenticator.clone(),
-        )
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone(), ())
         .unwrap();
 
     let proof_options = ProvingOptions::default();
@@ -408,13 +390,8 @@ fn test_tx_script() {
     let tx_args =
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
-    let executed_transaction = executor.execute_transaction(
-        account_id,
-        block_ref,
-        &note_ids,
-        tx_args,
-        NullAuthenticator::new(),
-    );
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args, ());
 
     assert!(
         executed_transaction.is_ok(),

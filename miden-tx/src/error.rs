@@ -145,8 +145,8 @@ impl std::error::Error for DataStoreError {}
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AuthenticationError {
     InternalError(String),
-    InvalidKey(String),
     RejectedSignature(String),
+    UnknownKey(String),
 }
 
 impl fmt::Display for AuthenticationError {
@@ -155,10 +155,10 @@ impl fmt::Display for AuthenticationError {
             AuthenticationError::InternalError(error) => {
                 write!(f, "authentication internal error: {error}")
             },
-            AuthenticationError::InvalidKey(error) => write!(f, "invalid key error: {error}"),
             AuthenticationError::RejectedSignature(reason) => {
                 write!(f, "signature was rejected: {reason}")
             },
+            AuthenticationError::UnknownKey(error) => write!(f, "unknown key error: {error}"),
         }
     }
 }

@@ -49,7 +49,6 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        advice_inputs.extend_map(self.generated_signatures().clone());
         extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
@@ -68,8 +67,6 @@ impl ToTransactionKernelInputs for TransactionWitness {
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-
-        advice_inputs.extend_map(self.signatures().clone());
         extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
 
         (stack_inputs, advice_inputs)

@@ -1,8 +1,8 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+
 use core::cell::OnceCell;
 
-use vm_core::Felt;
-use vm_processor::Digest;
+
+
 
 use super::{
     Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
@@ -32,7 +32,6 @@ pub struct ExecutedTransaction {
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
-    generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 }
 
 impl ExecutedTransaction {
@@ -50,7 +49,6 @@ impl ExecutedTransaction {
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
-        generated_signatures: BTreeMap<Digest, Vec<Felt>>,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
         assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
@@ -63,7 +61,6 @@ impl ExecutedTransaction {
             account_delta,
             tx_args,
             advice_witness,
-            generated_signatures,
         }
     }
 
@@ -131,11 +128,6 @@ impl ExecutedTransaction {
         &self.advice_witness
     }
 
-    /// Returns all generated signatures during the transaction execution
-    pub fn generated_signatures(&self) -> &BTreeMap<Digest, Vec<Felt>> {
-        &self.generated_signatures
-    }
-
     // CONVERSIONS
     // --------------------------------------------------------------------------------------------
 
@@ -146,7 +138,6 @@ impl ExecutedTransaction {
             self.tx_inputs,
             self.tx_args,
             self.advice_witness,
-            self.generated_signatures,
         );
 
         (self.account_delta, self.tx_outputs, tx_witness)

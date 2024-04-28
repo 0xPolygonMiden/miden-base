@@ -255,7 +255,7 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     let (advice_recorder, account_delta, output_notes, generated_signatures) = host.into_parts();
 
-    let (advice_witness, _, map, _store) = advice_recorder.finalize();
+    let (mut advice_witness, _, map, _store) = advice_recorder.finalize();
 
     let tx_outputs =
         TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
@@ -287,6 +287,9 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
         });
     }
 
+    // introduce generated signature into the witness inputs
+    advice_witness.extend_map(generated_signatures.clone());
+
     Ok(ExecutedTransaction::new(
         program,
         tx_inputs,
@@ -294,6 +297,5 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
         account_delta,
         tx_args,
         advice_witness,
-        generated_signatures,
     ))
 }

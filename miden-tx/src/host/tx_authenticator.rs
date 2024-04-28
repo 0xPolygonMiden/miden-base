@@ -85,7 +85,7 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
     ) -> Result<Vec<Felt>, AuthenticationError> {
         let _ = account_delta;
         if pub_key != Word::from(self.secret_key.public_key()) {
-            return Err(AuthenticationError::InvalidKey(
+            return Err(AuthenticationError::UnknownKey(
                 "Public key does not match with the key from the signature request".into(),
             ));
         }
@@ -123,23 +123,10 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
 // NULL AUTHENTICATOR
 // ================================================================================================
 
-/// Used for initializing test transaction hosts that do not need to request signatures (ie, for
-/// transactions that do not need to sign anything or the prover host which gets signatures from
-/// the advice map)
-#[derive(Clone)]
-pub struct NullAuthenticator;
-impl Default for NullAuthenticator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+/// Used for transaction hosts that do not need to request signatures (ie, for transactions that
+/// do not need to sign anything or the prover host which gets signatures from the advice map)
 
-impl NullAuthenticator {
-    pub fn new() -> Self {
-        NullAuthenticator {}
-    }
-}
-impl TransactionAuthenticator for NullAuthenticator {
+impl TransactionAuthenticator for () {
     fn get_signature(
         &mut self,
         _pub_key: Word,
@@ -147,7 +134,7 @@ impl TransactionAuthenticator for NullAuthenticator {
         _delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         Err(AuthenticationError::RejectedSignature(
-            "Null authenticator does not provide signatures".into(),
+            "Void authenticator does not provide signatures".into(),
         ))
     }
 }
