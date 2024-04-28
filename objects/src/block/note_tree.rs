@@ -92,12 +92,12 @@ impl BlockNoteIndex {
     }
 
     /// Returns an index to the node which the parent of both the note and note metadata.
-    pub fn note_index(&self) -> u64 {
+    pub fn to_absolute_index(&self) -> u64 {
         (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64
     }
 
     fn leaf_index(&self) -> u64 {
-        self.note_index() * 2
+        self.to_absolute_index() * 2
     }
 }
 

@@ -1,6 +1,6 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
-use super::{Digest, Felt, Hasher, ZERO};
+use super::{Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH, ZERO};
 
 mod header;
 pub use header::BlockHeader;
@@ -9,6 +9,7 @@ pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
+    errors::BlockError,
     notes::Nullifier,
     transaction::OutputNote,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -56,18 +57,22 @@ impl Block {
     /// Returns a new [Block] instantiated from the provided components.
     ///
     /// Note: consistency of the provided components is not validated.
-    pub const fn new(
+    pub fn new(
         header: BlockHeader,
         updated_accounts: Vec<BlockAccountUpdate>,
         created_notes: Vec<NoteBatch>,
         created_nullifiers: Vec<Nullifier>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, BlockError> {
+        let block = Self {
             header,
             updated_accounts,
             created_notes,
             created_nullifiers,
-        }
+        };
+
+        block.validate()?;
+
+        Ok(block)
     }
 
     /// Returns a commitment to this block.
@@ -92,7 +97,7 @@ impl Block {
 
     /// Returns an iterator over all notes created in this block.
     ///
-    /// Each note is accompanies with a corresponding index specifying where the note is located
+    /// Each note is accompanied by a corresponding index specifying where the note is located
     /// in the blocks note tree.
     pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
         self.created_notes.iter().enumerate().flat_map(|(batch_idx, notes)| {
@@ -102,9 +107,46 @@ impl Block {
         })
     }
 
+    /// Returns a note tree containing all notes created in this block.
+    pub fn build_note_tree(&self) -> BlockNoteTree {
+        let entries = self
+            .notes()
+            .map(|(note_index, note)| (note_index, note.id().into(), *note.metadata()));
+
+        BlockNoteTree::with_entries(entries)
+            .expect("Something went wrong: block is invalid, but passed or skipped validation")
+    }
+
     /// Returns a set of nullifiers for all notes consumed in the block.
     pub fn created_nullifiers(&self) -> &[Nullifier] {
         &self.created_nullifiers
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn validate(&self) -> Result<(), BlockError> {
+        let batch_count = self.created_notes.len();
+        if batch_count > MAX_BATCHES_PER_BLOCK {
+            return Err(BlockError::TooManyTransactionBatches(batch_count));
+        }
+
+        for batch in self.created_notes.iter() {
+            if batch.len() > MAX_NOTES_PER_BATCH {
+                return Err(BlockError::TooManyNotesInBatch(batch.len()));
+            }
+        }
+
+        let mut notes = BTreeSet::new();
+        for batch in self.created_notes.iter() {
+            for note in batch.iter() {
+                if !notes.insert(note.id()) {
+                    return Err(BlockError::DuplicateNoteFound(note.id()));
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -119,12 +161,18 @@ impl Serializable for Block {
 
 impl Deserializable for Block {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self {
+        let block = Self {
             header: BlockHeader::read_from(source)?,
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             created_notes: <Vec<NoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
-        })
+        };
+
+        block
+            .validate()
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+
+        Ok(block)
     }
 }
 
