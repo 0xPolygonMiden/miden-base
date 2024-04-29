@@ -144,7 +144,7 @@ impl TransactionCompiler {
     // TRANSACTION PROGRAM BUILDER
     // --------------------------------------------------------------------------------------------
     /// Compiles a transaction which executes the provided notes and an optional tx script against
-    /// the specified account. Returns the the compiled transaction program.
+    /// the specified account. Returns the compiled transaction program.
     ///
     /// The account is assumed to have been previously loaded into this compiler.
     pub fn compile_transaction(

@@ -17,7 +17,7 @@ use crate::{
 ///
 /// - Transaction script: a program that is executed in a transaction after all input notes
 ///   scripts have been executed.
-/// - Note arguments: data put onto the the stack right before a note script is executed. These
+/// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
 /// - Advice map: Provides data needed by the runtime, like the details of a public note.

@@ -44,7 +44,7 @@ pub use data::{AccountData, AuthData};
 ///   account.
 /// - Account nonce, a value which is incremented whenever account state is updated.
 ///
-/// Out of the the above components account ID is always immutable (once defined it can never be
+/// Out of the above components account ID is always immutable (once defined it can never be
 /// changed). Other components may be mutated throughout the lifetime of the account. However,
 /// account state can be changed only by invoking one of account interface methods.
 #[derive(Debug, Clone, PartialEq, Eq)]

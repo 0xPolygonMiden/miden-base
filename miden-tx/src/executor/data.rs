@@ -32,6 +32,6 @@ pub trait DataStore {
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError>;
 
-    /// Returns the account code [ModuleAst] associated with the the specified [AccountId].
+    /// Returns the account code [ModuleAst] associated with the specified [AccountId].
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError>;
 }
