@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 In Miden, users can create and trade arbitrary fungible and non-fungible assets.
 
 We differentiate between native and non-native assets in Miden. Native assets follow the Miden asset model. Non-native assets are all other data structures of value that can be exchanged.

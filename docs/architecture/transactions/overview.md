@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 # Transactions overview
 
 ## Architecture overview

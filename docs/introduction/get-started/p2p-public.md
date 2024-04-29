@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 In this section, we show you how to execute transactions and send funds to another account using the Miden client and [public notes](https://docs.polygon.technology/miden/miden-base/architecture/notes/#note-storage-mode). 
 
 !!! important "Prerequisite steps"

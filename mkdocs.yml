@@ -1,4 +1,4 @@
-site_name: Miden base
+site_name: Miden documentation
 theme:
   name: material
   features:
@@ -21,7 +21,7 @@ theme:
     - content.action.edit
 
 nav:
-  - Welcome: introduction/welcome.md
+  - Welcome: index.md
   - Get started: 
       - Prerequisite steps: introduction/get-started/prerequisites.md
       - Create account and use the faucet: introduction/get-started/create-account-use-faucet.md

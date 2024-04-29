@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 Polygon Miden is an Ethereum Rollup. It batches transactions - or more precisely, proofs - that occur in the same time period into a block. 
 
 The Miden execution model describes how state progresses on an individual level via transactions and at the global level expressed as aggregated state updates in blocks.
