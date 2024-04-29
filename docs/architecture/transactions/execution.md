@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 The Miden transaction executor is the component that executes transactions. 
 
 Transaction execution consists of the following steps and results in a `ExecutedTransaction` object:

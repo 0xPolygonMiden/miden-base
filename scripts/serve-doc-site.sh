@@ -3,6 +3,5 @@ set -euo pipefail
 
 virtualenv venv
 source venv/bin/activate
-pip3 install -r docs_requirements.txt
-cd ..
+pip3 install -r scripts/docs_requirements.txt
 mkdocs serve --strict

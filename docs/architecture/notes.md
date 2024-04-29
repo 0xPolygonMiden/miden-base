@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 Two of Miden's key goals are parallel transaction execution and privacy. 
 
 Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately. 

@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 !!! tip "Recap"
     Polygon Miden network architecture contains a bi-directional token bridge and state machine. 
 
