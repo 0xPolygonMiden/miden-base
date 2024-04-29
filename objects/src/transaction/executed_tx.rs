@@ -143,7 +143,6 @@ impl ExecutedTransaction {
 impl From<ExecutedTransaction> for TransactionWitness {
     fn from(tx: ExecutedTransaction) -> Self {
         let (_, _, tx_witness) = tx.into_parts();
-
         tx_witness
     }
 }
