@@ -131,7 +131,12 @@ fn build_advice_stack(
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.batch_root());
     inputs.extend_stack(header.proof_hash());
-    inputs.extend_stack([header.block_num().into(), header.version(), header.timestamp(), ZERO]);
+    inputs.extend_stack([
+        header.block_num().into(),
+        header.version(),
+        header.timestamp().into(),
+        ZERO,
+    ]);
     inputs.extend_stack([ZERO; 4]);
     inputs.extend_stack(header.note_root());
 

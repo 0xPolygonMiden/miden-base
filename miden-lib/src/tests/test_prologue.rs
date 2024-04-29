@@ -188,7 +188,7 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTr
     // The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
-        inputs.block_header().timestamp()
+        inputs.block_header().timestamp().into()
     );
 }
 
@@ -539,7 +539,7 @@ fn test_get_blk_timestamp() {
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
 
-    assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
+    assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp().into());
 }
 
 // HELPER FUNCTIONS

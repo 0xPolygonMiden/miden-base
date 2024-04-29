@@ -7,7 +7,7 @@ use miden_objects::{
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
-    BlockHeader, Digest, Felt, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH, ZERO,
+    BlockHeader, Digest, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH, ZERO,
 };
 use rand::{Rng, SeedableRng};
 
@@ -21,9 +21,9 @@ use super::{
 };
 
 /// Initial timestamp value
-const TIMESTAMP_START: Felt = Felt::new(1693348223);
+const TIMESTAMP_START: u32 = 1693348223;
 /// Timestamp of timestamp on each new block
-const TIMESTAMP_STEP: Felt = Felt::new(10);
+const TIMESTAMP_STEP: u32 = 10;
 
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]

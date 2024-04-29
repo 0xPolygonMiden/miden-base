@@ -181,7 +181,7 @@ mod tests {
             Digest::default(),
             Digest::default(),
             ZERO,
-            ZERO,
+            0,
         )
     }
 }
