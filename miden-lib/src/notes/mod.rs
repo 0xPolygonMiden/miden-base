@@ -4,10 +4,7 @@ use miden_objects::{
     accounts::AccountId,
     assets::Asset,
     crypto::rand::FeltRng,
-    notes::{
-        Note, NoteAssets, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
-        NoteType,
-    },
+    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteTag, NoteType},
     NoteError, Word, ZERO,
 };
 
@@ -39,7 +36,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = NoteInputs::new(vec![target.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteType::Public)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -73,7 +70,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteType::Public)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -98,13 +95,19 @@ pub fn create_swap_note<R: FeltRng>(
     note_type: NoteType,
     mut rng: R,
 ) -> Result<(Note, Word), NoteError> {
+    assert_eq!(
+        note_type,
+        NoteType::OffChain,
+        "OffChain note type is currently hardcoded in the SWAP script"
+    );
+
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
     let note_script = build_note_script(bytes)?;
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
     let asset_word: Word = requested_asset.into();
-    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
+    let payback_tag = NoteTag::from_account_id(sender, note_type)?;
 
     let inputs = NoteInputs::new(vec![
         payback_recipient[0],
@@ -118,8 +121,8 @@ pub fn create_swap_note<R: FeltRng>(
         payback_tag.inner().into(),
     ])?;
 
-    // TODO: build the tag for the SWAP use case
-    let tag = 0.into();
+    // TODO: build a tag for the SWAP use case (#640)
+    let tag = NoteTag::from(note_type);
     let serial_num = rng.draw_word();
     let aux = ZERO;
 

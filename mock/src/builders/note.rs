@@ -51,7 +51,7 @@ impl NoteBuilder {
             assets: vec![],
             note_type: NoteType::Public,
             serial_num,
-            tag: 0.into(),
+            tag: NoteType::Public.into(),
             code: DEFAULT_NOTE_CODE.to_string(),
             proof: None,
             aux: ZERO,
@@ -69,8 +69,8 @@ impl NoteBuilder {
         self
     }
 
-    pub fn tag(mut self, tag: u32) -> Self {
-        self.tag = tag.into();
+    pub fn tag(mut self, tag: NoteTag) -> Self {
+        self.tag = tag;
         self
     }
 
