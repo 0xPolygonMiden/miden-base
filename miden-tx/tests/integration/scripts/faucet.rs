@@ -44,7 +44,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
-    let tag = 4.into();
+    let tag = NoteType::OffChain.into();
     let amount = Felt::new(100);
 
     let tx_script_code = ProgramAst::parse(

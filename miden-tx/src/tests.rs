@@ -12,7 +12,7 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::{NoteId, NoteType},
+    notes::{NoteId, NoteTag, NoteType},
     transaction::{
         ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
     },
@@ -203,7 +203,7 @@ fn executed_transaction_account_delta() {
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
-            push.999                # tag
+            push.{tag_1}            # tag
             push.{REMOVED_ASSET_1}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
@@ -211,7 +211,7 @@ fn executed_transaction_account_delta() {
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
-            push.998                # tag
+            push.{tag_2}            # tag
             push.{REMOVED_ASSET_2}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
@@ -219,7 +219,7 @@ fn executed_transaction_account_delta() {
             # send non-fungible asset
             push.0.1.2.3            # recipient
             push.{OFFCHAIN}         # note_type
-            push.997                # tag
+            push.{tag_3}            # tag
             push.{REMOVED_ASSET_3}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
@@ -242,6 +242,9 @@ fn executed_transaction_account_delta() {
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
+        tag_1 = NoteTag::from(NoteType::OffChain),
+        tag_2 = NoteTag::from(NoteType::OffChain),
+        tag_3 = NoteTag::from(NoteType::OffChain),
         OFFCHAIN = NoteType::OffChain as u8,
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
