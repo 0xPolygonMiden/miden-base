@@ -39,7 +39,7 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-pub struct TransactionHost<'a, A> {
+pub struct TransactionHost<A> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
@@ -58,10 +58,10 @@ pub struct TransactionHost<'a, A> {
     tx_progress: TransactionProgress,
 
     /// Contains mapping from assertion error codes to the related error message
-    kernel_assertion_errors: BTreeMap<u32, &'a str>,
+    kernel_assertion_errors: BTreeMap<u32, &'static str>,
 }
 
-impl<'a, A: AdviceProvider> TransactionHost<'a, A> {
+impl<A: AdviceProvider> TransactionHost<A> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(account: AccountStub, adv_provider: A) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
@@ -314,7 +314,7 @@ impl<'a, A: AdviceProvider> TransactionHost<'a, A> {
     }
 }
 
-impl<'a, A: AdviceProvider> Host for TransactionHost<'a, A> {
+impl<A: AdviceProvider> Host for TransactionHost<A> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,
@@ -398,7 +398,7 @@ impl<'a, A: AdviceProvider> Host for TransactionHost<'a, A> {
         let err_msg = self
             .kernel_assertion_errors
             .get(&err_code)
-            .map_or("Unknown error code".to_string(), |msg| msg.to_string());
+            .map_or("Unknown error".to_string(), |msg| msg.to_string());
         ExecutionError::FailedAssertion {
             clk: process.clk(),
             err_code,
