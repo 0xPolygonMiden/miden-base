@@ -1,4 +1,4 @@
-use core::{fmt, num::TryFromIntError};
+use core::fmt;
 
 use miden_crypto::Felt;
 
@@ -225,25 +225,40 @@ impl fmt::Display for NoteTag {
 // CONVERSIONS INTO NOTE TAG
 // ================================================================================================
 
-impl From<u32> for NoteTag {
-    fn from(value: u32) -> Self {
-        Self(value)
+impl TryFrom<u32> for NoteTag {
+    type Error = NoteError;
+
+    fn try_from(tag: u32) -> Result<Self, Self::Error> {
+        let note_type = (tag >> NOTE_TYPE_MASK_SHIFT) as u8;
+
+        if note_type != PUBLIC && note_type != OFF_CHAIN && note_type != ENCRYPTED {
+            return Err(NoteError::InvalidNoteTypeValue(tag.into()));
+        }
+
+        Ok(NoteTag(tag))
     }
 }
 
 impl TryFrom<u64> for NoteTag {
-    type Error = TryFromIntError;
+    type Error = NoteError;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
-        Ok(Self(value.try_into()?))
+        let tag: u32 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
+        tag.try_into()
     }
 }
 
 impl TryFrom<Felt> for NoteTag {
-    type Error = TryFromIntError;
+    type Error = NoteError;
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
-        Ok(Self(value.as_int().try_into()?))
+        value.as_int().try_into()
+    }
+}
+
+impl From<NoteType> for NoteTag {
+    fn from(value: NoteType) -> Self {
+        NoteTag((value as u32) << NOTE_TYPE_MASK_SHIFT)
     }
 }
 

@@ -36,7 +36,7 @@ mod note_tag;
 pub use note_tag::{NoteExecutionHint, NoteTag};
 
 mod note_type;
-pub use note_type::NoteType;
+pub use note_type::{NoteType, ENCRYPTED, OFF_CHAIN, PUBLIC};
 
 mod nullifier;
 pub use nullifier::Nullifier;
