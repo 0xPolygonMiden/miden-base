@@ -58,7 +58,7 @@ fn prove_p2id_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), falcon_auth.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -72,13 +72,7 @@ fn prove_p2id_script() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(
-            target_account_id,
-            block_ref,
-            &note_ids,
-            tx_args_target,
-            falcon_auth.clone(),
-        )
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -106,7 +100,8 @@ fn prove_p2id_script() {
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
-    let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
+    let mut executor_2 =
+        TransactionExecutor::new(data_store_malicious_account.clone(), malicious_falcon_auth);
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
@@ -125,7 +120,6 @@ fn prove_p2id_script() {
         block_ref,
         &note_ids,
         tx_args_malicious,
-        malicious_falcon_auth,
     );
 
     // Check that we got the expected result - TransactionExecutorError
@@ -167,7 +161,7 @@ fn p2id_script_multiple_assets() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), falcon_auth);
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -181,7 +175,7 @@ fn p2id_script_multiple_assets() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target, falcon_auth)
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .unwrap();
 
     // vault delta
@@ -206,7 +200,8 @@ fn p2id_script_multiple_assets() {
 
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
-    let mut executor_2 = TransactionExecutor::new(data_store_malicious_account.clone());
+    let mut executor_2 =
+        TransactionExecutor::new(data_store_malicious_account.clone(), malicious_falcon_auth);
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious =
         executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
@@ -225,7 +220,6 @@ fn p2id_script_multiple_assets() {
         block_ref,
         &note_origins,
         tx_args_malicious,
-        malicious_falcon_auth,
     );
 
     // Check that we got the expected result - TransactionExecutorError

@@ -18,7 +18,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::FalconAuthenticator, TransactionExecutor, TransactionHost, TransactionProgress,
+    host::BasicAuthenticator, KeySecret, TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
@@ -67,7 +67,7 @@ fn main() -> Result<(), String> {
 /// Runs the default transaction with empty transaction script and two default notes.
 pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
+    let mut executor = TransactionExecutor::new(data_store.clone(), ()).with_tracing();
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).map_err(|e| e.to_string())?;
@@ -81,7 +81,9 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder, ());
+    let mut authenticator = ();
+    let mut host =
+        TransactionHost::new(transaction.account().into(), advice_recorder, &mut authenticator);
 
     vm_processor::execute(
         transaction.program(),
@@ -127,7 +129,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
+    let mut executor = TransactionExecutor::new(data_store.clone(), ()).with_tracing();
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -151,11 +153,12 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(
-        transaction.account().into(),
-        advice_recorder,
-        FalconAuthenticator::<StdRng>::new(sec_key),
-    );
+    let mut authenticator = BasicAuthenticator::<StdRng>::new(&[(
+        sec_key.public_key().into(),
+        KeySecret::RpoFalcon512(sec_key),
+    )]);
+    let mut host =
+        TransactionHost::new(transaction.account().into(), advice_recorder, &mut authenticator);
 
     vm_processor::execute(
         transaction.program(),

@@ -35,22 +35,24 @@ pub use data_store::DataStore;
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D> {
+pub struct TransactionExecutor<D, A> {
     data_store: D,
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
+    authenticator: A,
 }
 
-impl<D: DataStore> TransactionExecutor<D> {
+impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
-    pub fn new(data_store: D) -> Self {
+    pub fn new(data_store: D, authenticator: A) -> Self {
         Self {
             data_store,
             compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
+            authenticator,
         }
     }
 
@@ -172,20 +174,22 @@ impl<D: DataStore> TransactionExecutor<D> {
     /// - If required data can not be fetched from the [DataStore].
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
-    pub fn execute_transaction<A: TransactionAuthenticator>(
-        &self,
+    pub fn execute_transaction(
+        &mut self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
         tx_args: TransactionArgs,
-        tx_authenticator: A,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let transaction = self.prepare_transaction(account_id, block_ref, notes, tx_args)?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-        let mut host =
-            TransactionHost::new(transaction.account().into(), advice_recorder, tx_authenticator);
+        let mut host = TransactionHost::new(
+            transaction.account().into(),
+            advice_recorder,
+            &mut self.authenticator,
+        );
 
         let result = vm_processor::execute(
             transaction.program(),

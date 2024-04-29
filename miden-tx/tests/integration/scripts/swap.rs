@@ -62,7 +62,7 @@ fn prove_swap_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), target_falcon_auth.clone());
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -74,13 +74,7 @@ fn prove_swap_script() {
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     let executed_transaction = executor
-        .execute_transaction(
-            target_account_id,
-            block_ref,
-            &note_ids,
-            tx_args_target,
-            target_falcon_auth.clone(),
-        )
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction

@@ -26,7 +26,7 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_authenticator;
-pub use tx_authenticator::{FalconAuthenticator, TransactionAuthenticator};
+pub use tx_authenticator::{BasicAuthenticator, KeySecret, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
@@ -40,7 +40,7 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-pub struct TransactionHost<A, T> {
+pub struct TransactionHost<'a, A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
@@ -55,7 +55,7 @@ pub struct TransactionHost<A, T> {
     output_notes: Vec<OutputNote>,
 
     /// Provides a way to get a signature for a message into a transaction
-    tx_authenticator: T,
+    tx_authenticator: &'a mut T,
 
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
@@ -65,9 +65,9 @@ pub struct TransactionHost<A, T> {
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 }
 
-impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
+impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A, tx_authenticator: T) -> Self {
+    pub fn new(account: AccountStub, adv_provider: A, tx_authenticator: &'a mut T) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         Self {
             adv_provider,
@@ -361,7 +361,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 }
 
-impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
+impl<'a, A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<'a, A, T> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,

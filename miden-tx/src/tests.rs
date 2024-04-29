@@ -48,7 +48,7 @@ use super::{
 #[test]
 fn transaction_executor_witness() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), ());
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -57,14 +57,16 @@ fn transaction_executor_witness() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone(), ())
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(tx_witness.account().into(), mem_advice_provider, ());
+    let mut authenticator = ();
+    let mut host =
+        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, &mut authenticator);
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -85,7 +87,7 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), ());
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
@@ -255,9 +257,8 @@ fn executed_transaction_account_delta() {
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_args, ())
-        .unwrap();
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
     // nonce delta
     // --------------------------------------------------------------------------------------------
@@ -324,7 +325,7 @@ fn executed_transaction_account_delta() {
 #[test]
 fn prove_witness_and_verify() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), ());
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -333,7 +334,7 @@ fn prove_witness_and_verify() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone(), ())
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
         .unwrap();
 
     let proof_options = ProvingOptions::default();
@@ -353,7 +354,7 @@ fn prove_witness_and_verify() {
 #[test]
 fn test_tx_script() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), ());
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -391,7 +392,7 @@ fn test_tx_script() {
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
     let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args, ());
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
 
     assert!(
         executed_transaction.is_ok(),

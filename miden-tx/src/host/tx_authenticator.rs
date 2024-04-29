@@ -1,11 +1,11 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
     accounts::AccountDelta,
-    crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
+    crypto::dsa::rpo_falcon512::{self, Polynomial},
 };
 use rand::Rng;
-use vm_processor::{Felt, Word};
+use vm_processor::{Digest, Felt, Word};
 
 use crate::error::AuthenticationError;
 
@@ -38,31 +38,42 @@ pub trait TransactionAuthenticator {
     ) -> Result<Vec<Felt>, AuthenticationError>;
 }
 
-// FALCON AUTHENTICATOR
+// BASIC AUTHENTICATOR
 // ================================================================================================
 
-/// Represents a signer for Falcon signatures, based on a user's [SecretKey]
 #[derive(Clone, Debug)]
-pub struct FalconAuthenticator<R> {
-    secret_key: SecretKey,
+pub enum KeySecret {
+    RpoFalcon512(rpo_falcon512::SecretKey),
+}
+
+#[derive(Clone, Debug)]
+/// Represents a signer for [KeySecret] keys
+pub struct BasicAuthenticator<R> {
+    /// pub_key |-> secret_key mapping
+    keys: BTreeMap<Digest, KeySecret>,
     rng: R,
 }
 
-impl<R: Rng> FalconAuthenticator<R> {
+impl<R: Rng> BasicAuthenticator<R> {
     #[cfg(feature = "std")]
-    pub fn new(secret_key: SecretKey) -> FalconAuthenticator<rand::rngs::StdRng> {
+    pub fn new(keys: &[(Word, KeySecret)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{rngs::StdRng, SeedableRng};
 
         let rng = StdRng::from_entropy();
-        FalconAuthenticator { secret_key, rng }
+        BasicAuthenticator::<StdRng>::new_with_rng(keys, rng)
     }
 
-    pub fn new_with_rng(secret_key: SecretKey, rng: R) -> Self {
-        FalconAuthenticator { secret_key, rng }
+    pub fn new_with_rng(keys: &[(Word, KeySecret)], rng: R) -> Self {
+        let mut key_map = BTreeMap::new();
+        for (word, secret_key) in keys {
+            key_map.insert(word.into(), secret_key.clone());
+        }
+
+        BasicAuthenticator { keys: key_map, rng }
     }
 }
 
-impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
+impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
     /// outputs a vector of values to be pushed onto the advice stack.
     /// The values are the ones required for a Falcon signature verification inside the VM and they are:
@@ -84,14 +95,21 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
         account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         let _ = account_delta;
-        if pub_key != Word::from(self.secret_key.public_key()) {
-            return Err(AuthenticationError::UnknownKey(
-                "Public key does not match with the key from the signature request".into(),
-            ));
-        }
+
+        let secret_key = match self.keys.get(&pub_key.into()) {
+            Some(key) => match key {
+                KeySecret::RpoFalcon512(falcon_key) => falcon_key,
+            },
+            None => {
+                return Err(AuthenticationError::UnknownKey(format!(
+                    "Public key {} is not contained in the authenticator's keys",
+                    Digest::from(pub_key)
+                )))
+            },
+        };
 
         // Generate the signature
-        let sig = self.secret_key.sign_with_rng(message, &mut self.rng);
+        let sig = secret_key.sign_with_rng(message, &mut self.rng);
 
         // The signature is composed of a nonce and a polynomial s2
         // The nonce is represented as 8 field elements.
@@ -102,7 +120,7 @@ impl<R: Rng> TransactionAuthenticator for FalconAuthenticator<R> {
 
         // We also need in the VM the expanded key corresponding to the public key the was provided
         // via the operand stack
-        let h = self.secret_key.compute_pub_key_poly().0;
+        let h = secret_key.compute_pub_key_poly().0;
 
         // Lastly, for the probabilistic product routine that is part of the verification procedure,
         // we need to compute the product of the expanded key and the signature polynomial in
