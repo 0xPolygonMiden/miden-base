@@ -453,7 +453,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());
         let nullifier_root = self.nullifiers.root();
         let note_root = notes.root();
-        let version = ZERO;
+        let version = 0;
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
 

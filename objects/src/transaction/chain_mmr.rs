@@ -122,7 +122,7 @@ mod tests {
     use crate::{
         alloc::vec::Vec,
         crypto::merkle::{Mmr, PartialMmr},
-        BlockHeader, Digest, ZERO,
+        BlockHeader, Digest,
     };
 
     #[test]
@@ -180,7 +180,7 @@ mod tests {
             Digest::default(),
             Digest::default(),
             Digest::default(),
-            ZERO,
+            0,
             0,
         )
     }

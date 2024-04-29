@@ -133,7 +133,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),
-        header.version(),
+        header.version().into(),
         header.timestamp().into(),
         ZERO,
     ]);
@@ -222,7 +222,7 @@ fn add_account_to_advice_inputs(
     )]);
 
     // If there are storage maps, we populate the merkle store and advice map
-    if !(account.storage().maps().is_empty()) {
+    if !account.storage().maps().is_empty() {
         for map in account.storage().maps() {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());

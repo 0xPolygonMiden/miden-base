@@ -33,7 +33,7 @@ pub struct BlockHeader {
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
-    version: Felt,
+    version: u32,
     timestamp: u32,
     sub_hash: Digest,
     hash: Digest,
@@ -51,7 +51,7 @@ impl BlockHeader {
         note_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: Felt,
+        version: u32,
         timestamp: u32,
     ) -> Self {
         // compute block sub hash
@@ -145,7 +145,7 @@ impl BlockHeader {
     }
 
     /// Returns the protocol version.
-    pub fn version(&self) -> Felt {
+    pub fn version(&self) -> u32 {
         self.version
     }
 
@@ -170,7 +170,7 @@ impl BlockHeader {
         nullifier_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: Felt,
+        version: u32,
         timestamp: u32,
         block_num: u32,
     ) -> Digest {
@@ -181,7 +181,7 @@ impl BlockHeader {
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(batch_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
-        elements.extend([block_num.into(), version, timestamp.into(), ZERO]);
+        elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
@@ -194,8 +194,7 @@ mod mock {
     use winter_rand_utils as rand;
 
     use crate::{
-        accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt,
-        ACCOUNT_TREE_DEPTH, ZERO,
+        accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt, ACCOUNT_TREE_DEPTH,
     };
 
     impl BlockHeader {
@@ -237,7 +236,7 @@ mod mock {
                 note_root,
                 batch_root,
                 proof_hash,
-                ZERO,
+                0,
                 rand::rand_value(),
             )
         }
