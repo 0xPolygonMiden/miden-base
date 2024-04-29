@@ -15,7 +15,7 @@ use super::{
 pub const NOTE_TYPE_MASK_SHIFT: u32 = 30;
 pub const NOTE_TYPE_MASK: u32 = 0b11 << NOTE_TYPE_MASK_SHIFT;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteTag(u32);
 
