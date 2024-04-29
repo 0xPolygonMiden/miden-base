@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use crate::{
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     Felt, NoteError,
@@ -7,9 +9,9 @@ use crate::{
 // ================================================================================================
 
 // Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
-const PUBLIC: u8 = 0b01;
-const OFF_CHAIN: u8 = 0b10;
-const ENCRYPTED: u8 = 0b11;
+pub const PUBLIC: u8 = 0b01;
+pub const OFF_CHAIN: u8 = 0b10;
+pub const ENCRYPTED: u8 = 0b11;
 
 // NOTE TYPE
 // ================================================================================================
@@ -28,8 +30,42 @@ pub enum NoteType {
     Public = PUBLIC,
 }
 
+impl Display for NoteType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            NoteType::OffChain => write!(f, "offchain"),
+            NoteType::Encrypted => write!(f, "encrypted"),
+            NoteType::Public => write!(f, "public"),
+        }
+    }
+}
+
 // CONVERSIONS FROM NOTE TYPE
 // ================================================================================================
+
+impl From<NoteType> for u8 {
+    fn from(id: NoteType) -> Self {
+        id as u8
+    }
+}
+
+impl From<NoteType> for u16 {
+    fn from(id: NoteType) -> Self {
+        id as u16
+    }
+}
+
+impl From<NoteType> for u32 {
+    fn from(id: NoteType) -> Self {
+        id as u32
+    }
+}
+
+impl From<NoteType> for u64 {
+    fn from(id: NoteType) -> Self {
+        id as u64
+    }
+}
 
 impl From<NoteType> for Felt {
     fn from(id: NoteType) -> Self {
