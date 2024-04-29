@@ -1,14 +1,14 @@
-# Polygon Miden
+# About Polygon Miden
 
-Polygon Miden is a zero-knowledge rollup for private, high-throughput applications.
 
-It is a modular execution layer that extends Ethereum's capabilities using powerful features such as parallel transaction execution and client-side proving. 
+Polygon Miden is a modular execution layer that extends Ethereum's capabilities using powerful features such as parallel transaction execution and client-side proving. 
 
-Miden allows users to prove state changes locally while the network only tracks a commitment, leading to privacy and high-throughput. Users can also let the operator prove public state changes like other rollups.
+With Polygon Miden, 
+- Users can prove state changes locally while the network only tracks a commitment, leading to privacy and high-throughput. 
+- Users can also let the operator prove public state changes like other rollups.
+- Developers can create novel, high-throughput, privacy-preserving dApps for DeFi, RWA, and on-chain games with languages such as Rust and TypeScript.
 
-With Miden, developers can create novel, high-throughput, privacy-preserving dApps for DeFi, RWA, and on-chain games with languages such as Rust and TypeScript.
-
-If you want to join the technical discussion, please check out the following:
+You can join technical discussions and stay updated about Polygon Miden using the links below:
 
 * [Discord](https://discord.gg/0xpolygondevs)
 * [Miden repo](https://github.com/0xPolygonMiden)
