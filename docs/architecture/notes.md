@@ -52,134 +52,136 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
 * P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself.
 * SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset.
 
-### Example note script pay to ID (P2ID)
+!!! info "Example note script pay to ID (P2ID)"
+    Want to know how to ensure a note can only be consumed by a specified account?</
 
-<details>
-  <summary>Want to know how to ensure a note can only be consumed by a specified account?</summary>
-
-  #### Goal of the P2ID script
+    #### Goal of the P2ID script
   
-  The P2ID script defines a specific target account ID as the only account that can consume the note. Such notes ensure a targeted asset transfer.
+    The P2ID script defines a specific target account ID as the only account that can consume the note. Such notes ensure a targeted asset transfer.
 
-  #### Imports and context
+    #### Imports and context
 
-  The P2ID script uses procedures from the account, note and wallet API.
+    The P2ID script uses procedures from the account, note and wallet API.
 
-  ```arduino
-  use.miden::account
-  use.miden::note
-  use.miden::contracts::wallets::basic->wallet
-  ```
+    ```arduino
+    use.miden::account
+    use.miden::note
+    use.miden::contracts::wallets::basic->wallet
+    ```
 
-  As discussed in detail in [transaction kernel procedures](../transactions/transaction-procedures.md) certain procedures can only be invoked in certain contexts. The note script is being executed in the note context of the [transaction kernel](../transactions/transaction-kernel.md).
+    As discussed in detail in [transaction kernel procedures](transactions/procedures.md) certain procedures can only be invoked in certain contexts. The note script is being executed in the note context of the [transaction kernel](transactions/kernel.md).
 
-  #### Main script
+    #### Main script
 
-  The main part of the P2ID script checks if the executing account is the same as the account defined in the `NoteInputs`. The creator of the note defines the note script and the note inputs separately to ensure usage of the same standardized P2ID script regardless of the target account ID. That way, it is enough to check the script root (see above).
+    The main part of the P2ID script checks if the executing account is the same as the account defined in the `NoteInputs`. The creator of the note defines the note script and the note inputs separately to ensure usage of the same standardized P2ID script regardless of the target account ID. That way, it is enough to check the script root (see above).
 
-  ```arduino
-  # Pay-to-ID script: adds all assets from the note to the account, assuming ID of the account
-  # matches target account ID specified by the note inputs.
-  #
-  # Requires that the account exposes: miden::contracts::wallets::basic::receive_asset procedure.
-  #
-  # Inputs: [SCRIPT_ROOT]
-  # Outputs: []
-  #
-  # Note inputs are assumed to be as follows:
-  # - target_account_id is the ID of the account for which the note is intended.
-  #
-  # FAILS if:
-  # - Account does not expose miden::contracts::wallets::basic::receive_asset procedure.
-  # - Account ID of executing account is not equal to the Account ID specified via note inputs.
-  # - The same non-fungible asset already exists in the account.
-  # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
-  #   greater than 2^63.
-  begin
-      # drop the transaction script root
-      dropw
-      # => []
+    ```arduino
+    # Pay-to-ID script: adds all assets from the note to the account, assuming ID of the account
+    # matches target account ID specified by the note inputs.
+    #
+    # Requires that the account exposes: miden::contracts::wallets::basic::receive_asset procedure.
+    #
+    # Inputs: [SCRIPT_ROOT]
+    # Outputs: []
+    #
+    # Note inputs are assumed to be as follows:
+    # - target_account_id is the ID of the account for which the note is intended.
+    #
+    # FAILS if:
+    # - Account does not expose miden::contracts::wallets::basic::receive_asset procedure.
+    # - Account ID of executing account is not equal to the Account ID specified via note inputs.
+    # - The same non-fungible asset already exists in the account.
+    # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
+    #   greater than 2^63.
+    begin
+        # drop the transaction script root
+        dropw
+        # => []
 
-      # load the note inputs to memory starting at address 0
-      push.0 exec.note::get_inputs
-        # => [inputs_ptr]
+        # load the note inputs to memory starting at address 0
+        push.0 exec.note::get_inputs
+            # => [inputs_ptr]
 
-      # read the target account id from the note inputs
-      mem_load
-      # => [target_account_id]
+        # read the target account id from the note inputs
+        mem_load
+        # => [target_account_id]
 
-      exec.account::get_id
-      # => [account_id, target_account_id, ...]
+        exec.account::get_id
+        # => [account_id, target_account_id, ...]
 
-      # ensure account_id = target_account_id, fails otherwise
-      assert_eq
-      # => [...]
+        # ensure account_id = target_account_id, fails otherwise
+        assert_eq
+        # => [...]
 
-      exec.add_note_assets_to_account
-      # => [...]
-  end
-  ```
+        exec.add_note_assets_to_account
+        # => [...]
+    end
+    ```
 
-  Every note script starts with the note script root on top of the stack. After the `dropw`, the stack is cleared. Next, the script stored the note inputs at pos 0 in the [relative note context memory](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-contexts) by  `push.0 exec.note::get_inputs`. Then, `mem_load` loads a `Felt` from the specified memory address and puts it on top of the stack, in that cases the   `target_account_id` defined by the creator of the note. Now, the note invokes `get_id` from the account API using `exec.account::get_id` - which is   possible even in the note context. Because, there are two account IDs on top of the stack now, `assert_eq` fails if the two account IDs (target_account_id and executing_account_id) are not the same. That means, the script cannot be successfully executed if executed by any other account than the account specified by the note creator using the note inputs.
+    1. Every note script starts with the note script root on top of the stack. 
+    2. After the `dropw`, the stack is cleared. 
+    3. Next, the script stored the note inputs at pos 0 in the [relative note context memory](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-contexts) by `push.0 exec.note::get_inputs`. 
+    4. Then, `mem_load` loads a `Felt` from the specified memory address and puts it on top of the stack, in that cases the `target_account_id` defined by the creator of the note. 
+    5. Now, the note invokes `get_id` from the account API using `exec.account::get_id` - which is possible even in the note context. 
+    
+    Because, there are two account IDs on top of the stack now, `assert_eq` fails if the two account IDs (target_account_id and executing_account_id) are not the same. That means, the script cannot be successfully executed if executed by any other account than the account specified by the note creator using the note inputs.
 
-  If execution hasn't failed, the script invokes a helper procedure `exec.add_note_assets_to_account` to add the note's assets into the executing account's vault.
+    If execution hasn't failed, the script invokes a helper procedure `exec.add_note_assets_to_account` to add the note's assets into the executing account's vault.
 
-  #### Add assets
+    #### Add assets
 
-  This procedure adds the assets held by the note into the account's vault.
+    This procedure adds the assets held by the note into the account's vault.
 
-  ```arduino
-  #! Helper procedure to add all assets of a note to an account.
-  #!
-  #! Inputs: []
-  #! Outputs: []
-  #!
-  proc.add_note_assets_to_account
-      push.0 exec.note::get_assets
-      # => [num_of_assets, 0 = ptr, ...]
+    ```arduino
+    #! Helper procedure to add all assets of a note to an account.
+    #!
+    #! Inputs: []
+    #! Outputs: []
+    #!
+    proc.add_note_assets_to_account
+        push.0 exec.note::get_assets
+        # => [num_of_assets, 0 = ptr, ...]
 
-      # compute the pointer at which we should stop iterating
-      dup.1 add
-      # => [end_ptr, ptr, ...]
+        # compute the pointer at which we should stop iterating
+        dup.1 add
+        # => [end_ptr, ptr, ...]
 
-      # pad the stack and move the pointer to the top
-      padw movup.5
-      # => [ptr, 0, 0, 0, 0, end_ptr, ...]
+        # pad the stack and move the pointer to the top
+        padw movup.5
+        # => [ptr, 0, 0, 0, 0, end_ptr, ...]
 
-      # compute the loop latch
-      dup dup.6 neq
-      # => [latch, ptr, 0, 0, 0, 0, end_ptr, ...]
+        # compute the loop latch
+        dup dup.6 neq
+        # => [latch, ptr, 0, 0, 0, 0, end_ptr, ...]
 
-      while.true
-          # => [ptr, 0, 0, 0, 0, end_ptr, ...]
+        while.true
+            # => [ptr, 0, 0, 0, 0, end_ptr, ...]
 
-          # save the pointer so that we can use it later
-          dup movdn.5
-          # => [ptr, 0, 0, 0, 0, ptr, end_ptr, ...]
+            # save the pointer so that we can use it later
+            dup movdn.5
+            # => [ptr, 0, 0, 0, 0, ptr, end_ptr, ...]
 
-          # load the asset and add it to the account
-          mem_loadw call.wallet::receive_asset
-          # => [ASSET, ptr, end_ptr, ...]
+            # load the asset and add it to the account
+            mem_loadw call.wallet::receive_asset
+            # => [ASSET, ptr, end_ptr, ...]
 
-          # increment the pointer and compare it to the end_ptr
-          movup.4 add.1 dup dup.6 neq
-          # => [latch, ptr+1, ASSET, end_ptr, ...]
-      end
+            # increment the pointer and compare it to the end_ptr
+            movup.4 add.1 dup dup.6 neq
+            # => [latch, ptr+1, ASSET, end_ptr, ...]
+        end
 
-      # clear the stack
-      drop dropw drop
-  end
-  ```
+        # clear the stack
+        drop dropw drop
+    end
+    ```
 
-  The procedure starts by calling `exec.note::get_assets`. As with the note's inputs before, this writes the assets of the note into memory starting at the specified address. Assets are stored in consecutive memory slots, so `dup.1 add` provides the last memory slot.
+    The procedure starts by calling `exec.note::get_assets`. As with the note's inputs before, this writes the assets of the note into memory starting at the specified address. Assets are stored in consecutive memory slots, so `dup.1 add` provides the last memory slot.
 
-  In Miden, [assets](assets.md) are represented by `Words`, so we need to pad the stack with four `0`s to make room for an asset. Now, if there is at least one asset (checked by `dup dup.6 neq`), the loop starts. It first saves the pointer for later use (`dup movdn.5`), then loads the first asset `mem_loadw` on top of the stack.
+    In Miden, [assets](assets.md) are represented by `Words`, so we need to pad the stack with four `0`s to make room for an asset. Now, if there is at least one asset (checked by `dup dup.6 neq`), the loop starts. It first saves the pointer for later use (`dup movdn.5`), then loads the first asset `mem_loadw` on top of the stack.
 
-  Now, the procedure calls the a function of the account interface `call.wallet::receive_asset` to put the asset into the account's vault. Due to different [contexts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-contexts), a note script cannot directly call an account function to add the asset. The account must expose this function in its [interface](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#example-account-code).
+    Now, the procedure calls the a function of the account interface `call.wallet::receive_asset` to put the asset into the account's vault. Due to different [contexts](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-contexts), a note script cannot directly call an account function to add the asset. The account must expose this function in its [interface](https://0xpolygonmiden.github.io/miden-base/architecture/accounts.html#example-account-code).
 
-  Lastly, the pointer gets incremented, and if there is a second asset, the loop continues (`movup.4 add.1 dup dup.6 neq`). Finally, when all assets were put into the account's vault, the stack is cleared (`drop dropw drop`).
-
-</details>
+    Lastly, the pointer gets incremented, and if there is a second asset, the loop continues (`movup.4 add.1 dup dup.6 neq`). Finally, when all assets were put into the account's vault, the stack is cleared (`drop dropw drop`).
 
 ## Note storage mode
 
