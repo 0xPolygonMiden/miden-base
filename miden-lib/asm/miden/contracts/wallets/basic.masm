@@ -47,7 +47,7 @@ export.send_asset
     # procedure is `call`ed the stack has to be carefully manipulated to avoid
     # inserting unwanted elements between the user data. The convention is to
     # ensure the input&output data have the same length. This code pads the
-    # stack so the output stack will be the same length as the the input.
+    # stack so the output stack will be the same length as the input.
     #
     # The padding must be added before calling `create_note`, not after. This
     # is because the VM stack has a minimum size of 16 elements, trying to push

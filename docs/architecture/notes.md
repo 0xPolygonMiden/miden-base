@@ -45,7 +45,7 @@ Every note has a script which gets executed at note consumption. It is always ex
 
 By design, every note script can be defined as a unique hash or the root of a [Miden program MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html). That also means every function is a commitment to the underlying code. That code cannot change unnoticed to the user because its hash changes. That way it is easy to recognize standardized notes and those which deviate.
 
-Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
+Note scripts are created together with their inputs, i.e., the creator of the note defines which inputs are used at note execution by the executor. However, the executor or prover can pass optional note args. Note args are data put onto the stack right before a note script is executed. These are different from note inputs, as the executing account can specify arbitrary note args.
 
 There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/tree/main/miden-lib/asm/note_scripts) (P2ID, P2IDR, SWAP) that users can create and add to their notes using the Miden client or by calling internal [Rust code](https://github.com/0xPolygonMiden/miden-base/blob/fa63b26d845f910d12bd5744f34a6e55c08d5cde/miden-lib/src/notes/mod.rs#L15-L66).
 
