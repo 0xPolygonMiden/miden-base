@@ -10,18 +10,19 @@ use crate::utils::serde::{
 ///
 /// A block header includes the following fields:
 ///
-/// - version specifies the version of the protocol.
-/// - prev_hash is the hash of the previous blocks header.
-/// - block_num is a unique sequential number of the current block.
-/// - chain_root is a commitment to an MMR of the entire chain where each block is a leaf.
-/// - account_root is a commitment to account database.
-/// - nullifier_root is a commitment to the nullifier database.
-/// - note_root is a commitment to all notes created in the current block.
-/// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
-/// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
-/// - timestamp is the time when the block was created, in seconds since UNIX epoch.
-/// - sub_hash is a sequential hash of all fields except the note_root.
-/// - hash is a 2-to-1 hash of the sub_hash and the note_root.
+/// - `version` specifies the version of the protocol.
+/// - `prev_hash` is the hash of the previous block header.
+/// - `block_num` is a unique sequential number of the current block.
+/// - `chain_root` is a commitment to an MMR of the entire chain where each block is a leaf.
+/// - `account_root` is a commitment to account database.
+/// - `nullifier_root` is a commitment to the nullifier database.
+/// - `note_root` is a commitment to all notes created in the current block.
+/// - `batch_root` is a commitment to a set of transaction batches executed as a part of this block.
+/// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
+/// - `timestamp` is the time when the block was created, in seconds since UNIX epoch.
+///   Current representation is sufficient to represent time up to year 2106.
+/// - `sub_hash` is a sequential hash of all fields except the note_root.
+/// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
@@ -160,8 +161,8 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// prev_hash, chain_root, account_root, nullifier_root, note_root, batch_root, proof_hash,
-    /// version, timestamp, block_num (all fields except the note_root).
+    /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `batch_root`,
+    /// `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
