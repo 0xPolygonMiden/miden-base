@@ -78,7 +78,11 @@ Accounts can expose any interface in the future. This is the Miden version of a 
 
 #### Customized note scripts
 
+<<<<<<< HEAD
 Users will be able to write their own note scripts using the Miden client. Note scripts are executed during note consumption and they can be arbitrarily complex due to the underlying Turing-complete Miden VM.
+=======
+Users can write their own note scripts using the Miden client. Note scripts are executed during note consumption and they can be arbitrarily complex due to the underlying Turing-complete Miden VM.
+>>>>>>> dd9667d79cf3d4cc5d6a7ccc8509bdf77fdc0289
 
 #### Network transactions
 
