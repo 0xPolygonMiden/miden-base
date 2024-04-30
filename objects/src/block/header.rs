@@ -187,6 +187,49 @@ impl BlockHeader {
     }
 }
 
+impl Serializable for BlockHeader {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.version.write_into(target);
+        self.prev_hash.write_into(target);
+        self.block_num.write_into(target);
+        self.chain_root.write_into(target);
+        self.account_root.write_into(target);
+        self.nullifier_root.write_into(target);
+        self.note_root.write_into(target);
+        self.batch_root.write_into(target);
+        self.proof_hash.write_into(target);
+        self.timestamp.write_into(target);
+    }
+}
+
+impl Deserializable for BlockHeader {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let version = source.read()?;
+        let prev_hash = source.read()?;
+        let block_num = source.read()?;
+        let chain_root = source.read()?;
+        let account_root = source.read()?;
+        let nullifier_root = source.read()?;
+        let note_root = source.read()?;
+        let batch_root = source.read()?;
+        let proof_hash = source.read()?;
+        let timestamp = source.read()?;
+
+        Ok(Self::new(
+            version,
+            prev_hash,
+            block_num,
+            chain_root,
+            account_root,
+            nullifier_root,
+            note_root,
+            batch_root,
+            proof_hash,
+            timestamp,
+        ))
+    }
+}
+
 #[cfg(feature = "testing")]
 mod mock {
     use alloc::vec::Vec;
@@ -219,13 +262,13 @@ mod mock {
             )
             .expect("failed to create account db");
 
-            let prev_hash: Digest = rand::rand_array().into();
-            let chain_root: Digest = chain_root.unwrap_or(rand::rand_array().into());
-            let acct_root: Digest = acct_db.root();
-            let nullifier_root: Digest = rand::rand_array().into();
-            let note_root: Digest = note_root.unwrap_or(rand::rand_array().into());
-            let batch_root: Digest = rand::rand_array().into();
-            let proof_hash: Digest = rand::rand_array().into();
+            let prev_hash = rand::rand_array().into();
+            let chain_root = chain_root.unwrap_or(rand::rand_array().into());
+            let acct_root = acct_db.root();
+            let nullifier_root = rand::rand_array().into();
+            let note_root = note_root.unwrap_or(rand::rand_array().into());
+            let batch_root = rand::rand_array().into();
+            let proof_hash = rand::rand_array().into();
 
             BlockHeader::new(
                 0,
@@ -243,53 +286,19 @@ mod mock {
     }
 }
 
-impl Serializable for BlockHeader {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self {
-            version,
-            prev_hash,
-            block_num,
-            chain_root,
-            account_root,
-            nullifier_root,
-            note_root,
-            batch_root,
-            proof_hash,
-            timestamp,
-            sub_hash,
-            hash,
-        } = self;
+#[cfg(test)]
+mod tests {
+    use winter_rand_utils::rand_array;
 
-        version.write_into(target);
-        prev_hash.write_into(target);
-        block_num.write_into(target);
-        chain_root.write_into(target);
-        account_root.write_into(target);
-        nullifier_root.write_into(target);
-        note_root.write_into(target);
-        batch_root.write_into(target);
-        proof_hash.write_into(target);
-        timestamp.write_into(target);
-        sub_hash.write_into(target);
-        hash.write_into(target);
-    }
-}
+    use super::*;
 
-impl Deserializable for BlockHeader {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self {
-            version: source.read()?,
-            prev_hash: source.read()?,
-            block_num: source.read()?,
-            chain_root: source.read()?,
-            account_root: source.read()?,
-            nullifier_root: source.read()?,
-            note_root: source.read()?,
-            batch_root: source.read()?,
-            proof_hash: source.read()?,
-            timestamp: source.read()?,
-            sub_hash: source.read()?,
-            hash: source.read()?,
-        })
+    #[test]
+    fn test_serde() {
+        let header =
+            BlockHeader::mock(0, Some(rand_array().into()), Some(rand_array().into()), &[]);
+        let serialized = header.to_bytes();
+        let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
+
+        assert_eq!(deserialized, header);
     }
 }
