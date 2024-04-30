@@ -26,7 +26,7 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_authenticator;
-pub use tx_authenticator::{BasicAuthenticator, KeySecret, TransactionAuthenticator};
+pub use tx_authenticator::{BasicAuthenticator, SecretKey, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
@@ -55,7 +55,7 @@ pub struct TransactionHost<'a, A, T> {
     output_notes: Vec<OutputNote>,
 
     /// Provides a way to get a signature for a message into a transaction
-    tx_authenticator: &'a mut T,
+    tx_authenticator: &'a Option<T>,
 
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
@@ -67,7 +67,7 @@ pub struct TransactionHost<'a, A, T> {
 
 impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A, tx_authenticator: &'a mut T) -> Self {
+    pub fn new(account: AccountStub, adv_provider: A, tx_authenticator: &'a Option<T>) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         Self {
             adv_provider,
@@ -314,10 +314,16 @@ impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, 
         } else {
             let account_delta = self.account_delta.clone().into_delta();
 
-            let signature: Vec<Felt> =
-                self.tx_authenticator.get_signature(pub_key, msg, &account_delta).map_err(
-                    |_| ExecutionError::FailedSignatureGeneration("Error generating signature"),
-                )?;
+            let signature: Vec<Felt> = match self.tx_authenticator {
+                None => Err(ExecutionError::FailedSignatureGeneration(
+                    "No authenticator assigned to transaction host",
+                )),
+                Some(authenticator) => {
+                    authenticator.get_signature(pub_key, msg, &account_delta).map_err(|_| {
+                        ExecutionError::FailedSignatureGeneration("Error generating signature")
+                    })
+                },
+            }?;
 
             self.generated_signatures.insert(signature_key, signature.clone());
             signature

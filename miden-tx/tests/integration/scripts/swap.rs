@@ -62,7 +62,8 @@ fn prove_swap_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), target_falcon_auth.clone());
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();

@@ -58,7 +58,7 @@ fn prove_p2id_script() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), falcon_auth.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -101,7 +101,7 @@ fn prove_p2id_script() {
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 =
-        TransactionExecutor::new(data_store_malicious_account.clone(), malicious_falcon_auth);
+        TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
@@ -161,7 +161,7 @@ fn p2id_script_multiple_assets() {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), falcon_auth);
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth));
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -201,7 +201,7 @@ fn p2id_script_multiple_assets() {
     let data_store_malicious_account =
         MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
     let mut executor_2 =
-        TransactionExecutor::new(data_store_malicious_account.clone(), malicious_falcon_auth);
+        TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious =
         executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();

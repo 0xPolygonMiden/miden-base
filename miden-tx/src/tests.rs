@@ -48,7 +48,8 @@ use super::{
 #[test]
 fn transaction_executor_witness() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone(), ());
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None);
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -64,9 +65,9 @@ fn transaction_executor_witness() {
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let mut authenticator = ();
-    let mut host =
-        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, &mut authenticator);
+    let _authenticator = ();
+    let mut host: TransactionHost<'_, MemAdviceProvider, ()> =
+        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, &None);
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -87,7 +88,8 @@ fn transaction_executor_witness() {
 #[test]
 fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
-    let mut executor = TransactionExecutor::new(data_store.clone(), ());
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None);
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
 
@@ -325,7 +327,8 @@ fn executed_transaction_account_delta() {
 #[test]
 fn prove_witness_and_verify() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone(), ());
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None);
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();
@@ -354,7 +357,8 @@ fn prove_witness_and_verify() {
 #[test]
 fn test_tx_script() {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone(), ());
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None);
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).unwrap();

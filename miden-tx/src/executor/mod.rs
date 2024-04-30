@@ -37,22 +37,22 @@ pub use data_store::DataStore;
 /// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D, A> {
     data_store: D,
+    authenticator: Option<A>,
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
-    authenticator: A,
 }
 
 impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
-    pub fn new(data_store: D, authenticator: A) -> Self {
+    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and [TransactionAuthenticator].
+    pub fn new(data_store: D, authenticator: Option<A>) -> Self {
         Self {
             data_store,
+            authenticator,
             compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
-            authenticator,
         }
     }
 

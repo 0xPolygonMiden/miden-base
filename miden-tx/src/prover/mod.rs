@@ -9,6 +9,7 @@ pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
+
 /// Transaction prover is a stateless component which is responsible for proving transactions.
 ///
 /// Transaction prover exposes the `prove_transaction` method which takes a [TransactionWitness],
@@ -47,9 +48,8 @@ impl TransactionProver {
         // execute and prove
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
-        let mut authenticator = ();
-        let mut host =
-            TransactionHost::new(tx_witness.account().into(), advice_provider, &mut authenticator);
+        let mut host: TransactionHost<'_, _, ()> =
+            TransactionHost::new(tx_witness.account().into(), advice_provider, &None);
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;

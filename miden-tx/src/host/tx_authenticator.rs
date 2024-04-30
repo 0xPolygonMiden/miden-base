@@ -1,4 +1,5 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use core::cell::RefCell;
 
 use miden_objects::{
     accounts::AccountDelta,
@@ -12,13 +13,13 @@ use crate::error::AuthenticationError;
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
 
-/// Represents an authenticator for transactions.
+/// Defines an authenticator for transactions.
 ///
-/// Its main use is to provide a method to create a DSA signature for a message,
-/// based on an [AccountDelta].
+/// The main purpose of the authenticator is to generate signatures for a given message against
+/// a key managed by the authenticator. That is, the authenticator maintains a set of public-
+/// private key pairs, and can be requested to generate signatures against any of the managed keys.
 ///
-/// The signature is intended to provide authentication. The implementer can verify
-/// and approve any changes before the message is signed.
+/// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
 pub trait TransactionAuthenticator {
     /// Retrieves a signataure for a specific message as a list of [Felt].
     /// The request is initiaed by the VM as a consequence of the SigToStack advice
@@ -31,7 +32,7 @@ pub trait TransactionAuthenticator {
     ///   authenticator to review any alterations to the account prior to signing.
     ///   It should not be directly used in the signature computation.
     fn get_signature(
-        &mut self,
+        &self,
         pub_key: Word,
         message: Word,
         account_delta: &AccountDelta,
@@ -42,7 +43,7 @@ pub trait TransactionAuthenticator {
 // ================================================================================================
 
 #[derive(Clone, Debug)]
-pub enum KeySecret {
+pub enum SecretKey {
     RpoFalcon512(rpo_falcon512::SecretKey),
 }
 
@@ -50,26 +51,26 @@ pub enum KeySecret {
 /// Represents a signer for [KeySecret] keys
 pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
-    keys: BTreeMap<Digest, KeySecret>,
-    rng: R,
+    keys: BTreeMap<Digest, SecretKey>,
+    rng: RefCell<R>,
 }
 
 impl<R: Rng> BasicAuthenticator<R> {
     #[cfg(feature = "std")]
-    pub fn new(keys: &[(Word, KeySecret)]) -> BasicAuthenticator<rand::rngs::StdRng> {
+    pub fn new(keys: &[(Word, SecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{rngs::StdRng, SeedableRng};
 
         let rng = StdRng::from_entropy();
         BasicAuthenticator::<StdRng>::new_with_rng(keys, rng)
     }
 
-    pub fn new_with_rng(keys: &[(Word, KeySecret)], rng: R) -> Self {
+    pub fn new_with_rng(keys: &[(Word, SecretKey)], rng: R) -> Self {
         let mut key_map = BTreeMap::new();
         for (word, secret_key) in keys {
             key_map.insert(word.into(), secret_key.clone());
         }
 
-        BasicAuthenticator { keys: key_map, rng }
+        BasicAuthenticator { keys: key_map, rng: RefCell::new(rng) }
     }
 }
 
@@ -89,70 +90,71 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// - The secret key is malformed due to either incorrect length or failed decoding.
     /// - The signature generation failed.
     fn get_signature(
-        &mut self,
+        &self,
         pub_key: Word,
         message: Word,
         account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         let _ = account_delta;
+        let mut rng = self.rng.borrow_mut();
 
-        let secret_key = match self.keys.get(&pub_key.into()) {
+        match self.keys.get(&pub_key.into()) {
             Some(key) => match key {
-                KeySecret::RpoFalcon512(falcon_key) => falcon_key,
+                SecretKey::RpoFalcon512(falcon_key) => {
+                    get_falcon_signature(falcon_key, message, &mut *rng)
+                },
             },
-            None => {
-                return Err(AuthenticationError::UnknownKey(format!(
-                    "Public key {} is not contained in the authenticator's keys",
-                    Digest::from(pub_key)
-                )))
-            },
-        };
-
-        // Generate the signature
-        let sig = secret_key.sign_with_rng(message, &mut self.rng);
-
-        // The signature is composed of a nonce and a polynomial s2
-        // The nonce is represented as 8 field elements.
-        let nonce = sig.nonce();
-
-        // We convert the signature to a polynomial
-        let s2 = sig.sig_poly();
-
-        // We also need in the VM the expanded key corresponding to the public key the was provided
-        // via the operand stack
-        let h = secret_key.compute_pub_key_poly().0;
-
-        // Lastly, for the probabilistic product routine that is part of the verification procedure,
-        // we need to compute the product of the expanded key and the signature polynomial in
-        // the ring of polynomials with coefficients in the Miden field.
-        let pi = Polynomial::mul_modulo_p(&h, s2);
-
-        // We now push the nonce, the expanded key, the signature polynomial, and the product of the
-        // expanded key and the signature polynomial to the advice stack.
-        let mut result: Vec<Felt> = nonce.to_elements().to_vec();
-        result.extend(h.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-        result.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-        result.extend(pi.iter().map(|a| Felt::new(*a)));
-        result.reverse();
-        Ok(result)
+            None => Err(AuthenticationError::UnknownKey(format!(
+                "Public key {} is not contained in the authenticator's keys",
+                Digest::from(pub_key)
+            ))),
+        }
     }
 }
 
-// NULL AUTHENTICATOR
+// HELPER FUNCTIONS
 // ================================================================================================
 
-/// Used for transaction hosts that do not need to request signatures (ie, for transactions that
-/// do not need to sign anything or the prover host which gets signatures from the advice map)
+/// Retrieves a falcon signature over a message
+fn get_falcon_signature<R: Rng>(
+    key: &rpo_falcon512::SecretKey,
+    message: Word,
+    rng: &mut R,
+) -> Result<Vec<Felt>, AuthenticationError> {
+    // Generate the signature
+    let sig = key.sign_with_rng(message, rng);
+    // The signature is composed of a nonce and a polynomial s2
+    // The nonce is represented as 8 field elements.
+    let nonce = sig.nonce();
+    // We convert the signature to a polynomial
+    let s2 = sig.sig_poly();
+    // We also need in the VM the expanded key corresponding to the public key the was provided
+    // via the operand stack
+    let h = key.compute_pub_key_poly().0;
+    // Lastly, for the probabilistic product routine that is part of the verification procedure,
+    // we need to compute the product of the expanded key and the signature polynomial in
+    // the ring of polynomials with coefficients in the Miden field.
+    let pi = Polynomial::mul_modulo_p(&h, s2);
+    // We now push the nonce, the expanded key, the signature polynomial, and the product of the
+    // expanded key and the signature polynomial to the advice stack.
+    let mut result: Vec<Felt> = nonce.to_elements().to_vec();
+
+    result.extend(h.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
+    result.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
+    result.extend(pi.iter().map(|a| Felt::new(*a)));
+    result.reverse();
+    Ok(result)
+}
 
 impl TransactionAuthenticator for () {
     fn get_signature(
-        &mut self,
+        &self,
         _pub_key: Word,
         _message: Word,
-        _delta: &AccountDelta,
+        _account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
         Err(AuthenticationError::RejectedSignature(
-            "Void authenticator does not provide signatures".into(),
+            "Default authenticator cannot provide signatures".to_string(),
         ))
     }
 }
