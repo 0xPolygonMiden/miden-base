@@ -188,7 +188,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         let mut host = TransactionHost::new(
             transaction.account().into(),
             advice_recorder,
-            &mut self.authenticator,
+            &self.authenticator,
         );
 
         let result = vm_processor::execute(
