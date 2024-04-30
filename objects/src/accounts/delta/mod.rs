@@ -6,6 +6,9 @@ use super::{
 };
 use crate::{assets::Asset, AccountDeltaError};
 
+mod builder;
+pub use builder::AccountStorageDeltaBuilder;
+
 mod storage;
 pub use storage::{AccountStorageDelta, StorageMapDelta};
 
