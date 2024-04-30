@@ -446,6 +446,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         }
         let notes = self.pending_objects.build_notes_tree();
 
+        let version = 0;
         let previous = self.blocks.last();
         let peaks = self.chain.peaks(self.chain.forest()).unwrap();
         let chain_root: Digest = peaks.hash_peaks();
@@ -453,7 +454,6 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let prev_hash = previous.map_or(Digest::default(), |header| header.hash());
         let nullifier_root = self.nullifiers.root();
         let note_root = notes.root();
-        let version = 0;
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
 
@@ -463,6 +463,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let proof_hash = Digest::default();
 
         let header = BlockHeader::new(
+            version,
             prev_hash,
             block_num,
             chain_root,
@@ -471,7 +472,6 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             note_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
         );
 

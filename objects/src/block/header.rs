@@ -10,6 +10,7 @@ use crate::utils::serde::{
 ///
 /// A block header includes the following fields:
 ///
+/// - version specifies the version of the protocol.
 /// - prev_hash is the hash of the previous blocks header.
 /// - block_num is a unique sequential number of the current block.
 /// - chain_root is a commitment to an MMR of the entire chain where each block is a leaf.
@@ -18,13 +19,13 @@ use crate::utils::serde::{
 /// - note_root is a commitment to all notes created in the current block.
 /// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
 /// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
-/// - version specifies the version of the protocol.
-/// - timestamp is the time when the block was created.
+/// - timestamp is the time when the block was created, in seconds since UNIX epoch.
 /// - sub_hash is a sequential hash of all fields except the note_root.
 /// - hash is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
+    version: u32,
     prev_hash: Digest,
     block_num: u32,
     chain_root: Digest,
@@ -33,7 +34,6 @@ pub struct BlockHeader {
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
-    version: u32,
     timestamp: u32,
     sub_hash: Digest,
     hash: Digest,
@@ -43,6 +43,7 @@ impl BlockHeader {
     /// Creates a new block header.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        version: u32,
         prev_hash: Digest,
         block_num: u32,
         chain_root: Digest,
@@ -51,18 +52,17 @@ impl BlockHeader {
         note_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: u32,
         timestamp: u32,
     ) -> Self {
         // compute block sub hash
         let sub_hash = Self::compute_sub_hash(
+            version,
             prev_hash,
             chain_root,
             account_root,
             nullifier_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
             block_num,
         );
@@ -73,6 +73,7 @@ impl BlockHeader {
         let hash = Hasher::merge(&[sub_hash, note_root]);
 
         Self {
+            version,
             prev_hash,
             block_num,
             chain_root,
@@ -81,7 +82,6 @@ impl BlockHeader {
             note_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
             sub_hash,
             hash,
@@ -90,6 +90,11 @@ impl BlockHeader {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the protocol version.
+    pub fn version(&self) -> u32 {
+        self.version
+    }
 
     /// Returns the hash of the block header.
     pub fn hash(&self) -> Digest {
@@ -144,12 +149,7 @@ impl BlockHeader {
         self.proof_hash
     }
 
-    /// Returns the protocol version.
-    pub fn version(&self) -> u32 {
-        self.version
-    }
-
-    /// Returns the timestamp at which the block was created.
+    /// Returns the timestamp at which the block was created, in seconds since UNIX epoch.
     pub fn timestamp(&self) -> u32 {
         self.timestamp
     }
@@ -164,13 +164,13 @@ impl BlockHeader {
     /// version, timestamp, block_num (all fields except the note_root).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
+        version: u32,
         prev_hash: Digest,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: u32,
         timestamp: u32,
         block_num: u32,
     ) -> Digest {
@@ -228,6 +228,7 @@ mod mock {
             let proof_hash: Digest = rand::rand_array().into();
 
             BlockHeader::new(
+                0,
                 prev_hash,
                 block_num,
                 chain_root,
@@ -236,7 +237,6 @@ mod mock {
                 note_root,
                 batch_root,
                 proof_hash,
-                0,
                 rand::rand_value(),
             )
         }
@@ -246,6 +246,7 @@ mod mock {
 impl Serializable for BlockHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let Self {
+            version,
             prev_hash,
             block_num,
             chain_root,
@@ -254,12 +255,12 @@ impl Serializable for BlockHeader {
             note_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
             sub_hash,
             hash,
         } = self;
 
+        version.write_into(target);
         prev_hash.write_into(target);
         block_num.write_into(target);
         chain_root.write_into(target);
@@ -268,7 +269,6 @@ impl Serializable for BlockHeader {
         note_root.write_into(target);
         batch_root.write_into(target);
         proof_hash.write_into(target);
-        version.write_into(target);
         timestamp.write_into(target);
         sub_hash.write_into(target);
         hash.write_into(target);
@@ -278,6 +278,7 @@ impl Serializable for BlockHeader {
 impl Deserializable for BlockHeader {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
+            version: source.read()?,
             prev_hash: source.read()?,
             block_num: source.read()?,
             chain_root: source.read()?,
@@ -286,7 +287,6 @@ impl Deserializable for BlockHeader {
             note_root: source.read()?,
             batch_root: source.read()?,
             proof_hash: source.read()?,
-            version: source.read()?,
             timestamp: source.read()?,
             sub_hash: source.read()?,
             hash: source.read()?,
