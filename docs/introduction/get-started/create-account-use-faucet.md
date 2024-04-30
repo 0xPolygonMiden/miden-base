@@ -143,7 +143,7 @@ State synced to block 179672
 4. Consume the note and add the funds from its vault to our account using the following command: 
 
       ```shell
-      miden-client tx new consume-notes <Account-Id> <Note-Id>
+      miden-client tx new consume-notes --account <Account-Id> <Note-Id>
       ```
 
   Amazing! You just have created a client-side zero-knowledge proof locally on your machine. 

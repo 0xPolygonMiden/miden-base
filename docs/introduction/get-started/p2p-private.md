@@ -36,7 +36,7 @@ In this section, we show you how to make private transactions and send funds to 
     To do this, run:
 
     ```shell
-    miden-client tx new p2id --note-type private <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 
+    miden-client tx new p2id --note-type private --sender <regular-account-id-A> --target <regular-account-id-B> --faucet <faucet-account-id> 50 
     ```
 
     !!! note
@@ -59,7 +59,7 @@ In this section, we show you how to make private transactions and send funds to 
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
+    miden-client tx new consume-notes --account <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
