@@ -21,7 +21,8 @@ theme:
     - content.action.edit
 
 nav:
-  - Welcome: index.md
+  - Overview: 
+    - Overview: index.md
   - Get started: 
       - Prerequisite steps: introduction/get-started/prerequisites.md
       - Create account and use the faucet: introduction/get-started/create-account-use-faucet.md
