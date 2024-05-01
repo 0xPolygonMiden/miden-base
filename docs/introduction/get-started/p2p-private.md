@@ -36,7 +36,7 @@ In this section, we show you how to make private transactions and send funds to 
     To do this, run:
 
     ```shell
-    miden-client tx new p2id --note-type private --sender <regular-account-id-A> --target <regular-account-id-B> --faucet <faucet-account-id> 50 
+    miden-client tx new p2id --note-type private <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 
     ```
 
     !!! note
@@ -47,7 +47,7 @@ In this section, we show you how to make private transactions and send funds to 
 2. First, sync the accounts.
 
     ```shell
-    miden-client sync # Make sure we have an updated view of the state
+    miden-client sync
     ```
 
 3. Get the second note id.
@@ -59,7 +59,7 @@ In this section, we show you how to make private transactions and send funds to 
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes --account <regular-account-ID-B> <input-note-id>
+    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
@@ -81,7 +81,7 @@ In this section, we show you how to make private transactions and send funds to 
 6. Check the original account:
 
     ```sh
-    miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+    miden-client account show <regular-account-ID-A> -v
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-a.png)

@@ -61,18 +61,18 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     To do this, from the first client run:
 
     ```shell
-    miden-client tx new p2id --sender <basic-account-id-A> --target <basic-account-id-C> --faucet <faucet-account-id> 50 --note-type public
+    miden-client tx new p2id --note-type public <basic-account-id-A> <basic-account-id-C> <faucet-account-id> 50 
     ```
 
     !!! note
         The faucet account id is `0xad904b3138d71d3e` and can also be found on the [Miden faucet website](https://testnet.miden.io/) under the title **Miden faucet**.
 
-    This generates a Pay-to-ID (`P2ID`) note containing `50` assets, transferred from one account to the other. As the note is public, the second account can receive the necessary details by syncing with the node.
+    This generates a Pay-to-ID (`P2ID`) note containing `50` tokens, transferred from one account to the other. As the note is public, the second account can receive the necessary details by syncing with the node.
 
 2. First, sync the account on the new client.
 
     ```shell
-    miden-client sync # Make sure we have an updated view of the state
+    miden-client sync
     ```
 
 3. At this point, we should have received the public note details. 
@@ -86,7 +86,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes --account <regular-account-ID-C> <input-note-id> 
+    miden-client tx new consume-notes <regular-account-ID-C> <input-note-id> 
     ```
 
     !!! tip
