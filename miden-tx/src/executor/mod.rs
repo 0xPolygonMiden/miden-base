@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -37,7 +37,7 @@ pub use data_store::DataStore;
 /// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D, A> {
     data_store: D,
-    authenticator: Option<A>,
+    authenticator: Option<Rc<A>>,
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
 }
@@ -47,7 +47,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and [TransactionAuthenticator].
-    pub fn new(data_store: D, authenticator: Option<A>) -> Self {
+    pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
         Self {
             data_store,
             authenticator,
@@ -175,7 +175,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     /// - If the transaction program can not be compiled.
     /// - If the transaction program can not be executed.
     pub fn execute_transaction(
-        &mut self,
+        &self,
         account_id: AccountId,
         block_ref: u32,
         notes: &[NoteId],
@@ -188,7 +188,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         let mut host = TransactionHost::new(
             transaction.account().into(),
             advice_recorder,
-            &self.authenticator,
+            self.authenticator.clone(),
         );
 
         let result = vm_processor::execute(
@@ -292,7 +292,7 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
     }
 
     // introduce generated signature into the witness inputs
-    advice_witness.extend_map(generated_signatures.clone());
+    advice_witness.extend_map(generated_signatures);
 
     Ok(ExecutedTransaction::new(
         program,

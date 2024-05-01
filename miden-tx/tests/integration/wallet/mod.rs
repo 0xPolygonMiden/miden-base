@@ -79,7 +79,7 @@ fn prove_receive_asset_via_wallet() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), target_falcon_auth).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // nonce delta
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
@@ -164,7 +164,7 @@ fn prove_send_asset_via_wallet() {
         .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), sender_falcon_auth).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
     let sender_account_storage = AccountStorage::new(

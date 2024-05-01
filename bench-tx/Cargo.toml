@@ -21,3 +21,4 @@ mock = { package = "miden-mock", path = "../mock"  }
 serde = { package = "serde", version = "1.0" }
 serde_json = { package = "serde_json", version = "1.0", features = ["preserve_order"] }
 vm-processor = { workspace = true }
+rand = { workspace = true }

@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
@@ -40,7 +40,7 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-pub struct TransactionHost<'a, A, T> {
+pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
@@ -55,7 +55,7 @@ pub struct TransactionHost<'a, A, T> {
     output_notes: Vec<OutputNote>,
 
     /// Provides a way to get a signature for a message into a transaction
-    tx_authenticator: &'a Option<T>,
+    authenticator: Option<Rc<T>>,
 
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
@@ -65,16 +65,16 @@ pub struct TransactionHost<'a, A, T> {
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 }
 
-impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, T> {
+impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A, tx_authenticator: &'a Option<T>) -> Self {
+    pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         Self {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: Vec::new(),
-            tx_authenticator,
+            authenticator,
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
         }
@@ -298,7 +298,7 @@ impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, 
     /// Returns a signature as a response to the `SigToStack` injector.
     ///
     /// This signature is created during transaction execution and stored for use as advice map
-    /// inputs in the proving host. If not already present in the advice map, it is produced by
+    /// inputs in the proving host. If not already present in the advice map, it is requested from
     /// the host's authenticator.
     pub fn on_signature_requested<S: ProcessState>(
         &mut self,
@@ -314,7 +314,7 @@ impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, 
         } else {
             let account_delta = self.account_delta.clone().into_delta();
 
-            let signature: Vec<Felt> = match self.tx_authenticator {
+            let signature: Vec<Felt> = match &self.authenticator {
                 None => Err(ExecutionError::FailedSignatureGeneration(
                     "No authenticator assigned to transaction host",
                 )),
@@ -367,7 +367,7 @@ impl<'a, A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<'a, A, 
     }
 }
 
-impl<'a, A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<'a, A, T> {
+impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,

@@ -48,8 +48,8 @@ impl TransactionProver {
         // execute and prove
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
-        let mut host: TransactionHost<'_, _, ()> =
-            TransactionHost::new(tx_witness.account().into(), advice_provider, &None);
+        let mut host: TransactionHost<_, ()> =
+            TransactionHost::new(tx_witness.account().into(), advice_provider, None);
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;

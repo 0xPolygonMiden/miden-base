@@ -40,6 +40,7 @@ fn prove_p2id_script() {
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
+
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
@@ -76,7 +77,7 @@ fn prove_p2id_script() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // vault delta
     let target_account_after: Account = Account::new(

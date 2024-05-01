@@ -135,9 +135,8 @@ impl DataStore for MockDataStore {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn prove_and_verify_transaction<A: miden_tx::TransactionAuthenticator>(
+pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
-    _authenticator: A,
 ) -> Result<(), TransactionVerifierError> {
     // Prove the transaction
 
@@ -157,7 +156,9 @@ pub fn prove_and_verify_transaction<A: miden_tx::TransactionAuthenticator>(
 
 #[cfg(test)]
 pub fn get_new_pk_and_authenticator(
-) -> (Word, miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>) {
+) -> (Word, std::rc::Rc<miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>>) {
+    use std::rc::Rc;
+
     use miden_tx::host::BasicAuthenticator;
     use rand::rngs::StdRng;
 
@@ -167,13 +168,12 @@ pub fn get_new_pk_and_authenticator(
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
 
-    (
+    let authenticator = BasicAuthenticator::<StdRng>::new(&[(
         pub_key,
-        BasicAuthenticator::<StdRng>::new(&[(
-            pub_key,
-            miden_tx::host::SecretKey::RpoFalcon512(sec_key),
-        )]),
-    )
+        miden_tx::host::SecretKey::RpoFalcon512(sec_key),
+    )]);
+
+    (pub_key, Rc::new(authenticator))
 }
 
 #[cfg(test)]

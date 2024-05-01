@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use miden_lib::{
     accounts::faucets::create_basic_fungible_faucet,
     transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
@@ -80,7 +82,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
         .unwrap();
 
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
@@ -107,7 +109,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth));
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -210,7 +212,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), falcon_auth.clone()).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // check that the account burned the asset
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));

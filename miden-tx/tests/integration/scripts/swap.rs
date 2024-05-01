@@ -79,7 +79,7 @@ fn prove_swap_script() {
         .expect("Transaction consuming swap note failed");
 
     // Prove, serialize/deserialize and verify the transaction
-    assert!(prove_and_verify_transaction(executed_transaction.clone(), target_falcon_auth).is_ok());
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // target account vault delta
     let target_account_after: Account = Account::new(

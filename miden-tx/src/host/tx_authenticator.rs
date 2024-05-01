@@ -43,6 +43,7 @@ pub trait TransactionAuthenticator {
 // ================================================================================================
 
 #[derive(Clone, Debug)]
+/// Types of secret keys used for signing messages
 pub enum SecretKey {
     RpoFalcon512(rpo_falcon512::SecretKey),
 }
@@ -75,20 +76,15 @@ impl<R: Rng> BasicAuthenticator<R> {
 }
 
 impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
-    /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
-    /// outputs a vector of values to be pushed onto the advice stack.
-    /// The values are the ones required for a Falcon signature verification inside the VM and they are:
+    /// Gets a signature over a message, given a public key.
+    /// The key should be included in the `keys` map and should be a variant of [SecretKey].
     ///
-    /// 1. The nonce represented as 8 field elements.
-    /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
-    /// 3. The signature represented as the coefficients of a polynomial of degree < 512.
-    /// 4. The product of the above two polynomials in the ring of polynomials with coefficients
-    /// in the Miden field.
+    /// Supported signature schemes:
+    /// - RpoFalcon512
     ///
     /// # Errors
-    /// Will return an error if either:
-    /// - The secret key is malformed due to either incorrect length or failed decoding.
-    /// - The signature generation failed.
+    /// If the public key is not contained in the `keys` map, [AuthenticationError::UnknownKey] is
+    /// returned.
     fn get_signature(
         &self,
         pub_key: Word,
@@ -115,7 +111,21 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Retrieves a falcon signature over a message
+/// Retrieves a falcon signature over a message.
+/// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
+/// outputs a vector of values to be pushed onto the advice stack.
+/// The values are the ones required for a Falcon signature verification inside the VM and they are:
+///
+/// 1. The nonce represented as 8 field elements.
+/// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
+/// 3. The signature represented as the coefficients of a polynomial of degree < 512.
+/// 4. The product of the above two polynomials in the ring of polynomials with coefficients
+/// in the Miden field.
+///
+/// # Errors
+/// Will return an error if either:
+/// - The secret key is malformed due to either incorrect length or failed decoding.
+/// - The signature generation failed.
 fn get_falcon_signature<R: Rng>(
     key: &rpo_falcon512::SecretKey,
     message: Word,
