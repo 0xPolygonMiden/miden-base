@@ -31,13 +31,15 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
     miden-client init 
     ```
 
-    Accept the defaults for `Protocol`, `Node RPC Port`, and `Sqlite file path`by clicking enter.
+    Accept the default for `Protocol` by clicking enter.
 
     When `Host` comes up, enter `18.203.155.106`
 
     ```sh
     Host (default: localhost): 18.203.155.106
     ```
+
+    Then accept the defaults for `Node RPC Port`, and `Sqlite file path`.
 
 4. Check you can sync with the blockchain. 
 
@@ -137,13 +139,16 @@ State synced to block 179672
 
       ```shell
       miden-client account -l
+      ```
+
+      ```shell
       miden-client input-notes -l
       ```
 
 4. Consume the note and add the funds from its vault to our account using the following command: 
 
       ```shell
-      miden-client tx new consume-notes --account <Account-Id> <Note-Id>
+      miden-client tx new consume-notes <Account-Id> <Note-Id>
       ```
 
   Amazing! You just have created a client-side zero-knowledge proof locally on your machine. 
