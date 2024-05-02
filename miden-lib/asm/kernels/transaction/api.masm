@@ -13,7 +13,7 @@ use.miden::kernels::tx::tx
 # For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item
 const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
 
-# Procedure can only be called for faucet accounts
+# Procedure can only be called from faucet accounts
 const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 
 # EVENTS

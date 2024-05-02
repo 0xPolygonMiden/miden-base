@@ -7,10 +7,10 @@ use.miden::kernels::tx::memory
 # ERRORS
 # =================================================================================================
 
-# The nonce increase must be a u32
+# The nonce can only increase by a u32 value
 const.ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32=0x0002003B
 
-# Account id format is invalid, insufficient ones
+# Account id is invalid, insufficient 1's
 const.ERR_ACCOUNT_INSUFFICIENT_ONES=0x0002003C
 
 # Account must be updatable for it to be possible to update its code

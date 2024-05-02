@@ -11,10 +11,10 @@ use.miden::kernels::tx::utils
 # ERRORS
 # =================================================================================================
 
-# The global inputs provided via the advice provider do not match the block hash commitment
+# The global inputs provided do not match the block hash commitment
 const.ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH=0x0002000B
 
-# The account storage data provided via the advice provider do not match its state commitment
+# The account storage data does not match its commitment
 const.ERR_PROLOGUE_ACCT_STORAGE_MISMATCH=0x0002000C
 
 # Data store in account's storage exceeds the maximum capacity of 256 elements
@@ -23,55 +23,55 @@ const.ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH=0x0002000D
 # Data store in account's storage contains invalid type discriminant
 const.ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID=0x0002000E
 
-# New account must start with an empty vault
+# New account must have an empty vault
 const.ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY=0x0002000F
 
-# New account must have valid slot type s
+# New account must have valid slot types
 const.ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE=0x00020010
 
-# Fungible faucet reserved slot must start empty
+# Reserved slot for new fungible faucet is not empty
 const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT=0x00020011
 
-# Fungible faucet reserved slot must start with zero arity
+# Reserved slot for new fungible faucet has a non-zero arity
 const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT=0x00020012
 
-# Fungible faucet reserved slot must start with no type
+# Reserved slot for new fungible faucet has an invalid type
 const.ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT=0x00020013
 
-# Non-fungible faucet reserved slot must start as an empty SMT
+# Reserved slot for non-fungible faucet is not a valid empty SMT
 const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT=0x00020014
 
-# Non-fungible faucet reserved slot must start with zero arity
+# Reserved slot for new non-fungible faucet has a non-zero arity
 const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT=0x00020015
 
-# Non-fungible faucet reserved slot must start with no type
+# Reserved slot for new non-fungible faucet has an invalid type
 const.ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT=0x00020016
 
-# The account data provided via advice provider did not match the initial hash
+# Account data provided does not match the commitment recorded on-chain
 const.ERR_PROLOGUE_ACCT_HASH_MISMATCH=0x00020017
 
-# Existing account must not have a zero nonce.
+# Existing account must have a non-zero nonce
 const.ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO=0x00020018
 
-# Account id and global account id must match
+# Provided account ids via global inputs and advice provider do not match
 const.ERR_PROLOGUE_ACCT_ID_MISMATCH=0x00020019
 
 # Reference block MMR and note's authentication MMR must match
 const.ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH=0x0002001A
 
-# Note with too many inputs
+# Number of note inputs exceeded the maximum limit of 128
 const.ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS=0x0002001B
 
-# Note with too many assets
+# Number of note assets exceeded the maximum limit of 256
 const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 
-# Note's consumed assets provided via advice provider mistmatch its commitment
+# Provided info about assets of an input do not match its commitment
 const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
 
-# Number of input notes can no exceed the kernel's maximum limit
+# Number of input notes exceeded the kernel's maximum limit of 1023
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
-# Input notes nullifier commitment did not match the provided data
+# Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH=0x0002001F
 
 # PUBLIC INPUTS

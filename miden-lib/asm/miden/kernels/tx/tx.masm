@@ -15,7 +15,7 @@ const.ENCRYPTED_NOTE=3  # 0b11
 # ERRORS
 # =================================================================================================
 
-# Output notes exceeded the maximum limit
+# Output notes exceeded the maximum limit of 4096
 const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
 
 # Invalid note type
@@ -24,7 +24,7 @@ const.ERR_INVALID_NOTE_TYPE=0x00020044
 # The note's tag failed the most significant validation.
 const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
 
-# The note's tag high bits must be set to zero.
+# The note's tag high bits must be set to 0
 const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
 
 # EVENTS

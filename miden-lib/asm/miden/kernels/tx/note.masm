@@ -6,16 +6,16 @@ use.miden::kernels::tx::memory
 # ERRORS
 # =================================================================================================
 
-# Input note can not have an empty sender, procedure was likely called from the wrong context
+# Trying to access note sender from incorrect context
 const.ERR_NOTE_INVALID_SENDER=0x00020027
 
-# Input note can not have an empty vault, procedure was likely called from the wrong context
+# Trying to access note vault from incorrect context
 const.ERR_NOTE_INVALID_VAULT=0x00020028
 
-# Input note can not have empty inputs, procedure was likely called from the wrong context
+# Trying to access note inputs from incorrect context
 const.ERR_NOTE_INVALID_INPUTS=0x00020029
 
-# Note's asset must fit in a u32
+# Assets in a note must fit in a u32 value
 const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
 
 # CONSTANTS
