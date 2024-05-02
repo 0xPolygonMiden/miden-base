@@ -22,16 +22,16 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::NoteMetadata;
+pub use metadata::{NoteExecutionMode, NoteMetadata};
 
 mod note_id;
 pub use note_id::NoteId;
 
 mod note_tag;
-pub use note_tag::{NoteTag, NOTE_TYPE_MASK, NOTE_TYPE_MASK_SHIFT};
+pub use note_tag::NoteTag;
 
 mod note_type;
-pub use note_type::{NoteType, ENCRYPTED, OFF_CHAIN, PUBLIC};
+pub use note_type::NoteType;
 
 mod nullifier;
 pub use nullifier::Nullifier;
