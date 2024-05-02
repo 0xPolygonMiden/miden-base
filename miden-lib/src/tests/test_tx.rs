@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     accounts::account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteTag, NoteType},
+    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
     transaction::{OutputNote, OutputNotes},
     Word, ONE, ZERO,
 };
@@ -30,7 +30,7 @@ fn test_create_note() {
     let account_id = tx_inputs.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag: NoteTag = NoteType::Public.into();
+    let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
@@ -72,7 +72,7 @@ fn test_create_note() {
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
-        [tag.into(), Felt::from(account_id), NoteType::Public.into(), ZERO],
+        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO],
         "metadata must be stored at the correct memory location",
     );
 
@@ -102,7 +102,7 @@ fn test_create_note_with_invalid_tag() {
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag = 0;
+    let tag = Felt::new((NoteType::Public as u64) << 62);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
@@ -136,7 +136,7 @@ fn test_create_note_with_invalid_tag() {
 #[test]
 fn test_create_note_too_many_notes() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag: NoteTag = NoteType::Public.into();
+    let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
@@ -183,28 +183,20 @@ fn test_get_output_notes_hash() {
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
+    let output_tag_1 = 8888.into();
     let assets = NoteAssets::new(vec![input_asset_1]).unwrap();
-    let metadata = NoteMetadata::new(
-        tx_inputs.account().id(),
-        NoteType::Public,
-        NoteType::Public.into(),
-        ZERO,
-    )
-    .unwrap();
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_1, input_note_1.script().clone(), inputs);
     let output_note_1 = Note::new(assets, metadata, recipient);
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
+    let output_tag_2 = 1111.into();
     let assets = NoteAssets::new(vec![input_asset_2]).unwrap();
-    let metadata = NoteMetadata::new(
-        tx_inputs.account().id(),
-        NoteType::Public,
-        NoteType::Public.into(),
-        ZERO,
-    )
-    .unwrap();
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);
