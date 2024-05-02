@@ -25,7 +25,7 @@ end
 #! to the specified recipient.
 #!
 #! Inputs: [ASSET, tag, aux, note_type, RECIPIENT, ...]
-#! Outputs: [note_ptr, ZERO, ZERO, 0, ...]
+#! Outputs: [note_ptr, ZERO, ZERO, 0, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
@@ -62,14 +62,14 @@ export.send_asset.1
     # => [tag, aux, note_type, RECIPIENT, 0, ZERO, ZERO, ...]
 
     exec.tx::create_note
-    # => [note_ptr, 0, 0, 0, ZERO, ZERO, ZERO, ...]
+    # => [note_ptr, 0, ZERO, ZERO, ...]
     
     padw loc_loadw.0 movup.4
-    # => [note_ptr, ASSET, 0, 0, 0, ZERO, ZERO, ...]
+    # => [note_ptr, ASSET, 0, ZERO, ZERO, ...]
 
     exec.tx::move_asset_to_note
-    # => [note_ptr, ZERO, 0, ...]
+    # => [note_ptr, 0, ZERO, ZERO, ...]
 
-    # organize the stack for return
-    swapw dropw swapw dropw swapw dropw swapw dropw
+    # need to do this to make the tests work. Is there a padding issue still?
+    movup.15 drop movup.15 drop
 end
