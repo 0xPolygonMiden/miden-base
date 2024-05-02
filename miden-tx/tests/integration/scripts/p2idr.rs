@@ -18,9 +18,7 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::mock::account::DEFAULT_AUTH_SCRIPT;
 
-use crate::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map, MockDataStore,
-};
+use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator, MockDataStore};
 
 // P2IDR TESTS
 // ===============================================================================================
@@ -36,21 +34,21 @@ fn p2idr_script() {
 
     // Create sender and target and malicious account
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account =
         get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
 
     // Now create the target account
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
-    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Now create the malicious account
     let malicious_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap();
-    let (malicious_pub_key, malicious_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (malicious_pub_key, malicious_falcon_auth) = get_new_pk_and_authenticator();
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
@@ -84,7 +82,7 @@ fn p2idr_script() {
     .unwrap();
 
     // --------------------------------------------------------------------------------------------
-    // We have two cases:
+    //  We have two cases:
     //  Case "in time": block height is 4, reclaim block height is 5. Only the target account can consume the note.
     //  Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account can consume the note.
     //  The malicious account should never be able to consume the note.
@@ -95,7 +93,8 @@ fn p2idr_script() {
         Some(target_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_1 = TransactionExecutor::new(data_store_1.clone());
+    let mut executor_1 =
+        TransactionExecutor::new(data_store_1.clone(), Some(target_falcon_auth.clone()));
 
     executor_1.load_account(target_account_id).unwrap();
 
@@ -103,13 +102,8 @@ fn p2idr_script() {
     let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target = executor_1
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(target_pub_key, target_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_target =
+        executor_1.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -133,15 +127,11 @@ fn p2idr_script() {
         Some(sender_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_2 = TransactionExecutor::new(data_store_2.clone());
+    let mut executor_2 =
+        TransactionExecutor::new(data_store_2.clone(), Some(sender_falcon_auth.clone()));
     executor_2.load_account(sender_account_id).unwrap();
-    let tx_script_sender = executor_2
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(sender_pub_key, sender_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_sender =
+        executor_2.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
     let block_ref_2 = data_store_2.block_header.block_num();
@@ -165,15 +155,10 @@ fn p2idr_script() {
         Some(malicious_account.clone()),
         Some(vec![note_in_time.clone()]),
     );
-    let mut executor_3 = TransactionExecutor::new(data_store_3.clone());
+    let mut executor_3 =
+        TransactionExecutor::new(data_store_3.clone(), Some(malicious_falcon_auth.clone()));
     executor_3.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor_3
-        .compile_tx_script(
-            tx_script_code,
-            vec![(malicious_pub_key, malicious_keypair_felt)],
-            vec![],
-        )
-        .unwrap();
+    let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref_3 = data_store_3.block_header.block_num();
@@ -197,7 +182,7 @@ fn p2idr_script() {
         Some(target_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_4 = TransactionExecutor::new(data_store_4.clone());
+    let mut executor_4 = TransactionExecutor::new(data_store_4.clone(), Some(target_falcon_auth));
     executor_4.load_account(target_account_id).unwrap();
 
     let block_ref_4 = data_store_4.block_header.block_num();
@@ -229,7 +214,7 @@ fn p2idr_script() {
         Some(sender_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_5 = TransactionExecutor::new(data_store_5.clone());
+    let mut executor_5 = TransactionExecutor::new(data_store_5.clone(), Some(sender_falcon_auth));
 
     executor_5.load_account(sender_account_id).unwrap();
 
@@ -261,7 +246,8 @@ fn p2idr_script() {
         Some(malicious_account.clone()),
         Some(vec![note_reclaimable.clone()]),
     );
-    let mut executor_6 = TransactionExecutor::new(data_store_6.clone());
+    let mut executor_6 =
+        TransactionExecutor::new(data_store_6.clone(), Some(malicious_falcon_auth));
 
     executor_6.load_account(malicious_account_id).unwrap();
 

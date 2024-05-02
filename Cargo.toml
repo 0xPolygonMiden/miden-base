@@ -37,5 +37,6 @@ miden-crypto = { version = "0.9", default-features = false }
 miden-prover = { version = "0.9", default-features = false }
 miden-stdlib = { version = "0.9", default-features = false }
 miden-verifier = { version = "0.9", default-features = false }
+rand = { version = "0.8", default-features = false }
 vm-core = { package = "miden-core", version = "0.9", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.9", default-features = false }
