@@ -42,9 +42,9 @@ pub trait TransactionAuthenticator {
 // BASIC AUTHENTICATOR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
 /// Types of secret keys used for signing messages
-pub enum SecretKey {
+#[derive(Clone, Debug)]
+pub enum AuthSecretKey {
     RpoFalcon512(rpo_falcon512::SecretKey),
 }
 
@@ -52,20 +52,20 @@ pub enum SecretKey {
 /// Represents a signer for [KeySecret] keys
 pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
-    keys: BTreeMap<Digest, SecretKey>,
+    keys: BTreeMap<Digest, AuthSecretKey>,
     rng: RefCell<R>,
 }
 
 impl<R: Rng> BasicAuthenticator<R> {
     #[cfg(feature = "std")]
-    pub fn new(keys: &[(Word, SecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
+    pub fn new(keys: &[(Word, AuthSecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{rngs::StdRng, SeedableRng};
 
         let rng = StdRng::from_entropy();
         BasicAuthenticator::<StdRng>::new_with_rng(keys, rng)
     }
 
-    pub fn new_with_rng(keys: &[(Word, SecretKey)], rng: R) -> Self {
+    pub fn new_with_rng(keys: &[(Word, AuthSecretKey)], rng: R) -> Self {
         let mut key_map = BTreeMap::new();
         for (word, secret_key) in keys {
             key_map.insert(word.into(), secret_key.clone());
@@ -96,7 +96,7 @@ impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
 
         match self.keys.get(&pub_key.into()) {
             Some(key) => match key {
-                SecretKey::RpoFalcon512(falcon_key) => {
+                AuthSecretKey::RpoFalcon512(falcon_key) => {
                     get_falcon_signature(falcon_key, message, &mut *rng)
                 },
             },

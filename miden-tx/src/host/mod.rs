@@ -26,7 +26,7 @@ mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod tx_authenticator;
-pub use tx_authenticator::{BasicAuthenticator, SecretKey, TransactionAuthenticator};
+pub use tx_authenticator::{AuthSecretKey, BasicAuthenticator, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;

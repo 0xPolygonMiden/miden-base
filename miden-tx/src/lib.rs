@@ -25,7 +25,8 @@ pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
 pub use host::{
-    BasicAuthenticator, SecretKey, TransactionAuthenticator, TransactionHost, TransactionProgress,
+    AuthSecretKey, BasicAuthenticator, TransactionAuthenticator, TransactionHost,
+    TransactionProgress,
 };
 
 mod prover;

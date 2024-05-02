@@ -170,7 +170,7 @@ pub fn get_new_pk_and_authenticator(
 
     let authenticator = BasicAuthenticator::<StdRng>::new(&[(
         pub_key,
-        miden_tx::host::SecretKey::RpoFalcon512(sec_key),
+        miden_tx::host::AuthSecretKey::RpoFalcon512(sec_key),
     )]);
 
     (pub_key, Rc::new(authenticator))
