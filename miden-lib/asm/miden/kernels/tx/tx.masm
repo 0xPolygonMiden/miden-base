@@ -233,7 +233,7 @@ end
 #!
 #! ptr is the pointer to the memory address at which the note is stored.
 #! ASSET can be a fungible or non-fungible asset.
-export.add_asset_to_note
+export.move_asset_to_note
     # validate the ASSET
     movdn.4 exec.asset::validate_asset
     # => [ASSET, ptr]

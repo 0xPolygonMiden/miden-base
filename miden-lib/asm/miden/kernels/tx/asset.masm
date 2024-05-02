@@ -32,7 +32,7 @@ const.ERR_NON_FUNGIBLE_ASSET_MISMATCH=0x0002003A
 
 const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
 
-# This mask defines the  bit in the most significant half of the element which
+# This mask defines the bit in the most significant half of the element which
 # is used to identify the asset type
 const.FUNGIBLE_BITMASK_U32=0x20000000
 
@@ -104,11 +104,11 @@ export.validate_non_fungible_asset
     dup.2 exec.account::validate_id
     # => [ASSET]
 
-    # assert that ASSET[1] is a fungible faucet
+    # assert that ASSET[1] is a non-fungible faucet
     dup.2 exec.account::is_non_fungible_faucet assert.err=ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_FUNGIBLE
     # => [ASSET]
 
-    # assert the fungible bit is set to 0
+    # assert the non-fungible high bit is set to 0
     dup u32split push.FUNGIBLE_BITMASK_U32 u32and assertz.err=ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET drop
     # => [ASSET]
 end

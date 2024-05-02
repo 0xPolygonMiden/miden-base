@@ -55,11 +55,11 @@ export.distribute.1
 
     # get total issuance of this faucet so far and add amount to be minted
     exec.faucet::get_total_issuance
-    # => [total_issuance, max_supply, amount, tag, note_type RECIPIENT, ...]
+    # => [total_issuance, max_supply, amount, tag, aux, note_type RECIPIENT, ...]
 
     # compute maximum amount that can be minted, max_mint_amount = max_supply - total_issuance
     sub
-    # => [max_supply - total_issuance, amount, tag, note_type, RECIPIENT, ...]
+    # => [max_supply - total_issuance, amount, tag, aux, note_type, RECIPIENT, ...]
 
     # check that amount =< max_supply - total_issuance, fails if otherwise
     dup.1 gte assert.err=ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
@@ -86,7 +86,7 @@ export.distribute.1
     # => [note_ptr, ASSET, ZERO, ...]
 
     # add the ASSET to the note
-    exec.tx::add_asset_to_note
+    exec.tx::move_asset_to_note
     # => [note_ptr, ZERO, ...]
 end
 

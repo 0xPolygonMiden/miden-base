@@ -99,7 +99,7 @@ end
 # ADD ASSET
 # =================================================================================================
 
-#! Add the specified fungible asset to the vault.  If the vault already contains an asset
+#! Add the specified fungible asset to the vault. If the vault already contains an asset
 #! issued by the same faucet, the amounts are added together.
 #!
 #! Panics:

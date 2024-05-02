@@ -213,7 +213,7 @@ fn test_create_note_with_one_asset() {
         # => [note_ptr]
         
         push.{asset} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
     end
     ",
         recipient = prepare_word(&recipient),
@@ -293,10 +293,10 @@ fn test_create_note_with_two_different_fungible_assets() {
         # => [note_ptr]
         
         push.{asset_1} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
 
         push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
     end
     ",
         recipient = prepare_word(&recipient),
@@ -385,10 +385,10 @@ fn test_create_note_with_two_fungible_assets_of_same_type() {
         # => [note_ptr]
         
         push.{asset_1} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
 
         push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
     end
     ",
         recipient = prepare_word(&recipient),
@@ -569,7 +569,7 @@ fn test_get_output_notes_hash() {
         # => [note_ptr]
 
         push.{asset_1} movup.4
-        exec.tx::add_asset_to_note
+        exec.tx::move_asset_to_note
         # => [note_ptr]
 
         drop

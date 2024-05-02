@@ -170,7 +170,7 @@ fn executed_transaction_account_delta() {
             # => [ptr]
         end
 
-        proc.add_asset_to_note
+        proc.move_asset_to_note
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
 
             drop
