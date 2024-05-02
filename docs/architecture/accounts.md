@@ -27,11 +27,11 @@ In Miden every account is a smart contract. The diagram below illustrates the ba
 
 A `~63` bits long identifier for the account ID (one field element `felt`). 
 
-The four most significant bits specify the [account type](#account-types) - regular or faucet - and the [storage mode](#account-storage-modes) - public or private.
+The four most significant bits specify the [account type](#account-types) - regular or faucet - and the account-storage-modes - public or private.
 
 ### Account data storage
 
-A storage for user-defined data that is composed of two components.
+Storage for user-defined data that is composed of two components.
 
 1. A simple sparse Merkle tree of depth `8` which is index addressable. This provides the user with `256` `word` slots.
 
@@ -91,7 +91,7 @@ There is a standard for a basic user account. It exposes three functions via its
   ```
 </details>
 
-[Note scripts](notes.md#the-note-script) or [transaction scripts](transactions/kernel.md#the-transaction-script-processing) can call `receive_asset` and `send_asset`. 
+[Note scripts](notes.md#the-note-script) or transaction scripts can call `receive_asset` and `send_asset`. 
 
 Transaction scripts can also call `auth_tx_rpo_falcon512` and authenticate the transaction. 
 
