@@ -24,7 +24,7 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::NoteMetadata;
+pub use metadata::{NoteExecutionMode, NoteMetadata};
 
 mod note_header;
 pub use note_header::NoteHeader;
@@ -36,7 +36,7 @@ mod note_tag;
 pub use note_tag::{NoteExecutionHint, NoteTag};
 
 mod note_type;
-pub use note_type::{NoteType, ENCRYPTED, OFF_CHAIN, PUBLIC};
+pub use note_type::NoteType;
 
 mod nullifier;
 pub use nullifier::Nullifier;

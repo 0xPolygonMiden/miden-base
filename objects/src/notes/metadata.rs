@@ -5,10 +5,31 @@ use super::{
     NoteTag, NoteType, Serializable, Word,
 };
 
+// CONSTANTS
+// ================================================================================================
+const NETWORK_EXECUTION: u8 = 0;
+const LOCAL_EXECUTION: u8 = 1;
+
+/// Determines if a note is intended to be consumed by the network or not.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum NoteExecutionMode {
+    Network = NETWORK_EXECUTION,
+    Local = LOCAL_EXECUTION,
+}
+
 // NOTE METADATA
 // ================================================================================================
 
 /// Metadata associated with a note.
+///
+/// Note type and tag must be internally consistent according to the following rules:
+///
+/// - For off-chain notes, the most significant bit of the tag must be 0.
+/// - For public notes, the second most significant bit of the tag must be 0.
+/// - For encrypted notes, two most significant bits of the tag must be 00.
+///
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
@@ -90,8 +111,9 @@ impl TryFrom<Word> for NoteMetadata {
         let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
         let note_type = elements[2].try_into()?;
         let tag: u64 = elements[0].into();
-        let tag: NoteTag = tag.try_into()?;
-        Self::new(sender, note_type, tag, elements[3])
+        let tag: u32 =
+            tag.try_into().map_err(|_| NoteError::InconsistentNoteTag(note_type, tag))?;
+        Self::new(sender, note_type, tag.into(), elements[3])
     }
 }
 

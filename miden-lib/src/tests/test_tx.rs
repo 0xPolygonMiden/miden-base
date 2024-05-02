@@ -72,7 +72,7 @@ fn test_create_note() {
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
-        [tag.into(), Felt::from(account_id), NoteType::Public.into(), ZERO],
+        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO],
         "metadata must be stored at the correct memory location",
     );
 
@@ -165,28 +165,20 @@ fn test_get_output_notes_hash() {
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
+    let output_tag_1 = 8888.into();
     let assets = NoteAssets::new(vec![input_asset_1]).unwrap();
-    let metadata = NoteMetadata::new(
-        tx_inputs.account().id(),
-        NoteType::Public,
-        NoteType::Public.into(),
-        ZERO,
-    )
-    .unwrap();
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_1, input_note_1.script().clone(), inputs);
     let output_note_1 = Note::new(assets, metadata, recipient);
 
     // create output note 2
     let output_serial_no_2 = [Felt::new(11); 4];
+    let output_tag_2 = 1111.into();
     let assets = NoteAssets::new(vec![input_asset_2]).unwrap();
-    let metadata = NoteMetadata::new(
-        tx_inputs.account().id(),
-        NoteType::Public,
-        NoteType::Public.into(),
-        ZERO,
-    )
-    .unwrap();
+    let metadata =
+        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);

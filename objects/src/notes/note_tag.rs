@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{fmt, num::TryFromIntError};
 
 use miden_crypto::Felt;
 
@@ -202,6 +202,11 @@ impl NoteTag {
 
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
+    ///
+    /// The tag and the note type are consistent if they satisfy the following rules:
+    /// - For off-chain notes, the most significant bit of the tag is 0.
+    /// - For public notes, the second most significant bit of the tag is 0.
+    /// - For encrypted notes, two most significant bits of the tag is 00.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
         if self.execution_hint() == NoteExecutionHint::Network && note_type != NoteType::Public {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
@@ -225,40 +230,25 @@ impl fmt::Display for NoteTag {
 // CONVERSIONS INTO NOTE TAG
 // ================================================================================================
 
-impl TryFrom<u32> for NoteTag {
-    type Error = NoteError;
-
-    fn try_from(tag: u32) -> Result<Self, Self::Error> {
-        let note_type = (tag >> NOTE_TYPE_MASK_SHIFT) as u8;
-
-        if note_type != PUBLIC && note_type != OFF_CHAIN && note_type != ENCRYPTED {
-            return Err(NoteError::InvalidNoteTypeValue(tag.into()));
-        }
-
-        Ok(NoteTag(tag))
+impl From<u32> for NoteTag {
+    fn from(value: u32) -> Self {
+        Self(value)
     }
 }
 
 impl TryFrom<u64> for NoteTag {
-    type Error = NoteError;
+    type Error = TryFromIntError;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
-        let tag: u32 = value.try_into().map_err(|_| NoteError::InvalidNoteTypeValue(value))?;
-        tag.try_into()
+        Ok(Self(value.try_into()?))
     }
 }
 
 impl TryFrom<Felt> for NoteTag {
-    type Error = NoteError;
+    type Error = TryFromIntError;
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
-        value.as_int().try_into()
-    }
-}
-
-impl From<NoteType> for NoteTag {
-    fn from(value: NoteType) -> Self {
-        NoteTag((value as u32) << NOTE_TYPE_MASK_SHIFT)
+        Ok(Self(value.as_int().try_into()?))
     }
 }
 

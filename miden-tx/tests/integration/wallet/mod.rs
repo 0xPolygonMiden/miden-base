@@ -10,7 +10,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteTag, NoteType},
+    notes::NoteType,
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
@@ -129,6 +129,7 @@ fn prove_send_asset_via_wallet() {
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let note_type = NoteType::OffChain;
