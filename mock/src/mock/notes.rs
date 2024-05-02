@@ -62,22 +62,19 @@ pub fn mock_notes(
 
     let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_1]).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
     let created_note_1 = Note::new(vault, metadata, recipient);
 
     let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_2]).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
     let created_note_2 = Note::new(vault, metadata, recipient);
 
     let inputs = NoteInputs::new(vec![Felt::new(3)]).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_3]).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
     let created_note_3 = Note::new(vault, metadata, recipient);
 
@@ -88,7 +85,7 @@ pub fn mock_notes(
         begin
             # create note 0
             push.{recipient0}
-            push.{type0}
+            push.{PUBLIC_NOTE}
             push.{tag0}
             push.{asset0}
             # MAST root of the `create_note` mock account procedure
@@ -97,7 +94,7 @@ pub fn mock_notes(
 
             # create note 1
             push.{recipient1}
-            push.{type1}
+            push.{PUBLIC_NOTE}
             push.{tag1}
             push.{asset1}
             # MAST root of the `create_note` mock account procedure
@@ -105,19 +102,17 @@ pub fn mock_notes(
             drop drop dropw dropw
         end
         ",
+        PUBLIC_NOTE = NoteType::Public as u8,
         recipient0 = prepare_word(&created_note_1.recipient_digest()),
-        type0 = created_note_1.metadata().note_type() as u8,
         tag0 = created_note_1.metadata().tag(),
         asset0 = prepare_assets(created_note_1.assets())[0],
         recipient1 = prepare_word(&created_note_2.recipient_digest()),
-        type1 = created_note_1.metadata().note_type() as u8,
         tag1 = created_note_2.metadata().tag(),
         asset1 = prepare_assets(created_note_2.assets())[0],
     );
     let note_1_script_ast = ProgramAst::parse(&note_1_script_src).unwrap();
     let (note_1_script, _) = NoteScript::new(note_1_script_ast, assembler).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_1]).unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_1_script, inputs);
@@ -128,7 +123,7 @@ pub fn mock_notes(
         begin
             # create note 2
             push.{recipient}
-            push.{note_type}
+            push.{PUBLIC_NOTE}
             push.{tag}
             push.{asset}
             # MAST root of the `create_note` mock account procedure
@@ -136,15 +131,14 @@ pub fn mock_notes(
             drop drop dropw dropw
         end
         ",
+        PUBLIC_NOTE = NoteType::Public as u8,
         recipient = prepare_word(&created_note_3.recipient_digest()),
-        note_type = created_note_3.metadata().note_type() as u8,
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );
     let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
     let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_2, fungible_asset_3]).unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_2_script, inputs);
@@ -152,8 +146,7 @@ pub fn mock_notes(
 
     let note_3_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_2, fungible_asset_3]).unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_3_script, inputs);
@@ -161,8 +154,7 @@ pub fn mock_notes(
 
     let note_4_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault =
         NoteAssets::new(vec![non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)])
             .unwrap();
@@ -202,8 +194,7 @@ pub fn mock_notes(
     .unwrap();
     let (note_5_script, _) = NoteScript::new(note_5_script_ast, assembler).unwrap();
 
-    let metadata =
-        NoteMetadata::new(sender, NoteType::Public, NoteType::Public.into(), ZERO).unwrap();
+    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![
         fungible_asset_1,
         fungible_asset_3,
