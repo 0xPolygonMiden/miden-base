@@ -24,7 +24,10 @@ mod executor;
 pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
-pub use host::{TransactionHost, TransactionProgress};
+pub use host::{
+    AuthSecretKey, BasicAuthenticator, TransactionAuthenticator, TransactionHost,
+    TransactionProgress,
+};
 
 mod prover;
 pub use prover::{ProvingOptions, TransactionProver};
@@ -34,8 +37,8 @@ pub use verifier::TransactionVerifier;
 
 mod error;
 pub use error::{
-    DataStoreError, TransactionCompilerError, TransactionExecutorError, TransactionProverError,
-    TransactionVerifierError, KERNEL_ERRORS,
+    AuthenticationError, DataStoreError, TransactionCompilerError, TransactionExecutorError,
+    TransactionProverError, TransactionVerifierError, KERNEL_ERRORS,
 };
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
@@ -12,7 +12,7 @@ use miden_objects::{
         NoteScript, NoteTag, NoteType,
     },
     transaction::OutputNote,
-    Digest,
+    Digest, Hasher,
 };
 use vm_processor::{
     crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
@@ -24,6 +24,9 @@ use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
+
+mod tx_authenticator;
+pub use tx_authenticator::{AuthSecretKey, BasicAuthenticator, TransactionAuthenticator};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
@@ -39,7 +42,7 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
-pub struct TransactionHost<A> {
+pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
@@ -53,17 +56,23 @@ pub struct TransactionHost<A> {
     /// The list of notes created while executing a transaction.
     output_notes: Vec<OutputNote>,
 
+    /// Provides a way to get a signature for a message into a transaction
+    authenticator: Option<Rc<T>>,
+
     /// Contains the information about the number of cycles for each of the transaction execution
     /// stages.
     tx_progress: TransactionProgress,
+
+    /// Contains generated signatures for messages
+    generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 
     /// Contains mapping from assertion error codes to the related error message
     kernel_assertion_errors: BTreeMap<u32, &'static str>,
 }
 
-impl<A: AdviceProvider> TransactionHost<A> {
+impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A) -> Self {
+    pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
         let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
         Self {
@@ -71,14 +80,21 @@ impl<A: AdviceProvider> TransactionHost<A> {
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: Vec::new(),
+            authenticator,
             tx_progress: TransactionProgress::default(),
+            generated_signatures: BTreeMap::new(),
             kernel_assertion_errors,
         }
     }
 
     /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>) {
-        (self.adv_provider, self.account_delta.into_delta(), self.output_notes)
+    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
+        (
+            self.adv_provider,
+            self.account_delta.into_delta(),
+            self.output_notes,
+            self.generated_signatures,
+        )
     }
 
     /// Returns a reference to the `tx_progress` field of the [`TransactionHost`].
@@ -283,6 +299,50 @@ impl<A: AdviceProvider> TransactionHost<A> {
         Ok(())
     }
 
+    // ADVICE INJECTOR HANDLERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a signature as a response to the `SigToStack` injector.
+    ///
+    /// This signature is created during transaction execution and stored for use as advice map
+    /// inputs in the proving host. If not already present in the advice map, it is requested from
+    /// the host's authenticator.
+    pub fn on_signature_requested<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        let pub_key = process.get_stack_word(0);
+        let msg = process.get_stack_word(1);
+        let signature_key = Hasher::merge(&[pub_key.into(), msg.into()]);
+
+        let signature = if let Some(signature) = self.adv_provider.get_mapped_values(&signature_key)
+        {
+            signature.to_vec()
+        } else {
+            let account_delta = self.account_delta.clone().into_delta();
+
+            let signature: Vec<Felt> = match &self.authenticator {
+                None => Err(ExecutionError::FailedSignatureGeneration(
+                    "No authenticator assigned to transaction host",
+                )),
+                Some(authenticator) => {
+                    authenticator.get_signature(pub_key, msg, &account_delta).map_err(|_| {
+                        ExecutionError::FailedSignatureGeneration("Error generating signature")
+                    })
+                },
+            }?;
+
+            self.generated_signatures.insert(signature_key, signature.clone());
+            signature
+        };
+
+        for r in signature {
+            self.adv_provider.push_stack(AdviceSource::Value(r))?;
+        }
+
+        Ok(HostResponse::None)
+    }
+
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -314,7 +374,7 @@ impl<A: AdviceProvider> TransactionHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for TransactionHost<A> {
+impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
     fn get_advice<S: ProcessState>(
         &mut self,
         process: &S,
@@ -328,7 +388,10 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
         process: &S,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
-        self.adv_provider.set_advice(process, &injector)
+        match injector {
+            AdviceInjector::SigToStack { .. } => self.on_signature_requested(process),
+            injector => self.adv_provider.set_advice(process, &injector),
+        }
     }
 
     fn on_event<S: ProcessState>(

@@ -19,7 +19,7 @@ use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    get_account_with_default_account_code, get_new_key_pair_with_advice_map,
+    get_account_with_default_account_code, get_new_pk_and_authenticator,
     get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
 };
 
@@ -32,7 +32,7 @@ fn prove_receive_asset_via_wallet() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let (target_pub_key, target_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (target_pub_key, target_falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
@@ -62,16 +62,15 @@ fn prove_receive_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(target_pub_key, target_keypair_felt)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
@@ -113,7 +112,7 @@ fn prove_send_asset_via_wallet() {
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
-    let (sender_pub_key, sender_keypair_felt) = get_new_key_pair_with_advice_map();
+    let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account = get_account_with_default_account_code(
         sender_account_id,
         sender_pub_key,
@@ -124,7 +123,8 @@ fn prove_send_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor =
+        TransactionExecutor::new(data_store.clone(), Some(sender_falcon_auth.clone()));
     executor.load_account(sender_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -157,9 +157,7 @@ fn prove_send_asset_via_wallet() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(sender_pub_key, sender_keypair_felt)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor

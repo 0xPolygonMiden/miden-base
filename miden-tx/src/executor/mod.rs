@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -14,6 +14,7 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
+use crate::host::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
@@ -34,20 +35,22 @@ pub use data_store::DataStore;
 /// The [TransactionExecutor::execute_transaction()] method is the main entry point for the
 /// executor and produces an [ExecutedTransaction] for the transaction. The executed transaction
 /// can then be used to by the prover to generate a proof transaction execution.
-pub struct TransactionExecutor<D> {
+pub struct TransactionExecutor<D, A> {
     data_store: D,
+    authenticator: Option<Rc<A>>,
     compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
 }
 
-impl<D: DataStore> TransactionExecutor<D> {
+impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new [TransactionExecutor] instance with the specified [DataStore].
-    pub fn new(data_store: D) -> Self {
+    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and [TransactionAuthenticator].
+    pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
         Self {
             data_store,
+            authenticator,
             compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
         }
@@ -182,7 +185,11 @@ impl<D: DataStore> TransactionExecutor<D> {
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-        let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+        let mut host = TransactionHost::new(
+            transaction.account().into(),
+            advice_recorder,
+            self.authenticator.clone(),
+        );
 
         let result = vm_processor::execute(
             transaction.program(),
@@ -243,16 +250,16 @@ impl<D: DataStore> TransactionExecutor<D> {
 // ================================================================================================
 
 /// Creates a new [ExecutedTransaction] from the provided data.
-fn build_executed_transaction(
+fn build_executed_transaction<A: TransactionAuthenticator>(
     program: Program,
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
-    host: TransactionHost<RecAdviceProvider>,
+    host: TransactionHost<RecAdviceProvider, A>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-    let (advice_recorder, account_delta, output_notes) = host.into_parts();
+    let (advice_recorder, account_delta, output_notes, generated_signatures) = host.into_parts();
 
-    let (advice_witness, _, map, _store) = advice_recorder.finalize();
+    let (mut advice_witness, _, map, _store) = advice_recorder.finalize();
 
     let tx_outputs =
         TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
@@ -283,6 +290,9 @@ fn build_executed_transaction(
             actual: account_delta.nonce(),
         });
     }
+
+    // introduce generated signature into the witness inputs
+    advice_witness.extend_map(generated_signatures);
 
     Ok(ExecutedTransaction::new(
         program,

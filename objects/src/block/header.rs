@@ -10,21 +10,23 @@ use crate::utils::serde::{
 ///
 /// A block header includes the following fields:
 ///
-/// - prev_hash is the hash of the previous blocks header.
-/// - block_num is a unique sequential number of the current block.
-/// - chain_root is a commitment to an MMR of the entire chain where each block is a leaf.
-/// - account_root is a commitment to account database.
-/// - nullifier_root is a commitment to the nullifier database.
-/// - note_root is a commitment to all notes created in the current block.
-/// - batch_root is a commitment to a set of transaction batches executed as a part of this block.
-/// - proof_hash is a hash of a STARK proof attesting to the correct state transition.
-/// - version specifies the version of the protocol.
-/// - timestamp is the time when the block was created.
-/// - sub_hash is a sequential hash of all fields except the note_root.
-/// - hash is a 2-to-1 hash of the sub_hash and the note_root.
+/// - `version` specifies the version of the protocol.
+/// - `prev_hash` is the hash of the previous block header.
+/// - `block_num` is a unique sequential number of the current block.
+/// - `chain_root` is a commitment to an MMR of the entire chain where each block is a leaf.
+/// - `account_root` is a commitment to account database.
+/// - `nullifier_root` is a commitment to the nullifier database.
+/// - `note_root` is a commitment to all notes created in the current block.
+/// - `batch_root` is a commitment to a set of transaction batches executed as a part of this block.
+/// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
+/// - `timestamp` is the time when the block was created, in seconds since UNIX epoch.
+///   Current representation is sufficient to represent time up to year 2106.
+/// - `sub_hash` is a sequential hash of all fields except the note_root.
+/// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
+    version: u32,
     prev_hash: Digest,
     block_num: u32,
     chain_root: Digest,
@@ -33,8 +35,7 @@ pub struct BlockHeader {
     note_root: Digest,
     batch_root: Digest,
     proof_hash: Digest,
-    version: Felt,
-    timestamp: Felt,
+    timestamp: u32,
     sub_hash: Digest,
     hash: Digest,
 }
@@ -43,6 +44,7 @@ impl BlockHeader {
     /// Creates a new block header.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        version: u32,
         prev_hash: Digest,
         block_num: u32,
         chain_root: Digest,
@@ -51,18 +53,17 @@ impl BlockHeader {
         note_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: Felt,
-        timestamp: Felt,
+        timestamp: u32,
     ) -> Self {
         // compute block sub hash
         let sub_hash = Self::compute_sub_hash(
+            version,
             prev_hash,
             chain_root,
             account_root,
             nullifier_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
             block_num,
         );
@@ -73,6 +74,7 @@ impl BlockHeader {
         let hash = Hasher::merge(&[sub_hash, note_root]);
 
         Self {
+            version,
             prev_hash,
             block_num,
             chain_root,
@@ -81,7 +83,6 @@ impl BlockHeader {
             note_root,
             batch_root,
             proof_hash,
-            version,
             timestamp,
             sub_hash,
             hash,
@@ -90,6 +91,11 @@ impl BlockHeader {
 
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns the protocol version.
+    pub fn version(&self) -> u32 {
+        self.version
+    }
 
     /// Returns the hash of the block header.
     pub fn hash(&self) -> Digest {
@@ -144,13 +150,8 @@ impl BlockHeader {
         self.proof_hash
     }
 
-    /// Returns the protocol version.
-    pub fn version(&self) -> Felt {
-        self.version
-    }
-
-    /// Returns the timestamp at which the block was created.
-    pub fn timestamp(&self) -> Felt {
+    /// Returns the timestamp at which the block was created, in seconds since UNIX epoch.
+    pub fn timestamp(&self) -> u32 {
         self.timestamp
     }
 
@@ -160,18 +161,18 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// prev_hash, chain_root, account_root, nullifier_root, note_root, batch_root, proof_hash,
-    /// version, timestamp, block_num (all fields except the note_root).
+    /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `batch_root`,
+    /// `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
+        version: u32,
         prev_hash: Digest,
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
         batch_root: Digest,
         proof_hash: Digest,
-        version: Felt,
-        timestamp: Felt,
+        timestamp: u32,
         block_num: u32,
     ) -> Digest {
         let mut elements: Vec<Felt> = Vec::with_capacity(32);
@@ -181,9 +182,52 @@ impl BlockHeader {
         elements.extend_from_slice(nullifier_root.as_elements());
         elements.extend_from_slice(batch_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
-        elements.extend([block_num.into(), version, timestamp, ZERO]);
+        elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
         elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
+    }
+}
+
+impl Serializable for BlockHeader {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.version.write_into(target);
+        self.prev_hash.write_into(target);
+        self.block_num.write_into(target);
+        self.chain_root.write_into(target);
+        self.account_root.write_into(target);
+        self.nullifier_root.write_into(target);
+        self.note_root.write_into(target);
+        self.batch_root.write_into(target);
+        self.proof_hash.write_into(target);
+        self.timestamp.write_into(target);
+    }
+}
+
+impl Deserializable for BlockHeader {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let version = source.read()?;
+        let prev_hash = source.read()?;
+        let block_num = source.read()?;
+        let chain_root = source.read()?;
+        let account_root = source.read()?;
+        let nullifier_root = source.read()?;
+        let note_root = source.read()?;
+        let batch_root = source.read()?;
+        let proof_hash = source.read()?;
+        let timestamp = source.read()?;
+
+        Ok(Self::new(
+            version,
+            prev_hash,
+            block_num,
+            chain_root,
+            account_root,
+            nullifier_root,
+            note_root,
+            batch_root,
+            proof_hash,
+            timestamp,
+        ))
     }
 }
 
@@ -194,8 +238,7 @@ mod mock {
     use winter_rand_utils as rand;
 
     use crate::{
-        accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt,
-        ACCOUNT_TREE_DEPTH, ZERO,
+        accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt, ACCOUNT_TREE_DEPTH,
     };
 
     impl BlockHeader {
@@ -220,15 +263,16 @@ mod mock {
             )
             .expect("failed to create account db");
 
-            let prev_hash: Digest = rand::rand_array().into();
-            let chain_root: Digest = chain_root.unwrap_or(rand::rand_array().into());
-            let acct_root: Digest = acct_db.root();
-            let nullifier_root: Digest = rand::rand_array().into();
-            let note_root: Digest = note_root.unwrap_or(rand::rand_array().into());
-            let batch_root: Digest = rand::rand_array().into();
-            let proof_hash: Digest = rand::rand_array().into();
+            let prev_hash = rand::rand_array().into();
+            let chain_root = chain_root.unwrap_or(rand::rand_array().into());
+            let acct_root = acct_db.root();
+            let nullifier_root = rand::rand_array().into();
+            let note_root = note_root.unwrap_or(rand::rand_array().into());
+            let batch_root = rand::rand_array().into();
+            let proof_hash = rand::rand_array().into();
 
             BlockHeader::new(
+                0,
                 prev_hash,
                 block_num,
                 chain_root,
@@ -237,60 +281,25 @@ mod mock {
                 note_root,
                 batch_root,
                 proof_hash,
-                ZERO,
                 rand::rand_value(),
             )
         }
     }
 }
 
-impl Serializable for BlockHeader {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self {
-            prev_hash,
-            block_num,
-            chain_root,
-            account_root,
-            nullifier_root,
-            note_root,
-            batch_root,
-            proof_hash,
-            version,
-            timestamp,
-            sub_hash,
-            hash,
-        } = self;
+#[cfg(test)]
+mod tests {
+    use winter_rand_utils::rand_array;
 
-        prev_hash.write_into(target);
-        block_num.write_into(target);
-        chain_root.write_into(target);
-        account_root.write_into(target);
-        nullifier_root.write_into(target);
-        note_root.write_into(target);
-        batch_root.write_into(target);
-        proof_hash.write_into(target);
-        version.write_into(target);
-        timestamp.write_into(target);
-        sub_hash.write_into(target);
-        hash.write_into(target);
-    }
-}
+    use super::*;
 
-impl Deserializable for BlockHeader {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        Ok(Self {
-            prev_hash: source.read()?,
-            block_num: source.read()?,
-            chain_root: source.read()?,
-            account_root: source.read()?,
-            nullifier_root: source.read()?,
-            note_root: source.read()?,
-            batch_root: source.read()?,
-            proof_hash: source.read()?,
-            version: source.read()?,
-            timestamp: source.read()?,
-            sub_hash: source.read()?,
-            hash: source.read()?,
-        })
+    #[test]
+    fn test_serde() {
+        let header =
+            BlockHeader::mock(0, Some(rand_array().into()), Some(rand_array().into()), &[]);
+        let serialized = header.to_bytes();
+        let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
+
+        assert_eq!(deserialized, header);
     }
 }
