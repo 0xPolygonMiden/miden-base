@@ -111,7 +111,7 @@ export.create_note
     assertz.err=ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
     # => [tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
 
-    u32shr.30 u32and assertz.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
+    u32shr.30 assert_eq.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
     # => [ASSET, tag, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
