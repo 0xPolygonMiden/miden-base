@@ -529,7 +529,11 @@ export.create_note
     exec.tx::create_note
     # => [ptr]
 
-    # prepare the stack for return
+    # prepare stack for return. Note: when create_note is called, the stack looks like 
+    # [tag, aux, note_type, RECIPIENT, X, X, x], with 16 elements and X might be important 
+    # data for the user. Without padding the kernel returns 16 elements 
+    # [ptr, X, X, x, 0, 0, ZERO] adding 0's. To keep the data in position we insert 0's 
+    # between ptr and the potentially important first element x.
     movupw.3 movup.15 movup.15 movup.6 
     # => [ptr, 0, 0, 0, 0, 0, 0]
 end
@@ -550,7 +554,11 @@ export.move_asset_to_note
     exec.tx::move_asset_to_note
     # => [ptr]
 
-    # prepare stack for return
+    # prepare stack for return. Note: when move_asset_to_note is called, the stack looks 
+    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data 
+    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's. 
+    # To keep the data in position we insert 0's between ptr and the potentially important 
+    # first element x.
     movupw.3 movup.4
     # => [ptr, 0, 0, 0, 0]
 end
