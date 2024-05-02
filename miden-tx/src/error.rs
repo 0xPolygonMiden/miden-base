@@ -138,3 +138,30 @@ impl fmt::Display for DataStoreError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for DataStoreError {}
+
+// AUTHENTICATION ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum AuthenticationError {
+    InternalError(String),
+    RejectedSignature(String),
+    UnknownKey(String),
+}
+
+impl fmt::Display for AuthenticationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AuthenticationError::InternalError(error) => {
+                write!(f, "authentication internal error: {error}")
+            },
+            AuthenticationError::RejectedSignature(reason) => {
+                write!(f, "signature was rejected: {reason}")
+            },
+            AuthenticationError::UnknownKey(error) => write!(f, "unknown key error: {error}"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AuthenticationError {}
