@@ -3,13 +3,63 @@ use core::{fmt, num::TryFromIntError};
 use miden_crypto::Felt;
 
 use super::{
-    AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError,
-    NoteExecutionMode, NoteType, Serializable,
+    AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, NoteType,
+    Serializable,
 };
+
+// CONSTANTS
+// ================================================================================================
+const NETWORK_EXECUTION: u8 = 0;
+const LOCAL_EXECUTION: u8 = 1;
+
+// The 2 most significant bits are set to `0b11`
+const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xC0000000;
+
+/// [super::Note]'s execution mode hints.
+///
+/// The execution hints are _not_ enforced, therefore function only as hints. For example, if a
+/// note's tag is created with the [NoteExecutionHint::Network], further validation is necessary to
+/// check the account_id is known, that the account's state is on-chain, and the account is
+/// controlled by the network.
+///
+/// The goal of the hint is to allow for a network node to quickly filter notes that are not
+/// intended for network execution, and skip the validation steps mentioned above.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum NoteExecutionHint {
+    Network = NETWORK_EXECUTION,
+    Local = LOCAL_EXECUTION,
+}
 
 // NOTE TAG
 // ================================================================================================
 
+/// [NoteTag]`s are best effort filters for notes registered with the network.
+///
+/// Tags are light-weight values used to speed up queries. The 2 most signification bits of the tags
+/// have the following interpretation:
+///
+/// | Prefix | Execution hint | Target   | Allowed [NoteType] |
+/// | ------ | :------------: | :------: | :----------------: |
+/// | `0b00` | Network        | Specific | [NoteType::Public] |
+/// | `0b01` | Network        | Use case | [NoteType::Public] |
+/// | `0b10` | Local          | Any      | [NoteType::Public] |
+/// | `0b11` | Local          | Any      | Any                |
+///
+/// Where:
+///
+/// - [NoteExecutionHint] is set to [NoteExecutionHint::Network] to hint a [super::Note] should be
+///   consumed by the network. These notes will be further validated and if possible consumed by it.
+/// - Target describes how to further interpret the bits in the tag. For tags with a specific
+///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning of
+///   the rest of the tag is not specified by the protocol and can be used by applications built on
+///   top of the rollup.
+///
+/// The note type is the only value enforced by the protocol. The rationale is that any note
+/// intended to be consumed by the network must be public to have all the details available. The
+/// public note for local execution is intended to allow users to search for notes that can be
+/// consumed right away, without requiring an off-band communication channel or to decrypt data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteTag(u32);
@@ -18,42 +68,74 @@ impl NoteTag {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [NoteTag] instantiated from the specified account ID.
+    /// Returns a new [NoteTag] instantiated from the specified account ID and execution hint.
     ///
     /// The tag is constructed as follows:
-    /// - For local execution, the two most significant bits are set to 0b00, the following 16 bits
-    ///   are set to the 16 most significant bits of the account ID, and the remaining 14 bits are
-    ///   set to 0.
-    /// - For network execution, the two most significant bits are set to 0b10 and the remaining
+    ///
+    /// - For local execution, the two most significant bits are set to `0b11`, which allows for any
+    ///   note type to be used, the following 16 bits are set to the 16 most significant bits of the
+    ///   account ID, and the remaining 14 bits are set to 0.
+    /// - For network execution, the two most significant bits are set to `0b00` and the remaining
     ///   bits are set to the 30 most significant bits of the account ID.
+    ///
+    /// # Errors
+    ///
+    /// This will return an error if the account_id is not for an on-chain account and the execution
+    /// hint is set to [NoteExecutionHint::Network].
+    ///
     pub fn from_account_id(
         account_id: AccountId,
-        execution: NoteExecutionMode,
+        execution: NoteExecutionHint,
     ) -> Result<Self, NoteError> {
         match execution {
-            NoteExecutionMode::Local => {
+            NoteExecutionHint::Local => {
                 let id: u64 = account_id.into();
-                // select the 16 high bits of the account id
-                let high_bits = id & 0xffff000000000000;
-                // set bits (30,14] with the account id data
-                // set bits (32,30] as `0b00` identifying the note as intended for local execution
-                Ok(Self((high_bits >> 34) as u32))
+                // select 14 most significant bits of the account ID and shift them right by 2 bits
+                let high_bits = (id >> 34) as u32 & 0xFFFF0000;
+                Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
-            NoteExecutionMode::Network => {
+            NoteExecutionHint::Network => {
                 if !account_id.is_on_chain() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
                     let id: u64 = account_id.into();
-                    // select the 30 high bits of the account id
-                    let high_bits = id & 0xfffffffc00000000;
-                    // set bits (30,0] with the account id data
-                    let tag = (high_bits >> 34) as u32;
-                    // set bits (32,30] as `0b10` identifying the note as intended for network
-                    // execution
-                    Ok(Self(tag | 0x80000000))
+                    // select 31 most significant bits of account ID and shift them right by 1 bit
+                    let high_bits = (id >> 33) as u32;
+                    // the tag will have the form 0 + 31 high bits of account ID; note that the
+                    // second bit of the tag is guaranteed to be 0 because public account IDs start
+                    // with 0
+                    Ok(Self(high_bits))
                 }
             },
         }
+    }
+
+    /// Returns a new [NoteTag] instantiated for a custom use case.
+    ///
+    /// The two high bits are set to the [NoteExecutionHint], the next 14 bits are set to the
+    /// `use_case_id`, and the low 16 bits are set to `payload`.
+    ///
+    /// # Errors
+    ///
+    /// - If `use_case_id` is larger than $2^{14}$.
+    pub fn for_use_case(
+        use_case_id: u16,
+        payload: u16,
+        execution: NoteExecutionHint,
+    ) -> Result<Self, NoteError> {
+        if (use_case_id >> 14) != 0 {
+            return Err(NoteError::InvalidNoteTagUseCase(use_case_id));
+        }
+
+        let execution_bits = match execution {
+            NoteExecutionHint::Local => LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED,
+            NoteExecutionHint::Network => 0x40000000, // high bits set to `0b01`
+        };
+
+        let use_case_bits = (use_case_id as u32) << 16;
+        let payload_bits = payload as u32;
+
+        Ok(Self(execution_bits | use_case_bits | payload_bits))
     }
 
     // PUBLIC ACCESSORS
@@ -61,12 +143,10 @@ impl NoteTag {
 
     /// Returns true if the note is intended for execution by a specific account.
     ///
-    /// A note is intended for execution by a single account if either the first two bits are zeros
-    /// or the first 3 bits are 0b100.
+    /// A note is intended for execution by a single account if the first two bits are zeros
     pub fn is_single_target(&self) -> bool {
         let first_2_bit = self.0 >> 30;
-        let first_3_bits = self.0 >> 29;
-        first_2_bit == 0b00 || first_3_bits == 0b100
+        first_2_bit == 0b00
     }
 
     /// Returns note execution mode defined by this tag.
@@ -74,14 +154,13 @@ impl NoteTag {
     /// If the most significant bit of the tag is 0 or the 3 most significant bits are equal to
     /// 0b101, the note is intended for local execution; otherwise, the note is intended for
     /// network execution.
-    pub fn execution_mode(&self) -> NoteExecutionMode {
+    pub fn execution_hint(&self) -> NoteExecutionHint {
         let first_bit = self.0 >> 31;
-        let first_3_bits = self.0 >> 29;
 
-        if first_bit == 0 || first_3_bits == 0b101 {
-            NoteExecutionMode::Local
+        if first_bit == (LOCAL_EXECUTION as u32) {
+            NoteExecutionHint::Local
         } else {
-            NoteExecutionMode::Network
+            NoteExecutionHint::Network
         }
     }
 
@@ -95,14 +174,13 @@ impl NoteTag {
 
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
-    ///
-    /// The tag and the note type are consistent if they satisfy the following rules:
-    /// - For off-chain notes, the most significant bit of the tag is 0.
-    /// - For public notes, the second most significant bit of the tag is 0.
-    /// - For encrypted notes, two most significant bits of the tag is 00.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
-        let tag_mask = note_type as u32;
-        if (self.0 >> 30) & tag_mask != 0 {
+        if self.execution_hint() == NoteExecutionHint::Network && note_type != NoteType::Public {
+            return Err(NoteError::NetworkExecutionRequiresPublicNote);
+        }
+
+        let first_2_bit = self.0 >> 30;
+        if first_2_bit != 0b11 && note_type != NoteType::Public {
             Err(NoteError::InconsistentNoteTag(note_type, self.0 as u64))
         } else {
             Ok(*self)
@@ -175,5 +253,214 @@ impl Deserializable for NoteTag {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let tag = u32::read_from(source)?;
         Ok(Self(tag))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NoteExecutionHint, NoteTag};
+    use crate::{
+        accounts::{
+            account_id::testing::{
+                ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+                ACCOUNT_ID_OFF_CHAIN_SENDER, ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
+            },
+            AccountId,
+        },
+        notes::NoteType,
+        NoteError,
+    };
+
+    #[test]
+    fn test_from_account_id() {
+        let off_chain_accounts = [
+            AccountId::try_from(ACCOUNT_ID_SENDER).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap(),
+        ];
+        let on_chain_accounts = [
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap(),
+        ];
+
+        for off_chain in off_chain_accounts {
+            assert!(
+                NoteTag::from_account_id(off_chain, NoteExecutionHint::Network).is_err(),
+                "Tag generation must fail if network execution and off-chain account id are mixed"
+            );
+        }
+
+        for on_chain in on_chain_accounts {
+            let tag = NoteTag::from_account_id(on_chain, NoteExecutionHint::Network)
+                .expect("Tag generation must work with network exeuction and on-chain accounts");
+            assert!(tag.is_single_target());
+            assert_eq!(tag.execution_hint(), NoteExecutionHint::Network);
+
+            assert_eq!(
+                tag.validate(NoteType::Public),
+                Ok(tag),
+                "Network execution requires public notes"
+            );
+            assert_eq!(
+                tag.validate(NoteType::OffChain),
+                Err(NoteError::NetworkExecutionRequiresPublicNote)
+            );
+            assert_eq!(
+                tag.validate(NoteType::Encrypted),
+                Err(NoteError::NetworkExecutionRequiresPublicNote)
+            );
+        }
+
+        for off_chain in off_chain_accounts {
+            let tag = NoteTag::from_account_id(off_chain, NoteExecutionHint::Local)
+                .expect("Tag generation must work with network execution and off-chain account id");
+            assert!(!tag.is_single_target());
+            assert_eq!(tag.execution_hint(), NoteExecutionHint::Local);
+
+            assert_eq!(
+                tag.validate(NoteType::Public),
+                Ok(tag),
+                "Local execution supports public notes"
+            );
+            assert_eq!(
+                tag.validate(NoteType::OffChain),
+                Ok(tag),
+                "Local execution supports offchain notes"
+            );
+            assert_eq!(
+                tag.validate(NoteType::Encrypted),
+                Ok(tag),
+                "Local execution supports encrypted notes"
+            );
+        }
+
+        for on_chain in on_chain_accounts {
+            let tag = NoteTag::from_account_id(on_chain, NoteExecutionHint::Local)
+                .expect("Tag generation must work with network exeuction and on-chain accounts");
+            assert!(!tag.is_single_target());
+            assert_eq!(tag.execution_hint(), NoteExecutionHint::Local);
+
+            assert_eq!(
+                tag.validate(NoteType::Public),
+                Ok(tag),
+                "Local execution supports public notes"
+            );
+            assert_eq!(
+                tag.validate(NoteType::OffChain),
+                Ok(tag),
+                "Local execution supports offchain notes"
+            );
+            assert_eq!(
+                tag.validate(NoteType::Encrypted),
+                Ok(tag),
+                "Local execution supports encrypted notes"
+            );
+        }
+    }
+
+    #[test]
+    fn test_from_account_id_values() {
+        let off_chain =
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+        let on_chain =
+            AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+
+        assert_eq!(
+            NoteTag::from_account_id(on_chain, NoteExecutionHint::Network),
+            Ok(NoteTag(0b00000000_00000000_00000000_00000000))
+        );
+        assert!(NoteTag::from_account_id(off_chain, NoteExecutionHint::Network).is_err());
+
+        assert_eq!(
+            NoteTag::from_account_id(off_chain, NoteExecutionHint::Local),
+            Ok(NoteTag(0b11100100_00000000_00000000_00000000))
+        );
+        assert_eq!(
+            NoteTag::from_account_id(on_chain, NoteExecutionHint::Local),
+            Ok(NoteTag(0b11000000_00000000_00000000_00000000))
+        );
+    }
+
+    #[test]
+    fn test_for_use_case() {
+        // NETWORK
+        // ----------------------------------------------------------------------------------------
+        let tag = NoteTag::for_use_case(0b0, 0b0, NoteExecutionHint::Network);
+        assert_eq!(tag, Ok(NoteTag(0b01000000_00000000_00000000_00000000)));
+
+        let tag = tag.unwrap();
+        assert_eq!(
+            tag.validate(NoteType::Public),
+            Ok(tag),
+            "Network execution requires public notes"
+        );
+        assert_eq!(
+            tag.validate(NoteType::OffChain),
+            Err(NoteError::NetworkExecutionRequiresPublicNote)
+        );
+        assert_eq!(
+            tag.validate(NoteType::Encrypted),
+            Err(NoteError::NetworkExecutionRequiresPublicNote)
+        );
+
+        let tag = NoteTag::for_use_case(0b1, 0b0, NoteExecutionHint::Network);
+        assert_eq!(tag, Ok(NoteTag(0b01000000_00000001_00000000_00000000)));
+
+        let tag = NoteTag::for_use_case(0b0, 0b1, NoteExecutionHint::Network);
+        assert_eq!(tag, Ok(NoteTag(0b01000000_00000000_00000000_00000001)));
+
+        let tag = NoteTag::for_use_case(1 << 13, 0b0, NoteExecutionHint::Network);
+        assert_eq!(tag, Ok(NoteTag(0b01100000_00000000_00000000_00000000)));
+
+        // LOCAL
+        // ----------------------------------------------------------------------------------------
+        let tag = NoteTag::for_use_case(0b0, 0b0, NoteExecutionHint::Local);
+        assert_eq!(tag, Ok(NoteTag(0b11000000_00000000_00000000_00000000)));
+
+        let tag = tag.unwrap();
+        assert_eq!(
+            tag.validate(NoteType::Public),
+            Ok(tag),
+            "Local execution supports public notes"
+        );
+        assert_eq!(
+            tag.validate(NoteType::OffChain),
+            Ok(tag),
+            "Local execution supports offchain notes"
+        );
+        assert_eq!(
+            tag.validate(NoteType::Encrypted),
+            Ok(tag),
+            "Local execution supports encrypted notes"
+        );
+
+        let tag = NoteTag::for_use_case(0b0, 0b1, NoteExecutionHint::Local);
+        assert_eq!(tag, Ok(NoteTag(0b11000000_00000000_00000000_00000001)));
+
+        let tag = NoteTag::for_use_case(0b1, 0b0, NoteExecutionHint::Local);
+        assert_eq!(tag, Ok(NoteTag(0b11000000_00000001_00000000_00000000)));
+
+        let tag = NoteTag::for_use_case(1 << 13, 0b0, NoteExecutionHint::Local);
+        assert_eq!(tag, Ok(NoteTag(0b11100000_00000000_00000000_00000000)));
+
+        assert!(NoteTag::for_use_case(1 << 15, 0b0, NoteExecutionHint::Local).is_err());
+        assert!(NoteTag::for_use_case(1 << 14, 0b0, NoteExecutionHint::Local).is_err());
     }
 }

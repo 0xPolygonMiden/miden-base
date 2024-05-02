@@ -6,13 +6,14 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
         Account, AccountCode,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::{NoteId, NoteType},
+    notes::{NoteExecutionHint, NoteId, NoteTag, NoteType},
     transaction::{
         ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
     },
@@ -127,6 +128,22 @@ fn executed_transaction_account_delta() {
     let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
+    let tag1 = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionHint::Local,
+    )
+    .unwrap();
+    let tag2 = NoteTag::for_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let tag3 = NoteTag::for_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+
+    let note_type1 = NoteType::OffChain;
+    let note_type2 = NoteType::OffChain;
+    let note_type3 = NoteType::OffChain;
+
+    assert_eq!(tag1.validate(note_type1), Ok(tag1));
+    assert_eq!(tag2.validate(note_type2), Ok(tag2));
+    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+
     let tx_script = format!(
         "\
         use.miden::account
@@ -206,24 +223,24 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
-            push.{OFFCHAIN}         # note_type
-            push.999                # tag
+            push.{NOTETYPE1}        # note_type
+            push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
 
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
-            push.{OFFCHAIN}         # note_type
-            push.998                # tag
+            push.{NOTETYPE2}        # note_type
+            push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
 
             # send non-fungible asset
             push.0.1.2.3            # recipient
-            push.{OFFCHAIN}         # note_type
-            push.997                # tag
+            push.{NOTETYPE3}        # note_type
+            push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
             call.wallet::send_asset dropw dropw drop drop
             # => []
@@ -246,7 +263,9 @@ fn executed_transaction_account_delta() {
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        OFFCHAIN = NoteType::OffChain as u8,
+        NOTETYPE1 = note_type1 as u8,
+        NOTETYPE2 = note_type2 as u8,
+        NOTETYPE3 = note_type3 as u8,
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
