@@ -25,7 +25,7 @@ The concept of notes is a key divergence from Ethereum’s account-based model.
 
 New notes are created by executing transactions. 
 
-After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the [note database](state.md#notes-database). 
+After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the note database. 
 
 Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. 
 

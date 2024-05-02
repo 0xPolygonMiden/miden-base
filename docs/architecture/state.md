@@ -41,7 +41,7 @@ The latest account states - and data for on-chain accounts - are recorded in a s
 ![Architecture core concepts](../img/architecture/state/account-db.png){ width="80%" }
 </center>
 
-As described in the [accounts section](accounts.md##account-storage-modes), there are two types of accounts:
+As described in the [accounts section](accounts.md), there are two types of accounts:
 
 * Public accounts where all account data is stored on-chain.
 * Private accounts where only the hashes of accounts are stored on-chain.
@@ -61,7 +61,7 @@ Notes are recorded in an append-only accumulator, a [Merkle Mountain Range](http
 ![Architecture core concepts](../img/architecture/state/note-db.png){ width="80%" }
 </center>
 
-As described in [the notes section](notes.md#note-storage-modes), there are two types of notes:
+As described in [the notes section](notes.md, there are two types of notes:
 
 * Public notes where the entire note content is recorded in the state.
 * Private notes where only a note's hash is recorded in the state.
