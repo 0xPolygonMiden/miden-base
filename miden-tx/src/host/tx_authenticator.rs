@@ -78,8 +78,8 @@ impl Deserializable for AuthSecretKey {
         match auth_key_id {
             // RpoFalcon512
             0u8 => {
-                let key_pair = SecretKey::read_from(source)?;
-                Ok(AuthSecretKey::RpoFalcon512(key_pair))
+                let secret_key = SecretKey::read_from(source)?;
+                Ok(AuthSecretKey::RpoFalcon512(secret_key))
             },
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
