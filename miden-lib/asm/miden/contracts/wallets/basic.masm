@@ -63,7 +63,7 @@ export.send_asset.1
 
     exec.tx::create_note
     # => [note_ptr, 0, ZERO, ZERO, ...]
-    
+
     padw loc_loadw.0 movup.4
     # => [note_ptr, ASSET, 0, ZERO, ZERO, ...]
 
