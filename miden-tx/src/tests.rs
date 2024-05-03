@@ -133,8 +133,8 @@ fn executed_transaction_account_delta() {
         NoteExecutionHint::Local,
     )
     .unwrap();
-    let tag2 = NoteTag::for_use_case(0, 0, NoteExecutionHint::Local).unwrap();
-    let tag3 = NoteTag::for_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
+    let tag3 = NoteTag::for_local_use_case(0, 0).unwrap();
 
     let note_type1 = NoteType::OffChain;
     let note_type2 = NoteType::OffChain;

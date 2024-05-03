@@ -131,7 +131,7 @@ fn prove_send_asset_via_wallet() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let tag = NoteTag::for_use_case(0, 0, miden_objects::notes::NoteExecutionHint::Local).unwrap();
+    let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let note_type = NoteType::OffChain;
 
     assert_eq!(tag.validate(note_type), Ok(tag));
