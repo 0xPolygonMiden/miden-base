@@ -63,11 +63,10 @@ impl AuthSecretKey {
 
 impl Serializable for AuthSecretKey {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let mut bytes = vec![self.key_id()];
+        target.write_u8(self.key_id());
         match self {
-            AuthSecretKey::RpoFalcon512(key_pair) => {
-                bytes.append(&mut key_pair.to_bytes());
-                target.write_bytes(&bytes);
+            AuthSecretKey::RpoFalcon512(secret_key) => {
+                target.write_bytes(&secret_key.to_bytes());
             },
         }
     }
