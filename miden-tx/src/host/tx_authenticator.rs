@@ -213,8 +213,6 @@ impl TransactionAuthenticator for () {
 
 #[cfg(test)]
 mod test {
-    
-
     use miden_objects::crypto::dsa::rpo_falcon512::SecretKey;
     use mock::utils::{Deserializable, Serializable};
 
