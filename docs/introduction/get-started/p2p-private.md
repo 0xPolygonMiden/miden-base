@@ -86,20 +86,6 @@ In this section, we show you how to make private transactions and send funds to 
 
     ![Result of listing miden accounts](../../img/get-started/account-a.png)
 
-## Clear state
-
-All state is maintained in `store.sqlite3`, located in the directory defined in the `miden-client.toml` file. 
-
-To clear all state, delete this file. It recreates on any command execution.
-
-## Congratulations! 
-
-You have successfully configured and used the Miden client to interact with a Miden rollup and faucet. 
-
-You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
-
-For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
-
 Wanna do more? [Sending public notes](p2p-public.md)
 
 </br>

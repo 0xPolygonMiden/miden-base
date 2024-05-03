@@ -9,7 +9,7 @@ We differentiate between native and non-native assets in Miden. Native assets fo
 Native assets in Polygon Miden have four goals:
 
 * Asset exchange should be parallelizable.
-* Asset ownership should be private.
+* Asset ownership should be self-sovereign.
 * Asset usage should be censorship resistant.
 * Fees can be paid using any asset.
 

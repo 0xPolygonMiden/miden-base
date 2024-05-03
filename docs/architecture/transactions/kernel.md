@@ -2,11 +2,11 @@
 comments: true
 ---
 
-The transaction kernel program, written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html), is responsible for executing a Miden rollup transaction within the Miden VM. It is defined as MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels). 
+The transaction kernel program, written in [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html), is responsible for executing a Miden rollup transaction within the Miden VM. It is defined as MASM [kernel](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#kernels).
 
 The kernel provides context-sensitive security which prevents unwanted read and write access. It defines a set of procedures which can be invoked from other [contexts](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html#execution-contexts); e.g. notes executed in the root context.
 
-In general, the kernel's procedures must reflect everything users might want to do while executing transactions; from transferring assets to complex smart contract interactions with custom code. 
+In general, the kernel's procedures must reflect everything users might want to do while executing transactions; from transferring assets to complex smart contract interactions with custom code.
 
 !!! info
     - Learn more about Miden transaction [procedures](procedures.md) and [contexts](contexts.md).
@@ -24,9 +24,9 @@ The kernel has a well-defined structure which does the following:
 
 ## Input
 
-The transaction kernel program receives two types of inputs, public inputs via the `operand_stack` and secret inputs via the `advice_provider`. 
+The transaction kernel program receives two types of inputs, public inputs via the `operand_stack` and private inputs via the `advice_provider`.
 
-The operand stack holds the global inputs which serve as a commitment to the data being provided via the advice provider. 
+The operand stack holds the global inputs which serve as a commitment to the data being provided via the advice provider.
 
 The advice provider holds data of the last known block, account and input note data. The details are layed out in the next paragraph.
 

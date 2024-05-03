@@ -4,16 +4,16 @@ comments: true
 
 # Miden architecture overview
 
-Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution. 
+Polygon Miden’s architecture departs considerably from typical blockchain designs to support privacy and parallel transaction execution.
 
-In traditional blockchains, state and transactions must be transparent to be verifiable. This is necessary for block production and execution. 
+In traditional blockchains, state and transactions must be transparent to be verifiable. This is necessary for block production and execution.
 
 However, user generated zero-knowledge proofs allow state transitions, e.g. transactions, to be verifiable without being transparent.
 
 ## Miden design goals
 
 * High throughput: The ability to process a high number of transactions (state changes) over a given time interval.
-* [Privacy](https://en.wikipedia.org/wiki/Privacy_and_blockchain): The ability to keep data secret and anonymous while processing and/or storing it.
+* Privacy: The ability to keep data known to one’s self and anonymous while processing and/or storing it.
 * Asset safety: Maintaining a low risk of mistakes or malicious behavior leading to asset loss.
 
 ## Actor model
