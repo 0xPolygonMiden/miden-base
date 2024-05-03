@@ -59,7 +59,7 @@ pub enum NoteExecutionHint {
 /// The note type is the only value enforced by the protocol. The rationale is that any note
 /// intended to be consumed by the network must be public to have all the details available. The
 /// public note for local execution is intended to allow users to search for notes that can be
-/// consumed right away, without requiring an off-band communication channel or to decrypt data.
+/// consumed right away, without requiring an off-band communication channel.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteTag(u32);
@@ -73,10 +73,12 @@ impl NoteTag {
     /// The tag is constructed as follows:
     ///
     /// - For local execution, the two most significant bits are set to `0b11`, which allows for any
-    ///   note type to be used, the following 16 bits are set to the 16 most significant bits of the
-    ///   account ID, and the remaining 14 bits are set to 0.
-    /// - For network execution, the two most significant bits are set to `0b00` and the remaining
-    ///   bits are set to the 30 most significant bits of the account ID.
+    ///   note type to be used, the following 14 bits are set to the 14 most significant bits of the
+    ///   account ID, and the remaining 16 bits are set to 0.
+    /// - For network execution, the most significant bit is set to `0b0` and the remaining bits are
+    ///   set to the 31 most significant bits of the account ID. Note that this results in the two
+    ///   most significant bits of the tag being set to `0b00` because the most significant bit of
+    ///   a public account ID is always 0.
     ///
     /// # Errors
     ///
@@ -117,7 +119,7 @@ impl NoteTag {
     ///
     /// # Errors
     ///
-    /// - If `use_case_id` is larger than $2^{14}$.
+    /// - If `use_case_id` is larger than or equal to $2^{14}$.
     pub fn for_use_case(
         use_case_id: u16,
         payload: u16,
@@ -255,6 +257,9 @@ impl Deserializable for NoteTag {
         Ok(Self(tag))
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

@@ -37,8 +37,8 @@ const.ERR_INVALID_NOTE_TYPE=0x00020044
 #   that knows some secret, or a specific account id)
 #
 # Only the note type from the above list is enforced. The other values are only hints intended as a
-# best effort optimization strategy. A baddly formatted note may 1. not be consumed because honest
-# users won't see the note 2. generate sligthly more load extra validation is performed for the
+# best effort optimization strategy. A badly formatted note may 1. not be consumed because honest
+# users won't see the note 2. generate slightly more load as extra validation is performed for the
 # invalid tags. None of these scenarios have any significant impact.
 #
 const.ERR_NOTE_INVALID_TYPE_FOR_TAG=0x00020045
