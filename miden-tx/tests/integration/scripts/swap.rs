@@ -105,5 +105,5 @@ fn prove_swap_script() {
     let note_id = NoteId::new(recipient, assets.commitment());
 
     let created_note = executed_transaction.output_notes().get_note(0);
-    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, note_metadata).unwrap());
+    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, note_metadata));
 }

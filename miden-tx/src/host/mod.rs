@@ -145,7 +145,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             OutputNote::Public(Note::new(vault, metadata, recipient))
         } else {
             let note_id = NoteId::new(recipient, vault.commitment());
-            OutputNote::Private(NoteHeader::new(note_id, metadata).expect("NoteType checked above"))
+            OutputNote::Private(NoteHeader::new(note_id, metadata))
         };
 
         self.output_notes.push(note);

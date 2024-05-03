@@ -2,9 +2,8 @@ use alloc::vec::Vec;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
-    NoteType, Serializable, Word,
+    Serializable, Word,
 };
-use crate::NoteError;
 
 // NOTE HEADER
 // ================================================================================================
@@ -20,13 +19,9 @@ pub struct NoteHeader {
 }
 
 impl NoteHeader {
-    /// Returns a new [NoteHeader] object.
-    pub fn new(note_id: NoteId, note_metadata: NoteMetadata) -> Result<Self, NoteError> {
-        let note_type = note_metadata.note_type();
-        if note_type != NoteType::OffChain {
-            return Err(NoteError::InvalidNoteType(note_type));
-        }
-        Ok(Self { note_id, note_metadata })
+    /// Returns a new [NoteHeader] instantiated from the specified note ID and metadata.
+    pub fn new(note_id: NoteId, note_metadata: NoteMetadata) -> Self {
+        Self { note_id, note_metadata }
     }
 
     /// Returns the note's identifier.
