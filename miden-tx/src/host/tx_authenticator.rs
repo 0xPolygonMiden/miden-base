@@ -3,12 +3,15 @@ use core::cell::RefCell;
 
 use miden_objects::{
     accounts::AccountDelta,
-    crypto::dsa::rpo_falcon512::{self, Polynomial},
+    crypto::dsa::rpo_falcon512::{self, Polynomial, SecretKey},
 };
 use rand::Rng;
-use vm_processor::{Digest, Felt, Word};
+use vm_processor::{DeserializationError, Digest, Felt, Word};
 
-use crate::error::AuthenticationError;
+use crate::{
+    error::AuthenticationError,
+    utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable},
+};
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
@@ -39,14 +42,53 @@ pub trait TransactionAuthenticator {
     ) -> Result<Vec<Felt>, AuthenticationError>;
 }
 
-// BASIC AUTHENTICATOR
+// AUTH SECRET KEY
 // ================================================================================================
 
 /// Types of secret keys used for signing messages
 #[derive(Clone, Debug)]
+#[repr(u8)]
 pub enum AuthSecretKey {
-    RpoFalcon512(rpo_falcon512::SecretKey),
+    RpoFalcon512(rpo_falcon512::SecretKey) = 0,
 }
+
+impl AuthSecretKey {
+    /// Identifier for the type of authentication key
+    pub fn key_id(&self) -> u8 {
+        match self {
+            AuthSecretKey::RpoFalcon512(_) => 0u8,
+        }
+    }
+}
+
+impl Serializable for AuthSecretKey {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let mut bytes = vec![self.key_id()];
+        match self {
+            AuthSecretKey::RpoFalcon512(key_pair) => {
+                bytes.append(&mut key_pair.to_bytes());
+                target.write_bytes(&bytes);
+            },
+        }
+    }
+}
+
+impl Deserializable for AuthSecretKey {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let auth_key_id: u8 = source.read_u8()?;
+        match auth_key_id {
+            // RpoFalcon512
+            0u8 => {
+                let key_pair = SecretKey::read_from(source)?;
+                Ok(AuthSecretKey::RpoFalcon512(key_pair))
+            },
+            val => Err(DeserializationError::InvalidValue(val.to_string())),
+        }
+    }
+}
+
+// BASIC AUTHENTICATOR
+// ================================================================================================
 
 #[derive(Clone, Debug)]
 /// Represents a signer for [KeySecret] keys
@@ -166,5 +208,27 @@ impl TransactionAuthenticator for () {
         Err(AuthenticationError::RejectedSignature(
             "Default authenticator cannot provide signatures".to_string(),
         ))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    
+
+    use miden_objects::crypto::dsa::rpo_falcon512::SecretKey;
+    use mock::utils::{Deserializable, Serializable};
+
+    use crate::AuthSecretKey;
+
+    #[test]
+    fn serialize_auth_key() {
+        let secret_key = SecretKey::new();
+        let auth_key = AuthSecretKey::RpoFalcon512(secret_key.clone());
+        let serialized = auth_key.to_bytes();
+        let deserialized = AuthSecretKey::read_from_bytes(&serialized).unwrap();
+
+        match deserialized {
+            AuthSecretKey::RpoFalcon512(key) => assert_eq!(secret_key.to_bytes(), key.to_bytes()),
+        }
     }
 }
