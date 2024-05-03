@@ -108,9 +108,9 @@ pub fn mock_account_storage() -> AccountStorage {
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 9] = [
-    "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
-    "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
-    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
+    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
+    "0xb2a57ebd6c62626a495a278087ad07d0e82cdfbcca6eb5f8632dc6d5722fd504",
+    "0x8a4915d900f3448e99eea41f4464c61bb78229832fc1921cbcd55dac16672626",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
     "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
@@ -168,7 +168,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0]
             end
 
-            # acct proc 3
+            # acct proc 3
             export.set_item
                 exec.account::set_item
                 # => [R', V, 0, 0, 0]
@@ -177,7 +177,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [R', V]
             end
 
-            # acct proc 4
+            # acct proc 4
             export.set_map_item
                 exec.account::set_map_item
                 # => [R', V, 0, 0, 0]
