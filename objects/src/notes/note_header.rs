@@ -6,7 +6,7 @@ use super::{
 };
 use crate::NoteError;
 
-// NOTE ENVELOPE
+// NOTE HEADER
 // ================================================================================================
 
 /// Holds the strictly required, public information of a note.
@@ -14,13 +14,13 @@ use crate::NoteError;
 /// See [NoteId] and [NoteMetadata] for additional details.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct NoteEnvelope {
+pub struct NoteHeader {
     note_id: NoteId,
     note_metadata: NoteMetadata,
 }
 
-impl NoteEnvelope {
-    /// Returns a new [NoteEnvelope] object.
+impl NoteHeader {
+    /// Returns a new [NoteHeader] object.
     pub fn new(note_id: NoteId, note_metadata: NoteMetadata) -> Result<Self, NoteError> {
         let note_type = note_metadata.note_type();
         if note_type != NoteType::OffChain {
@@ -42,62 +42,62 @@ impl NoteEnvelope {
     }
 }
 
-impl From<NoteEnvelope> for [Felt; 8] {
-    fn from(note_envelope: NoteEnvelope) -> Self {
-        (&note_envelope).into()
+impl From<NoteHeader> for [Felt; 8] {
+    fn from(note_header: NoteHeader) -> Self {
+        (&note_header).into()
     }
 }
 
-impl From<NoteEnvelope> for [Word; 2] {
-    fn from(note_envelope: NoteEnvelope) -> Self {
-        (&note_envelope).into()
+impl From<NoteHeader> for [Word; 2] {
+    fn from(note_header: NoteHeader) -> Self {
+        (&note_header).into()
     }
 }
 
-impl From<NoteEnvelope> for [u8; 64] {
-    fn from(note_envelope: NoteEnvelope) -> Self {
-        (&note_envelope).into()
+impl From<NoteHeader> for [u8; 64] {
+    fn from(note_header: NoteHeader) -> Self {
+        (&note_header).into()
     }
 }
 
-impl From<&NoteEnvelope> for [Felt; 8] {
-    fn from(note_envelope: &NoteEnvelope) -> Self {
+impl From<&NoteHeader> for [Felt; 8] {
+    fn from(note_header: &NoteHeader) -> Self {
         let mut elements: [Felt; 8] = Default::default();
-        elements[..4].copy_from_slice(note_envelope.note_id.as_elements());
-        elements[4..].copy_from_slice(&Word::from(note_envelope.metadata()));
+        elements[..4].copy_from_slice(note_header.note_id.as_elements());
+        elements[4..].copy_from_slice(&Word::from(note_header.metadata()));
         elements
     }
 }
 
-impl From<&NoteEnvelope> for [Word; 2] {
-    fn from(note_envelope: &NoteEnvelope) -> Self {
+impl From<&NoteHeader> for [Word; 2] {
+    fn from(note_header: &NoteHeader) -> Self {
         let mut elements: [Word; 2] = Default::default();
-        elements[0].copy_from_slice(note_envelope.note_id.as_elements());
-        elements[1].copy_from_slice(&Word::from(note_envelope.metadata()));
+        elements[0].copy_from_slice(note_header.note_id.as_elements());
+        elements[1].copy_from_slice(&Word::from(note_header.metadata()));
         elements
     }
 }
 
-impl From<&NoteEnvelope> for [u8; 64] {
-    fn from(note_envelope: &NoteEnvelope) -> Self {
+impl From<&NoteHeader> for [u8; 64] {
+    fn from(note_header: &NoteHeader) -> Self {
         let mut elements: [u8; 64] = [0; 64];
-        let note_metadata_bytes = Word::from(note_envelope.metadata())
+        let note_metadata_bytes = Word::from(note_header.metadata())
             .iter()
             .flat_map(|x| x.as_int().to_le_bytes())
             .collect::<Vec<u8>>();
-        elements[..32].copy_from_slice(&note_envelope.note_id.as_bytes());
+        elements[..32].copy_from_slice(&note_header.note_id.as_bytes());
         elements[32..].copy_from_slice(&note_metadata_bytes);
         elements
     }
 }
 
-impl From<Note> for NoteEnvelope {
+impl From<Note> for NoteHeader {
     fn from(note: Note) -> Self {
         (&note).into()
     }
 }
 
-impl From<&Note> for NoteEnvelope {
+impl From<&Note> for NoteHeader {
     fn from(note: &Note) -> Self {
         Self {
             note_id: note.id(),
@@ -109,14 +109,14 @@ impl From<&Note> for NoteEnvelope {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for NoteEnvelope {
+impl Serializable for NoteHeader {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.note_id.write_into(target);
         self.note_metadata.write_into(target);
     }
 }
 
-impl Deserializable for NoteEnvelope {
+impl Deserializable for NoteHeader {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let note_id = NoteId::read_from(source)?;
         let note_metadata = NoteMetadata::read_from(source)?;

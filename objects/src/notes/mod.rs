@@ -15,8 +15,8 @@ use crate::{
 mod assets;
 pub use assets::NoteAssets;
 
-mod envelope;
-pub use envelope::NoteEnvelope;
+mod note_header;
+pub use note_header::NoteHeader;
 
 mod inputs;
 pub use inputs::NoteInputs;

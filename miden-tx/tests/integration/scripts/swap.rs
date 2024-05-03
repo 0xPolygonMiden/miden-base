@@ -10,7 +10,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteEnvelope, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
+    notes::{NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionArgs,
     Felt, ZERO,
 };
@@ -105,8 +105,5 @@ fn prove_swap_script() {
     let note_id = NoteId::new(recipient, assets.commitment());
 
     let created_note = executed_transaction.output_notes().get_note(0);
-    assert_eq!(
-        NoteEnvelope::from(created_note),
-        NoteEnvelope::new(note_id, note_metadata).unwrap()
-    );
+    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, note_metadata).unwrap());
 }
