@@ -13,7 +13,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteAssets, NoteId, NoteMetadata, NoteType},
+    notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
@@ -46,8 +46,11 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
-    let tag = 4.into();
+    let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let note_type = NoteType::OffChain;
     let amount = Felt::new(100);
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
 
     let tx_script_code = ProgramAst::parse(
         format!(
@@ -68,8 +71,9 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
-            note_type = NoteType::OffChain as u8,
+            note_type = note_type as u8,
             recipient = prepare_word(&recipient),
+            tag = u32::from(tag),
         )
         .as_str(),
     )

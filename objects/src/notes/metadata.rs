@@ -5,20 +5,6 @@ use super::{
     NoteTag, NoteType, Serializable, Word,
 };
 
-// CONSTANTS
-// ================================================================================================
-const NETWORK_EXECUTION: u8 = 0;
-const LOCAL_EXECUTION: u8 = 1;
-
-/// Determines if a note is intended to be consumed by the network or not.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum NoteExecutionMode {
-    Network = NETWORK_EXECUTION,
-    Local = LOCAL_EXECUTION,
-}
-
 // NOTE METADATA
 // ================================================================================================
 
