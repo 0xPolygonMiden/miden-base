@@ -24,7 +24,7 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::{NoteExecutionMode, NoteMetadata};
+pub use metadata::NoteMetadata;
 
 mod note_header;
 pub use note_header::NoteHeader;

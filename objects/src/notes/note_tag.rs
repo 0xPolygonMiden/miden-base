@@ -202,11 +202,6 @@ impl NoteTag {
 
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
-    ///
-    /// The tag and the note type are consistent if they satisfy the following rules:
-    /// - For off-chain notes, the most significant bit of the tag is 0.
-    /// - For public notes, the second most significant bit of the tag is 0.
-    /// - For encrypted notes, two most significant bits of the tag is 00.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
         if self.execution_hint() == NoteExecutionHint::Network && note_type != NoteType::Public {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));

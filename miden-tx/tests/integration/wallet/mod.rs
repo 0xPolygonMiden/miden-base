@@ -10,7 +10,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::NoteType,
+    notes::{NoteTag, NoteType},
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
