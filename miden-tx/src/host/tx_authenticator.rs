@@ -66,7 +66,7 @@ impl Serializable for AuthSecretKey {
         target.write_u8(self.key_id());
         match self {
             AuthSecretKey::RpoFalcon512(secret_key) => {
-                target.write_bytes(&secret_key.to_bytes());
+                secret_key.write_into(target);
             },
         }
     }
