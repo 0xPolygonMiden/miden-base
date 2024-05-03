@@ -99,7 +99,7 @@ The Miden node will recursively verify transactions and in doing so build batche
    * **on-chain order book exchange** due to parallel transaction execution and updatable transactions.
    * **complex, incomplete information games** due to client-side proving and cheap complex computations.
    * **safe wallets** due to hidden account state.
-* Better privacy properties than on Ethereum - first web2 privacy, later even stronger privacy guarantees.
+* Better privacy properties than on Ethereum - first web2 privacy, later even stronger self-sovereignty.
 * Transactions can be recalled and updated.
 * Lower fees due to client-side proving.
 * dApps on Miden are safe to use due to account abstraction and compile-time safe Rust smart contracts.

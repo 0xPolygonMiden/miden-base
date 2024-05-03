@@ -6,7 +6,7 @@ In this section, we show you how to create a new local Miden account and how to 
 
 ## Configure the Miden client
 
-The Miden client facilitates interaction with the Miden rollup and provides a way to execute and prove transactions. 
+The Miden client facilitates interaction with the Miden rollup and provides a way to execute and prove transactions.
 
 !!! tip
       Check the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for more information.
@@ -28,7 +28,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 3. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
     ```sh
-    miden-client init 
+    miden-client init
     ```
 
     Accept the default for `Protocol` by clicking enter.
@@ -73,7 +73,7 @@ Save the account ID for a future step.
 
 2. Copy the **Account ID** printed by the `miden-client account -l` command in the previous step. 
 
-3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 333 tokens!**. 
+3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 333 tokens!**.
 
 4. After a few seconds your browser should download - or prompt you to download - a file called `note.mno` (mno = Miden note). This private note contains the funds the faucet sent to your address.
 
@@ -125,7 +125,7 @@ State synced to block 179672
 
 ## Consume the note & receive the funds
 
-1. Now that we have synced the client, the input-note imported from the faucet should have a `Commit Height` confirming it exists at the rollup level: 
+1. Now that we have synced the client, the input-note imported from the faucet should have a `Commit Height` confirming it exists at the rollup level:
 
       ```shell
       miden-client input-notes -l
@@ -153,7 +153,7 @@ State synced to block 179672
 
   Amazing! You just have created a client-side zero-knowledge proof locally on your machine. 
 
-!!! tip 
+!!! tip
       You only need to copy the top line of characters of the Note ID.
 
 ## View confirmations
@@ -167,3 +167,17 @@ State synced to block 179672
 6. You should now see your accounts vault containing the funds sent by the faucet. 
 
       ![Viewing account vault with funds](../../img/get-started/view-account-vault.png)
+
+## Congratulations!
+
+You have successfully configured and used the Miden client to interact with a Miden rollup and faucet.
+
+You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
+
+For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
+
+## Debugging tips (clear state and folder)
+
+- Need a fresh start? All state is maintained in `store.sqlite3`, located in the directory defined in the `miden-client.toml` file. If you want to clear all state, delete this file. It recreates on any command execution.
+
+- Getting an error? Only execute the `miden-client` command in the folder where your `miden-client.toml` is located.
