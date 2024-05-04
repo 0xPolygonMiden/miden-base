@@ -149,16 +149,11 @@ end
 export.incr_nonce
     u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
 
-    # duplicate the value to be able to emit an event after the nonce is being incremented
-    dup
+    # emit event to signal that account nonce is being incremented
+    emit.ACCOUNT_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
-
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit event to signal that account nonce is being incremented
-    push.1 drop emit.ACCOUNT_INCREMENT_NONCE_EVENT drop
 end
 
 #! Returns the account id.
