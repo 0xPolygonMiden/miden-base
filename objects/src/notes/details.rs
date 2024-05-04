@@ -4,25 +4,14 @@ use miden_crypto::{
 };
 use vm_processor::DeserializationError;
 
-use super::{Digest, NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
+use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier};
 
-// NOTE
+// NOTE DETAILS
 // ================================================================================================
 
-/// A note with all the data required for it to be consumed by executing it against the transaction
-/// kernel.
+/// Details of a note consisting of assets, script, inputs, and a serial number.
 ///
-/// Notes are created with a script, inputs, assets, and a serial number. Fungible and non-fungible
-/// asset transfers are done by moving assets to the note's assets. The note's script determines the
-/// conditions required for the note consumption, i.e. the target account of a P2ID or conditions
-/// of a SWAP, and the effects of the note. The serial number has a double duty of preventing double
-/// spend, and providing unlikability to the consumer of a note. The note's inputs allow for
-/// customization of its script.
-///
-/// To create a note, the kernel does not require all the information above, a user can create a
-/// note only with the commitment to the script, inputs, the serial number, and the kernel only
-/// verifies the source account has the assets necessary for the note creation. See [NoteRecipient]
-/// for more details.
+/// See [super::Note] for more details.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteDetails {
@@ -42,16 +31,6 @@ impl NoteDetails {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the note's assets.
-    pub fn assets(&self) -> &NoteAssets {
-        &self.assets
-    }
-
-    /// Returns the note's recipient.
-    pub fn recipient(&self) -> &NoteRecipient {
-        &self.recipient
-    }
-
     /// Returns the note's unique identifier.
     ///
     /// This value is both an unique identifier and a commitment to the note.
@@ -59,11 +38,9 @@ impl NoteDetails {
         NoteId::from(self)
     }
 
-    /// Returns the note's nullifier.
-    ///
-    /// This is public data, used to prevent double spend.
-    pub fn nullifier(&self) -> Nullifier {
-        Nullifier::from(self)
+    /// Returns the note's assets.
+    pub fn assets(&self) -> &NoteAssets {
+        &self.assets
     }
 
     /// Returns the note's recipient serial_num, the secret required to consume the note.
@@ -81,11 +58,16 @@ impl NoteDetails {
         self.recipient.inputs()
     }
 
-    /// Returns the note's recipient digest, which commits to its details.
+    /// Returns the note's recipient.
+    pub fn recipient(&self) -> &NoteRecipient {
+        &self.recipient
+    }
+
+    /// Returns the note's nullifier.
     ///
-    /// This is the public data required to create a note.
-    pub fn recipient_digest(&self) -> Digest {
-        self.recipient.digest()
+    /// This is public data, used to prevent double spend.
+    pub fn nullifier(&self) -> Nullifier {
+        Nullifier::from(self)
     }
 
     /// Decomposes note details into underlying assets and recipient.

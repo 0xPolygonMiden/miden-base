@@ -62,17 +62,24 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 /// A note with all the data required for it to be consumed by executing it against the transaction
 /// kernel.
 ///
-/// Notes are created with a script, inputs, assets, and a serial number. Fungible and non-fungible
-/// asset transfers are done by moving assets to the note's assets. The note's script determines the
-/// conditions required for the note consumption, i.e. the target account of a P2ID or conditions
-/// of a SWAP, and the effects of the note. The serial number has a double duty of preventing double
-/// spend, and providing unlikability to the consumer of a note. The note's inputs allow for
-/// customization of its script.
+/// Notes consist of note metadata and details. Note metadata is always public, but details may be
+/// either public, encrypted, or private, depending on the note type. Note details consist of note
+/// assets, script, inputs, and a serial number, the three latter grouped into a recipient object.
+///
+/// Note details can be reduced to two unique identifiers: [NoteId] and [Nullifier]. The former is
+/// publicly associated with a note, while the latter is known only to entities which have access
+/// to full note details.
+///
+/// Fungible and non-fungible asset transfers are done by moving assets to the note's assets. The
+/// note's script determines the conditions required for the note consumption, i.e. the target
+/// account of a P2ID or conditions of a SWAP, and the effects of the note. The serial number has
+/// a double duty of preventing double spend, and providing unlikability to the consumer of a note.
+/// The note's inputs allow for customization of its script.
 ///
 /// To create a note, the kernel does not require all the information above, a user can create a
-/// note only with the commitment to the script, inputs, the serial number, and the kernel only
-/// verifies the source account has the assets necessary for the note creation. See [NoteRecipient]
-/// for more details.
+/// note only with the commitment to the script, inputs, the serial number (i.e., the recipient),
+/// and the kernel only verifies the source account has the assets necessary for the note creation.
+/// See [NoteRecipient] for more details.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Note {
@@ -98,21 +105,6 @@ impl Note {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the note's assets.
-    pub fn assets(&self) -> &NoteAssets {
-        self.details.assets()
-    }
-
-    /// Returns the note's metadata.
-    pub fn metadata(&self) -> &NoteMetadata {
-        self.header.metadata()
-    }
-
-    /// Returns the note's recipient.
-    pub fn recipient(&self) -> &NoteRecipient {
-        self.details.recipient()
-    }
-
     /// Returns the note's unique identifier.
     ///
     /// This value is both an unique identifier and a commitment to the note.
@@ -120,21 +112,14 @@ impl Note {
         self.header.id()
     }
 
-    /// Returns the note's authentication hash.
-    ///
-    /// This value is used authenticate the note's presence in the note tree, it is computed as:
-    ///
-    /// > hash(note_id, note_metadata)
-    ///
-    pub fn authentication_hash(&self) -> Digest {
-        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+    /// Returns the note's metadata.
+    pub fn metadata(&self) -> &NoteMetadata {
+        self.header.metadata()
     }
 
-    /// Returns the note's nullifier.
-    ///
-    /// This is public data, used to prevent double spend.
-    pub fn nullifier(&self) -> Nullifier {
-        self.nullifier
+    /// Returns the note's assets.
+    pub fn assets(&self) -> &NoteAssets {
+        self.details.assets()
     }
 
     /// Returns the note's recipient serial_num, the secret required to consume the note.
@@ -152,11 +137,53 @@ impl Note {
         self.details.inputs()
     }
 
-    /// Returns the note's recipient digest, which commits to its details.
+    /// Returns the note's recipient.
+    pub fn recipient(&self) -> &NoteRecipient {
+        self.details.recipient()
+    }
+
+    /// Returns the note's nullifier.
     ///
-    /// This is the public data required to create a note.
-    pub fn recipient_digest(&self) -> Digest {
-        self.details.recipient_digest()
+    /// This is public data, used to prevent double spend.
+    pub fn nullifier(&self) -> Nullifier {
+        self.nullifier
+    }
+
+    /// Returns the note's authentication hash.
+    ///
+    /// This value is used authenticate the note's presence in the note tree, it is computed as:
+    ///
+    /// > hash(note_id, note_metadata)
+    ///
+    pub fn authentication_hash(&self) -> Digest {
+        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+    }
+}
+
+// CONVERSIONS FROM NOTE
+// ================================================================================================
+
+impl From<&Note> for NoteHeader {
+    fn from(note: &Note) -> Self {
+        note.header
+    }
+}
+
+impl From<Note> for NoteHeader {
+    fn from(note: Note) -> Self {
+        note.header
+    }
+}
+
+impl From<&Note> for NoteDetails {
+    fn from(note: &Note) -> Self {
+        note.details.clone()
+    }
+}
+
+impl From<Note> for NoteDetails {
+    fn from(note: Note) -> Self {
+        note.details
     }
 }
 
@@ -169,11 +196,11 @@ impl Serializable for Note {
             header,
             details,
 
-            // These attributes don't have to be serialized, they can be re-computed from the rest
-            // of the data
+            // nullifier is not serialized as it can be computed from the rest of the data
             nullifier: _,
         } = self;
 
+        // only metadata is serialized as note ID can be computed from note details
         header.metadata().write_into(target);
         details.write_into(target);
     }

@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Note, NoteId, NoteMetadata,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, NoteId, NoteMetadata,
     Serializable, Word,
 };
 
@@ -36,6 +36,9 @@ impl NoteHeader {
         &self.note_metadata
     }
 }
+
+// CONVERSIONS FROM NOTE HEADER
+// ================================================================================================
 
 impl From<NoteHeader> for [Felt; 8] {
     fn from(note_header: NoteHeader) -> Self {
@@ -83,21 +86,6 @@ impl From<&NoteHeader> for [u8; 64] {
         elements[..32].copy_from_slice(&note_header.note_id.as_bytes());
         elements[32..].copy_from_slice(&note_metadata_bytes);
         elements
-    }
-}
-
-impl From<Note> for NoteHeader {
-    fn from(note: Note) -> Self {
-        (&note).into()
-    }
-}
-
-impl From<&Note> for NoteHeader {
-    fn from(note: &Note) -> Self {
-        Self {
-            note_id: note.id(),
-            note_metadata: *note.metadata(),
-        }
     }
 }
 
