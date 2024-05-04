@@ -1,4 +1,4 @@
-use miden_lib::notes::{create_swap_note, utils::build_p2id_recipient};
+use miden_lib::notes::create_swap_note;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -48,7 +48,7 @@ fn prove_swap_script() {
     );
 
     // Create the note containing the SWAP script
-    let (note, repay_serial_num) = create_swap_note(
+    let (note, payback_note) = create_swap_note(
         sender_account_id,
         fungible_asset,
         non_fungible_asset,
@@ -97,12 +97,12 @@ fn prove_swap_script() {
     assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
     // Check if the created `Note` is what we expect
-    let recipient = build_p2id_recipient(sender_account_id, repay_serial_num).unwrap();
+    let recipient = payback_note.recipient().clone();
     let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionHint::Local).unwrap();
     let note_metadata =
         NoteMetadata::new(target_account_id, NoteType::OffChain, tag, ZERO).unwrap();
     let assets = NoteAssets::new(vec![non_fungible_asset]).unwrap();
-    let note_id = NoteId::new(recipient, assets.commitment());
+    let note_id = NoteId::new(recipient.digest(), assets.commitment());
 
     let created_note = executed_transaction.output_notes().get_note(0);
     assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, note_metadata));
