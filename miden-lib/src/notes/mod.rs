@@ -121,19 +121,57 @@ pub fn create_swap_note<R: FeltRng>(
         payback_tag.inner().into(),
     ])?;
 
-    // TODO: build the tag for the SWAP use case
-    let tag = 0.into();
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
+    // build the outgoing note
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     let note = Note::new(assets, metadata, recipient);
 
-    // construct the payback note details
+    // build the payback note details
     let payback_assets = NoteAssets::new(vec![requested_asset])?;
     let payback_note = NoteDetails::new(payback_assets, payback_recipient);
 
     Ok((note, payback_note))
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Returns a note tag for a swap note with the specified parameters.
+/// 
+/// Use case ID for the returned tag is set to 0.
+/// 
+/// Tag payload is constructed by taking asset tags (8 bits of faucet ID) and concatenating them
+/// together as offered_asset_tag + requested_asset tag.
+/// 
+/// Network execution hint for the returned tag is set to `Local`.
+fn build_swap_tag(
+    note_type: NoteType,
+    offered_asset: &Asset,
+    requested_asset: &Asset,
+) -> Result<NoteTag, NoteError> {
+    const SWAP_USE_CASE_ID: u16 = 0;
+
+    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
+    // reason we skip the 4 most significant bits is that these encode metadata of underlying
+    // faucets and are likely to be the same for many different faucets.
+
+    let offered_asset_id: u64 = offered_asset.faucet_id().is_faucet().into();
+    let offered_asset_tag = (offered_asset_id >> 52) as u8;
+
+    let requested_asset_id: u64 = requested_asset.faucet_id().is_faucet().into();
+    let requested_asset_tag = (requested_asset_id >> 52) as u8;
+
+    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
+
+    let execution = NoteExecutionHint::Local;
+    match note_type {
+        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
+        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
+    }
 }
