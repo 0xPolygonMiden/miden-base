@@ -143,12 +143,12 @@ pub fn create_swap_note<R: FeltRng>(
 // ================================================================================================
 
 /// Returns a note tag for a swap note with the specified parameters.
-/// 
+///
 /// Use case ID for the returned tag is set to 0.
-/// 
+///
 /// Tag payload is constructed by taking asset tags (8 bits of faucet ID) and concatenating them
 /// together as offered_asset_tag + requested_asset tag.
-/// 
+///
 /// Network execution hint for the returned tag is set to `Local`.
 fn build_swap_tag(
     note_type: NoteType,
