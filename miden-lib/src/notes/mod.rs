@@ -161,10 +161,10 @@ fn build_swap_tag(
     // reason we skip the 4 most significant bits is that these encode metadata of underlying
     // faucets and are likely to be the same for many different faucets.
 
-    let offered_asset_id: u64 = offered_asset.faucet_id().is_faucet().into();
+    let offered_asset_id: u64 = offered_asset.faucet_id().into();
     let offered_asset_tag = (offered_asset_id >> 52) as u8;
 
-    let requested_asset_id: u64 = requested_asset.faucet_id().is_faucet().into();
+    let requested_asset_id: u64 = requested_asset.faucet_id().into();
     let requested_asset_tag = (requested_asset_id >> 52) as u8;
 
     let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
