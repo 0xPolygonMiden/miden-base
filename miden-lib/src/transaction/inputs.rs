@@ -26,7 +26,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let account = self.account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            account.init_account_hash(),
+            account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -43,7 +43,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let account = self.initial_account();
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            account.init_account_hash(),
+            account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );
@@ -61,7 +61,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
-            account.init_account_hash(),
+            account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
         );

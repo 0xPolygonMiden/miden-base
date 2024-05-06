@@ -63,7 +63,7 @@ impl TransactionProver {
 
         let builder = ProvenTransactionBuilder::new(
             account_id,
-            tx_witness.account().init_account_hash(),
+            tx_witness.account().init_hash(),
             tx_outputs.account.hash(),
             block_hash,
             proof,

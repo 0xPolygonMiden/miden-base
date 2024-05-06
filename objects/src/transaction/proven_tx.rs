@@ -76,7 +76,7 @@ impl ProvenTransaction {
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
         if self.account_id().is_on_chain() {
-            let is_new_account = self.account_update.init_state_hash().is_none();
+            let is_new_account = self.account_update.init_state_hash() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
                     return Err(ProvenTransactionError::OnChainAccountMissingDetails(
@@ -172,9 +172,7 @@ pub struct ProvenTransactionBuilder {
     account_id: AccountId,
 
     /// The hash of the account before the transaction was executed.
-    ///
-    /// Set to `None` for new accounts.
-    initial_account_hash: Option<Digest>,
+    initial_account_hash: Digest,
 
     /// The hash of the account after the transaction was executed.
     final_account_hash: Digest,
@@ -202,13 +200,11 @@ impl ProvenTransactionBuilder {
     /// Returns a [ProvenTransactionBuilder] used to build a [ProvenTransaction].
     pub fn new(
         account_id: AccountId,
-        initial_account_hash: Option<Digest>,
+        initial_account_hash: Digest,
         final_account_hash: Digest,
         block_ref: Digest,
         proof: ExecutionProof,
     ) -> Self {
-        debug_assert_ne!(initial_account_hash, Some(Digest::default()));
-
         Self {
             account_id,
             initial_account_hash,
@@ -296,8 +292,8 @@ pub struct TxAccountUpdate {
 
     /// The hash of the account before a transaction was executed.
     ///
-    /// Set to `None` for new accounts.
-    init_state_hash: Option<Digest>,
+    /// Set to `Digest::default()` for new accounts.
+    init_state_hash: Digest,
 
     /// The hash of the account state after a transaction was executed.
     final_state_hash: Digest,
@@ -312,7 +308,7 @@ impl TxAccountUpdate {
     /// Returns a new [TxAccountUpdate] instantiated from the specified components.
     pub const fn new(
         account_id: AccountId,
-        init_state_hash: Option<Digest>,
+        init_state_hash: Digest,
         final_state_hash: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
@@ -330,7 +326,7 @@ impl TxAccountUpdate {
     }
 
     /// Returns the hash of the account's initial state.
-    pub fn init_state_hash(&self) -> Option<Digest> {
+    pub fn init_state_hash(&self) -> Digest {
         self.init_state_hash
     }
 
@@ -366,7 +362,7 @@ impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
             account_id: AccountId::read_from(source)?,
-            init_state_hash: <Option<Digest>>::read_from(source)?,
+            init_state_hash: Digest::read_from(source)?,
             final_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })

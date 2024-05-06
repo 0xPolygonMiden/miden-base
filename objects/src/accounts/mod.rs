@@ -1,5 +1,3 @@
-use core::ops::Not;
-
 use crate::{
     assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::AssetVault,
@@ -90,6 +88,22 @@ impl Account {
         )
     }
 
+    /// Returns hash of this account as used for the initial account state hash in transaction
+    /// proofs.
+    ///
+    /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
+    /// accounts this value is set to [ZERO; 4]. This is because when a transaction is executed
+    /// against a new account, public input for the initial account state is set to [ZERO; 4] to
+    /// distinguish new accounts from existing accounts. The actual hash of the initial account
+    /// state (and the initial state itself), are provided to the VM via the advice provider.
+    pub fn init_hash(&self) -> Digest {
+        if self.is_new() {
+            Digest::default()
+        } else {
+            self.hash()
+        }
+    }
+
     /// Returns unique identifier of this account.
     pub fn id(&self) -> AccountId {
         self.id
@@ -138,19 +152,6 @@ impl Account {
     /// Returns true if the account is new (i.e. it has not been initialized yet).
     pub fn is_new(&self) -> bool {
         self.nonce == ZERO
-    }
-
-    /// Returns hash of the given account as used for the initial account state hash in transaction
-    /// proofs.
-    ///
-    /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
-    /// accounts this value is set to `None`. This is because when a transaction is executed
-    /// against a new account, public input for the initial account state is set to [ZERO; 4] to
-    /// distinguish new accounts from existing accounts, and `None` returned from this method.
-    /// indicates that `[ZERO; 4]` should be used as a public input. The actual hash of the initial
-    /// account state (and the initial state itself), are provided to the VM via the advice provider.
-    pub fn init_account_hash(&self) -> Option<Digest> {
-        self.is_new().not().then(|| self.hash())
     }
 
     // DATA MUTATORS

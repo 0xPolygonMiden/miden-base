@@ -457,7 +457,8 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
 
-        // TODO: Set batch_root and proof_hash to the correct values once the kernel is available.
+        // TODO: Set batch_root and proof_hash to the correct values once the kernel is
+        // available.
         let batch_root = Digest::default();
         let proof_hash = Digest::default();
 
