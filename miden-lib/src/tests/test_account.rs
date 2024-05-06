@@ -310,7 +310,7 @@ fn test_set_item() {
         # get the item
         exec.account::set_item
 
-        # assert empty old value
+        # assert empty old value
         padw assert_eqw
 
         # get the new storage root
