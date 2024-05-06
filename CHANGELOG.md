@@ -21,11 +21,11 @@
 * Made `TransactionArgs::add_expected_output_note()` more flexible (#681).
 * [BREAKING] Enabled support for notes without assets and refactored `create_note` procedure in the transaction kernel (#686).
 
+* Introduce the `miden-bench-tx` crate used for transactions benchmarking (#577).
 * [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
 * [BREAKING] Refactored account update details, moved `Block` to `miden-objects` (#618, #621).
-* [BREAKING] Changed type of `version` and `timestamp` fields to `u32`, moved `version` to the beginning of block header
-  (#639).
-* Introduce the `miden-bench-tx` crate used for transactions benchmarking (#577).
+* [BREAKING] Changed type of `version` and `timestamp` fields to `u32`, moved `version` to the beginning of block header (#639).
+* [BREAKING] Renamed `NoteEnvelope` into `NoteHeader` and introduced `NoteDetails` (#664).
 
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 
