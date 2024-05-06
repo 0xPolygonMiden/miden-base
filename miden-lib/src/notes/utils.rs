@@ -1,6 +1,8 @@
 use miden_objects::{
-    accounts::AccountId, assembly::ProgramAst, notes::NoteScript, Digest, Hasher, NoteError, Word,
-    ZERO,
+    accounts::AccountId,
+    assembly::ProgramAst,
+    notes::{NoteInputs, NoteRecipient, NoteScript},
+    NoteError, Word, ZERO,
 };
 
 use crate::transaction::TransactionKernel;
@@ -15,21 +17,19 @@ pub fn build_note_script(bytes: &[u8]) -> Result<NoteScript, NoteError> {
     Ok(note_script)
 }
 
-/// Creates the RECIPIENT for the P2ID note script created by the SWAP script
-pub fn build_p2id_recipient(target: AccountId, serial_num: Word) -> Result<Digest, NoteError> {
+/// Creates a [NoteRecipient] for the P2ID note.
+///
+/// Notes created with this recipient will be P2ID notes consumable by the specified target
+/// account.
+pub fn build_p2id_recipient(
+    target: AccountId,
+    serial_num: Word,
+) -> Result<NoteRecipient, NoteError> {
     // TODO: add lazy_static initialization or compile-time optimization instead of re-generating
     // the script hash every time we call the SWAP script
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
+    let note_inputs = NoteInputs::new(vec![target.into(), ZERO, ZERO, ZERO])?;
 
-    let script_hash = note_script.hash();
-
-    let serial_num_hash = Hasher::merge(&[serial_num.into(), Digest::default()]);
-
-    let merge_script = Hasher::merge(&[serial_num_hash, script_hash]);
-
-    Ok(Hasher::merge(&[
-        merge_script,
-        Hasher::hash_elements(&[target.into(), ZERO, ZERO, ZERO]),
-    ]))
+    Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
 }
