@@ -330,16 +330,9 @@ pub mod testing {
         added_assets: Vec<Asset>,
         removed_assets: Vec<Asset>,
         nonce: Felt,
+        storage_delta: AccountStorageDelta,
     ) -> AccountDelta {
-        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![0],
-            updated_items: vec![(1, word)],
-            updated_maps: vec![],
-        };
-
         let vault_delta = AccountVaultDelta { added_assets, removed_assets };
-
         AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
     }
 
@@ -365,7 +358,7 @@ mod tests {
     };
 
     use super::{testing::*, AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::accounts::Account;
+    use crate::accounts::{delta::AccountStorageDeltaBuilder, Account};
 
     #[test]
     fn test_serde_account() {
@@ -383,7 +376,13 @@ mod tests {
     fn test_serde_account_delta() {
         let final_nonce = Felt::new(2);
         let (asset_0, asset_1) = build_assets();
-        let account_delta = build_account_delta(vec![asset_1], vec![asset_0], final_nonce);
+        let storage_delta = AccountStorageDeltaBuilder::new()
+            .add_cleared_items([0])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .build()
+            .unwrap();
+        let account_delta =
+            build_account_delta(vec![asset_1], vec![asset_0], final_nonce, storage_delta);
 
         let serialized = account_delta.to_bytes();
         let deserialized = AccountDelta::read_from_bytes(&serialized).unwrap();
@@ -400,7 +399,13 @@ mod tests {
 
         // build account delta
         let final_nonce = Felt::new(2);
-        let account_delta = build_account_delta(vec![asset_1], vec![asset_0], final_nonce);
+        let storage_delta = AccountStorageDeltaBuilder::new()
+            .add_cleared_items([0])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .build()
+            .unwrap();
+        let account_delta =
+            build_account_delta(vec![asset_1], vec![asset_0], final_nonce, storage_delta);
 
         // apply delta and create final_account
         account.apply_delta(&account_delta).unwrap();
@@ -419,7 +424,12 @@ mod tests {
         let mut account = build_account(vec![asset], init_nonce, vec![Word::default()]);
 
         // build account delta
-        let account_delta = build_account_delta(vec![], vec![asset], init_nonce);
+        let storage_delta = AccountStorageDeltaBuilder::new()
+            .add_cleared_items([0])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .build()
+            .unwrap();
+        let account_delta = build_account_delta(vec![], vec![asset], init_nonce, storage_delta);
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()
@@ -435,7 +445,12 @@ mod tests {
 
         // build account delta
         let final_nonce = Felt::new(1);
-        let account_delta = build_account_delta(vec![], vec![asset], final_nonce);
+        let storage_delta = AccountStorageDeltaBuilder::new()
+            .add_cleared_items([0])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .build()
+            .unwrap();
+        let account_delta = build_account_delta(vec![], vec![asset], final_nonce, storage_delta);
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()

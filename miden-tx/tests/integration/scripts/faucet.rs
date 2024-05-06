@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use miden_lib::{
     accounts::faucets::create_basic_fungible_faucet,
     transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
@@ -11,7 +13,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteAssets, NoteId, NoteMetadata, NoteType},
+    notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
@@ -20,7 +22,7 @@ use mock::utils::prepare_word;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    get_new_key_pair_with_advice_map, get_note_with_fungible_asset_and_script,
+    get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
     prove_and_verify_transaction, MockDataStore,
 };
 
@@ -29,7 +31,7 @@ use crate::{
 
 #[test]
 fn prove_faucet_contract_mint_fungible_asset_succeeds() {
-    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
@@ -37,15 +39,18 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
-    let tag = 4.into();
+    let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let note_type = NoteType::OffChain;
     let amount = Felt::new(100);
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
 
     let tx_script_code = ProgramAst::parse(
         format!(
@@ -66,16 +71,15 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
-            note_type = NoteType::OffChain as u8,
+            note_type = note_type as u8,
             recipient = prepare_word(&recipient),
+            tag = u32::from(tag),
         )
         .as_str(),
     )
     .unwrap();
 
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
@@ -101,7 +105,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
 #[test]
 fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
-    let (faucet_pub_key, faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
 
@@ -109,7 +113,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -144,9 +148,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .as_str(),
     )
     .unwrap();
-    let tx_script = executor
-        .compile_tx_script(tx_script_code, vec![(faucet_pub_key, faucet_keypair_felts)], vec![])
-        .unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
@@ -162,7 +164,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
 #[test]
 fn prove_faucet_contract_burn_fungible_asset_succeeds() {
-    let (faucet_pub_key, _faucet_keypair_felts) = get_new_key_pair_with_advice_map();
+    let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, Some(100));
 
@@ -202,7 +204,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let data_store =
         MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone());
+    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
     let block_ref = data_store.block_header.block_num();

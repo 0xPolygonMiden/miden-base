@@ -22,13 +22,13 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::{NoteExecutionMode, NoteMetadata};
+pub use metadata::NoteMetadata;
 
 mod note_id;
 pub use note_id::NoteId;
 
 mod note_tag;
-pub use note_tag::NoteTag;
+pub use note_tag::{NoteExecutionHint, NoteTag};
 
 mod note_type;
 pub use note_type::NoteType;

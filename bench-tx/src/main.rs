@@ -3,6 +3,7 @@ use std::{
     fs::{read_to_string, write, File},
     io::Write,
     path::Path,
+    rc::Rc,
 };
 
 use miden_lib::{
@@ -17,7 +18,11 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::{TransactionExecutor, TransactionHost, TransactionProgress};
+use miden_tx::{
+    host::BasicAuthenticator, AuthSecretKey, TransactionExecutor, TransactionHost,
+    TransactionProgress,
+};
+use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
@@ -26,7 +31,6 @@ use utils::{
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
-
 pub enum Benchmark {
     Simple,
     P2ID,
@@ -65,7 +69,8 @@ fn main() -> Result<(), String> {
 /// Runs the default transaction with empty transaction script and two default notes.
 pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let data_store = MockDataStore::default();
-    let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None).with_tracing();
 
     let account_id = data_store.account.id();
     executor.load_account(account_id).map_err(|e| e.to_string())?;
@@ -79,7 +84,8 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+    let mut host: TransactionHost<_, ()> =
+        TransactionHost::new(transaction.account().into(), advice_recorder, None);
 
     vm_processor::execute(
         transaction.program(),
@@ -125,7 +131,8 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     let data_store =
         MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
 
-    let mut executor = TransactionExecutor::new(data_store.clone()).with_tracing();
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None).with_tracing();
     executor.load_account(target_account_id).unwrap();
 
     let block_ref = data_store.block_header.block_num();
@@ -149,7 +156,13 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let mut host = TransactionHost::new(transaction.account().into(), advice_recorder);
+    let authenticator = BasicAuthenticator::<StdRng>::new(&[(
+        sec_key.public_key().into(),
+        AuthSecretKey::RpoFalcon512(sec_key),
+    )]);
+    let authenticator = Some(Rc::new(authenticator));
+    let mut host =
+        TransactionHost::new(transaction.account().into(), advice_recorder, authenticator);
 
     vm_processor::execute(
         transaction.program(),

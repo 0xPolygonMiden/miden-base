@@ -122,7 +122,7 @@ mod tests {
     use crate::{
         alloc::vec::Vec,
         crypto::merkle::{Mmr, PartialMmr},
-        BlockHeader, Digest, ZERO,
+        BlockHeader, Digest,
     };
 
     #[test]
@@ -172,6 +172,7 @@ mod tests {
 
     fn int_to_block_header(block_num: u32) -> BlockHeader {
         BlockHeader::new(
+            0,
             Digest::default(),
             block_num,
             Digest::default(),
@@ -180,8 +181,7 @@ mod tests {
             Digest::default(),
             Digest::default(),
             Digest::default(),
-            ZERO,
-            ZERO,
+            0,
         )
     }
 }

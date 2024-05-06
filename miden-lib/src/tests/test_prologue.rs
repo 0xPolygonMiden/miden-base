@@ -182,13 +182,13 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTr
     // The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
-        inputs.block_header().version()
+        inputs.block_header().version().into()
     );
 
     // The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
-        inputs.block_header().timestamp()
+        inputs.block_header().timestamp().into()
     );
 }
 
@@ -519,7 +519,7 @@ fn test_get_blk_version() {
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
 
-    assert_eq!(process.stack.get(0), tx_inputs.block_header().version());
+    assert_eq!(process.stack.get(0), tx_inputs.block_header().version().into());
 }
 
 #[test]
@@ -539,7 +539,7 @@ fn test_get_blk_timestamp() {
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
     let process = run_tx(&transaction).unwrap();
 
-    assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp());
+    assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp().into());
 }
 
 // HELPER FUNCTIONS
