@@ -1,7 +1,7 @@
 use alloc::string::String;
 use core::fmt::Display;
 
-use super::{Digest, Felt, Hasher, Note, Word};
+use super::{Digest, Felt, Hasher, NoteDetails, Word};
 use crate::utils::{
     serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     HexParseError,
@@ -64,8 +64,8 @@ impl Display for NoteId {
 // CONVERSIONS INTO NOTE ID
 // ================================================================================================
 
-impl From<&Note> for NoteId {
-    fn from(note: &Note) -> Self {
+impl From<&NoteDetails> for NoteId {
+    fn from(note: &NoteDetails) -> Self {
         Self::new(note.recipient().digest(), note.assets().commitment())
     }
 }
