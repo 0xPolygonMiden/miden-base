@@ -26,6 +26,7 @@
 * [BREAKING] Refactored account update details, moved `Block` to `miden-objects` (#618, #621).
 * [BREAKING] Changed type of `version` and `timestamp` fields to `u32`, moved `version` to the beginning of block header (#639).
 * [BREAKING] Renamed `NoteEnvelope` into `NoteHeader` and introduced `NoteDetails` (#664).
+* [BREAKING] Updated `create_swap_note()` procedure to return `NoteDetails` and defined SWAP note tag format (#665).
 
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 
