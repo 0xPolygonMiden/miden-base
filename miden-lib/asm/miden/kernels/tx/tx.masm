@@ -21,11 +21,33 @@ const.ERR_TX_OUTPUT_NOTES_OVERFLOW=0x00020020
 # Invalid note type
 const.ERR_INVALID_NOTE_TYPE=0x00020044
 
-# The note's tag failed the most significant validation.
-const.ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE=0x00020045
+# The 2 highest bits in the u32 tag has the following meaning:
+#
+# | bits | Execution | Target    | Note type |
+# | ---- | --------- | --------- | --------- |
+# | 00   | Network   | Specific  | Public    |
+# | 01   | Network   | Use case  | Public    |
+# | 10   | Local     | Any       | Public    |
+# | 11   | Local     | Any       | Any       |
+#
+# Execution: Is a hint for the network, to check if the note can be consumed by a network controlled
+#   account
+# Target: Is a hint for the type of target. Use case means the note may be consumed by anyone,
+#   specific means there is an specific target for the note (the target may be a public key, a user
+#   that knows some secret, or a specific account id)
+#
+# Only the note type from the above list is enforced. The other values are only hints intended as a
+# best effort optimization strategy. A badly formatted note may 1. not be consumed because honest
+# users won't see the note 2. generate slightly more load as extra validation is performed for the
+# invalid tags. None of these scenarios have any significant impact.
+#
+const.ERR_NOTE_INVALID_TYPE_FOR_TAG=0x00020045
 
-# The note's tag high bits must be set to 0
-const.ERR_NOTE_INVALID_TAG_HIGH_BIT_SET=0x00020046
+# The note type must be PUBLIC, unless the high bits are `0b11`. (See the table above)
+const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
+
+# The note's tag must be an u32 so the the high 32bits must be zero.
+const.ERR_NOTE_TAG_MUST_BE_U32=0x00020046
 
 # EVENTS
 # =================================================================================================
@@ -104,14 +126,15 @@ export.create_note
     dup.5 push.OFFCHAIN_NOTE eq dup.6 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
     # => [ASSET, tag, note_type, RECIPIENT]
 
-    # validate the tag against the note type
-    dup.5 dup.5 u32split
-    # => [tag_high, tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+    # copy data to validate the tag
+    dup.5 push.PUBLIC_NOTE dup.1 dup.7
+    # => [tag, note_type, public_note, note_type, ASSET, tag, note_type, RECIPIENT]
 
-    assertz.err=ERR_NOTE_INVALID_TAG_HIGH_BIT_SET
-    # => [tag_low, note_type, ASSET, tag, note_type, RECIPIENT]
+    u32assert.err=ERR_NOTE_TAG_MUST_BE_U32
+    # => [tag, note_type, public_note, note_type, ASSET, tag, note_type, RECIPIENT]
 
-    u32shr.30 u32and assertz.err=ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE
+    # enforce the note type depending on the tag's bits
+    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
     # => [ASSET, tag, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter

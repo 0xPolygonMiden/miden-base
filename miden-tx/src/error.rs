@@ -239,7 +239,7 @@ const ERR_ASSET_INVALID_AMOUNT: u32 = 131138;
 const ERR_ASSET_NOT_NON_FUNGIBLE_ID: u32 = 131139;
 const ERR_INVALID_NOTE_TYPE: u32 = 131140;
 const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
-const ERR_NOTE_INVALID_TAG_HIGH_BIT_SET: u32 = 131142;
+const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
 
 pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item"),
@@ -312,5 +312,5 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_ASSET_NOT_NON_FUNGIBLE_ID, "Can not build the non-fungible asset because provided id is not a non-fungible id"),
     (ERR_INVALID_NOTE_TYPE, "Invalid note type"),
     (ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE, "The note's tag failed the most significant validation"),
-    (ERR_NOTE_INVALID_TAG_HIGH_BIT_SET, "The note's tag high bits must be set to 0"),
+    (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag high bits must be set to 0"),
 ];

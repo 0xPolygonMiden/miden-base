@@ -108,13 +108,13 @@ pub fn mock_account_storage() -> AccountStorage {
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 9] = [
-    "0xe06a83054c72efc7e32698c4fc6037620cde834c9841afb038a5d39889e502b6",
-    "0xd0260c15a64e796833eb2987d4072ac2ea824b3ce4a54a1e693bada6e82f71dd",
+    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
+    "0x3ffe8a2106040b02dcaefe87dc7f488b328f6b5760e863a90c0700e73cc190ac",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
     "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0xef07641ea1aa8fe85d8f854d29bf729b92251e1433244892138fd9ca898a5a22",
+    "0x77ecf5988f13326027d08b65ea0279172b690a6e7b829374832f9c25b3a22164",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
@@ -168,7 +168,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [0]
             end
 
-            # acct proc 3
+            # acct proc 3
             export.set_item
                 exec.account::set_item
                 # => [R', V, 0, 0, 0]
@@ -177,7 +177,7 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
                 # => [R', V]
             end
 
-            # acct proc 4
+            # acct proc 4
             export.set_map_item
                 exec.account::set_map_item
                 # => [R', V, 0, 0, 0]
