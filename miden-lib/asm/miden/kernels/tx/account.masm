@@ -147,10 +147,11 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_nonce
+    u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
+
     # emit event to signal that account nonce is being incremented
     emit.ACCOUNT_INCREMENT_NONCE_EVENT
 
-    u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
 end
