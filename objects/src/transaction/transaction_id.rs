@@ -89,7 +89,7 @@ impl From<&ExecutedTransaction> for TransactionId {
         let input_notes_hash = tx.input_notes().commitment();
         let output_notes_hash = tx.output_notes().commitment();
         Self::new(
-            tx.initial_account().proof_init_hash(),
+            tx.initial_account().init_hash(),
             tx.final_account().hash(),
             input_notes_hash,
             output_notes_hash,

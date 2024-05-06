@@ -96,7 +96,7 @@ impl Account {
     /// against a new account, public input for the initial account state is set to [ZERO; 4] to
     /// distinguish new accounts from existing accounts. The actual hash of the initial account
     /// state (and the initial state itself), are provided to the VM via the advice provider.
-    pub fn proof_init_hash(&self) -> Digest {
+    pub fn init_hash(&self) -> Digest {
         if self.is_new() {
             Digest::default()
         } else {
