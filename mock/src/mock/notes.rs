@@ -103,10 +103,10 @@ pub fn mock_notes(
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient0 = prepare_word(&created_note_1.recipient_digest()),
+        recipient0 = prepare_word(&created_note_1.recipient().digest()),
         tag0 = created_note_1.metadata().tag(),
         asset0 = prepare_assets(created_note_1.assets())[0],
-        recipient1 = prepare_word(&created_note_2.recipient_digest()),
+        recipient1 = prepare_word(&created_note_2.recipient().digest()),
         tag1 = created_note_2.metadata().tag(),
         asset1 = prepare_assets(created_note_2.assets())[0],
     );
@@ -132,7 +132,7 @@ pub fn mock_notes(
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient = prepare_word(&created_note_3.recipient_digest()),
+        recipient = prepare_word(&created_note_3.recipient().digest()),
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );

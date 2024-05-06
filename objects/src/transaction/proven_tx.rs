@@ -183,7 +183,7 @@ pub struct ProvenTransactionBuilder {
     /// List of [Nullifier]s of all consumed notes by the transaction.
     input_notes: Vec<Nullifier>,
 
-    /// List of [NoteEnvelope]s of all notes created by the transaction.
+    /// List of [OutputNote]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
 
     /// Block [Digest] of the transaction's reference block.
