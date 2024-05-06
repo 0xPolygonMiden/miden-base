@@ -5,8 +5,8 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteTag,
-        NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteTag, NoteType,
     },
     NoteError, Word, ZERO,
 };
@@ -83,7 +83,8 @@ pub fn create_p2idr_note<R: FeltRng>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-/// Generates a SWAP note - swap of assets between two accounts.
+/// Generates a SWAP note - swap of assets between two accounts - and returns the note as well as
+/// [NoteDetails] for the payback note.
 ///
 /// This script enables a swap of 2 assets between the `sender` account and any other account that
 /// is willing to consume the note. The consumer will receive the `offered_asset` and will create a
@@ -97,36 +98,80 @@ pub fn create_swap_note<R: FeltRng>(
     requested_asset: Asset,
     note_type: NoteType,
     mut rng: R,
-) -> Result<(Note, Word), NoteError> {
+) -> Result<(Note, NoteDetails), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
     let note_script = build_note_script(bytes)?;
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
-    let asset_word: Word = requested_asset.into();
+
+    let payback_recipient_word: Word = payback_recipient.digest().into();
+    let requested_asset_word: Word = requested_asset.into();
     let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
 
     let inputs = NoteInputs::new(vec![
-        payback_recipient[0],
-        payback_recipient[1],
-        payback_recipient[2],
-        payback_recipient[3],
-        asset_word[0],
-        asset_word[1],
-        asset_word[2],
-        asset_word[3],
+        payback_recipient_word[0],
+        payback_recipient_word[1],
+        payback_recipient_word[2],
+        payback_recipient_word[3],
+        requested_asset_word[0],
+        requested_asset_word[1],
+        requested_asset_word[2],
+        requested_asset_word[3],
         payback_tag.inner().into(),
     ])?;
 
-    // TODO: build the tag for the SWAP use case
-    let tag = 0.into();
+    // build the tag for the SWAP use case
+    let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
+    // build the outgoing note
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
-    let vault = NoteAssets::new(vec![offered_asset])?;
+    let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
-    let note = Note::new(vault, metadata, recipient);
+    let note = Note::new(assets, metadata, recipient);
 
-    Ok((note, payback_serial_num))
+    // build the payback note details
+    let payback_assets = NoteAssets::new(vec![requested_asset])?;
+    let payback_note = NoteDetails::new(payback_assets, payback_recipient);
+
+    Ok((note, payback_note))
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Returns a note tag for a swap note with the specified parameters.
+///
+/// Use case ID for the returned tag is set to 0.
+///
+/// Tag payload is constructed by taking asset tags (8 bits of faucet ID) and concatenating them
+/// together as offered_asset_tag + requested_asset tag.
+///
+/// Network execution hint for the returned tag is set to `Local`.
+fn build_swap_tag(
+    note_type: NoteType,
+    offered_asset: &Asset,
+    requested_asset: &Asset,
+) -> Result<NoteTag, NoteError> {
+    const SWAP_USE_CASE_ID: u16 = 0;
+
+    // get bits 4..12 from faucet IDs of both assets, these bits will form the tag payload; the
+    // reason we skip the 4 most significant bits is that these encode metadata of underlying
+    // faucets and are likely to be the same for many different faucets.
+
+    let offered_asset_id: u64 = offered_asset.faucet_id().into();
+    let offered_asset_tag = (offered_asset_id >> 52) as u8;
+
+    let requested_asset_id: u64 = requested_asset.faucet_id().into();
+    let requested_asset_tag = (requested_asset_id >> 52) as u8;
+
+    let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
+
+    let execution = NoteExecutionHint::Local;
+    match note_type {
+        NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
+        _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),
+    }
 }

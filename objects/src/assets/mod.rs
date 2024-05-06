@@ -97,6 +97,14 @@ impl Asset {
         matches!(self, Self::Fungible(_))
     }
 
+    /// Returns ID of the faucet which issued this asset.
+    pub fn faucet_id(&self) -> AccountId {
+        match self {
+            Self::Fungible(asset) => asset.faucet_id(),
+            Self::NonFungible(asset) => asset.faucet_id(),
+        }
+    }
+
     /// Returns the key which is used to store this asset in the account vault.
     pub fn vault_key(&self) -> Word {
         match self {
