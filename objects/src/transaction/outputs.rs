@@ -6,7 +6,7 @@ use vm_processor::DeserializationError;
 
 use crate::{
     accounts::AccountStub,
-    notes::{Note, NoteAssets, NoteEnvelope, NoteId, NoteMetadata},
+    notes::{Note, NoteAssets, NoteHeader, NoteId, NoteMetadata},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
 
@@ -148,7 +148,7 @@ const PRIVATE: u8 = 1;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputNote {
     Public(Note),
-    Private(NoteEnvelope),
+    Private(NoteHeader),
 }
 
 impl OutputNote {
@@ -192,13 +192,13 @@ impl OutputNote {
 // CONVERSIONS
 // ------------------------------------------------------------------------------------------------
 
-impl From<OutputNote> for NoteEnvelope {
+impl From<OutputNote> for NoteHeader {
     fn from(value: OutputNote) -> Self {
         (&value).into()
     }
 }
 
-impl From<&OutputNote> for NoteEnvelope {
+impl From<&OutputNote> for NoteHeader {
     fn from(value: &OutputNote) -> Self {
         match value {
             OutputNote::Public(note) => note.into(),
@@ -229,7 +229,7 @@ impl Deserializable for OutputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
             PUBLIC => Ok(OutputNote::Public(Note::read_from(source)?)),
-            PRIVATE => Ok(OutputNote::Private(NoteEnvelope::read_from(source)?)),
+            PRIVATE => Ok(OutputNote::Private(NoteHeader::read_from(source)?)),
             v => Err(DeserializationError::InvalidValue(format!("Invalid note type: {v}"))),
         }
     }

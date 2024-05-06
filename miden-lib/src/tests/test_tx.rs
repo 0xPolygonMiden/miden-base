@@ -247,12 +247,12 @@ fn test_get_output_notes_hash() {
     end
     ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient_1 = prepare_word(&output_note_1.recipient_digest()),
+        recipient_1 = prepare_word(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
         asset_1 = prepare_word(&Word::from(
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
-        recipient_2 = prepare_word(&output_note_2.recipient_digest()),
+        recipient_2 = prepare_word(&output_note_2.recipient().digest()),
         tag_2 = output_note_2.metadata().tag(),
         asset_2 = prepare_word(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()

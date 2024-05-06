@@ -2,8 +2,8 @@ use alloc::string::String;
 use core::fmt::{Debug, Display, Formatter};
 
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Note,
-    Serializable, Word, WORD_SIZE, ZERO,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher,
+    NoteDetails, Serializable, Word, WORD_SIZE, ZERO,
 };
 use crate::utils::{hex_to_bytes, HexParseError};
 
@@ -86,8 +86,8 @@ impl Debug for Nullifier {
 // CONVERSIONS INTO NULLIFIER
 // ================================================================================================
 
-impl From<&Note> for Nullifier {
-    fn from(note: &Note) -> Self {
+impl From<&NoteDetails> for Nullifier {
+    fn from(note: &NoteDetails) -> Self {
         Self::new(
             note.script().hash(),
             note.inputs().commitment(),
