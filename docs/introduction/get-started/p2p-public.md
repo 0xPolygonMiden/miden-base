@@ -56,7 +56,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 
 ## Transfer assets between accounts
 
-1. Now we can transfer some of the tokens we received from the faucet to our new account C. 
+1. Now we can transfer some of the tokens we received from the faucet to our new account C. Remember to switch back to `miden-client` directory, since you'll be making txn from Account ID A.
 
     To do this, from the first client run:
 
