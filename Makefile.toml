@@ -50,42 +50,42 @@ script = [ "./scripts/serve-doc-site.sh" ]
 disabled = true
 
 [tasks.test-default]
-description = "Run default tests excluding `prove`"
+description = "Run default tests excluding slow"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
 command = "cargo"
-args = ["nextest", "run", "--profile", "default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(prove)"]
+args = ["nextest", "run", "--profile", "default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(test_slow)"]
 
-[tasks.test-prove]
-description = "Run `prove` tests (tests which use the Miden prover)"
+[tasks.test-slow]
+description = "Run slow tests"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
 command = "cargo"
-args = ["nextest", "run", "--profile", "prove", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(prove)"]
+args = ["nextest", "run", "--profile", "slow", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(test_slow)"]
 
 [tasks.test-all]
 description = "Run all tests"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
-run_task = { name = ["test-default", "test-prove"], parallel = true }
+run_task = { name = ["test-default", "test-slow"], parallel = true }
 
 [tasks.ci-test-default]
-description = "Run default tests excluding `prove`"
+description = "Run default tests excluding slow"
 workspace = false
 command = "cargo"
-args = ["nextest", "run", "--profile", "ci-default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(prove)"]
+args = ["nextest", "run", "--profile", "ci-default", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "not test(test_slow)"]
 
-[tasks.ci-test-prove]
-description = "Run `prove` tests (tests which use the Miden prover)"
+[tasks.ci-test-slow]
+description = "Run slow tests"
 workspace = false
 command = "cargo"
-args = ["nextest", "run", "--profile", "ci-prove", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(prove)"]
+args = ["nextest", "run", "--profile", "ci-slow", "--cargo-profile", "test-release", "--features", "concurrent,testing", "--filter-expr", "test(test_slow)"]
 
 [tasks.ci-test-all]
 description = "Run all tests"
 workspace = false
 env = { "RUSTFLAGS" = "-C debug-assertions" }
-run_task = { name = ["nextest-default", "nextest-prove"], parallel = true }
+run_task = { name = ["nextest-default", "nextest-slow"], parallel = true }
 
 # --- building ------------------------------------------------------------------------------------
 [tasks.build]

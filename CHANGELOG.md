@@ -10,6 +10,7 @@
 * [BREAKING] Updated `create_swap_note()` procedure to return `NoteDetails` and defined SWAP note tag format (#665).
 * [BREAKING] Added support for full details of private notes, renamed `OutputNote` variants and changed their meaning (#673).
 * Implemented `OutputNoteBuilder` (#669).
+* [BREAKING] Changed the format of account ids, now the account ids include a configurable proof-of-work configuration (#672).
 
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 

@@ -24,7 +24,7 @@ default = ["std"]
 concurrent = ["std"]
 serde = ["dep:serde", "miden-crypto/serde"]
 std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
-testing = ["dep:winter-rand-utils"]
+testing = ["dep:winter-rand-utils", "log"]
 
 [dependencies]
 assembly = { workspace = true }

@@ -12,8 +12,6 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-
-
 [lib]
 
 [features]
@@ -32,12 +30,14 @@ testing = ["miden-objects/testing"]
 [dependencies]
 miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false }
 miden-stdlib = { workspace = true }
+tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false, features = [
-    "testing",
-] }
+miden-base-test-macro = { path = "../test-macro" }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false, features = ["testing"] }
 mock = { package = "miden-mock", path = "../mock", default-features = false }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 vm-processor = { workspace = true, features = ["internals"] }
 
 [build-dependencies]

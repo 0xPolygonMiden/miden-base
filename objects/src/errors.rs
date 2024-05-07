@@ -22,38 +22,25 @@ pub enum AccountError {
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
-    AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
+    ConfigDoesNotMatch(u64, u64),
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
-    InvalidAccountStorageType,
+    IdMissingZeros(u64),
+    InvalidAccountType(u64),
+    InvalidConfig(u64),
+    InvalidPoW(u64),
+    InvalidStorageType(u64),
+    InvalidFelt(u64),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
+    StorageMapToManyMaps { expected: usize, actual: usize },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
     StorageSlotNotValueSlot(u8, StorageSlotType),
-    StorageMapToManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),
-}
-
-impl AccountError {
-    pub fn account_id_invalid_field_element(msg: String) -> Self {
-        Self::AccountIdInvalidFieldElement(msg)
-    }
-
-    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
-        Self::AccountIdTooFewOnes(expected, actual)
-    }
-
-    pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
-        Self::SeedDigestTooFewTrailingZeros { expected, actual }
-    }
-
-    pub fn fungible_faucet_id_invalid_first_bit() -> Self {
-        Self::FungibleFaucetIdInvalidFirstBit
-    }
 }
 
 impl fmt::Display for AccountError {

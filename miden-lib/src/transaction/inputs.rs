@@ -15,9 +15,9 @@ use super::TransactionKernel;
 // TRANSACTION KERNEL INPUTS
 // ================================================================================================
 
-/// Defines how inputs required to execute a transaction kernel can be extracted from self.
+/// Initializes the VM's stack and the advice provider with the necessary data to run a transaction.
 pub trait ToTransactionKernelInputs {
-    /// Returns stack and advice inputs required to execute the transaction kernel.
+    /// Returns [StackInputs] and [AdviceInputs] required to execute the transaction kernel.
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
 }
 
@@ -87,7 +87,6 @@ fn extend_advice_inputs(
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
-    // build the advice stack
     build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
 
     // build the advice map and Merkle store for relevant components

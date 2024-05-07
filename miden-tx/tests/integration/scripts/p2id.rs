@@ -29,7 +29,7 @@ use crate::{
 // We test the Pay to ID script. So we create a note that can only be consumed by the target
 // account.
 #[test]
-fn prove_p2id_script() {
+fn test_slow_prove_p2id_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();

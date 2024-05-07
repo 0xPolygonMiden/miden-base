@@ -7,7 +7,7 @@ use crate::{
 
 pub mod account_id;
 pub use account_id::{
-    AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
+    AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_BIT, ACCOUNT_STORAGE_MASK_SHIFT,
     ACCOUNT_TYPE_MASK_SHIFT,
 };
 
@@ -28,6 +28,8 @@ pub use stub::AccountStub;
 
 mod data;
 pub use data::{AccountData, AuthData};
+
+use self::account_id::AccountConfig;
 
 // ACCOUNT
 // ================================================================================================
@@ -104,44 +106,34 @@ impl Account {
         }
     }
 
-    /// Returns unique identifier of this account.
-    pub fn id(&self) -> AccountId {
-        self.id
-    }
-
-    /// Returns the account type
+    /// Returns this account's [AccountType].
     pub fn account_type(&self) -> AccountType {
         self.id.account_type()
     }
 
-    /// Returns a reference to the vault of this account.
-    pub fn vault(&self) -> &AssetVault {
-        &self.vault
-    }
-
-    /// Returns a reference to the storage of this account.
-    pub fn storage(&self) -> &AccountStorage {
-        &self.storage
-    }
-
-    /// Returns a reference to the code of this account.
+    /// Returns this account's [AccountCode].
     pub fn code(&self) -> &AccountCode {
         &self.code
     }
 
-    /// Returns nonce for this account.
-    pub fn nonce(&self) -> Felt {
-        self.nonce
+    /// Returns this account's [AccountConfig].
+    pub fn config(&self) -> AccountConfig {
+        self.id.config()
     }
 
-    /// Returns true if this account can issue assets.
+    /// Returns this account's [AccountId].
+    pub fn id(&self) -> AccountId {
+        self.id
+    }
+
+    /// Returns true if this account is a faucet, i.e. can issue assets.
     pub fn is_faucet(&self) -> bool {
         self.id.is_faucet()
     }
 
-    /// Returns true if this is a regular account.
-    pub fn is_regular_account(&self) -> bool {
-        self.id.is_regular_account()
+    /// Returns true if the account is new, i.e. its nonce is zero.
+    pub fn is_new(&self) -> bool {
+        self.nonce == ZERO
     }
 
     /// Returns true if this account is on-chain.
@@ -149,9 +141,24 @@ impl Account {
         self.id.is_on_chain()
     }
 
-    /// Returns true if the account is new (i.e. it has not been initialized yet).
-    pub fn is_new(&self) -> bool {
-        self.nonce == ZERO
+    /// Returns true if this account is regular, i.e. not a faucet.
+    pub fn is_regular_account(&self) -> bool {
+        self.id.is_regular_account()
+    }
+
+    /// Returns this account's nonce.
+    pub fn nonce(&self) -> Felt {
+        self.nonce
+    }
+
+    /// Returns this account's [AssetVault].
+    pub fn vault(&self) -> &AssetVault {
+        &self.vault
+    }
+
+    /// Returns this account's [AccountStorage].
+    pub fn storage(&self) -> &AccountStorage {
+        &self.storage
     }
 
     // DATA MUTATORS

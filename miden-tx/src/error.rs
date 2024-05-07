@@ -229,7 +229,7 @@ const ERR_NON_FUNGIBLE_ASSET_FORMAT_HIGH_BIT_MUST_BE_ZERO: u32 = 131128;
 const ERR_FUNGIBLE_ASSET_MISMATCH: u32 = 131129;
 const ERR_NON_FUNGIBLE_ASSET_MISMATCH: u32 = 131130;
 const ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32: u32 = 131131;
-const ERR_ACCOUNT_INSUFFICIENT_ONES: u32 = 131132;
+const ERR_ACCOUNT_INSUFFICIENT_ZEROS: u32 = 131132;
 const ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE: u32 = 131133;
 const ERR_ACCOUNT_SEED_DIGEST_MISMATCH: u32 = 131134;
 const ERR_ACCOUNT_INVALID_POW: u32 = 131135;
@@ -302,7 +302,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_FUNGIBLE_ASSET_MISMATCH, "Fungible asset origin validation failed"),
     (ERR_NON_FUNGIBLE_ASSET_MISMATCH, "Non-fungible asset origin validation failed"),
     (ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32, "The nonce cannot be increased by a greater than u32 value"),
-    (ERR_ACCOUNT_INSUFFICIENT_ONES, "Account id is invalid, insufficient 1's"),
+    (ERR_ACCOUNT_INSUFFICIENT_ZEROS, "Account id is invalid, all 4 low bits must be zeros"),
     (ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE, "Account must be updatable for it to be possible to update its code"),
     (ERR_ACCOUNT_SEED_DIGEST_MISMATCH, "Account seed digest mismatch"),
     (ERR_ACCOUNT_INVALID_POW, "Account pow is insufficient"),

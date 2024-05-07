@@ -28,6 +28,7 @@ pub struct AssetVault {
 impl AssetVault {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new [AssetVault] initialized with the provided assets.
     pub fn new(assets: &[Asset]) -> Result<Self, AssetVaultError> {
         Ok(Self {
@@ -36,6 +37,11 @@ impl AssetVault {
             )
             .map_err(AssetVaultError::DuplicateAsset)?,
         })
+    }
+
+    /// Returns a new empty [AssetVault].
+    pub fn empty() -> Self {
+        Self { asset_tree: Smt::new() }
     }
 
     // PUBLIC ACCESSORS
@@ -52,15 +58,10 @@ impl AssetVault {
             return Err(AssetVaultError::NotANonFungibleAsset(asset));
         }
 
-        // check if the asset is stored in the vault
-        match self.asset_tree.get_value(&asset.vault_key().into()) {
-            asset if asset == Smt::EMPTY_VALUE => Ok(false),
-            _ => Ok(true),
-        }
+        Ok(self.get_asset(asset.vault_key()).is_some())
     }
 
-    /// Returns the balance of the asset issued by the specified faucet. If the vault does not
-    /// contain such an asset, 0 is returned.
+    /// Returns the vault's balance for a given faucet id.
     ///
     /// # Errors
     /// Returns an error if the specified ID is not an ID of a fungible asset faucet.
@@ -69,21 +70,32 @@ impl AssetVault {
             return Err(AssetVaultError::NotAFungibleFaucetId(faucet_id));
         }
 
-        // if the tree value is [0, 0, 0, 0], the asset is not stored in the vault
-        match self.asset_tree.get_value(&[ZERO, ZERO, ZERO, faucet_id.into()].into()) {
-            asset if asset == Smt::EMPTY_VALUE => Ok(0),
-            asset => Ok(FungibleAsset::new_unchecked(asset).amount()),
+        match self.get_asset([ZERO, ZERO, ZERO, faucet_id.into()]) {
+            None => Ok(0),
+            Some(Asset::Fungible(v)) => Ok(v.amount()),
+            _ => Err(AssetVaultError::NotAFungibleFaucetId(faucet_id)),
         }
     }
 
     /// Returns an iterator over the assets stored in the vault.
     pub fn assets(&self) -> impl Iterator<Item = Asset> + '_ {
-        self.asset_tree.entries().map(|x| Asset::new_unchecked(x.1))
+        self.asset_tree
+            .entries()
+            .map(|x| Asset::try_from(x.1).expect("Vault should not have invalid assets"))
     }
 
     /// Returns a reference to the Sparse Merkle Tree underling this asset vault.
     pub fn asset_tree(&self) -> &Smt {
         &self.asset_tree
+    }
+
+    pub fn get_asset(&self, key: impl Into<Digest>) -> Option<Asset> {
+        let asset = self.asset_tree.get_value(&key.into());
+        if asset == Smt::EMPTY_VALUE {
+            None
+        } else {
+            Some(Asset::try_from(asset).expect("Asset vault should not have an invalid asset"))
+        }
     }
 
     // PUBLIC MODIFIERS
@@ -112,18 +124,16 @@ impl AssetVault {
         &mut self,
         asset: FungibleAsset,
     ) -> Result<FungibleAsset, AssetVaultError> {
-        // fetch current asset value from the tree and add the new asset to it.
-        let new: FungibleAsset = match self.asset_tree.get_value(&asset.vault_key().into()) {
-            current if current == Smt::EMPTY_VALUE => asset,
-            current => {
-                let current = FungibleAsset::new_unchecked(current);
-                current.add(asset).map_err(AssetVaultError::AddFungibleAssetBalanceError)?
+        let asset = match self.get_asset(asset.vault_key()) {
+            None => asset,
+            Some(Asset::Fungible(other)) => {
+                other.add(asset).map_err(AssetVaultError::AddFungibleAssetBalanceError)?
             },
+            _ => panic!("key conflict, expected key to contain a fungible asset"),
         };
-        self.asset_tree.insert(new.vault_key().into(), new.into());
+        self.asset_tree.insert(asset.vault_key().into(), asset.into());
 
-        // return the new asset
-        Ok(new)
+        Ok(asset)
     }
 
     /// Add the specified non-fungible asset to the vault.
@@ -134,10 +144,8 @@ impl AssetVault {
         &mut self,
         asset: NonFungibleAsset,
     ) -> Result<NonFungibleAsset, AssetVaultError> {
-        // add non-fungible asset to the vault
         let old = self.asset_tree.insert(asset.vault_key().into(), asset.into());
 
-        // if the asset already exists, return an error
         if old != Smt::EMPTY_VALUE {
             return Err(AssetVaultError::DuplicateNonFungibleAsset(asset));
         }
@@ -147,6 +155,7 @@ impl AssetVault {
 
     // REMOVE ASSET
     // --------------------------------------------------------------------------------------------
+
     /// Remove the specified asset from the vault.
     ///
     /// # Errors
@@ -175,27 +184,22 @@ impl AssetVault {
         &mut self,
         asset: FungibleAsset,
     ) -> Result<FungibleAsset, AssetVaultError> {
-        // fetch the asset from the vault.
-        let mut current = match self.asset_tree.get_value(&asset.vault_key().into()) {
-            current if current == Smt::EMPTY_VALUE => {
-                return Err(AssetVaultError::FungibleAssetNotFound(asset))
+        let key = asset.vault_key();
+        let new = match self.get_asset(key) {
+            None => return Err(AssetVaultError::FungibleAssetNotFound(asset)),
+            Some(Asset::Fungible(current)) => {
+                current.sub(asset).map_err(AssetVaultError::SubtractFungibleAssetBalanceError)?
             },
-            current => FungibleAsset::new_unchecked(current),
+            Some(_) => panic!("Vault key conflict, expected fungible asset"),
         };
 
-        // subtract the amount of the asset to be removed from the current amount.
-        current
-            .sub(asset.amount())
-            .map_err(AssetVaultError::SubtractFungibleAssetBalanceError)?;
-
-        // if the amount of the asset is zero, remove the asset from the vault.
-        let new = match current.amount() {
-            0 => Smt::EMPTY_VALUE,
-            _ => current.into(),
+        let value = if new.amount() == 0 {
+            Smt::EMPTY_VALUE
+        } else {
+            new.into()
         };
-        self.asset_tree.insert(asset.vault_key().into(), new);
+        self.asset_tree.insert(key.into(), value);
 
-        // return the asset that was removed.
         Ok(asset)
     }
 
@@ -207,15 +211,12 @@ impl AssetVault {
         &mut self,
         asset: NonFungibleAsset,
     ) -> Result<NonFungibleAsset, AssetVaultError> {
-        // remove the asset from the vault.
         let old = self.asset_tree.insert(asset.vault_key().into(), Smt::EMPTY_VALUE);
 
-        // return an error if the asset did not exist in the vault.
         if old == Smt::EMPTY_VALUE {
             return Err(AssetVaultError::NonFungibleAssetNotFound(asset));
         }
 
-        // return the asset that was removed.
         Ok(asset)
     }
 }

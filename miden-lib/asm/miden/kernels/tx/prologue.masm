@@ -314,10 +314,6 @@ end
 #!   * assert that the account nonce is set to 0.
 #!   * read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
-    # Assert the account id of the account is valid
-    exec.memory::get_acct_id exec.account::validate_id
-    # => []
-
     # Assert the account nonce is 0
     exec.memory::get_acct_nonce eq.0 assert
     # => []
@@ -351,8 +347,6 @@ proc.validate_new_account
     assert_eq.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
     assertz.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
     # => []
-
-    drop drop
 
     # Assert faucet reserved slot is correctly initialized
     # -----------------------------------------------------------------------------------------
@@ -406,7 +400,20 @@ proc.validate_new_account
 
     # Assert the provided account seed satisfies the seed requirements
     # -----------------------------------------------------------------------------------------
-    exec.account::validate_seed
+    exec.memory::get_acct_id
+    # => [acc_id]
+
+    exec.memory::get_acct_storage_root
+    # => [STORAGE_ROOT, acc_id]
+
+    # Load the seed from the advice provider using `[acc_id, 0, 0, 0]` as the key
+    dup.4 push.0.0.0 adv.push_mapval adv_loadw
+    # => [SEED, STORAGE_ROOT, acc_id]
+
+    exec.memory::get_acct_code_root
+    # => [CODE_ROOT, SEED, STORAGE_ROOT, acc_id]
+
+    exec.account::validate_seed_and_account_id
     # => []
 end
 

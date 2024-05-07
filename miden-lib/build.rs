@@ -98,14 +98,12 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
 
 fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
     let mut line = line?;
-    if line.starts_with("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS") {
+    if line.starts_with("const.REGULAR_ACCOUNT_MINIMUM_POW") {
         line.clear();
-        // 2**5
-        line.push_str("const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs");
-    } else if line.starts_with("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS") {
+        line.push_str("const.REGULAR_ACCOUNT_MINIMUM_POW=5 # reduced via build.rs");
+    } else if line.starts_with("const.FAUCET_ACCOUNT_MINIMUM_POW") {
         line.clear();
-        // 2**6
-        line.push_str("const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs");
+        line.push_str("const.FAUCET_ACCOUNT_MINIMUM_POW=7 # reduced via build.rs");
     }
     Ok(line)
 }

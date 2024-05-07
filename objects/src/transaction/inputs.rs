@@ -38,47 +38,9 @@ impl TransactionInputs {
         block_chain: ChainMmr,
         input_notes: InputNotes,
     ) -> Result<Self, TransactionInputError> {
-        // make sure the provided seed is valid in the context of the provided account
         validate_account_seed(&account, account_seed)?;
-
-        // make sure block_chain and block_header are consistent
-
-        let block_num = block_header.block_num();
-        if block_chain.chain_length() != block_header.block_num() as usize {
-            return Err(TransactionInputError::InconsistentChainLength {
-                expected: block_header.block_num(),
-                actual: block_chain.chain_length() as u32,
-            });
-        }
-
-        if block_chain.peaks().hash_peaks() != block_header.chain_root() {
-            return Err(TransactionInputError::InconsistentChainRoot {
-                expected: block_header.chain_root(),
-                actual: block_chain.peaks().hash_peaks(),
-            });
-        }
-
-        // make sure that block_chain has authentication paths for all input notes; for input notes
-        // which were created in the current block we skip this check because their authentication
-        // paths are derived implicitly
-        for note in input_notes.iter() {
-            let note_block_num = note.origin().block_num;
-
-            let block_header = if note_block_num == block_num {
-                &block_header
-            } else {
-                match block_chain.get_block(note_block_num) {
-                    Some(block_header) => block_header,
-                    None => Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?,
-                }
-            };
-
-            // this check may have non-negligible performance impact as we need to verify inclusion
-            // proofs for all notes; TODO: consider enabling this via a feature flag
-            if !note.is_in_block(block_header) {
-                return Err(TransactionInputError::InputNoteNotInBlock(note.id(), note_block_num));
-            }
-        }
+        validate_block(block_header, &block_chain)?;
+        validate_input_notes(block_header, &block_chain, &input_notes)?;
 
         Ok(Self {
             account,
@@ -397,8 +359,13 @@ pub fn validate_account_seed(
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
         (true, Some(seed)) => {
-            let account_id = AccountId::new(seed, account.code().root(), account.storage().root())
-                .map_err(TransactionInputError::InvalidAccountSeed)?;
+            let account_id = AccountId::new(
+                seed,
+                account.config(),
+                account.code().root(),
+                account.storage().root(),
+            )
+            .map_err(TransactionInputError::InvalidAccountSeed)?;
             if account_id != account.id() {
                 return Err(TransactionInputError::InconsistentAccountSeed {
                     expected: account.id(),
@@ -412,4 +379,54 @@ pub fn validate_account_seed(
         (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
         (false, None) => Ok(()),
     }
+}
+
+fn validate_block(
+    block_header: BlockHeader,
+    block_chain: &ChainMmr,
+) -> Result<(), TransactionInputError> {
+    if block_chain.chain_length() != block_header.block_num() as usize {
+        return Err(TransactionInputError::InconsistentChainLength {
+            expected: block_header.block_num(),
+            actual: block_chain.chain_length() as u32,
+        });
+    }
+
+    if block_chain.peaks().hash_peaks() != block_header.chain_root() {
+        return Err(TransactionInputError::InconsistentChainRoot {
+            expected: block_header.chain_root(),
+            actual: block_chain.peaks().hash_peaks(),
+        });
+    }
+    Ok(())
+}
+
+fn validate_input_notes(
+    block_header: BlockHeader,
+    block_chain: &ChainMmr,
+    input_notes: &InputNotes,
+) -> Result<(), TransactionInputError> {
+    // make sure that block_chain has authentication paths for all input notes; for input notes
+    // which were created in the current block we skip this check because their authentication
+    // paths are derived implicitly
+    for note in input_notes.iter() {
+        let note_block_num = note.origin().block_num;
+
+        let block_header = if note_block_num == block_header.block_num() {
+            &block_header
+        } else {
+            match block_chain.get_block(note_block_num) {
+                Some(block_header) => block_header,
+                None => Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?,
+            }
+        };
+
+        // this check may have non-negligible performance impact as we need to verify inclusion
+        // proofs for all notes; TODO: consider enabling this via a feature flag
+        if !note.is_in_block(block_header) {
+            return Err(TransactionInputError::InputNoteNotInBlock(note.id(), note_block_num));
+        }
+    }
+
+    Ok(())
 }

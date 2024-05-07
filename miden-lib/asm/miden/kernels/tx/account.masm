@@ -10,8 +10,8 @@ use.miden::kernels::tx::memory
 # The nonce cannot be increased by a greater than u32 value
 const.ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32=0x0002003B
 
-# Account id is invalid, insufficient 1's
-const.ERR_ACCOUNT_INSUFFICIENT_ONES=0x0002003C
+# Account id format is invalid, lower 4 bits must zeros
+const.ERR_ACCOUNT_INSUFFICIENT_ZEROS=0x0002003C
 
 # Account must be updatable for it to be possible to update its code
 const.ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE=0x0002003D
@@ -40,11 +40,8 @@ const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 # Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been applied.
 const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
 
-# Bit pattern for a faucet account, after the account type mask has been applied.
-const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
-
-# Specifies a minimum number of ones for a valid account ID.
-const.MIN_ACCOUNT_ONES=5
+# Given the most significant half of an account id, this bit determines if the account is a faucet.
+const.IS_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 
 # The depth of the account storage Sparse Merkle Tree
 const.STORAGE_TREE_DEPTH=8
@@ -62,6 +59,15 @@ const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
 
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
+
+# Lower bits of the account id are required to be zeros
+const.ACCOUNT_ID_ZEROS=0x0F # 0b1111
+
+# Bitmaks for the account id bits which contain the PoW configuration
+const.ACCOUNT_POW_MASK=1008 # 0b1111110000
+
+# The division used to align the PoW with its bit position
+const.ACCOUNT_POW_SHIFT_DIV=16 # Equivalent to a >>4
 
 # EVENTS
 # =================================================================================================
@@ -231,7 +237,7 @@ end
 #! - acct_id is the account id.
 #! - is_faucet is a boolean indicating whether the account is a faucet.
 export.is_faucet
-    u32split swap drop push.FAUCET_ACCOUNT u32and eq.0 not
+    u32split swap drop push.IS_FAUCET_ACCOUNT u32and eq.0 not
     # => [is_faucet]
 end
 
@@ -262,23 +268,33 @@ export.is_immutable_account
 end
 
 #! Validates an account id. Panics if the account id is invalid.
-#! Account id must have at least `MIN_ACCOUNT_ONES` ones.
+#!
+#! This procedure checks:
+#! - The lower 4 bits are zero
+#! - The PoW satisfies the minimum requirements for the account type
 #!
 #! Stack: [acct_id]
 #! Output: []
 #!
 #! - acct_id is the account id.
 export.validate_id
-    # split felt into 32 bit limbs
     u32split
-    # => [l_1, l_0]
+    # => [id_high, id_low]
 
-    # count the number of 1 bits
-    u32popcnt swap u32popcnt add
-    # => [ones]
+    push.IS_FAUCET_ACCOUNT u32and eq.0
+    # => [is_regular, id_low]
 
-    # check if the number of ones is at least MIN_ACCOUNT_ONES ones.
-    push.MIN_ACCOUNT_ONES u32gte assert.err=ERR_ACCOUNT_INSUFFICIENT_ONES
+    exec.constants::get_min_pow_faucet_account exec.constants::get_min_pow_regular_account movup.2 cdrop
+    # => [min_pow, id_low]
+
+    dup.1 push.ACCOUNT_POW_MASK u32and push.ACCOUNT_POW_SHIFT_DIV div
+    # => [account_pow, min_pow, id_low]
+
+    lt assertz.err=ERR_ACCOUNT_INVALID_POW
+    # => [id_low]
+
+    push.ACCOUNT_ID_ZEROS u32and assertz.err=ERR_ACCOUNT_INSUFFICIENT_ZEROS
+    # => []
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
@@ -413,62 +429,86 @@ export.authenticate_procedure.1
     # => [PROC_ROOT]
 end
 
-#! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
+#! Validates the account id and its proof-of-work.
 #!
 #! Validation is performed via the following steps:
-#! 1. compute the hash of (SEED, CODE_ROOT, STORAGE_ROOT, 0, 0, 0, 0)
-#! 2. Assert the least significant element of the digest is equal to the account id of the account
-#!    the transaction is being executed against.
-#! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
-#!    type the transaction is being executed against.
 #!
-#! Stack: []
+#! 1. Compute `hash(SEED || CODE_ROOT || STORAGE_ROOT || [0,0,0,0])`.
+#! 2. Assert the least significant element of the digest is same as the account id.
+#! 3. Assert the most significant element has sufficient proof of work for the account type.
+#!
+#! This approach has the following properties:
+#!
+#! - The account id is generated from a commitment to initial account's state. This prevents changes to
+#!   the account's initial state by a malicious operator.
+#! - The account id is determined by a hash, as long as there is an honest operator including
+#!   transactions in the rollup, an attacker would not have enough time to grind and front run an
+#!   account creation transaction.
+#!   - The cost for an attacker to grind the account id is significantly larger than the cost to create
+#!     an id, because the original id is random and requires little grinding by the honest user, but an
+#!     attacker would need to grind to match the complete account id.
+#! - Account creation is not free, this introduces a small cost to account creation which as a small
+#!   spam proteciton.
+#!
+#! Stack: [CODE_ROOT, SEED, STORAGE_ROOT, acc_id]
 #! Output: []
-export.validate_seed
-        # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
-        # => [SEED, 0, 0, 0, 0]
+export.validate_seed_and_account_id
+    # The input to hash is padded, push ZERO as the hasher initial capacity.
+    padw movdnw.2
+    # => [CODE_ROOT, SEED, CAP, STORAGE_ROOT, acc_id]
 
-        # populate last four elements of the hasher rate with the code root
-        exec.memory::get_acct_code_root
-        # => [CODE_ROOT, SEED, 0, 0, 0, 0]
+    # hash(SEED || CODE_ROOT)
+    hperm dropw dropw
+    # => [PERM, STORAGE_ROOT, acc_id]
 
-        # perform first permutation of seed and code_root (from advice stack) perm(seed, code_root)
-        hperm
-        # => [RATE, RATE, PERM]
+    # hash(SEED || CODE_ROOT || STORAGE_ROOT || ZERO)
+    swapw padw hperm
+    # => [PERM, PERM, PERM, acc_id]
 
-        # clear rate elements
-        dropw dropw
-        # => [PERM]
+    exec.native::state_to_digest
+    # => [DIG, acc_id]
+    #
+    # The digest is interpret as follows:
+    #
+    # > [acc_id, x, x, zeroes]
+    #
+    # Where:
+    # - acc_id: determines the account id
+    # - zeroes: is the element with the proof-of-work
+    #
+    # The values are however in stack order:
+    #
+    # => [zeroes, x, x, acc_id', acc_id]
 
-        # perform second permutation perm(storage_root, 0, 0, 0, 0)
-        exec.memory::get_acct_storage_root padw hperm
-        # => [RATE, RATE, CAP]
+    # get the minimum required proof-of-work for the account type
+    exec.constants::get_min_pow_regular_account exec.constants::get_min_pow_faucet_account dup.6 exec.is_faucet cdrop
+    # => [required_pow, zeroes, x, x, acc_id', acc_id]
 
-        # extract digest
-        exec.native::state_to_digest
-        # => [DIG]
+    # extract the configured proof-of-work for the account id
+    dup.5 u32split drop push.ACCOUNT_POW_MASK u32and push.ACCOUNT_POW_SHIFT_DIV div
+    # => [configured_pow, required_pow, zeroes, x, x, acc_id', acc_id]
 
-        # assert the account id matches the account id of the new account and extract pow
-        # element
-        movdn.3 drop drop exec.memory::get_acct_id eq assert.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
-        # => [pow]
+    # assert the configured proof-of-work is larger than the required
+    dup movdn.3 lte assert.err=ERR_ACCOUNT_INVALID_POW
+    # => [zeroes, configured_pow, x, x, acc_id', acc_id]
 
-        # get acct and faucet modulus to check the min number of trailing zeros required in the pow
-        exec.constants::get_regular_account_seed_digest_modulus exec.constants::get_faucet_seed_digest_modulus
-        # => [faucet_modulus, acct_modulus, pow]
+    # count the trailing zeros for both u32 halves
+    u32split u32ctz swap u32ctz
+    # => [pow_low, pow_high, configured_pow, x, x, acc_id', acc_id]
 
-        exec.memory::get_acct_id
-        # => [acct_id, faucet_modulus, acct_modulus, pow]
+    # find the correct total proof-of-work
+    swap dup.1 add dup.1 eq.32 cdrop
+    # => [computed_pow, configured_pow, x, x, acc_id', acc_id]
 
-        exec.is_faucet
-        # => [is_faucet, faucet_modulus, acct_modulus, pow]
+    # assert that there is sufficient PoW
+    swap gte assert.err=ERR_ACCOUNT_INVALID_POW
+    # => [x, x, acc_id', acc_id]
 
-        # select the appropriate modulus based on the account type
-        cdrop swap
-        # => [pow, modulus]
+    # drop unused elements from the digest
+    drop drop
+    # => [acc_id', acc_id]
 
-        # assert that the pow is valid
-        u32split drop swap u32divmod assertz.err=ERR_ACCOUNT_INVALID_POW drop
-        # => []
+    # assert the computed id matches the public input
+    assert_eq.err=ERR_ACCOUNT_SEED_DIGEST_MISMATCH
+    # => []
 end

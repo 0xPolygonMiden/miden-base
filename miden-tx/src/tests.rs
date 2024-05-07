@@ -344,7 +344,7 @@ fn executed_transaction_account_delta() {
 }
 
 #[test]
-fn prove_witness_and_verify() {
+fn test_slow_prove_witness_and_verify() {
     let data_store = MockDataStore::default();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None);

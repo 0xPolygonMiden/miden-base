@@ -30,5 +30,9 @@ rand = { workspace = true }
 vm-processor = { workspace = true }
 
 [dev-dependencies]
+miden-base-test-macro = { path = "../test-macro" }
+miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false, features = ["testing"] }
 mock = { package = "miden-mock", path = "../mock", default-features = false }
 rand_chacha = { version = "0.3", default-features = false }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }

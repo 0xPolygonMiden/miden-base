@@ -2,8 +2,7 @@ use alloc::{string::ToString, vec::Vec};
 use core::fmt;
 
 use super::{
-    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
-    ACCOUNT_ISFAUCET_MASK,
+    parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word, ACCOUNT_ISFAUCET_BIT,
 };
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
@@ -17,7 +16,7 @@ const FAUCET_ID_POS: usize = 1;
 ///
 /// - Hash the asset data producing `[d0, d1, d2, d3]`.
 /// - Replace the value of `d1` with the fauce id producing `[d0, faucet_id, d2, d3]`.
-/// - Force the bit position [ACCOUNT_ISFAUCET_MASK] of `d3` to be `0`.
+/// - Force the bit position [ACCOUNT_ISFAUCET_BIT] of `d3` to be `0`.
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
 /// [NonFungibleAssetDetails] struct.
@@ -53,7 +52,7 @@ impl NonFungibleAsset {
         }
         data_hash[FAUCET_ID_POS] = faucet_id.into();
 
-        // Forces the bit at position `ACCOUNT_ISFAUCET_MASK` to `0`.
+        // Forces the bit at position `ACCOUNT_ISFAUCET_BIT` to `0`.
         //
         // Explanation of the bit flip:
         //
@@ -71,7 +70,7 @@ impl NonFungibleAsset {
         // across the vault, because in this case the element is the result of a cryptographic hash
         // function.
         let d3 = data_hash[3].as_int();
-        data_hash[3] = Felt::new((d3 & ACCOUNT_ISFAUCET_MASK) ^ d3);
+        data_hash[3] = Felt::new((d3 & ACCOUNT_ISFAUCET_BIT) ^ d3);
 
         let asset = Self(data_hash);
 
@@ -95,7 +94,8 @@ impl NonFungibleAsset {
 
     /// Return ID of the faucet which issued this asset.
     pub fn faucet_id(&self) -> AccountId {
-        AccountId::new_unchecked(self.0[FAUCET_ID_POS])
+        AccountId::try_from(self.0[FAUCET_ID_POS])
+            .expect("Non fungible asset must be created with a valid faucet id")
     }
 
     // HELPER FUNCTIONS

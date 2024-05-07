@@ -2,8 +2,8 @@ use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
-        StorageSlot,
+        account_id::AccountConfig, Account, AccountCode, AccountId, AccountStorage,
+        AccountStorageType, AccountType, SlotItem, StorageSlot,
     },
     assembly::LibraryPath,
     assets::{AssetVault, TokenSymbol},
@@ -84,16 +84,20 @@ pub fn create_basic_fungible_faucet(
         ],
         vec![],
     )?;
-    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
-    let account_seed = AccountId::get_account_seed(
-        init_seed,
-        AccountType::FungibleFaucet,
-        account_storage_type,
-        account_code.root(),
-        account_storage.root(),
-    )?;
-    let account_id = AccountId::new(account_seed, account_code.root(), account_storage.root())?;
+    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
+    let config = AccountConfig::new(AccountType::FungibleFaucet, account_storage_type);
+
+    let account_seed = {
+        #[cfg(any(test, feature = "tracing"))]
+        let _span =
+            ::tracing::span!(::tracing::Level::INFO, "Grinding proof-of-work for account seed");
+
+        AccountId::get_account_seed(init_seed, config, account_code.root(), account_storage.root())?
+    };
+
+    let account_id =
+        AccountId::new(account_seed, config, account_code.root(), account_storage.root())?;
     Ok((
         Account::new(account_id, account_vault, account_storage, account_code, ZERO),
         account_seed,

@@ -1,11 +1,12 @@
 [workspace]
 resolver = "2"
-members = [ 
+members = [
     "bench-tx",
     "miden-lib",
     "miden-tx",
     "mock",
     "objects",
+    "test-macro",
 ]
 
 [workspace.package]

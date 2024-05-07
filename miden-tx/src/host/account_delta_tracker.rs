@@ -201,19 +201,13 @@ impl AccountVaultDeltaTracker {
         for (faucet_id, amount) in self.fungible_assets {
             if amount > 0 {
                 added_assets.push(Asset::Fungible(
-                    FungibleAsset::new(
-                        AccountId::new_unchecked(faucet_id.into()),
-                        amount.unsigned_abs() as u64,
-                    )
-                    .expect("fungible asset is well formed"),
+                    FungibleAsset::new(faucet_id, amount.unsigned_abs() as u64)
+                        .expect("fungible asset is well formed"),
                 ));
             } else {
                 removed_assets.push(Asset::Fungible(
-                    FungibleAsset::new(
-                        AccountId::new_unchecked(faucet_id.into()),
-                        amount.unsigned_abs() as u64,
-                    )
-                    .expect("fungible asset is well formed"),
+                    FungibleAsset::new(faucet_id, amount.unsigned_abs() as u64)
+                        .expect("fungible asset is well formed"),
                 ));
             }
         }

@@ -1,20 +1,27 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_INSUFFICIENT_ONES,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        account_id::{
+            testing::{
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, INVALID_ACCOUNT_ID_1,
+                INVALID_ACCOUNT_ID_2, INVALID_ACCOUNT_ID_3, INVALID_ACCOUNT_ID_4,
+                INVALID_ACCOUNT_ID_5, INVALID_ACCOUNT_ID_6, INVALID_ACCOUNT_ID_7,
+                INVALID_ACCOUNT_ID_8,
+            },
+            AccountConfig,
         },
-        AccountId, AccountType, StorageSlotType,
+        AccountId, AccountStorageType, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
 };
 use mock::{
     mock::{
         account::{
-            storage_item_0, storage_item_1, storage_item_2, storage_map_2, MockAccountType,
-            STORAGE_LEAVES_2,
+            mock_account_code, mock_account_storage, storage_item_0, storage_item_1,
+            storage_item_2, storage_map_2, MockAccountType, STORAGE_LEAVES_2,
         },
         host::MockHost,
         notes::AssetPreservationStatus,
@@ -24,12 +31,16 @@ use mock::{
     procedures::{output_notes_data_procedure, prepare_word},
     run_tx, run_within_host, run_within_tx_kernel,
 };
+use vm_processor::{DefaultHost, Process};
 
 use super::{
     super::transaction::ToTransactionKernelInputs, ContextId, Felt, MemAdviceProvider,
     ProcessState, StackInputs, Word, ONE, ZERO,
 };
-use crate::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use crate::transaction::{
+    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
+    TransactionKernel,
+};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
@@ -175,21 +186,39 @@ pub fn test_account_type() {
 
 #[test]
 fn test_validate_id_fails_on_insufficient_ones() {
-    let code = format!(
-        "
+    let invalid_ids = [
+        INVALID_ACCOUNT_ID_1,
+        INVALID_ACCOUNT_ID_2,
+        INVALID_ACCOUNT_ID_3,
+        INVALID_ACCOUNT_ID_4,
+        INVALID_ACCOUNT_ID_5,
+        INVALID_ACCOUNT_ID_6,
+        INVALID_ACCOUNT_ID_7,
+        INVALID_ACCOUNT_ID_8,
+    ];
+
+    for id in invalid_ids {
+        let code = format!(
+            "
         use.miden::kernels::tx::account
 
         begin
-            push.{ACCOUNT_ID_INSUFFICIENT_ONES}
+            push.{id}
             exec.account::validate_id
         end
         "
-    );
+        );
 
-    let result =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+        let result = run_within_tx_kernel(
+            "",
+            &code,
+            StackInputs::default(),
+            MemAdviceProvider::default(),
+            None,
+        );
 
-    assert!(result.is_err());
+        assert!(result.is_err());
+    }
 }
 
 #[test]
@@ -236,6 +265,59 @@ fn test_is_faucet_procedure() {
             account_id
         );
     }
+}
+
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
+#[test]
+#[miden_base_test_macro::enable_logging]
+fn test_validate_seed_and_account_id() {
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // ACCOUNT ID ---------------------------------------------------------------------------------
+    let config =
+        AccountConfig::new(AccountType::RegularAccountUpdatableCode, AccountStorageType::OnChain);
+    let account_code = mock_account_code(&assembler);
+    let account_storage = mock_account_storage();
+
+    // use miden_objects::accounts::get_account_seed;
+    // let account_seed =
+    //     get_account_seed(Default::default(), config, account_code.root(), account_storage.root())
+    //         .unwrap();
+    let account_seed = [
+        361684124721197246,
+        3275875821244909156,
+        9597755509732953600,
+        12278174076083819015,
+    ]
+    .map(Felt::new);
+
+    let account_id =
+        AccountId::new(account_seed, config, account_code.root(), account_storage.root()).expect(
+            "The hardcoded seed must be valid, otherwise re-run the get_account_seed above",
+        );
+
+    // TEST PARAMS --------------------------------------------------------------------------------
+    let mut rev_stack = Vec::with_capacity(16);
+    rev_stack.push(account_id.into());
+    rev_stack.extend(account_storage.root());
+    rev_stack.extend(account_seed);
+    rev_stack.extend(account_code.root());
+    let stack_inputs = StackInputs::new(rev_stack).unwrap();
+
+    let code = "
+        use.miden::kernels::tx::account
+
+        begin
+            exec.account::validate_seed_and_account_id
+        end
+        ";
+
+    let program = assembler.compile(code).unwrap();
+    let adv = MemAdviceProvider::default();
+    let host = DefaultHost::new(adv);
+
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
+    let _ = process.execute(&program).unwrap();
 }
 
 // ACCOUNT STORAGE TESTS

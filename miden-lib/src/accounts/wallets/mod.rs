@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
+        account_id::AccountConfig, Account, AccountCode, AccountId, AccountStorage, AccountType,
         StorageSlot,
     },
     assembly::ModuleAst,
@@ -29,10 +29,12 @@ use super::{AuthScheme, TransactionKernel};
 pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
-    account_type: AccountType,
-    account_storage_type: AccountStorageType,
+    config: AccountConfig,
 ) -> Result<(Account, Word), AccountError> {
-    if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
+    if matches!(
+        config.account_type(),
+        AccountType::FungibleFaucet | AccountType::NonFungibleFaucet
+    ) {
         return Err(AccountError::AccountIdInvalidFieldElement(
             "Basic wallet accounts cannot have a faucet account type".to_string(),
         ));
@@ -71,12 +73,12 @@ pub fn create_basic_wallet(
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
-        account_type,
-        account_storage_type,
+        config,
         account_code.root(),
         account_storage.root(),
     )?;
-    let account_id = AccountId::new(account_seed, account_code.root(), account_storage.root())?;
+    let account_id =
+        AccountId::new(account_seed, config, account_code.root(), account_storage.root())?;
     Ok((
         Account::new(account_id, account_vault, account_storage, account_code, ZERO),
         account_seed,

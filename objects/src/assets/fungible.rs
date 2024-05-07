@@ -40,14 +40,6 @@ impl FungibleAsset {
         Ok(asset)
     }
 
-    /// Creates a new [FungibleAsset] without checking its validity.
-    pub(crate) fn new_unchecked(value: Word) -> FungibleAsset {
-        FungibleAsset {
-            faucet_id: AccountId::new_unchecked(value[3]),
-            amount: value[0].as_int(),
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -88,7 +80,10 @@ impl FungibleAsset {
             return Err(AssetError::inconsistent_faucet_ids(self.faucet_id, other.faucet_id));
         }
 
-        let amount = self.amount.checked_add(other.amount).expect("overflow!");
+        let amount = self
+            .amount
+            .checked_add(other.amount)
+            .ok_or(AssetError::AmountTooBig(other.amount))?;
         if amount > Self::MAX_AMOUNT {
             return Err(AssetError::amount_too_big(amount));
         }
@@ -100,11 +95,16 @@ impl FungibleAsset {
     ///
     /// # Errors
     /// Returns an error if this asset's amount is smaller than the requested amount.
-    pub fn sub(&mut self, amount: u64) -> Result<Self, AssetError> {
-        self.amount = self
+    #[allow(clippy::should_implement_trait)]
+    pub fn sub(self, other: Self) -> Result<Self, AssetError> {
+        if self.faucet_id != other.faucet_id {
+            return Err(AssetError::inconsistent_faucet_ids(self.faucet_id, other.faucet_id));
+        }
+
+        let amount = self
             .amount
-            .checked_sub(amount)
-            .ok_or(AssetError::AssetAmountNotSufficient(self.amount, amount))?;
+            .checked_sub(other.amount)
+            .ok_or(AssetError::AssetAmountNotSufficient(self.amount, other.amount))?;
 
         Ok(FungibleAsset { faucet_id: self.faucet_id, amount })
     }

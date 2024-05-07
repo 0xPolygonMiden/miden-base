@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    accounts::{AccountId, AccountType, ACCOUNT_ISFAUCET_MASK},
+    accounts::{AccountId, AccountType, ACCOUNT_ISFAUCET_BIT},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AssetError, Felt, Hasher, Word, ZERO,
 };
@@ -69,15 +69,6 @@ pub enum Asset {
 }
 
 impl Asset {
-    /// Creates a new [Asset] without checking its validity.
-    pub(crate) fn new_unchecked(value: Word) -> Asset {
-        if is_not_a_non_fungible_asset(value) {
-            Asset::Fungible(FungibleAsset::new_unchecked(value))
-        } else {
-            Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(value) })
-        }
-    }
-
     /// Returns true if this asset is the same as the specified asset.
     ///
     /// Two assets are defined to be the same if:
@@ -240,7 +231,7 @@ fn parse_felt(bytes: &[u8]) -> Result<Felt, AssetError> {
 fn is_not_a_non_fungible_asset(asset: Word) -> bool {
     // For fungible assets, the position `3` contains the faucet's account id, in which case the
     // bit is set. For non-fungible assets have the bit always set to `0`.
-    (asset[3].as_int() & ACCOUNT_ISFAUCET_MASK) == ACCOUNT_ISFAUCET_MASK
+    (asset[3].as_int() & ACCOUNT_ISFAUCET_BIT) == ACCOUNT_ISFAUCET_BIT
 }
 
 // TESTS
@@ -248,10 +239,7 @@ fn is_not_a_non_fungible_asset(asset: Word) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use miden_crypto::{
-        utils::{Deserializable, Serializable},
-        Word,
-    };
+    use miden_crypto::utils::{Deserializable, Serializable};
 
     use super::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails};
     use crate::accounts::{
@@ -290,32 +278,6 @@ mod tests {
                 non_fungible_asset,
                 Asset::read_from_bytes(&non_fungible_asset.to_bytes()).unwrap()
             );
-        }
-    }
-
-    #[test]
-    fn test_new_unchecked() {
-        for fungible_account_id in [
-            ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3,
-        ] {
-            let account_id = AccountId::try_from(fungible_account_id).unwrap();
-            let fungible_asset: Asset = FungibleAsset::new(account_id, 10).unwrap().into();
-            assert_eq!(fungible_asset, Asset::new_unchecked(Word::from(&fungible_asset)));
-        }
-
-        for non_fungible_account_id in [
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        ] {
-            let account_id = AccountId::try_from(non_fungible_account_id).unwrap();
-            let details = NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap();
-            let non_fungible_asset: Asset = NonFungibleAsset::new(&details).unwrap().into();
-            assert_eq!(non_fungible_asset, Asset::new_unchecked(Word::from(non_fungible_asset)));
         }
     }
 }

@@ -1,11 +1,14 @@
 use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
 use miden_objects::{
     accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+        account_id::{
+            testing::{
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+                ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            },
+            AccountConfig,
         },
         get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
         AccountStorageType, AccountType, SlotItem, StorageMap, StorageSlot,
@@ -78,7 +81,7 @@ pub fn storage_item_2() -> SlotItem {
 /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
 /// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
 ///
-fn mock_account_vault() -> AssetVault {
+pub fn mock_account_vault() -> AssetVault {
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let fungible_asset =
         Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
@@ -108,13 +111,13 @@ pub fn mock_account_storage() -> AccountStorage {
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 9] = [
-    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
-    "0x3ffe8a2106040b02dcaefe87dc7f488b328f6b5760e863a90c0700e73cc190ac",
+    "0x4215c9c85ac79e27ea5dc1ff74c1248ba0f17ebabbdecc839a772dbef2bd5904",
+    "0x9f97c0a53a3f68875b6e637057f9d266dfddf5791b36b48b96cb8bfd61ff53db",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
     "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x77ecf5988f13326027d08b65ea0279172b690a6e7b829374832f9c25b3a22164",
+    "0x97ba5d6818dacf40ca2343fdcfb3e9911ec1eccdab42eac299982e5371ace0cc",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
@@ -405,16 +408,13 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
         ),
     };
 
-    let seed = get_account_seed_single(
-        init_seed,
-        account_type,
-        AccountStorageType::OnChain,
-        account.code().root(),
-        account.storage().root(),
-    )
-    .unwrap();
+    let config = AccountConfig::new(account_type, AccountStorageType::OnChain);
+    let seed =
+        get_account_seed_single(init_seed, config, account.code().root(), account.storage().root())
+            .unwrap();
 
-    let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
+    let account_id =
+        AccountId::new(seed, config, account.code().root(), account.storage().root()).unwrap();
 
     (account_id, seed)
 }

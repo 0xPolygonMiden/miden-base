@@ -1,16 +1,26 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
+    accounts::{account_id::AccountConfig, Account, AccountId, AccountStorageType, AccountType},
     assembly::ProgramAst,
-    transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
-    Digest,
+    assets::AssetVault,
+    transaction::{
+        InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
+        TransactionScript,
+    },
+    Digest, FieldElement,
 };
 use mock::{
     consumed_note_data_ptr,
     mock::{
-        account::{generate_account_seed, AccountSeedType, MockAccountType},
+        account::{
+            generate_account_seed, mock_account_code, mock_account_storage, AccountSeedType,
+            MockAccountType,
+        },
+        block::mock_block_header,
+        chain::mock_chain_data,
         host::MockHost,
-        notes::AssetPreservationStatus,
+        notes::{mock_notes, AssetPreservationStatus},
         transaction::{mock_inputs, mock_inputs_with_account_seed},
     },
     prepare_transaction, run_tx, run_tx_with_inputs,
@@ -32,7 +42,7 @@ use crate::transaction::{
         NULLIFIER_COM_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
         PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
     },
-    TransactionKernel,
+    ToTransactionKernelInputs, TransactionKernel,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
@@ -338,16 +348,61 @@ fn consumed_notes_memory_assertions(
     }
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account() {
-    let (_acct_id, account_seed) =
-        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
-    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardNew,
-        AssetPreservationStatus::Preserved,
+pub fn test_prologue_create_account_success() {
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // ACCOUNT ID ---------------------------------------------------------------------------------
+    let config =
+        AccountConfig::new(AccountType::RegularAccountUpdatableCode, AccountStorageType::OnChain);
+    let account_code = mock_account_code(&assembler);
+    let account_storage = mock_account_storage();
+
+    // use miden_objects::accounts::get_account_seed;
+    // let account_seed =
+    //     get_account_seed(Default::default(), config, account_code.root(), account_storage.root())
+    //         .unwrap();
+    let account_seed = [
+        5824622038100942662,
+        15575418924651683009,
+        1046325628686720669,
+        2093020714505771353,
+    ]
+    .map(Felt::new);
+
+    let account_id =
+        AccountId::new(account_seed, config, account_code.root(), account_storage.root()).expect(
+            "The hardcoded seed must be valid, otherwise re-run the get_account_seed above",
+        );
+
+    // NEW ACCOUNT --------------------------------------------------------------------------------
+    let nonce = Felt::ZERO;
+    let account_vault = AssetVault::empty();
+    let account = Account::new(account_id, account_vault, account_storage, account_code, nonce);
+
+    // ROLLUP STATE -------------------------------------------------------------------------------
+    let (input_notes, output_notes) = mock_notes(&assembler, &AssetPreservationStatus::Preserved);
+    let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
+    let block_header =
+        mock_block_header(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
+
+    let tx_inputs = TransactionInputs::new(
+        account,
         Some(account_seed),
-    );
+        block_header,
+        chain_mmr,
+        InputNotes::new(recorded_notes).unwrap(),
+    )
+    .unwrap();
+
+    let output_notes = output_notes.into_iter().filter_map(|n| match n {
+        OutputNote::Full(note) => Some(note),
+        OutputNote::Header(_) => None,
+    });
+    let mut tx_args = TransactionArgs::default();
+    tx_args.extend_expected_output_notes(output_notes);
+
     let code = "
     use.miden::kernels::tx::prologue
 
@@ -356,13 +411,20 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let program = assembler.compile(code).unwrap();
+    let transaction = PreparedTransaction::new(program, tx_inputs, tx_args);
+
+    let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
+    let host = MockHost::new(transaction.account().into(), advice_inputs);
+    let mut process =
+        Process::new_debug(transaction.program().kernel().clone(), stack_inputs, host);
+
+    process.execute(transaction.program()).unwrap();
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
+pub fn test_slow_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::FungibleFaucetValidInitialBalance);
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
@@ -388,9 +450,9 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     assert!(process.is_ok());
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
+pub fn test_slow_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::FungibleFaucetInvalidInitialBalance);
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
@@ -416,9 +478,9 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     assert!(process.is_err());
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
+pub fn test_slow_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::NonFungibleFaucetValidReservedSlot);
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
@@ -444,9 +506,9 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     assert!(process.is_ok())
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
+pub fn test_slow_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) =
         generate_account_seed(AccountSeedType::NonFungibleFaucetInvalidReservedSlot);
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
@@ -471,9 +533,9 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     assert!(process.is_err());
 }
 
-#[cfg_attr(not(feature = "testing"), ignore)]
+#[cfg_attr(not(feature = "testing"), ignore)] // Required by build.rs to patch the required pow in the MASM
 #[test]
-pub fn test_prologue_create_account_invalid_seed() {
+pub fn test_slow_prologue_create_account_invalid_seed() {
     let (_acct_id, account_seed) =
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOnChain);
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(

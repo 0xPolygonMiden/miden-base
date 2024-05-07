@@ -1,8 +1,11 @@
 use alloc::string::{String, ToString};
 
 use miden_objects::{
-    accounts::{AccountId, AccountStorageType, AccountType},
-    Digest, Word,
+    accounts::{
+        account_id::{AccountConfig, AccountPoW},
+        AccountId, AccountStorageType, AccountType,
+    },
+    AccountError, Digest, Word,
 };
 use rand::Rng;
 
@@ -17,6 +20,7 @@ use crate::{
 pub struct AccountIdBuilder<T> {
     account_type: AccountType,
     storage_type: AccountStorageType,
+    pow: Option<AccountPoW>,
     code: String,
     storage_root: Digest,
     rng: T,
@@ -27,6 +31,7 @@ impl<T: Rng> AccountIdBuilder<T> {
         Self {
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_type: AccountStorageType::OffChain,
+            pow: None,
             code: DEFAULT_ACCOUNT_CODE.to_string(),
             storage_root: Digest::default(),
             rng,
@@ -53,24 +58,27 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn build(&mut self) -> Result<AccountId, AccountBuilderError> {
-        let (seed, code_root) = accountid_build_details(
-            &mut self.rng,
-            &self.code,
-            self.account_type,
-            self.storage_type,
-            self.storage_root,
-        )?;
+    pub fn pow(&mut self, pow: u8) -> Result<&mut Self, AccountBuilderError> {
+        let pow = AccountPoW::new(pow).map_err(AccountBuilderError::AccountError)?;
+        self.pow = Some(pow);
+        Ok(self)
+    }
 
-        AccountId::new(seed, code_root, self.storage_root)
+    pub fn build(&mut self) -> Result<AccountId, AccountBuilderError> {
+        let config = self.make_config().map_err(AccountBuilderError::AccountError)?;
+        let (seed, code_root) =
+            accountid_build_details(&mut self.rng, &self.code, config, self.storage_root)?;
+
+        AccountId::new(seed, config, code_root, self.storage_root)
             .map_err(AccountBuilderError::AccountError)
     }
 
     pub fn with_seed(&mut self, seed: Word) -> Result<AccountId, AccountBuilderError> {
+        let config = self.make_config().map_err(AccountBuilderError::AccountError)?;
         let code = str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
         let code_root = code.root();
 
-        let account_id = AccountId::new(seed, code_root, self.storage_root)
+        let account_id = AccountId::new(seed, config, code_root, self.storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
         if account_id.account_type() != self.account_type {
@@ -83,6 +91,14 @@ impl<T: Rng> AccountIdBuilder<T> {
 
         Ok(account_id)
     }
+
+    fn make_config(&self) -> Result<AccountConfig, AccountError> {
+        if let Some(pow) = self.pow {
+            AccountConfig::new_with_pow(self.account_type, self.storage_type, pow)
+        } else {
+            Ok(AccountConfig::new(self.account_type, self.storage_type))
+        }
+    }
 }
 
 // UTILS
@@ -94,16 +110,14 @@ impl<T: Rng> AccountIdBuilder<T> {
 pub fn accountid_build_details<T: Rng>(
     rng: &mut T,
     code: &str,
-    account_type: AccountType,
-    storage_type: AccountStorageType,
+    config: AccountConfig,
     storage_root: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
     let code = str_to_account_code(code).map_err(AccountBuilderError::AccountError)?;
     let code_root = code.root();
-    let seed =
-        AccountId::get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
-            .map_err(AccountBuilderError::AccountError)?;
+    let seed = AccountId::get_account_seed(init_seed, config, code_root, storage_root)
+        .map_err(AccountBuilderError::AccountError)?;
 
     Ok((seed, code_root))
 }

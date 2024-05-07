@@ -20,6 +20,7 @@ use miden_objects::{
 use miden_tx::TransactionExecutor;
 use mock::utils::prepare_word;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use tracing::{span, Level};
 
 use crate::{
     get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
@@ -30,7 +31,7 @@ use crate::{
 // ================================================================================================
 
 #[test]
-fn prove_faucet_contract_mint_fungible_asset_succeeds() {
+fn test_slow_prove_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, None);
@@ -163,7 +164,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 // ================================================================================================
 
 #[test]
-fn prove_faucet_contract_burn_fungible_asset_succeeds() {
+fn test_slow_prove_faucet_contract_burn_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
         get_faucet_account_with_max_supply_and_total_issuance(faucet_pub_key, 200, Some(100));
@@ -227,13 +228,22 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 // ================================================================================================
 
 #[test]
-fn faucet_contract_creation() {
+#[miden_base_test_macro::enable_logging]
+fn test_slow_faucet_contract_creation() {
     // we need a Falcon Public Key to create the wallet account
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
 
-    let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key = sec_key.public_key();
+    let sec_key = {
+        let _span = span!(Level::INFO, "Secret key generation").entered();
+        SecretKey::with_rng(&mut rng)
+    };
+
+    let pub_key = {
+        let _span = span!(Level::INFO, "Public key generation").entered();
+        sec_key.public_key()
+    };
+
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
 
     // we need to use an initial seed to create the wallet account
@@ -248,15 +258,18 @@ fn faucet_contract_creation() {
     let decimals = 2u8;
     let storage_type = AccountStorageType::OffChain;
 
-    let (faucet_account, _) = create_basic_fungible_faucet(
-        init_seed,
-        token_symbol,
-        decimals,
-        max_supply,
-        storage_type,
-        auth_scheme,
-    )
-    .unwrap();
+    let (faucet_account, _) = {
+        let _span = span!(Level::INFO, "Create faucet account").entered();
+        create_basic_fungible_faucet(
+            init_seed,
+            token_symbol,
+            decimals,
+            max_supply,
+            storage_type,
+            auth_scheme,
+        )
+        .unwrap()
+    };
 
     // check that max_supply (slot 1) is 123
     assert_eq!(

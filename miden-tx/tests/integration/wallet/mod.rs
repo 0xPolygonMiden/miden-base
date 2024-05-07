@@ -25,7 +25,7 @@ use crate::{
 
 #[test]
 // Testing the basic Miden wallet - receiving an asset
-fn prove_receive_asset_via_wallet() {
+fn test_slow_prove_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1 = FungibleAsset::new(faucet_id_1, 100).unwrap();
@@ -107,7 +107,7 @@ fn prove_receive_asset_via_wallet() {
 
 #[test]
 /// Testing the basic Miden wallet - sending an asset
-fn prove_send_asset_via_wallet() {
+fn test_slow_prove_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
@@ -195,7 +195,8 @@ fn prove_send_asset_via_wallet() {
 #[test]
 fn wallet_creation() {
     use miden_objects::accounts::{
-        account_id::testing::ACCOUNT_ID_SENDER, AccountStorageType, AccountType,
+        account_id::{testing::ACCOUNT_ID_SENDER, AccountConfig},
+        AccountStorageType, AccountType,
     };
 
     // we need a Falcon Public Key to create the wallet account
@@ -212,11 +213,10 @@ fn wallet_creation() {
         204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
-    let account_type = AccountType::RegularAccountImmutableCode;
-    let storage_type = AccountStorageType::OffChain;
+    let config =
+        AccountConfig::new(AccountType::RegularAccountImmutableCode, AccountStorageType::OffChain);
 
-    let (wallet, _) =
-        create_basic_wallet(init_seed, auth_scheme, account_type, storage_type).unwrap();
+    let (wallet, _) = create_basic_wallet(init_seed, auth_scheme, config).unwrap();
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();

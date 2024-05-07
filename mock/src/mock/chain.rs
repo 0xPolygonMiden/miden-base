@@ -2,7 +2,9 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use miden_objects::{
-    accounts::{Account, AccountId, AccountStorageType, AccountType, SlotItem},
+    accounts::{
+        account_id::AccountConfig, Account, AccountId, AccountStorageType, AccountType, SlotItem,
+    },
     assets::Asset,
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
@@ -224,15 +226,10 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         };
 
         let storage = AccountStorageBuilder::new().add_items(storage).build();
+        let config = AccountConfig::new(account_type, storage_type);
 
-        let (seed, _) = accountid_build_details(
-            &mut self.rng,
-            code.as_ref(),
-            account_type,
-            storage_type,
-            storage.root(),
-        )
-        .unwrap();
+        let (seed, _) =
+            accountid_build_details(&mut self.rng, code.as_ref(), config, storage.root()).unwrap();
 
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
         let account = AccountBuilder::new(rng)
@@ -284,14 +281,10 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     pub fn build_basic_wallet(&mut self) -> AccountId {
         let account_type = AccountType::RegularAccountUpdatableCode;
         let storage = AccountStorageBuilder::new().build();
-        let (seed, _) = accountid_build_details(
-            &mut self.rng,
-            DEFAULT_ACCOUNT_CODE,
-            account_type,
-            AccountStorageType::OnChain,
-            storage.root(),
-        )
-        .unwrap();
+        let config = AccountConfig::new(account_type, AccountStorageType::OnChain);
+        let (seed, _) =
+            accountid_build_details(&mut self.rng, DEFAULT_ACCOUNT_CODE, config, storage.root())
+                .unwrap();
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
         let account = AccountBuilder::new(rng)
             .account_type(account_type)
