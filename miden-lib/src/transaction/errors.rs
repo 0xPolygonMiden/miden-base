@@ -2,9 +2,8 @@ use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use miden_objects::{
-    accounts::AccountStorage,
-    notes::{NoteAssets, NoteMetadata},
-    AccountError, AssetError, Digest, Felt, NoteError,
+    accounts::AccountStorage, notes::NoteMetadata, AccountError, AssetError, Digest, Felt,
+    NoteError,
 };
 
 // TRANSACTION KERNEL ERROR
@@ -12,17 +11,19 @@ use miden_objects::{
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionKernelError {
+    FailedToAddAssetToNote(NoteError),
     InvalidStorageSlotIndex(u64),
     MalformedAccountId(AccountError),
     MalformedAsset(AssetError),
     MalformedAssetOnAccountVaultUpdate(AssetError),
     MalformedNoteInputs(NoteError),
     MalformedNoteMetadata(NoteError),
+    MalformedNotePointer(String),
     MalformedNoteScript(Vec<Felt>),
     MalformedNoteType(NoteError),
     MalformedRecipientData(Vec<Felt>),
     MalformedTag(Felt),
-    MissingNoteDetails(NoteMetadata, NoteAssets, Digest),
+    MissingNoteDetails(NoteMetadata, Digest),
     MissingStorageSlotValue(u8, String),
     UnknownAccountProcedure(Digest),
 }
@@ -30,43 +31,48 @@ pub enum TransactionKernelError {
 impl fmt::Display for TransactionKernelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            TransactionKernelError::FailedToAddAssetToNote(err) => {
+                write!(f, "failed to add asset to note: {err}")
+            },
             TransactionKernelError::InvalidStorageSlotIndex(index) => {
                 let num_slots = AccountStorage::NUM_STORAGE_SLOTS;
                 write!(f, "storage slot index {index} is invalid, must be smaller than {num_slots}")
             },
             TransactionKernelError::MalformedAccountId(err) => {
-                write!( f, "Account id data extracted from the stack by the event handler is not well formed {}", err)
+                write!( f, "Account id data extracted from the stack by the event handler is not well formed {err}")
             },
             TransactionKernelError::MalformedAsset(err) => {
-                write!(f, "Asset data extracted from the stack by the event handler is not well formed {:?}", err)
+                write!(f, "Asset data extracted from the stack by the event handler is not well formed {err}")
             },
             TransactionKernelError::MalformedAssetOnAccountVaultUpdate(err) => {
                 write!(f, "malformed asset during account vault update: {err}")
             },
             TransactionKernelError::MalformedNoteInputs(err) => {
-                write!( f, "Note inputs data extracted from the advice map by the event handler is not well formed {}", err)
+                write!( f, "Note inputs data extracted from the advice map by the event handler is not well formed {err}")
             },
             TransactionKernelError::MalformedNoteMetadata(err) => {
-                write!(f, "Note metadata created by the event handler is not well formed {:?}", err)
+                write!(f, "Note metadata created by the event handler is not well formed {err}")
+            },
+            TransactionKernelError::MalformedNotePointer(err) => {
+                write!(f, "Note pointer is malformed {err}")
             },
             TransactionKernelError::MalformedNoteScript(data) => {
-                write!( f, "Note script data extracted from the advice map by the event handler is not well formed {:?}", data)
+                write!( f, "Note script data extracted from the advice map by the event handler is not well formed {data:?}")
             },
             TransactionKernelError::MalformedNoteType(err) => {
-                write!( f, "Note type data extracted from the stack by the event handler is not well formed {}", err)
+                write!( f, "Note type data extracted from the stack by the event handler is not well formed {err}")
             },
             TransactionKernelError::MalformedRecipientData(data) => {
-                write!(f, "Recipient data in the advice provider is not well formed {:?}", data)
+                write!(f, "Recipient data in the advice provider is not well formed {data:?}")
             },
             TransactionKernelError::MalformedTag(tag) => {
                 write!(
                     f,
-                    "Tag data extracted from the stack by the event handler is not well formed {}",
-                    tag
+                    "Tag data extracted from the stack by the event handler is not well formed {tag}"
                 )
             },
-            TransactionKernelError::MissingNoteDetails(metadata, vault, recipient) => {
-                write!( f, "Public note missing the details in the advice provider. metadata: {:?} vault: {:?} recipient: {:?}", metadata, vault, recipient)
+            TransactionKernelError::MissingNoteDetails(metadata, recipient) => {
+                write!( f, "Public note missing the details in the advice provider. metadata: {metadata:?}, recipient: {recipient:?}")
             },
             TransactionKernelError::MissingStorageSlotValue(index, err) => {
                 write!(f, "value for storage slot {index} could not be found: {err}")
