@@ -31,6 +31,8 @@ pub use tx_authenticator::{AuthSecretKey, BasicAuthenticator, TransactionAuthent
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
+use crate::KERNEL_ERRORS;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -64,12 +66,16 @@ pub struct TransactionHost<A, T> {
 
     /// Contains generated signatures for messages
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
+
+    /// Contains mappings from error codes to the related error messages
+    error_messages: BTreeMap<u32, &'static str>,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+        let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
         Self {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
@@ -78,6 +84,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             authenticator,
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
+            error_messages: kernel_assertion_errors,
         }
     }
 
@@ -449,5 +456,17 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         }
 
         Ok(HostResponse::None)
+    }
+
+    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+        let err_msg = self
+            .error_messages
+            .get(&err_code)
+            .map_or("Unknown error".to_string(), |msg| msg.to_string());
+        ExecutionError::FailedAssertion {
+            clk: process.clk(),
+            err_code,
+            err_msg: Some(err_msg),
+        }
     }
 }
