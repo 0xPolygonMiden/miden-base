@@ -1,16 +1,13 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
+    memory::{MemoryAddress, ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
     TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
     assets::Asset,
-    notes::{
-        Note, NoteAssets, NoteHeader, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
-        NoteTag, NoteType,
-    },
+    notes::{NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType},
     transaction::OutputNote,
     Digest, Hasher,
 };
@@ -24,6 +21,9 @@ use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
 use account_procs::AccountProcedureIndexMap;
+
+mod note_builder;
+use note_builder::OutputNoteBuilder;
 
 mod tx_authenticator;
 pub use tx_authenticator::{AuthSecretKey, BasicAuthenticator, TransactionAuthenticator};
@@ -51,8 +51,9 @@ pub struct TransactionHost<A, T> {
     /// A map for the account's procedures.
     acct_procedure_index_map: AccountProcedureIndexMap,
 
-    /// The list of notes created while executing a transaction.
-    output_notes: Vec<OutputNote>,
+    /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
+    /// map.
+    output_notes: BTreeMap<MemoryAddress, OutputNoteBuilder>,
 
     /// Provides a way to get a signature for a message into a transaction
     authenticator: Option<Rc<T>>,
@@ -73,7 +74,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
-            output_notes: Vec::new(),
+            output_notes: BTreeMap::default(),
             authenticator,
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
@@ -82,10 +83,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
+        let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
         (
             self.adv_provider,
             self.account_delta.into_delta(),
-            self.output_notes,
+            output_notes,
             self.generated_signatures,
         )
     }
@@ -113,19 +115,18 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
         let tag = NoteTag::try_from(stack[3])
             .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
+        let note_ptr: MemoryAddress =
+            stack[4].try_into().map_err(TransactionKernelError::MalformedNotePointer)?;
         let asset = Asset::try_from([stack[8], stack[7], stack[6], stack[5]])
             .map_err(TransactionKernelError::MalformedAsset)?;
-        let recipient = Digest::new([stack[12], stack[11], stack[10], stack[9]]);
-        let vault =
-            NoteAssets::new(vec![asset]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let recipient_digest = Digest::new([stack[12], stack[11], stack[10], stack[9]]);
 
         let metadata = NoteMetadata::new(sender, note_type, tag, aux)
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
-        let note = if metadata.note_type() == NoteType::Public {
-            let data = self.adv_provider.get_mapped_values(&recipient).ok_or(
-                TransactionKernelError::MissingNoteDetails(metadata, vault.clone(), recipient),
-            )?;
+        let mut note_builder = if let Some(data) =
+            self.adv_provider.get_mapped_values(&recipient_digest)
+        {
             if data.len() != 12 {
                 return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
             }
@@ -142,13 +143,15 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             let script = NoteScript::try_from(script_data)
                 .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
             let recipient = NoteRecipient::new(serial_num, script, inputs);
-            OutputNote::Public(Note::new(vault, metadata, recipient))
+
+            OutputNoteBuilder::with_recipient(metadata, recipient)
         } else {
-            let note_id = NoteId::new(recipient, vault.commitment());
-            OutputNote::Private(NoteHeader::new(note_id, metadata))
+            OutputNoteBuilder::new(metadata, recipient_digest)?
         };
 
-        self.output_notes.push(note);
+        note_builder.add_asset(asset)?;
+
+        self.output_notes.insert(note_ptr, note_builder);
 
         Ok(())
     }

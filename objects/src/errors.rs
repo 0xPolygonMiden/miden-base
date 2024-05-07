@@ -196,10 +196,7 @@ impl std::error::Error for AssetVaultError {}
 pub enum NoteError {
     DuplicateFungibleAsset(AccountId),
     DuplicateNonFungibleAsset(NonFungibleAsset),
-    EmptyAssetList,
     InconsistentNoteTag(NoteType, u64),
-    InconsistentStubAssetHash(Digest, Digest),
-    InconsistentStubId(NoteId, NoteId),
     InvalidAssetData(AssetError),
     InvalidNoteSender(AccountError),
     InvalidNoteTagUseCase(u16),
@@ -223,10 +220,6 @@ impl NoteError {
 
     pub fn duplicate_non_fungible_asset(asset: NonFungibleAsset) -> Self {
         Self::DuplicateNonFungibleAsset(asset)
-    }
-
-    pub fn empty_asset_list() -> Self {
-        Self::EmptyAssetList
     }
 
     pub fn invalid_origin_index(msg: String) -> Self {
