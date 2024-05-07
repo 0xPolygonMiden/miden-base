@@ -66,8 +66,8 @@ pub struct TransactionHost<A, T> {
     /// Contains generated signatures for messages
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 
-    /// Contains mapping from assertion error codes to the related error message
-    kernel_assertion_errors: BTreeMap<u32, &'static str>,
+    /// Contains mappings from error codes to the related error messages
+    error_messages: BTreeMap<u32, &'static str>,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
@@ -83,7 +83,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             authenticator,
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
-            kernel_assertion_errors,
+            error_messages: kernel_assertion_errors,
         }
     }
 
@@ -459,7 +459,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
     fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
         let err_msg = self
-            .kernel_assertion_errors
+            .error_messages
             .get(&err_code)
             .map_or("Unknown error".to_string(), |msg| msg.to_string());
         ExecutionError::FailedAssertion {

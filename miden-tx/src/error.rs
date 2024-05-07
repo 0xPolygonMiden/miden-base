@@ -209,7 +209,7 @@ const ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS: u32 = 131108;
 const ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE: u32 = 131109;
 const ERR_FAUCET_NONEXISTING_TOKEN: u32 = 131110;
 const ERR_NOTE_INVALID_SENDER: u32 = 131111;
-const ERR_NOTE_INVALID_VAULT: u32 = 131112;
+const ERR_NOTE_INVALID_ASSETS: u32 = 131112;
 const ERR_NOTE_INVALID_INPUTS: u32 = 131113;
 const ERR_NOTE_TOO_MANY_ASSETS: u32 = 131114;
 const ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE: u32 = 131115;
@@ -221,11 +221,11 @@ const ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW: u32 = 131120;
 const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH: u32 = 131121;
 const ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET: u32 = 131122;
 const ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO: u32 = 131123;
-const ERR_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO: u32 = 131124;
+const ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO: u32 = 131124;
 const ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 131125;
 const ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_WITHIN_LIMITS: u32 = 131126;
-const ERR_NON_FUNGIBLE_ASSET_POS_ONE_MUST_FUNGIBLE_FAUCET_ID: u32 = 131127;
-const ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET: u32 = 131128;
+const ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_FUNGIBLE_FAUCET_ID: u32 = 131127;
+const ERR_NON_FUNGIBLE_ASSET_FORMAT_HIGH_BIT_MUST_BE_ZERO: u32 = 131128;
 const ERR_FUNGIBLE_ASSET_MISMATCH: u32 = 131129;
 const ERR_NON_FUNGIBLE_ASSET_MISMATCH: u32 = 131130;
 const ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32: u32 = 131131;
@@ -242,7 +242,7 @@ const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
 const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
 
 pub const KERNEL_ERRORS: [(u32, &str); 71] = [
-    (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item"),
+    (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
     (ERR_P2ID_TARGET_ACCT_MISMATCH, "P2ID's target account address and transaction address do not match"),
@@ -282,9 +282,9 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE, "Non-fungible burn called on the wrong faucet type"),
     (ERR_FAUCET_NONEXISTING_TOKEN, "Burn called on nonexistent token"),
     (ERR_NOTE_INVALID_SENDER, "Trying to access note sender from incorrect context"),
-    (ERR_NOTE_INVALID_VAULT, "Trying to access note vault from incorrect context"),
+    (ERR_NOTE_INVALID_ASSETS, "Trying to access note assets from incorrect context"),
     (ERR_NOTE_INVALID_INPUTS, "Trying to access note inputs from incorrect context"),
-    (ERR_NOTE_TOO_MANY_ASSETS, "Assets in a note must fit in a u32 value"),
+    (ERR_NOTE_TOO_MANY_ASSETS, "Assets in a note must fit in a u8 value"),
     (ERR_VAULT_GET_BALANCE_WRONG_ASSET_TYPE, "The get_balance procedure can be called only with a fungible faucet"),
     (ERR_VAULT_HAS_NON_FUNGIBLE_WRONG_ACCOUNT_TYPE, "The has_non_fungible_asset procedure can be called only with a non-fungible faucet"),
     (ERR_VAULT_FUNGIBLE_MAX_AMOUNT_EXCEEDED, "Adding the fungible asset would exceed the max_amount of 9223372036854775807"),
@@ -293,15 +293,15 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_VAULT_FUNGIBLE_AMOUNT_UNDERFLOW, "Removing the fungible asset results in an underflow or negative balance"),
     (ERR_VAULT_REMOVE_FUNGIBLE_ASSET_MISMATCH, "Removing the asset from the account vault failed, something is wrong with the current value before the update"),
     (ERR_VAULT_NON_FUNGIBLE_MISSING_ASSET, "Removing inexistent non-fungible asset"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO, "There is a malformatted asset, ASSET[1] must be 0"),
-    (ERR_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO, "There is a malformatted asset, ASSET[2] must be 0"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "There is a malformatted asset, ASSET[3] must be a valide fungible faucet id"),
-    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_WITHIN_LIMITS, "There is a malformatted asset, ASSET[0] exceeds the maximum allowed amount"),
-    (ERR_NON_FUNGIBLE_ASSET_POS_ONE_MUST_FUNGIBLE_FAUCET_ID, "There is a malformatted non-fungible asset, ASSET[1] is not a valid non-fungible faucet id"),
-    (ERR_NON_FUNGIBLE_ASSET_HIGH_BIT_SET, "There is a malformatted non-fungible asset, the most significant bit must be 0"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO, "Malformed fungible asset; ASSET[1] must be 0"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO, "Malformed fungible asset; ASSET[2] must be 0"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_THREE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed fungible asset; ASSET[3] must be a valide fungible faucet id"),
+    (ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ZERO_MUST_BE_WITHIN_LIMITS, "Malformed fungible asset; ASSET[0] exceeds the maximum allowed amount"),
+    (ERR_NON_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_FUNGIBLE_FAUCET_ID, "Malformed non-fungible asset; ASSET[1] is not a valid non-fungible faucet id"),
+    (ERR_NON_FUNGIBLE_ASSET_FORMAT_HIGH_BIT_MUST_BE_ZERO, "Malformed non-fungible asset; the most significant bit must be 0"),
     (ERR_FUNGIBLE_ASSET_MISMATCH, "Fungible asset origin validation failed"),
     (ERR_NON_FUNGIBLE_ASSET_MISMATCH, "Non-fungible asset origin validation failed"),
-    (ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32, "The nonce can only increase by a u32 value"),
+    (ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32, "The nonce cannot be increased by a greater than u32 value"),
     (ERR_ACCOUNT_INSUFFICIENT_ONES, "Account id is invalid, insufficient 1's"),
     (ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE, "Account must be updatable for it to be possible to update its code"),
     (ERR_ACCOUNT_SEED_DIGEST_MISMATCH, "Account seed digest mismatch"),
