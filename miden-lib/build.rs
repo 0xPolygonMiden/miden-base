@@ -26,7 +26,6 @@ const ASM_KERNELS_DIR: &str = "kernels/transaction";
 /// - Compiles contents of asm/miden directory into a Miden library file (.masl) under
 ///   miden namespace.
 /// - Compiles contents of asm/scripts directory into individual .masb files.
-#[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed=asm");

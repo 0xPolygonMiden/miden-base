@@ -112,6 +112,22 @@ impl Asset {
             Self::NonFungible(asset) => asset.vault_key(),
         }
     }
+
+    /// Returns the inner fungible asset, or panics if the asset is not fungible.
+    pub fn unwrap_fungible(&self) -> FungibleAsset {
+        match self {
+            Asset::Fungible(asset) => *asset,
+            Asset::NonFungible(_) => panic!("the asset is non-fungible"),
+        }
+    }
+
+    /// Returns the inner non-fungible asset, or panics if the asset is fungible.
+    pub fn unwrap_non_fungible(&mut self) -> NonFungibleAsset {
+        match self {
+            Asset::Fungible(_) => panic!("the asset is fungible"),
+            Asset::NonFungible(asset) => *asset,
+        }
+    }
 }
 
 impl From<Asset> for Word {
