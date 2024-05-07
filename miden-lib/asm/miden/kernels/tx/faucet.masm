@@ -8,19 +8,19 @@ use.miden::kernels::tx::memory
 # ERRORS
 # =================================================================================================
 
-# Asset mint operation would acuse a issuance overflow
+# Asset mint operation would cause an issuance overflow
 const.ERR_FAUCET_ISSUANCE_OVERFLOW=0x00020022
 
 # Asset burn can not exceed the existing supply
 const.ERR_FAUCET_BURN_OVER_ISSUANCE=0x00020023
 
-# Non fungible token already exists, it can be issue only once
+# Non-fungible token already exists, it can be issued only once
 const.ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS=0x00020024
 
-# Non fungible burn called on the wrong faucet type
+# Non-fungible burn called on the wrong faucet type
 const.ERR_FAUCET_NON_FUNGIBLE_BURN_WRONG_TYPE=0x00020025
 
-# Non fungible burn called on inexisting token.
+# Burn called on nonexistent token
 const.ERR_FAUCET_NONEXISTING_TOKEN=0x00020026
 
 # FUNGIBLE ASSETS

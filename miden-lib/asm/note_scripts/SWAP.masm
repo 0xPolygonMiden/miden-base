@@ -12,7 +12,7 @@ const.OFFCHAIN_NOTE=2
 # SWAP script expects exactly 9 note inputs
 const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
 
-# SWAP script requires exactly one note asset
+# SWAP script requires exactly 1 note asset
 const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 
 # Swap script: adds an asset from the note into consumers account and
