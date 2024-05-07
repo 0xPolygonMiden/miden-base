@@ -131,7 +131,7 @@ impl NoteAssets {
         } else {
             // if the asset is not in the list, add it to the list
             self.assets.push(asset);
-            if self.num_assets() == MAX_ASSETS_PER_NOTE {
+            if self.assets.len() > Self::MAX_NUM_ASSETS {
                 return Err(NoteError::too_many_assets(self.assets.len()));
             }
         }
