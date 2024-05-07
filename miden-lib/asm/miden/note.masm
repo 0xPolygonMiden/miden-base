@@ -4,7 +4,7 @@ use.std::mem
 # ERRORS
 # =================================================================================================
 
-# Note's advice data does not match the expected commitment.
+# Provided note data does not match the commitment
 const.ERR_NOTE_DATA_MISMATCH=0x00020040
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
