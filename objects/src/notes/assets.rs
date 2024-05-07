@@ -210,7 +210,7 @@ impl Deserializable for NoteAssets {
 // ================================================================================================
 
 #[cfg(test)]
-mod tess {
+mod tests {
     use super::{compute_asset_commitment, NoteAssets};
     use crate::{
         accounts::account_id::{testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, AccountId},
