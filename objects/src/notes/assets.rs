@@ -16,7 +16,7 @@ use crate::MAX_ASSETS_PER_NOTE;
 /// All the assets in a note can be reduced to a single commitment which is computed by
 /// sequentially hashing the assets. Note that the same list of assets can result in two different
 /// commitments if the asset ordering is different.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteAssets {
     assets: Vec<Asset>,
@@ -35,13 +35,10 @@ impl NoteAssets {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The asset list is empty.
     /// - The list contains more than 256 assets.
     /// - There are duplicate assets in the list.
     pub fn new(assets: Vec<Asset>) -> Result<Self, NoteError> {
-        if assets.is_empty() {
-            return Err(NoteError::EmptyAssetList);
-        } else if assets.len() > Self::MAX_NUM_ASSETS {
+        if assets.len() > Self::MAX_NUM_ASSETS {
             return Err(NoteError::too_many_assets(assets.len()));
         }
 
@@ -102,6 +99,46 @@ impl NoteAssets {
 
         padded_assets
     }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds the provided asset to this list of note assets.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The same non-fungible asset is already in the list.
+    /// - A fungible asset issued by the same faucet exists in the list and adding both assets
+    ///   together results in an invalid asset.
+    /// - Adding the asset to the list will push the list beyond the [Self::MAX_NUM_ASSETS] limit.
+    pub fn add_asset(&mut self, asset: Asset) -> Result<(), NoteError> {
+        // check if the asset issued by the faucet as the provided asset already exists in the
+        // list of assets
+        if let Some(own_asset) = self.assets.iter_mut().find(|a| a.is_same(&asset)) {
+            match own_asset {
+                Asset::Fungible(f_own_asset) => {
+                    // if a fungible asset issued by the same faucet is found, try to add the
+                    // the provided asset to it
+                    let new_asset = f_own_asset
+                        .add(asset.unwrap_fungible())
+                        .map_err(NoteError::InvalidAssetData)?;
+                    *own_asset = Asset::Fungible(new_asset);
+                },
+                Asset::NonFungible(nf_asset) => {
+                    return Err(NoteError::duplicate_non_fungible_asset(*nf_asset));
+                },
+            }
+        } else {
+            // if the asset is not in the list, add it to the list
+            self.assets.push(asset);
+            if self.num_assets() == MAX_ASSETS_PER_NOTE {
+                return Err(NoteError::too_many_assets(self.assets.len()));
+            }
+        }
+
+        self.hash = compute_asset_commitment(&self.assets);
+        Ok(())
+    }
 }
 
 impl PartialEq for NoteAssets {
@@ -118,8 +155,13 @@ impl Eq for NoteAssets {}
 /// Returns a commitment to a note's assets.
 ///
 /// The commitment is computed as a sequential hash of all assets (each asset represented by 4
-/// field elements), padded to the next multiple of 2.
+/// field elements), padded to the next multiple of 2. If the asset list is empty, a default digest
+/// is returned.
 fn compute_asset_commitment(assets: &[Asset]) -> Digest {
+    if assets.is_empty() {
+        return Digest::default();
+    }
+
     // If we have an odd number of assets we pad the vector with 4 zero elements. This is to
     // ensure the number of elements is a multiple of 8 - the size of the hasher rate.
     let word_capacity = if assets.len() % 2 == 0 {
@@ -161,5 +203,41 @@ impl Deserializable for NoteAssets {
         let count = source.read_u8()? + 1;
         let assets = source.read_many::<Asset>(count.into())?;
         Self::new(assets).map_err(|e| DeserializationError::InvalidValue(format!("{e:?}")))
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tess {
+    use super::{compute_asset_commitment, NoteAssets};
+    use crate::{
+        accounts::account_id::{testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, AccountId},
+        assets::{Asset, FungibleAsset},
+        Digest, Felt,
+    };
+
+    #[test]
+    fn add_asset() {
+        let faucet_id = AccountId::new_unchecked(Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN));
+
+        let asset1 = Asset::Fungible(FungibleAsset::new(faucet_id, 100).unwrap());
+        let asset2 = Asset::Fungible(FungibleAsset::new(faucet_id, 50).unwrap());
+
+        // create empty assets
+        let mut assets = NoteAssets::default();
+        assert_eq!(assets.hash, Digest::default());
+
+        // add asset1
+        assert!(assets.add_asset(asset1).is_ok());
+        assert_eq!(assets.assets, vec![asset1]);
+        assert_eq!(assets.hash, compute_asset_commitment(&[asset1]));
+
+        // add asset2
+        assert!(assets.add_asset(asset2).is_ok());
+        let expected_asset = Asset::Fungible(FungibleAsset::new(faucet_id, 150).unwrap());
+        assert_eq!(assets.assets, vec![expected_asset]);
+        assert_eq!(assets.hash, compute_asset_commitment(&[expected_asset]));
     }
 }
