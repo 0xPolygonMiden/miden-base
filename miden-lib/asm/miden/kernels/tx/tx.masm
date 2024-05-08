@@ -116,6 +116,10 @@ proc.increment_num_created_notes
     # => [note_idx]
 end
 
+#! Adds a non-fungible asset to a note at the next available position. 
+#! Returns the pointer to the note the asset was stored at.
+#! Panics if the non-fungible asset already exists in the note.
+#!
 #! Inputs: [ASSET, note_ptr, num_of_assets]
 #! Outputs: [note_ptr]
 proc.add_non_fungible_asset_to_note
@@ -167,6 +171,12 @@ proc.add_non_fungible_asset_to_note
     # => [note_ptr]
 end
 
+#! Adds a fungible asset to a note. If the note already holds an asset issued by the
+#! same faucet id the two quantities are summed up and the new quantity is stored at the
+#! old position in the note. In the other case, the asset is stored at the next available
+#! position. Returns the pointer to the note the asset was stored at.
+#! Panics if the combined quantity exceeds the maximum for fungible assets (~overflow).
+#!
 #! Inputs: [ASSET, note_ptr, num_of_assets]
 #! Outputs: [note_ptr]
 proc.add_fungible_asset_to_note
@@ -325,7 +335,7 @@ export.move_asset_to_note
 
     # emit the event
     emit.NEW_ASSET_TO_NOTE_EVENT
-    # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+    # => [ASSET, note_ptr]
 
     # check if the note has at least one ASSET already
     dup.4 exec.memory::get_created_note_num_assets dup movdn.6 neq.0
