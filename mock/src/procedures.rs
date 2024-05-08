@@ -15,7 +15,7 @@ use super::{
 };
 
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
-    let OutputNote::Public(note0) = notes.get_note(0) else {
+    let OutputNote::Full(note0) = notes.get_note(0) else {
         panic!("Note 0 must be a full note")
     };
     let note_0_metadata = prepare_word(&note0.metadata().into());
@@ -23,7 +23,7 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let note_0_assets = prepare_assets(note0.assets());
     let note_0_num_assets = 1;
 
-    let OutputNote::Public(note1) = notes.get_note(1) else {
+    let OutputNote::Full(note1) = notes.get_note(1) else {
         panic!("Note 1 must be a full note")
     };
     let note_1_metadata = prepare_word(&note1.metadata().into());
@@ -31,7 +31,7 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let note_1_assets = prepare_assets(note1.assets());
     let note_1_num_assets = 1;
 
-    let OutputNote::Public(note2) = notes.get_note(2) else {
+    let OutputNote::Full(note2) = notes.get_note(2) else {
         panic!("Note 2 must be a full note")
     };
     let note_2_metadata = prepare_word(&note2.metadata().into());

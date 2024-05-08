@@ -141,22 +141,22 @@ fn build_output_notes_commitment(notes: &[OutputNote]) -> Digest {
 // CONSTANTS
 // ------------------------------------------------------------------------------------------------
 
-const PUBLIC: u8 = 0;
-const PRIVATE: u8 = 1;
+const FULL: u8 = 0;
+const HEADER: u8 = 1;
 
 /// The types of note outputs supported by the transaction kernel.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputNote {
-    Public(Note),
-    Private(NoteHeader),
+    Full(Note),
+    Header(NoteHeader),
 }
 
 impl OutputNote {
     /// The assets contained in the note.
     pub fn assets(&self) -> Option<&NoteAssets> {
         match self {
-            OutputNote::Public(note) => Some(note.assets()),
-            OutputNote::Private(_) => None,
+            OutputNote::Full(note) => Some(note.assets()),
+            OutputNote::Header(_) => None,
         }
     }
 
@@ -165,8 +165,8 @@ impl OutputNote {
     /// This value is both an unique identifier and a commitment to the note.
     pub fn id(&self) -> NoteId {
         match self {
-            OutputNote::Public(note) => note.id(),
-            OutputNote::Private(note) => note.id(),
+            OutputNote::Full(note) => note.id(),
+            OutputNote::Header(note) => note.id(),
         }
     }
 
@@ -175,16 +175,16 @@ impl OutputNote {
     /// See [super::NoteRecipient] for more details.
     pub fn recipient_digest(&self) -> Option<Digest> {
         match self {
-            OutputNote::Public(note) => Some(note.recipient().digest()),
-            OutputNote::Private(_) => None,
+            OutputNote::Full(note) => Some(note.recipient().digest()),
+            OutputNote::Header(_) => None,
         }
     }
 
     /// Note's metadata.
     pub fn metadata(&self) -> &NoteMetadata {
         match self {
-            OutputNote::Public(note) => note.metadata(),
-            OutputNote::Private(note) => note.metadata(),
+            OutputNote::Full(note) => note.metadata(),
+            OutputNote::Header(note) => note.metadata(),
         }
     }
 }
@@ -201,8 +201,8 @@ impl From<OutputNote> for NoteHeader {
 impl From<&OutputNote> for NoteHeader {
     fn from(value: &OutputNote) -> Self {
         match value {
-            OutputNote::Public(note) => note.into(),
-            OutputNote::Private(note) => *note,
+            OutputNote::Full(note) => note.into(),
+            OutputNote::Header(note) => *note,
         }
     }
 }
@@ -213,12 +213,12 @@ impl From<&OutputNote> for NoteHeader {
 impl Serializable for OutputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            OutputNote::Public(note) => {
-                target.write(PUBLIC);
+            OutputNote::Full(note) => {
+                target.write(FULL);
                 target.write(note);
             },
-            OutputNote::Private(note) => {
-                target.write(PRIVATE);
+            OutputNote::Header(note) => {
+                target.write(HEADER);
                 target.write(note);
             },
         }
@@ -228,8 +228,8 @@ impl Serializable for OutputNote {
 impl Deserializable for OutputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
-            PUBLIC => Ok(OutputNote::Public(Note::read_from(source)?)),
-            PRIVATE => Ok(OutputNote::Private(NoteHeader::read_from(source)?)),
+            FULL => Ok(OutputNote::Full(Note::read_from(source)?)),
+            HEADER => Ok(OutputNote::Header(NoteHeader::read_from(source)?)),
             v => Err(DeserializationError::InvalidValue(format!("Invalid note type: {v}"))),
         }
     }

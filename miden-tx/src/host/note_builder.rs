@@ -68,14 +68,16 @@ impl OutputNoteBuilder {
 
     /// Converts this builder to an [OutputNote].
     pub fn build(self) -> OutputNote {
-        if self.metadata.note_type() == NoteType::Public {
-            let recipient = self.recipient.expect("missing expected note recipient");
-            let note = Note::new(self.assets, self.metadata, recipient);
-            OutputNote::Public(note)
-        } else {
-            let note_id = NoteId::new(self.recipient_digest, self.assets.commitment());
-            let header = NoteHeader::new(note_id, self.metadata);
-            OutputNote::Private(header)
+        match self.recipient {
+            Some(recipient) => {
+                let note = Note::new(self.assets, self.metadata, recipient);
+                OutputNote::Full(note)
+            },
+            None => {
+                let note_id = NoteId::new(self.recipient_digest, self.assets.commitment());
+                let header = NoteHeader::new(note_id, self.metadata);
+                OutputNote::Header(header)
+            },
         }
     }
 }

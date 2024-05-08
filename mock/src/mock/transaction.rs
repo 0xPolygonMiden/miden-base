@@ -67,8 +67,8 @@ pub fn mock_inputs_with_account_seed(
             .unwrap();
 
     let output_notes = output_notes.into_iter().filter_map(|n| match n {
-        OutputNote::Public(note) => Some(note),
-        OutputNote::Private(_) => None,
+        OutputNote::Full(note) => Some(note),
+        OutputNote::Header(_) => None,
     });
     let mut tx_args = TransactionArgs::default();
     tx_args.extend_expected_output_notes(output_notes);
@@ -150,7 +150,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
 
     let mut tx_args: TransactionArgs = TransactionArgs::default();
     for note in &output_notes {
-        if let OutputNote::Public(note) = note {
+        if let OutputNote::Full(note) = note {
             tx_args.add_expected_output_note(note);
         }
     }

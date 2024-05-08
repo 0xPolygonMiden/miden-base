@@ -25,7 +25,7 @@ pub struct ProvenTransaction {
     /// A list of nullifiers for all notes consumed by the transaction.
     input_notes: InputNotes<Nullifier>,
 
-    /// The id and  metadata of all notes created by the transaction.
+    /// All notes created by the transaction.
     output_notes: OutputNotes,
 
     /// The block hash of the last known block at the time the transaction was executed.
