@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::{MemoryAddress, ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
+    memory::{MemoryAddress, CURRENT_CONSUMED_NOTE_PTR},
     TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
@@ -211,10 +211,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        let storage_root = process
-            .get_mem_value(ContextId::root(), ACCT_STORAGE_ROOT_PTR)
-            .expect("no storage root");
-
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
         if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
@@ -229,16 +225,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             process.get_stack_item(1),
         ];
 
-        // try to get the current value for the slot from the advice provider
-        let current_slot_value = self
-            .adv_provider
-            .get_tree_node(storage_root, &STORAGE_TREE_DEPTH, &slot_index)
-            .map_err(|err| {
-                TransactionKernelError::MissingStorageSlotValue(
-                    slot_index.as_int() as u8,
-                    err.to_string(),
-                )
-            })?;
+        // get the current value for the slot
+        let current_slot_value = [
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+            process.get_stack_item(5),
+        ];
 
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {

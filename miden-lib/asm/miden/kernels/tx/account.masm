@@ -344,22 +344,25 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
-    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit event to signal that an account storage item is being updated
-    push.1 drop emit.ACCOUNT_STORAGE_SET_ITEM_EVENT
+    # duplicate the index and the V' to be able to emit an event after an account storage item is 
+    # being updated
+    movdn.4 dupw dup.8
+    # => [index, V', V', index]
 
     # get the storage root
     exec.memory::get_acct_storage_root
-    # => [R, index, V']
+    # => [R, index, V', V', index]
 
     # set the item in storage
     movup.4 push.STORAGE_TREE_DEPTH mtree_set
-    # => [V, R']
+    # => [V, R', V', index]
 
     # set the new storage root
     swapw exec.memory::set_acct_storage_root
-    # => [V]
+    # => [V, V', index]
+
+    # emit event to signal that an account storage item is being updated
+    swapw movup.8 emit.ACCOUNT_STORAGE_SET_ITEM_EVENT drop dropw
 end
 
 #! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
@@ -372,16 +375,26 @@ end
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
-export.set_map_item
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
-    #       instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit event to signal that an account storage item is being updated
-    push.1 drop emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop
+export.set_map_item.2
+    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is 
+    # being updated
+    movdn.12 movupw.2 dupw.2 dupw.2
+    # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
     # set the NEW_VALUE under KEY in the tree
     # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
-    # => [OLD_VALUE, NEW_ROOT, ...]
+    # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
+    
+    # store OLD_VALUE and NEW_ROOT until the end of the procedure 
+    loc_storew.0 dropw loc_storew.1 dropw
+    # => [KEY, NEW_VALUE, index, ...]
+
+    # emit event to signal that an account storage item is being updated
+    movup.8 emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop dropw dropw
+
+    # load OLD_VALUE and NEW_ROOT on the top of the stack 
+    loc_loadw.1 padw loc_loadw.0
 end
 
 #! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
