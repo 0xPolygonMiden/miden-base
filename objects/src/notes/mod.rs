@@ -105,6 +105,11 @@ impl Note {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the note's header.
+    pub fn header(&self) -> &NoteHeader {
+        &self.header
+    }
+
     /// Returns the note's unique identifier.
     ///
     /// This value is both an unique identifier and a commitment to the note.

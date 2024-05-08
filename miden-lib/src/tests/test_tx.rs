@@ -203,8 +203,8 @@ fn test_get_output_notes_hash() {
 
     // compute expected output notes hash
     let expected_output_notes_hash = OutputNotes::new(vec![
-        OutputNote::Public(output_note_1.clone()),
-        OutputNote::Public(output_note_2.clone()),
+        OutputNote::Full(output_note_1.clone()),
+        OutputNote::Full(output_note_2.clone()),
     ])
     .unwrap()
     .commitment();
