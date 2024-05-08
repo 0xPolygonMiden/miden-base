@@ -221,9 +221,9 @@ pub fn mock_notes(
         },
     };
     let created_notes = vec![
-        OutputNote::Public(created_note_1),
-        OutputNote::Public(created_note_2),
-        OutputNote::Public(created_note_3),
+        OutputNote::Full(created_note_1),
+        OutputNote::Full(created_note_2),
+        OutputNote::Full(created_note_3),
     ];
 
     (consumed_notes, created_notes)

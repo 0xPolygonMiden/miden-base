@@ -66,6 +66,11 @@ impl NoteMetadata {
     pub fn aux(&self) -> Felt {
         self.aux
     }
+
+    /// Returns `true` if the note is off-chain.
+    pub fn is_offchain(&self) -> bool {
+        self.note_type == NoteType::OffChain
+    }
 }
 
 impl From<NoteMetadata> for Word {
