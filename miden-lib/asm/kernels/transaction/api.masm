@@ -531,6 +531,31 @@ export.create_note
     # => [ptr, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 end
 
+#! Adds an ASSET to the specified note and returns a pointer to the memory address
+#! at which the note is stored.
+#!
+#! Inputs: [note_ptr, ASSET]
+#! Outputs: [note_ptr, 0, 0, 0, 0]
+#!
+#! - note_ptr is the pointer to the memory address at which the note is stored.
+#! - ASSET can be a fungible or non-fungible asset.
+export.move_asset_to_note
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [note_ptr, ASSET]
+
+    exec.tx::move_asset_to_note
+    # => [note_ptr]
+
+    # prepare stack for return. Note: when move_asset_to_note is called, the stack looks 
+    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data 
+    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's. 
+    # To keep the data in position we insert 0's between ptr and the potentially important 
+    # first element x.
+    movupw.3 movup.4
+    # => [note_ptr, 0, 0, 0, 0]
+end
+
 #! Returns a commitment to the account vault the transaction is being executed against.
 #!
 #! Stack: [0, 0, 0, 0]

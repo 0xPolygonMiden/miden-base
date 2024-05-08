@@ -49,11 +49,20 @@ const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 # The note's tag must be an u32 so the the high 32bits must be zero.
 const.ERR_NOTE_TAG_MUST_BE_U32=0x00020046
 
+# Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
+const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020050
+
+# Non-fungible asset that already exists in the note cannot be added again
+const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
+
 # EVENTS
 # =================================================================================================
 
 # Event emitted when a new note is created.
 const.NEW_NOTE_EVENT=131077
+
+# Event emitted when an ASSET is added to a note
+const.NEW_ASSET_TO_NOTE_EVENT=131079
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -107,10 +116,134 @@ proc.increment_num_created_notes
     # => [note_idx]
 end
 
+#! Inputs: [ASSET, note_ptr, num_of_assets]
+#! Outputs: [note_ptr]
+proc.add_non_fungible_asset_to_note
+    dup.4 exec.memory::get_created_note_asset_data_ptr
+    # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # compute the pointer at which we should stop iterating
+    dup dup.7 add
+    # => [end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # pad the stack and move the pointer to the top
+    padw movup.5
+    # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # compute the loop latch ToDo: check if we can use push.1 instead
+    dup dup.6 neq
+    # => [latch, asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    while.true
+        dup movdn.6
+        # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+        # load the asset and compare
+        mem_loadw push.0 movdn.4 push.0 movdn.4 dupw.2
+        # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # compare the ASSETs
+        eqw assertz.err=ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS
+        # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # drop ASSETs and increment the asset pointer
+        dropw dropw push.0.0 movup.5 add.1
+        # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # check if we reached the end of the loop
+        dup dup.6 neq
+    end
+    # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # prepare stack for storing the ASSET
+    drop dropw
+    # => [end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # end of the loop reached, no error so we can store the non-fungible asset
+    mem_storew dropw
+    # => [note_ptr, num_of_assets]
+
+    # increase the number of assets in the note
+    swap add.1 dup.1 exec.memory::set_created_note_num_assets
+    # => [note_ptr]
+end
+
+#! Inputs: [ASSET, note_ptr, num_of_assets]
+#! Outputs: [note_ptr]
+proc.add_fungible_asset_to_note
+    dup.4 exec.memory::get_created_note_asset_data_ptr
+    # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # compute the pointer at which we should stop iterating
+    dup dup.7 add
+    # => [end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # pad the stack and move the pointer to the top
+    padw movup.5
+    # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # compute the loop latch ToDo: check if we can use push.1 instead
+    dup dup.6 neq
+    # => [latch, asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    while.true
+        dup movdn.6
+        # => [asset_ptr, 0, 0, 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # load the asset and compare
+        mem_loadw push.0 movdn.4 push.0 movdn.4 dupw.2
+        # => [ASSET, ASSET', 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # compare the faucet IDs
+        dup dup.5 eq
+
+        if.true
+            # add the asset quantity
+            drop drop drop dup.4 add
+            # => [new_added_quantity, ASSET', 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+            # check that we don't overflow
+            dup exec.asset::get_fungible_asset_max_amount lte assert.err=ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED
+            # => [new_added_quantity, ASSET', 0, 0, end_asset_ptr, asset_ptr, ASSET, note_ptr, num_of_assets]
+
+            # prepare stack to store the "updated" ASSET'' with the new quantity
+            # we don't care about the first 5 elements anymore, but we need the correct padding
+            swap.4 drop swapw.2 drop drop
+            # => [ASSET[0], ASSET[1], 0, 0, end_asset_ptr, asset_ptr, ASSET'', note_ptr, num_of_assets]
+
+            # decrease num_of_assets by 1 to avoid incrementing it later
+            movup.11 sub.1 movdn.11
+
+            # end the loop
+            push.0
+
+        else
+            # drop ASSETs and increment the asset pointer
+            dropw dropw push.0.0 movup.5 add.1
+            # => [asset_ptr + 1, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+            # check if we reached the end of the loop
+            dup dup.6 neq
+        end
+    end
+    # => [asset_ptr + 1, 0, 0, 0, 0, end_asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # prepare stack for storing the ASSET
+    drop dropw
+    # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # end of the loop reached, no error so we can store the fungible asset
+    mem_storew dropw
+    # => [note_ptr, num_of_assets]
+
+    # increase the number of assets in the note
+    swap add.1 dup.1 exec.memory::set_created_note_num_assets
+    # => [note_ptr]
+end
+
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
 #! Inputs: [ASSET, tag, note_type, RECIPIENT]
-#! Outputs: [ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+#! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0]
 #!
 #! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.
@@ -175,4 +308,56 @@ export.create_note
     # set the recipient
     dup movdn.5 exec.memory::set_created_note_recipient
     # => [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0]
+end
+
+#! Adds an ASSET to the specified note and returns a pointer to the memory address
+#! at which the note is stored.
+#!
+#! Inputs: [note_ptr, ASSET]
+#! Outputs: [note_ptr]
+#!
+#! ptr is the pointer to the memory address at which the note is stored.
+#! ASSET can be a fungible or non-fungible asset.
+export.move_asset_to_note
+    # validate the ASSET
+    movdn.4 exec.asset::validate_asset
+    # => [ASSET, note_ptr]
+
+    # emit the event
+    emit.NEW_ASSET_TO_NOTE_EVENT
+    # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+
+    # check if the note has at least one ASSET already
+    dup.4 exec.memory::get_created_note_num_assets dup movdn.6 neq.0
+    # => [num_of_assets>0?, ASSET, note_ptr, num_of_assets]
+
+    if.true
+        # The note already has at least one ASSET, so check if ASSET to add is fungible
+        exec.asset::is_fungible_asset
+        # => [is_fungible_asset?, ASSET, note_ptr, num_of_assets]
+
+        if.true
+        # ASSET to add is fungible
+            exec.add_fungible_asset_to_note
+            # => [note_ptr]
+        else
+        # ASSET to add is non-fungible
+            exec.add_non_fungible_asset_to_note
+            # => [note_ptr]
+        end
+        # => [note_ptr]
+    else
+        # There is no asset in the note yet, so we add the asset at the first position
+        dup.4 exec.memory::get_created_note_asset_data_ptr
+        # => [asset_ptr, ASSET, note_ptr, num_of_assets]
+
+        # store the asset
+        mem_storew dropw
+        # => [note_ptr, num_of_assets]
+
+        # increment the number of assets in the note
+        swap add.1 swap dup movdn.2 exec.memory::set_created_note_num_assets
+        # => [note_ptr]
+    end
+    # => [note_ptr]
 end

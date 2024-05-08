@@ -91,6 +91,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
+
         (
             self.adv_provider,
             self.account_delta.into_delta(),
@@ -159,6 +160,28 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         note_builder.add_asset(asset)?;
 
         self.output_notes.insert(note_ptr, note_builder);
+
+        Ok(())
+    }
+
+    fn on_note_add_asset<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<(), TransactionKernelError> {
+        //# => [ASSET, note_ptr]
+        let note_ptr = process.get_stack_item(4);
+        let asset = Asset::try_from([
+            process.get_stack_item(3),
+            process.get_stack_item(2),
+            process.get_stack_item(1),
+            process.get_stack_item(0),
+        ])
+        .expect("failed to create asset from stack items");
+
+        let note_ptr_u32 = note_ptr.as_int() as u32;
+        let note_builder = self.output_notes.get_mut(&note_ptr_u32).expect("note not found");
+
+        note_builder.add_asset(asset).expect("failed to add asset to note");
 
         Ok(())
     }
@@ -423,6 +446,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             TransactionEvent::AccountStorageSetMapItem => {
                 self.on_account_storage_set_map_item(process)
             },
+            TransactionEvent::NoteAddAsset => self.on_note_add_asset(process),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 
