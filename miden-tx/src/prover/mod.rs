@@ -1,8 +1,12 @@
+use alloc::vec::Vec;
+
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
     notes::Nullifier,
-    transaction::{InputNotes, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
+    transaction::{
+        InputNotes, OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
+    },
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -61,6 +65,9 @@ impl TransactionProver {
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
                 .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
+        // erase private note information (convert private full notes to just headers)
+        let output_notes: Vec<_> = tx_outputs.output_notes.iter().map(OutputNote::shrink).collect();
+
         let builder = ProvenTransactionBuilder::new(
             account_id,
             tx_witness.account().init_hash(),
@@ -69,7 +76,7 @@ impl TransactionProver {
             proof,
         )
         .add_input_notes(input_notes)
-        .add_output_notes(tx_outputs.output_notes.iter().cloned());
+        .add_output_notes(output_notes);
 
         let builder = match account_id.is_on_chain() {
             true => {
