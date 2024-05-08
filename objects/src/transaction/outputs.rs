@@ -187,6 +187,16 @@ impl OutputNote {
             OutputNote::Header(note) => note.metadata(),
         }
     }
+
+    /// Erase private note information.
+    pub fn shrink(&self) -> Self {
+        match self {
+            OutputNote::Full(note) if note.metadata().is_offchain() => {
+                OutputNote::Header(*note.header())
+            },
+            _ => self.clone(),
+        }
+    }
 }
 
 // CONVERSIONS

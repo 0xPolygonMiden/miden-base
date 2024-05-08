@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
-    notes::{NoteType, Nullifier},
+    notes::Nullifier,
     transaction::{
         InputNotes, OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
     },
@@ -66,16 +66,7 @@ impl TransactionProver {
                 .map_err(TransactionProverError::InvalidTransactionOutput)?;
 
         // erase private note information (convert private full notes to just headers)
-        let output_notes: Vec<OutputNote> = tx_outputs
-            .output_notes
-            .iter()
-            .map(|note| match note {
-                OutputNote::Full(note) if note.metadata().note_type() == NoteType::OffChain => {
-                    OutputNote::Header(*note.header())
-                },
-                _ => note.clone(),
-            })
-            .collect();
+        let output_notes: Vec<_> = tx_outputs.output_notes.iter().map(OutputNote::shrink).collect();
 
         let builder = ProvenTransactionBuilder::new(
             account_id,

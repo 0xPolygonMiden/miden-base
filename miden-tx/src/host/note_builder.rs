@@ -1,6 +1,6 @@
 use miden_objects::{
     assets::Asset,
-    notes::{Note, NoteAssets, NoteHeader, NoteId, NoteType},
+    notes::{Note, NoteAssets, NoteHeader, NoteId},
 };
 
 use super::{Digest, NoteMetadata, NoteRecipient, OutputNote, TransactionKernelError};
@@ -27,7 +27,7 @@ impl OutputNoteBuilder {
         metadata: NoteMetadata,
         recipient_digest: Digest,
     ) -> Result<Self, TransactionKernelError> {
-        if metadata.note_type() != NoteType::OffChain {
+        if !metadata.is_offchain() {
             return Err(TransactionKernelError::MissingNoteDetails(metadata, recipient_digest));
         }
 
