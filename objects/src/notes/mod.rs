@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use miden_crypto::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Word,
@@ -162,6 +164,17 @@ impl Note {
     ///
     pub fn authentication_hash(&self) -> Digest {
         Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+    }
+}
+
+// DEREFERENCING
+// ================================================================================================
+
+impl Deref for Note {
+    type Target = NoteDetails;
+
+    fn deref(&self) -> &Self::Target {
+        &self.details
     }
 }
 
