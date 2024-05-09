@@ -1,11 +1,12 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+use core::ops::Deref;
 
 use vm_processor::AdviceMap;
 
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::{Note, NoteId, NoteInputs},
+    notes::{NoteDetails, NoteId, NoteInputs},
     vm::CodeBlock,
     TransactionScriptError,
 };
@@ -67,7 +68,7 @@ impl TransactionArgs {
     // MODIFIERS
     // --------------------------------------------------------------------------------------------
 
-    /// Populates the advice inputs with the details of [Note]s.
+    /// Populates the advice inputs with the specified note details.
     ///
     /// The map is extended with the following keys:
     ///
@@ -75,8 +76,7 @@ impl TransactionArgs {
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
     /// - script_hash |-> script.
-    ///
-    pub fn add_expected_output_note(&mut self, note: &Note) {
+    pub fn add_expected_output_note<T: Deref<Target = NoteDetails>>(&mut self, note: &T) {
         let recipient = note.recipient();
         let inputs = note.inputs();
         let script = note.script();
@@ -89,7 +89,7 @@ impl TransactionArgs {
         self.advice_map.insert(script.hash(), script_encoded);
     }
 
-    /// Populates the advice inputs with the details of [Note]s.
+    /// Populates the advice inputs with the specified note details.
     ///
     /// The map is extended with the following keys:
     ///
@@ -97,10 +97,10 @@ impl TransactionArgs {
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
     ///   adding ONE to its most significant element.
     /// - script_hash |-> script
-    ///
-    pub fn extend_expected_output_notes<T>(&mut self, notes: T)
+    pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
     where
-        T: IntoIterator<Item = Note>,
+        L: IntoIterator<Item = T>,
+        T: Deref<Target = NoteDetails>,
     {
         for note in notes {
             self.add_expected_output_note(&note);
