@@ -305,6 +305,7 @@ fn test_create_note_and_add_asset() {
         "
     use.miden::kernels::tx::prologue
     use.miden::tx
+    use.miden::kernels::tx::memory
 
     begin
         exec.prologue::prepare_transaction

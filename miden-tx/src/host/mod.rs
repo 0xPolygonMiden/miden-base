@@ -170,7 +170,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     ) -> Result<(), TransactionKernelError> {
         //# => [ASSET, note_ptr]
         let note_ptr: MemoryAddress = process
-            .get_stack_item(0)
+            .get_stack_item(4)
             .try_into()
             .map_err(TransactionKernelError::MalformedNotePointer)?;
         let asset = Asset::try_from(process.get_stack_word(0))
@@ -178,7 +178,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
         let note_builder = self.output_notes.get_mut(&note_ptr).expect("note not found");
 
-        note_builder.add_asset(asset).expect("failed to add asset to note");
+        note_builder.add_asset(asset)?;
 
         Ok(())
     }
