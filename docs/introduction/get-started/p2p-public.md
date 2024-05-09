@@ -25,21 +25,14 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 2. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
     ```sh
-    miden-client init 
+    miden init --rpc xxx.xxx.xxx.xxx
     ```
-
-    Accept the defaults for `Protocol`, `Node RPC Port`, and `Sqlite file path`by clicking enter.
-
-    When `Host` comes up, enter the IP that the Miden team supplies:
-
-    ```sh
-    Host (default: localhost): xxx.xxx.xxx.xxx
-    ```
+    For the `--rpc` flag, enter the IP that the Miden team supplied.
 
 3. On the new client, create a new [basic account](https://docs.polygon.technology/miden/miden-base/architecture/accounts/#account-types):
 
     ```shell
-    miden-client account new basic-mutable -s on-chain
+    miden account new basic-mutable -s on-chain
     ```
 
     We refer to this account as _Account B_. Note that we set the account's storage mode to `on-chain`, which means that the account details will be public and its latest state can be retrieved from the node.
@@ -47,7 +40,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 4. List and view the account with the following command:
 
       ```shell
-      miden-client account -l
+      miden account -l
       ```
 
 ## Transfer assets between accounts
@@ -57,7 +50,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     To do this, from the first client run:
 
     ```shell
-    miden-client tx new p2id <basic-account-id-A> <basic-account-id-B> <faucet-account-id> 50 --note-type public
+    miden tx new p2id <basic-account-id-A> <basic-account-id-B> <faucet-account-id> 50 --note-type public
     ```
 
     !!! note
@@ -68,13 +61,13 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 2. First, sync the account on the new client.
 
     ```shell
-    miden-client sync # Make sure we have an updated view of the state
+    miden sync # Make sure we have an updated view of the state
     ```
 
 3. At this point, we should have received the public note details. 
 
     ```sh
-    miden-client input-notes list 
+    miden input-notes list 
     ```
 
     Because the note was retrieved from the node, the commit height will be included and displayed.
@@ -82,7 +75,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id> 
+    miden tx new consume-notes <regular-account-ID-B> <input-note-id> 
     ```
 
     !!! tip
@@ -93,5 +86,11 @@ That's it!
 The second account will have now consumed the note and should have new assets in the account:
 
 ```sh
-miden-client account show <account-ID> -v
+miden account show <account-ID> -v
 ```
+
+## Clear state
+
+All state is maintained in `store.sqlite3`, located in the directory defined in the `miden-client.toml` file. 
+
+To clear all state, delete this file. It recreates on any command execution.

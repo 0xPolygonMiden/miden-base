@@ -40,7 +40,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 5. Check you can use the help flag.
 
       ```shell
-      miden-client --help
+      miden --help
       ```
 
 ## Create a new Miden account
@@ -48,13 +48,13 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 1. Create a new account called `basic-immutable` using the following command:
 
       ```shell
-      miden-client account new basic-immutable
+      miden account new basic-immutable
       ```
 
 2. List all created accounts by running the following command:
 
       ```shell
-      miden-client account -l
+      miden account -l
       ```
 
 3. You should something like this:
@@ -67,9 +67,9 @@ Save the account ID for a future step.
 
 1. To request funds from the faucet navigate to the following website: [Miden faucet website](https://testnet.miden.io/).
 
-2. Copy the **Account ID** printed by the `miden-client account -l` command in the previous step. 
+2. Copy the **Account ID** printed by the `miden account -l` command in the previous step. Feel free to change the amount of tokens to issue.
 
-3. Paste this id into the **Request test POL tokens** input field on the faucet website and click **Send me 333 tokens!**. 
+3. Paste this ID into the **Request test tokens** input field on the faucet website and click **Send Private Note**. 
 
 4. After a few seconds your browser should download - or prompt you to download - a file called `note.mno` (mno = Miden note). It contains the funds the faucet sent to your address.
 
@@ -80,7 +80,7 @@ Save the account ID for a future step.
 1. Import the note that you have received using the following commands: 
 
       ```shell
-      miden-client input-notes -i <path-to-note>/note.mno
+      miden input-notes -i <path-to-note>/note.mno
       ```
 
 2. You should see something like this:
@@ -92,7 +92,7 @@ Save the account ID for a future step.
 3. Now that the note has been successfully imported, you can view the note's information using the following command: 
 
       ```shell
-      miden-client input-notes -l
+      miden input-notes -l
       ```
 
 4. You should see something like this:
@@ -110,7 +110,7 @@ Save the account ID for a future step.
 Do this periodically to keep informed about any updates on the node by running the `sync` command:
 
 ```shell
-miden-client sync
+miden sync
 ```
 
 You will see something like this as output:
@@ -124,7 +124,7 @@ State synced to block 179672
 1. Now that we have synced the client, the input-note imported from the faucet should have a `commit-height` confirming it exists at the rollup level: 
 
       ```shell
-      miden-client input-notes -l
+      miden input-notes -l
       ```
 
 2. You should see something like this:
@@ -134,14 +134,14 @@ State synced to block 179672
 3. Find your account and note id by listing both `accounts` and `input-notes`:
 
       ```shell
-      miden-client account -l
-      miden-client input-notes -l
+      miden account -l
+      miden input-notes -l
       ```
 
 4. Consume the note and add the funds from its vault to our account using the following command: 
 
       ```shell
-      miden-client tx new consume-notes <Account-Id> <Note-Id>
+      miden tx new consume-notes <Account-Id> <Note-Id>
       ```
 
 !!! tip 
@@ -152,7 +152,7 @@ State synced to block 179672
 5. View your updated account's vault containing the tokens sent by the faucet by running the following command: 
 
       ```shell
-      miden-client account show <Account-Id> -v
+      miden account show <Account-Id> -v
       ```
 
 6. You should now see your accounts vault containing the funds sent by the faucet. 

@@ -12,13 +12,13 @@ In this section, we show you how to make off-chain transactions and send funds t
 1. Create a second account to send funds with. Previously, we created a `basic-immutable` (account A). Now, create `basic-immutable` (account B) using the following command:
 
       ```shell
-      miden-client account new basic-immutable
+      miden account new basic-immutable
       ```
 
 2. List and view the newly created accounts with the following command:
 
       ```shell
-      miden-client account -l
+      miden account -l
       ```
 
 3. You should see two accounts:
@@ -32,7 +32,7 @@ In this section, we show you how to make off-chain transactions and send funds t
     To do this, run:
 
     ```shell
-    miden-client tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 --note-type private
+    miden tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 --note-type private
     ```
 
     !!! note
@@ -43,19 +43,19 @@ In this section, we show you how to make off-chain transactions and send funds t
 2. First, sync the accounts.
 
     ```shell
-    miden-client sync # Make sure we have an updated view of the state
+    miden sync # Make sure we have an updated view of the state
     ```
 
 3. Get the second note id.
 
     ```sh
-    miden-client input-notes list 
+    miden input-notes list 
     ```
 
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
+    miden tx new consume-notes <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
@@ -63,13 +63,10 @@ In this section, we show you how to make off-chain transactions and send funds t
 
     You should now see both accounts containing faucet assets with half the amount transferred from `Account A` to `Account B`.
 
-    !!! tip
-        Remember. The original amount was 100 POL.
-
 5. Check the second account:
 
     ```shell
-    miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
+    miden account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-b.png)
@@ -77,7 +74,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 6. Check the original account:
 
     ```sh
-    miden-client account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+    miden account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-a.png)
