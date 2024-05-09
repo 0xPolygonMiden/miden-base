@@ -30,9 +30,18 @@ const NOTE_ADD_ASSET: u32 = 0x2_0007; // 131079
 #[repr(u32)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionEvent {
-    AccountVaultAddAsset = ACCOUNT_VAULT_ADD_ASSET,
-    AccountVaultRemoveAsset = ACCOUNT_VAULT_REMOVE_ASSET,
-    AccountStorageSetItem = ACCOUNT_STORAGE_SET_ITEM,
+    AccountVaultBeforeAddAsset = ACCOUNT_VAULT_BEFORE_ADD_ASSET,
+    AccountVaultAfterAddAsset = ACCOUNT_VAULT_AFTER_ADD_ASSET,
+
+    AccountVaultBeforeRemoveAsset = ACCOUNT_VAULT_BEFORE_REMOVE_ASSET,
+    AccountVaultAfterRemoveAsset = ACCOUNT_VAULT_AFTER_REMOVE_ASSET,
+
+    AccountStorageBeforeSetItem = ACCOUNT_STORAGE_BEFORE_SET_ITEM,
+    AccountStorageAfterSetItem = ACCOUNT_STORAGE_AFTER_SET_ITEM,
+
+    AccountStorageBeforeSetMapItem = ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM,
+    AccountStorageAfterSetMapItem = ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM,
+
     AccountIncrementNonce = ACCOUNT_INCREMENT_NONCE,
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
     NoteCreated = NOTE_CREATED,
@@ -55,9 +64,24 @@ impl TryFrom<u32> for TransactionEvent {
         }
 
         match value {
-            ACCOUNT_VAULT_ADD_ASSET => Ok(TransactionEvent::AccountVaultAddAsset),
-            ACCOUNT_VAULT_REMOVE_ASSET => Ok(TransactionEvent::AccountVaultRemoveAsset),
-            ACCOUNT_STORAGE_SET_ITEM => Ok(TransactionEvent::AccountStorageSetItem),
+            ACCOUNT_VAULT_BEFORE_ADD_ASSET => Ok(TransactionEvent::AccountVaultBeforeAddAsset),
+            ACCOUNT_VAULT_AFTER_ADD_ASSET => Ok(TransactionEvent::AccountVaultAfterAddAsset),
+
+            ACCOUNT_VAULT_BEFORE_REMOVE_ASSET => {
+                Ok(TransactionEvent::AccountVaultBeforeRemoveAsset)
+            },
+            ACCOUNT_VAULT_AFTER_REMOVE_ASSET => Ok(TransactionEvent::AccountVaultAfterRemoveAsset),
+
+            ACCOUNT_STORAGE_BEFORE_SET_ITEM => Ok(TransactionEvent::AccountStorageBeforeSetItem),
+            ACCOUNT_STORAGE_AFTER_SET_ITEM => Ok(TransactionEvent::AccountStorageAfterSetItem),
+
+            ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM => {
+                Ok(TransactionEvent::AccountStorageBeforeSetMapItem)
+            },
+            ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM => {
+                Ok(TransactionEvent::AccountStorageAfterSetMapItem)
+            },
+
             ACCOUNT_INCREMENT_NONCE => Ok(TransactionEvent::AccountIncrementNonce),
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
             NOTE_CREATED => Ok(TransactionEvent::NoteCreated),

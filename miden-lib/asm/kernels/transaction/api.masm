@@ -19,11 +19,15 @@ const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 # EVENTS
 # =================================================================================================
 
+# Event emitted to signal that an asset is going to be added to the account vault.
+const.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT=131072
 # Event emitted to signal that an asset is being added to the account vault.
-const.ACCOUNT_VAULT_ADD_ASSET_EVENT=131072
+const.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT=131073
 
+# Event emitted to signal that an asset is going to be removed from the account vault.
+const.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT=131074
 # Event emitted to signal that an asset is being removed from the account vault.
-const.ACCOUNT_VAULT_REMOVE_ASSET_EVENT=131073
+const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 
 # TYPES
 # =================================================================================================
@@ -342,6 +346,10 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.account_vault_add_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.1 drop emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT 
+
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]
@@ -359,7 +367,7 @@ export.account_vault_add_asset
     # => [ASSET', ASSET]
 
     # emit event to signal that an asset is being added to the account vault
-    swapw emit.ACCOUNT_VAULT_ADD_ASSET_EVENT dropw
+    swapw emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
 end
 
 #! Remove the specified asset from the vault.
@@ -374,6 +382,10 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.1 drop emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
+
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]
@@ -389,7 +401,7 @@ export.account_vault_remove_asset
     # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
     # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
     # emit event to signal that an asset is being removed from the account vault
-    push.1 drop emit.ACCOUNT_VAULT_REMOVE_ASSET_EVENT
+    push.1 drop emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
 end
 
 #! Returns the number of assets and vault hash of the note currently being processed. Panics if a

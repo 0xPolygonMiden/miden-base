@@ -66,18 +66,22 @@ const.MAX_SLOT_TYPE=64
 # EVENTS
 # =================================================================================================
 
+# Event emitted to signal that an account storage item is going to be updated.
+const.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT=131076
 # Event emitted to signal that an account storage item is being updated.
-const.ACCOUNT_STORAGE_SET_ITEM_EVENT=131074
+const.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT=131077
 
+# Event emitted to signal that an account storage map item is going to be updated.
+const.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT=131078
 # Event emitted to signal that an account storage map item is being updated.
-const.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT=131078
+const.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT=131079
 
 # Event emitted to signal that account nonce is being incremented.
-const.ACCOUNT_INCREMENT_NONCE_EVENT=131075
+const.ACCOUNT_INCREMENT_NONCE_EVENT=131080
 
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
-const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131076
+const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131081
 
 # CONSTANT ACCESSORS
 # =================================================================================================
@@ -344,6 +348,10 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.1 drop emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT 
+
     # duplicate the index and the V' to be able to emit an event after an account storage item is 
     # being updated
     movdn.4 dupw dup.8
@@ -362,7 +370,7 @@ export.set_item
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
-    swapw movup.8 emit.ACCOUNT_STORAGE_SET_ITEM_EVENT drop dropw
+    swapw movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
 end
 
 #! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
@@ -376,6 +384,10 @@ end
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
 export.set_map_item.2
+    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.1 drop emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT 
+
     # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is 
     # being updated
     movdn.12 movupw.2 dupw.2 dupw.2
@@ -391,7 +403,7 @@ export.set_map_item.2
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
-    movup.8 emit.ACCOUNT_STORAGE_SET_MAP_ITEM_EVENT drop dropw dropw
+    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop dropw dropw
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack 
     loc_loadw.1 padw loc_loadw.0
