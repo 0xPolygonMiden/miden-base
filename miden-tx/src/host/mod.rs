@@ -169,17 +169,14 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         //# => [ASSET, note_ptr]
-        let note_ptr = process.get_stack_item(4);
-        let asset = Asset::try_from([
-            process.get_stack_item(3),
-            process.get_stack_item(2),
-            process.get_stack_item(1),
-            process.get_stack_item(0),
-        ])
-        .expect("failed to create asset from stack items");
+        let note_ptr: MemoryAddress = process
+            .get_stack_item(0)
+            .try_into()
+            .map_err(TransactionKernelError::MalformedNotePointer)?;
+        let asset = Asset::try_from(process.get_stack_word(0))
+            .map_err(TransactionKernelError::MalformedAsset)?;
 
-        let note_ptr_u32 = note_ptr.as_int() as u32;
-        let note_builder = self.output_notes.get_mut(&note_ptr_u32).expect("note not found");
+        let note_builder = self.output_notes.get_mut(&note_ptr).expect("note not found");
 
         note_builder.add_asset(asset).expect("failed to add asset to note");
 

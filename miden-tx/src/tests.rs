@@ -27,8 +27,8 @@ use mock::{
     constants::{non_fungible_asset, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
     mock::{
         account::{
-            MockAccountType, ACCOUNT_CREATE_NOTE_MAST_ROOT, ACCOUNT_INCR_NONCE_MAST_ROOT,
-            ACCOUNT_MOVE_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
+            MockAccountType, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
             STORAGE_INDEX_0, STORAGE_INDEX_2,
         },
@@ -423,8 +423,8 @@ fn executed_transaction_output_notes() {
             # => [note_ptr]
         end
 
-        proc.move_asset_to_note
-            call.{ACCOUNT_MOVE_ASSET_TO_NOTE_MAST_ROOT}
+        proc.add_asset_to_note
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             swapw dropw
             # => [note_ptr]
         end
@@ -459,7 +459,7 @@ fn executed_transaction_output_notes() {
             push.{REMOVED_ASSET_2}  # asset_2
             exec.remove_asset
             # => [ASSET, note_ptr]
-            movup.4 exec.move_asset_to_note drop
+            movup.4 exec.add_asset_to_note drop
             # => []
 
             # send non-fungible asset
@@ -474,7 +474,7 @@ fn executed_transaction_output_notes() {
             push.{REMOVED_ASSET_4}  # asset_4
             exec.remove_asset
             # => [ASSET, note_ptr]
-            movup.4 exec.move_asset_to_note drop
+            movup.4 exec.add_asset_to_note drop
             # => []
 
             ## Update the account nonce

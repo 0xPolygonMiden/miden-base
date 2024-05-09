@@ -109,13 +109,13 @@ pub fn mock_account_storage() -> AccountStorage {
 // account's procedures.
 const MASTS: [&str; 11] = [
     "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
-    "0x3ffe8a2106040b02dcaefe87dc7f488b328f6b5760e863a90c0700e73cc190ac",
+    "0xaba027d75b1d979b2bfee4c6e338555a9475f71cc9b51c5fbb287cbba1208e5c",
     "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
     "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
     "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x333cd9e32640ccb40d75cbb759e9734ce9cb7c3f7d4a4646cc8c206d0888531c",
-    "0xffa6e50e66556802cbe1e358b08f9b0c57d26d0118b6bf3bfa5cfb3a05cf86fe",
+    "0xbd2d986258c08402b2b2ab6036e8a375ddbd61564f9595b35d568775e148d9c8",
+    "0x172d96e46a4d01d6323955ab21f88f936b3a74086fa34ac6a33177d5ee8933fd",
     "0x976ff83372d5e5f4618927de2f64ebc14cd0a2c651ddded4ba0485973aa03caa",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
@@ -126,7 +126,7 @@ pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
 pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
 pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
 pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_MOVE_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
 pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[8];
 pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
 pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
@@ -207,8 +207,8 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
             end
 
             # acct proc 7
-            export.move_asset_to_note
-                exec.tx::move_asset_to_note
+            export.add_asset_to_note
+                exec.tx::add_asset_to_note
                 # => [ptr]
 
                 swap drop swap drop swap drop

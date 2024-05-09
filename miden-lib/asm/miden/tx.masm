@@ -78,16 +78,16 @@ end
 #! Adds an ASSET to the specified note and returns a pointer to the memory address
 #! at which the note is stored.
 #!
-#! Inputs: [ptr, ASSET]
-#! Outputs: [ptr]
+#! Inputs: [note_ptr, ASSET]
+#! Outputs: [note_ptr]
 #!
-#! ptr is the pointer to the memory address at which the note is stored.
+#! note_ptr is the pointer to the memory address at which the note is stored.
 #! ASSET can be a fungible or non-fungible asset.
-export.move_asset_to_note
-    syscall.move_asset_to_note
-    # => [ptr, ZERO]
+export.add_asset_to_note
+    syscall.add_asset_to_note
+    # => [note_ptr, ZERO]
 
     # clear the padding from the kernel response
-    movdn.4 dropw swap drop
-    # => [ptr]
+    movdn.4 dropw
+    # => [note_ptr]
 end

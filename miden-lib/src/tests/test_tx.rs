@@ -318,7 +318,7 @@ fn test_create_note_and_add_asset() {
         # => [note_ptr]
 
         push.{asset_2} movup.4
-        exec.tx::move_asset_to_note
+        exec.tx::add_asset_to_note
     end
     ",
         recipient = prepare_word(&recipient),
@@ -383,15 +383,15 @@ fn test_create_note_and_add_multiple_assets() {
         # => [note_ptr]
 
         push.{asset_2} movup.4
-        exec.tx::move_asset_to_note
+        exec.tx::add_asset_to_note
         # => [note_ptr]
 
         push.{asset_3} movup.4
-        exec.tx::move_asset_to_note
+        exec.tx::add_asset_to_note
         # => [note_ptr]
 
         push.{nft} movup.4
-        exec.tx::move_asset_to_note
+        exec.tx::add_asset_to_note
         # => [note_ptr]
     end
     ",
@@ -460,7 +460,7 @@ fn test_create_note_and_add_same_nft_twice() {
         # => [note_ptr]
 
         push.{nft} movup.4
-        exec.tx::move_asset_to_note
+        exec.tx::add_asset_to_note
         # => [note_ptr]
     end
     ",
