@@ -176,7 +176,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         let asset = Asset::try_from(process.get_stack_word(0))
             .map_err(TransactionKernelError::MalformedAsset)?;
 
-        let note_builder = self.output_notes.get_mut(&note_ptr).expect("note not found");
+        let note_builder = self
+            .output_notes
+            .get_mut(&note_ptr)
+            .ok_or_else(|| TransactionKernelError::MissingNote(format!("{:?}", &note_ptr)))?;
 
         note_builder.add_asset(asset)?;
 
