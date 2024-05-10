@@ -7,41 +7,18 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 !!! tip
       Check the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for more information.
 
-1. If you haven't already done so as part of another instruction set, clone the Miden client.
+1. If you haven't already done so as part of another instruction set, install the Miden client.
 
       ```shell
-      git clone https://github.com/0xPolygonMiden/miden-client
+      cargo install miden-client --features testing,concurrent
       ```
 
-2. Navigate to the client directory. 
+2. Initialize the client. This creates the `miden-client.toml` file.
 
-      ```shell
-      cd miden-client
-      ```
-
-3. Modify the configuration file at `./miden-client.toml` to point to the remote Miden node. 
-
-      In the `[RPC]` section, replace the `endpoint = { host: }` field with the address provided by the Miden team.
-
-      ```toml
-      [rpc]
-      endpoint = { protocol = "http", host = "<NODE_IP_ADDRESS>", port = 57291 }
-
-      [store]
-      database_filepath = "store.sqlite3"
-      ```
-
-4. Build and install the client using cargo:
-
-      ```shell
-      cargo install --features testing,concurrent --path .
-      ```
-
-5. Check you can use the help flag.
-
-      ```shell
-      miden --help
-      ```
+```shell
+miden init --rpc xxx.xxx.xxx.xxx
+```
+For the --rpc flag, enter the IP that the Miden team supplied.
 
 ## Create a new Miden account
 
