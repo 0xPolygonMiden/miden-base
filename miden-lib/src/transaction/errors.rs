@@ -26,6 +26,7 @@ pub enum TransactionKernelError {
     MissingNoteDetails(NoteMetadata, Digest),
     MissingStorageSlotValue(u8, String),
     UnknownAccountProcedure(Digest),
+    MissingNote(String),
 }
 
 impl fmt::Display for TransactionKernelError {
@@ -70,6 +71,9 @@ impl fmt::Display for TransactionKernelError {
                     f,
                     "Tag data extracted from the stack by the event handler is not well formed {tag}"
                 )
+            },
+            TransactionKernelError::MissingNote(note_ptr) => {
+                write!(f, "Cannot add asset to note with pointer {note_ptr}, note does not exist in the advice provider")
             },
             TransactionKernelError::MissingNoteDetails(metadata, recipient) => {
                 write!( f, "Public note missing the details in the advice provider. metadata: {metadata:?}, recipient: {recipient:?}")
