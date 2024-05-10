@@ -1,5 +1,9 @@
 use.miden::kernels::tx::constants
 
+# ERRORS
+# =================================================================================================
+const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
+
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
 
@@ -1066,10 +1070,17 @@ end
 #! Stack: [note_ptr, num_assets]
 #! Output: []
 #!
+#! Panics: if the number of assets exceeds the maximum allowed number of assets per note.
 #! - note_ptr is the memory address at which the created note data begins.
 #! - num_assets is the number of assets in the created note.
 export.set_created_note_num_assets
-    push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_store
+    push.CREATED_NOTE_NUM_ASSETS_OFFSET add
+    # => [note_ptr + offset, num_assets]
+
+    # check note number of assets limit
+    dup.1 exec.constants::get_max_assets_per_note lt assert.err=ERR_NOTE_TOO_MANY_ASSETS
+
+    mem_store
 end
 
 #! Returns a pointer to the created note asset data

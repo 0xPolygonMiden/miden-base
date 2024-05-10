@@ -13,20 +13,24 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     block::BlockHeader,
-    notes::{NoteExecutionHint, NoteId, NoteTag, NoteType},
+    notes::{
+        Note, NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
+    },
     transaction::{
         ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
     },
-    Felt, Word,
+    Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
 use mock::{
     constants::{non_fungible_asset, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
     mock::{
         account::{
-            MockAccountType, ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT,
-            ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT, STORAGE_INDEX_0,
-            STORAGE_INDEX_2,
+            MockAccountType, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
+            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            STORAGE_INDEX_0, STORAGE_INDEX_2,
         },
         notes::AssetPreservationStatus,
         transaction::mock_inputs,
@@ -35,7 +39,7 @@ use mock::{
 };
 use vm_processor::{
     utils::{Deserializable, Serializable},
-    MemAdviceProvider,
+    Digest, MemAdviceProvider,
 };
 
 use super::{
@@ -341,6 +345,188 @@ fn executed_transaction_account_delta() {
         removed_assets.len(),
         executed_transaction.account_delta().vault().removed_assets.len()
     );
+}
+
+#[test]
+fn executed_transaction_output_notes() {
+    let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
+    let account_id = data_store.account.id();
+    executor.load_account(account_id).unwrap();
+
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let combined_asset = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let removed_asset_4 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+
+    let tag1 = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionHint::Local,
+    )
+    .unwrap();
+    let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+
+    let note_type1 = NoteType::OffChain;
+    let note_type2 = NoteType::Public;
+
+    assert_eq!(tag1.validate(note_type1), Ok(tag1));
+    assert_eq!(tag2.validate(note_type2), Ok(tag2));
+
+    // create the expected output note
+    let serial_num = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_script, _) = NoteScript::new(note_program_ast, &Assembler::default()).unwrap();
+    let inputs = NoteInputs::new(vec![]).unwrap();
+    let metadata = NoteMetadata::new(account_id, note_type2, tag2, ZERO).unwrap();
+    let vault = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
+    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
+    let expected_output_note = Note::new(vault, metadata, recipient);
+    let tx_script = format!(
+        "\
+        use.miden::account
+        use.miden::contracts::wallets::basic->wallet
+
+        ## ACCOUNT PROCEDURE WRAPPERS
+        ## ========================================================================================
+        #TODO: Move this into an account library
+        proc.create_note
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+
+            swapw dropw swapw dropw swapw dropw
+            # => [note_ptr]
+        end
+
+        proc.add_asset_to_note
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+            swapw dropw
+            # => [note_ptr]
+        end
+
+        proc.remove_asset
+        call.{ACCOUNT_REMOVE_ASSET_MAST_ROOT}
+        # => [note_ptr]
+        end
+
+        proc.incr_nonce
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            # => [0]
+
+            drop
+            # => []
+        end
+
+        ## TRANSACTION SCRIPT
+        ## ========================================================================================
+        begin
+            ## Send some assets from the account vault
+            ## ------------------------------------------------------------------------------------
+            # partially deplete fungible asset balance
+            push.0.1.2.3            # recipient
+            push.{NOTETYPE1}        # note_type
+            push.{tag1}             # tag
+            push.{REMOVED_ASSET_1}  # asset
+            exec.remove_asset
+            exec.create_note
+            # => [note_ptr]
+
+            push.{REMOVED_ASSET_2}  # asset_2
+            exec.remove_asset
+            # => [ASSET, note_ptr]
+            movup.4 exec.add_asset_to_note drop
+            # => []
+
+            # send non-fungible asset
+            push.{RECIPIENT2}            # recipient
+            push.{NOTETYPE2}        # note_type
+            push.{tag2}             # tag
+            push.{REMOVED_ASSET_3}  # asset_3
+            exec.remove_asset
+            exec.create_note
+            # => [note_ptr]
+
+            push.{REMOVED_ASSET_4}  # asset_4
+            exec.remove_asset
+            # => [ASSET, note_ptr]
+            movup.4 exec.add_asset_to_note drop
+            # => []
+
+            ## Update the account nonce
+            ## ------------------------------------------------------------------------------------
+            push.1 exec.incr_nonce drop
+            # => []
+        end
+    ",
+        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
+        REMOVED_ASSET_4 = prepare_word(&Word::from(removed_asset_4)),
+        RECIPIENT2 = prepare_word(&Word::from(expected_output_note.recipient().digest())),
+        NOTETYPE1 = note_type1 as u8,
+        NOTETYPE2 = note_type2 as u8,
+    );
+    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let mut tx_args =
+        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
+
+    tx_args.add_expected_output_note(&expected_output_note);
+
+    let block_ref = data_store.block_header.block_num();
+    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+
+    // expected delta
+    // --------------------------------------------------------------------------------------------
+    // execute the transaction and get the witness
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+    // output notes
+    // --------------------------------------------------------------------------------------------
+    let output_notes = executed_transaction.output_notes();
+
+    // assert that the expected output note is present
+    // for some reason we always create 3 output notes when we use the MockDataStore
+    // there is already an issue to change that
+    assert_eq!(output_notes.num_notes(), 5);
+
+    let created_note_id_3 = executed_transaction.output_notes().get_note(3).id();
+    let recipient_3 = Digest::from([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]);
+    let note_assets_3 = NoteAssets::new(vec![combined_asset]).unwrap();
+    let expected_note_id_3 = NoteId::new(recipient_3, note_assets_3.commitment());
+    assert_eq!(created_note_id_3, expected_note_id_3);
+
+    // assert that the expected output note 2 is present
+    let created_note = executed_transaction.output_notes().get_note(4);
+    let note_id = expected_output_note.id();
+    let note_metadata = expected_output_note.metadata();
+    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, *note_metadata));
 }
 
 #[test]
