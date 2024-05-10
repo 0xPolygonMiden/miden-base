@@ -141,7 +141,7 @@ State synced to block 179672
 4. Consume the note and add the funds from its vault to our account using the following command: 
 
       ```shell
-      miden tx new consume-notes <Account-Id> <Note-Id>
+      miden tx new consume-notes --account <Account-Id> <Note-Id>
       ```
 
 !!! tip 
@@ -152,7 +152,7 @@ State synced to block 179672
 5. View your updated account's vault containing the tokens sent by the faucet by running the following command: 
 
       ```shell
-      miden account show <Account-Id> -v
+      miden account show <Account-Id> 
       ```
 
 6. You should now see your accounts vault containing the funds sent by the faucet. 
