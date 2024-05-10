@@ -64,6 +64,9 @@ const.NEW_NOTE_EVENT=131082
 # Event emitted when an ASSET is added to a note
 const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
 
+# Event emitted when an ASSET is added to a note
+const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
+
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
 #! Inputs: []

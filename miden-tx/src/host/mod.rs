@@ -91,6 +91,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Consumes `self` and returns the advice provider and account vault delta.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
+
         (
             self.adv_provider,
             self.account_delta.into_delta(),
