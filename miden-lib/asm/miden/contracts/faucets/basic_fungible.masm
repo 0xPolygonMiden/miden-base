@@ -72,9 +72,17 @@ export.distribute
     exec.faucet::mint
     # => [ASSET, tag, note_type, RECIPIENT, ...]
 
+    # store and drop the ASSET
+    mem_storew.3 dropw
+    # => [tag, note_type, RECIPIENT, ...]
+
     # create a note containing the asset
     exec.tx::create_note
     # => [note_ptr, ZERO, ZERO, ...]
+
+    # store and drop the ASSET
+    padw mem_loadw.3 movup.4 exec.tx::add_asset_to_note
+    # => [note_ptr, ASSET, ZERO, ...]
 end
 
 #! Burns fungible assets.

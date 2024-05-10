@@ -58,20 +58,19 @@ end
 
 #! Creates a new note and returns a pointer to the memory address at which the note is stored.
 #!
-#! Inputs: [ASSET, tag, note_type, RECIPIENT]
+#! Inputs: [tag, note_type, RECIPIENT]
 #! Outputs: [note_ptr]
 #!
-#! ASSET is the asset to be included in the note.
 #! tag is the tag to be included in the note.
 #! note_type is the storage type of the note
 #! RECIPIENT is the recipient of the note.
 #! note_ptr is the pointer to the memory address at which the note is stored.
 export.create_note
     syscall.create_note
-    # => [note_ptr, ZERO, ZERO, 0]
+    # => [note_ptr, ZERO, 0]
 
     # clear the padding from the kernel response
-    movdn.8 dropw dropw swap drop
+    movdn.4 dropw swap drop
     # => [note_ptr]
 end
 

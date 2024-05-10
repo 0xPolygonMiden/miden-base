@@ -2,6 +2,7 @@
 
 ## 0.3.0 (TBD)
 
+* [BREAKING] Removed assets from `create_note` procedure and added new procedure `add_asset_to_note` (#686, #674).
 * Introduce the `miden-bench-tx` crate used for transactions benchmarking (#577).
 * [BREAKING] Removed the transaction script root output from the transaction kernel (#608).
 * [BREAKING] Refactored account update details, moved `Block` to `miden-objects` (#618, #621).

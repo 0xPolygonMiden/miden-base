@@ -65,7 +65,7 @@ fn prove_p2id_script() {
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
+    let tx_script_code: ProgramAst = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
 
     let tx_script_target =
         executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
