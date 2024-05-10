@@ -32,7 +32,7 @@ In this section, we show you how to make off-chain transactions and send funds t
     To do this, run:
 
     ```shell
-    miden tx new p2id <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 --note-type private
+    miden tx new p2id --sender <regular-account-id-A> --target <regular-account-id-B> --faucet <faucet-account-id> 50 --note-type private
     ```
 
     !!! note
@@ -55,7 +55,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 4. Have the second account consume the note.
 
     ```sh
-    miden tx new consume-notes <regular-account-ID-B> <input-note-id>
+    miden tx new consume-notes --account <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
@@ -66,7 +66,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 5. Check the second account:
 
     ```shell
-    miden account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
+    miden account show <regular-account-ID-B> # Show account B's vault assets (50 fungible tokens)
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-b.png)
@@ -74,7 +74,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 6. Check the original account:
 
     ```sh
-    miden account show <regular-account-ID-A> -v # Show account A's vault assets (950 fungible tokens)
+    miden account show <regular-account-ID-A> # Show account A's vault assets (950 fungible tokens)
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-a.png)
