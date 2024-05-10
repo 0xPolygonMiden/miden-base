@@ -50,7 +50,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     To do this, from the first client run:
 
     ```shell
-    miden tx new p2id <basic-account-id-A> <basic-account-id-B> <faucet-account-id> 50 --note-type public
+    miden tx new p2id --sender <basic-account-id-A> --target <basic-account-id-B> --faucet <faucet-account-id> 50 --note-type public
     ```
 
     !!! note
@@ -75,7 +75,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 4. Have the second account consume the note.
 
     ```sh
-    miden tx new consume-notes <regular-account-ID-B> <input-note-id> 
+    miden tx new consume-notes --account <regular-account-ID-B> <input-note-id> 
     ```
 
     !!! tip
@@ -86,7 +86,7 @@ That's it!
 The second account will have now consumed the note and should have new assets in the account:
 
 ```sh
-miden account show <account-ID> -v
+miden account show <account-ID> 
 ```
 
 ## Clear state
