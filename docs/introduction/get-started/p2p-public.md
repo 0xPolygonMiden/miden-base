@@ -67,7 +67,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 3. At this point, we should have received the public note details. 
 
     ```sh
-    miden input-notes list 
+    miden notes list 
     ```
 
     Because the note was retrieved from the node, the commit height will be included and displayed.
