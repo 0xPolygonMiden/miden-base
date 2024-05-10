@@ -80,7 +80,7 @@ Save the account ID for a future step.
 1. Import the note that you have received using the following commands: 
 
       ```shell
-      miden input-notes -i <path-to-note>/note.mno
+      miden import note <path-to-note>/note.mno
       ```
 
 2. You should see something like this:
@@ -92,7 +92,7 @@ Save the account ID for a future step.
 3. Now that the note has been successfully imported, you can view the note's information using the following command: 
 
       ```shell
-      miden input-notes -l
+      miden notes -l
       ```
 
 4. You should see something like this:
@@ -124,18 +124,18 @@ State synced to block 179672
 1. Now that we have synced the client, the input-note imported from the faucet should have a `commit-height` confirming it exists at the rollup level: 
 
       ```shell
-      miden input-notes -l
+      miden notes -l
       ```
 
 2. You should see something like this:
 
       ![Viewing commit height info](../../img/get-started/commit-height.png)
 
-3. Find your account and note id by listing both `accounts` and `input-notes`:
+3. Find your account and note id by listing both `accounts` and `notes`:
 
       ```shell
       miden account -l
-      miden input-notes -l
+      miden notes -l
       ```
 
 4. Consume the note and add the funds from its vault to our account using the following command: 
