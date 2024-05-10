@@ -49,7 +49,7 @@ In this section, we show you how to make off-chain transactions and send funds t
 3. Get the second note id.
 
     ```sh
-    miden input-notes list 
+    miden notes list 
     ```
 
 4. Have the second account consume the note.
