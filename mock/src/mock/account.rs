@@ -107,7 +107,19 @@ pub fn mock_account_storage() -> AccountStorage {
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 11] = ["0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306", "0xf5f4a93b873d3dc236539d5566d245ac5e5bc6be75fc5af4235a52fe091077ae", "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac", "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d", "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87", "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4", "0x49fee714925e6b287136494465184a84495cedb35fce3ab3a13f68ad48751596", "0xfe4b6f0a485393583f5b6de9edca2f133f3e7ad0c3e631eadd0d18e89bfdbfe0", "0x976ff83372d5e5f4618927de2f64ebc14cd0a2c651ddded4ba0485973aa03caa", "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5", "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794"];
+const MASTS: [&str; 11] = [
+    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
+    "0xf5f4a93b873d3dc236539d5566d245ac5e5bc6be75fc5af4235a52fe091077ae",
+    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
+    "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
+    "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
+    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
+    "0x49fee714925e6b287136494465184a84495cedb35fce3ab3a13f68ad48751596",
+    "0xfe4b6f0a485393583f5b6de9edca2f133f3e7ad0c3e631eadd0d18e89bfdbfe0",
+    "0x976ff83372d5e5f4618927de2f64ebc14cd0a2c651ddded4ba0485973aa03caa",
+    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
+    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
+];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
