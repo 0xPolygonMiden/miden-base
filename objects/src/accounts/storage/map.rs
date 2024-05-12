@@ -1,5 +1,3 @@
-use alloc::{string::ToString, vec::Vec};
-
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, Word,
 };
@@ -106,31 +104,14 @@ impl Default for StorageMap {
 
 impl Serializable for StorageMap {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // Write the number of filled leaves for this StorageMap
-        target.write_usize(self.entries().count());
-
-        // Write each (key, value) pair
-        for (key, value) in self.entries() {
-            target.write(key);
-            target.write(value);
-        }
+        self.map.write_into(target)
     }
 }
 
 impl Deserializable for StorageMap {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // Read the number of filled leaves for this Smt
-        let num_filled_leaves = source.read_usize()?;
-        let mut entries = Vec::with_capacity(num_filled_leaves);
-
-        for _ in 0..num_filled_leaves {
-            let key = source.read()?;
-            let value = source.read()?;
-            entries.push((key, value));
-        }
-
-        Self::with_entries(entries)
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        let smt = Smt::read_from(source)?;
+        Ok(StorageMap { map: smt })
     }
 }
 
