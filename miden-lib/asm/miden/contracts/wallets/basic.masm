@@ -39,12 +39,12 @@ end
 #! - The fungible asset is not found in the vault.
 #! - The amount of the fungible asset in the vault is less than the amount to be removed.
 #! - The non-fungible asset is not found in the vault.
-export.send_asset
+export.send_asset.1
     exec.account::remove_asset
     # => [ASSET, tag, note_type, RECIPIENT, ...]
 
     # Store the ASSET for later
-    mem_storew.0 dropw
+    loc_storew.0 dropw
     # => [tag, note_type, RECIPIENT, ...]
 
     # This procedure is written to be executed with `exec` or `call`. When this
@@ -63,7 +63,7 @@ export.send_asset
     exec.tx::create_note
     # => [note_ptr, 0, ZERO, ZERO, ...]
 
-    padw mem_loadw.0 movup.4
+    padw loc_loadw.0 movup.4
     # => [note_ptr, ASSET, 0, ZERO, ZERO, ...]
 
     exec.tx::add_asset_to_note
