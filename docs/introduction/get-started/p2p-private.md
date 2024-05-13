@@ -16,13 +16,13 @@ In this section, we show you how to make private transactions and send funds to 
 1. Create a second account to send funds with. Previously, we created a type `basic-mutable` account (account A). Now, create another `basic-mutable` (account B) using the following command:
 
       ```shell
-      miden-client account new basic-mutable
+      miden account new basic-mutable
       ```
 
 2. List and view the newly created accounts with the following command:
 
       ```shell
-      miden-client account -l
+      miden account -l
       ```
 
 3. You should see two accounts:
@@ -36,7 +36,7 @@ In this section, we show you how to make private transactions and send funds to 
     To do this, run:
 
     ```shell
-    miden-client tx new p2id --note-type private <regular-account-id-A> <regular-account-id-B> <faucet-account-id> 50 
+    miden tx new p2id --sender <regular-account-id-A> --target <regular-account-id-B> --faucet <faucet-account-id> 50 --note-type private
     ```
 
     !!! note
@@ -47,19 +47,19 @@ In this section, we show you how to make private transactions and send funds to 
 2. First, sync the accounts.
 
     ```shell
-    miden-client sync
+    miden sync
     ```
 
 3. Get the second note id.
 
     ```sh
-    miden-client input-notes list 
+    miden notes list 
     ```
 
 4. Have the second account consume the note.
 
     ```sh
-    miden-client tx new consume-notes <regular-account-ID-B> <input-note-id>
+    miden tx new consume-notes --account <regular-account-ID-B> <input-note-id>
     ```
 
     !!! tip
@@ -67,13 +67,10 @@ In this section, we show you how to make private transactions and send funds to 
 
     You should now see both accounts containing faucet assets with amounts transferred from `Account A` to `Account B`.
 
-    !!! tip
-        Remember. The original amount was `333` tokens.
-
 5. Check the second account:
 
     ```shell
-    miden-client account show <regular-account-ID-B> -v # Show account B's vault assets (50 fungible tokens)
+    miden account show <regular-account-ID-B>
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-b.png)
@@ -81,11 +78,25 @@ In this section, we show you how to make private transactions and send funds to 
 6. Check the original account:
 
     ```sh
-    miden-client account show <regular-account-ID-A> -v
+    miden account show <regular-account-ID-A>
     ```
 
     ![Result of listing miden accounts](../../img/get-started/account-a.png)
 
 Wanna do more? [Sending public notes](p2p-public.md)
+
+## Congratulations! 
+
+You have successfully configured and used the Miden client to interact with a Miden rollup and faucet. 
+
+You have performed basic Miden rollup operations like submitting proofs of transactions, generating and consuming notes.
+
+For more information on the Miden client, refer to the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/).
+
+## Clear data
+
+All state is maintained in `store.sqlite3`, located in the directory defined in the `miden-client.toml` file. 
+
+To clear all state, delete this file. It recreates on any command execution.
 
 </br>
