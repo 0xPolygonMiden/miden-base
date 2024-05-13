@@ -30,7 +30,7 @@ mod stub;
 pub use stub::AccountStub;
 
 mod data;
-pub use data::{AccountData, AuthData};
+pub use data::AccountData;
 
 // ACCOUNT
 // ================================================================================================

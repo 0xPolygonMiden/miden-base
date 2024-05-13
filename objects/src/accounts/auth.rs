@@ -1,8 +1,6 @@
 // AUTH SECRET KEY
 // ================================================================================================
 
-use alloc::string::ToString;
-
 use miden_crypto::dsa::rpo_falcon512::{self, SecretKey};
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
@@ -16,7 +14,7 @@ pub enum AuthSecretKey {
 
 impl AuthSecretKey {
     /// Identifier for the type of authentication key
-    pub fn key_id(&self) -> u8 {
+    pub fn auth_scheme_id(&self) -> u8 {
         match self {
             AuthSecretKey::RpoFalcon512(_) => 0u8,
         }
@@ -25,7 +23,7 @@ impl AuthSecretKey {
 
 impl Serializable for AuthSecretKey {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u8(self.key_id());
+        target.write_u8(self.auth_scheme_id());
         match self {
             AuthSecretKey::RpoFalcon512(secret_key) => {
                 secret_key.write_into(target);
@@ -43,7 +41,7 @@ impl Deserializable for AuthSecretKey {
                 let secret_key = SecretKey::read_from(source)?;
                 Ok(AuthSecretKey::RpoFalcon512(secret_key))
             },
-            val => Err(DeserializationError::InvalidValue(val.to_string())),
+            val => Err(DeserializationError::InvalidValue(format!("Invalid auth scheme ID {val}"))),
         }
     }
 }

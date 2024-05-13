@@ -89,47 +89,6 @@ impl Deserializable for AccountData {
     }
 }
 
-// AUTH DATA
-// ================================================================================================
-
-/// AuthData is a representation of the AuthScheme struct meant to be used
-/// for Account serialisation and deserialisation for transport of Account data
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum AuthData {
-    RpoFalcon512Seed([u8; 32]),
-}
-
-// SERIALIZATION
-// ================================================================================================
-
-impl Serializable for AuthData {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        match self {
-            AuthData::RpoFalcon512Seed(seed) => {
-                0_u8.write_into(target);
-                seed.write_into(target);
-            },
-        }
-    }
-}
-
-impl Deserializable for AuthData {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let scheme = u8::read_from(source)?;
-        match scheme {
-            0 => {
-                let seed = <[u8; 32]>::read_from(source)?;
-                Ok(AuthData::RpoFalcon512Seed(seed))
-            },
-            value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
-        }
-    }
-
-    fn read_from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
-        Self::read_from(&mut SliceReader::new(bytes))
-    }
-}
-
 // TESTS
 // ================================================================================================
 
