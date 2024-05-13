@@ -76,11 +76,11 @@ export.distribute.1
     loc_storew.0 dropw
     # => [tag, note_type, RECIPIENT, ...]
 
-    # create a note containing the asset
+    # create a note
     exec.tx::create_note
     # => [note_ptr, ZERO, ZERO, ...]
 
-    # store and drop the ASSET
+    # load the ASSET and add it to the note
     padw loc_loadw.0 movup.4 exec.tx::add_asset_to_note
     # => [note_ptr, ASSET, ZERO, ...]
 end
