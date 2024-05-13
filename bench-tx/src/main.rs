@@ -10,7 +10,7 @@ use miden_lib::{
     notes::create_p2id_note, transaction::ToTransactionKernelInputs, utils::Serializable,
 };
 use miden_objects::{
-    accounts::AccountId,
+    accounts::{AccountId, AuthSecretKey},
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
@@ -19,7 +19,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::BasicAuthenticator, AuthSecretKey, TransactionExecutor, TransactionHost,
+    host::BasicAuthenticator, TransactionExecutor, TransactionHost,
     TransactionProgress,
 };
 use rand::rngs::StdRng;

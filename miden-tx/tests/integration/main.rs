@@ -162,6 +162,7 @@ pub fn get_new_pk_and_authenticator(
 ) -> (Word, std::rc::Rc<miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>>) {
     use std::rc::Rc;
 
+    use miden_objects::accounts::AuthSecretKey;
     use miden_tx::host::BasicAuthenticator;
     use rand::rngs::StdRng;
 
@@ -173,7 +174,7 @@ pub fn get_new_pk_and_authenticator(
 
     let authenticator = BasicAuthenticator::<StdRng>::new(&[(
         pub_key,
-        miden_tx::host::AuthSecretKey::RpoFalcon512(sec_key),
+        AuthSecretKey::RpoFalcon512(sec_key),
     )]);
 
     (pub_key, Rc::new(authenticator))

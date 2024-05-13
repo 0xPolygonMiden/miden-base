@@ -11,6 +11,9 @@ pub use account_id::{
     ACCOUNT_TYPE_MASK_SHIFT,
 };
 
+pub mod auth;
+pub use auth::AuthSecretKey;
+
 pub mod code;
 pub use code::AccountCode;
 
