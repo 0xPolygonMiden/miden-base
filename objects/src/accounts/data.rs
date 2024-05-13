@@ -12,7 +12,7 @@ use super::{
     super::utils::serde::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     },
-    Account, Word,
+    Account, AuthSecretKey, Word,
 };
 
 // ACCOUNT DATA
@@ -23,16 +23,20 @@ use super::{
 ///
 /// The intent of this struct is to provide an easy way to serialize and deserialize all
 /// account-related data as a single unit (e.g., to/from files).
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct AccountData {
     pub account: Account,
     pub account_seed: Option<Word>,
-    pub auth: AuthData,
+    pub auth_secret_key: AuthSecretKey,
 }
 
 impl AccountData {
-    pub fn new(account: Account, account_seed: Option<Word>, auth: AuthData) -> Self {
-        Self { account, account_seed, auth }
+    pub fn new(account: Account, account_seed: Option<Word>, auth: AuthSecretKey) -> Self {
+        Self {
+            account,
+            account_seed,
+            auth_secret_key: auth,
+        }
     }
 
     #[cfg(feature = "std")]
@@ -59,7 +63,11 @@ impl AccountData {
 
 impl Serializable for AccountData {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let AccountData { account, account_seed, auth } = self;
+        let AccountData {
+            account,
+            account_seed,
+            auth_secret_key: auth,
+        } = self;
 
         account.write_into(target);
         account_seed.write_into(target);
@@ -71,50 +79,9 @@ impl Deserializable for AccountData {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let account = Account::read_from(source)?;
         let account_seed = <Option<Word>>::read_from(source)?;
-        let auth = AuthData::read_from(source)?;
+        let auth_secret_key = AuthSecretKey::read_from(source)?;
 
-        Ok(Self::new(account, account_seed, auth))
-    }
-
-    fn read_from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
-        Self::read_from(&mut SliceReader::new(bytes))
-    }
-}
-
-// AUTH DATA
-// ================================================================================================
-
-/// AuthData is a representation of the AuthScheme struct meant to be used
-/// for Account serialisation and deserialisation for transport of Account data
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum AuthData {
-    RpoFalcon512Seed([u8; 32]),
-}
-
-// SERIALIZATION
-// ================================================================================================
-
-impl Serializable for AuthData {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        match self {
-            AuthData::RpoFalcon512Seed(seed) => {
-                0_u8.write_into(target);
-                seed.write_into(target);
-            },
-        }
-    }
-}
-
-impl Deserializable for AuthData {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let scheme = u8::read_from(source)?;
-        match scheme {
-            0 => {
-                let seed = <[u8; 32]>::read_from(source)?;
-                Ok(AuthData::RpoFalcon512Seed(seed))
-            },
-            value => Err(DeserializationError::InvalidValue(format!("Invalid value: {}", value))),
-        }
+        Ok(Self::new(account, account_seed, auth_secret_key))
     }
 
     fn read_from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
@@ -127,16 +94,20 @@ impl Deserializable for AuthData {
 
 #[cfg(test)]
 mod tests {
-    use miden_crypto::utils::{Deserializable, Serializable};
+    use miden_crypto::{
+        dsa::rpo_falcon512::SecretKey,
+        utils::{Deserializable, Serializable},
+    };
     use storage::AccountStorage;
     #[cfg(feature = "std")]
     use tempfile::tempdir;
 
-    use super::{AccountData, AuthData};
+    use super::AccountData;
     use crate::{
         accounts::{
             account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            code::testing::make_account_code, storage, Account, AccountId, Felt, Word,
+            code::testing::make_account_code, storage, Account, AccountId, AuthSecretKey, Felt,
+            Word,
         },
         assets::AssetVault,
     };
@@ -151,10 +122,9 @@ mod tests {
         let nonce = Felt::new(0);
         let account = Account::new(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());
-        let auth_seed = [0u8; 32];
-        let auth = AuthData::RpoFalcon512Seed(auth_seed);
+        let auth_secret_key = AuthSecretKey::RpoFalcon512(SecretKey::new());
 
-        AccountData::new(account, account_seed, auth)
+        AccountData::new(account, account_seed, auth_secret_key)
     }
 
     #[test]
@@ -162,7 +132,12 @@ mod tests {
         let account_data = build_account_data();
         let serialized = account_data.to_bytes();
         let deserialized = AccountData::read_from_bytes(&serialized).unwrap();
-        assert_eq!(deserialized, account_data);
+        assert_eq!(deserialized.account, account_data.account);
+        assert_eq!(deserialized.account_seed, account_data.account_seed);
+        assert_eq!(
+            deserialized.auth_secret_key.to_bytes(),
+            account_data.auth_secret_key.to_bytes()
+        );
     }
 
     #[cfg(feature = "std")]
@@ -175,6 +150,11 @@ mod tests {
         account_data.write(filepath.as_path()).unwrap();
         let deserialized = AccountData::read(filepath.as_path()).unwrap();
 
-        assert_eq!(deserialized, account_data)
+        assert_eq!(deserialized.account, account_data.account);
+        assert_eq!(deserialized.account_seed, account_data.account_seed);
+        assert_eq!(
+            deserialized.auth_secret_key.to_bytes(),
+            account_data.auth_secret_key.to_bytes()
+        );
     }
 }
