@@ -2,7 +2,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::ProgramAst,
     notes::{NoteInputs, NoteRecipient, NoteScript},
-    NoteError, Word, ZERO,
+    NoteError, Word,
 };
 
 use crate::transaction::TransactionKernel;
@@ -29,7 +29,7 @@ pub fn build_p2id_recipient(
     // the script hash every time we call the SWAP script
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
-    let note_inputs = NoteInputs::new(vec![target.into(), ZERO, ZERO, ZERO])?;
+    let note_inputs = NoteInputs::new(vec![target.into()])?;
 
     Ok(NoteRecipient::new(serial_num, note_script, note_inputs))
 }
