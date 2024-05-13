@@ -246,15 +246,15 @@ end
 #! Inputs: [tag, note_type, RECIPIENT]
 #! Outputs: [note_ptr]
 #!
-#! tag is the tag to be included in the note.
-#! RECIPIENT is the recipient of the note.
-#! note_ptr is the pointer to the memory address at which the note is stored.
+#! - tag is the tag to be included in the note.
+#! - RECIPIENT defines spend conditions for the note.
+#! - note_ptr is the pointer to the memory address at which the note is stored.
 #!
-#! Panics if
-#! - the note_type is not valid
-#! - the note_tag is not an u32
-#! - if note_tag starts with anything but 0b11, note_type must be public
-#! - the number of created notes exceeds the maximum limit of 4096
+#! Panics if:
+#! - the note_type is not valid.
+#! - the note_tag is not an u32.
+#! - if note_tag starts with anything but 0b11 and note_type is not public.
+#! - the number of created notes exceeds the maximum limit of 4096.
 export.create_note
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
@@ -304,14 +304,14 @@ end
 #! Inputs: [note_ptr, ASSET]
 #! Outputs: [note_ptr]
 #!
-#! note_ptr is the pointer to the memory address at which the note is stored.
-#! ASSET can be a fungible or non-fungible asset.
+#! - note_ptr is the pointer to the memory address at which the note is stored.
+#! - ASSET can be a fungible or non-fungible asset.
 #!
-#! Panics if
-#! - the ASSET is malformed (invalid faucet ID)
-#! - the max amount of fungible assets is exceeded
-#! - the non-fungible asset already exists in the note
-#! - the total number of ASSETs exceeds the maximum of 256
+#! Panics if:
+#! - the ASSET is malformed (e.g., invalid faucet ID).
+#! - the max amount of fungible assets is exceeded.
+#! - the non-fungible asset already exists in the note.
+#! - the total number of ASSETs exceeds the maximum of 256.
 export.add_asset_to_note
     # get current num of assets
     dup exec.memory::get_created_note_num_assets movdn.5

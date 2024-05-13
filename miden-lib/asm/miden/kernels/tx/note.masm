@@ -160,10 +160,11 @@ end
 # OUTPUT NOTE PROCEDURES
 # =================================================================================================
 
-#! Computes the assets hash of the output note located at the specified memory address. The hash
-#! is computed as a sequential hash of the assets contained in the note. If there is an odd number
-#! of assets, then for the final hashing permutation we pad the last word of the hasher rate with
-#! ZERO's. Returns [ZERO] if no assets are present.
+#! Computes the assets hash of the output note located at the specified memory address.
+#!
+#! The hash is computed as a sequential hash of the assets contained in the note. If there is an
+#! odd number of assets, then for the final hashing permutation we pad the last word of the hasher
+#! rate with ZERO's. If the note contains no assets, ASSET_HASH is set to [ZERO; 4]
 #!
 #! Stack: [note_data_ptr]
 #! Output: [ASSETS_HASH]
