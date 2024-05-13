@@ -230,7 +230,7 @@ fn executed_transaction_account_delta() {
             push.{NOTETYPE1}        # note_type
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
-            call.wallet::send_asset dropw dropw drop drop
+            call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
             # totally deplete fungible asset balance
@@ -238,7 +238,7 @@ fn executed_transaction_account_delta() {
             push.{NOTETYPE2}        # note_type
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
-            call.wallet::send_asset dropw dropw drop drop
+            call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
             # send non-fungible asset
@@ -246,7 +246,7 @@ fn executed_transaction_account_delta() {
             push.{NOTETYPE3}        # note_type
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
-            call.wallet::send_asset dropw dropw drop drop
+            call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
             ## Update account code
@@ -448,30 +448,37 @@ fn executed_transaction_output_notes() {
             ## Send some assets from the account vault
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
-            push.0.1.2.3            # recipient
-            push.{NOTETYPE1}        # note_type
-            push.{tag1}             # tag
-            push.{REMOVED_ASSET_1}  # asset
-            exec.remove_asset
+            push.0.1.2.3                        # recipient
+            push.{NOTETYPE1}                    # note_type
+            push.{tag1}                         # tag
             exec.create_note
             # => [note_ptr]
 
-            push.{REMOVED_ASSET_2}  # asset_2
+            push.{REMOVED_ASSET_1}              # asset
+            exec.remove_asset
+            movup.4 exec.add_asset_to_note
+            # => [note_ptr]
+
+
+            push.{REMOVED_ASSET_2}              # asset_2
             exec.remove_asset
             # => [ASSET, note_ptr]
             movup.4 exec.add_asset_to_note drop
             # => []
 
             # send non-fungible asset
-            push.{RECIPIENT2}            # recipient
-            push.{NOTETYPE2}        # note_type
-            push.{tag2}             # tag
-            push.{REMOVED_ASSET_3}  # asset_3
-            exec.remove_asset
+            push.{RECIPIENT2}                   # recipient
+            push.{NOTETYPE2}                    # note_type
+            push.{tag2}                         # tag
             exec.create_note
             # => [note_ptr]
 
-            push.{REMOVED_ASSET_4}  # asset_4
+            push.{REMOVED_ASSET_3}              # asset_3
+            exec.remove_asset
+            movup.4 exec.add_asset_to_note
+            # => [note_ptr]
+
+            push.{REMOVED_ASSET_4}              # asset_4
             exec.remove_asset
             # => [ASSET, note_ptr]
             movup.4 exec.add_asset_to_note drop
