@@ -21,7 +21,7 @@ use crate::{
         non_fungible_asset_2, CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT,
         CONSUMED_ASSET_3_AMOUNT,
     },
-    mock::account::ACCOUNT_CREATE_NOTE_MAST_ROOT,
+    mock::account::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
     utils::{prepare_assets, prepare_word},
 };
 
@@ -87,18 +87,22 @@ pub fn mock_notes(
             push.{recipient0}
             push.{PUBLIC_NOTE}
             push.{tag0}
-            push.{asset0}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+
+            push.{asset0} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             drop drop dropw dropw
 
             # create note 1
             push.{recipient1}
             push.{PUBLIC_NOTE}
             push.{tag1}
-            push.{asset1}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+
+            push.{asset1} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             drop drop dropw dropw
         end
         ",
@@ -125,9 +129,11 @@ pub fn mock_notes(
             push.{recipient}
             push.{PUBLIC_NOTE}
             push.{tag}
-            push.{asset}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+
+            push.{asset} movup.4
+            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             drop drop dropw dropw
         end
         ",
