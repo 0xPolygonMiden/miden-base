@@ -143,7 +143,7 @@ mod tests {
     #[cfg(feature = "std")]
     use tempfile::tempdir;
 
-    use super::{AccountData};
+    use super::AccountData;
     use crate::{
         accounts::{
             account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,

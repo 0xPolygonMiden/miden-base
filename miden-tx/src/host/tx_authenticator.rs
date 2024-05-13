@@ -8,9 +8,7 @@ use miden_objects::{
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
-use crate::{
-    error::AuthenticationError,
-};
+use crate::error::AuthenticationError;
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
