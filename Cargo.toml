@@ -10,7 +10,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.78"
 license = "MIT"
 authors = ["Miden contributors"]
 homepage = "https://polygon.technology/polygon-miden"
