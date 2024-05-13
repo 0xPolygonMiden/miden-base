@@ -20,7 +20,7 @@ If you want to join the technical discussion, please check out the following:
 
 ## Status and features
 
-Polygon Miden is currently on release v0.2. This is an early version of the protocol and its components. 
+Polygon Miden is currently on release v0.3. This is an early version of the protocol and its components. 
 
 !!! important
     We expect breaking changes on all components.
