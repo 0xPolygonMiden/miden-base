@@ -12,29 +12,21 @@ repository.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-
-
 [lib]
 
 [features]
 concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
-std = [
-    "assembly/std",
-    "miden-objects/std",
-    "miden-stdlib/std",
-    "vm-processor/std",
-    "mock/std",
-]
+std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "mock/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
 
 [dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false }
+miden-objects = { path = "../objects", version = "0.3", default-features = false }
 miden-stdlib = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.3", default-features = false, features = [
+miden-objects = { path = "../objects", version = "0.3", default-features = false, features = [
     "testing",
 ] }
 mock = { package = "miden-mock", path = "../mock", default-features = false }

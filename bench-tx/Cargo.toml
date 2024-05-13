@@ -14,9 +14,9 @@ name = "bench-tx"
 path = "src/main.rs"
 
 [dependencies]
-miden-lib = { package = "miden-lib", path = "../miden-lib", version = "0.3" }
-miden-objects = { package = "miden-objects", path = "../objects", version = "0.3" }
-miden-tx = { package = "miden-tx", path = "../miden-tx", version = "0.3" }
+miden-lib = { path = "../miden-lib", version = "0.3" }
+miden-objects = { path = "../objects", version = "0.3" }
+miden-tx = { path = "../miden-tx", version = "0.3" }
 mock = { package = "miden-mock", path = "../mock"  }
 rand = { workspace = true }
 serde = { package = "serde", version = "1.0" }
