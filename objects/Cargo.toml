@@ -20,8 +20,8 @@ harness = false
 bench = false
 
 [features]
-default = ["std"]
 concurrent = ["std"]
+default = ["std"]
 serde = ["dep:serde", "miden-crypto/serde"]
 std = ["assembly/std", "miden-crypto/std", "miden-verifier/std", "vm-core/std", "vm-processor/std"]
 testing = ["dep:winter-rand-utils"]
