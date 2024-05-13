@@ -22,9 +22,8 @@ use mock::{
 
 use super::{ContextId, Felt, MemAdviceProvider, Process, ProcessState, StackInputs};
 use crate::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
-    NUM_CREATED_NOTES_PTR,
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
 };
 
 #[test]
@@ -35,7 +34,6 @@ fn test_create_note() {
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
-    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
         "
@@ -48,7 +46,6 @@ fn test_create_note() {
         push.{recipient}
         push.{PUBLIC_NOTE}
         push.{tag}
-        push.{asset}
 
         exec.tx::create_note
     end
@@ -56,7 +53,6 @@ fn test_create_note() {
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        asset = prepare_word(&asset),
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
@@ -80,18 +76,6 @@ fn test_create_note() {
         "metadata must be stored at the correct memory location",
     );
 
-    assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_NUM_ASSETS_OFFSET),
-        [ONE, ZERO, ZERO, ZERO],
-        "number of assets must be stored at the correct memory location",
-    );
-
-    assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
-        asset,
-        "asset must be stored at the correct memory location",
-    );
-
     let note_ptr = CREATED_NOTE_SECTION_OFFSET;
     assert_eq!(
         process.stack.get(0),
@@ -107,7 +91,6 @@ fn test_create_note_with_invalid_tag() {
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
-    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
         "
@@ -120,7 +103,6 @@ fn test_create_note_with_invalid_tag() {
         push.{recipient}
         push.{PUBLIC_NOTE}
         push.{tag}
-        push.{asset}
 
         exec.tx::create_note
     end
@@ -128,7 +110,6 @@ fn test_create_note_with_invalid_tag() {
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
-        asset = prepare_word(&asset),
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
@@ -141,7 +122,6 @@ fn test_create_note_with_invalid_tag() {
 fn test_create_note_too_many_notes() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
-    let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
     let code = format!(
         "
@@ -156,14 +136,12 @@ fn test_create_note_too_many_notes() {
         push.{recipient}
         push.{PUBLIC_NOTE}
         push.{tag}
-        push.{asset}
 
         exec.tx::create_note
     end
     ",
         recipient = prepare_word(&recipient),
         tag = tag,
-        asset = prepare_word(&asset),
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
@@ -227,9 +205,12 @@ fn test_get_output_notes_hash() {
         push.{recipient_1}
         push.{PUBLIC_NOTE}
         push.{tag_1}
-        push.{asset_1}
         exec.tx::create_note
         # => [note_ptr]
+
+        push.{asset_1} movup.4
+        exec.tx::add_asset_to_note
+
 
         drop
         # => []
@@ -238,9 +219,11 @@ fn test_get_output_notes_hash() {
         push.{recipient_2}
         push.{PUBLIC_NOTE}
         push.{tag_2}
-        push.{asset_2}
         exec.tx::create_note
         # => [note_ptr]
+
+        push.{asset_2} movup.4
+        exec.tx::add_asset_to_note
 
         drop
         # => []
@@ -299,7 +282,6 @@ fn test_create_note_and_add_asset() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
-    let asset_2 = [Felt::new(20), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
 
     let code = format!(
         "
@@ -313,20 +295,19 @@ fn test_create_note_and_add_asset() {
         push.{recipient}
         push.{PUBLIC_NOTE}
         push.{tag}
-        push.{asset}
 
         exec.tx::create_note
         # => [note_ptr]
 
-        push.{asset_2} movup.4
+        push.{asset} movup.4
         exec.tx::add_asset_to_note
+
     end
     ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
         asset = prepare_word(&asset),
-        asset_2 = prepare_word(&asset_2),
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
@@ -336,12 +317,6 @@ fn test_create_note_and_add_asset() {
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
-    );
-
-    assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET + 1),
-        asset_2,
-        "asset_2 must be stored at the correct memory location",
     );
 
     let note_ptr = CREATED_NOTE_SECTION_OFFSET;
@@ -378,9 +353,12 @@ fn test_create_note_and_add_multiple_assets() {
         push.{recipient}
         push.{PUBLIC_NOTE}
         push.{tag}
-        push.{asset}
 
         exec.tx::create_note
+        # => [note_ptr]
+
+        push.{asset} movup.4
+        exec.tx::add_asset_to_note
         # => [note_ptr]
 
         push.{asset_2} movup.4

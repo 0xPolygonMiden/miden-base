@@ -115,7 +115,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         let stack = process.get_stack_state();
 
         // Stack:
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, ASSET, RECIPIENT]
+        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
         let aux = stack[0];
         let note_type =
             NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
@@ -125,14 +125,12 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
         let note_ptr: MemoryAddress =
             stack[4].try_into().map_err(TransactionKernelError::MalformedNotePointer)?;
-        let asset = Asset::try_from([stack[8], stack[7], stack[6], stack[5]])
-            .map_err(TransactionKernelError::MalformedAsset)?;
-        let recipient_digest = Digest::new([stack[12], stack[11], stack[10], stack[9]]);
+        let recipient_digest = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
 
         let metadata = NoteMetadata::new(sender, note_type, tag, aux)
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
-        let mut note_builder = if let Some(data) =
+        let note_builder = if let Some(data) =
             self.adv_provider.get_mapped_values(&recipient_digest)
         {
             if data.len() != 12 {
@@ -156,8 +154,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         } else {
             OutputNoteBuilder::new(metadata, recipient_digest)?
         };
-
-        note_builder.add_asset(asset)?;
 
         self.output_notes.insert(note_ptr, note_builder);
 

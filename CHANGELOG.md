@@ -10,6 +10,7 @@
 * [BREAKING] Updated `create_swap_note()` procedure to return `NoteDetails` and defined SWAP note tag format (#665).
 * [BREAKING] Added support for full details of private notes, renamed `OutputNote` variants and changed their meaning (#673).
 * Implemented `OutputNoteBuilder` (#669).
+* [BREAKING] Removed assets from `create_note` procedure and added new procedure `add_asset_to_note` (#686, #674).
 
 ## 0.2.3 (2024-04-26) - `miden-tx` crate only
 
