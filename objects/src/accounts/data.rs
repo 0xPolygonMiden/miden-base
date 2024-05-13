@@ -11,7 +11,8 @@ use miden_crypto::utils::SliceReader;
 use super::{
     super::utils::serde::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    }, AuthSecretKey, Account, Word
+    },
+    Account, AuthSecretKey, Word,
 };
 
 // ACCOUNT DATA
@@ -31,7 +32,11 @@ pub struct AccountData {
 
 impl AccountData {
     pub fn new(account: Account, account_seed: Option<Word>, auth: AuthSecretKey) -> Self {
-        Self { account, account_seed, auth_secret_key: auth }
+        Self {
+            account,
+            account_seed,
+            auth_secret_key: auth,
+        }
     }
 
     #[cfg(feature = "std")]
@@ -58,7 +63,11 @@ impl AccountData {
 
 impl Serializable for AccountData {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let AccountData { account, account_seed, auth_secret_key: auth } = self;
+        let AccountData {
+            account,
+            account_seed,
+            auth_secret_key: auth,
+        } = self;
 
         account.write_into(target);
         account_seed.write_into(target);
@@ -126,15 +135,20 @@ impl Deserializable for AuthData {
 
 #[cfg(test)]
 mod tests {
-    use miden_crypto::{dsa::rpo_falcon512::SecretKey, utils::{Deserializable, Serializable}};
+    use miden_crypto::{
+        dsa::rpo_falcon512::SecretKey,
+        utils::{Deserializable, Serializable},
+    };
     use storage::AccountStorage;
     #[cfg(feature = "std")]
     use tempfile::tempdir;
 
-    use super::{AccountData, AuthData};
+    use super::{AccountData};
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, code::testing::make_account_code, storage, Account, AccountId, AuthSecretKey, Felt, Word
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            code::testing::make_account_code, storage, Account, AccountId, AuthSecretKey, Felt,
+            Word,
         },
         assets::AssetVault,
     };
@@ -161,7 +175,10 @@ mod tests {
         let deserialized = AccountData::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized.account, account_data.account);
         assert_eq!(deserialized.account_seed, account_data.account_seed);
-        assert_eq!(deserialized.auth_secret_key.to_bytes(), account_data.auth_secret_key.to_bytes());
+        assert_eq!(
+            deserialized.auth_secret_key.to_bytes(),
+            account_data.auth_secret_key.to_bytes()
+        );
     }
 
     #[cfg(feature = "std")]
@@ -176,6 +193,9 @@ mod tests {
 
         assert_eq!(deserialized.account, account_data.account);
         assert_eq!(deserialized.account_seed, account_data.account_seed);
-        assert_eq!(deserialized.auth_secret_key.to_bytes(), account_data.auth_secret_key.to_bytes());
+        assert_eq!(
+            deserialized.auth_secret_key.to_bytes(),
+            account_data.auth_secret_key.to_bytes()
+        );
     }
 }

@@ -3,14 +3,13 @@ use core::cell::RefCell;
 
 use miden_objects::{
     accounts::{AccountDelta, AuthSecretKey},
-    crypto::dsa::rpo_falcon512::{self, Polynomial, SecretKey},
+    crypto::dsa::rpo_falcon512::{self, Polynomial},
 };
 use rand::Rng;
-use vm_processor::{DeserializationError, Digest, Felt, Word};
+use vm_processor::{Digest, Felt, Word};
 
 use crate::{
     error::AuthenticationError,
-    utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable},
 };
 
 // TRANSACTION AUTHENTICATOR

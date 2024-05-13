@@ -172,10 +172,8 @@ pub fn get_new_pk_and_authenticator(
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key: Word = sec_key.public_key().into();
 
-    let authenticator = BasicAuthenticator::<StdRng>::new(&[(
-        pub_key,
-        AuthSecretKey::RpoFalcon512(sec_key),
-    )]);
+    let authenticator =
+        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
 
     (pub_key, Rc::new(authenticator))
 }
