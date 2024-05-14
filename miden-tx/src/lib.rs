@@ -35,7 +35,7 @@ pub use verifier::TransactionVerifier;
 mod error;
 pub use error::{
     AuthenticationError, DataStoreError, TransactionCompilerError, TransactionExecutorError,
-    TransactionProverError, TransactionVerifierError, KERNEL_ERRORS,
+    TransactionProverError, TransactionVerifierError, ERROR_MESSAGES,
 };
 
 pub mod auth;
