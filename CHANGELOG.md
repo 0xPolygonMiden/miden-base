@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.4.0 (TBD)
+
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * Made `DataStore` conditionally async using `winter-maybe-async` (#725)
