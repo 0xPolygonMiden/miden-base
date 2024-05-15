@@ -299,7 +299,7 @@ pub struct TxAccountUpdate {
     /// The hash of the account state after a transaction was executed.
     final_state_hash: Digest,
 
-    /// A set of changes which can be applied the the account's state prior to the transaction to
+    /// A set of changes which can be applied the account's state prior to the transaction to
     /// get the account state after the transaction. For private accounts this is set to
     /// [AccountUpdateDetails::Private].
     details: AccountUpdateDetails,

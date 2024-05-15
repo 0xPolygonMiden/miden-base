@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.4.0 (TBD)
+
 ## 0.3.0 (2024-05-14)
 
 * Introduce the `miden-bench-tx` crate used for transactions benchmarking (#577).

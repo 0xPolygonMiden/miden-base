@@ -57,7 +57,7 @@ impl OutputNoteBuilder {
     /// - The same non-fungible asset is already added to the note.
     /// - A fungible asset issued by the same faucet is already added to the note and adding both
     ///   assets together results in an invalid asset.
-    /// - Adding the asset to the the note will push the list beyond the [NoteAssets::MAX_NUM_ASSETS]
+    /// - Adding the asset to the note will push the list beyond the [NoteAssets::MAX_NUM_ASSETS]
     ///   limit.
     pub fn add_asset(&mut self, asset: Asset) -> Result<(), TransactionKernelError> {
         self.assets
