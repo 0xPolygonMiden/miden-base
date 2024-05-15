@@ -46,7 +46,7 @@ const.ERR_NOTE_INVALID_TYPE_FOR_TAG=0x00020045
 # The note type must be PUBLIC, unless the high bits are `0b11`. (See the table above)
 const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 
-# The note's tag must be an u32 so the the high 32bits must be zero.
+# The note's tag must be an u32 so the high 32bits must be zero.
 const.ERR_NOTE_TAG_MUST_BE_U32=0x00020046
 
 # Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
