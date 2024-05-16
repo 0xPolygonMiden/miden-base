@@ -42,7 +42,9 @@ pub enum TransactionEvent {
     AccountStorageBeforeSetMapItem = ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM,
     AccountStorageAfterSetMapItem = ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM,
 
-    AccountIncrementNonce = ACCOUNT_INCREMENT_NONCE,
+    AccountBeforeIncrementNonce = ACCOUNT_BEFORE_INCREMENT_NONCE,
+    AccountAfterIncrementNonce = ACCOUNT_AFTER_INCREMENT_NONCE,
+
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
     NoteCreated = NOTE_CREATED,
     AccountStorageSetMapItem = ACCOUNT_STORAGE_SET_MAP_ITEM,
@@ -82,7 +84,9 @@ impl TryFrom<u32> for TransactionEvent {
                 Ok(TransactionEvent::AccountStorageAfterSetMapItem)
             },
 
-            ACCOUNT_INCREMENT_NONCE => Ok(TransactionEvent::AccountIncrementNonce),
+            ACCOUNT_BEFORE_INCREMENT_NONCE => Ok(TransactionEvent::AccountBeforeIncrementNonce),
+            ACCOUNT_AFTER_INCREMENT_NONCE => Ok(TransactionEvent::AccountAfterIncrementNonce),
+
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
             NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
             ACCOUNT_STORAGE_SET_MAP_ITEM => Ok(TransactionEvent::AccountStorageSetMapItem),

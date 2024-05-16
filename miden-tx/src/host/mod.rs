@@ -108,7 +108,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    fn on_note_created<S: ProcessState>(
+    fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -160,7 +160,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         Ok(())
     }
 
-    fn on_note_add_asset<S: ProcessState>(
+    fn on_note_before_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -194,7 +194,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 
     /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
-    pub fn on_account_increment_nonce<S: ProcessState>(
+    pub fn on_account_before_increment_nonce<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -205,14 +205,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     // ACCOUNT STORAGE UPDATE HANDLERS
     // --------------------------------------------------------------------------------------------
-
-    /// Placeholder for the future implementation.
-    pub fn on_account_storage_before_set_item<S: ProcessState>(
-        &mut self,
-        _process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        Ok(())
-    }
 
     /// Extracts information from the process state about the storage slot being updated and
     /// records the latest value of this storage slot.
@@ -248,14 +240,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
         }
 
-        Ok(())
-    }
-
-    /// Placeholder for the future implementation.
-    pub fn on_account_storage_before_set_map_item<S: ProcessState>(
-        &mut self,
-        _process: &S,
-    ) -> Result<(), TransactionKernelError> {
         Ok(())
     }
 
@@ -298,14 +282,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // ACCOUNT VAULT UPDATE HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    /// Placeholder for the future implementation.
-    pub fn on_account_vault_before_add_asset<S: ProcessState>(
-        &mut self,
-        _process: &S,
-    ) -> Result<(), TransactionKernelError> {
-        Ok(())
-    }
-
     /// Extracts the asset that is being added to the account's vault from the process state and
     /// updates the appropriate fungible or non-fungible asset map.
     pub fn on_account_vault_after_add_asset<S: ProcessState>(
@@ -318,14 +294,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
 
         self.account_delta.vault_tracker().add_asset(asset);
-        Ok(())
-    }
-
-    /// Placeholder for the future implementation.
-    pub fn on_account_vault_before_remove_asset<S: ProcessState>(
-        &mut self,
-        _process: &S,
-    ) -> Result<(), TransactionKernelError> {
         Ok(())
     }
 
@@ -454,35 +422,31 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         }
 
         match event {
-            TransactionEvent::AccountVaultBeforeAddAsset => {
-                self.on_account_vault_before_add_asset(process)
-            },
+            TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
             TransactionEvent::AccountVaultAfterAddAsset => {
                 self.on_account_vault_after_add_asset(process)
             },
 
-            TransactionEvent::AccountVaultBeforeRemoveAsset => {
-                self.on_account_vault_before_remove_asset(process)
-            },
+            TransactionEvent::AccountVaultBeforeRemoveAsset => Ok(()),
             TransactionEvent::AccountVaultAfterRemoveAsset => {
                 self.on_account_vault_after_remove_asset(process)
             },
 
-            TransactionEvent::AccountStorageBeforeSetItem => {
-                self.on_account_storage_before_set_item(process)
-            },
+            TransactionEvent::AccountStorageBeforeSetItem => Ok(()),
             TransactionEvent::AccountStorageAfterSetItem => {
                 self.on_account_storage_after_set_item(process)
             },
 
-            TransactionEvent::AccountStorageBeforeSetMapItem => {
-                self.on_account_storage_before_set_map_item(process)
-            },
+            TransactionEvent::AccountStorageBeforeSetMapItem => Ok(()),
             TransactionEvent::AccountStorageAfterSetMapItem => {
                 self.on_account_storage_after_set_map_item(process)
             },
 
-            TransactionEvent::AccountIncrementNonce => self.on_account_increment_nonce(process),
+            TransactionEvent::AccountBeforeIncrementNonce => {
+                self.on_account_before_increment_nonce(process)
+            },
+            TransactionEvent::AccountAfterIncrementNonce => Ok(()),
+
             TransactionEvent::AccountPushProcedureIndex => {
                 self.on_account_push_procedure_index(process)
             },

@@ -66,22 +66,25 @@ const.MAX_SLOT_TYPE=64
 # EVENTS
 # =================================================================================================
 
-# Event emitted to signal that an account storage item is going to be updated.
+# Event emitted before an account storage item is updated.
 const.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT=131076
-# Event emitted to signal that an account storage item is being updated.
+# Event emitted after an account storage item is updated.
 const.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT=131077
 
-# Event emitted to signal that an account storage map item is going to be updated.
+# Event emitted before an account storage map item is updated.
 const.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT=131078
-# Event emitted to signal that an account storage map item is being updated.
+# Event emitted after an account storage map item is updated.
 const.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT=131079
 
-# Event emitted to signal that account nonce is being incremented.
-const.ACCOUNT_INCREMENT_NONCE_EVENT=131080
+# Event emitted before an account nonce is incremented. 
+const.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT=131080
+# Event emitted after an account nonce is incremented. 
+const.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT=131081
+
 
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
-const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131081
+const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 
 # CONSTANT ACCESSORS
 # =================================================================================================
@@ -154,10 +157,14 @@ export.incr_nonce
     u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
 
     # emit event to signal that account nonce is being incremented
-    emit.ACCOUNT_INCREMENT_NONCE_EVENT
+    emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
+
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
 #! Returns the account id.
@@ -348,9 +355,9 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
     # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.1 drop emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT 
+    push.0 drop emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT 
 
     # duplicate the index and the V' to be able to emit an event after an account storage item is 
     # being updated
@@ -384,9 +391,9 @@ end
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
 export.set_map_item.2
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
     # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.1 drop emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT 
+    push.0 drop emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT 
 
     # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is 
     # being updated
