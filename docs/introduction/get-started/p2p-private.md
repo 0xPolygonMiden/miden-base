@@ -13,7 +13,7 @@ In this section, we show you how to make private transactions and send funds to 
 !!! tip
       Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
 
-1. Create a second account to send funds with. Previously, we created a type `basic-mutable` account (account A). Now, create another `basic-mutable` (account B) using the following command:
+1. Create a second account to send funds with. Previously, we created a type `mutable` account (account A). Now, create another `mutable` (account B) using the following command:
 
       ```shell
       miden new-wallet --mutable
@@ -53,7 +53,7 @@ In this section, we show you how to make private transactions and send funds to 
 3. Get the second note id.
 
     ```sh
-    miden notes 
+    miden notes
     ```
 
 4. Have the second account consume the note.
@@ -85,7 +85,7 @@ In this section, we show you how to make private transactions and send funds to 
 
 Wanna do more? [Sending public notes](p2p-public.md)
 
-## Congratulations! 
+## Congratulations!
 
 You have successfully configured and used the Miden client to interact with a Miden rollup and faucet. 
 
