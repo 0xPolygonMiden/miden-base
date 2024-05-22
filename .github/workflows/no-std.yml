@@ -25,6 +25,5 @@ jobs:
           toolchain: ${{matrix.toolchain}}
           override: true
       - run: rustup target add wasm32-unknown-unknown
-      - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - build-no-std
-        run: cargo make build-no-std
+      - name: build-no-std
+        run: make build-no-std

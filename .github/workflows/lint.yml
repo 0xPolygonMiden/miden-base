@@ -33,9 +33,8 @@ jobs:
           toolchain: nightly
           components: rustfmt
           override: true
-      - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - format-check
-        run: cargo make format-check
+      - name: format-check
+        run: make format-check
 
   clippy:
     name: clippy stable on ubuntu-latest
@@ -48,6 +47,5 @@ jobs:
           profile: minimal
           components: clippy
           override: true
-      - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - clippy
-        run: cargo make clippy
+      - name: clippy
+        run: make clippy

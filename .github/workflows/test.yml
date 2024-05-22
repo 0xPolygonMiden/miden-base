@@ -16,7 +16,7 @@ jobs:
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
-        args: ["default", "prove"]
+        args: ["", "-prove"]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,6 @@ jobs:
         with:
           toolchain: ${{matrix.toolchain}}
           override: true
-      - uses: davidB/rust-cargo-make@v1
       - uses: taiki-e/install-action@nextest
-      - name: cargo make - test
-        run: cargo make ci-test-${{matrix.args}}
+      - name: test
+        run: make ci-test${{matrix.args}}
