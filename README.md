@@ -4,7 +4,7 @@
 [![test](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml)
 [![no-std](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml)
 [![RUST_VERSION](https://img.shields.io/badge/rustc-1.78+-lightgray.svg)](https://www.rust-lang.org/tools/install)
-[![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)]  
+![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)
 
 Description and core structures for the Miden Rollup protocol.
 
