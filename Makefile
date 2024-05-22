@@ -45,7 +45,7 @@ doc-serve:
 
 # Run default tests excluding `prove`
 .PHONY: test-default
-test:
+test-default:
 	RUSTFLAGS="-C debug-assertions" cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
 # Run `prove` tests (tests which use the Miden prover)
