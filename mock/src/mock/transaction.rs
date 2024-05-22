@@ -68,6 +68,7 @@ pub fn mock_inputs_with_account_seed(
 
     let output_notes = output_notes.into_iter().filter_map(|n| match n {
         OutputNote::Full(note) => Some(note),
+        OutputNote::Partial(_) => None,
         OutputNote::Header(_) => None,
     });
     let mut tx_args = TransactionArgs::default();

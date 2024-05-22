@@ -20,14 +20,14 @@ pub use assets::NoteAssets;
 mod details;
 pub use details::NoteDetails;
 
+mod header;
+pub use header::NoteHeader;
+
 mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
 pub use metadata::NoteMetadata;
-
-mod note_header;
-pub use note_header::NoteHeader;
 
 mod note_id;
 pub use note_id::NoteId;
@@ -43,6 +43,9 @@ pub use nullifier::Nullifier;
 
 mod origin;
 pub use origin::{NoteInclusionProof, NoteOrigin};
+
+mod partial;
+pub use partial::PartialNote;
 
 mod recipient;
 pub use recipient::NoteRecipient;
@@ -202,6 +205,23 @@ impl From<&Note> for NoteDetails {
 impl From<Note> for NoteDetails {
     fn from(note: Note) -> Self {
         note.details
+    }
+}
+
+impl From<Note> for PartialNote {
+    fn from(note: Note) -> Self {
+        let (assets, recipient, ..) = note.details.into_parts();
+        PartialNote::new(*note.header.metadata(), recipient.digest(), assets)
+    }
+}
+
+impl From<&Note> for PartialNote {
+    fn from(note: &Note) -> Self {
+        PartialNote::new(
+            *note.header.metadata(),
+            note.details.recipient().digest(),
+            note.details.assets().clone(),
+        )
     }
 }
 

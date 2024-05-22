@@ -88,6 +88,7 @@ impl MockDataStore {
         );
         let output_notes = created_notes.into_iter().filter_map(|note| match note {
             OutputNote::Full(note) => Some(note),
+            OutputNote::Partial(_) => None,
             OutputNote::Header(_) => None,
         });
         let mut tx_args = TransactionArgs::default();
