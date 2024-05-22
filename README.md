@@ -4,7 +4,7 @@
 [![test](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml)
 [![no-std](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/no-std.yml)
 [![RUST_VERSION](https://img.shields.io/badge/rustc-1.78+-lightgray.svg)](https://www.rust-lang.org/tools/install)
-[![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)]()  
+[![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)]  
 
 Description and core structures for the Miden Rollup protocol.
 
@@ -54,13 +54,13 @@ Polygon Miden is currently on release v0.4. This is an early version of the prot
 
 ## Testing
 
-To test the crates contained in this repo, you can use [cargo-make](https://github.com/sagiegurari/cargo-make) run the following command present in our [Makefile.toml](Makefile.toml): 
+To test the crates contained in this repo you can use Make to run the following command present in our [Makefile](Makefile):
 
 ```shell
-cargo make test-all
+make test-all
 ```
 
-Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
+Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test-all` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
 
 ## License
 
