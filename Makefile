@@ -1,5 +1,8 @@
 # Makefile
 
+WARNINGS=RUSTDOCFLAGS="-D warnings"
+DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
+
 # -- linting --------------------------------------------------------------------------------------
 
 # Runs Clippy with configs
@@ -34,7 +37,7 @@ lint:
 # Generates & checks documentation
 .PHONY: doc
 doc:
-	RUSTDOCFLAGS="-D warnings" cargo doc --all-features --keep-going --release
+	$(WARNINGS) cargo doc --all-features --keep-going --release
 
 # Serves documentation site
 .PHONY: doc-serve
@@ -46,17 +49,17 @@ doc-serve:
 # Run default tests excluding `prove`
 .PHONY: test-default
 test-default:
-	RUSTFLAGS="-C debug-assertions" cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
 # Run `prove` tests (tests which use the Miden prover)
 .PHONY: test-prove
 test-prove:
-	RUSTFLAGS="-C debug-assertions" cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
+	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 # Run all tests
 .PHONY: test-all
 test-all:
-	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 test-default test-prove
+	$(DEBUG_ASSERTIONS) $(MAKE) -j2 test-default test-prove
 
 # Run default tests excluding `prove` with CI configurations
 .PHONY: ci-test-default
@@ -71,7 +74,7 @@ ci-test-prove:
 # Run all tests with CI configurations
 .PHONY: ci-test-all
 ci-test-all:
-	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 ci-test-default ci-test-prove
+	$(DEBUG_ASSERTIONS) $(MAKE) -j2 ci-test-default ci-test-prove
 
 # --- building ------------------------------------------------------------------------------------
 
