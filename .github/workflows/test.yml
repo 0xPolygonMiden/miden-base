@@ -16,7 +16,7 @@ jobs:
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
-        args: ["", "-prove"]
+        args: ["default", "prove"]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -27,4 +27,4 @@ jobs:
           override: true
       - uses: taiki-e/install-action@nextest
       - name: test
-        run: make ci-test${{matrix.args}}
+        run: make ci-test-${{matrix.args}}

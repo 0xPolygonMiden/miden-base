@@ -25,7 +25,9 @@ format-check:
 # Runs all linting tasks at once (Clippy, fixing, formatting)
 .PHONY: lint
 lint:
-	$(MAKE) -j3 format fix clippy
+	$(MAKE) format
+	$(MAKE) clippy
+	$(MAKE) fix
 
 # --- docs ----------------------------------------------------------------------------------------
 
@@ -42,7 +44,7 @@ doc-serve:
 # --- testing -------------------------------------------------------------------------------------
 
 # Run default tests excluding `prove`
-.PHONY: test
+.PHONY: test-default
 test:
 	RUSTFLAGS="-C debug-assertions" cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
@@ -54,10 +56,10 @@ test-prove:
 # Run all tests
 .PHONY: test-all
 test-all:
-	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 test test-prove
+	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 test-default test-prove
 
 # Run default tests excluding `prove` with CI configurations
-.PHONY: ci-test
+.PHONY: ci-test-default
 ci-test-default:
 	cargo nextest run --profile ci-default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
 
@@ -69,7 +71,7 @@ ci-test-prove:
 # Run all tests with CI configurations
 .PHONY: ci-test-all
 ci-test-all:
-	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 ci-test ci-test-prove
+	RUSTFLAGS="-C debug-assertions" $(MAKE) -j2 ci-test-default ci-test-prove
 
 # --- building ------------------------------------------------------------------------------------
 
