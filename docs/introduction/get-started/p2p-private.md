@@ -36,7 +36,7 @@ In this section, we show you how to make private transactions and send funds to 
     To do this, run:
 
     ```shell
-    miden send --sender <regular-account-id-A> --target <regular-account-id-B> --faucet <faucet-account-id> 50 --note-type private
+    miden send --sender <regular-account-id-A> --target <regular-account-id-B> --asset 50::<faucet-account-id> --note-type private
     ```
 
     !!! note
