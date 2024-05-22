@@ -6,7 +6,7 @@ use miden_objects::{
         StorageSlot,
     },
     assembly::LibraryPath,
-    assets::{AssetVault, TokenSymbol},
+    assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
 };
 
@@ -84,7 +84,6 @@ pub fn create_basic_fungible_faucet(
         ],
         vec![],
     )?;
-    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
@@ -93,9 +92,6 @@ pub fn create_basic_fungible_faucet(
         account_code.root(),
         account_storage.root(),
     )?;
-    let account_id = AccountId::new(account_seed, account_code.root(), account_storage.root())?;
-    Ok((
-        Account::new(account_id, account_vault, account_storage, account_code, ZERO),
-        account_seed,
-    ))
+
+    Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
 }

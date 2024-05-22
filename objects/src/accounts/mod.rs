@@ -60,11 +60,29 @@ pub struct Account {
 }
 
 impl Account {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Creates and returns a new account initialized with the specified ID, vault, storage, code,
-    /// and nonce.
+
+    /// Creates and returns a new [Account] instantiated with the specified code, storage, and
+    /// account seed.
+    ///
+    /// The returned account has an empty asset vault and the nonce which is initialized to ZERO.
+    ///
+    /// # Errors
+    /// Returns an error if deriving account ID from the specified seed fails.
     pub fn new(
+        seed: Word,
+        code: AccountCode,
+        storage: AccountStorage,
+    ) -> Result<Self, AccountError> {
+        let id = AccountId::new(seed, code.root(), storage.root())?;
+        let vault = AssetVault::default();
+        let nonce = ZERO;
+        Ok(Self { id, vault, storage, code, nonce })
+    }
+
+    /// Returns an [Account] instantiated with the provided components.
+    pub fn from_parts(
         id: AccountId,
         vault: AssetVault,
         storage: AccountStorage,
@@ -243,7 +261,7 @@ impl Deserializable for Account {
         let code = AccountCode::read_from(source)?;
         let nonce = Felt::read_from(source)?;
 
-        Ok(Self::new(id, vault, storage, code, nonce))
+        Ok(Self::from_parts(id, vault, storage, code, nonce))
     }
 }
 
@@ -327,7 +345,7 @@ pub mod testing {
             .collect();
         let storage = AccountStorage::new(slot_items, vec![]).unwrap();
 
-        Account::new(id, vault, storage, code, nonce)
+        Account::from_parts(id, vault, storage, code, nonce)
     }
 
     pub fn build_account_delta(

@@ -315,7 +315,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             .unwrap();
     };
 
-    Account::new(
+    Account::from_parts(
         faucet_account_id,
         AssetVault::new(&[]).unwrap(),
         faucet_account_storage.clone(),

@@ -95,7 +95,7 @@ fn prove_receive_asset_via_wallet() {
     .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account.id(),
         AssetVault::new(&[fungible_asset_1.into()]).unwrap(),
         account_storage,
@@ -181,7 +181,7 @@ fn prove_send_asset_via_wallet() {
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
-    let sender_account_after: Account = Account::new(
+    let sender_account_after: Account = Account::from_parts(
         data_store.account.id(),
         AssetVault::new(&[]).unwrap(),
         sender_account_storage,
