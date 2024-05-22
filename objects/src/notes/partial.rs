@@ -7,7 +7,7 @@ use super::{
 // ================================================================================================
 
 /// Partial information about a note.
-/// 
+///
 /// Partial note consists of [NoteMetadata], [NoteAssets], and a recipient digest (see
 /// [super::NoteRecipient]). However, it does not contain detailed recipient info, including
 /// note script, note inputs, and note's serial number. This means that a partial note is
@@ -37,7 +37,7 @@ impl PartialNote {
     }
 
     /// Returns the digest of the recipient associated with this note.
-    /// 
+    ///
     /// See [super::NoteRecipient] for more info.
     pub fn recipient_digest(&self) -> Digest {
         self.recipient_digest

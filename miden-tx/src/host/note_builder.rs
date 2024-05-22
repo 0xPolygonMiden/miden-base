@@ -1,9 +1,14 @@
+use alloc::vec::Vec;
+
 use miden_objects::{
     assets::Asset,
-    notes::{Note, NoteAssets, NoteHeader, NoteId},
+    notes::{
+        Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
+        PartialNote,
+    },
 };
 
-use super::{Digest, NoteMetadata, NoteRecipient, OutputNote, TransactionKernelError};
+use super::{AccountId, AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
 
 // OUTPUT NOTE BUILDER
 // ================================================================================================
@@ -17,37 +22,80 @@ pub struct OutputNoteBuilder {
 }
 
 impl OutputNoteBuilder {
-    /// Returns a new [OutputNoteBuilder] instantiated from the provided metadata and recipient
-    /// digest.
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a new [OutputNoteBuilder] read from the provided stack state and advice provider.
+    ///
+    /// The stack is expected to be in the following state:
+    ///
+    ///   [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
+    ///
+    /// Detailed note info such as assets and recipient (when available) are retrieved from the
+    /// advice provider.
     ///
     /// # Errors
-    /// Returns an error if the note type specified by the metadata is not [NoteType::OffChain] as
-    /// for public and encrypted note additional note details must be available.
-    pub fn new(
-        metadata: NoteMetadata,
-        recipient_digest: Digest,
+    /// Returns an error if:
+    /// - Note type specified via the stack is malformed.
+    /// - Sender account ID specified via the stack is invalid.
+    /// - A combination of note type, sender account ID, and note tag do not form a valid
+    ///   [NoteMetadata] object.
+    /// - Recipient information in the advice provider is present but is malformed.
+    /// - A non-private note is missing recipient details.
+    pub fn new<A: AdviceProvider>(
+        stack: Vec<Felt>,
+        adv_provider: &A,
     ) -> Result<Self, TransactionKernelError> {
-        if !metadata.is_offchain() {
+        // read note metadata info from the stack and build the metadata object
+        let aux = stack[0];
+        let note_type =
+            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let sender =
+            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
+        let tag = NoteTag::try_from(stack[3])
+            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
+        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
+            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
+
+        // read recipient digest from the stack and try to build note recipient object if there is
+        // enough info available in the advice provider
+        let recipient_digest = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
+        let recipient = if let Some(data) = adv_provider.get_mapped_values(&recipient_digest) {
+            if data.len() != 12 {
+                return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
+            }
+            let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
+            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
+            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
+            let serial_num = [data[8], data[9], data[10], data[11]];
+            let input_els = adv_provider.get_mapped_values(&inputs_key);
+            let script_data = adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
+
+            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
+                .map_err(TransactionKernelError::MalformedNoteInputs)?;
+
+            let script = NoteScript::try_from(script_data)
+                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
+            let recipient = NoteRecipient::new(serial_num, script, inputs);
+
+            Some(recipient)
+        } else if metadata.is_offchain() {
+            None
+        } else {
+            // if there are no recipient details and the note is not private, return an error
             return Err(TransactionKernelError::MissingNoteDetails(metadata, recipient_digest));
-        }
+        };
 
         Ok(Self {
             metadata,
             recipient_digest,
+            recipient,
             assets: NoteAssets::default(),
-            recipient: None,
         })
     }
 
-    /// Returns a new [OutputNoteBuilder] instantiated from the provided metadata and recipient.
-    pub fn with_recipient(metadata: NoteMetadata, recipient: NoteRecipient) -> Self {
-        Self {
-            metadata,
-            recipient_digest: recipient.digest(),
-            recipient: Some(recipient),
-            assets: NoteAssets::default(),
-        }
-    }
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
 
     /// Adds the specified asset to the note.
     ///
@@ -67,6 +115,9 @@ impl OutputNoteBuilder {
     }
 
     /// Converts this builder to an [OutputNote].
+    ///
+    /// Depending on the available information, this may result in [OutputNote::Full] or
+    /// [OutputNote::Partial] notes.
     pub fn build(self) -> OutputNote {
         match self.recipient {
             Some(recipient) => {
@@ -74,9 +125,8 @@ impl OutputNoteBuilder {
                 OutputNote::Full(note)
             },
             None => {
-                let note_id = NoteId::new(self.recipient_digest, self.assets.commitment());
-                let header = NoteHeader::new(note_id, self.metadata);
-                OutputNote::Header(header)
+                let note = PartialNote::new(self.metadata, self.recipient_digest, self.assets);
+                OutputNote::Partial(note)
             },
         }
     }
