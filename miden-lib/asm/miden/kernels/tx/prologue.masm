@@ -79,15 +79,15 @@ const.ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH=0x0002001F
 
 #! Saves global inputs to memory.
 #!
-#! Stack: [BLOCK_HEADER, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Stack: [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
 #! Output: []
 #!
-#! - BLOCK_HEADER, reference block for the transaction execution.
+#! - BLOCK_HASH, reference block for the transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
 #! - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
 proc.process_global_inputs
-    exec.memory::set_blk_hash
+    exec.memory::set_block_hash
     exec.memory::set_global_acct_id
     exec.memory::set_init_acct_hash
     exec.memory::set_nullifier_commitment
@@ -140,10 +140,10 @@ proc.process_block_data
 
     # merge the note root with the block data digest
     hmerge
-    # => [BLOCK_HEADER, block_data_ptr']
+    # => [BLOCK_HASH, block_data_ptr']
 
     # assert that the block hash matches the hash in global inputs
-    exec.memory::get_blk_hash assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
+    exec.memory::get_block_hash assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
     # => [block_data_ptr']
 
     # clear the stack
@@ -188,8 +188,7 @@ proc.process_chain_data
     exec.mmr::unpack
     # => [chain_mmr_ptr]
 
-    # get block hash of the block against which the transaction is being executed
-    exec.memory::get_blk_hash
+    exec.memory::get_block_hash
     # => [BLOCK_HASH, chain_mmr_ptr]
 
     # add the block hash to the chain MMR; this updates the MMR to the latest state and enables
@@ -923,12 +922,12 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BLOCK_HEADER, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Operand stack: [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
 #! Advice stack: [NR, PH, CR, SR, BR, PH, BN, acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR, num_notes, TXSR]
 #! Advice map: {NULLIFIER_COMMITMENT: [NOTE_1_DATA, ..., NOTE_N_DATA]}
 #! Output: []
 #!
-#! - BLOCK_HEADER, reference block for the transaction execution.
+#! - BLOCK_HASH, reference block for the transaction execution.
 #! - acct_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
 #! - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers.

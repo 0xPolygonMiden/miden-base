@@ -64,13 +64,14 @@ const.NEW_NOTE_EVENT=131077
 # Event emitted when an ASSET is added to a note
 const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block to memory.
 #!
-#! Inputs: []
-#! Outputs: [H]
+#! Stack: []
+#! Output: [BLOCK_HASH]
 #!
-#! H is the last known block hash.
-export.memory::get_blk_hash->get_block_hash
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+export.memory::get_block_hash
 
 #! Returns the block number of the last known block at the time of transaction execution.
 #!

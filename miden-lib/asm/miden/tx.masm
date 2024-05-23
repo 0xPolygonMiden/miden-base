@@ -12,18 +12,16 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block to memory.
 #!
-#! Inputs: []
-#! Outputs: [H]
+#! Stack: [ZERO]
+#! Output: [BLOCK_HASH]
 #!
-#! H is the last known block hash.
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
 export.get_block_hash
-    padw
-    # => [0, 0, 0, 0]
-
-    syscall.get_block_hash
-    # => [H]
+    padw syscall.get_block_hash
+    # => [BLOCK_HASH]
 end
 
 #! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)

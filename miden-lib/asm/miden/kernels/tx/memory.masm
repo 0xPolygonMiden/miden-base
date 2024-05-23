@@ -261,23 +261,25 @@ end
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the block hash of the last known block at the time of transaction execution.
+#! Saves the hash of the reference block to memory.
 #!
-#! Stack: [BH]
+#! Stack: [BLOCK_HASH]
 #! Output: []
 #!
-#! - BH is the block hash of the last known block at the time of transaction execution.
-export.set_blk_hash
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+export.set_block_hash
     push.BLK_HASH_PTR mem_storew dropw
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block to memory.
 #!
 #! Stack: []
-#! Output: [BH]
+#! Output: [BLOCK_HASH]
 #!
-#! - BH is the block hash of the last known block at the time of transaction execution.
-export.get_blk_hash
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+export.get_block_hash
     padw push.BLK_HASH_PTR mem_loadw
 end
 
