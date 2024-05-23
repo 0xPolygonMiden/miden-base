@@ -60,15 +60,17 @@ To get a list of all available make targets you can run the following command:
 make
 ```
 
+Using Make enables developers to access pre-configured commands tailored to use in this specific repository. Make automates the build, testing and other processes, ensuring consistency and efficiency. By using Make, developers can easily manage and automate complex and repetitive tasks, leading to more reliable and maintainable code.
+
 ## Testing
 
 To test the crates contained in this repo you can use Make to run the following command present in our [Makefile](Makefile):
 
 ```shell
-make test-all
+make test
 ```
 
-Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test-all` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
+Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
 
 ## License
 
