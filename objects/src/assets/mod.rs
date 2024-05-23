@@ -25,10 +25,10 @@ pub use vault::AssetVault;
 ///
 /// All assets are encoded using a single word (4 elements) such that it is easy to determine the
 /// type of an asset both inside and outside Miden VM. Specifically:
-///   Element 1 will be:
+///  Element 1 will be:
 ///    - ZERO for a fungible asset
 ///    - non-ZERO for a non-fungible asset
-///   The 3rd most significant bit will be:
+///  The 3rd most significant bit will be:
 ///    - 1 for a fungible asset
 ///    - 0 for a non-fungible asset
 ///

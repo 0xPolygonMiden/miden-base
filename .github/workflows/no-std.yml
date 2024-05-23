@@ -22,5 +22,5 @@ jobs:
       - name: Build for no-std
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
-          rustup +${{ matrix.toolchain }} target add wasm32-unknown-unknown
+          rustup target add wasm32-unknown-unknown
           make build-no-std
