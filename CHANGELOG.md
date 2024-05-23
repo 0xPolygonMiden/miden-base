@@ -2,6 +2,10 @@
 
 ## 0.4.0 (TBD)
 
+### Enhancements
+
+* [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
+
 ## 0.3.0 (2024-05-14)
 
 * Introduce the `miden-bench-tx` crate used for transactions benchmarking (#577).
