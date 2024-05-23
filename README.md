@@ -50,17 +50,15 @@ Polygon Miden is currently on release v0.4. This is an early version of the prot
 | [objects](objects)       | Contains core components defining the Miden rollup protocol. |
 | [miden-lib](miden-lib)   | Contains the code of the Miden rollup kernels and standardized smart contracts. |
 | [miden-tx](miden-tx)     | Contains tool for creating, executing, and proving Miden rollup transaction. |
+| [bench-tx](bench-tx)     | Contains transaction execution and proving benchmarks. |
 | [mock](mock)             | Contains utilities to help with testing Miden rollup components.|
 
 ## Make commands
-
-To get a list of all available make targets you can run the following command:
+We use `make` to automate building, testing, and other processes. In most cases, `make` commands are just wrappers around `cargo` commands with specific arguments. You can view the list of available commands in the [Makefile](Makefile), or just run the following command:
 
 ```shell
 make
 ```
-
-Using Make enables developers to access pre-configured commands tailored to use in this specific repository. Make automates the build, testing and other processes, ensuring consistency and efficiency. By using Make, developers can easily manage and automate complex and repetitive tasks, leading to more reliable and maintainable code.
 
 ## Testing
 
@@ -70,7 +68,7 @@ To test the crates contained in this repo you can use Make to run the following 
 make test
 ```
 
-Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions. For more information refer to the [Makefile.toml](Makefile.toml) for the specific commands and configurations that have been chosen.
+Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions.
 
 ## License
 

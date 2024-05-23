@@ -11,10 +11,10 @@ For each transaction, data is collected on the number of cycles required to comp
 
 ## Usage
 
-To run the benchmark you can use [cargo-make](https://github.com/sagiegurari/cargo-make) with the following command present in our [Makefile.toml](Makefile.toml):
+To run the benchmarks you can run the following command:
 
 ```shell
-cargo make bench-tx
+make bench-tx
 ```
 
 Results of the benchmark are stored in the [bench-tx.json](bench-tx.json) file.
