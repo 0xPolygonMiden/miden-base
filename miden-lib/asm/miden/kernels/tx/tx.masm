@@ -87,7 +87,7 @@ export.memory::get_blk_num->get_block_number
 #! Outputs: [COM]
 #!
 #! COM is the input notes hash.
-export.memory::get_nullifier_com->get_input_notes_hash
+export.memory::get_nullifier_commitment->get_input_notes_hash
 
 #! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
 #! tuples over all output notes.

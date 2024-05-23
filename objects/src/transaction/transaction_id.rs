@@ -78,7 +78,7 @@ impl From<&ProvenTransaction> for TransactionId {
         Self::new(
             tx.account_update().init_state_hash(),
             tx.account_update().final_state_hash(),
-            tx.input_notes().commitment(),
+            tx.input_notes().nullifier_commitment(),
             tx.output_notes().commitment(),
         )
     }
@@ -86,7 +86,7 @@ impl From<&ProvenTransaction> for TransactionId {
 
 impl From<&ExecutedTransaction> for TransactionId {
     fn from(tx: &ExecutedTransaction) -> Self {
-        let input_notes_hash = tx.input_notes().commitment();
+        let input_notes_hash = tx.input_notes().nullifier_commitment();
         let output_notes_hash = tx.output_notes().commitment();
         Self::new(
             tx.initial_account().init_hash(),

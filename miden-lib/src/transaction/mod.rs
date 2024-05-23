@@ -87,26 +87,25 @@ impl TransactionKernel {
     // STACK INPUTS / OUTPUTS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the input stack required to execute the transaction kernel.
+    /// Returns the stack with the public inputs required by the transaction kernel.
     ///
-    /// This includes the input notes commitment, the account hash, the account id, and the block
-    /// hash.
+    /// The initial stack is defined:
     ///
-    /// Stack: [BH, acct_id, IAH, NC]
+    /// > [BH, acct_id, IAH, NULLIFIER_COMMITMENT]
     ///
     /// Where:
     /// - BH is the latest known block hash at the time of transaction execution.
     /// - acct_id is the account id of the account that the transaction is being executed against.
     /// - IAH is the hash of account state immediately before the transaction is executed. For
     ///   newly created accounts, initial state hash is provided as [ZERO; 4].
-    /// - NC is a commitment to the input notes. This is a sequential hash of all (nullifier, ZERO)
-    ///   tuples for the notes consumed by the transaction.
+    /// - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
     ) -> StackInputs {
+        // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());

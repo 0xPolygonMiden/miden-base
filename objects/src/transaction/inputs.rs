@@ -162,7 +162,7 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     fn from(value: InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: build_input_notes_commitment(&value.notes),
+            nullifier_commitment: nullifier_commitment(&value.notes),
         }
     }
 }
@@ -171,7 +171,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
     fn from(value: &InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: build_input_notes_commitment(&value.notes),
+            nullifier_commitment: nullifier_commitment(&value.notes),
         }
     }
 }
@@ -179,16 +179,11 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
 // INPUT NOTES
 // ================================================================================================
 
-/// Contains a list of input notes for a transaction. The list can be empty if the transaction does
-/// not consume any notes.
-///
-/// For the purposes of this struct, anything that can be reduced to a [Nullifier] can be an input
-/// note. However, [ToNullifier] trait is currently implemented only for [InputNote] and [Nullifier],
-/// and so these are the only two allowed input note types.
+/// Input notes for a transaction, empty if the transaction does not consume notes.
 #[derive(Debug, Clone)]
 pub struct InputNotes<T: ToNullifier = InputNote> {
     notes: Vec<T>,
-    commitment: Digest,
+    nullifier_commitment: Digest,
 }
 
 impl<T: ToNullifier> InputNotes<T> {
@@ -215,17 +210,23 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        let commitment = build_input_notes_commitment(&notes);
+        let nullifier_commitment = nullifier_commitment(&notes);
 
-        Ok(Self { notes, commitment })
+        Ok(Self { notes, nullifier_commitment })
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a commitment to these input notes.
-    pub fn commitment(&self) -> Digest {
-        self.commitment
+    /// Returns sequential hash of all note's nullifiers.
+    ///
+    /// For non empty lists the commitment is defined as:
+    ///
+    /// > hash(nullifier_0 || ZERO || nullifier_1 || ZERO || .. || nullifier_n || ZERO)
+    ///
+    /// Otherwise defined as ZERO for empty lists.
+    pub fn nullifier_commitment(&self) -> Digest {
+        self.nullifier_commitment
     }
 
     /// Returns total number of input notes.
@@ -281,7 +282,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            commitment: build_input_notes_commitment::<T>(&[]),
+            nullifier_commitment: nullifier_commitment::<T>(&[]),
         }
     }
 }
@@ -309,16 +310,13 @@ impl<T: ToNullifier> Deserializable for InputNotes<T> {
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-/// Returns the commitment to the input notes represented by the specified nullifiers.
-///
-/// For a non-empty list of notes, this is a sequential hash of all (nullifier, ZERO) pairs for
-/// the notes consumed in the transaction. For an empty list, [ZERO; 4] is returned.
-pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+fn nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+    // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
     if notes.is_empty() {
         return Digest::default();
     }
 
-    let mut elements: Vec<Felt> = Vec::new();
+    let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
     for note in notes {
         elements.extend_from_slice(note.nullifier().as_elements());
         elements.extend_from_slice(&Word::default());

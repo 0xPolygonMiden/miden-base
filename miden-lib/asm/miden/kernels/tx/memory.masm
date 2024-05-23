@@ -41,7 +41,7 @@ const.ACCT_ID_PTR=101
 const.INIT_ACCT_HASH_PTR=102
 
 # The memory address at which the global nullifier commitment is stored
-const.NULLIFIER_COM_PTR=103
+const.NULLIFIER_COMMITMENT_PTR=103
 
 # The memory address at which the initial nonce is stored
 const.INIT_NONCE_PTR=104
@@ -321,24 +321,29 @@ export.get_init_acct_hash
     padw push.INIT_ACCT_HASH_PTR mem_loadw
 end
 
-#! Returns the nullifier commitment.
+#! Returns the input note's nullifier commitment.
 #!
 #! Stack: []
-#! Output: [COM]
+#! Output: [COMMITMENT]
 #!
-#! - COM is the nullifier commitment.
-export.get_nullifier_com
-    padw push.NULLIFIER_COM_PTR mem_loadw
+#! Where:
+#! - COMMITMENT is the note's commitment, defined as:
+#!
+#! > hash(note_0 || ZERO || note_1 || ZERO || .. || note_n || ZERO)
+#!
+#! or ZERO if there are no input notes.
+export.get_nullifier_commitment
+    padw push.NULLIFIER_COMMITMENT_PTR mem_loadw
 end
 
-#! Sets the nullifier commitment.
+#! Sets the inpu note's nullifier commitment.
 #!
-#! Stack: [COM]
+#! Stack: [COMMITMENT]
 #! Output: []
 #!
-#! - COM is the nullifier commitment.
-export.set_nullifier_com
-    push.NULLIFIER_COM_PTR mem_storew dropw
+#! - COMMITMENT is the note's commitment.
+export.set_nullifier_commitment
+    push.NULLIFIER_COMMITMENT_PTR mem_storew dropw
 end
 
 #! Returns the initial account nonce.

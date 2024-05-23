@@ -80,29 +80,28 @@ const.ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH=0x0002001F
 #! Processes the global inputs provided via the stack. This involves storing the global inputs at
 #! the appropriate memory addresses.
 #!
-#! Stack: [BH, acct_id, IAH, NC]
+#! Stack: [BH, acct_id, IAH, NULLIFIER_COMMITMENT]
 #! Output: []
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
 #! - IAH is the initial account hash of the account that the transaction is being executed against.
-#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
 proc.process_global_inputs
     # store the block hash
     exec.memory::set_blk_hash
-    # => [acct_id, IAH, NC]
+    # => [acct_id, IAH, NULLIFIER_COMMITMENT]
 
     # store the account id
     exec.memory::set_global_acct_id
-    # => [IAH, NC]
+    # => [IAH, NULLIFIER_COMMITMENT]
 
     # store the initial account hash
     exec.memory::set_init_acct_hash
-    # => [NC]
+    # => [NULLIFIER_COMMITMENT]
 
     # store the nullifier commitment
-    exec.memory::set_nullifier_com
+    exec.memory::set_nullifier_commitment
     # => []
 end
 
@@ -792,11 +791,11 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
-#! Advice map: { NC => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
+#! Advice map: { NULLIFIER_COMMITMENT => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
 #! Output: []
 #!
 #! - num_notes is the number of input notes.
-#! - NC is the nullifier commitment of all input notes.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
 #! - SN is the serial number of the nth input note.
 #! - SR is the script root of the nth input note.
 #! - IR is the inputs root of the nth input note.
@@ -819,7 +818,7 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_nullifier_com adv.push_mapval dropw
+        exec.memory::get_nullifier_commitment adv.push_mapval dropw
     end
     # => [num_notes, ...]
 
@@ -859,7 +858,7 @@ proc.process_input_notes_data
     push.0
     # => [num_processed_notes = 0, num_notes, ...]
 
-    # initiate stack for sequential hash to compute nullifier commitment
+    # initialize the hasher's state
     padw padw padw
     # => [R1, R0, CAP, num_processed_notes, num_notes, ...]
 
@@ -867,22 +866,13 @@ proc.process_input_notes_data
     dup.13 dup.13 neq
     # => [has_more_notes, R1, R0, CAP, num_processed_notes, num_notes, ...]
 
-    # loop and sequentially hash hperm(nullifier, ZERO) over all input notes
+    # compute the nullifier commitment from the advice stack data
     while.true
-        # clear hasher rate
+        # hasher operates in overwrite mode, drop rate words
         dropw dropw
-        # => [CAP, num_processed_notes, num_notes, ...]
 
-        # get input note nullifier
-        dup.4 exec.memory::get_consumed_note_nullifier
-        # => [NULLIFIER, CAP, num_processed_notes, num_notes, ...]
-
-        # pad the stack
-        padw
-        # => [ZERO, NULLIFIER, CAP, num_processed_notes, num_notes, ...]
-
-        # compute hperm(nullifier, ZERO)
-        hperm
+        # ingest next pair `(NULLIFIER, ZERO)`
+        dup.4 exec.memory::get_consumed_note_nullifier padw hperm
         # => [PERM, PERM, CAP, num_processed_notes, num_notes, ...]
 
         # increment processed note counter and check if we should loop again
@@ -892,12 +882,12 @@ proc.process_input_notes_data
 
     # extract nullifier hash
     exec.native::state_to_digest
-    # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
+    # => [NULLIFIER_COMMITMENT, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
     # hash should be [ZERO; 4] because the while loop above was not entered and, thus, hperm
     # instruction was not executed.
-    exec.memory::get_nullifier_com
+    exec.memory::get_nullifier_commitment
     assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH
     # => [num_processed_notes + 1, num_notes, ...]
 
@@ -945,9 +935,9 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BH, acct_id, IAH, NC]
+#! Operand stack: [BH, acct_id, IAH, NULLIFIER_COMMITMENT]
 #! Advice stack: [NR, PH, CR, SR, BR, PH, BN, acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR, num_notes, TXSR]
-#! Advice map: {NC: [NOTE_1_DATA, ..., NOTE_N_DATA]}
+#! Advice map: {NULLIFIER_COMMITMENT: [NOTE_1_DATA, ..., NOTE_N_DATA]}
 #! Output: []
 #!
 #! - BH is the latest known block hash at the time of transaction execution.
@@ -960,8 +950,7 @@ end
 #! - PH is the proof hash of the last known block.
 #! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
 #! - IAH is the initial account hash of the account that the transaction is being executed against.
-#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
 #! - nonce is the account nonce.
 #! - AVR is the account vault root.
 #! - ASR is the account storage root.
