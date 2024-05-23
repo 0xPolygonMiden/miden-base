@@ -71,6 +71,11 @@ impl NoteAssets {
         self.assets.len()
     }
 
+    /// Returns true if the number of assets is 0.
+    pub fn is_empty(&self) -> bool {
+        self.assets.is_empty()
+    }
+
     /// Returns an iterator over all assets.
     pub fn iter(&self) -> core::slice::Iter<Asset> {
         self.assets.iter()

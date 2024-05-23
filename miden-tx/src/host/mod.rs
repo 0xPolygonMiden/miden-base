@@ -7,7 +7,7 @@ use miden_lib::transaction::{
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
     assets::Asset,
-    notes::{NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType},
+    notes::NoteId,
     transaction::OutputNote,
     Digest, Hasher,
 };
@@ -113,47 +113,12 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-
-        // Stack:
         // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
-        let aux = stack[0];
-        let note_type =
-            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
-        let sender =
-            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
-        let tag = NoteTag::try_from(stack[3])
-            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
+
         let note_ptr: MemoryAddress =
             stack[4].try_into().map_err(TransactionKernelError::MalformedNotePointer)?;
-        let recipient_digest = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
 
-        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
-            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
-
-        let note_builder = if let Some(data) =
-            self.adv_provider.get_mapped_values(&recipient_digest)
-        {
-            if data.len() != 12 {
-                return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
-            }
-            let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
-            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
-            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
-            let serial_num = [data[8], data[9], data[10], data[11]];
-            let input_els = self.adv_provider.get_mapped_values(&inputs_key);
-            let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
-
-            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
-                .map_err(TransactionKernelError::MalformedNoteInputs)?;
-
-            let script = NoteScript::try_from(script_data)
-                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
-            let recipient = NoteRecipient::new(serial_num, script, inputs);
-
-            OutputNoteBuilder::with_recipient(metadata, recipient)
-        } else {
-            OutputNoteBuilder::new(metadata, recipient_digest)?
-        };
+        let note_builder = OutputNoteBuilder::new(stack, &self.adv_provider)?;
 
         self.output_notes.insert(note_ptr, note_builder);
 
