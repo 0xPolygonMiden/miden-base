@@ -1,5 +1,3 @@
-# Makefile
-
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 
@@ -8,7 +6,7 @@ DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 # Runs Clippy with configs
 .PHONY: clippy
 clippy:
-	cargo clippy --workspace --all-targets --all-features -- -D warnings
+	cargo +nightly clippy --workspace --all-targets --all-features -- -D warnings
 
 # Runs Fix with configs
 .PHONY: fix
@@ -27,10 +25,7 @@ format-check:
 
 # Runs all linting tasks at once (Clippy, fixing, formatting)
 .PHONY: lint
-lint:
-	$(MAKE) format
-	$(MAKE) clippy
-	$(MAKE) fix
+lint: format fix clippy
 
 # --- docs ----------------------------------------------------------------------------------------
 
@@ -57,8 +52,8 @@ test-prove:
 	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 # Run all tests
-.PHONY: test-all
-test-all:
+.PHONY: test
+test:
 	$(DEBUG_ASSERTIONS) $(MAKE) -j2 test-default test-prove
 
 # Run default tests excluding `prove` with CI configurations
@@ -72,8 +67,8 @@ ci-test-prove:
 	cargo nextest run --profile ci-prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
 # Run all tests with CI configurations
-.PHONY: ci-test-all
-ci-test-all:
+.PHONY: ci-test
+ci-test:
 	$(DEBUG_ASSERTIONS) $(MAKE) -j2 ci-test-default ci-test-prove
 
 # --- building ------------------------------------------------------------------------------------
@@ -86,7 +81,7 @@ build:
 # Build without the standard library
 .PHONY: build-no-std
 build-no-std:
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock --exclude miden-bench-tx
+	cargo build --verbose --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock --exclude miden-bench-tx
 
 # --- benchmarking --------------------------------------------------------------------------------
 
@@ -94,10 +89,3 @@ build-no-std:
 .PHONY: bench-tx
 bench-tx:
 	cargo run --bin bench-tx
-
-# --- utilities -----------------------------------------------------------------------------------
-
-# Watch for changes and rebuild
-.PHONY: watch
-watch:
-	cargo watch -w miden-lib/asm -x build

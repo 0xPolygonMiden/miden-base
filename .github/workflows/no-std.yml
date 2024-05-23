@@ -11,19 +11,16 @@ on:
 
 jobs:
   no-std:
-    name: build ${{matrix.toolchain}} no-std for wasm32-unknown-unknown
+    name: Build for no-std
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{matrix.toolchain}}
-          override: true
-      - run: rustup target add wasm32-unknown-unknown
-      - name: build-no-std
-        run: make build-no-std
+      - uses: actions/checkout@main
+      - name: Build for no-std
+        run: |
+          rustup update --no-self-update ${{ matrix.toolchain }}
+          rustup +${{ matrix.toolchain }} target add wasm32-unknown-unknown
+          make build-no-std
