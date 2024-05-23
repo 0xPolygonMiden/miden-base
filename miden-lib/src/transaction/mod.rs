@@ -91,14 +91,13 @@ impl TransactionKernel {
     ///
     /// The initial stack is defined:
     ///
-    /// > [BH, acct_id, IAH, NULLIFIER_COMMITMENT]
+    /// > [BLOCK_HEADER, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
     ///
     /// Where:
-    /// - BH is the latest known block hash at the time of transaction execution.
-    /// - acct_id is the account id of the account that the transaction is being executed against.
-    /// - IAH is the hash of account state immediately before the transaction is executed. For
-    ///   newly created accounts, initial state hash is provided as [ZERO; 4].
-    /// - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers
+    /// - BLOCK_HEADER, reference block for the transaction execution.
+    /// - acct_id, the account that the transaction is being executed against.
+    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+    /// - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
