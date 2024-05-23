@@ -112,7 +112,7 @@ fn p2idr_script() {
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
-    let target_account_after: Account = Account::from_parts(
+    let target_account_after: Account = Account::new(
         target_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
@@ -199,7 +199,7 @@ fn p2idr_script() {
     assert_eq!(executed_transaction_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
-    let target_account_after: Account = Account::from_parts(
+    let target_account_after: Account = Account::new(
         target_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
@@ -231,7 +231,7 @@ fn p2idr_script() {
     assert_eq!(executed_transaction_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
-    let sender_account_after: Account = Account::from_parts(
+    let sender_account_after: Account = Account::new(
         sender_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         sender_account.storage().clone(),

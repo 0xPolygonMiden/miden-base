@@ -11,14 +11,28 @@ pub const EVENT_ID_PREFIX: u32 = 2;
 // TRANSACTION EVENT
 // ================================================================================================
 
-const ACCOUNT_VAULT_ADD_ASSET: u32 = 0x2_0000; // 131072
-const ACCOUNT_VAULT_REMOVE_ASSET: u32 = 0x2_0001; // 131073
-const ACCOUNT_STORAGE_SET_ITEM: u32 = 0x2_0002; // 131074
-const ACCOUNT_INCREMENT_NONCE: u32 = 0x2_0003; // 131075
-const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_0004; // 131076
-const NOTE_CREATED: u32 = 0x2_0005; // 131077
-const ACCOUNT_STORAGE_SET_MAP_ITEM: u32 = 0x2_0006; // 131078
-const NOTE_ADD_ASSET: u32 = 0x2_0007; // 131079
+const ACCOUNT_VAULT_BEFORE_ADD_ASSET: u32 = 0x2_0000; // 131072
+const ACCOUNT_VAULT_AFTER_ADD_ASSET: u32 = 0x2_0001; // 131073
+
+const ACCOUNT_VAULT_BEFORE_REMOVE_ASSET: u32 = 0x2_0002; // 131074
+const ACCOUNT_VAULT_AFTER_REMOVE_ASSET: u32 = 0x2_0003; // 131075
+
+const ACCOUNT_STORAGE_BEFORE_SET_ITEM: u32 = 0x2_0004; // 131076
+const ACCOUNT_STORAGE_AFTER_SET_ITEM: u32 = 0x2_0005; // 131077
+
+const ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM: u32 = 0x2_0006; // 131078
+const ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM: u32 = 0x2_0007; // 131079
+
+const ACCOUNT_BEFORE_INCREMENT_NONCE: u32 = 0x2_0008; // 131080
+const ACCOUNT_AFTER_INCREMENT_NONCE: u32 = 0x2_0009; // 131081
+
+const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_000A; // 131082
+
+const BEFORE_NOTE_CREATED: u32 = 0x2_000B; // 131083
+const AFTER_NOTE_CREATED: u32 = 0x2_000C; // 131084
+
+const BEFORE_NOTE_ADD_ASSET: u32 = 0x2_000D; // 131085
+const AFTER_NOTE_ADD_ASSET: u32 = 0x2_000E; // 131086
 
 /// Events which may be emitted by a transaction kernel.
 ///
@@ -46,9 +60,12 @@ pub enum TransactionEvent {
     AccountAfterIncrementNonce = ACCOUNT_AFTER_INCREMENT_NONCE,
 
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
-    NoteCreated = NOTE_CREATED,
-    AccountStorageSetMapItem = ACCOUNT_STORAGE_SET_MAP_ITEM,
-    NoteAddAsset = NOTE_ADD_ASSET,
+
+    BeforeNoteCreated = BEFORE_NOTE_CREATED,
+    AfterNoteCreated = AFTER_NOTE_CREATED,
+
+    BeforeNoteAddAsset = BEFORE_NOTE_ADD_ASSET,
+    AfterNoteAddAsset = AFTER_NOTE_ADD_ASSET,
 }
 
 impl fmt::Display for TransactionEvent {
@@ -88,9 +105,13 @@ impl TryFrom<u32> for TransactionEvent {
             ACCOUNT_AFTER_INCREMENT_NONCE => Ok(TransactionEvent::AccountAfterIncrementNonce),
 
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
-            NOTE_CREATED => Ok(TransactionEvent::NoteCreated),
-            ACCOUNT_STORAGE_SET_MAP_ITEM => Ok(TransactionEvent::AccountStorageSetMapItem),
-            NOTE_ADD_ASSET => Ok(TransactionEvent::NoteAddAsset),
+
+            BEFORE_NOTE_CREATED => Ok(TransactionEvent::BeforeNoteCreated),
+            AFTER_NOTE_CREATED => Ok(TransactionEvent::AfterNoteCreated),
+
+            BEFORE_NOTE_ADD_ASSET => Ok(TransactionEvent::BeforeNoteAddAsset),
+            AFTER_NOTE_ADD_ASSET => Ok(TransactionEvent::AfterNoteAddAsset),
+
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }
     }

@@ -6,16 +6,16 @@ In this section, we show you how to execute transactions and send funds to anoth
 
 !!! important "Prerequisite steps"
     - You should have already followed the [prerequisite steps](prerequisites.md) and [get started](create-account-use-faucet.md) documents.
-    - You should have *not* reset the state of your local client.
+    - You should have *not* reset the state of your local client. 
 
 ## Create a second client
 
 !!! tip
       Remember to use the [Miden client documentation](https://docs.polygon.technology/miden/miden-client/cli-reference/) for clarifications.
 
-This is an alternative to the [private P2P transactions](p2p-private.md) process.
+This is an alternative to the [private P2P transactions](p2p-private.md) process. 
 
-In this tutorial, we use two different clients to simulate two different remote users who don't share local state.
+In this tutorial, we use two different clients to simulate two different remote users who don't share local state. 
 
 To do this, we use two terminals with their own state (using their own `miden-client.toml`).
 
@@ -29,14 +29,14 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 2. Initialize the client. This creates the `miden-client.toml` file line-by-line.
 
     ```sh
-    miden init --rpc 18.203.155.106
+    miden init --rpc xxx.xxx.xxx.xxx
     ```
     For the `--rpc` flag, enter the IP that the Miden team supplied.
 
 3. On the new client, create a new [basic account](https://docs.polygon.technology/miden/miden-base/architecture/accounts/#account-types):
 
     ```shell
-    miden new-wallet --mutable -s on-chain
+    miden account new basic-mutable -s on-chain
     ```
 
     We refer to this account as _Account C_. Note that we set the account's storage mode to `on-chain`, which means that the account details are public and its latest state can be retrieved from the node.
@@ -49,12 +49,12 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 
 ## Transfer assets between accounts
 
-1. Now we can transfer some of the tokens we received from the faucet to our new account C. Remember to switch back to `miden-client` directory, since you'll be making the txn from Account ID A.
+1. Now we can transfer some of the tokens we received from the faucet to our new account C. Remember to switch back to `miden-client` directory, since you'll be making txn from Account ID A.
 
     To do this, from the first client run:
 
     ```shell
-    miden send --sender <basic-account-id-A> --target <basic-account-id-B> --asset 50::<faucet-account-id> --note-type public
+    miden tx new p2id --sender <basic-account-id-A> --target <basic-account-id-B> --faucet <faucet-account-id> 50 --note-type public
     ```
 
     !!! note
@@ -71,7 +71,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 3. At this point, we should have received the public note details. 
 
     ```sh
-    miden notes --list
+    miden notes list 
     ```
 
     Because the note was retrieved from the node, the commit height will be included and displayed.
@@ -79,18 +79,18 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 4. Have the second account consume the note.
 
     ```sh
-    miden consume-notes --account <regular-account-ID-B> <input-note-id>
+    miden tx new consume-notes --account <regular-account-ID-B> <input-note-id> 
     ```
 
     !!! tip
         It's possible to use a short version of the note id: 7 characters after the `0x` is sufficient, e.g. `0x6ae613a`.
 
-That's it!
+That's it! 
 
 Account C has now consumed the note and there should be new assets in the account:
 
 ```sh
-miden account --show <account-ID> 
+miden account show <account-ID> 
 ```
 
 ## Clear state

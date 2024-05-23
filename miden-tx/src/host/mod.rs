@@ -450,11 +450,12 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             TransactionEvent::AccountPushProcedureIndex => {
                 self.on_account_push_procedure_index(process)
             },
-            TransactionEvent::NoteCreated => self.on_note_created(process),
-            TransactionEvent::AccountStorageSetMapItem => {
-                self.on_account_storage_set_map_item(process)
-            },
-            TransactionEvent::NoteAddAsset => self.on_note_add_asset(process),
+
+            TransactionEvent::BeforeNoteCreated => Ok(()),
+            TransactionEvent::AfterNoteCreated => self.on_note_after_created(process),
+
+            TransactionEvent::BeforeNoteAddAsset => self.on_note_before_add_asset(process),
+            TransactionEvent::AfterNoteAddAsset => Ok(()),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 

@@ -6,12 +6,9 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{self, Polynomial},
 };
 use rand::Rng;
-use vm_processor::{DeserializationError, Digest, Felt, Word};
+use vm_processor::{Digest, Felt, Word};
 
-use crate::{
-    error::AuthenticationError,
-    utils::serde::{ByteReader, ByteWriter, Deserializable, Serializable},
-};
+use crate::error::AuthenticationError;
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
@@ -42,7 +39,7 @@ pub trait TransactionAuthenticator {
     ) -> Result<Vec<Felt>, AuthenticationError>;
 }
 
-// AUTH SECRET KEY
+// BASIC AUTHENTICATOR
 // ================================================================================================
 
 #[derive(Clone, Debug)]

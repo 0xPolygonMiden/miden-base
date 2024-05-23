@@ -63,11 +63,10 @@ const.BEFORE_NEW_NOTE_EVENT=131083
 # Event emitted after a new note is created.
 const.AFTER_NEW_NOTE_EVENT=131084
 
-# Event emitted when an ASSET is added to a note
-const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
-
-# Event emitted when an ASSET is added to a note
-const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
+# Event emitted before an ASSET is added to a note
+const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131085
+# Event emitted after an ASSET is added to a note
+const.AFTER_ADD_ASSET_TO_NOTE_EVENT=131086
 
 #! Returns the block hash of the last known block at the time of transaction execution.
 #!
@@ -261,6 +260,10 @@ end
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
 #! - the number of created notes exceeds the maximum limit of 4096.
 export.create_note
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop emit.BEFORE_NEW_NOTE_EVENT
+
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
     dup.1 push.OFFCHAIN_NOTE eq dup.2 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE

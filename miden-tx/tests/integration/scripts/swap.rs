@@ -79,7 +79,7 @@ fn prove_swap_script() {
         .expect("Transaction consuming swap note failed");
 
     // target account vault delta
-    let target_account_after: Account = Account::from_parts(
+    let target_account_after: Account = Account::new(
         target_account.id(),
         AssetVault::new(&[offered_asset]).unwrap(),
         target_account.storage().clone(),

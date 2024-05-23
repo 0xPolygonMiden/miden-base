@@ -81,7 +81,6 @@ const.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT=131080
 # Event emitted after an account nonce is incremented. 
 const.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT=131081
 
-
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
 # the advice stack.
 const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
