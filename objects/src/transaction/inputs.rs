@@ -162,7 +162,7 @@ impl From<InputNotes> for InputNotes<Nullifier> {
     fn from(value: InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: nullifier_commitment(&value.notes),
+            nullifier_commitment: build_nullifier_commitment(&value.notes),
         }
     }
 }
@@ -171,7 +171,7 @@ impl From<&InputNotes> for InputNotes<Nullifier> {
     fn from(value: &InputNotes) -> Self {
         Self {
             notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: nullifier_commitment(&value.notes),
+            nullifier_commitment: build_nullifier_commitment(&value.notes),
         }
     }
 }
@@ -210,7 +210,7 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        let nullifier_commitment = nullifier_commitment(&notes);
+        let nullifier_commitment = build_nullifier_commitment(&notes);
 
         Ok(Self { notes, nullifier_commitment })
     }
@@ -218,7 +218,7 @@ impl<T: ToNullifier> InputNotes<T> {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns sequential hash of all note's nullifiers.
+    /// Returns a sequential hash of nullifiers for all notes.
     ///
     /// For non empty lists the commitment is defined as:
     ///
@@ -282,7 +282,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            nullifier_commitment: nullifier_commitment::<T>(&[]),
+            nullifier_commitment: build_nullifier_commitment::<T>(&[]),
         }
     }
 }
@@ -310,7 +310,7 @@ impl<T: ToNullifier> Deserializable for InputNotes<T> {
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-fn nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+fn build_nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
     // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
     if notes.is_empty() {
         return Digest::default();

@@ -462,7 +462,7 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the reference block to memory.
+#! Returns the block hash of the reference block.
 #!
 #! Stack: [ZERO]
 #! Output: [BLOCK_HASH]

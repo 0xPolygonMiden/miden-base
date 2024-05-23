@@ -91,10 +91,10 @@ impl TransactionKernel {
     ///
     /// The initial stack is defined:
     ///
-    /// > [BLOCK_HEADER, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+    /// > [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
     ///
     /// Where:
-    /// - BLOCK_HEADER, reference block for the transaction execution.
+    /// - BLOCK_HASH, reference block for the transaction execution.
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
     /// - NULLIFIER_COMMITMENT, sequential hash of all input note's nullifiers.
