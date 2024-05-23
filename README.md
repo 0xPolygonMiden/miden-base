@@ -52,6 +52,14 @@ Polygon Miden is currently on release v0.4. This is an early version of the prot
 | [miden-tx](miden-tx)     | Contains tool for creating, executing, and proving Miden rollup transaction. |
 | [mock](mock)             | Contains utilities to help with testing Miden rollup components.|
 
+## Make commands
+
+To get a list of all available make targets you can run the following command:
+
+```shell
+make
+```
+
 ## Testing
 
 To test the crates contained in this repo you can use Make to run the following command present in our [Makefile](Makefile):
