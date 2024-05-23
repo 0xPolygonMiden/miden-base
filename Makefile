@@ -74,11 +74,6 @@ ci-test-default: ## Run default tests excluding `prove` with CI configurations
 ci-test-prove: ## Run `prove` tests (tests which use the Miden prover) with CI configurations
 	cargo nextest run --profile ci-prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
 
-
-.PHONY: ci-test
-ci-test: ## Run all tests with CI configurations
-	$(DEBUG_ASSERTIONS) $(MAKE) -j2 ci-test-default ci-test-prove
-
 # --- building ------------------------------------------------------------------------------------
 
 
