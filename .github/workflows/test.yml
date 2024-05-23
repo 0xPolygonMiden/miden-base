@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - uses: taiki-e/install-action@nextest 
-      - name: Perform test
+      - name: Perform tests
         run: |
           rustup update --no-self-update ${{matrix.toolchain}} 
-          make ci-test-${{matrix.args}}
+          make test-${{matrix.args}}
