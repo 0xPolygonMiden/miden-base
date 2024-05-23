@@ -58,8 +58,7 @@ test-prove: ## Run `prove` tests (tests which use the Miden prover)
 
 
 .PHONY: test
-test: ## Run all tests
-	$(DEBUG_ASSERTIONS) $(MAKE) -j2 test-default test-prove
+test: test-default test-prove ## Run all tests
 
 # --- building ------------------------------------------------------------------------------------
 
