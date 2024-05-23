@@ -80,7 +80,7 @@ fn prove_p2id_script() {
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // vault delta
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account.id(),
         AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
@@ -180,7 +180,7 @@ fn p2id_script_multiple_assets() {
         .unwrap();
 
     // vault delta
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account.id(),
         AssetVault::new(&[fungible_asset_1, fungible_asset_2]).unwrap(),
         target_account.storage().clone(),

@@ -2,6 +2,10 @@
 
 ## 0.4.0 (TBD)
 
+### Enhancements
+
+* [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
+
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * Made `DataStore` conditionally async using `winter-maybe-async` (#725)

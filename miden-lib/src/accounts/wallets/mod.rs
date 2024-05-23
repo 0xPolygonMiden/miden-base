@@ -6,8 +6,7 @@ use miden_objects::{
         StorageSlot,
     },
     assembly::ModuleAst,
-    assets::AssetVault,
-    AccountError, Word, ZERO,
+    AccountError, Word,
 };
 
 use super::{AuthScheme, TransactionKernel};
@@ -67,7 +66,6 @@ pub fn create_basic_wallet(
         }],
         vec![],
     )?;
-    let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
@@ -76,9 +74,6 @@ pub fn create_basic_wallet(
         account_code.root(),
         account_storage.root(),
     )?;
-    let account_id = AccountId::new(account_seed, account_code.root(), account_storage.root())?;
-    Ok((
-        Account::new(account_id, account_vault, account_storage, account_code, ZERO),
-        account_seed,
-    ))
+
+    Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
 }

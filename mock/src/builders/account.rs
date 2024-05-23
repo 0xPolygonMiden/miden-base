@@ -88,7 +88,7 @@ impl<T: Rng> AccountBuilder<T> {
         let account_id = self.account_id_builder.build()?;
         let account_code =
             str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
-        Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+        Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
     /// Build an account using the provided `seed`.
@@ -100,7 +100,7 @@ impl<T: Rng> AccountBuilder<T> {
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
             str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
-        Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+        Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
     /// Build an account using the provided `seed` and `storage`.
@@ -126,6 +126,6 @@ impl<T: Rng> AccountBuilder<T> {
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code =
             str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
-        Ok(Account::new(account_id, vault, storage, account_code, self.nonce))
+        Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 }
