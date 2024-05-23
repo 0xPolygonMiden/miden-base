@@ -211,7 +211,7 @@ pub fn get_account_with_default_account_code(
         None => AssetVault::new(&[]).unwrap(),
     };
 
-    Account::new(account_id, account_vault, account_storage, account_code, Felt::new(1))
+    Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
 }
 
 pub fn write_bench_results_to_json(

@@ -285,14 +285,14 @@ pub fn mock_new_account(assembler: &Assembler) -> Account {
         generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
-    Account::new(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
+    Account::from_parts(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
 }
 
 pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
     let account_storage = mock_account_storage();
     let account_vault = mock_account_vault();
     let account_id = AccountId::try_from(account_id).unwrap();
-    Account::new(account_id, account_vault, account_storage, account_code, nonce)
+    Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
 }
 
 // MOCK FAUCET
@@ -319,7 +319,7 @@ pub fn mock_fungible_faucet(
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AssetVault::default(), account_storage, account_code, nonce)
+    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
 }
 
 pub fn mock_non_fungible_faucet(
@@ -351,7 +351,7 @@ pub fn mock_non_fungible_faucet(
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
     let account_code = mock_account_code(assembler);
-    Account::new(account_id, AssetVault::default(), account_storage, account_code, nonce)
+    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
 }
 
 // ACCOUNT SEED GENERATION
