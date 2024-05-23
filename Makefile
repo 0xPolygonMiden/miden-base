@@ -11,7 +11,6 @@ DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 
 # -- linting --------------------------------------------------------------------------------------
 
-
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
 	cargo +nightly clippy --workspace --all-targets --all-features -- -D warnings
@@ -37,7 +36,6 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 
 # --- docs ----------------------------------------------------------------------------------------
 
-
 .PHONY: doc
 doc: ## Generates & checks documentation 
 	$(WARNINGS) cargo doc --all-features --keep-going --release
@@ -48,7 +46,6 @@ doc-serve: ## Serves documentation site
 	./scripts/serve-doc-site.sh
 
 # --- testing -------------------------------------------------------------------------------------
-
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
@@ -66,7 +63,6 @@ test: ## Run all tests
 
 # --- building ------------------------------------------------------------------------------------
 
-
 .PHONY: build
 build: ## By default we should build in release mode
 	cargo build --release
@@ -74,10 +70,9 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --verbose --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock --exclude miden-bench-tx
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-mock --exclude miden-bench-tx
 
 # --- benchmarking --------------------------------------------------------------------------------
-
 
 .PHONY: bench-tx
 bench-tx: ## Run transaction benchmarks
