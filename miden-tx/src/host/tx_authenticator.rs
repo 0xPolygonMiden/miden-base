@@ -21,8 +21,9 @@ use crate::error::AuthenticationError;
 ///
 /// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
 pub trait TransactionAuthenticator {
-    /// Retrieves a signataure for a specific message as a list of [Felt].
-    /// The request is initiaed by the VM as a consequence of the SigToStack advice
+    /// Retrieves a signature for a specific message as a list of [Felt].
+    ///
+    /// The request is initiated by the VM as a consequence of the SigToStack advice
     /// injector.
     ///
     /// - `pub_key`: The public key used for signature generation.

@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+* [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
 
 ## 0.3.1 (2024-06-12)
