@@ -66,18 +66,19 @@ export.get_assets
     # => [num_assets, dest_ptr]
 end
 
-#! Writes the inputs of the currently execute note into memory starting at the specified address.
+#! Loads the note's inputs to `dest_ptr`.
 #!
 #! Inputs: [dest_ptr]
 #! Outputs: [num_inputs, dest_ptr]
+#! Advice Map: { INPUTS_HASH: INPUTS }
 #!
+#! Where:
 #! - dest_ptr is the memory address to write the inputs.
+#! - INPUTS_HASH, sequential hash of the padded note's inputs.
+#! - INPUTS, the data corresponding to the note's inputs.
 export.get_inputs
-    padw push.0
-    # => [0, 0, 0, 0, 0, dest_ptr]
-
     # get the current consumed note inputs hash
-    syscall.get_note_inputs_info
+    padw push.0 syscall.get_note_inputs_hash
     # => [INPUTS_HASH, num_inputs, dest_ptr]
 
     # load the inputs from the advice map to the advice stack

@@ -416,11 +416,12 @@ end
 #! Inputs: [0, 0, 0, 0, 0]
 #! Outputs: [NOTE_INPUTS_HASH, num_inputs]
 #!
+#! Where:
 #! - num_inputs is the number of inputs associated with the note.
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_note_inputs_info
+export.get_note_inputs_hash
     # get the number of inputs and the inputs hash
-    exec.note::get_inputs_info
+    exec.note::get_note_inputs_hash
     # => [NOTE_INPUTS_HASH, num_inputs, 0, 0, 0, 0, 0]
 
     # organize the stack for return
@@ -434,16 +435,11 @@ end
 #! Inputs: [0]
 #! Outputs: [sender]
 #!
+#! Where:
 #! - sender is the sender of the note currently being processed.
 export.get_note_sender
-    # get the note sender
-    exec.note::get_sender
-    # => [sender, 0]
-
-    # organize the stack for return
-    swap drop
+    exec.note::get_sender swap drop
     # => [sender]
-
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.

@@ -324,7 +324,7 @@ fn add_input_notes_to_advice_inputs(
                 .unwrap(),
         );
 
-        // add the note elements to the combined vector of note data
+        // Note: keep in sync with the process_input_node kernel procedure
         note_data.extend(recipient.serial_num());
         note_data.extend(*recipient.script().hash());
         note_data.extend(*recipient.inputs().commitment());
