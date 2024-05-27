@@ -5,7 +5,7 @@ name: no-std
 on:
   push:
     branches:
-      - main
+      - [main, next]
   pull_request:
     types: [opened, reopened, synchronize]
 
