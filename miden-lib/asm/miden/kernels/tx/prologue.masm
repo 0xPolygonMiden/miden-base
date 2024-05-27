@@ -77,89 +77,79 @@ const.ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH=0x0002001F
 # PUBLIC INPUTS
 # =================================================================================================
 
-#! Processes the global inputs provided via the stack. This involves storing the global inputs at
-#! the appropriate memory addresses.
+#! Saves global inputs to memory.
 #!
-#! Stack: [BH, acct_id, IAH, NC]
+#! Stack: [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
 #! Output: []
 #!
-#! - BH is the latest known block hash at the time of transaction execution.
+#! - BLOCK_HASH, reference block for the transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
-#! - IAH is the initial account hash of the account that the transaction is being executed against.
-#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
+#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
 proc.process_global_inputs
-    # store the block hash
-    exec.memory::set_blk_hash
-    # => [acct_id, IAH, NC]
-
-    # store the account id
+    exec.memory::set_block_hash
     exec.memory::set_global_acct_id
-    # => [IAH, NC]
-
-    # store the initial account hash
     exec.memory::set_init_acct_hash
-    # => [NC]
-
-    # store the nullifier commitment
-    exec.memory::set_nullifier_com
-    # => []
+    exec.memory::set_nullifier_commitment
 end
 
 # BLOCK DATA
 # =================================================================================================
 
-#! Process the block data provided via the advice provider. This involves reading the data from
-#! the advice provider and storing it at the appropriate memory addresses. As the block data is
-#! read from the advice provider, the block hash is computed. It is asserted that the computed
-#! block hash matches the block hash stored in the global inputs.
+#! Saves block data to memory and verifies that it matches the BLOCK_HASH public input.
 #!
 #! Stack: []
-#! Advice stack: [NR, PH, CR, AR, NUL_R, BR, PH, block_number, 0, 0, 0, 0, 0, 0, 0]
+#! Advice stack: [
+#!     PREVIOUS_BLOCK_HASH,
+#!     CHAIN_MMR_HASH,
+#!     ACCOUNT_ROOT,
+#!     NULLIFIER_ROOT,
+#!     BATCH_ROOT,
+#!     PROOF_HASH,
+#!     [block_num, version, timestamp, 0],
+#!     ZERO,
+#!     NOTE_ROOT,
+#! ]
 #! Output: []
 #!
-#! - NR is the note root of the last known block.
-#! - PH is the previous hash of the last known block.
-#! - CR is the chain root of the last known block.
-#! - AR is the account root of the last known block.
-#! - NUL_R is the nullifier root of the last known block.
-#! - BR is the batch root of the last known block.
-#! - PH is the proof hash of the last known block.
-#! - block_number is the block number of the last known block.
+#! Where:
+#! - PREVIOUS_BLOCK_HASH, hash of the previous block.
+#! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
+#! - ACCOUNT_ROOT, rollup tree with latest account states.
+#! - NULLIFIER_ROOT, epoch tree with the nullifiers of consumed notes.
+#! - BATCH_ROOT, tree of batches included in the block.
+#! - PROOF_HASH, hash of the block's stark proof.
+#! - block_num, the reference block number.
+#! - version, current protocol version.
+#! - timestamp, current timestamp.
+#! - NOTE_ROOT, epoch tree with created notes.
 proc.process_block_data
-    # address to store the block data
     exec.memory::get_block_data_ptr
     # => [block_data_ptr]
 
-    # prepare the stack for reading block data
+    # read block data and compute its digest
     padw padw padw
-    # => [ZERO, ZERO, ZERO, block_data_ptr]
-
-    # read the block data
-    adv_pipe hperm adv_pipe hperm adv_pipe hperm adv_pipe hperm
-    # => [PERM, PERM, PERM, block_data_ptr']
-
-    # extract digest
+    adv_pipe hperm
+    adv_pipe hperm
+    adv_pipe hperm
+    adv_pipe hperm
     exec.native::state_to_digest
     # => [DIG, block_data_ptr']
 
-    # load the note root from the advice provider
-    padw adv_loadw
-    # => [NR, DIG, block_data_ptr']
-
     # store the note root in memory
+    padw adv_loadw
     dupw exec.memory::set_note_root
-    # => [NR, DIG, block_data_ptr']
+    # => [NOTE_ROOT, DIG, block_data_ptr']
 
     # merge the note root with the block data digest
     hmerge
-    # => [BH, block_data_ptr']
+    # => [BLOCK_HASH, block_data_ptr']
 
     # assert that the block hash matches the hash in global inputs
-    exec.memory::get_blk_hash assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
+    exec.memory::get_block_hash
+    assert_eqw.err=ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH
     # => [block_data_ptr']
 
-    # clear the stack
     drop
     # => []
 end
@@ -167,46 +157,33 @@ end
 # CHAIN DATA
 # =================================================================================================
 
-#! Process the chain data provided via the advice provider.
+#! Saves the MMR peaks to memory and verifies that it matches the reference block's CHAIN_MMR_HASH.
 #!
-#! This involves reading the MMR data from the advice provider and storing it at the appropriate
-#! memory addresses. As the MMR peaks are read from the advice provider, the chain root is computed.
-#! It is asserted that the computed chain root matches the chain root stored in the block data
-#! section. After the consistency of the chain root has been verified, the block header for the
-#! transaction block is inserted into the MMR. This way, notes created at this block can be
-#! authenticated against the chain MMR.
-#!
-#! The number of words that the advice provider will send for MMR peaks is variable: it will be at
-#! least 16 but could be up to 63. The actual number will be computed based on num_leaves.
+#! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
+#! reference block, and insert the reference block in the MMR. The reference block is added to the
+#! MMR so that notes created at this block can be consumed, since the MMR can't contain it and is
+#! always one block behind. The number MMR peaks in is variable, from 16 up to 63, depending on
+#! `num_blocks`.
 #!
 #! Stack: []
-#! Advice Map: {
-#!              MMR_ROOT: [num_leaves, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14,
-#!                         P15, P16, ..., ...]
-#!             }
+#! Advice Map: {CHAIN_MMR_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]}
 #! Output: []
 #!
-#! - num_leaves is the number of leaves in the MMR.
-#! - P1, P2, ... are the MMR peaks.
+#! Where:
+#! - CHAIN_MMR_HASH, is the sequential hash of the padded MMR peaks.
+#! - num_blocks, is the number of blocks in the MMR.
+#! - PEAK_1 .. PEAK_N, are the MMR peaks.
 proc.process_chain_data
-    # get a pointer to the chain MMR data
     exec.memory::get_chain_mmr_ptr dup
     # => [chain_mmr_ptr, chain_mmr_ptr]
 
-    # get the chain root
+    # save the MMR peaks to memory and verify it mathes the block's CHAIN_ROOT
     exec.memory::get_chain_root
-    # => [CHAIN_ROOT, chain_mmr_ptr, chain_mmr_ptr]
-
-    # load MMR peaks corresponding to CHAIN_ROOT into memory starting at chain_mmr_ptr
     exec.mmr::unpack
     # => [chain_mmr_ptr]
 
-    # get block hash of the block against which the transaction is being executed
-    exec.memory::get_blk_hash
-    # => [BLOCK_HASH, chain_mmr_ptr]
-
-    # add the block hash to the chain MMR; this updates the MMR to the latest state and enables
-    # authentication of notes created as part of the block defined by the BLOCK_HASH
+    # add the current block's hash to the MMR, enabling authentication of notes created in it
+    exec.memory::get_block_hash
     exec.mmr::add
     # => []
 end
@@ -410,7 +387,7 @@ proc.validate_new_account
     # => []
 end
 
-#! Process the account data provided via the advice stack.
+#! Saves the account data to memory and validates it.
 #!
 #! This procedure will:
 #!
@@ -422,27 +399,30 @@ end
 #!   and the account nonce is not zero
 #!
 #! Stack: []
-#! Advice stack: [acct_id, 0, 0, nonce, ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
+#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
 #! Output: []
 #!
+#! Where:
+#! - account_id, the account that the transaction is being executed against.
+#! - account_nonce, account's nonce.
+#! - ACCOUNT_VAULT_ROOT, account's vault root.
+#! - ACCOUNT_STORAGE_ROOT, account's storage root.
+#! - ACCOUNT_CODE_ROOT, account's code root.
 proc.process_account_data
     # Copy the account data from the advice stack to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
-    # address to store the account data
     exec.memory::get_acct_data_ptr
     # => [acct_data_ptr]
 
-    # prepare the stack for reading account data
+    # read account data and compute its digest
     padw padw padw
-    # => [ZERO, ZERO, ZERO, acct_data_ptr]
+    adv_pipe hperm
+    adv_pipe hperm
+    exec.native::state_to_digest
+    # => [ACCT_HASH, acct_data_ptr']
 
-    # load, save, and hash the data
-    adv_pipe hperm adv_pipe hperm
-    # => [RATE1, RATE0, CAPACITY, act_data_ptr']
-
-    # extract digest and drop pointer
-    exec.native::state_to_digest movup.4 drop
+    movup.4 drop
     # => [ACCT_HASH]
 
     # Validate the account
@@ -522,8 +502,8 @@ end
 #! Output: []
 #!
 #! Where:
-#! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA)
-#! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created
+#! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
+#! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
 #!   in. This is equivalent to the block number.
 #! - SUB_HASH is the sub hash of the block the note was created in.
 #! - NOTE_ROOT is the note root of the block the note was created in.
@@ -792,11 +772,11 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
-#! Advice map: { NC => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
+#! Advice map: { NULLIFIER_COMMITMENT => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
 #! Output: []
 #!
 #! - num_notes is the number of input notes.
-#! - NC is the nullifier commitment of all input notes.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
 #! - SN is the serial number of the nth input note.
 #! - SR is the script root of the nth input note.
 #! - IR is the inputs root of the nth input note.
@@ -819,7 +799,7 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_nullifier_com adv.push_mapval dropw
+        exec.memory::get_nullifier_commitment adv.push_mapval dropw
     end
     # => [num_notes, ...]
 
@@ -859,7 +839,7 @@ proc.process_input_notes_data
     push.0
     # => [num_processed_notes = 0, num_notes, ...]
 
-    # initiate stack for sequential hash to compute nullifier commitment
+    # initialize the hasher's state
     padw padw padw
     # => [R1, R0, CAP, num_processed_notes, num_notes, ...]
 
@@ -867,22 +847,13 @@ proc.process_input_notes_data
     dup.13 dup.13 neq
     # => [has_more_notes, R1, R0, CAP, num_processed_notes, num_notes, ...]
 
-    # loop and sequentially hash hperm(nullifier, ZERO) over all input notes
+    # compute the nullifier commitment from the advice stack data
     while.true
-        # clear hasher rate
+        # hasher operates in overwrite mode, drop rate words
         dropw dropw
-        # => [CAP, num_processed_notes, num_notes, ...]
 
-        # get input note nullifier
-        dup.4 exec.memory::get_consumed_note_nullifier
-        # => [NULLIFIER, CAP, num_processed_notes, num_notes, ...]
-
-        # pad the stack
-        padw
-        # => [ZERO, NULLIFIER, CAP, num_processed_notes, num_notes, ...]
-
-        # compute hperm(nullifier, ZERO)
-        hperm
+        # ingest next pair `(NULLIFIER, ZERO)`
+        dup.4 exec.memory::get_consumed_note_nullifier padw hperm
         # => [PERM, PERM, CAP, num_processed_notes, num_notes, ...]
 
         # increment processed note counter and check if we should loop again
@@ -892,12 +863,12 @@ proc.process_input_notes_data
 
     # extract nullifier hash
     exec.native::state_to_digest
-    # => [NULLIFIER_COM, num_processed_notes + 1, num_notes, ...]
+    # => [NULLIFIER_COMMITMENT, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
     # hash should be [ZERO; 4] because the while loop above was not entered and, thus, hperm
     # instruction was not executed.
-    exec.memory::get_nullifier_com
+    exec.memory::get_nullifier_commitment
     assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH
     # => [num_processed_notes + 1, num_notes, ...]
 
@@ -945,35 +916,61 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BH, acct_id, IAH, NC]
-#! Advice stack: [NR, PH, CR, SR, BR, PH, BN, acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR, num_notes, TXSR]
-#! Advice map: {NC: [NOTE_1_DATA, ..., NOTE_N_DATA]}
+#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Advice stack: [
+#!     PREVIOUS_BLOCK_HASH,
+#!     CHAIN_MMR_HASH,
+#!     ACCOUNT_ROOT,
+#!     NULLIFIER_ROOT,
+#!     BATCH_ROOT,
+#!     PROOF_HASH,
+#!     [block_num, version, timestamp, 0],
+#!     ZERO,
+#!     NOTE_ROOT,
+#!     [account_id, 0, 0, account_nonce],
+#!     ACCOUNT_VAULT_ROOT,
+#!     ACCOUNT_STORAGE_ROOT,
+#!     ACCOUNT_CODE_ROOT,
+#!     number_of_input_notes,
+#!     TX_SCRIPT_ROOT,
+#! ]
+#! Advice map: {
+#!      NULLIFIER_COMMITMENT: [NOTE_DATA_1, ..., NOTE_DATA_N],
+#!      CHAIN_MMR_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N],
+#! }
 #! Output: []
 #!
-#! - BH is the latest known block hash at the time of transaction execution.
-#! - acct_id is the account id of the account that the transaction is being executed against.
-#! - NR is the note root of the last known block.
-#! - PH is the previous hash of the last known block.
-#! - CR is the chain root of the last known block.
-#! - SR is the state root of the last known block.
-#! - BR is the batch root of the last known block.
-#! - PH is the proof hash of the last known block.
-#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
-#! - IAH is the initial account hash of the account that the transaction is being executed against.
-#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
-#! - nonce is the account nonce.
-#! - AVR is the account vault root.
-#! - ASR is the account storage root.
-#! - ACR is the account code root.
-#! - num_notes is the number of input notes.
-#! - NOTE_X_DATA is the data of the x'th note.
-#! - TXSR is the transaction script root.
+#! - BLOCK_HASH, reference block for the transaction execution.
+#! - account_id, the account that the transaction is being executed against.
+#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - PREVIOUS_BLOCK_HASH, hash of the previous block.
+#! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
+#! - ACCOUNT_ROOT, tree with latest account states.
+#! - NULLIFIER_ROOT, epoch tree with nullifiers of consumed notes.
+#! - BATCH_ROOT, tree of batches included in the block.
+#! - PROOF_HASH, hash of the block's stark proof.
+#! - block_num, the reference block number.
+#! - version, the current protocol version.
+#! - timestamp, the current timestamp.
+#! - NOTE_ROOT, tree with created notes.
+#! - account_nonce, account's nonce.
+#! - ACCOUNT_VAULT_ROOT, account's vault root.
+#! - ACCOUNT_STORAGE_ROOT, account's storage root.
+#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - number_of_input_notes, number of input notes.
+#! - TX_SCRIPT_ROOT, the transaction's script root.
+#! - NOTE_DATA_1 .. NOTE_DATA_N, the data of the input notes.
+#! - num_blocks, is the number of blocks in the MMR.
+#! - PEAK_1 .. PEAK_N, are the MMR peaks.
 export.prepare_transaction
     exec.process_global_inputs
+    # => []
+
     exec.process_block_data
     exec.process_chain_data
     exec.process_account_data
     exec.process_input_notes_data
     exec.process_tx_script_root
+    # => []
 end

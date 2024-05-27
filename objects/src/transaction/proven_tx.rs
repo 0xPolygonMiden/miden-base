@@ -144,7 +144,7 @@ impl Deserializable for ProvenTransaction {
         let id = TransactionId::new(
             account_update.init_state_hash(),
             account_update.final_state_hash(),
-            input_notes.commitment(),
+            input_notes.nullifier_commitment(),
             output_notes.commitment(),
         );
 
@@ -259,7 +259,7 @@ impl ProvenTransactionBuilder {
         let id = TransactionId::new(
             self.initial_account_hash,
             self.final_account_hash,
-            input_notes.commitment(),
+            input_notes.nullifier_commitment(),
             output_notes.commitment(),
         );
         let account_update = TxAccountUpdate::new(

@@ -41,7 +41,7 @@ const.ACCT_ID_PTR=101
 const.INIT_ACCT_HASH_PTR=102
 
 # The memory address at which the global nullifier commitment is stored
-const.NULLIFIER_COM_PTR=103
+const.NULLIFIER_COMMITMENT_PTR=103
 
 # The memory address at which the initial nonce is stored
 const.INIT_NONCE_PTR=104
@@ -261,23 +261,25 @@ end
 # GLOBAL INPUTS
 # -------------------------------------------------------------------------------------------------
 
-#! Sets the block hash of the last known block at the time of transaction execution.
+#! Saves the hash of the reference block to memory.
 #!
-#! Stack: [BH]
+#! Stack: [BLOCK_HASH]
 #! Output: []
 #!
-#! - BH is the block hash of the last known block at the time of transaction execution.
-export.set_blk_hash
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+export.set_block_hash
     push.BLK_HASH_PTR mem_storew dropw
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block.
 #!
 #! Stack: []
-#! Output: [BH]
+#! Output: [BLOCK_HASH]
 #!
-#! - BH is the block hash of the last known block at the time of transaction execution.
-export.get_blk_hash
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+export.get_block_hash
     padw push.BLK_HASH_PTR mem_loadw
 end
 
@@ -321,24 +323,29 @@ export.get_init_acct_hash
     padw push.INIT_ACCT_HASH_PTR mem_loadw
 end
 
-#! Returns the nullifier commitment.
+#! Returns the input notes' nullifier commitment.
 #!
 #! Stack: []
-#! Output: [COM]
+#! Output: [COMMITMENT]
 #!
-#! - COM is the nullifier commitment.
-export.get_nullifier_com
-    padw push.NULLIFIER_COM_PTR mem_loadw
+#! Where:
+#! - COMMITMENT is the note's commitment, defined as:
+#!
+#! > hash(nullifier_0 || ZERO || nullifier_1 || ZERO || .. || nullifier_n || ZERO)
+#!
+#! or ZERO if there are no input notes.
+export.get_nullifier_commitment
+    padw push.NULLIFIER_COMMITMENT_PTR mem_loadw
 end
 
-#! Sets the nullifier commitment.
+#! Sets the input notes' nullifier commitment.
 #!
-#! Stack: [COM]
+#! Stack: [COMMITMENT]
 #! Output: []
 #!
-#! - COM is the nullifier commitment.
-export.set_nullifier_com
-    push.NULLIFIER_COM_PTR mem_storew dropw
+#! - COMMITMENT is the notes' commitment.
+export.set_nullifier_commitment
+    push.NULLIFIER_COMMITMENT_PTR mem_storew dropw
 end
 
 #! Returns the initial account nonce.

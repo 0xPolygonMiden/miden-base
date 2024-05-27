@@ -27,7 +27,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().commitment(),
+            self.input_notes().nullifier_commitment(),
             self.block_header().hash(),
         );
 
@@ -44,7 +44,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().commitment(),
+            self.input_notes().nullifier_commitment(),
             self.block_header().hash(),
         );
 
@@ -62,7 +62,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().commitment(),
+            self.input_notes().nullifier_commitment(),
             self.block_header().hash(),
         );
 
@@ -87,7 +87,6 @@ fn extend_advice_inputs(
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
-    // build the advice stack
     build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
 
     // build the advice map and Merkle store for relevant components
@@ -100,30 +99,34 @@ fn extend_advice_inputs(
 // ADVICE STACK BUILDER
 // ------------------------------------------------------------------------------------------------
 
-/// Builds the advice stack for the provided transaction inputs.
+/// Extend the advice stack with the transaction inputs.
 ///
-/// The advice stack is arranged as follows:
-///  elements[0..3]    = hash of previous block
-///  elements[4..7]    = chain MMR hash
-///  elements[8..11]   = account root
-///  elements[12..15]  = nullifier root
-///  elements[16..19]  = batch root
-///  elements[20..23]  = proof hash
-///  elements[24..27]  = [block_num, version, timestamp, ZERO]
-///  elements[28..31]  = [ZERO; 4]
-///  elements[32..35]  = notes root
-///  elements[36..39]  = [account ID, ZERO, ZERO, account nonce]
-///  elements[40..43]  = account vault root
-///  elements[44..47]  = account storage root
-///  elements[48..51]  = account code root
-///  elements[52]      = number of input notes
-///  elements[53..57]  = account seed, if one was provided; otherwise [ZERO; 4]
+/// The following data is pushed to the advice stack:
+///
+/// [
+///     PREVIOUS_BLOCK_HASH,
+///     CHAIN_MMR_HASH,
+///     ACCOUNT_ROOT,
+///     NULLIFIER_ROOT,
+///     BATCH_ROOT,
+///     PROOF_HASH,
+///     [block_num, version, timestamp, 0],
+///     ZERO,
+///     NOTE_ROOT,
+///     [account_id, 0, 0, account_nonce],
+///     ACCOUNT_VAULT_ROOT,
+///     ACCOUNT_STORAGE_ROOT,
+///     ACCOUNT_CODE_ROOT,
+///     number_of_input_notes,
+///     TX_SCRIPT_ROOT,
+/// ]
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
     inputs: &mut AdviceInputs,
 ) {
     // push block header info into the stack
+    // Note: keep in sync with the process_block_data kernel procedure
     let header = tx_inputs.block_header();
     inputs.extend_stack(header.prev_hash());
     inputs.extend_stack(header.chain_root());
@@ -141,6 +144,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.note_root());
 
     // push core account items onto the stack
+    // Note: keep in sync with the process_account_data kernel procedure
     let account = tx_inputs.account();
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
@@ -151,14 +155,7 @@ fn build_advice_stack(
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
-    if let Some(tx_script) = tx_script {
-        // insert the transaction script hash into the advice stack
-        inputs.extend_stack(*tx_script.hash());
-    } else {
-        // if no transaction script is provided, extend the advice stack with an empty transaction
-        // script root
-        inputs.extend_stack(Word::default());
-    }
+    inputs.extend_stack(tx_script.map_or(Word::default(), |script| **script.hash()));
 }
 
 // CHAIN MMR INJECTOR
@@ -169,14 +166,17 @@ fn build_advice_stack(
 /// Inserts the following items into the Merkle store:
 /// - Inner nodes of all authentication paths contained in the chain MMR.
 ///
-/// Inserts the following entries into the advice map:
-/// - peaks_hash |-> MMR peaks info
+/// Inserts the following data to the advice map:
 ///
-/// where MMR peaks info has the following layout:
-///  elements[0]       = number of leaves in the MMR
-///  elements[1..4]    = padding ([Felt::ZERO; 3])
-///  elements[4..]     = MMR peak roots
+/// > {MMR_ROOT: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]}
+///
+/// Where:
+/// - MMR_ROOT, is the sequential hash of the padded MMR peaks
+/// - num_blocks, is the number of blocks in the MMR.
+/// - PEAK_1 .. PEAK_N, are the MMR peaks.
 fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
+    // NOTE: keep this code in sync with the `process_chain_data` kernel procedure
+
     // add authentication paths from the MMR to the Merkle store
     inputs.extend_merkle_store(mmr.inner_nodes());
 
@@ -352,5 +352,5 @@ fn add_input_notes_to_advice_inputs(
     }
 
     // insert the combined note data into the advice map
-    inputs.extend_map([(notes.commitment(), note_data)]);
+    inputs.extend_map([(notes.nullifier_commitment(), note_data)]);
 }
