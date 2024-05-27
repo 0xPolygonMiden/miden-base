@@ -2,11 +2,11 @@
 
 name: lint
 
- on:
-  push:
-    branches: [main, next]
-  pull_request:
-    types: [opened, reopened, synchronize] 
+on:
+ push:
+   branches: [main, next]
+ pull_request:
+   types: [opened, reopened, synchronize] 
 
 jobs:
   version:

@@ -2,7 +2,7 @@
 
 name: no-std
 
- on:
+on:
   push:
     branches: [main, next]
   pull_request:
