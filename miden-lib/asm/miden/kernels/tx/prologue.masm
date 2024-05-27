@@ -59,9 +59,6 @@ const.ERR_PROLOGUE_ACCT_ID_MISMATCH=0x00020019
 # Reference block MMR and note's authentication MMR must match
 const.ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH=0x0002001A
 
-# Number of note inputs exceeded the maximum limit of 128
-const.ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS=0x0002001B
-
 # Number of note assets exceeded the maximum limit of 256
 const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 
@@ -162,7 +159,7 @@ end
 #! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
 #! reference block, and insert the reference block in the MMR. The reference block is added to the
 #! MMR so that notes created at this block can be consumed, since the MMR can't contain it and is
-#! always one block behind. The number MMR peaks in is variable, from 16 up to 63, depending on
+#! always one block behind. The number MMR peaks is variable, from 16 up to 63, depending on
 #! `num_blocks`.
 #!
 #! Stack: []
@@ -564,7 +561,6 @@ end
 #!      ASSETS_HASH,
 #!      METADATA,
 #!      ARGS,
-#!      inputs_count,
 #!      assets_count,
 #!      ASSET_0, ..., ASSET_N,
 #!      block_num,
@@ -581,14 +577,13 @@ end
 #! - ASSETS_HASH, sequential hash of the padded note's assets.
 #! - METADATA, note's metadata.
 #! - ARGS, user arguments passed to the note.
-#! - inputs_count, note's inputs count.
 #! - assets_count, note's assets count.
 #! - ASSET_0, ..., ASSET_N, padded note's assets.
 #! - block_num, note's creation block number.
 #! - SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
 proc.process_input_note
-    # nullifier
+    # note details
     # ---------------------------------------------------------------------------------------------
 
     dup exec.memory::get_consumed_note_ptr
@@ -597,7 +592,7 @@ proc.process_input_note
     dup exec.memory::get_consumed_note_core_ptr
     # => [note_data_ptr, note_ptr, idx]
 
-    # read nullifier (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
+    # read note details (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
@@ -619,18 +614,6 @@ proc.process_input_note
     # => [note_ptr]
 
     padw adv_loadw dup.4 exec.memory::set_consumed_note_args
-    # => [note_ptr]
-
-    # number of inputs
-    # ---------------------------------------------------------------------------------------------
-
-    adv_push.1
-    # => [num_inputs, note_ptr]
-
-    dup exec.constants::get_max_inputs_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS
-    # => [num_inputs, note_ptr]
-
-    dup.1 exec.memory::set_consumed_note_num_inputs
     # => [note_ptr]
 
     # assets
@@ -761,19 +744,13 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
-#! Advice map: { NULLIFIER_COMMITMENT => [(SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH, METADATA, NA, A0, ..., An){num_notes}] }
+#! Advice map: { NULLIFIER_COMMITMENT => NOTE_DATA }
 #! Output: []
 #!
 #! Where:
 #! - num_notes is the number of input notes.
 #! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
-#! - SERIAL_NUMBER, note's serial.
-#! - SCRIPT_ROOT, note's script root.
-#! - INPUTS_HASH, sequential hash of the padded note's inputs.
-#! - ASSETS_HASH, sequential hash of the padded note's assets.
-#! - METADATA, note's metadata.
-#! - NA are optional note args for the nth input note.
-#! - A0..An are the assets of the nth input note.
+#! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
 proc.process_input_notes_data
     # get the number of input notes from the advice stack
     adv_push.1
@@ -952,7 +929,7 @@ end
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
 #! - MMR_PEAKS, is the MMR peak data, see process_chain_data
-#! - NOTE_DATA, is the data of all input notes, see process_input_notes_data
+#! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
 export.prepare_transaction
     exec.process_global_inputs
     # => []

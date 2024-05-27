@@ -262,37 +262,14 @@ fn add_account_to_advice_inputs(
 
 /// Populates the advice inputs for all input notes.
 ///
-/// For each note the authentication path is populated into the Merkle store, the note inputs
-/// and assets are populated in the advice map.
+/// The advice provider is populated with:
 ///
-/// A combined note data vector is also constructed that holds core data for all notes. This
-/// combined vector is added to the advice map against the input notes commitment. For each note
-/// the following data items are added to the vector:
-///   out[0..4]    = serial_num
-///   out[4..8]    = script_root
-///   out[8..12]   = inputs_hash
-///   out[12..16]  = assets_hash
-///   out[16..20]  = metadata
-///   out[20..24]  = note_args
-///   out[24]      = num_inputs
-///   out[25]      = num_assets
-///   out[26..30]  = asset_1
-///   out[30..34]  = asset_2
-///   ...
-///   out[34 + num_assets * 4..] = Word::default() (this is conditional padding only applied
-///                                                 if the number of assets is odd)
-///   out[-10]      = origin.block_number
-///   out[-9..-5]   = origin.SUB_HASH
-///   out[-5..-1]   = origin.NOTE_ROOT
-///   out[-1]       = origin.node_index
+/// - For each note:
+///     - The note's authentication path against its block's note tree.
+///     - The note's input padded prefixed by its length.
+///     - The note's asset padded.
+/// - And all notes details together under the nullifier commitment.
 ///
-/// Inserts the following items into the Merkle store:
-/// - The Merkle nodes associated with the note's authentication path.
-///
-/// Inserts the following entries into the advice map:
-/// - inputs_hash |-> inputs
-/// - asset_hash |-> assets
-/// - notes_hash |-> combined note data
 fn add_input_notes_to_advice_inputs(
     notes: &InputNotes,
     tx_args: &TransactionArgs,
@@ -311,9 +288,12 @@ fn add_input_notes_to_advice_inputs(
         let recipient = note.recipient();
         let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
-        // insert note inputs and assets into the advice map
-        inputs
-            .extend_map([(recipient.inputs().commitment(), recipient.inputs().to_padded_values())]);
+        // NOTE: keep map in sync with the `note::get_inputs` API procedure
+        inputs.extend_map([(
+            recipient.inputs().commitment(),
+            recipient.inputs().format_for_advice(),
+        )]);
+
         inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
         // insert note authentication path nodes into the Merkle store
@@ -333,8 +313,6 @@ fn add_input_notes_to_advice_inputs(
         note_data.extend(Word::from(note.metadata()));
         note_data.extend(Word::from(*note_arg));
 
-        note_data.push(recipient.inputs().num_values().into());
-
         note_data.push((assets.num_assets() as u32).into());
         note_data.extend(assets.to_padded_assets());
 
@@ -351,6 +329,6 @@ fn add_input_notes_to_advice_inputs(
         );
     }
 
-    // insert the combined note data into the advice map
+    // NOTE: keep map in sync with the `process_input_notes_data` kernel procedure
     inputs.extend_map([(notes.nullifier_commitment(), note_data)]);
 }

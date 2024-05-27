@@ -77,31 +77,27 @@ export.get_vault_info
     # => [VAULT_HASH, num_assets]
 end
 
-#! Returns the number of inputs and inputs hash for the note currently being processed. Panics if
-#! a note is not being processed.
+#! Returns the commitment to the note's inputs.
+#!
+#! Panics if a note is not being processed.
 #!
 #! Inputs: []
-#! Outputs: [NOTE_INPUTS_HASH, num_inputs]
+#! Outputs: [NOTE_INPUTS_HASH]
 #!
-#! - num_inputs is the number of inputs associated with the note.
+#! Where:
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
 export.get_note_inputs_hash
-    # get the current consumed note pointer
     exec.memory::get_current_consumed_note_ptr
     # => [ptr]
 
-    # assert the pointer is not zero - this would suggest the procedure has been called from an
-    # incorrect context
+    # The kernel memory is initialized by prologue::process_input_notes_data, and reset by
+    # note_processing_teardown before running the tx_script. If the value is `0` it is likely this
+    # procedure is being called outside of the kernel context.
     dup neq.0 assert.err=ERR_NOTE_INVALID_INPUTS
     # => [ptr]
 
-    # get the number of inputs for the note
-    dup exec.memory::get_consumed_note_num_inputs
-    # => [num_inputs, ptr]
-
-    # get the note inputs hash from the note pointer
-    swap exec.memory::get_consumed_note_inputs_hash
-    # => [NOTE_INPUTS_HASH, num_inputs]
+    exec.memory::get_consumed_note_inputs_hash
+    # => [NOTE_INPUTS_HASH]
 end
 
 #! Increment current consumed note pointer to the next note and returns the pointer value.
