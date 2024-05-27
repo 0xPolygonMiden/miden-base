@@ -188,8 +188,8 @@ export.set_account_item
     # => [R', V]
 end
 
-#! Returns VALUE located under specified KEY in map in specified account storage slot. 
-#! Panics if 
+#! Returns VALUE located under specified KEY in map in specified account storage slot.
+#! Panics if
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #!
@@ -206,13 +206,13 @@ export.get_account_map_item
     # fails if slot_type is not 1 = map
     push.STORAGE_MAP eq assert
     # => [index, KEY, ...]
-    
+
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item swapw
     # => [KEY, ROOT ...]
 
     # fetch the VALUE located under KEY in the tree
-    exec.smt::get 
+    exec.smt::get
     # => [VALUE, ROOT, ...]
 
     # prepare the stack for return
@@ -220,8 +220,8 @@ export.get_account_map_item
     # => [VALUE, 0]
 end
 
-#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot. 
-#! Panics if 
+#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
+#! Panics if
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #! - the procedure is called from a non-account context
@@ -462,20 +462,16 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block.
 #!
-#! Inputs: [0, 0, 0, 0]
-#! Outputs: [H]
+#! Stack: [ZERO]
+#! Output: [BLOCK_HASH]
 #!
-#! H is the last known block hash.
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
 export.get_block_hash
-    # get the block hash
-    exec.tx::get_block_hash
-    # => [H, 0, 0, 0, 0]
-
-    # organize the stack for return
-    swapw dropw
-    # => [H]
+    dropw exec.tx::get_block_hash
+    # => [BLOCK_HASH]
 end
 
 #! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
@@ -529,10 +525,10 @@ export.create_note
     exec.tx::create_note
     # => [note_ptr]
 
-    # prepare stack for return. Note: when create_note is called, the stack looks 
-    # like [tag, note_type, RECIPIENT, x, x, X], with 16 elements and X might be important data 
-    # for the user. Without padding the kernel returns [note_ptr, x, x, X, 0, ZERO] adding 0's. 
-    # To keep the data in position we insert 0's between ptr and the potentially important 
+    # prepare stack for return. Note: when create_note is called, the stack looks
+    # like [tag, note_type, RECIPIENT, x, x, X], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [note_ptr, x, x, X, 0, ZERO] adding 0's.
+    # To keep the data in position we insert 0's between ptr and the potentially important
     # first element x.
     movupw.3 movup.15 movup.5
     # => [note_ptr, 0, 0, 0, 0, 0]
@@ -554,10 +550,10 @@ export.add_asset_to_note
     exec.tx::add_asset_to_note
     # => [note_ptr]
 
-    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks 
-    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data 
-    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's. 
-    # To keep the data in position we insert 0's between ptr and the potentially important 
+    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
+    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's.
+    # To keep the data in position we insert 0's between ptr and the potentially important
     # first element x.
     movupw.3 movup.4
     # => [note_ptr, 0, 0, 0, 0]
