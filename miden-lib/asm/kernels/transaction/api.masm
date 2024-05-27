@@ -382,13 +382,13 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
-
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [ASSET]
+
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
 
     # fetch the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
