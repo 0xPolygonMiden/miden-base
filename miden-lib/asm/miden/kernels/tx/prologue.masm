@@ -204,9 +204,9 @@ proc.ingest_acct_storage_types
     exec.account::get_slot_types_commitment_storage_slot exec.account::get_item
     # => [TYPES_COM]
 
-    # load the type data from the advice map onto the advice stack
-    # we prefix with [push.1 drop] due to https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.1 drop adv.push_mapval
+    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
+    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop adv.push_mapval
     # => [TYPES_COM]
 
     # get the storage slot types data pointer
