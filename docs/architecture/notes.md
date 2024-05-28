@@ -2,11 +2,11 @@
 comments: true
 ---
 
-Two of Miden's key goals are parallel transaction execution and privacy. 
+Two of Miden's key goals are parallel transaction execution and privacy.
 
-Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately. 
+Polygon Miden implements a hybrid UTXO and account-based [state model](state.md) which enforces these goals with notes. Notes interact with, and transfer assets between, accounts. They can be consumed and produced asynchronously and privately.
 
-The concept of notes is a key divergence from Ethereum’s account-based model. 
+The concept of notes is a key divergence from Ethereum’s account-based model.
 
 ## Note design
 
@@ -23,11 +23,11 @@ The concept of notes is a key divergence from Ethereum’s account-based model.
 
 ## Note lifecycle
 
-New notes are created by executing transactions. 
+New notes are created by executing transactions.
 
-After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the note database. 
+After verifying the transaction proof the operator adds either only the note hash (private notes) or the full note data (public notes) to the note database.
 
-Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction. 
+Notes can be produced and consumed locally by users in local transactions or by the operator in a network transaction.
 
 Note consumption requires the transacting party to know the note data to compute the nullifier. After successful verification, the operator sets the corresponding entry in the nullifier database to "consumed".
 
@@ -52,11 +52,10 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
 * P2ID and P2IDR scripts are used to send assets to a specific account ID. The scripts check at note consumption if the executing account ID equals the account ID that was set by the note creator as note inputs. The P2IDR script is reclaimable and thus after a certain block height can also be consumed by the sender itself.
 * SWAP script is a simple way to swap assets. It adds an asset from the note into the consumer's vault and creates a new note consumable by the first note's issuer containing the requested asset.
 
-!!! info "Example note script pay to ID (P2ID)"
-    Want to know how to ensure a note can only be consumed by a specified account?</
+??? note "Example note script pay to ID (P2ID)"
 
     #### Goal of the P2ID script
-  
+
     The P2ID script defines a specific target account ID as the only account that can consume the note. Such notes ensure a targeted asset transfer.
 
     #### Imports and context
@@ -121,9 +120,9 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
     1. Every note script starts with the note script root on top of the stack. 
     2. After the `dropw`, the stack is cleared. 
     3. Next, the script stored the note inputs at pos 0 in the [relative note context memory](https://0xpolygonmiden.github.io/miden-base/transactions/transaction-procedures.html#transaction-contexts) by `push.0 exec.note::get_inputs`. 
-    4. Then, `mem_load` loads a `Felt` from the specified memory address and puts it on top of the stack, in that cases the `target_account_id` defined by the creator of the note. 
+    4. Then, `mem_load` loads a `Felt` from the specified memory address and puts it on top of the stack, in that cases the `target_account_id` defined by the creator of the note.
     5. Now, the note invokes `get_id` from the account API using `exec.account::get_id` - which is possible even in the note context. 
-    
+
     Because, there are two account IDs on top of the stack now, `assert_eq` fails if the two account IDs (target_account_id and executing_account_id) are not the same. That means, the script cannot be successfully executed if executed by any other account than the account specified by the note creator using the note inputs.
 
     If execution hasn't failed, the script invokes a helper procedure `exec.add_note_assets_to_account` to add the note's assets into the executing account's vault.
@@ -185,7 +184,7 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
 
 ## Note storage mode
 
-Similar to accounts, there are two storage modes for notes in Miden. Notes can be stored on-chain in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored off-chain by committing only the note hash to the note database.
+Similar to accounts, there are two storage modes for notes in Miden - private and public. Notes can be stored publicly in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored privately by committing only the note hash to the note database.
 
 Every note has a unique note hash. It is defined as follows:
 
@@ -199,7 +198,27 @@ hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 ## Note discovery
 
 Note discovery describes the process of Miden clients finding notes they want to consume. There are two ways to receive new relevant notes - getting notes via an off-chain channel or querying the Miden operator to request newly recorded relevant notes.
-The latter is done via note tags. Tags are part of the note's metadata and are represented by a `Felt`. The `SyncState` API of the Miden node requires the Miden client to provide a `note_tag` value which is used as a filter in the operator's response. Tags are useful for note discovery enabling an easy collection of all notes matching a certain tag.
+
+The former is needed for private notes. The network doesn't have the note data necessary for consumption, in which case the sender needs to inform the receiver and send the data via an off-chain channel, e.g., an email or Signal.
+
+The latter is done via note tags. Miden clients can query the Miden node for notes carrying a certain tag. Note tag`s are best effort filters for notes registered with the network. Tags are light-weight values used to speed up queries. The two most signification bits of the tags have the following interpretation:
+
+| Prefix | Execution hint | Target   | Allowed note type |
+| ------ | :------------: | :------: | :----------------:|
+| `0b00` | Network        | Specific | NoteType::Public  |
+| `0b01` | Network        | Use case | NoteType::Public  |
+| `0b10` | Local          | Any      | NoteType::Public  |
+| `0b11` | Local          | Any      | Any               |
+
+Where:
+
+- Execution hint is set to `Network` for network transactions. These notes will be further validated and if possible consumed in a network transaction.
+- Target describes how to further interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
+- Note type describes the note's storage mode, either public or private.
+
+The note type is the only value enforced by the protocol. The rationale is that any note intended to be consumed in a network transaction must be public to have all the details available. The public note for local execution is intended to allow users to search for notes that can be consumed right away, without requiring an off-chain communication channel.
+
+Using note tags is a compromise between privacy and latency. A user doesn't need to download all the notes of a certain time period, but the Miden operator learns in which notes a specific user is interested in.
 
 ## Note consumption
 
