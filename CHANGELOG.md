@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+* Export `get_falcon_signature` in `miden-tx` (#714).
 * Implemented `build_recipient_hash` to build recipient hash for custom notes (#710)
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
