@@ -195,15 +195,15 @@ hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 !!! info
     To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is also sufficient. We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM._
 
-## Note discovery (Note Tags)
+## Note discovery (note tags)
 
-Note discovery describes the process of Miden clients finding notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag. Note tag`s are best effort filters for notes registered with the network. They are light-weight values used to speed up queries. Clients can follow tags of a certain use case, e.g. swap scripts, or agree upon a group of users on certain tags for their specific use case. Tags are also used by the operator to identify notes intended for network execution including the corresponding information on how to execute.
+Note discovery describes the process by which Miden clients find notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag. Note tags are best-effort filters for notes registered on the network. They are lightweight values used to speed up queries. Clients can follow tags for specific use cases, such as swap scripts, or agree with a group of users on certain tags for their specific needs. Tags are also used by the operator to identify notes intended for network execution and include the corresponding information on how to execute them.
 
 ```arduino
 0b009f4adc47857e2f6
 ```
 
-This example note tag indicates that the network operator (Miden node) shall execute the note against the account with the ID `0x09f4adc47857e2f6`. In this case, the note and the account against it gets executed must be `public`.
+The example note tag above indicates that the network operator (Miden node) executes the note against the account with the ID `0x09f4adc47857e2f6`. In this case, the note and the account against which it gets executed must be `public`.
 
 The two most signification bits of the note tag have the following interpretation:
 
@@ -214,15 +214,15 @@ The two most signification bits of the note tag have the following interpretatio
 | `0b10` | Local          | Any      | NoteType::Public  |
 | `0b11` | Local          | Any      | Any               |
 
-Where:
+- Where:
 
-- Execution hint is set to `Network` for network transactions. These notes will be further validated and if possible consumed in a network transaction.
-- Target describes how to further interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
-- Note type describes the note's storage mode, either public or private.
+- Execution Hint: Set to `Network` for network transactions. These notes will be further validated and, if possible, consumed in a network transaction.
+- Target: Describes how to further interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
+- Note type describes the note's storage mode, either `public` or `private`.
 
-The following 30 bits can represent anything, from Account IDs to use cases or any custom logic agreed upon.
+The following 30 bits can represent anything—from Account IDs to use cases or any custom logic agreed upon.
 
-Using note tags is a compromise between privacy and latency. If a user would query the operator using the note ID, the operator would learn in which note a specific user is interested in. On the other side, if a user would always download all registered notes and filter locally, it would be quite inefficient. Using tags, users can decide their privacy parameters by narrowing or broadening their note tag schemes.
+Using note tags is a compromise between privacy and latency. If a user queries the operator using the note ID, the operator learns which note a specific user is interested in. Alternatively, if a user always downloads all registered notes and filters locally, it is quite inefficient. By using tags, users can customize privacy parameters by narrowing or broadening their note tag schemes.
 
 ## Note consumption
 
