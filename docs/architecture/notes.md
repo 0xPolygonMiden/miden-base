@@ -214,13 +214,11 @@ The two most signification bits of the note tag have the following interpretatio
 | `0b10` | Local          | Any      | NoteType::Public  |
 | `0b11` | Local          | Any      | Any               |
 
-- Where:
+- Execution hint: Set to `Network` for network transactions. These notes will be validated and, if possible, consumed in a network transaction.
+- Target: Describes how to interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
+- Note type: Describes the note's storage mode, either `public` or `private`.
 
-- Execution Hint: Set to `Network` for network transactions. These notes will be further validated and, if possible, consumed in a network transaction.
-- Target: Describes how to further interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
-- Note type describes the note's storage mode, either `public` or `private`.
-
-The following 30 bits can represent anything—from Account IDs to use cases or any custom logic agreed upon.
+The following 30 bits can represent anything; from account IDs to use cases or any custom logic agreed upon.
 
 Using note tags is a compromise between privacy and latency. If a user queries the operator using the note ID, the operator learns which note a specific user is interested in. Alternatively, if a user always downloads all registered notes and filters locally, it is quite inefficient. By using tags, users can customize privacy parameters by narrowing or broadening their note tag schemes.
 
