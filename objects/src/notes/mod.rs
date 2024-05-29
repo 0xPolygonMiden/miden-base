@@ -53,6 +53,9 @@ pub use recipient::NoteRecipient;
 mod script;
 pub use script::NoteScript;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 // CONSTANTS
 // ================================================================================================
 

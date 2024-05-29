@@ -1,23 +1,29 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use miden_objects::{
-    accounts::{Account, AccountId, AccountStorageType, AccountType, SlotItem},
-    assets::Asset,
+use assembly::Assembler;
+use rand::{Rng, SeedableRng};
+
+use super::{
+    builders::{
+        account::AccountBuilder,
+        account_id::{account_id_build_details, AccountIdBuilder},
+    },
+    DEFAULT_ACCOUNT_CODE,
+};
+use crate::{
+    accounts::{
+        storage::testing::AccountStorageBuilder, Account, AccountId, AccountStorageType,
+        AccountType, SlotItem,
+    },
+    assets::{
+        testing::{FungibleAssetBuilder, NonFungibleAssetBuilder},
+        Asset,
+    },
     crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
     BlockHeader, Digest, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH, ZERO,
-};
-use rand::{Rng, SeedableRng};
-
-use super::{
-    account::DEFAULT_ACCOUNT_CODE,
-    block::mock_block_header,
-    builders::{
-        accountid_build_details, AccountBuilder, AccountIdBuilder, AccountStorageBuilder,
-        FungibleAssetBuilder, NonFungibleAssetBuilder,
-    },
 };
 
 /// Initial timestamp value
@@ -26,7 +32,6 @@ const TIMESTAMP_START: u32 = 1693348223;
 const TIMESTAMP_STEP: u32 = 10;
 
 #[derive(Default, Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Objects<R> {
     /// Holds the account and its corresponding seed.
     accounts: Vec<(Account, Word)>,
@@ -122,7 +127,6 @@ impl<R: Rng> Objects<R> {
 
 /// Structure chain data, used to build necessary openings and to construct [BlockHeader]s.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct MockChain<R> {
     /// An append-only structure used to represent the history of blocks produced for this chain.
     chain: Mmr,
@@ -212,6 +216,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         assets: A,
         immutable: Immutable,
         storage_type: AccountStorageType,
+        assembler: &Assembler,
     ) -> AccountId
     where
         C: AsRef<str>,
@@ -225,12 +230,13 @@ impl<R: Rng + SeedableRng> MockChain<R> {
 
         let storage = AccountStorageBuilder::new().add_items(storage).build();
 
-        let (seed, _) = accountid_build_details(
+        let (seed, _) = account_id_build_details(
             &mut self.rng,
             code.as_ref(),
             account_type,
             storage_type,
             storage.root(),
+            assembler,
         )
         .unwrap();
 
@@ -240,7 +246,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .account_type(account_type)
             .storage_type(storage_type)
             .code(code)
-            .with_seed_and_storage(seed, storage)
+            .with_seed_and_storage(seed, storage, assembler)
             .unwrap();
         let account_id = account.id();
         self.pending_objects.accounts.push((account, seed));
@@ -248,6 +254,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     }
 
     /// Creates an [Account] using `seed` and add to the list of pending objects.
+    #[allow(clippy::too_many_arguments)]
     pub fn build_account_with_seed<C, S, A>(
         &mut self,
         seed: Word,
@@ -256,6 +263,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         assets: A,
         immutable: Immutable,
         storage_type: AccountStorageType,
+        assembler: &Assembler,
     ) -> AccountId
     where
         C: AsRef<str>,
@@ -274,22 +282,23 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .account_type(account_type)
             .storage_type(storage_type)
             .code(code)
-            .with_seed(seed)
+            .with_seed(seed, assembler)
             .unwrap();
         let account_id = account.id();
         self.pending_objects.accounts.push((account, seed));
         account_id
     }
 
-    pub fn build_basic_wallet(&mut self) -> AccountId {
+    pub fn build_basic_wallet(&mut self, assembler: &Assembler) -> AccountId {
         let account_type = AccountType::RegularAccountUpdatableCode;
         let storage = AccountStorageBuilder::new().build();
-        let (seed, _) = accountid_build_details(
+        let (seed, _) = account_id_build_details(
             &mut self.rng,
             DEFAULT_ACCOUNT_CODE,
             account_type,
             AccountStorageType::OnChain,
             storage.root(),
+            assembler,
         )
         .unwrap();
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
@@ -297,7 +306,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .account_type(account_type)
             .storage_type(AccountStorageType::OnChain)
             .code(DEFAULT_ACCOUNT_CODE)
-            .build()
+            .build(assembler)
             .unwrap();
         let account_id = account.id();
         self.pending_objects.accounts.push((account, seed));
@@ -311,6 +320,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
+        assembler: &Assembler,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
@@ -318,7 +328,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
-            .build()
+            .build(assembler)
             .unwrap();
         let builder = FungibleAssetBuilder::new(faucet_id)
             .expect("builder was not configured to create fungible faucets");
@@ -334,6 +344,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
+        assembler: &Assembler,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
@@ -341,7 +352,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
-            .with_seed(seed)
+            .with_seed(seed, assembler)
             .unwrap();
         let builder = FungibleAssetBuilder::new(faucet_id)
             .expect("builder was not configured to create fungible faucets");
@@ -356,6 +367,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
+        assembler: &Assembler,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
@@ -363,7 +375,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
-            .build()
+            .build(assembler)
             .unwrap();
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
         let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
@@ -380,6 +392,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         storage_type: AccountStorageType,
         code: C,
         storage_root: Digest,
+        assembler: &Assembler,
     ) -> AccountId {
         let faucet_id = self
             .account_id_builder
@@ -387,7 +400,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .storage_type(storage_type)
             .code(code)
             .storage_root(storage_root)
-            .with_seed(seed)
+            .with_seed(seed, assembler)
             .unwrap();
         let rng = R::from_rng(&mut self.rng).expect("rng seeding failed");
         let builder = NonFungibleAssetBuilder::new(faucet_id, rng)
@@ -555,36 +568,6 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     }
 }
 
-// SERIALIZATION
-// --------------------------------------------------------------------------------------------
-#[cfg(feature = "serde")]
-use std::{
-    fs::File,
-    io::{self, Read, Write},
-    path::Path,
-};
-
-#[cfg(feature = "serde")]
-impl<R: serde::Serialize> MockChain<R> {
-    pub fn to_file<T: AsRef<Path>>(self, path: T) -> io::Result<()> {
-        let encoded = postcard::to_allocvec(&self).unwrap();
-        File::create(path)?.write_all(&encoded)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "serde")]
-pub fn from_file<T, P>(path: P) -> io::Result<MockChain<T>>
-where
-    P: AsRef<Path>,
-    MockChain<T>: serde::de::DeserializeOwned,
-{
-    let mut data = Vec::new();
-    File::open(path)?.read_to_end(&mut data)?;
-    let data: MockChain<T> = postcard::from_bytes(&data).unwrap();
-    Ok(data)
-}
-
 pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) {
     let mut note_trees = Vec::new();
 
@@ -600,10 +583,10 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
 
     // create a dummy chain of block headers
     let block_chain = vec![
-        mock_block_header(0, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(1, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(2, None, note_tree_iter.next().map(|x| x.root()), &[]),
-        mock_block_header(3, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        BlockHeader::mock(0, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        BlockHeader::mock(1, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        BlockHeader::mock(2, None, note_tree_iter.next().map(|x| x.root()), &[]),
+        BlockHeader::mock(3, None, note_tree_iter.next().map(|x| x.root()), &[]),
     ];
 
     // instantiate and populate MMR

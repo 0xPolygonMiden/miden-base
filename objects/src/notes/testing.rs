@@ -3,7 +3,10 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_objects::{
+use assembly::Assembler;
+use rand::Rng;
+
+use crate::{
     accounts::AccountId,
     assembly::ProgramAst,
     assets::Asset,
@@ -13,9 +16,6 @@ use miden_objects::{
     },
     Felt, NoteError, Word, ZERO,
 };
-use rand::Rng;
-
-use super::TransactionKernel;
 
 const DEFAULT_NOTE_CODE: &str = "\
 begin
@@ -89,8 +89,7 @@ impl NoteBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Note, NoteError> {
-        let assembler = TransactionKernel::assembler();
+    pub fn build(self, assembler: Assembler) -> Result<Note, NoteError> {
         let note_ast = ProgramAst::parse(&self.code).unwrap();
         let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
         let vault = NoteAssets::new(self.assets)?;

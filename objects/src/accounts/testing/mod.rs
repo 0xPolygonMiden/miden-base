@@ -1,5 +1,14 @@
-use miden_lib::transaction::memory::FAUCET_STORAGE_DATA_SLOT;
-use miden_objects::{
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
+use super::{
+    account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    code::testing::make_account_code, AccountDelta, AccountStorageDelta, AccountVaultDelta,
+    StorageSlotType,
+};
+use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
@@ -13,19 +22,22 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{hash::rpo::RpoDigest, merkle::Smt},
+    notes::NoteAssets,
+    testing::{
+        constants::{FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE},
+        non_fungible_asset, non_fungible_asset_2,
+    },
     Felt, FieldElement, Word, ZERO,
 };
 
-use crate::{
-    constants::{
-        non_fungible_asset, non_fungible_asset_2, FUNGIBLE_ASSET_AMOUNT,
-        FUNGIBLE_FAUCET_INITIAL_BALANCE,
-    },
-    TransactionKernel,
-};
+pub mod builders;
+pub mod chain;
+pub mod transaction;
 
 // ACCOUNT STORAGE
 // ================================================================================================
+
+pub const FAUCET_STORAGE_DATA_SLOT: u8 = 254;
 
 pub const STORAGE_INDEX_0: u8 = 20;
 pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
@@ -282,7 +294,7 @@ pub enum MockAccountType {
 
 pub fn mock_new_account(assembler: &Assembler) -> Account {
     let (acct_id, _account_seed) =
-        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain);
+        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain, assembler);
     let account_storage = mock_account_storage();
     let account_code = mock_account_code(assembler);
     Account::from_parts(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
@@ -367,8 +379,10 @@ pub enum AccountSeedType {
 }
 
 /// Returns the account id and seed for the specified account type.
-pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, Word) {
-    let assembler = TransactionKernel::assembler();
+pub fn generate_account_seed(
+    account_seed_type: AccountSeedType,
+    assembler: &Assembler,
+) -> (AccountId, Word) {
     let init_seed: [u8; 32] = Default::default();
 
     let (account, account_type) = match account_seed_type {
@@ -377,7 +391,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
-                &assembler,
+                assembler,
             ),
             AccountType::FungibleFaucet,
         ),
@@ -386,7 +400,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
-                &assembler,
+                assembler,
             ),
             AccountType::FungibleFaucet,
         ),
@@ -395,7 +409,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
-                &assembler,
+                assembler,
             ),
             AccountType::NonFungibleFaucet,
         ),
@@ -404,7 +418,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
-                &assembler,
+                assembler,
             ),
             AccountType::NonFungibleFaucet,
         ),
@@ -412,7 +426,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
             mock_account(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ONE,
-                mock_account_code(&assembler),
+                mock_account_code(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -420,7 +434,7 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
             mock_account(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ONE,
-                mock_account_code(&assembler),
+                mock_account_code(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -438,4 +452,62 @@ pub fn generate_account_seed(account_seed_type: AccountSeedType) -> (AccountId, 
     let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
 
     (account_id, seed)
+}
+
+// UTILITIES
+// --------------------------------------------------------------------------------------------
+
+pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
+    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
+    let code = make_account_code();
+
+    // build account data
+    let vault = AssetVault::new(&assets).unwrap();
+
+    let slot_type = StorageSlotType::Value { value_arity: 0 };
+    let slot_items: Vec<SlotItem> = storage_items
+        .into_iter()
+        .enumerate()
+        .map(|(index, item)| SlotItem {
+            index: index as u8,
+            slot: StorageSlot { slot_type, value: item },
+        })
+        .collect();
+    let storage = AccountStorage::new(slot_items, vec![]).unwrap();
+
+    Account::from_parts(id, vault, storage, code, nonce)
+}
+
+pub fn build_account_delta(
+    added_assets: Vec<Asset>,
+    removed_assets: Vec<Asset>,
+    nonce: Felt,
+    storage_delta: AccountStorageDelta,
+) -> AccountDelta {
+    let vault_delta = AccountVaultDelta { added_assets, removed_assets };
+    AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
+}
+
+pub fn build_assets() -> (Asset, Asset) {
+    let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+    let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
+
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+    let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
+
+    (asset_0, asset_1)
+}
+
+pub fn prepare_word(word: &Word) -> String {
+    word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
+}
+
+pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
+    let mut assets = Vec::new();
+    for &asset in note_assets.iter() {
+        let asset_word: Word = asset.into();
+        let asset_str = prepare_word(&asset_word);
+        assets.push(asset_str);
+    }
+    assets
 }

@@ -3,16 +3,20 @@ use alloc::{
     vec::Vec,
 };
 
-use miden_objects::{
-    accounts::{Account, AccountStorage, AccountStorageType, AccountType, SlotItem},
-    assets::{Asset, AssetVault},
-    Felt, Word, ZERO,
-};
+use assembly::Assembler;
 use rand::Rng;
 
+use super::{
+    account_id::{str_to_account_code, AccountIdBuilder},
+    AccountBuilderError,
+};
 use crate::{
-    builders::{str_to_account_code, AccountBuilderError, AccountIdBuilder, AccountStorageBuilder},
-    mock::account::DEFAULT_ACCOUNT_CODE,
+    accounts::{
+        storage::testing::AccountStorageBuilder, testing::DEFAULT_ACCOUNT_CODE, Account,
+        AccountStorage, AccountStorageType, AccountType, SlotItem,
+    },
+    assets::{Asset, AssetVault},
+    Felt, Word, ZERO,
 };
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each
@@ -80,26 +84,30 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn build(mut self) -> Result<Account, AccountBuilderError> {
+    pub fn build(mut self, assembler: &Assembler) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.build()?;
-        let account_code =
-            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
+        let account_id = self.account_id_builder.build(assembler)?;
+        let account_code = str_to_account_code(&self.code, assembler)
+            .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
     /// Build an account using the provided `seed`.
-    pub fn with_seed(mut self, seed: Word) -> Result<Account, AccountBuilderError> {
+    pub fn with_seed(
+        mut self,
+        seed: Word,
+        assembler: &Assembler,
+    ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.with_seed(seed)?;
-        let account_code =
-            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
+        let account_id = self.account_id_builder.with_seed(seed, assembler)?;
+        let account_code = str_to_account_code(&self.code, assembler)
+            .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -110,6 +118,7 @@ impl<T: Rng> AccountBuilder<T> {
         mut self,
         seed: Word,
         mut storage: AccountStorage,
+        assembler: &Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let inner_storage = self.storage_builder.build();
@@ -123,9 +132,9 @@ impl<T: Rng> AccountBuilder<T> {
 
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.with_seed(seed)?;
-        let account_code =
-            str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
+        let account_id = self.account_id_builder.with_seed(seed, assembler)?;
+        let account_code = str_to_account_code(&self.code, assembler)
+            .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 }

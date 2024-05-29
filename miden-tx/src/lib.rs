@@ -21,6 +21,8 @@ mod compiler;
 pub use compiler::{ScriptTarget, TransactionCompiler};
 
 mod executor;
+#[cfg(feature = "testing")]
+pub use executor::testing::MockDataStore;
 pub use executor::{DataStore, TransactionExecutor};
 
 pub mod host;
@@ -41,7 +43,7 @@ pub use error::{
 };
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 // RE-EXPORTS
 // ================================================================================================

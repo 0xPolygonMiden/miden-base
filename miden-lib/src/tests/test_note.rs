@@ -1,28 +1,30 @@
 use alloc::{collections::BTreeMap, string::String};
 
 use miden_objects::{
+    accounts::testing::{
+        prepare_word,
+        transaction::{mock_inputs, notes::AssetPreservationStatus},
+        MockAccountType,
+    },
     notes::Note,
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
-use mock::{
-    consumed_note_data_ptr,
-    mock::{
-        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
-        transaction::mock_inputs,
-    },
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx,
+use miden_tx::host::testing::{
+    utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
+    MockHost,
 };
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
+use crate::transaction::{memory::CURRENT_CONSUMED_NOTE_PTR, TransactionKernel};
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     // calling get_sender should return sender
     let code = "
@@ -49,8 +51,11 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     // calling get_sender should return sender
     let code = "
@@ -75,8 +80,11 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let notes = tx_inputs.input_notes();
 
@@ -122,11 +130,13 @@ fn test_get_vault_data() {
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
     let _process = run_tx(&transaction).unwrap();
 }
-
 #[test]
 fn test_get_assets() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -231,8 +241,11 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
     let notes = tx_inputs.input_notes();
 
     fn construct_input_assertions(note: &Note) -> String {
@@ -301,8 +314,11 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -328,8 +344,11 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let (tx_inputs, tx_args_notes) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args_notes) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let code = "
         use.miden::kernels::tx::prologue

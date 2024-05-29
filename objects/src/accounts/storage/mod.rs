@@ -12,6 +12,9 @@ pub use slot::StorageSlotType;
 mod map;
 pub use map::StorageMap;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 // CONSTANTS
 // ================================================================================================
 

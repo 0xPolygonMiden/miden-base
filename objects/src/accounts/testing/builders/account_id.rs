@@ -1,14 +1,14 @@
 use alloc::string::{String, ToString};
 
-use miden_objects::{
-    accounts::{AccountId, AccountStorageType, AccountType},
-    Digest, Word,
-};
+use assembly::{ast::ModuleAst, Assembler};
 use rand::Rng;
 
+use super::AccountBuilderError;
 use crate::{
-    builders::{str_to_account_code, AccountBuilderError},
-    mock::account::DEFAULT_ACCOUNT_CODE,
+    accounts::{
+        testing::DEFAULT_ACCOUNT_CODE, AccountCode, AccountId, AccountStorageType, AccountType,
+    },
+    AccountError, Digest, Word,
 };
 
 /// Builder for an `AccountId`, the builder can be configured and used multiple times.
@@ -53,21 +53,27 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn build(&mut self) -> Result<AccountId, AccountBuilderError> {
-        let (seed, code_root) = accountid_build_details(
+    pub fn build(&mut self, assembler: &Assembler) -> Result<AccountId, AccountBuilderError> {
+        let (seed, code_root) = account_id_build_details(
             &mut self.rng,
             &self.code,
             self.account_type,
             self.storage_type,
             self.storage_root,
+            assembler,
         )?;
 
         AccountId::new(seed, code_root, self.storage_root)
             .map_err(AccountBuilderError::AccountError)
     }
 
-    pub fn with_seed(&mut self, seed: Word) -> Result<AccountId, AccountBuilderError> {
-        let code = str_to_account_code(&self.code).map_err(AccountBuilderError::AccountError)?;
+    pub fn with_seed(
+        &mut self,
+        seed: Word,
+        assembler: &Assembler,
+    ) -> Result<AccountId, AccountBuilderError> {
+        let code = str_to_account_code(&self.code, assembler)
+            .map_err(AccountBuilderError::AccountError)?;
         let code_root = code.root();
 
         let account_id = AccountId::new(seed, code_root, self.storage_root)
@@ -91,19 +97,28 @@ impl<T: Rng> AccountIdBuilder<T> {
 /// Returns the account's seed and code root.
 ///
 /// This compiles `code` and performs the proof-of-work to find a valid seed.
-pub fn accountid_build_details<T: Rng>(
+pub fn account_id_build_details<T: Rng>(
     rng: &mut T,
     code: &str,
     account_type: AccountType,
     storage_type: AccountStorageType,
     storage_root: Digest,
+    assembler: &Assembler,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
-    let code = str_to_account_code(code).map_err(AccountBuilderError::AccountError)?;
+    let code = str_to_account_code(code, assembler).map_err(AccountBuilderError::AccountError)?;
     let code_root = code.root();
     let seed =
         AccountId::get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
     Ok((seed, code_root))
+}
+
+pub fn str_to_account_code(
+    source: &str,
+    assembler: &Assembler,
+) -> Result<AccountCode, AccountError> {
+    let account_module_ast = ModuleAst::parse(source).unwrap();
+    AccountCode::new(account_module_ast, assembler)
 }

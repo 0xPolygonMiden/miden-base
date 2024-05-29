@@ -1,28 +1,27 @@
 use alloc::vec::Vec;
 
-use miden_objects::{
+use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_SENDER,
         },
+        testing::{
+            prepare_assets, prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
+            ACCOUNT_CREATE_NOTE_MAST_ROOT,
+        },
         AccountId,
     },
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
+    testing::{
+        constants::{CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT},
+        non_fungible_asset_2,
+    },
     transaction::OutputNote,
     Felt, Word, ZERO,
-};
-
-use crate::{
-    constants::{
-        non_fungible_asset_2, CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT,
-        CONSUMED_ASSET_3_AMOUNT,
-    },
-    mock::account::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
-    utils::{prepare_assets, prepare_word},
 };
 
 pub enum AssetPreservationStatus {
@@ -142,6 +141,7 @@ pub fn mock_notes(
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );
+
     let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
     let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();

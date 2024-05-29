@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_objects::accounts::{AccountStorage, SlotItem, StorageMap};
+use crate::accounts::{AccountStorage, SlotItem, StorageMap};
 
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -27,11 +27,13 @@ impl AccountStorageBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn add_map(&mut self, map: StorageMap) -> &mut Self {
         self.maps.push(map);
         self
     }
 
+    #[allow(dead_code)]
     pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
         self.maps.extend(maps);
         self

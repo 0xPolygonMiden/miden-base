@@ -7,8 +7,8 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, AccountStorageType, SlotItem, StorageSlot,
+        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, testing::prepare_word, Account,
+        AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
@@ -17,13 +17,12 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::utils::prepare_word;
+use miden_tx::{MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 // TESTS MINT FUNGIBLE ASSET

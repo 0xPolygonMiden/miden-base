@@ -1,6 +1,9 @@
 use core::fmt::Display;
 
-use miden_objects::{crypto::merkle::MerkleError, AccountError, AssetVaultError};
+use crate::{crypto::merkle::MerkleError, AccountError, AssetVaultError};
+
+pub mod account;
+pub mod account_id;
 
 #[derive(Debug)]
 pub enum AccountBuilderError {

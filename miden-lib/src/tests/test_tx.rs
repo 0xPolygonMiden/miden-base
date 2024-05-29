@@ -1,35 +1,42 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::account_id::testing::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+    accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        testing::{
+            prepare_word,
+            transaction::{mock_inputs, notes::AssetPreservationStatus},
+            MockAccountType,
+        },
     },
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
+    testing::non_fungible_asset,
     transaction::{OutputNote, OutputNotes},
-    Word, ONE, ZERO,
 };
-use mock::{
-    constants::non_fungible_asset,
-    mock::{
-        account::MockAccountType, host::MockHost, notes::AssetPreservationStatus,
-        transaction::mock_inputs,
+use miden_tx::host::testing::{
+    utils::{prepare_transaction, run_tx, run_within_tx_kernel},
+    MockHost,
+};
+use vm_processor::Process;
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::transaction::{
+    memory::{
+        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+        CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
     },
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx, run_within_tx_kernel,
+    TransactionKernel,
 };
-
-use super::{ContextId, Felt, MemAdviceProvider, Process, ProcessState, StackInputs};
-use crate::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
-};
-
 #[test]
 fn test_create_note() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
     let account_id = tx_inputs.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -86,8 +93,11 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
@@ -154,8 +164,11 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     // extract input note data
     let input_note_1 = tx_inputs.input_notes().get_note(0).note();
@@ -276,8 +289,11 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -329,8 +345,11 @@ fn test_create_note_and_add_asset() {
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -414,8 +433,11 @@ fn test_create_note_and_add_multiple_assets() {
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);

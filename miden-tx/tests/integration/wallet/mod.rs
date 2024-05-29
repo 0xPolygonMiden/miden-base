@@ -5,6 +5,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
+        testing::{prepare_word, DEFAULT_AUTH_SCRIPT},
         Account, AccountId, AccountStorage, SlotItem, StorageSlot,
     },
     assembly::ProgramAst,
@@ -14,13 +15,12 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
+use miden_tx::{MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
-    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 #[test]

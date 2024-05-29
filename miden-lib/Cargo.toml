@@ -17,7 +17,7 @@ edition.workspace = true
 [features]
 concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
-std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std", "mock/std"]
+std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
 
@@ -29,7 +29,9 @@ miden-stdlib = { workspace = true }
 miden-objects = { path = "../objects", version = "0.4", default-features = false, features = [
     "testing",
 ] }
-mock = { package = "miden-mock", path = "../mock", default-features = false }
+miden-tx = { path = "../miden-tx", version = "0.4", default-features = false, features = [
+    "testing",
+] }
 vm-processor = { workspace = true, features = ["internals"] }
 
 [build-dependencies]

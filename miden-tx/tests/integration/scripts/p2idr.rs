@@ -6,6 +6,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
+        testing::DEFAULT_AUTH_SCRIPT,
         Account, AccountId,
     },
     assembly::ProgramAst,
@@ -15,10 +16,9 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::TransactionExecutor;
-use mock::mock::account::DEFAULT_AUTH_SCRIPT;
+use miden_tx::{MockDataStore, TransactionExecutor};
 
-use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator, MockDataStore};
+use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator};
 
 // P2IDR TESTS
 // ===============================================================================================

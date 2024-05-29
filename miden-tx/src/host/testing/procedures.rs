@@ -1,17 +1,12 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
+use alloc::string::String;
+
+use miden_lib::transaction::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
+    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
 };
-
-use miden_objects::transaction::OutputNote;
-
-use super::{
-    memory::{
-        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-        CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
-        NUM_CREATED_NOTES_PTR,
-    },
-    NoteAssets, OutputNotes, Word,
+use miden_objects::{
+    accounts::testing::{prepare_assets, prepare_word},
+    transaction::{OutputNote, OutputNotes},
 };
 
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
@@ -39,6 +34,8 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let note_2_assets = prepare_assets(note2.assets());
     let note_2_num_assets = 1;
 
+    // todo: remove this
+    const NOTE_MEM_SIZE: u32 = 512;
     const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
     const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
 
@@ -96,18 +93,4 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
         note_2_assets[0],
         notes.num_notes()
     )
-}
-
-pub fn prepare_word(word: &Word) -> String {
-    word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
-}
-
-fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {
-    let mut assets = Vec::new();
-    for &asset in note_assets.iter() {
-        let asset_word: Word = asset.into();
-        let asset_str = prepare_word(&asset_word);
-        assets.push(asset_str);
-    }
-    assets
 }

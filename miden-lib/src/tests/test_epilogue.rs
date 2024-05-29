@@ -1,22 +1,24 @@
 use alloc::vec::Vec;
 
-use mock::{
-    mock::{notes::AssetPreservationStatus, transaction::mock_executed_tx},
-    procedures::output_notes_data_procedure,
-    run_within_tx_kernel,
+use miden_objects::accounts::testing::transaction::{
+    mock_executed_tx, notes::AssetPreservationStatus,
+};
+use miden_tx::host::testing::{
+    procedures::output_notes_data_procedure, utils::run_within_tx_kernel,
 };
 
 use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
 use crate::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
-    ToTransactionKernelInputs,
+    ToTransactionKernelInputs, TransactionKernel,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
 #[test]
 fn test_epilogue() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let executed_transaction =
+        mock_executed_tx(AssetPreservationStatus::Preserved, &TransactionKernel::assembler());
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
@@ -66,7 +68,8 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_created_note_id() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let executed_transaction =
+        mock_executed_tx(AssetPreservationStatus::Preserved, &TransactionKernel::assembler());
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
@@ -119,7 +122,8 @@ fn test_epilogue_asset_preservation_violation() {
         AssetPreservationStatus::TooFewInput,
         AssetPreservationStatus::TooManyFungibleInput,
     ] {
-        let executed_transaction = mock_executed_tx(asset_preservation);
+        let executed_transaction =
+            mock_executed_tx(asset_preservation, &TransactionKernel::assembler());
 
         let output_notes_data_procedure =
             output_notes_data_procedure(executed_transaction.output_notes());
@@ -154,7 +158,8 @@ fn test_epilogue_asset_preservation_violation() {
 
 #[test]
 fn test_epilogue_increment_nonce_success() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let executed_transaction =
+        mock_executed_tx(AssetPreservationStatus::Preserved, &TransactionKernel::assembler());
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
@@ -187,7 +192,8 @@ fn test_epilogue_increment_nonce_success() {
 
 #[test]
 fn test_epilogue_increment_nonce_violation() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let executed_transaction =
+        mock_executed_tx(AssetPreservationStatus::Preserved, &TransactionKernel::assembler());
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());

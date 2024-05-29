@@ -11,6 +11,9 @@ use vm_processor::{
 };
 
 mod account_procs;
+pub mod procedures;
+pub mod utils;
+
 use account_procs::AccountProcedureIndexMap;
 
 // MOCK HOST

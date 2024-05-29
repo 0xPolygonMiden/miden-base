@@ -1,8 +1,3 @@
-#![no_std]
-
-#[macro_use]
-extern crate alloc;
-
 #[cfg(feature = "std")]
 extern crate std;
 
@@ -15,25 +10,17 @@ use std::{
 };
 
 use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};
-use miden_objects::{
-    notes::NoteAssets,
-    transaction::{OutputNotes, PreparedTransaction},
-};
+use miden_objects::transaction::PreparedTransaction;
 #[cfg(feature = "std")]
 use miden_objects::{
     transaction::{TransactionArgs, TransactionInputs},
     Felt,
 };
-use mock::host::MockHost;
 use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
 #[cfg(feature = "std")]
 use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
-pub mod builders;
-pub mod constants;
-pub mod mock;
-pub mod procedures;
-pub mod utils;
+use super::MockHost;
 
 // TEST BRACE
 // ================================================================================================

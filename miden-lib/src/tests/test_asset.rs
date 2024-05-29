@@ -1,16 +1,23 @@
-use miden_objects::accounts::account_id::testing::{
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+use miden_objects::{
+    accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        },
+        testing::{
+            prepare_word,
+            transaction::{mock_inputs, notes::AssetPreservationStatus},
+            MockAccountType,
+        },
+    },
+    testing::{
+        constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+        non_fungible_asset,
+    },
 };
-use mock::{
-    constants::{non_fungible_asset, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-    mock::{account::MockAccountType, notes::AssetPreservationStatus, transaction::mock_inputs},
-    prepare_transaction,
-    procedures::prepare_word,
-    run_tx,
-};
-use vm_processor::{Felt, ProcessState};
+use miden_tx::host::testing::utils::{prepare_transaction, run_tx};
 
-use super::{Hasher, Word, ONE};
+use super::{Felt, Hasher, ProcessState, Word, ONE};
+use crate::transaction::TransactionKernel;
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
@@ -21,6 +28,7 @@ fn test_create_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -64,6 +72,7 @@ fn test_create_non_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -98,6 +107,7 @@ fn test_validate_non_fungible_asset() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let encoded = Word::from(non_fungible_asset);
