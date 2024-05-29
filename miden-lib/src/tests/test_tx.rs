@@ -287,7 +287,6 @@ fn test_get_output_notes_hash() {
     assert_eq!(process.get_stack_word(0), *expected_output_notes_hash);
 }
 
-
 #[test]
 fn test_create_note_and_add_asset() {
     let (tx_inputs, tx_args) = mock_inputs(
@@ -483,8 +482,11 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        &TransactionKernel::assembler(),
+    );
 
     let input_note_1 = tx_inputs.input_notes().get_note(0).note();
 
