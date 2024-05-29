@@ -26,7 +26,7 @@ mod note_builder;
 use note_builder::OutputNoteBuilder;
 
 mod tx_authenticator;
-pub use tx_authenticator::{BasicAuthenticator, TransactionAuthenticator};
+pub use tx_authenticator::{BasicAuthenticator, TransactionAuthenticator, get_falcon_signature};
 
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
