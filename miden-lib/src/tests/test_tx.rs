@@ -481,6 +481,64 @@ fn test_create_note_and_add_same_nft_twice() {
     );
 }
 
+#[test]
+fn test_build_recipient_hash() {
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    let input_note_1 = tx_inputs.input_notes().get_note(0).note();
+
+    // create output note
+    let output_serial_no = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let tag = 8888;
+    let single_input = 2;
+    let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
+    let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
+
+    let code = format!(
+        "
+    use.miden::kernels::tx::prologue
+    use.miden::tx
+    begin
+        exec.prologue::prepare_transaction
+        # input
+        push.{inputs}
+        # SCRIPT_HASH
+        push.{script_hash}
+        # SERIAL_NUM
+        push.{output_serial_no}
+        exec.tx::build_recipient_hash
+        
+        push.{PUBLIC_NOTE}
+        push.{tag}
+        exec.tx::create_note
+    end
+    ",
+        inputs = single_input,
+        script_hash = input_note_1.script().clone().hash(),
+        output_serial_no = prepare_word(&output_serial_no),
+        PUBLIC_NOTE = NoteType::Public as u8,
+        tag = tag,
+    );
+
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let process = run_tx(&transaction).unwrap();
+
+    assert_eq!(
+        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
+        [ONE, ZERO, ZERO, ZERO],
+        "number of created notes must increment by 1",
+    );
+
+    let recipient_digest: Vec<Felt> = recipient.clone().digest().to_vec();
+
+    assert_eq!(
+        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
+        recipient_digest.as_slice(),
+        "recipient hash not correct",
+    );
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
