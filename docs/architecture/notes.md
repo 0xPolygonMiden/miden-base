@@ -195,13 +195,17 @@ hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 !!! info
     To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is also sufficient. We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM._
 
-## Note discovery
+## Note discovery (Note Tags)
 
-Note discovery describes the process of Miden clients finding notes they want to consume. There are two ways to receive new relevant notes - getting notes via an off-chain channel or querying the Miden operator to request newly recorded relevant notes.
+Note discovery describes the process of Miden clients finding notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag. Note tag`s are best effort filters for notes registered with the network. They are light-weight values used to speed up queries. Clients can follow tags of a certain use case, e.g. swap scripts, or agree upon a group of users on certain tags for their specific use case. Tags are also used by the operator to identify notes intended for network execution including the corresponding information on how to execute.
 
-The former is needed for private notes. The network doesn't have the note data necessary for consumption, in which case the sender needs to inform the receiver and send the data via an off-chain channel, e.g., an email or Signal.
+```arduino
+0b009f4adc47857e2f6
+```
 
-The latter is done via note tags. Miden clients can query the Miden node for notes carrying a certain tag. Note tag`s are best effort filters for notes registered with the network. Tags are light-weight values used to speed up queries. The two most signification bits of the tags have the following interpretation:
+This example note tag indicates that the network operator (Miden node) shall execute the note against the account with the ID `0x09f4adc47857e2f6`. In this case, the note and the account against it gets executed must be `public`.
+
+The two most signification bits of the note tag have the following interpretation:
 
 | Prefix | Execution hint | Target   | Allowed note type |
 | ------ | :------------: | :------: | :----------------:|
@@ -216,9 +220,9 @@ Where:
 - Target describes how to further interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
 - Note type describes the note's storage mode, either public or private.
 
-The note type is the only value enforced by the protocol. The rationale is that any note intended to be consumed in a network transaction must be public to have all the details available. The public note for local execution is intended to allow users to search for notes that can be consumed right away, without requiring an off-chain communication channel.
+The following 30 bits can represent anything, from Account IDs to use cases or any custom logic agreed upon.
 
-Using note tags is a compromise between privacy and latency. A user doesn't need to download all the notes of a certain time period, but the Miden operator learns in which notes a specific user is interested in.
+Using note tags is a compromise between privacy and latency. If a user would query the operator using the note ID, the operator would learn in which note a specific user is interested in. On the other side, if a user would always download all registered notes and filter locally, it would be quite inefficient. Using tags, users can decide their privacy parameters by narrowing or broadening their note tag schemes.
 
 ## Note consumption
 
