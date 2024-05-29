@@ -287,6 +287,7 @@ fn test_get_output_notes_hash() {
     assert_eq!(process.get_stack_word(0), *expected_output_notes_hash);
 }
 
+
 #[test]
 fn test_create_note_and_add_asset() {
     let (tx_inputs, tx_args) = mock_inputs(
