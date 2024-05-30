@@ -13,7 +13,7 @@ use miden_objects::{
         },
         AccountId,
     },
-    assembly::ProgramAst,
+    assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::{
@@ -23,9 +23,6 @@ use miden_objects::{
     transaction::OutputNote,
     Felt, Word, ZERO,
 };
-
-use crate::transaction::TransactionKernel;
-
 pub enum AssetPreservationStatus {
     TooFewInput,
     Preserved,
@@ -34,9 +31,11 @@ pub enum AssetPreservationStatus {
     TooManyNonFungibleInput,
 }
 
-pub fn mock_notes(asset_preservation: &AssetPreservationStatus) -> (Vec<Note>, Vec<OutputNote>) {
+pub fn mock_notes(
+    assembler: &Assembler,
+    asset_preservation: &AssetPreservationStatus,
+) -> (Vec<Note>, Vec<OutputNote>) {
     let mut serial_num_gen = SerialNumGenerator::new();
-    let assembler = &TransactionKernel::assembler();
 
     // ACCOUNT IDS
     // --------------------------------------------------------------------------------------------
@@ -141,7 +140,6 @@ pub fn mock_notes(asset_preservation: &AssetPreservationStatus) -> (Vec<Note>, V
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );
-
     let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
     let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();

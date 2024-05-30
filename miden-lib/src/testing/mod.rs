@@ -10,11 +10,12 @@ use miden_objects::{
         Account, AccountDelta,
     },
     notes::Note,
+    testing::build_dummy_tx_program,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,
     },
-    vm::{AdviceInputs, CodeBlock, Program},
+    vm::AdviceInputs,
     BlockHeader, Felt, FieldElement, Word,
 };
 
@@ -51,7 +52,7 @@ pub fn mock_inputs_with_account_seed(
         },
     };
 
-    let (input_notes, output_notes) = mock_notes(&asset_preservation);
+    let (input_notes, output_notes) = mock_notes(assembler, &asset_preservation);
 
     let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
 
@@ -98,7 +99,7 @@ pub fn mock_inputs_with_existing(
         },
     };
 
-    let (mut consumed_notes, created_notes) = mock_notes(&asset_preservation);
+    let (mut consumed_notes, created_notes) = mock_notes(assembler, &asset_preservation);
     if let Some(ref notes) = consumed_notes_from {
         consumed_notes = notes.to_vec();
     }
@@ -112,11 +113,12 @@ pub fn mock_inputs_with_existing(
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    let assembler = &TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler();
+
     let initial_account = mock_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         Felt::ONE,
-        mock_account_code(assembler),
+        mock_account_code(&assembler),
     );
 
     // nonce incremented by 1
@@ -126,7 +128,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account.code().clone(),
     );
 
-    let (input_notes, output_notes) = mock_notes(&asset_preservation);
+    let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
     let (block_chain, input_notes) = mock_chain_data(input_notes);
 
     let block_header = BlockHeader::mock(
@@ -162,13 +164,4 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     let advice_witness = AdviceInputs::default();
 
     ExecutedTransaction::new(program, tx_inputs, tx_outputs, account_delta, tx_args, advice_witness)
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_dummy_tx_program() -> Program {
-    let operations = vec![];
-    let span = CodeBlock::new_span(operations);
-    Program::new(span)
 }

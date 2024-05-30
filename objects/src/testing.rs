@@ -1,3 +1,5 @@
+use vm_core::{code_blocks::CodeBlock, Operation, Program, ZERO};
+
 use self::constants::NON_FUNGIBLE_ASSET_DATA_2;
 use crate::{
     accounts::AccountId,
@@ -46,4 +48,10 @@ pub fn non_fungible_asset_2(account_id: u64) -> Asset {
     let non_fungible_asset_2: NonFungibleAsset =
         NonFungibleAsset::new(&non_fungible_asset_2_details).unwrap();
     Asset::NonFungible(non_fungible_asset_2)
+}
+
+pub fn build_dummy_tx_program() -> Program {
+    let operations = vec![Operation::Push(ZERO), Operation::Drop];
+    let span = CodeBlock::new_span(operations);
+    Program::new(span)
 }
