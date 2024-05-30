@@ -232,7 +232,7 @@ impl Deserializable for BlockHeader {
 }
 
 #[cfg(feature = "testing")]
-mod mock {
+mod testing {
     use alloc::vec::Vec;
 
     use winter_rand_utils as rand;

@@ -28,7 +28,7 @@ miden-objects = { path = "../objects", version = "0.4", default-features = false
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true }
-vm-processor = { workspace = true }
+vm-processor = { workspace = true, features = ["internals"] }
 
 [dev-dependencies]
 rand_chacha = { version = "0.3", default-features = false }
