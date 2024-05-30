@@ -18,6 +18,9 @@ pub mod accounts;
 pub mod notes;
 pub mod transaction;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 #[cfg(all(test, feature = "std"))]
 mod tests;
 

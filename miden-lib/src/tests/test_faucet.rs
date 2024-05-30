@@ -4,11 +4,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
         },
-        testing::{
-            prepare_word,
-            transaction::{mock_inputs, notes::AssetPreservationStatus},
-            MockAccountType,
-        },
+        testing::{prepare_word, MockAccountType},
     },
     assets::FungibleAsset,
     testing::{
@@ -21,7 +17,10 @@ use miden_objects::{
 use miden_tx::host::testing::utils::{prepare_transaction, run_tx};
 
 use super::ONE;
-use crate::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
+use crate::{
+    testing::{mock_inputs, notes::AssetPreservationStatus},
+    transaction::memory::FAUCET_STORAGE_DATA_SLOT,
+};
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 
@@ -34,7 +33,6 @@ fn test_mint_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -77,11 +75,8 @@ fn test_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
         "
@@ -111,7 +106,6 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -143,7 +137,6 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -181,7 +174,6 @@ fn test_mint_non_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -229,11 +221,8 @@ fn test_mint_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
     let code = format!(
@@ -259,11 +248,8 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
 
     let code = format!(
@@ -296,7 +282,6 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -333,7 +318,6 @@ fn test_burn_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -377,11 +361,8 @@ fn test_burn_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = format!(
         "
@@ -412,7 +393,6 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -443,7 +423,6 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(
@@ -481,7 +460,6 @@ fn test_burn_non_fungible_asset_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -536,7 +514,6 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset_burnt = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -571,7 +548,6 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) = mock_inputs(
         MockAccountType::StandardExisting,
         AssetPreservationStatus::TooManyNonFungibleInput,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -610,7 +586,6 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
-        &TransactionKernel::assembler(),
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
 
@@ -652,7 +627,6 @@ fn test_get_total_issuance_succeeds() {
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
-        &TransactionKernel::assembler(),
     );
 
     let code = format!(

@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use crate::{
+use miden_objects::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -13,7 +13,7 @@ use crate::{
         },
         AccountId,
     },
-    assembly::{Assembler, ProgramAst},
+    assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::{
@@ -24,6 +24,8 @@ use crate::{
     Felt, Word, ZERO,
 };
 
+use crate::transaction::TransactionKernel;
+
 pub enum AssetPreservationStatus {
     TooFewInput,
     Preserved,
@@ -32,11 +34,9 @@ pub enum AssetPreservationStatus {
     TooManyNonFungibleInput,
 }
 
-pub fn mock_notes(
-    assembler: &Assembler,
-    asset_preservation: &AssetPreservationStatus,
-) -> (Vec<Note>, Vec<OutputNote>) {
+pub fn mock_notes(asset_preservation: &AssetPreservationStatus) -> (Vec<Note>, Vec<OutputNote>) {
     let mut serial_num_gen = SerialNumGenerator::new();
+    let assembler = &TransactionKernel::assembler();
 
     // ACCOUNT IDS
     // --------------------------------------------------------------------------------------------

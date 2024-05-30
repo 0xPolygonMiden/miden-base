@@ -1,11 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    accounts::testing::{
-        generate_account_seed,
-        transaction::{mock_inputs, mock_inputs_with_account_seed, notes::AssetPreservationStatus},
-        AccountSeedType, MockAccountType,
-    },
+    accounts::testing::{generate_account_seed, AccountSeedType, MockAccountType},
     assembly::ProgramAst,
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
     Digest,
@@ -17,21 +13,25 @@ use miden_tx::host::testing::{
 use vm_processor::AdviceInputs;
 
 use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
-use crate::transaction::{
-    memory::{
-        MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
-        ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
-        BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX,
-        CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_ARGS_OFFSET,
-        CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
-        CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
-        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_NUM_INPUTS_OFFSET,
-        CONSUMED_NOTE_SCRIPT_ROOT_OFFSET, CONSUMED_NOTE_SECTION_OFFSET,
-        CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_COMMITMENT_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
-        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
+use crate::{
+    testing::{mock_inputs, mock_inputs_with_account_seed, notes::AssetPreservationStatus},
+    transaction::{
+        memory::{
+            MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
+            ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
+            BATCH_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX,
+            CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+            CONSUMED_NOTE_ARGS_OFFSET, CONSUMED_NOTE_ASSETS_HASH_OFFSET,
+            CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET, CONSUMED_NOTE_INPUTS_HASH_OFFSET,
+            CONSUMED_NOTE_METADATA_OFFSET, CONSUMED_NOTE_NUM_ASSETS_OFFSET,
+            CONSUMED_NOTE_NUM_INPUTS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
+            CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
+            INIT_NONCE_PTR, NOTE_ROOT_PTR, NULLIFIER_COMMITMENT_PTR, NULLIFIER_DB_ROOT_PTR,
+            PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
+            TX_SCRIPT_ROOT_PTR,
+        },
+        TransactionKernel,
     },
-    TransactionKernel,
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
@@ -41,11 +41,8 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (tx_inputs, tx_args_notes) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args_notes) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
         begin
@@ -355,7 +352,6 @@ pub fn test_prologue_create_account() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -384,7 +380,6 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -415,7 +410,6 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -446,7 +440,6 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -477,7 +470,6 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -503,7 +495,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         MockAccountType::StandardNew,
         AssetPreservationStatus::Preserved,
         Some(account_seed),
-        &TransactionKernel::assembler(),
     );
     let account_seed_key = [tx_inputs.account().id().into(), ZERO, ZERO, ZERO];
 
@@ -527,11 +518,8 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -550,11 +538,8 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue

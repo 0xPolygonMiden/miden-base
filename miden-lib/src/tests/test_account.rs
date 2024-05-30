@@ -8,7 +8,6 @@ use miden_objects::{
         },
         testing::{
             prepare_word, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
-            transaction::{mock_executed_tx, mock_inputs, notes::AssetPreservationStatus},
             MockAccountType, STORAGE_LEAVES_2,
         },
         AccountId, AccountType, StorageSlotType,
@@ -25,9 +24,9 @@ use super::{
     super::transaction::ToTransactionKernelInputs, ContextId, Felt, MemAdviceProvider,
     ProcessState, StackInputs, Word, ONE, ZERO,
 };
-use crate::transaction::{
-    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
-    TransactionKernel,
+use crate::{
+    testing::{mock_executed_tx, mock_inputs, notes::AssetPreservationStatus},
+    transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
 };
 
 // ACCOUNT CODE TESTS
@@ -35,11 +34,8 @@ use crate::transaction::{
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -69,8 +65,7 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let executed_transaction =
-        mock_executed_tx(AssetPreservationStatus::Preserved, &TransactionKernel::assembler());
+    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
     let output_notes_data_procedure =
         output_notes_data_procedure(executed_transaction.output_notes());
@@ -247,11 +242,8 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [storage_item_0(), storage_item_1()] {
-        let (tx_inputs, tx_args) = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            &TransactionKernel::assembler(),
-        );
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
             "
@@ -284,11 +276,8 @@ fn test_get_item() {
 
 #[test]
 fn test_set_item() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     // copy the initial account slots (SMT)
     let mut account_smt = tx_inputs.account().storage().slots().clone();
@@ -342,11 +331,8 @@ fn test_set_item() {
 #[test]
 fn test_get_storage_data_type() {
     for storage_item in [storage_item_0(), storage_item_1(), storage_item_2()] {
-        let (tx_inputs, tx_args) = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            &TransactionKernel::assembler(),
-        );
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
             "
@@ -391,11 +377,8 @@ fn test_get_storage_data_type() {
 
 #[test]
 fn test_get_map_item() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let storage_item = storage_item_2();
     for (key, value) in STORAGE_LEAVES_2 {
@@ -442,11 +425,8 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let storage_item = storage_item_2();
 
@@ -500,11 +480,8 @@ fn test_set_map_item() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let (tx_inputs, tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
     let account = tx_inputs.account();
     let code = format!(
@@ -534,11 +511,8 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let (tx_inputs, _tx_args) = mock_inputs(
-        MockAccountType::StandardExisting,
-        AssetPreservationStatus::Preserved,
-        &TransactionKernel::assembler(),
-    );
+    let (tx_inputs, _tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
     let account = tx_inputs.account();
 
     let proc0_index = LeafIndex::new(0).unwrap();
@@ -551,11 +525,8 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let (tx_inputs, tx_args) = mock_inputs(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            &TransactionKernel::assembler(),
-        );
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
         let code = format!(
             "\

@@ -1,6 +1,9 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
+use miden_lib::{
+    testing::notes::AssetPreservationStatus,
+    transaction::{ToTransactionKernelInputs, TransactionKernel},
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -9,8 +12,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
         testing::{
-            prepare_word, transaction::notes::AssetPreservationStatus,
-            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+            prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
             ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
             STORAGE_INDEX_0, STORAGE_INDEX_2,

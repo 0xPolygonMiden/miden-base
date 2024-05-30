@@ -16,7 +16,7 @@ use miden_objects::{
     transaction::{TransactionArgs, TransactionInputs},
     Felt,
 };
-use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
+use vm_processor::{AdviceInputs, ExecutionError, Word};
 #[cfg(feature = "std")]
 use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
@@ -37,19 +37,20 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
 }
 
 /// Inject `code` along side the specified file and run it
-pub fn run_tx(tx: &PreparedTransaction) -> Result<Process<MockHost>, ExecutionError> {
+pub fn run_tx(tx: &PreparedTransaction) -> Result<vm_processor::Process<MockHost>, ExecutionError> {
     run_tx_with_inputs(tx, AdviceInputs::default())
 }
 
 pub fn run_tx_with_inputs(
     tx: &PreparedTransaction,
     inputs: AdviceInputs,
-) -> Result<Process<MockHost>, ExecutionError> {
+) -> Result<vm_processor::Process<MockHost>, ExecutionError> {
     let program = tx.program().clone();
     let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
     advice_inputs.extend(inputs);
     let host = MockHost::new(tx.account().into(), advice_inputs);
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
+    let mut process =
+        vm_processor::Process::new_debug(program.kernel().clone(), stack_inputs, host);
     process.execute(&program)?;
     Ok(process)
 }
@@ -62,7 +63,7 @@ pub fn run_within_tx_kernel<A>(
     stack_inputs: StackInputs,
     mut adv: A,
     file_path: Option<PathBuf>,
-) -> Result<Process<DefaultHost<A>>, ExecutionError>
+) -> Result<vm_processor::Process<DefaultHost<A>>, ExecutionError>
 where
     A: AdviceProvider,
 {
@@ -80,7 +81,8 @@ where
 
     let host = DefaultHost::new(adv);
     let exec_options = ExecutionOptions::default().with_tracing();
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
+    let mut process =
+        vm_processor::Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
     process.execute(&program)?;
     Ok(process)
 }
@@ -93,7 +95,7 @@ pub fn run_within_host<H: Host>(
     stack_inputs: StackInputs,
     host: H,
     file_path: Option<PathBuf>,
-) -> Result<Process<H>, ExecutionError> {
+) -> Result<vm_processor::Process<H>, ExecutionError> {
     let assembler = TransactionKernel::assembler();
     let code = match file_path {
         Some(file_path) => load_file_with_code(imports, code, file_path),
@@ -101,8 +103,12 @@ pub fn run_within_host<H: Host>(
     };
 
     let program = assembler.compile(code).unwrap();
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let mut process = vm_processor::Process::new(
+        program.kernel().clone(),
+        stack_inputs,
+        host,
+        ExecutionOptions::default(),
+    );
     process.execute(&program)?;
     Ok(process)
 }

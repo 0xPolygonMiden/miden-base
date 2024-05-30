@@ -3,15 +3,9 @@
 
 use alloc::vec::Vec;
 
-use miden_lib::transaction::TransactionKernel;
+use miden_lib::testing::{mock_inputs, mock_inputs_with_existing, notes::AssetPreservationStatus};
 use miden_objects::{
-    accounts::{
-        testing::{
-            transaction::{mock_inputs, mock_inputs_with_existing, notes::AssetPreservationStatus},
-            MockAccountType,
-        },
-        Account, AccountId,
-    },
+    accounts::{testing::MockAccountType, Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
     transaction::{
@@ -33,11 +27,8 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation_status: AssetPreservationStatus) -> Self {
-        let (tx_inputs, tx_args) = mock_inputs(
-            MockAccountType::StandardExisting,
-            asset_preservation_status,
-            &TransactionKernel::assembler(),
-        );
+        let (tx_inputs, tx_args) =
+            mock_inputs(MockAccountType::StandardExisting, asset_preservation_status);
         let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
         Self {
             account,
@@ -61,7 +52,6 @@ impl MockDataStore {
             AssetPreservationStatus::Preserved,
             account,
             input_notes,
-            &TransactionKernel::assembler(),
         );
         let output_notes = created_notes.into_iter().filter_map(|note| match note {
             OutputNote::Full(note) => Some(note),

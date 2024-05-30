@@ -32,7 +32,6 @@ use crate::{
 
 pub mod builders;
 pub mod chain;
-pub mod transaction;
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -340,7 +339,7 @@ pub fn mock_non_fungible_faucet(
     empty_reserved_slot: bool,
     assembler: &Assembler,
 ) -> Account {
-    let entires = match empty_reserved_slot {
+    let entries = match empty_reserved_slot {
         true => vec![],
         false => vec![(
             Word::from(non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)).into(),
@@ -349,7 +348,7 @@ pub fn mock_non_fungible_faucet(
     };
 
     // construct nft tree
-    let nft_tree = Smt::with_entries(entires).unwrap();
+    let nft_tree = Smt::with_entries(entries).unwrap();
 
     // TODO: add nft tree data to account storage?
 
