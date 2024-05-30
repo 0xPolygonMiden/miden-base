@@ -199,12 +199,6 @@ hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 
 Note discovery describes the process by which Miden clients find notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag in their metadata. Note tags are best-effort filters for notes registered on the network. They are lightweight values (32-bit) used to speed up queries. Clients can follow tags for specific use cases, such as swap scripts, or user-created custom tags. Tags are also used by the operator to identify notes intended for network execution and include the corresponding information on how to execute them.
 
-```arduino
-0b009f4adc47857e2f6
-```
-
-The example note tag above indicates that the network operator (Miden node) executes the note against the account with ID `0x09f4adc47857e2f6`. In this case, the note and the account against which it gets executed must be `public`.
-
 The two most signification bits of the note tag have the following interpretation:
 
 | Prefix | Execution hint | Target   | Allowed note type |
@@ -220,14 +214,26 @@ The two most signification bits of the note tag have the following interpretatio
 
 The following 30 bits can represent anything. In the above example note tag, it represents an account Id of a public account. As designed the first bit of a public account is always `0` which overlaps with the second most significant bit of the note tag.
 
+```
+0b00000100_11111010_01010110_11100010
+```
+
+This example note tag indicates that the network operator (Miden node) executes the note against a specific account - `0x09f4adc47857e2f6`. Only the 30 most significant bits of the account id are represented in the note tag, since account Ids are 64-bit values but note tags only have 32-bits. Knowing a 30-bit prefix already narrows the set of potential target accounts down enough.
+
 Using note tags is a compromise between privacy and latency. If a user queries the operator using the note ID, the operator learns which note a specific user is interested in. Alternatively, if a user always downloads all registered notes and filters locally, it is quite inefficient. By using tags, users can customize privacy parameters by narrowing or broadening their note tag schemes.
 
 ??? note "Example note tag for P2ID"
-    P2ID scripts can only be consumed by the specified account Id (target Id). In the standard schema, the target Id is encoded into the note tag.
+    P2ID scripts can only be consumed by the specified account ID (target ID). In the standard schema, the target ID is encoded into the note tag.
 
-    In case the P2ID note is intended for network execution, the note tag looks like the above example `0b009f4adc47857e2f6`. Here the Miden operator knows exactly against which account it the transaction must be executed.
+    For network execution of a P2ID note, the note tag is encoded as follows: 0b00000100_11111010_01010110_11100010. This encoding allows the Miden operator to quickly identify the account against which the transaction must be executed.
 
-    In case the P2ID note is intended for local execution, the recipient needs to be able to discover that note. The recipient can query the Miden node for a specific tag, to see if there are new P2ID notes to be consumed. In that case the two most significant bits are set to `0b11`, which allows for any note type to be used (`private` or `public`), the following 14 bits are set to the 14 most significant bits of the account ID, and the remaining 16 bits are set to 0.
+    For local execution of a P2ID note, the recipient needs to be able to discover the note. The recipient can query the Miden node for a specific tag to see if there are new P2ID notes to be consumed. In this case, the two most significant bits are set to 0b11, allowing any note type (private or public) to be used. The next 14 bits represent the 14 most significant bits of the account ID, and the remaining 16 bits are set to 0.
+
+    Example for local execution:
+    ```
+    0b11000100_11111010_00000000_00000000
+    ```
+    This "fuzzy matching" approach balances privacy and efficiency. A note with this tag could be intended for any account sharing the same 16-bit prefix.
 
 ### Note consumption
 
