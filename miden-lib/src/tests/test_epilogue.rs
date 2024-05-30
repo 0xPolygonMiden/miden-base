@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 
-use miden_tx::host::testing::{
-    procedures::output_notes_data_procedure, utils::run_within_tx_kernel,
-};
+use miden_tx::host::testing::utils::run_within_tx_kernel;
 
 use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
 use crate::{
-    testing::{mock_executed_tx, notes::AssetPreservationStatus},
+    testing::{
+        mock_executed_tx, notes::AssetPreservationStatus, procedures::output_notes_data_procedure,
+    },
     transaction::{
         memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
         ToTransactionKernelInputs,

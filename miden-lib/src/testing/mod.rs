@@ -23,6 +23,7 @@ use self::notes::{mock_notes, AssetPreservationStatus};
 use crate::transaction::TransactionKernel;
 
 pub mod notes;
+pub mod procedures;
 
 pub fn mock_inputs(
     account_type: MockAccountType,

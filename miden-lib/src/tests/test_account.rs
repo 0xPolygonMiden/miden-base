@@ -15,7 +15,6 @@ use miden_objects::{
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
 };
 use miden_tx::host::testing::{
-    procedures::output_notes_data_procedure,
     utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
     MockHost,
 };
@@ -25,7 +24,10 @@ use super::{
     ProcessState, StackInputs, Word, ONE, ZERO,
 };
 use crate::{
-    testing::{mock_executed_tx, mock_inputs, notes::AssetPreservationStatus},
+    testing::{
+        mock_executed_tx, mock_inputs, notes::AssetPreservationStatus,
+        procedures::output_notes_data_procedure,
+    },
     transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
 };
 

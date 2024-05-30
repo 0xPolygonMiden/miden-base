@@ -18,7 +18,7 @@ path = "tests/integration/main.rs"
 
 [features]
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
-default = ["std","testing"]
+default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
 testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/internals"]
 
@@ -32,4 +32,4 @@ vm-processor = { workspace = true }
 
 [dev-dependencies]
 rand_chacha = { version = "0.3", default-features = false }
-miden-tx = {path=".", features= ["testing"]}
+miden-tx = { path=".", features= ["testing"] }
