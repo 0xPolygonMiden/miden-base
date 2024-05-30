@@ -6,7 +6,7 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
     utils::{group_slice_elements, serde::DeserializationError},
     vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word,
+    Digest, Felt, TransactionOutputError, Word, ZERO,
 };
 use miden_stdlib::StdLibrary;
 
@@ -135,7 +135,14 @@ impl TransactionKernel {
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being
     ///   executed against.
-    pub fn parse_output_stack(stack: &StackOutputs) -> (Digest, Digest) {
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Two last words on the stack are not equal to zero words.
+    /// - Overflow addresses are not empty.
+    pub fn parse_output_stack(
+        stack: &StackOutputs,
+    ) -> Result<(Digest, Digest), TransactionOutputError> {
         let output_notes_hash = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
@@ -145,7 +152,25 @@ impl TransactionKernel {
             .expect("second word missing")
             .into();
 
-        (final_account_hash, output_notes_hash)
+        // make sure that the stack has been properly cleaned
+        let zero_word = [ZERO, ZERO, ZERO, ZERO];
+        if stack.get_stack_word(8).expect("third word missing") != zero_word {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Third word on output stack should consist only of ZEROs".into(),
+            ));
+        }
+        if stack.get_stack_word(12).expect("fourth word missing") != zero_word {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Fourth word on output stack should consist only of ZEROs".into(),
+            ));
+        }
+        if stack.has_overflow() {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Output stack should not have overflow addresses".into(),
+            ));
+        }
+
+        Ok((final_account_hash, output_notes_hash))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -169,7 +194,7 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack);
+        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack)?;
 
         // parse final account state
         let final_account_data: &[Word] = group_slice_elements(
