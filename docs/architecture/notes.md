@@ -35,11 +35,11 @@ Note consumption requires the transacting party to know the note data to compute
 ![Architecture core concepts](../img/architecture/note/note-life-cycle.png)
 </center>
 
-## Note creation
+### Note creation
 
 Notes are created as the outputs (`OutputNotes`) of Miden transactions. Operators record the notes to the [note database](state.md#note-database). After successful verification of the underlying transactions, those notes can be consumed.
 
-## The note script
+### The note script
 
 Every note has a script which gets executed at note consumption. It is always executed in the context of a single account, and thus, may invoke zero or more of the [account's functions](accounts.md#code). The script allows for more than just asset transfers; actions which could be of arbitrary complexity thanks to the Turing completeness of the Miden VM.
 
@@ -182,7 +182,7 @@ There are [standard note scripts](https://github.com/0xPolygonMiden/miden-base/t
 
     Lastly, the pointer gets incremented, and if there is a second asset, the loop continues (`movup.4 add.1 dup dup.6 neq`). Finally, when all assets were put into the account's vault, the stack is cleared (`drop dropw drop`).
 
-## Note storage mode
+### Note storage mode
 
 Similar to accounts, there are two storage modes for notes in Miden - private and public. Notes can be stored publicly in the [note database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#notes-database) with all data publicly visible for everyone. Alternatively, notes can be stored privately by committing only the note hash to the note database.
 
@@ -195,15 +195,15 @@ hash(hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash), vault_hash)
 !!! info
     To compute a note's hash, we do not need to know the note's `serial_num`. Knowing the hash of the `serial_num` (as well as `script_hash`, `input_hash` and `note_vault`) is also sufficient. We compute the hash of `serial_num` as `hash(serial_num, [0; 4])` to simplify processing within the VM._
 
-## Note discovery (note tags)
+### Note discovery (note tags)
 
-Note discovery describes the process by which Miden clients find notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag. Note tags are best-effort filters for notes registered on the network. They are lightweight values used to speed up queries. Clients can follow tags for specific use cases, such as swap scripts, or agree with a group of users on certain tags for their specific needs. Tags are also used by the operator to identify notes intended for network execution and include the corresponding information on how to execute them.
+Note discovery describes the process by which Miden clients find notes they want to consume. Miden clients can query the Miden node for notes carrying a certain note tag in their metadata. Note tags are best-effort filters for notes registered on the network. They are lightweight values (32-bit) used to speed up queries. Clients can follow tags for specific use cases, such as swap scripts, or user-created custom tags. Tags are also used by the operator to identify notes intended for network execution and include the corresponding information on how to execute them.
 
 ```arduino
 0b009f4adc47857e2f6
 ```
 
-The example note tag above indicates that the network operator (Miden node) executes the note against the account with the ID `0x09f4adc47857e2f6`. In this case, the note and the account against which it gets executed must be `public`.
+The example note tag above indicates that the network operator (Miden node) executes the note against the account with ID `0x09f4adc47857e2f6`. In this case, the note and the account against which it gets executed must be `public`.
 
 The two most signification bits of the note tag have the following interpretation:
 
@@ -214,15 +214,22 @@ The two most signification bits of the note tag have the following interpretatio
 | `0b10` | Local          | Any      | NoteType::Public  |
 | `0b11` | Local          | Any      | Any               |
 
-- Execution hint: Set to `Network` for network transactions. These notes will be validated and, if possible, consumed in a network transaction.
+- Execution hint: Set to `Network` for network transactions. These notes are validated and, if possible, consumed in a network transaction.
 - Target: Describes how to interpret the bits in the note tag. For tags with a specific target, the rest of the tag is interpreted as an `account_id`. For use case values, the meaning of the rest of the tag is not specified by the protocol and can be used by applications built on top of the rollup.
-- Note type: Describes the note's storage mode, either `public` or `private`.
+- Allowed note type: Describes the note's storage mode, either `public` or `private`.
 
-The following 30 bits can represent anything; from account IDs to use cases or any custom logic agreed upon.
+The following 30 bits can represent anything. In the above example note tag, it represents an account Id of a public account. As designed the first bit of a public account is always `0` which overlaps with the second most significant bit of the note tag.
 
 Using note tags is a compromise between privacy and latency. If a user queries the operator using the note ID, the operator learns which note a specific user is interested in. Alternatively, if a user always downloads all registered notes and filters locally, it is quite inefficient. By using tags, users can customize privacy parameters by narrowing or broadening their note tag schemes.
 
-## Note consumption
+??? note "Example note tag for P2ID"
+    P2ID scripts can only be consumed by the specified account Id (target Id). In the standard schema, the target Id is encoded into the note tag.
+
+    In case the P2ID note is intended for network execution, the note tag looks like the above example `0b009f4adc47857e2f6`. Here the Miden operator knows exactly against which account it the transaction must be executed.
+
+    In case the P2ID note is intended for local execution, the recipient needs to be able to discover that note. The recipient can query the Miden node for a specific tag, to see if there are new P2ID notes to be consumed. In that case the two most significant bits are set to `0b11`, which allows for any note type to be used (`private` or `public`), the following 14 bits are set to the 14 most significant bits of the account ID, and the remaining 16 bits are set to 0.
+
+### Note consumption
 
 As with creation, notes can only be consumed in Miden transactions. If a valid transaction consuming an `InputNote` gets verified by the Miden node, the note's unique nullifier gets added to the [nullifier database](https://0xpolygonmiden.github.io/miden-base/architecture/state.html#nullifier-database) and is therefore consumed.
 
