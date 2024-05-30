@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-* Removed the `mock` crate in favor of having mock code behind the `testing` flag on the remaining crates (#711)
+* Removed the `mock` crate in favor of having mock code behind the `testing` flag on the remaining crates (#711).
 * Implemented `build_recipient_hash` to build recipient hash for custom notes (#710).
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
