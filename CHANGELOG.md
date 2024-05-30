@@ -4,7 +4,8 @@
 
 ### Enhancements
 
-* Implemented `build_recipient_hash` to build recipient hash for custom notes (#710)
+* Removed the `mock` crate in favor of having mock code behind the `testing` flag on the remaining crates (#711)
+* Implemented `build_recipient_hash` to build recipient hash for custom notes (#710).
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).

@@ -33,7 +33,7 @@ repos:
       args: ["+stable", "check", "--all-targets"]
     - id: cargo
       name: Cargo check --all-targets --no-default-features
-      args: ["+stable", "check", "--no-default-features", "--workspace", "--exclude", "miden-mock"]
+      args: ["+stable", "check", "--no-default-features", "--workspace", "--exclude"]
     - id: cargo
       name: Cargo check --all-targets --all-features
       args: ["+stable", "check", "--all-targets", "--all-features", "--workspace"]
