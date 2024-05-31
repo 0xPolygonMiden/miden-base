@@ -54,8 +54,8 @@ pub const ACCT_ID_PTR: MemoryAddress = 101;
 /// The memory address at which the initial account hash is stored.
 pub const INIT_ACCT_HASH_PTR: MemoryAddress = 102;
 
-/// The memory address at which the global nullifier commitment is stored.
-pub const NULLIFIER_COMMITMENT_PTR: MemoryAddress = 103;
+/// The memory address at which the input notes commitment is stored.
+pub const INPUT_NOTES_COMMITMENT_PTR: MemoryAddress = 103;
 
 /// The memory address at which the initial nonce is stored.
 pub const INIT_NONCE_PTR: MemoryAddress = 104;

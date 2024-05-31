@@ -81,14 +81,16 @@ export.memory::get_block_hash
 #! num is the last known block number.
 export.memory::get_blk_num->get_block_number
 
-#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
-#! tuples over all input notes.
+#! Returns the input notes commitment hash.
+#!
+#! See `transaction::api::get_input_notes_commitment` for details.
 #!
 #! Inputs: []
-#! Outputs: [COM]
+#! Outputs: [INPUT_NOTES_COMMITMENT]
 #!
-#! COM is the input notes hash.
-export.memory::get_nullifier_commitment->get_input_notes_hash
+#! Where:
+#! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+export.memory::get_input_notes_commitment
 
 #! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
 #! tuples over all output notes.
