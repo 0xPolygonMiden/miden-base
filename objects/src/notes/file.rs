@@ -19,6 +19,7 @@ pub enum NoteFile {
 
 impl Serializable for NoteFile {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_bytes("note".as_bytes());
         match self {
             NoteFile::Details(details) => {
                 target.write_u8(0);
@@ -35,6 +36,10 @@ impl Serializable for NoteFile {
 
 impl Deserializable for NoteFile {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let magic_value = source.read_string(4)?;
+        if magic_value != "note" {
+            return Err(DeserializationError::InvalidValue(format!("Invalid note file marker: {magic_value}")));
+        }
         match source.read_u8()? {
             0 => Ok(NoteFile::Details(NoteDetails::read_from(source)?)),
             1 => {
