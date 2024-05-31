@@ -5,7 +5,9 @@ use miden_objects::accounts::{AccountDelta, AuthSecretKey};
 use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
-use crate::{error::AuthenticationError, signatures::get_falcon_signature};
+use crate::error::AuthenticationError;
+
+use super::signatures::get_falcon_signature;
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================
