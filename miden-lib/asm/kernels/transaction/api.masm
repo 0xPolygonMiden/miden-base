@@ -466,19 +466,23 @@ export.get_block_hash
     # => [BLOCK_HASH]
 end
 
-#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
-#! tuples over all input notes.
+#! Returns the input notes commitment.
+#!
+#! This is computed as a sequential hash of `(NULLIFIER, ZERO_OR_NOTEID)` over all input notes. The
+#! data `ZERO_OR_NOTEID` functions as a flag, if the value is set to zero, then the notes are
+#! authenticated by the transaction kernel. If the value is non-zero, then note authentication will
+#! be delayed to the batch/block kernel. The delayed authentication allows a transaction to consume a
+#! public note that is not yet included to a block.
 #!
 #! Inputs: [0, 0, 0, 0]
-#! Outputs: [COM]
+#! Outputs: [INPUT_NOTES_COMMITMENT]
 #!
-#! COM is the input notes hash.
-export.get_input_notes_hash
-    # get the input notes hash
-    exec.tx::get_input_notes_hash
+#! Where:
+#! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+export.get_input_notes_commitment
+    exec.tx::get_input_notes_commitment
     # => [COM, 0, 0, 0, 0]
 
-    # organize the stack for return
     swapw dropw
     # => [COM]
 end

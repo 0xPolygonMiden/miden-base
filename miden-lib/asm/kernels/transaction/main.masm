@@ -49,14 +49,14 @@ const.EPILOGUE_END=131081
 #! See `prologue::prepare_transaction` for additional details on the VM's initial state, including the
 #! advice provider.
 #!
-#! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Output:  [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
-#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - CREATED_NOTES_COMMITMENT, commitment to the notes created by the transaction.
 #! - FINAL_ACCOUNT_HASH, account's hash after execution the transaction.
 proc.main.1
