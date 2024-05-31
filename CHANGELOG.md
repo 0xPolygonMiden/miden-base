@@ -9,6 +9,8 @@
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
+* [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes. Now the data
+  is prefixed by its length, and the input and output notes encoding match (#707).
 
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).

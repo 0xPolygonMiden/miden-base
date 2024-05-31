@@ -36,152 +36,94 @@ const.EPILOGUE_END=131081
 # MAIN
 # =================================================================================================
 
-#! This is the entrypoint for the transaction kernel program. It is composed of the following
-#! program sections:
+#! Transaction kernel program.
 #!
-#! 1. Prologue: execute the transaction prologue which prepares the transaction for processing
-#!    by parsing the transaction data and setting up the root context.
-#! 2. Note Processing: execute the note processing loop which consumes each input note and
-#!    invokes the note script of each note via a `dyncall` instruction invocation.
-#! 3. Transaction Script Processing: execute the transaction script if it exists via the invocation
-#!    of a `dyncall` instruction.
-#! 4. Epilogue: execute the transaction epilogue which finalizes the transaction by computing the
-#!    created notes commitment, the final account hash, asserting asset invariant conditions and
-#!    asserting the nonce rules are upheld.
+#! This is the entry point of the transaction kernel, the program will perform the following
+#! operations:
 #!
-#! Stack:        [BH, acct_id, IAH, NC]
-#! Advice stack: [NR, PH, CR, SR, BR, PH, BN,
-#!                acct_id, ZERO, ZERO, nonce, AVR, ASR, ACR,
-#!                num_cn,
-#!                CN1_SN, CN1_SR, CN1_IR, CN1_VR, CN1_M, CN1_NA
-#!                CN1_A1, CN1_A2, ...
-#!                CN2_SN,CN2_SR, CN2_IR, CN2_VR, CN2_M, CN2_NA
-#!                CN2_A1, CN2_A2, ...,
-#!                ...,
-#!                TXSR]
-#! Output:       [CNC, FAH]
+#! 1. Run the prologue to prepare the transaction's root context.
+#! 2. Run all the notes' scripts.
+#! 3. Run the transaction script.
+#! 4. Run the epilogue to compute and validate the final state.
 #!
+#! See `prologue::prepare_transaction` for additional details on the VM's initial state, including the
+#! advice provider.
 #!
-#! - BH is the latest known block hash at the time of transaction execution.
-#! - acct_id is the account id of the account that the transaction is being executed against.
-#! - NR is the note root of the last known block.
-#! - PH is the previous hash of the last known block.
-#! - CR is the chain root of the last known block.
-#! - SR is the state root of the last known block.
-#! - BR is the batch root of the last known block.
-#! - PH is the proof hash of the last known block.
-#! - BN is the block number of the last known block ([block_number, 0, 0, 0]).
-#! - IAH is the initial account hash of the account that the transaction is being executed against.
-#! - NC is the nullifier commitment of the transaction. This is a sequential hash of all
-#!   (nullifier, script_root) pairs for the notes consumed in the transaction.
-#! - nonce is the account nonce.
-#! - AVR is the account vault root.
-#! - ASR is the account storage root.
-#! - ACR is the account code root.
-#! - num_cn is the number of consumed notes.
-#! - CN1_SN is the serial number of consumed note 1.
-#! - CN1_SR is the script root of consumed note 1.
-#! - CN1_IR is the inputs root of consumed note 1.
-#! - CN1_VR is the vault root of consumed note 1.
-#! - CN1_M is the metadata of consumed note 1.
-#! - CN1_NA are optional note args of consumed note 1.
-#! - CN1_A1 is the first asset of consumed note 1.
-#! - CN1_A2 is the second asset of consumed note 1.
-#! - CNC is the commitment to the notes created by the transaction.
-#! - FAH is the final account hash of the account that the transaction is being
-#!   executed against.
+#! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Output:  [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#!
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
+#! - account_id, the account that the transaction is being executed against.
+#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - CREATED_NOTES_COMMITMENT, commitment to the notes created by the transaction.
+#! - FINAL_ACCOUNT_HASH, account's hash after execution the transaction.
 proc.main.1
     # Prologue
     # ---------------------------------------------------------------------------------------------
-
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the execution of the prologue has started
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_START
 
-    # execute the transaction prologue
     exec.prologue::prepare_transaction
     # => []
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the execution of the prologue has ended
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the notes processing has started
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
-    # get the total number of consumed notes
     exec.memory::get_total_num_consumed_notes
     # => [num_consumed_notes]
 
-    # compute the pointer to the consumed note after the last consumed note (i.e. the pointer at
-    # which the looping should terminate)
+    # compute the memory location after all input notes, i.e. the exit condition
     dup exec.memory::get_consumed_note_ptr loc_store.0
     # => [num_consumed_notes]
 
-    # check if we have any notes to consume
     eq.0 not
     # => [should_loop]
 
-    # loop while we have notes to consume
     while.true
-        # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-        # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-        # emit trace to signal that the note execution has started
-        push.0 drop
+        push.0 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_START
+        # => []
 
-        # execute the note setup script
         exec.note::prepare_note
         # => [NOTE_SCRIPT_HASH, NOTE_ARGS]
 
-        # invoke the note script using the dyncall instruction
+        # run note's script
         dyncall
-        # => [OUTPUT_3, OUTPUT_2, OUTPUT_1, OUTPUT_0]
+        # => [X, X, X, X]
 
-        # clean up note script outputs
+        # Clear the stack, the note can leave up to 4 words on the stack due to the dyncall
         dropw dropw dropw dropw
         # => []
 
-        # check if we have more notes to consume and should loop again
         exec.note::increment_current_consumed_note_ptr
-        loc_load.0
-        neq
+        # => [current_consumed_note_ptr]
+
+        # loop condition, exit when the memory ptr is after all input notes
+        loc_load.0 neq
         # => [should_loop]
 
-        # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-        # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-        # emit trace to signal that the note execution has ended
-        push.0 drop
+        push.0 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_END
     end
 
-    # execute note processing teardown
     exec.note::note_processing_teardown
     # => []
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the notes processing has ended
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the processing of the transaction script has started
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_START
 
     # execute the transaction script
@@ -205,30 +147,22 @@ proc.main.1
         # => []
     end
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the processing of the transaction script has ended
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the execution of the epilogue has started
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
     # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    # TODO: we execute `push.0 drop` before `trace` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    # emit trace to signal that the execution of the epilogue has ended
-    push.0 drop
+    push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
+    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end
 
 begin

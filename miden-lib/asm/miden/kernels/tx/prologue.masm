@@ -59,9 +59,6 @@ const.ERR_PROLOGUE_ACCT_ID_MISMATCH=0x00020019
 # Reference block MMR and note's authentication MMR must match
 const.ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH=0x0002001A
 
-# Number of note inputs exceeded the maximum limit of 128
-const.ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS=0x0002001B
-
 # Number of note assets exceeded the maximum limit of 256
 const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 
@@ -162,7 +159,7 @@ end
 #! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
 #! reference block, and insert the reference block in the MMR. The reference block is added to the
 #! MMR so that notes created at this block can be consumed, since the MMR can't contain it and is
-#! always one block behind. The number MMR peaks in is variable, from 16 up to 63, depending on
+#! always one block behind. The number MMR peaks is variable, from 16 up to 63, depending on
 #! `num_blocks`.
 #!
 #! Stack: []
@@ -490,11 +487,12 @@ end
 # INPUT NOTES DATA
 # =================================================================================================
 
-#! Authenticate the input note data provided via the advice provider is consistent with the
-#! the chain history.  This is achieved by:
-#! - authenticating the MMR leaf associated with the block the note was created in.
-#! - authenticating the note root associated with the block the note was created in.
-#! - authenticating the note and its metadata in the note Merkle tree from the block the note was
+#! Authenticates the input note data.
+#!
+#! This procedure will:
+#! - authenticate the MMR leaf associated with the block the note was created in.
+#! - authenticate the note root associated with the block the note was created in.
+#! - authenticate the note and its metadata in the note Merkle tree from the block the note was
 #!   created in.
 #!
 #! Operand stack: [AUTH_DIGEST]
@@ -505,8 +503,8 @@ end
 #! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
 #! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
 #!   in. This is equivalent to the block number.
-#! - SUB_HASH is the sub hash of the block the note was created in.
-#! - NOTE_ROOT is the note root of the block the note was created in.
+#! - SUB_HASH, the block's sub_hash for which the note was created.
+#! - NOTE_ROOT, the merkle root of the note's tree.
 #! - note_index is the index of the note in the note Merkle tree.
 proc.authenticate_note.2
     # load data required for MMR get operation
@@ -556,101 +554,84 @@ end
 #! note hash.
 #!
 #! Stack: [idx]
-#! Advice stack: [SN, SR, IR, VR, NI, NA, A0, ..., An]
+#! Advice stack: [
+#!      SERIAL_NUMBER,
+#!      SCRIPT_ROOT,
+#!      INPUTS_HASH,
+#!      ASSETS_HASH,
+#!      METADATA,
+#!      ARGS,
+#!      assets_count,
+#!      ASSET_0, ..., ASSET_N,
+#!      block_num,
+#!      SUB_HASH,
+#!      NOTE_ROOT,
+#! ]
 #! Output: []
 #!
 #! Where:
 #! - idx is the index of the input note.
-#! - SN is the serial number of input note `idx`.
-#! - SR is the script root of input note `idx`.
-#! - IR is the inputs root of input note `idx`.
-#! - VR is the vault root of input note `idx`.
-#! - NI is the number of inputs in input note `idx`.
-#! - NA is the number of assets in input note `idx`.
-#! - A0..An are the assets of input note `idx`.
+#! - SERIAL_NUMBER, note's serial.
+#! - SCRIPT_ROOT, note's script root.
+#! - INPUTS_HASH, sequential hash of the padded note's inputs.
+#! - ASSETS_HASH, sequential hash of the padded note's assets.
+#! - METADATA, note's metadata.
+#! - ARGS, user arguments passed to the note.
+#! - assets_count, note's assets count.
+#! - ASSET_0, ..., ASSET_N, padded note's assets.
+#! - block_num, note's creation block number.
+#! - SUB_HASH, the block's sub_hash for which the note was created.
+#! - NOTE_ROOT, the merkle root of the note's tree.
 proc.process_input_note
-    # read core note data
+    # note details
     # ---------------------------------------------------------------------------------------------
 
-    # dup the note index
-    dup
-    # => [idx, idx]
-
-    # compute address to store note hash
-    exec.memory::get_consumed_note_ptr
+    dup exec.memory::get_consumed_note_ptr
     # => [note_ptr, idx]
 
-    # compute address to store core note data
     dup exec.memory::get_consumed_note_core_ptr
     # => [note_data_ptr, note_ptr, idx]
 
-    # read nullifier data from the advice provider (serial_num, script_hash, input_hash, asset_hash)
-    padw padw padw adv_pipe hperm adv_pipe hperm
-    # => [PERM, PERM, PERM, note_data_ptr + 4, note_ptr, idx]
+    # read note details (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
+    padw padw padw
+    adv_pipe hperm
+    adv_pipe hperm
+    exec.native::state_to_digest
+    # => [NULLIFIER, note_data_ptr + 4, note_ptr, idx]
 
-    # extract nullifier
-    exec.native::state_to_digest movup.4 drop
+    movup.4 drop
     # => [NULLIFIER, note_ptr, idx]
 
-    # compute address for nullifier
+    # save nullifier to memory
     movup.6 exec.memory::get_consumed_note_nullifier_ptr
-    # => [nullifier_ptr, NULLIFIER, note_ptr]
-
-    # store nullifier in memory and drop from stack
     mem_storew dropw
     # => [note_ptr]
 
-    # ingest note metadata
+    # metadata & args
     # ---------------------------------------------------------------------------------------------
 
-    # get the metadata from the advice provider and store in memory
-    padw adv_loadw dup.4
-    # => [note_ptr, NOTE_META, note_ptr]
-
-    exec.memory::set_consumed_note_metadata
+    padw adv_loadw dup.4 exec.memory::set_consumed_note_metadata
     # => [note_ptr]
 
-    # ingest note args
-    # ---------------------------------------------------------------------------------------------
-
-    # get the note args from the advice provider and store in memory
-    padw adv_loadw dup.4
-    # => [note_ptr, NOTE_ARGS, note_ptr]
-
-    exec.memory::set_consumed_note_args
+    padw adv_loadw dup.4 exec.memory::set_consumed_note_args
     # => [note_ptr]
 
-    # ingest number of note inputs
+    # assets
     # ---------------------------------------------------------------------------------------------
 
-    # get the number of inputs from the advice provider and store it in memory
-    adv_push.1 dup dup.2
-    exec.memory::set_consumed_note_num_inputs
-    # => [num_inputs, note_ptr]
-
-    # make sure the number of inputs is in the valid range
-    exec.constants::get_max_inputs_per_note lte
-    assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS
-    # => [note_ptr]
-
-    # ingest note assets
-    # ---------------------------------------------------------------------------------------------
-
-    # get the number of assets from the advice provider and store it in memory
-    adv_push.1 dup dup.2
-    exec.memory::set_consumed_note_num_assets
+    adv_push.1
     # => [num_assets, note_ptr]
 
-    # assert the number of assets is within limits
-    dup exec.constants::get_max_assets_per_note lte
-    assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
+    dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
     # => [num_assets, note_ptr]
 
-    # round up the number of assets to the next multiple of 2 (simplifies reading of assets)
+    dup dup.2 exec.memory::set_consumed_note_num_assets
+    # => [num_assets, note_ptr]
+
+    # round up the number of assets, to the its padded length
     dup push.1 u32and add
     # => [rounded_num_assets, note_ptr]
 
-    # initiate counter for assets
     push.0
     # => [counter, rounded_num_assets, note_ptr]
 
@@ -674,25 +655,22 @@ proc.process_input_note
     end
     # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
 
-    # extract digest
     exec.native::state_to_digest
-    # => [DIG, assets_ptr, counter, rounded_num_assets, note_ptr]
+    # => [ASSET_HASH_COMPUTED, assets_ptr, counter, rounded_num_assets, note_ptr]
 
     # clean and rearrange stack
     swapw drop drop drop dup movdn.5
-    # => [note_ptr, DIG, note_ptr]
+    # => [note_ptr, ASSET_HASH_COMPUTED, note_ptr]
 
     # get expected note vault from memory
     exec.memory::get_consumed_note_assets_hash
-    # => [V, DIG, note_ptr]
+    # => [ASSET_HASH, ASSET_HASH_COMPUTED, note_ptr]
 
     # assert that the computed hash matches the expected hash
     assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
     # => [note_ptr]
 
-    # TODO: make sure the last asset is not [ZERO; 4]?
-
-    # insert note assets into the input vault
+    # add the note assets into the input vault
     # ---------------------------------------------------------------------------------------------
     # prepare stack for iteration over note assets
     exec.memory::get_input_vault_root_ptr dup.1 exec.memory::get_consumed_note_assets_ptr
@@ -729,37 +707,31 @@ proc.process_input_note
     # clean stack
     drop drop drop
 
-    # compute note hash
+    # authentication hash
     # ---------------------------------------------------------------------------------------------
 
-    # TODO: This should be optimized using the `hperm` operation
-
-    # serial number hash - serial_hash = hmerge(serial_number, 0)
+    # compute the serial hash: hash(serial_num, ZERO)
     dup exec.memory::get_consumed_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
-    # hash serial_hash with script hash - merge_script = hmerge(serial_hash, script_hash)
+    # compute merge script hash: hash(hash(serial_num, ZERO), script_hash)
     dup.4 exec.memory::get_consumed_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
-    # hash merge_script with inputs hash - recipient = hmerge(merge_script, inputs_hash)
+    # compute recipient: hash(hash(hash(serial_num, ZERO), script_hash), input_hash)
     dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
     # => [RECIPIENT, note_ptr]
 
-    # hash recipient with vault hash - note_hash = hmerge(recipient, vault_hash)
+    # compute the note's id: hash(recipient, asset_hash)
     dup.4 exec.memory::get_consumed_note_assets_hash hmerge
-    # => [NOTE_HASH, note_ptr]
+    # => [NOTE_ID, note_ptr]
 
-    # store note hash in memory and clear stack
-    dup.4 exec.memory::set_consumed_note_hash
-    # => [NOTE_HASH]
+    # store note id in memory and clear stack
+    dup.4 exec.memory::set_consumed_note_id
+    # => [NOTE_ID]
 
-    # load the note metadata
-    movup.4 exec.memory::get_consumed_note_metadata
-    # => [NOTE_META, NOTE_HASH]
-
-    # merge the note hash with the note metadata to compute authentication digest
-    hmerge
+    # compute the authentication hash: hash(note_id, note_metadata)
+    movup.4 exec.memory::get_consumed_note_metadata hmerge
     # => [AUTH_DIGEST]
 
     exec.authenticate_note
@@ -772,18 +744,13 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
-#! Advice map: { NULLIFIER_COMMITMENT => [(SN, SR, IR, VR, M, NA, A0, ..., An){num_notes}] }
+#! Advice map: { NULLIFIER_COMMITMENT => NOTE_DATA }
 #! Output: []
 #!
+#! Where:
 #! - num_notes is the number of input notes.
 #! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
-#! - SN is the serial number of the nth input note.
-#! - SR is the script root of the nth input note.
-#! - IR is the inputs root of the nth input note.
-#! - VR is the vault root of the nth input note.
-#! - M is the metadata of the nth input note.
-#! - NA are optional note args for the nth input note.
-#! - A0..An are the assets of the nth input note.
+#! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
 proc.process_input_notes_data
     # get the number of input notes from the advice stack
     adv_push.1
@@ -884,18 +851,18 @@ end
 # TRANSACTION SCRIPT
 # =================================================================================================
 
-#! Reads the transaction script root from the advice provider stack and stores the root at the
-#! appropriate memory address.
+#! Saves the transaction script root to memory.
 #!
-#! Advice Stack: [TXSR]
+#! Advice Stack: [TX_SCRIPT_ROOT]
 #! Stack: []
 #! Output: []
 #!
-#! - TXSR is the transaction script root.
+#! Where:
+#! - TX_SCRIPT_ROOT, the transaction's script root.
 proc.process_tx_script_root
     # read the transaction script root from the advice stack
     adv_loadw
-    # => [TXSR]
+    # => [TX_SCRIPT_ROOT]
 
     # store the transaction script root in memory
     exec.memory::set_tx_script_root
@@ -935,11 +902,12 @@ end
 #!     TX_SCRIPT_ROOT,
 #! ]
 #! Advice map: {
-#!      NULLIFIER_COMMITMENT: [NOTE_DATA_1, ..., NOTE_DATA_N],
-#!      CHAIN_MMR_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N],
+#!      CHAIN_MMR_HASH: MMR_PEAKS,
+#!      NULLIFIER_COMMITMENT => NOTE_DATA,
 #! }
 #! Output: []
 #!
+#! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
@@ -960,9 +928,8 @@ end
 #! - ACCOUNT_CODE_ROOT, account's code root.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
-#! - NOTE_DATA_1 .. NOTE_DATA_N, the data of the input notes.
-#! - num_blocks, is the number of blocks in the MMR.
-#! - PEAK_1 .. PEAK_N, are the MMR peaks.
+#! - MMR_PEAKS, is the MMR peak data, see process_chain_data
+#! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
 export.prepare_transaction
     exec.process_global_inputs
     # => []

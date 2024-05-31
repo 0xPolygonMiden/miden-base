@@ -26,11 +26,11 @@ use crate::transaction::{
         CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_ARGS_OFFSET,
         CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
         CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
-        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_NUM_INPUTS_OFFSET,
-        CONSUMED_NOTE_SCRIPT_ROOT_OFFSET, CONSUMED_NOTE_SECTION_OFFSET,
-        CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, NOTE_ROOT_PTR,
-        NULLIFIER_COMMITMENT_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
-        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_SCRIPT_ROOT_PTR,
+        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
+        CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
+        INIT_NONCE_PTR, NOTE_ROOT_PTR, NULLIFIER_COMMITMENT_PTR, NULLIFIER_DB_ROOT_PTR,
+        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
+        TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
@@ -318,12 +318,6 @@ fn consumed_notes_memory_assertions(
             read_note_element(process, note_idx, CONSUMED_NOTE_ARGS_OFFSET),
             Word::from(note_args[note_idx as usize]),
             "note args should be stored at the correct offset"
-        );
-
-        assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_NUM_INPUTS_OFFSET),
-            [Felt::from(note.inputs().num_values() as u32), ZERO, ZERO, ZERO],
-            "number of inputs should be stored at the correct offset"
         );
 
         assert_eq!(
