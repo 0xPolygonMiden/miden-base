@@ -40,8 +40,7 @@ pub use error::{
     TransactionProverError, TransactionVerifierError, KERNEL_ERRORS,
 };
 
-mod signatures;
-pub use signatures::get_falcon_signature;
+pub mod signatures;
 
 #[cfg(test)]
 mod tests;
