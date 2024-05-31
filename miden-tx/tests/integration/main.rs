@@ -163,11 +163,11 @@ pub fn prove_and_verify_transaction(
 
 #[cfg(test)]
 pub fn get_new_pk_and_authenticator(
-) -> (Word, std::rc::Rc<miden_tx::host::BasicAuthenticator<rand::rngs::StdRng>>) {
+) -> (Word, std::rc::Rc<miden_tx::auth::BasicAuthenticator<rand::rngs::StdRng>>) {
     use std::rc::Rc;
 
     use miden_objects::accounts::AuthSecretKey;
-    use miden_tx::host::BasicAuthenticator;
+    use miden_tx::auth::BasicAuthenticator;
     use rand::rngs::StdRng;
 
     let seed = [0_u8; 32];

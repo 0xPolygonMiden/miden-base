@@ -15,7 +15,7 @@ use super::{
     RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
     TransactionHost,
 };
-use crate::host::TransactionAuthenticator;
+use crate::auth::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
