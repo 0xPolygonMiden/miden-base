@@ -1,3 +1,7 @@
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
+    ToTransactionKernelInputs,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -11,28 +15,22 @@ use miden_objects::{
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
     testing::{
         account::MockAccountType,
+        notes::AssetPreservationStatus,
         prepare_word,
         storage::{
             storage_item_0, storage_item_1, storage_item_2, storage_map_2, STORAGE_LEAVES_2,
         },
     },
 };
-use miden_tx::host::testing::{
+use miden_tx::testing::{
+    mock_executed_tx, mock_inputs,
     utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
     MockHost,
 };
+use vm_processor::{ContextId, Felt, MemAdviceProvider};
 
-use super::{
-    super::transaction::ToTransactionKernelInputs, ContextId, Felt, MemAdviceProvider,
-    ProcessState, StackInputs, Word, ONE, ZERO,
-};
-use crate::{
-    testing::{
-        mock_executed_tx, mock_inputs, notes::AssetPreservationStatus,
-        procedures::output_notes_data_procedure,
-    },
-    transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
-};
+use super::{ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::kernel_tests::output_notes_data_procedure;
 
 // ACCOUNT CODE TESTS
 // ================================================================================================

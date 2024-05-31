@@ -10,16 +10,17 @@ use miden_objects::{
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
         },
+        notes::AssetPreservationStatus,
         prepare_word,
+        storage::FAUCET_STORAGE_DATA_SLOT,
     },
 };
-use miden_tx::host::testing::utils::{prepare_transaction, run_tx};
+use miden_tx::testing::{
+    mock_inputs,
+    utils::{prepare_transaction, run_tx},
+};
 
 use super::ONE;
-use crate::{
-    testing::{mock_inputs, notes::AssetPreservationStatus},
-    transaction::memory::FAUCET_STORAGE_DATA_SLOT,
-};
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 

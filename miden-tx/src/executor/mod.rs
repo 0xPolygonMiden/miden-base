@@ -19,9 +19,6 @@ use crate::host::TransactionAuthenticator;
 mod data_store;
 pub use data_store::DataStore;
 
-#[cfg(feature = "testing")]
-pub mod testing;
-
 // TRANSACTION EXECUTOR
 // ================================================================================================
 

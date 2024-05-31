@@ -6,13 +6,16 @@ use miden_objects::{
         account::MockAccountType,
         assets::non_fungible_asset,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+        notes::AssetPreservationStatus,
         prepare_word,
     },
 };
-use miden_tx::host::testing::utils::{prepare_transaction, run_tx};
+use miden_tx::testing::{
+    mock_inputs,
+    utils::{prepare_transaction, run_tx},
+};
 
 use super::{Felt, Hasher, ProcessState, Word, ONE};
-use crate::testing::{mock_inputs, notes::AssetPreservationStatus};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {

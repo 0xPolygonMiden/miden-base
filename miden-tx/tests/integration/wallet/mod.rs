@@ -15,7 +15,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::{MockDataStore, TransactionExecutor};
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{

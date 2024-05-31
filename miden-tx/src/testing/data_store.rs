@@ -3,18 +3,18 @@
 
 use alloc::vec::Vec;
 
-use miden_lib::testing::{mock_inputs, mock_inputs_with_existing, notes::AssetPreservationStatus};
 use miden_objects::{
     accounts::{Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
-    testing::account::MockAccountType,
+    testing::{account::MockAccountType, notes::AssetPreservationStatus},
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
     },
     BlockHeader,
 };
 
+use super::{mock_inputs, mock_inputs_with_existing};
 use crate::{DataStore, DataStoreError};
 
 #[derive(Clone)]

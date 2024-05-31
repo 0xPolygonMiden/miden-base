@@ -1,28 +1,29 @@
 use alloc::vec::Vec;
 
+use miden_lib::transaction::memory::{
+    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
+    CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
+};
 use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::{account::MockAccountType, assets::non_fungible_asset, prepare_word},
+    testing::{
+        account::MockAccountType, assets::non_fungible_asset, notes::AssetPreservationStatus,
+        prepare_word,
+    },
     transaction::{OutputNote, OutputNotes},
 };
-use miden_tx::host::testing::{
+use miden_tx::testing::{
+    mock_inputs,
     utils::{prepare_transaction, run_tx, run_within_tx_kernel},
     MockHost,
 };
 use vm_processor::Process;
 
 use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::{
-    testing::{mock_inputs, notes::AssetPreservationStatus},
-    transaction::memory::{
-        CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-        CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
-    },
-};
 #[test]
 fn test_create_note() {
     let (tx_inputs, tx_args) =

@@ -1,3 +1,4 @@
+use miden_lib::transaction::memory;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -10,17 +11,17 @@ use miden_objects::{
     testing::{
         account::MockAccountType,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+        notes::AssetPreservationStatus,
         prepare_word,
     },
     AssetVaultError,
 };
-use miden_tx::host::testing::utils::{prepare_transaction, run_tx};
+use miden_tx::testing::{
+    mock_inputs,
+    utils::{prepare_transaction, run_tx},
+};
 
 use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
-use crate::{
-    testing::{mock_inputs, notes::AssetPreservationStatus},
-    transaction::memory,
-};
 
 #[test]
 fn test_get_balance() {

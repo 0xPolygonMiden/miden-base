@@ -1,21 +1,19 @@
 use alloc::{collections::BTreeMap, string::String};
 
+use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{
     notes::Note,
-    testing::{account::MockAccountType, prepare_word},
+    testing::{account::MockAccountType, notes::AssetPreservationStatus, prepare_word},
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
-use miden_tx::host::testing::{
+use miden_tx::testing::{
+    mock_inputs,
     utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
     MockHost,
 };
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::{
-    testing::{mock_inputs, notes::AssetPreservationStatus},
-    transaction::memory::CURRENT_CONSUMED_NOTE_PTR,
-};
 
 #[test]
 fn test_get_sender_no_sender() {

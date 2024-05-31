@@ -479,7 +479,6 @@ dependencies = [
  "miden-objects",
  "miden-processor",
  "miden-stdlib",
- "miden-tx",
 ]
 
 [[package]]

@@ -1,16 +1,15 @@
 use alloc::vec::Vec;
 
-use miden_tx::host::testing::utils::run_within_tx_kernel;
+use miden_lib::transaction::{
+    memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
+    ToTransactionKernelInputs,
+};
+use miden_objects::testing::notes::AssetPreservationStatus;
+use miden_tx::testing::{mock_executed_tx, utils::run_within_tx_kernel};
 
-use super::{build_module_path, ContextId, MemAdviceProvider, ProcessState, TX_KERNEL_DIR, ZERO};
-use crate::{
-    testing::{
-        mock_executed_tx, notes::AssetPreservationStatus, procedures::output_notes_data_procedure,
-    },
-    transaction::{
-        memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
-        ToTransactionKernelInputs,
-    },
+use super::{
+    build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, ProcessState,
+    TX_KERNEL_DIR, ZERO,
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";

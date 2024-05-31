@@ -16,7 +16,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::{MockDataStore, TransactionExecutor};
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 
 use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator};
 

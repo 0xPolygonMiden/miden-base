@@ -1,9 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_lib::{
-    testing::notes::AssetPreservationStatus,
-    transaction::{ToTransactionKernelInputs, TransactionKernel},
-};
+use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -27,6 +24,7 @@ use miden_objects::{
         },
         assets::non_fungible_asset,
         constants::{FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
+        notes::AssetPreservationStatus,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
@@ -40,7 +38,7 @@ use vm_processor::{
 };
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::executor::testing::MockDataStore;
+use crate::testing::data_store::MockDataStore;
 
 // TESTS
 // ================================================================================================

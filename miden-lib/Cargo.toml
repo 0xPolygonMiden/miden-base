@@ -19,7 +19,7 @@ concurrent = ["miden-objects/concurrent", "std"]
 default = ["std"]
 std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
-testing = ["miden-objects/testing", "miden-tx/testing"]
+testing = ["miden-objects/testing"]
 
 [dependencies]
 miden-objects = { path = "../objects", version = "0.4", default-features = false }
@@ -27,9 +27,6 @@ miden-stdlib = { workspace = true }
 
 [dev-dependencies]
 miden-objects = { path = "../objects", version = "0.4", default-features = false, features = [
-    "testing",
-] }
-miden-tx = { path = "../miden-tx", version = "0.4", default-features = false, features = [
     "testing",
 ] }
 vm-processor = { workspace = true, features = ["internals"] }

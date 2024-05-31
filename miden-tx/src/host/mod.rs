@@ -31,9 +31,6 @@ pub use tx_authenticator::{BasicAuthenticator, TransactionAuthenticator};
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-#[cfg(feature = "testing")]
-pub mod testing;
-
 use crate::KERNEL_ERRORS;
 
 // CONSTANTS
