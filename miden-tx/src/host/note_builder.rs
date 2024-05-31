@@ -65,14 +65,42 @@ impl OutputNoteBuilder {
                 return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
             }
             let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
-            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
             let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
             let serial_num = [data[8], data[9], data[10], data[11]];
-            let input_els = adv_provider.get_mapped_values(&inputs_key);
             let script_data = adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
 
-            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
-                .map_err(TransactionKernelError::MalformedNoteInputs)?;
+            let inputs_data = adv_provider.get_mapped_values(&inputs_hash);
+            let inputs = match inputs_data {
+                None => NoteInputs::default(),
+                Some(inputs) => {
+                    if inputs.is_empty() {
+                        return Err(TransactionKernelError::MissingNoteInputs);
+                    }
+
+                    let num_inputs = u64::from(inputs[0]) as usize;
+
+                    // There must be at least `num_inputs` elements in the advice provider data,
+                    // otherwise it is an error.
+                    //
+                    // It is possible to have more elements because of padding. The extra elements
+                    // will be discarded below, and later their contents will be validated by
+                    // computing the commitment and checking against the expected value.
+                    if num_inputs > (inputs.len() - 1) {
+                        return Err(TransactionKernelError::TooFewElementsForNoteInputs);
+                    }
+
+                    NoteInputs::new(inputs[1..=num_inputs].to_vec())
+                        .map_err(TransactionKernelError::MalformedNoteInputs)?
+                },
+            };
+
+            if inputs.commitment() != inputs_hash {
+                return Err(TransactionKernelError::InvalidNoteInputs {
+                    expected: inputs_hash,
+                    got: inputs.commitment(),
+                    data: inputs_data.map(|v| v.to_vec()),
+                });
+            }
 
             let script = NoteScript::try_from(script_data)
                 .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;

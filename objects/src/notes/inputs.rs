@@ -2,9 +2,9 @@ use alloc::vec::Vec;
 
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, NoteError,
-    Serializable, Word, WORD_SIZE, ZERO,
+    Serializable, WORD_SIZE, ZERO,
 };
-use crate::{MAX_INPUTS_PER_NOTE, ONE};
+use crate::MAX_INPUTS_PER_NOTE;
 
 // NOTE INPUTS
 // ================================================================================================
@@ -38,12 +38,7 @@ impl NoteInputs {
             return Err(NoteError::too_many_inputs(values.len()));
         }
 
-        let hash = {
-            let padded_values = pad_inputs(&values);
-            Hasher::hash_elements(&padded_values)
-        };
-
-        Ok(Self { values, hash })
+        Ok(pad_and_build(values))
     }
 
     // PUBLIC ACCESSORS
@@ -70,28 +65,25 @@ impl NoteInputs {
         &self.values
     }
 
-    /// Returns a vector of input values padded with ZEROs to the next multiple of 8.
-    pub fn to_padded_values(&self) -> Vec<Felt> {
-        pad_inputs(&self.values)
-    }
-
-    /// Returns a vector of input values.
-    pub fn to_vec(&self) -> Vec<Felt> {
-        self.values.to_vec()
-    }
-
-    // UTILITIES
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the key under which the raw (un-padded inputs) are located in the advice map.
+    /// Returns the note's input formatted to be used with the advice map.
     ///
-    /// TODO: eventually, this should go away. for now we need it because note inputs for input
-    /// notes are padded, while note inputs for expected output notes are not. switching to a
-    /// different padding scheme (e.g., RPX) would eliminate the need to have two different keys.
-    pub fn commitment_to_key(commitment: Digest) -> Digest {
-        let mut key: Word = commitment.into();
-        key[3] += ONE;
-        key.into()
+    /// The format is `input_len || INPUTS || PADDING`, where:
+    ///
+    /// - input_len is the number of inputs
+    /// - INPUTS is the variable inputs for the note
+    /// - PADDING is the optional padding to align the data with a 2WORD boundary
+    ///
+    pub fn format_for_advice(&self) -> Vec<Felt> {
+        // NOTE: keep map in sync with the `note::get_inputs` API procedure
+        let mut padded = pad_inputs(&self.values);
+        padded.insert(0, self.num_values().into());
+        padded
+    }
+}
+
+impl Default for NoteInputs {
+    fn default() -> Self {
+        pad_and_build(vec![])
     }
 }
 
@@ -117,6 +109,16 @@ fn pad_inputs(inputs: &[Felt]) -> Vec<Felt> {
     padded_inputs.resize(padded_len, ZERO);
 
     padded_inputs
+}
+
+/// Pad `values` and returns a new `NoteInputs`.
+fn pad_and_build(values: Vec<Felt>) -> NoteInputs {
+    let hash = {
+        let padded_values = pad_inputs(&values);
+        Hasher::hash_elements(&padded_values)
+    };
+
+    NoteInputs { values, hash }
 }
 
 // SERIALIZATION

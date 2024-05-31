@@ -6,7 +6,7 @@ use vm_processor::AdviceMap;
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::{NoteDetails, NoteId, NoteInputs},
+    notes::{NoteDetails, NoteId},
     vm::CodeBlock,
     TransactionScriptError,
 };
@@ -82,10 +82,8 @@ impl TransactionArgs {
         let script = note.script();
         let script_encoded: Vec<Felt> = script.into();
 
-        let inputs_key = NoteInputs::commitment_to_key(inputs.commitment());
-
         self.advice_map.insert(recipient.digest(), recipient.to_elements());
-        self.advice_map.insert(inputs_key, inputs.to_vec());
+        self.advice_map.insert(inputs.commitment(), inputs.format_for_advice());
         self.advice_map.insert(script.hash(), script_encoded);
     }
 
