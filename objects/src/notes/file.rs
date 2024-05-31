@@ -1,7 +1,7 @@
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-use super::{Note, NoteDetails, NoteInclusionProof};
+use super::{Note, NoteDetails, NoteId, NoteInclusionProof};
 
 // NOTE FILE
 // ================================================================================================
@@ -12,6 +12,8 @@ pub enum NoteFile {
     NoteDetails(NoteDetails),
     /// The note has been recorded on chain.
     NoteWithProof(Note, NoteInclusionProof),
+    /// The note's details aren't known.
+    NoteId(NoteId),
 }
 
 // SERIALIZATION
@@ -29,6 +31,10 @@ impl Serializable for NoteFile {
                 target.write_u8(1);
                 note.write_into(target);
                 proof.write_into(target);
+            },
+            NoteFile::NoteId(note_id) => {
+                target.write_u8(2);
+                note_id.write_into(target);
             },
         }
     }
@@ -49,6 +55,7 @@ impl Deserializable for NoteFile {
                 let proof = NoteInclusionProof::read_from(source)?;
                 Ok(NoteFile::NoteWithProof(note, proof))
             },
+            2 => Ok(NoteFile::NoteId(NoteId::read_from(source)?)),
             v => {
                 Err(DeserializationError::InvalidValue(format!("Unknown variant {v} for NoteFile")))
             },
