@@ -28,7 +28,9 @@ mod test_tx;
 // ================================================================================================
 
 fn build_module_path(dir: &str, file: &str) -> PathBuf {
-    [env!("CARGO_MANIFEST_DIR"), "asm", dir, file].iter().collect()
+    [env!("CARGO_MANIFEST_DIR"), "..", "miden-lib", "asm", dir, file]
+        .iter()
+        .collect()
 }
 
 // OUTPUT NOTES PROCEDURES
