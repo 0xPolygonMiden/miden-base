@@ -1,6 +1,5 @@
 #[cfg(not(feature = "sync"))]
 use alloc::boxed::Box;
-
 use alloc::vec::Vec;
 
 use maybe_async::maybe_async;

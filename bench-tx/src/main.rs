@@ -1,5 +1,4 @@
 use core::fmt;
-use maybe_async::{async_impl, maybe_async, sync_impl};
 use std::{
     fs::{read_to_string, write, File},
     io::Write,
@@ -7,6 +6,7 @@ use std::{
     rc::Rc,
 };
 
+use maybe_async::{async_impl, maybe_async, sync_impl};
 use miden_lib::{
     notes::create_p2id_note, transaction::ToTransactionKernelInputs, utils::Serializable,
 };
