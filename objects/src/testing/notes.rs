@@ -28,7 +28,7 @@ use crate::{
         Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
         NoteTag, NoteType,
     },
-    transaction::{OutputNote},
+    transaction::OutputNote,
     Felt, NoteError, Word, ZERO,
 };
 
