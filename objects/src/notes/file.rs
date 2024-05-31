@@ -9,7 +9,7 @@ use super::{Note, NoteDetails, NoteInclusionProof};
 /// A serialized representation of a note.
 pub enum NoteFile {
     /// The note has not yet been recorded on chain.
-    DetailsOnly(NoteDetails),
+    NoteDetails(NoteDetails),
     /// The note has been recorded on chain.
     NoteWithProof(Note, NoteInclusionProof),
 }
@@ -21,7 +21,7 @@ impl Serializable for NoteFile {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_bytes("note".as_bytes());
         match self {
-            NoteFile::DetailsOnly(details) => {
+            NoteFile::NoteDetails(details) => {
                 target.write_u8(0);
                 details.write_into(target);
             },
@@ -43,7 +43,7 @@ impl Deserializable for NoteFile {
             )));
         }
         match source.read_u8()? {
-            0 => Ok(NoteFile::DetailsOnly(NoteDetails::read_from(source)?)),
+            0 => Ok(NoteFile::NoteDetails(NoteDetails::read_from(source)?)),
             1 => {
                 let note = Note::read_from(source)?;
                 let proof = NoteInclusionProof::read_from(source)?;
