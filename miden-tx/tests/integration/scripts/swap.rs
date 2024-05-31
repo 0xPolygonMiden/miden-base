@@ -11,7 +11,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::storage::DEFAULT_AUTH_SCRIPT,
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt, ZERO,
 };

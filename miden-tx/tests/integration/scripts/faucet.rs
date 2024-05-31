@@ -14,7 +14,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::storage::prepare_word,
+    testing::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };

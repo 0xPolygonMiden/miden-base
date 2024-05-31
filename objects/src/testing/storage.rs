@@ -1,33 +1,31 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::String, vec::Vec};
 
-use assembly::{ast::ModuleAst, Assembler};
+use assembly::Assembler;
 use miden_crypto::merkle::Smt;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
 use super::{
-    assets::{non_fungible_asset, non_fungible_asset_2},
-    constants::{FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE},
+    account_code::mock_account_code, assets::non_fungible_asset_2,
+    constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word,
 };
 use crate::{
     accounts::{
         account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
         code::testing::make_account_code,
-        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
+        get_account_seed_single, Account, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
         StorageMap, StorageSlot, StorageSlotType,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
+    testing::account::mock_account,
 };
 
 #[derive(Default, Debug, Clone)]
@@ -116,232 +114,6 @@ pub fn storage_item_2() -> SlotItem {
         index: STORAGE_INDEX_2,
         slot: StorageSlot::new_map(Word::from(storage_map_2().root())),
     }
-}
-
-/// Creates an [AssetVault] with 4 assets.
-///
-/// The ids of the assets added to the vault are defined by the following constants:
-///
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
-/// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
-///
-fn mock_account_vault() -> AssetVault {
-    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let fungible_asset =
-        Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
-    let fungible_asset_1 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
-    let fungible_asset_2 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
-        .unwrap()
-}
-
-pub fn mock_account_storage() -> AccountStorage {
-    // create account storage
-    AccountStorage::new(
-        vec![storage_item_0(), storage_item_1(), storage_item_2()],
-        vec![storage_map_2()],
-    )
-    .unwrap()
-}
-
-// The MAST root of the default account's interface. Use these constants to interact with the
-// account's procedures.
-const MASTS: [&str; 11] = [
-    "0x74de7e94e5afc71e608f590c139ac51f446fc694da83f93d968b019d1d2b7306",
-    "0xf5f4a93b873d3dc236539d5566d245ac5e5bc6be75fc5af4235a52fe091077ae",
-    "0xd765111e22479256e87a57eaf3a27479d19cc876c9a715ee6c262e0a0d47a2ac",
-    "0x17b326d5403115afccc0727efa72bd929bfdc7bbf284c7c28a7aadade5d4cc9d",
-    "0x6682a0e0f4e49820e5c547f1b60a82cb326a56c972999e36bf6d45459393ac87",
-    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x49fee714925e6b287136494465184a84495cedb35fce3ab3a13f68ad48751596",
-    "0xfe4b6f0a485393583f5b6de9edca2f133f3e7ad0c3e631eadd0d18e89bfdbfe0",
-    "0x976ff83372d5e5f4618927de2f64ebc14cd0a2c651ddded4ba0485973aa03caa",
-    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
-    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
-];
-pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
-pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
-pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
-pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
-pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[8];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
-
-// ACCOUNT ASSEMBLY CODE
-// ================================================================================================
-
-pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::contracts::wallets::basic->basic_wallet
-    use.miden::contracts::auth::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
-";
-
-pub const DEFAULT_AUTH_SCRIPT: &str = "
-    use.miden::contracts::auth::basic->auth_tx
-
-    begin
-        call.auth_tx::auth_tx_rpo_falcon512
-    end
-";
-
-pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
-    let account_code = "\
-            use.miden::account
-            use.miden::tx
-            use.miden::contracts::wallets::basic->wallet
-
-            # acct proc 0
-            export.wallet::receive_asset
-            # acct proc 1
-            export.wallet::send_asset
-
-            # acct proc 2
-            export.incr_nonce
-                push.0 swap
-                # => [value, 0]
-
-                exec.account::incr_nonce
-                # => [0]
-            end
-
-            # acct proc 3
-            export.set_item
-                exec.account::set_item
-                # => [R', V, 0, 0, 0]
-
-                movup.8 drop movup.8 drop movup.8 drop
-                # => [R', V]
-            end
-
-            # acct proc 4
-            export.set_map_item
-                exec.account::set_map_item
-                # => [R', V, 0, 0, 0]
-
-                movup.8 drop movup.8 drop movup.8 drop
-                # => [R', V]
-            end
-
-            # acct proc 5
-            export.set_code
-                padw swapw
-                # => [CODE_ROOT, 0, 0, 0, 0]
-
-                exec.account::set_code
-                # => [0, 0, 0, 0]
-            end
-
-            # acct proc 6
-            export.create_note
-                exec.tx::create_note
-                # => [ptr]
-
-                swap drop swap drop swap drop
-            end
-
-            # acct proc 7
-            export.add_asset_to_note
-                exec.tx::add_asset_to_note
-                # => [ptr]
-
-                swap drop swap drop swap drop
-            end
-
-            # acct proc 8
-            export.remove_asset
-                exec.account::remove_asset
-                # => [ASSET]
-            end
-
-            # acct proc 9
-            export.account_procedure_1
-                push.1.2
-                add
-            end
-
-            # acct proc 10
-            export.account_procedure_2
-                push.2.1
-                sub
-            end
-            ";
-    let account_module_ast = ModuleAst::parse(account_code).unwrap();
-    let code = AccountCode::new(account_module_ast, assembler).unwrap();
-
-    // Ensures the mast root constants match the latest version of the code.
-    //
-    // The constants will change if the library code changes, and need to be updated so that the
-    // tests will work properly. If these asserts fail, copy the value of the code (the left
-    // value), into the constants.
-    //
-    // Comparing all the values together, in case multiple of them change, a single test run will
-    // detect it.
-    let current = [
-        code.procedures()[0].to_hex(),
-        code.procedures()[1].to_hex(),
-        code.procedures()[2].to_hex(),
-        code.procedures()[3].to_hex(),
-        code.procedures()[4].to_hex(),
-        code.procedures()[5].to_hex(),
-        code.procedures()[6].to_hex(),
-        code.procedures()[7].to_hex(),
-        code.procedures()[8].to_hex(),
-        code.procedures()[9].to_hex(),
-        code.procedures()[10].to_hex(),
-    ];
-    assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
-
-    code
-}
-
-// MOCK ACCOUNT
-// ================================================================================================
-
-#[derive(Debug, PartialEq)]
-pub enum MockAccountType {
-    StandardNew,
-    StandardExisting,
-    FungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
-    NonFungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
-}
-
-pub fn mock_new_account(assembler: &Assembler) -> Account {
-    let (acct_id, _account_seed) =
-        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain, assembler);
-    let account_storage = mock_account_storage();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
-}
-
-pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
-    let account_storage = mock_account_storage();
-    let account_vault = mock_account_vault();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
 }
 
 // MOCK FAUCET
@@ -533,10 +305,6 @@ pub fn build_assets() -> (Asset, Asset) {
     let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
 
     (asset_0, asset_1)
-}
-
-pub fn prepare_word(word: &Word) -> String {
-    word.iter().map(|x| x.as_int().to_string()).collect::<Vec<_>>().join(".")
 }
 
 pub fn prepare_assets(note_assets: &NoteAssets) -> Vec<String> {

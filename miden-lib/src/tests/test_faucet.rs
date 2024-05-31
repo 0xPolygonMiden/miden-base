@@ -5,11 +5,12 @@ use miden_objects::{
     },
     assets::FungibleAsset,
     testing::{
+        account::MockAccountType,
         assets::{non_fungible_asset, non_fungible_asset_2},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
         },
-        storage::{prepare_word, MockAccountType},
+        prepare_word,
     },
 };
 use miden_tx::host::testing::utils::{prepare_transaction, run_tx};

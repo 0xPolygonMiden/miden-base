@@ -7,12 +7,11 @@ use miden_objects::{
     },
     notes::Note,
     testing::{
+        account::{mock_account, mock_new_account, MockAccountType},
+        account_code::mock_account_code,
         block::mock_chain_data,
         build_dummy_tx_program,
-        storage::{
-            mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
-            mock_non_fungible_faucet, MockAccountType,
-        },
+        storage::{mock_fungible_faucet, mock_non_fungible_faucet},
     },
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,

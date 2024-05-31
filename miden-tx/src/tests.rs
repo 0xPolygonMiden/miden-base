@@ -20,14 +20,15 @@ use miden_objects::{
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
-        assets::non_fungible_asset,
-        constants::{FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
-        storage::{
-            prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+        account_code::{
+            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
             ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
-            STORAGE_INDEX_0, STORAGE_INDEX_2,
         },
+        assets::non_fungible_asset,
+        constants::{FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
+        prepare_word,
+        storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
     Felt, Word, ZERO,
@@ -141,7 +142,6 @@ fn executed_transaction_account_delta() {
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
-
     let tx_script = format!(
         "\
         use.miden::account

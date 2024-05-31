@@ -8,8 +8,9 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::{
+        account::MockAccountType,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        storage::{prepare_word, MockAccountType},
+        prepare_word,
     },
     AssetVaultError,
 };

@@ -1,7 +1,7 @@
 use alloc::string::String;
 
 use miden_objects::{
-    testing::storage::{prepare_assets, prepare_word},
+    testing::{prepare_word, storage::prepare_assets},
     transaction::{OutputNote, OutputNotes},
 };
 

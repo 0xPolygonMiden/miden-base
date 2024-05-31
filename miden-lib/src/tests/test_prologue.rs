@@ -2,7 +2,10 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
     assembly::ProgramAst,
-    testing::storage::{generate_account_seed, AccountSeedType, MockAccountType},
+    testing::{
+        account::MockAccountType,
+        storage::{generate_account_seed, AccountSeedType},
+    },
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
     Digest,
 };

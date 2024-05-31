@@ -74,8 +74,7 @@ pub fn get_account_with_default_account_code(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    use miden_objects::testing::storage::DEFAULT_ACCOUNT_CODE;
-
+    use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
     let account_assembler = TransactionKernel::assembler();

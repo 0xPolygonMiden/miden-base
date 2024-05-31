@@ -13,7 +13,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::{NoteScript, NoteType},
-    testing::storage::DEFAULT_AUTH_SCRIPT,
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt,
 };

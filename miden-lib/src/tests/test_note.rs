@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, string::String};
 
 use miden_objects::{
     notes::Note,
-    testing::storage::{prepare_word, MockAccountType},
+    testing::{account::MockAccountType, prepare_word},
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };

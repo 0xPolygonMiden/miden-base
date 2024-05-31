@@ -9,9 +9,12 @@ use miden_objects::{
         AccountId, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    testing::storage::{
-        prepare_word, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
-        MockAccountType, STORAGE_LEAVES_2,
+    testing::{
+        account::MockAccountType,
+        prepare_word,
+        storage::{
+            storage_item_0, storage_item_1, storage_item_2, storage_map_2, STORAGE_LEAVES_2,
+        },
     },
 };
 use miden_tx::host::testing::{

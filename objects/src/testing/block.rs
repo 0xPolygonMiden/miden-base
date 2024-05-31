@@ -10,9 +10,10 @@ use winter_rand_utils as rand;
 
 use super::{
     account::AccountBuilder,
+    account_code::DEFAULT_ACCOUNT_CODE,
     account_id::{account_id_build_details, AccountIdBuilder},
     assets::{FungibleAssetBuilder, NonFungibleAssetBuilder},
-    storage::{AccountStorageBuilder, DEFAULT_ACCOUNT_CODE},
+    storage::AccountStorageBuilder,
 };
 use crate::{
     accounts::{Account, AccountId, AccountStorageType, AccountType, SlotItem},

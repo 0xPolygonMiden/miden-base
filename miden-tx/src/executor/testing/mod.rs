@@ -8,7 +8,7 @@ use miden_objects::{
     accounts::{Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
-    testing::storage::MockAccountType,
+    testing::account::MockAccountType,
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
     },

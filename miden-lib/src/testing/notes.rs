@@ -13,12 +13,11 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::{
+        account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         assets::non_fungible_asset_2,
         constants::{CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT},
-        storage::{
-            prepare_assets, prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
-            ACCOUNT_CREATE_NOTE_MAST_ROOT,
-        },
+        prepare_word,
+        storage::prepare_assets,
     },
     transaction::OutputNote,
     Felt, Word, ZERO,

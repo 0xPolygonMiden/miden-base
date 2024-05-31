@@ -3,7 +3,7 @@ use alloc::string::{String, ToString};
 use assembly::{ast::ModuleAst, Assembler};
 use rand::Rng;
 
-use super::{account::AccountBuilderError, storage::DEFAULT_ACCOUNT_CODE};
+use super::{account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE};
 use crate::{
     accounts::{AccountCode, AccountId, AccountStorageType, AccountType},
     AccountError, Digest, Word,

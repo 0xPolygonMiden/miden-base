@@ -3,9 +3,10 @@ use miden_objects::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     testing::{
+        account::MockAccountType,
         assets::non_fungible_asset,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        storage::{prepare_word, MockAccountType},
+        prepare_word,
     },
 };
 use miden_tx::host::testing::utils::{prepare_transaction, run_tx};

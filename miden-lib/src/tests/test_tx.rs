@@ -6,10 +6,7 @@ use miden_objects::{
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::{
-        assets::non_fungible_asset,
-        storage::{prepare_word, MockAccountType},
-    },
+    testing::{account::MockAccountType, assets::non_fungible_asset, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
 use miden_tx::host::testing::{
