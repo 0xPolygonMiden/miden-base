@@ -35,11 +35,13 @@ Storage for user-defined data that is composed of two components.
 
 1. Storage slots: Users have access to `254` slots. Per slot, users can store a `word` (~32 bytes). Currently, we reserve slot `0` for the account owner's key and slot `255` for information about the storage layout.
 
-2. Storage maps: Users requiring additional storage can use the second component a `StorageMap`. A storage map is a key-value store where both keys and values are `word`s (~32 bytes). Thus, a single storage map can store huge amounts of data. Under the hood, storage maps are implemented as Sparse Merkle trees, and the root of the roots of these trees are stored in storage slots. So, a single account can contain up to 254 `StorageMaps`.
+2. Storage maps: Users requiring additional storage can use a `StorageMap`. A storage map is a key-value store where both keys and values are `word`s (~32 bytes). A single storage map can store huge amounts of data (e.g., up to $2^{256}$ words per map). The roots of the storage maps are stored in storage slots. So, a single account can contain up to 254 storage maps.
+
+As described below, accounts can be stored off-chain (private) and on-chain (public). Accounts that store huge amounts of data, as it is possible using storage maps, are better designed as off-chain accounts.
 
 ### Nonce
 
-A counter which increments whenever the account state changes. 
+A counter which increments whenever the account state changes.
 
 Nonce values must be strictly monotonically increasing and increment by any value smaller than `2^32` for every account update.
 

@@ -196,7 +196,7 @@ const ERR_PROLOGUE_ACCT_HASH_MISMATCH: u32 = 131095;
 const ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO: u32 = 131096;
 const ERR_PROLOGUE_ACCT_ID_MISMATCH: u32 = 131097;
 const ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH: u32 = 131098;
-const ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS: u32 = 131099;
+const ERR_NOTE_TOO_MANY_INPUTS: u32 = 131099;
 const ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS: u32 = 131100;
 const ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH: u32 = 131101;
 const ERR_PROLOGUE_TOO_MANY_INPUT_NOTES: u32 = 131102;
@@ -269,7 +269,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO, "Existing account must have a non-zero nonce"),
     (ERR_PROLOGUE_ACCT_ID_MISMATCH, "Provided account ids via global inputs and advice provider do not match"),
     (ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH, "Reference block MMR and note's authentication MMR must match"),
-    (ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS, "Number of note inputs exceeded the maximum limit of 128"),
+    (ERR_NOTE_TOO_MANY_INPUTS, "Number of note inputs exceeded the maximum limit of 128"),
     (ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS, "Number of note assets exceeded the maximum limit of 256"),
     (ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH, "Provided info about assets of an input do not match its commitment"),
     (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1023"),

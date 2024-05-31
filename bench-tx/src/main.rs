@@ -17,7 +17,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::BasicAuthenticator, testing::data_store::MockDataStore, utils::Serializable,
+    auth::BasicAuthenticator, testing::data_store::MockDataStore, utils::Serializable,
     TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
