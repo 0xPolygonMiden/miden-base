@@ -19,7 +19,7 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    host::BasicAuthenticator, TransactionExecutor, TransactionHost, TransactionProgress,
+    auth::BasicAuthenticator, TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
