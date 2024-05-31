@@ -1,13 +1,11 @@
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
-        testing::{prepare_word, MockAccountType},
+    accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     testing::{
+        assets::non_fungible_asset,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        non_fungible_asset,
+        storage::{prepare_word, MockAccountType},
     },
 };
 use miden_tx::host::testing::utils::{prepare_transaction, run_tx};

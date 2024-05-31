@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeMap, string::String};
 
 use miden_objects::{
-    accounts::testing::{prepare_word, MockAccountType},
     notes::Note,
+    testing::storage::{prepare_word, MockAccountType},
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };

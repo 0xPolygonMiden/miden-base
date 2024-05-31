@@ -149,10 +149,10 @@ mod tests {
                 ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
                 ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             },
-            testing::build_assets,
             AccountId,
         },
         assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        testing::storage::build_assets,
     };
 
     #[test]

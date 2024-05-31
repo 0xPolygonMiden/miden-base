@@ -11,12 +11,6 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        testing::{
-            prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
-            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
-            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
-            STORAGE_INDEX_0, STORAGE_INDEX_2,
-        },
         AccountCode,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
@@ -26,8 +20,14 @@ use miden_objects::{
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
+        assets::non_fungible_asset,
         constants::{FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
-        non_fungible_asset,
+        storage::{
+            prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
+            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            STORAGE_INDEX_0, STORAGE_INDEX_2,
+        },
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
     Felt, Word, ZERO,
@@ -265,7 +265,6 @@ fn executed_transaction_account_delta() {
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
     );
-
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args =
@@ -502,7 +501,6 @@ fn executed_transaction_output_notes() {
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
-
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness

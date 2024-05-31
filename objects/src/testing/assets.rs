@@ -1,15 +1,14 @@
 use rand::{distributions::Standard, Rng};
 
-use super::FungibleAsset;
+use super::constants::{self, NON_FUNGIBLE_ASSET_DATA_2};
 use crate::{
     accounts::{AccountId, AccountType},
-    assets::{NonFungibleAsset, NonFungibleAssetDetails},
+    assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     AssetError,
 };
 
 /// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied times.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetDetailsBuilder<T> {
     faucet_id: AccountId,
     rng: T,
@@ -17,7 +16,6 @@ pub struct NonFungibleAssetDetailsBuilder<T> {
 
 /// Builder for an `FungibleAsset`, the builder can be configured and used multiplied times.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct FungibleAssetBuilder {
     faucet_id: AccountId,
     amount: u64,
@@ -40,7 +38,6 @@ impl<T: Rng> NonFungibleAssetDetailsBuilder<T> {
 
 /// Builder for an `NonFungibleAsset`, the builder can be configured and used multiplied times.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NonFungibleAssetBuilder<T> {
     details_builder: NonFungibleAssetDetailsBuilder<T>,
 }
@@ -85,4 +82,25 @@ impl FungibleAssetBuilder {
     pub fn build(&self) -> Result<FungibleAsset, AssetError> {
         FungibleAsset::new(self.faucet_id, self.amount)
     }
+}
+
+pub fn non_fungible_asset(account_id: u64) -> Asset {
+    let non_fungible_asset_details = NonFungibleAssetDetails::new(
+        AccountId::try_from(account_id).unwrap(),
+        constants::NON_FUNGIBLE_ASSET_DATA.to_vec(),
+    )
+    .unwrap();
+    let non_fungible_asset = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
+    Asset::NonFungible(non_fungible_asset)
+}
+
+pub fn non_fungible_asset_2(account_id: u64) -> Asset {
+    let non_fungible_asset_2_details: NonFungibleAssetDetails = NonFungibleAssetDetails::new(
+        AccountId::try_from(account_id).unwrap(),
+        NON_FUNGIBLE_ASSET_DATA_2.to_vec(),
+    )
+    .unwrap();
+    let non_fungible_asset_2: NonFungibleAsset =
+        NonFungibleAsset::new(&non_fungible_asset_2_details).unwrap();
+    Asset::NonFungible(non_fungible_asset_2)
 }

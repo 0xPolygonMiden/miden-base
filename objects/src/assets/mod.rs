@@ -18,9 +18,6 @@ pub use token_symbol::TokenSymbol;
 mod vault;
 pub use vault::AssetVault;
 
-#[cfg(feature = "testing")]
-pub mod testing;
-
 // ASSET
 // ================================================================================================
 

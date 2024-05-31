@@ -2,27 +2,25 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::fmt::Display;
 
-use assembly::Assembler;
+use assembly::{ast::ModuleAst, Assembler};
+use miden_crypto::merkle::MerkleError;
 use rand::Rng;
 
 use super::{
     account_id::{str_to_account_code, AccountIdBuilder},
-    AccountBuilderError,
+    storage::{AccountStorageBuilder, DEFAULT_ACCOUNT_CODE},
 };
 use crate::{
-    accounts::{
-        storage::testing::AccountStorageBuilder, testing::DEFAULT_ACCOUNT_CODE, Account,
-        AccountStorage, AccountStorageType, AccountType, SlotItem,
-    },
+    accounts::{Account, AccountCode, AccountStorage, AccountStorageType, AccountType, SlotItem},
     assets::{Asset, AssetVault},
-    Felt, Word, ZERO,
+    AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
 /// Builder for an `Account`, the builder allows for a fluent API to construct an account. Each
 /// account needs a unique builder.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountBuilder<T> {
     assets: Vec<Asset>,
     storage_builder: AccountStorageBuilder,
@@ -137,4 +135,47 @@ impl<T: Rng> AccountBuilder<T> {
             .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
+}
+
+#[derive(Debug)]
+pub enum AccountBuilderError {
+    AccountError(AccountError),
+    AssetVaultError(AssetVaultError),
+    MerkleError(MerkleError),
+
+    /// When the created [AccountId] doesn't match the builder's configured [AccountType].
+    SeedAndAccountTypeMismatch,
+
+    /// When the created [AccountId] doesn't match the builder's `on_chain` config.
+    SeedAndOnChainMismatch,
+}
+
+impl Display for AccountBuilderError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AccountBuilderError {}
+
+// TESTING
+// ================================================================================================
+
+pub const CODE: &str = "
+        export.foo
+            push.1 push.2 mul
+        end
+
+        export.bar
+            push.1 push.2 add
+        end
+    ";
+
+pub fn make_account_code() -> AccountCode {
+    let mut module = ModuleAst::parse(CODE).unwrap();
+    // clears are needed since they're not serialized for account code
+    module.clear_imports();
+    module.clear_locations();
+    AccountCode::new(module, &Assembler::default()).unwrap()
 }

@@ -3,37 +3,75 @@ use alloc::{
     vec::Vec,
 };
 
+use assembly::{ast::ModuleAst, Assembler};
+use miden_crypto::merkle::Smt;
+use vm_core::{Felt, FieldElement, Word, ZERO};
+use vm_processor::Digest;
+
 use super::{
-    account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-    code::testing::make_account_code, AccountDelta, AccountStorageDelta, AccountVaultDelta,
-    StorageSlotType,
+    assets::{non_fungible_asset, non_fungible_asset_2},
+    constants::{FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE},
 };
 use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountCode, AccountId, AccountStorage,
-        AccountStorageType, AccountType, SlotItem, StorageMap, StorageSlot,
+        code::testing::make_account_code,
+        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
+        AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
+        StorageMap, StorageSlot, StorageSlotType,
     },
-    assembly::{Assembler, ModuleAst},
     assets::{Asset, AssetVault, FungibleAsset},
-    crypto::{hash::rpo::RpoDigest, merkle::Smt},
     notes::NoteAssets,
-    testing::{
-        constants::{FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE},
-        non_fungible_asset, non_fungible_asset_2,
-    },
-    Felt, FieldElement, Word, ZERO,
 };
 
-pub mod builders;
-pub mod chain;
+#[derive(Default, Debug, Clone)]
+pub struct AccountStorageBuilder {
+    items: Vec<SlotItem>,
+    maps: Vec<StorageMap>,
+}
 
-// ACCOUNT STORAGE
+/// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
+impl AccountStorageBuilder {
+    pub fn new() -> Self {
+        Self { items: vec![], maps: vec![] }
+    }
+
+    pub fn add_item(&mut self, item: SlotItem) -> &mut Self {
+        self.items.push(item);
+        self
+    }
+
+    pub fn add_items<I: IntoIterator<Item = SlotItem>>(&mut self, items: I) -> &mut Self {
+        for item in items.into_iter() {
+            self.add_item(item);
+        }
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn add_map(&mut self, map: StorageMap) -> &mut Self {
+        self.maps.push(map);
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
+        self.maps.extend(maps);
+        self
+    }
+
+    pub fn build(&self) -> AccountStorage {
+        AccountStorage::new(self.items.clone(), self.maps.clone()).unwrap()
+    }
+}
+
+// ACCOUNT STORAGE UTILS
 // ================================================================================================
 
 pub const FAUCET_STORAGE_DATA_SLOT: u8 = 254;
@@ -44,13 +82,13 @@ pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
 
 pub const STORAGE_INDEX_2: u8 = 40;
-pub const STORAGE_LEAVES_2: [(RpoDigest, Word); 2] = [
+pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
     (
-        RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+        Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
         [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
     ),
     (
-        RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+        Digest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
         [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
     ),
 ];

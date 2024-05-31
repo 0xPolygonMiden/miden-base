@@ -2,15 +2,18 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        testing::{
-            chain::mock_chain_data, mock_account, mock_account_code, mock_fungible_faucet,
-            mock_new_account, mock_non_fungible_faucet, MockAccountType,
-        },
-        Account, AccountDelta,
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountDelta,
     },
     notes::Note,
-    testing::build_dummy_tx_program,
+    testing::{
+        block::mock_chain_data,
+        build_dummy_tx_program,
+        storage::{
+            mock_account, mock_account_code, mock_fungible_faucet, mock_new_account,
+            mock_non_fungible_faucet, MockAccountType,
+        },
+    },
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
         TransactionArgs, TransactionInputs, TransactionOutputs,

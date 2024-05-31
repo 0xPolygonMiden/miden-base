@@ -7,13 +7,14 @@ use miden_lib::{
 };
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, testing::prepare_word, Account,
-        AccountCode, AccountId, AccountStorage, AccountStorageType, SlotItem, StorageSlot,
+        account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
+        AccountStorage, AccountStorageType, SlotItem, StorageSlot,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
+    testing::storage::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };

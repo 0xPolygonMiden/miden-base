@@ -1,7 +1,4 @@
 #[cfg(feature = "std")]
-extern crate std;
-
-#[cfg(feature = "std")]
 use std::{
     fs::File,
     io::Read,

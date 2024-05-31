@@ -6,13 +6,13 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        testing::{
-            prepare_word, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
-            MockAccountType, STORAGE_LEAVES_2,
-        },
         AccountId, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
+    testing::storage::{
+        prepare_word, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
+        MockAccountType, STORAGE_LEAVES_2,
+    },
 };
 use miden_tx::host::testing::{
     utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},

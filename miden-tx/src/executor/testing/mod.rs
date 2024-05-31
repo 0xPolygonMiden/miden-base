@@ -5,9 +5,10 @@ use alloc::vec::Vec;
 
 use miden_lib::testing::{mock_inputs, mock_inputs_with_existing, notes::AssetPreservationStatus};
 use miden_objects::{
-    accounts::{testing::MockAccountType, Account, AccountId},
+    accounts::{Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
+    testing::storage::MockAccountType,
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
     },

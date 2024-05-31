@@ -1,8 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
-    accounts::testing::{generate_account_seed, AccountSeedType, MockAccountType},
     assembly::ProgramAst,
+    testing::storage::{generate_account_seed, AccountSeedType, MockAccountType},
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
     Digest,
 };

@@ -1,15 +1,15 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        },
-        testing::{prepare_word, MockAccountType},
+    accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::non_fungible_asset,
+    testing::{
+        assets::non_fungible_asset,
+        storage::{prepare_word, MockAccountType},
+    },
     transaction::{OutputNote, OutputNotes},
 };
 use miden_tx::host::testing::{

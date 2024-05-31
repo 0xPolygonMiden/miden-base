@@ -1,29 +1,25 @@
 use alloc::vec::Vec;
 use core::fmt;
 
+use ::rand::{Rng, SeedableRng};
 use assembly::Assembler;
-use rand::{Rng, SeedableRng};
+use miden_crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt};
+use vm_core::{Felt, Word, ZERO};
+use vm_processor::Digest;
+use winter_rand_utils as rand;
 
 use super::{
-    builders::{
-        account::AccountBuilder,
-        account_id::{account_id_build_details, AccountIdBuilder},
-    },
-    DEFAULT_ACCOUNT_CODE,
+    account::AccountBuilder,
+    account_id::{account_id_build_details, AccountIdBuilder},
+    assets::{FungibleAssetBuilder, NonFungibleAssetBuilder},
+    storage::{AccountStorageBuilder, DEFAULT_ACCOUNT_CODE},
 };
 use crate::{
-    accounts::{
-        storage::testing::AccountStorageBuilder, Account, AccountId, AccountStorageType,
-        AccountType, SlotItem,
-    },
-    assets::{
-        testing::{FungibleAssetBuilder, NonFungibleAssetBuilder},
-        Asset,
-    },
-    crypto::merkle::{LeafIndex, Mmr, PartialMmr, SimpleSmt, Smt},
+    accounts::{Account, AccountId, AccountStorageType, AccountType, SlotItem},
+    assets::Asset,
     notes::{Note, NoteInclusionProof},
     transaction::{ChainMmr, InputNote},
-    BlockHeader, Digest, Word, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH, ZERO,
+    BlockHeader, ACCOUNT_TREE_DEPTH, NOTE_TREE_DEPTH,
 };
 
 /// Initial timestamp value
@@ -565,6 +561,51 @@ impl<R: Rng + SeedableRng> MockChain<R> {
     /// Get the [Account]'s corresponding seed.
     pub fn account_seed(&mut self, pos: usize) -> Word {
         self.objects.accounts[pos].1
+    }
+}
+
+impl BlockHeader {
+    pub fn mock(
+        block_num: u32,
+        chain_root: Option<Digest>,
+        note_root: Option<Digest>,
+        accts: &[Account],
+    ) -> Self {
+        let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
+            accts
+                .iter()
+                .flat_map(|acct| {
+                    if acct.is_new() {
+                        None
+                    } else {
+                        let felt_id: Felt = acct.id().into();
+                        Some((felt_id.as_int(), *acct.hash()))
+                    }
+                })
+                .collect::<Vec<_>>(),
+        )
+        .expect("failed to create account db");
+
+        let prev_hash = rand::rand_array().into();
+        let chain_root = chain_root.unwrap_or(rand::rand_array().into());
+        let acct_root = acct_db.root();
+        let nullifier_root = rand::rand_array().into();
+        let note_root = note_root.unwrap_or(rand::rand_array().into());
+        let batch_root = rand::rand_array().into();
+        let proof_hash = rand::rand_array().into();
+
+        BlockHeader::new(
+            0,
+            prev_hash,
+            block_num,
+            chain_root,
+            acct_root,
+            nullifier_root,
+            note_root,
+            batch_root,
+            proof_hash,
+            rand::rand_value(),
+        )
     }
 }
 

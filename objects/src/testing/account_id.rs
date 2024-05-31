@@ -3,17 +3,14 @@ use alloc::string::{String, ToString};
 use assembly::{ast::ModuleAst, Assembler};
 use rand::Rng;
 
-use super::AccountBuilderError;
+use super::{account::AccountBuilderError, storage::DEFAULT_ACCOUNT_CODE};
 use crate::{
-    accounts::{
-        testing::DEFAULT_ACCOUNT_CODE, AccountCode, AccountId, AccountStorageType, AccountType,
-    },
+    accounts::{AccountCode, AccountId, AccountStorageType, AccountType},
     AccountError, Digest, Word,
 };
 
 /// Builder for an `AccountId`, the builder can be configured and used multiple times.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountIdBuilder<T> {
     account_type: AccountType,
     storage_type: AccountStorageType,

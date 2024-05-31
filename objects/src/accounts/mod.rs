@@ -32,9 +32,6 @@ pub use stub::AccountStub;
 mod data;
 pub use data::AccountData;
 
-#[cfg(feature = "testing")]
-pub mod testing;
-
 // ACCOUNT
 // ================================================================================================
 
@@ -319,8 +316,11 @@ mod tests {
         Felt, Word,
     };
 
-    use super::{testing::*, AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::accounts::{delta::AccountStorageDeltaBuilder, Account};
+    use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use crate::{
+        accounts::{delta::AccountStorageDeltaBuilder, Account},
+        testing::storage::{build_account, build_account_delta, build_assets},
+    };
 
     #[test]
     fn test_serde_account() {

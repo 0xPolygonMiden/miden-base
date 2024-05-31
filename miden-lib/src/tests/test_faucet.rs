@@ -1,17 +1,15 @@
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        },
-        testing::{prepare_word, MockAccountType},
+    accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
     },
     assets::FungibleAsset,
     testing::{
+        assets::{non_fungible_asset, non_fungible_asset_2},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
         },
-        non_fungible_asset, non_fungible_asset_2,
+        storage::{prepare_word, MockAccountType},
     },
 };
 use miden_tx::host::testing::utils::{prepare_transaction, run_tx};

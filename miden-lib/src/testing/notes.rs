@@ -7,18 +7,18 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_SENDER,
         },
-        testing::{
-            prepare_assets, prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
-            ACCOUNT_CREATE_NOTE_MAST_ROOT,
-        },
         AccountId,
     },
     assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
     testing::{
+        assets::non_fungible_asset_2,
         constants::{CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT},
-        non_fungible_asset_2,
+        storage::{
+            prepare_assets, prepare_word, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
+            ACCOUNT_CREATE_NOTE_MAST_ROOT,
+        },
     },
     transaction::OutputNote,
     Felt, Word, ZERO,
