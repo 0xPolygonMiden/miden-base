@@ -22,7 +22,7 @@ use crate::{
     prove_and_verify_transaction, MockDataStore,
 };
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn prove_swap_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();

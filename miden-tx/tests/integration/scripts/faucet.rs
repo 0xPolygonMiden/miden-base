@@ -29,7 +29,7 @@ use crate::{
 // TESTS MINT FUNGIBLE ASSET
 // ================================================================================================
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
@@ -103,7 +103,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     );
 }
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =
@@ -162,7 +162,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 // TESTS BURN FUNGIBLE ASSET
 // ================================================================================================
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let (faucet_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let faucet_account =

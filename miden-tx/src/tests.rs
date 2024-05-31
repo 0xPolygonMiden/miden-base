@@ -1,5 +1,9 @@
+#[cfg(not(feature = "sync"))]
+use alloc::boxed::Box;
+
 use alloc::vec::Vec;
 
+use maybe_async::maybe_async;
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::{
@@ -50,7 +54,7 @@ use super::{
 // TESTS
 // ================================================================================================
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn transaction_executor_witness() {
     let data_store = MockDataStore::default();
     let mut executor: TransactionExecutor<_, ()> =
@@ -90,7 +94,7 @@ fn transaction_executor_witness() {
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor: TransactionExecutor<_, ()> =
@@ -347,7 +351,7 @@ fn executed_transaction_account_delta() {
     );
 }
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn executed_transaction_output_notes() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor: TransactionExecutor<_, ()> =
@@ -536,7 +540,7 @@ fn executed_transaction_output_notes() {
     assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, *note_metadata));
 }
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn prove_witness_and_verify() {
     let data_store = MockDataStore::default();
     let mut executor: TransactionExecutor<_, ()> =
@@ -569,7 +573,7 @@ fn prove_witness_and_verify() {
 // TEST TRANSACTION SCRIPT
 // ================================================================================================
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn test_tx_script() {
     let data_store = MockDataStore::default();
     let mut executor: TransactionExecutor<_, ()> =
@@ -658,8 +662,9 @@ impl Default for MockDataStore {
     }
 }
 
+#[maybe_async]
 impl DataStore for MockDataStore {
-    fn get_transaction_inputs(
+    async fn get_transaction_inputs(
         &self,
         account_id: AccountId,
         block_num: u32,
@@ -686,7 +691,7 @@ impl DataStore for MockDataStore {
         .unwrap())
     }
 
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
+    async fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
     }

@@ -26,7 +26,7 @@ use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator,
 // to provide a block height to the P2ID script. Before the block height is reached,
 // the note can only be consumed by the target account. After the block height is reached,
 // the note can also be consumed (reclaimed) by the sender account.
-#[test]
+#[maybe_async::test(feature = "sync")]
 fn p2idr_script() {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();

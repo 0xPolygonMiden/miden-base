@@ -1,6 +1,7 @@
 mod scripts;
 mod wallet;
 
+use maybe_async::maybe_async;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
@@ -98,8 +99,9 @@ impl Default for MockDataStore {
     }
 }
 
+#[maybe_async]
 impl DataStore for MockDataStore {
-    fn get_transaction_inputs(
+    async fn get_transaction_inputs(
         &self,
         account_id: AccountId,
         block_num: u32,
@@ -126,7 +128,7 @@ impl DataStore for MockDataStore {
         .unwrap())
     }
 
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
+    async fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
     }

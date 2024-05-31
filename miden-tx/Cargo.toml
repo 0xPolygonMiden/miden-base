@@ -17,11 +17,25 @@ name = "miden-tx"
 path = "tests/integration/main.rs"
 
 [features]
-concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
+concurrent = [
+    "miden-lib/concurrent",
+    "miden-objects/concurrent",
+    "miden-prover/concurrent",
+    "std",
+]
 default = ["std"]
-std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
+std = [
+    "miden-lib/std",
+    "miden-objects/std",
+    "miden-prover/std",
+    "miden-verifier/std",
+    "vm-processor/std",
+]
+sync = ["maybe-async/is_sync"]
 
 [dependencies]
+async-trait = "0.1.80"
+maybe-async = "0.2.10"
 miden-lib = { path = "../miden-lib", version = "0.4", default-features = false }
 miden-objects = { path = "../objects", version = "0.4", default-features = false }
 miden-prover = { workspace = true }

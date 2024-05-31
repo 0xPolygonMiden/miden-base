@@ -13,12 +13,20 @@ exclude.workspace = true
 name = "bench-tx"
 path = "src/main.rs"
 
+[features]
+sync = ["maybe-async/is_sync", "miden-tx/sync"]
+
 [dependencies]
+async-trait = "0.1.80"
+maybe-async = "0.2.10"
 miden-lib = { path = "../miden-lib", version = "0.4" }
 miden-objects = { path = "../objects", version = "0.4" }
 miden-tx = { path = "../miden-tx", version = "0.4" }
-mock = { package = "miden-mock", path = "../mock"  }
+mock = { package = "miden-mock", path = "../mock" }
 rand = { workspace = true }
 serde = { package = "serde", version = "1.0" }
-serde_json = { package = "serde_json", version = "1.0", features = ["preserve_order"] }
+serde_json = { package = "serde_json", version = "1.0", features = [
+    "preserve_order",
+] }
+tokio = { version = "1", features = ["full"] }
 vm-processor = { workspace = true }

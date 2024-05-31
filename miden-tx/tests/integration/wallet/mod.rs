@@ -23,7 +23,7 @@ use crate::{
     get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
 };
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 // Testing the basic Miden wallet - receiving an asset
 fn prove_receive_asset_via_wallet() {
     // Create assets
@@ -105,7 +105,7 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
-#[test]
+#[maybe_async::test(feature = "sync")]
 /// Testing the basic Miden wallet - sending an asset
 fn prove_send_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();

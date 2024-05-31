@@ -49,12 +49,12 @@ doc-serve: ## Serves documentation site
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
+	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing,sync --filter-expr "not test(prove)"
 
 
 .PHONY: test-prove
 test-prove: ## Run `prove` tests (tests which use the Miden prover)
-	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing --filter-expr "test(prove)"
+	$(DEBUG_ASSERTIONS) cargo nextest run --profile prove --cargo-profile test-release --features concurrent,testing,sync --filter-expr "test(prove)"
 
 
 .PHONY: test

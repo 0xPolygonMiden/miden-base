@@ -1,4 +1,5 @@
 use core::fmt;
+use maybe_async::{async_impl, maybe_async, sync_impl};
 use std::{
     fs::{read_to_string, write, File},
     io::Write,
@@ -44,6 +45,27 @@ impl fmt::Display for Benchmark {
     }
 }
 
+#[tokio::main]
+#[async_impl]
+async fn main() -> Result<(), String> {
+    // create a template file for benchmark results
+    let path = Path::new("bench-tx/bench-tx.json");
+    let mut file = File::create(path).map_err(|e| e.to_string())?;
+    file.write_all(b"{}").map_err(|e| e.to_string())?;
+
+    // run all available benchmarks
+    let benchmark_results = vec![
+        (Benchmark::Simple, benchmark_default_tx().await?),
+        (Benchmark::P2ID, benchmark_p2id().await?),
+    ];
+
+    // store benchmark results in the JSON file
+    write_bench_results_to_json(path, benchmark_results)?;
+
+    Ok(())
+}
+
+#[sync_impl]
 fn main() -> Result<(), String> {
     // create a template file for benchmark results
     let path = Path::new("bench-tx/bench-tx.json");
@@ -66,19 +88,21 @@ fn main() -> Result<(), String> {
 // ================================================================================================
 
 /// Runs the default transaction with empty transaction script and two default notes.
-pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
+#[maybe_async]
+pub async fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let data_store = MockDataStore::default();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None).with_tracing();
 
     let account_id = data_store.account.id();
-    executor.load_account(account_id).map_err(|e| e.to_string())?;
+    executor.load_account(account_id).await.map_err(|e| e.to_string())?;
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let transaction = executor
         .prepare_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .await
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
@@ -98,7 +122,8 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
-pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
+#[maybe_async]
+pub async fn benchmark_p2id() -> Result<TransactionProgress, String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();
@@ -132,7 +157,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
 
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None).with_tracing();
-    executor.load_account(target_account_id).unwrap();
+    executor.load_account(target_account_id).await.unwrap();
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -151,6 +176,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     // execute transaction
     let transaction = executor
         .prepare_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .await
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
