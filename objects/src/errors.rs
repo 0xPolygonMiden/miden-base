@@ -332,6 +332,7 @@ pub enum TransactionOutputError {
     OutputNoteDataNotFound,
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
+    OutputStackInvalid(String),
     TooManyOutputNotes { max: usize, actual: usize },
 }
 
