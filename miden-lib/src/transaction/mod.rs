@@ -30,6 +30,11 @@ pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
 
+// CONSTANTS
+// ================================================================================================
+
+const ZERO_WORD: [Felt; 4] = [ZERO, ZERO, ZERO, ZERO];
+
 // TRANSACTION KERNEL
 // ================================================================================================
 
@@ -138,7 +143,7 @@ impl TransactionKernel {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - Two last words on the stack are not equal to zero words.
+    /// - Words 3 and 4 on the stack are not ZERO.
     /// - Overflow addresses are not empty.
     pub fn parse_output_stack(
         stack: &StackOutputs,
@@ -153,13 +158,12 @@ impl TransactionKernel {
             .into();
 
         // make sure that the stack has been properly cleaned
-        let zero_word = [ZERO, ZERO, ZERO, ZERO];
-        if stack.get_stack_word(8).expect("third word missing") != zero_word {
+        if stack.get_stack_word(8).expect("third word missing") != ZERO_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Third word on output stack should consist only of ZEROs".into(),
             ));
         }
-        if stack.get_stack_word(12).expect("fourth word missing") != zero_word {
+        if stack.get_stack_word(12).expect("fourth word missing") != ZERO_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Fourth word on output stack should consist only of ZEROs".into(),
             ));
