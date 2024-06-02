@@ -28,11 +28,11 @@ const ACCOUNT_AFTER_INCREMENT_NONCE: u32 = 0x2_0009; // 131081
 
 const ACCOUNT_PUSH_PROCEDURE_INDEX: u32 = 0x2_000A; // 131082
 
-const BEFORE_NOTE_CREATED: u32 = 0x2_000B; // 131083
-const AFTER_NOTE_CREATED: u32 = 0x2_000C; // 131084
+const NOTE_BEFORE_CREATED: u32 = 0x2_000B; // 131083
+const NOTE_AFTER_CREATED: u32 = 0x2_000C; // 131084
 
-const BEFORE_NOTE_ADD_ASSET: u32 = 0x2_000D; // 131085
-const AFTER_NOTE_ADD_ASSET: u32 = 0x2_000E; // 131086
+const NOTE_BEFORE_ADD_ASSET: u32 = 0x2_000D; // 131085
+const NOTE_AFTER_ADD_ASSET: u32 = 0x2_000E; // 131086
 
 /// Events which may be emitted by a transaction kernel.
 ///
@@ -61,11 +61,11 @@ pub enum TransactionEvent {
 
     AccountPushProcedureIndex = ACCOUNT_PUSH_PROCEDURE_INDEX,
 
-    BeforeNoteCreated = BEFORE_NOTE_CREATED,
-    AfterNoteCreated = AFTER_NOTE_CREATED,
+    NoteBeforeCreated = NOTE_BEFORE_CREATED,
+    NoteAfterCreated = NOTE_AFTER_CREATED,
 
-    BeforeNoteAddAsset = BEFORE_NOTE_ADD_ASSET,
-    AfterNoteAddAsset = AFTER_NOTE_ADD_ASSET,
+    NoteBeforeAddAsset = NOTE_BEFORE_ADD_ASSET,
+    NoteAfterAddAsset = NOTE_AFTER_ADD_ASSET,
 }
 
 impl fmt::Display for TransactionEvent {
@@ -106,11 +106,11 @@ impl TryFrom<u32> for TransactionEvent {
 
             ACCOUNT_PUSH_PROCEDURE_INDEX => Ok(TransactionEvent::AccountPushProcedureIndex),
 
-            BEFORE_NOTE_CREATED => Ok(TransactionEvent::BeforeNoteCreated),
-            AFTER_NOTE_CREATED => Ok(TransactionEvent::AfterNoteCreated),
+            NOTE_BEFORE_CREATED => Ok(TransactionEvent::NoteBeforeCreated),
+            NOTE_AFTER_CREATED => Ok(TransactionEvent::NoteAfterCreated),
 
-            BEFORE_NOTE_ADD_ASSET => Ok(TransactionEvent::BeforeNoteAddAsset),
-            AFTER_NOTE_ADD_ASSET => Ok(TransactionEvent::AfterNoteAddAsset),
+            NOTE_BEFORE_ADD_ASSET => Ok(TransactionEvent::NoteBeforeAddAsset),
+            NOTE_AFTER_ADD_ASSET => Ok(TransactionEvent::NoteAfterAddAsset),
 
             _ => Err(TransactionEventParsingError::InvalidTransactionEvent(value)),
         }

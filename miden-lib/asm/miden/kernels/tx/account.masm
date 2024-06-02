@@ -161,9 +161,8 @@ export.incr_nonce
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
 
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
 #! Returns the account id.
@@ -354,9 +353,9 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT 
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
+    # => [index, V']
 
     # duplicate the index and the V' to be able to emit an event after an account storage item is 
     # being updated
@@ -377,6 +376,7 @@ export.set_item
 
     # emit event to signal that an account storage item is being updated
     swapw movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
+    # => [V]
 end
 
 #! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
@@ -390,9 +390,9 @@ end
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
 export.set_map_item.2
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT 
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
+    # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
     # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is 
     # being updated
@@ -410,9 +410,11 @@ export.set_map_item.2
 
     # emit event to signal that an account storage item is being updated
     movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop dropw dropw
+    # => []
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack 
     loc_loadw.1 padw loc_loadw.0
+    # => [OLD_VALUE, NEW_ROOT]
 end
 
 #! Verifies that the procedure root is part of the account code Merkle tree. Panics if the

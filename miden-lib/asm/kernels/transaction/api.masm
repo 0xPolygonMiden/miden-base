@@ -350,9 +350,9 @@ export.account_vault_add_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT 
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT
+    # => [ASSET]
 
     # duplicate the ASSET to be able to emit an event after an asset is being added
     dupw
@@ -368,6 +368,7 @@ export.account_vault_add_asset
 
     # emit event to signal that an asset is being added to the account vault
     swapw emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
+    # => [ASSET']
 end
 
 #! Remove the specified asset from the vault.
@@ -386,9 +387,9 @@ export.account_vault_remove_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
-    push.0 drop emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
+    # => [ASSET]
 
     # fetch the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
@@ -398,10 +399,10 @@ export.account_vault_remove_asset
     exec.asset_vault::remove_asset
     # => [ASSET]
 
-    # TODO: we execute `push.0 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     # emit event to signal that an asset is being removed from the account vault
-    push.0 drop emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
+    emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
+    # => [ASSET]
 end
 
 #! Returns the number of assets and vault hash of the note currently being processed. Panics if a

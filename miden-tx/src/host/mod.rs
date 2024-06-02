@@ -105,12 +105,15 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
+    /// Creates a new note from the pointer and stores it in the `output_notes` field of the
+    /// [TransactionHost].
+    ///
+    /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
     fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
 
         let note_ptr: MemoryAddress =
             stack[4].try_into().map_err(TransactionKernelError::MalformedNotePointer)?;
@@ -122,11 +125,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         Ok(())
     }
 
+    /// Adds an asset from the stack to the note stored by its pointer.
+    ///
+    /// Expected stack state: [ASSET, note_ptr, ...]
     fn on_note_before_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        //# => [ASSET, note_ptr]
         let note_ptr: MemoryAddress = process
             .get_stack_item(4)
             .try_into()
@@ -144,6 +149,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         Ok(())
     }
 
+    /// Loads the index of the procedure root onto the advice stack.
+    ///
+    /// Expected stack state: [PROC_ROOT, ...]
     fn on_account_push_procedure_index<S: ProcessState>(
         &mut self,
         process: &S,
@@ -156,6 +164,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 
     /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
+    ///
+    /// Expected stack state: [nonce_delta, ...]
     pub fn on_account_before_increment_nonce<S: ProcessState>(
         &mut self,
         process: &S,
@@ -170,6 +180,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts information from the process state about the storage slot being updated and
     /// records the latest value of this storage slot.
+    ///
+    /// Expected stack state: [slot_index, NEW_SLOT_VALUE, CURRENT_SLOT_VALUE, ...]
     pub fn on_account_storage_after_set_item<S: ProcessState>(
         &mut self,
         process: &S,
@@ -207,6 +219,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts information from the process state about the storage map being updated and
     /// records the latest values of this storage map.
+    ///
+    /// Expected stack state: [slot_index, NEW_MAP_KEY, NEW_MAP_VALUE, ...]
     pub fn on_account_storage_after_set_map_item<S: ProcessState>(
         &mut self,
         process: &S,
@@ -246,6 +260,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts the asset that is being added to the account's vault from the process state and
     /// updates the appropriate fungible or non-fungible asset map.
+    ///
+    /// Expected stack state: [ASSET, ...]
     pub fn on_account_vault_after_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
@@ -261,6 +277,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts the asset that is being removed from the account's vault from the process state
     /// and updates the appropriate fungible or non-fungible asset map.
+    ///
+    /// Expected stack state: [ASSET, ...]
     pub fn on_account_vault_after_remove_asset<S: ProcessState>(
         &mut self,
         process: &S,
@@ -413,11 +431,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
                 self.on_account_push_procedure_index(process)
             },
 
-            TransactionEvent::BeforeNoteCreated => Ok(()),
-            TransactionEvent::AfterNoteCreated => self.on_note_after_created(process),
+            TransactionEvent::NoteBeforeCreated => Ok(()),
+            TransactionEvent::NoteAfterCreated => self.on_note_after_created(process),
 
-            TransactionEvent::BeforeNoteAddAsset => self.on_note_before_add_asset(process),
-            TransactionEvent::AfterNoteAddAsset => Ok(()),
+            TransactionEvent::NoteBeforeAddAsset => self.on_note_before_add_asset(process),
+            TransactionEvent::NoteAfterAddAsset => Ok(()),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 
