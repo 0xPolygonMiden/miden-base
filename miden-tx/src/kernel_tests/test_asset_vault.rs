@@ -16,12 +16,12 @@ use miden_objects::{
     },
     AssetVaultError,
 };
-use miden_tx::testing::{
+
+use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
+use crate::testing::{
     mock_inputs,
     utils::{prepare_transaction, run_tx},
 };
-
-use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
 
 #[test]
 fn test_get_balance() {

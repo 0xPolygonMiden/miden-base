@@ -7,13 +7,13 @@ use miden_objects::{
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
-use miden_tx::testing::{
+
+use super::{ContextId, Felt, Process, ProcessState, ZERO};
+use crate::testing::{
     mock_inputs,
     utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
     MockHost,
 };
-
-use super::{ContextId, Felt, Process, ProcessState, ZERO};
 
 #[test]
 fn test_get_sender_no_sender() {

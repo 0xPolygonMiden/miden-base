@@ -14,7 +14,7 @@ use miden_objects::{
     BlockHeader,
 };
 
-use super::{mock_inputs, mock_inputs_with_existing};
+use super::mock_host::{mock_inputs, mock_inputs_with_existing};
 use crate::{DataStore, DataStoreError};
 
 #[derive(Clone)]

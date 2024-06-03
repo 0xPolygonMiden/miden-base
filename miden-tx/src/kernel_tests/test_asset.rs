@@ -10,12 +10,12 @@ use miden_objects::{
         prepare_word,
     },
 };
-use miden_tx::testing::{
+
+use super::{Felt, Hasher, ProcessState, Word, ONE};
+use crate::testing::{
     mock_inputs,
     utils::{prepare_transaction, run_tx},
 };
-
-use super::{Felt, Hasher, ProcessState, Word, ONE};
 
 #[test]
 fn test_create_fungible_asset_succeeds() {

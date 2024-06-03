@@ -15,12 +15,12 @@ use miden_objects::{
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
 };
-use miden_tx::testing::{
+
+use super::ONE;
+use crate::testing::{
     mock_inputs,
     utils::{prepare_transaction, run_tx},
 };
-
-use super::ONE;
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 

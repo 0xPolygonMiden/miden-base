@@ -3,7 +3,8 @@ use std::path::PathBuf;
 
 use miden_lib::transaction::memory::{
     CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NUM_CREATED_NOTES_PTR,
+    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
+    NUM_CREATED_NOTES_PTR,
 };
 use miden_objects::{
     testing::{prepare_word, storage::prepare_assets},
@@ -61,7 +62,6 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let note_2_assets = prepare_assets(note2.assets());
     let note_2_num_assets = 1;
 
-    const NOTE_MEM_SIZE: u32 = 512;
     const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
     const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
 

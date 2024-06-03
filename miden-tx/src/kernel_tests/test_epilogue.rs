@@ -5,12 +5,12 @@ use miden_lib::transaction::{
     ToTransactionKernelInputs,
 };
 use miden_objects::testing::notes::AssetPreservationStatus;
-use miden_tx::testing::{mock_executed_tx, utils::run_within_tx_kernel};
 
 use super::{
     build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, ProcessState,
     TX_KERNEL_DIR, ZERO,
 };
+use crate::testing::{mock_executed_tx, utils::run_within_tx_kernel};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 

@@ -23,13 +23,13 @@ use miden_objects::{
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         assets::non_fungible_asset,
-        constants::{FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
+        constants::FUNGIBLE_ASSET_AMOUNT,
         notes::AssetPreservationStatus,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
-    Felt, Word, ZERO,
+    Felt, Word, MIN_PROOF_SECURITY_LEVEL, ZERO,
 };
 use miden_prover::ProvingOptions;
 use vm_processor::{

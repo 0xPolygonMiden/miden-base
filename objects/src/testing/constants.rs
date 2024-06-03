@@ -3,8 +3,6 @@ use vm_core::Felt;
 pub const FUNGIBLE_ASSET_AMOUNT: u64 = 100;
 pub const FUNGIBLE_FAUCET_INITIAL_BALANCE: u64 = 50000;
 
-pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
-
 pub const CONSUMED_ASSET_1_AMOUNT: u64 = 100;
 pub const CONSUMED_ASSET_2_AMOUNT: u64 = 200;
 pub const CONSUMED_ASSET_3_AMOUNT: u64 = 300;

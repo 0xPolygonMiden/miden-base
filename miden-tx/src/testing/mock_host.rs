@@ -1,6 +1,34 @@
-
 // MOCK HOST
 // ================================================================================================
+
+use alloc::{string::ToString, vec::Vec};
+
+use miden_lib::transaction::{TransactionEvent, TransactionKernel};
+use miden_objects::{
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountDelta, AccountStub, AccountVaultDelta,
+    },
+    notes::Note,
+    testing::{
+        account::{mock_account, mock_new_account, MockAccountType},
+        account_code::mock_account_code,
+        build_dummy_tx_program,
+        notes::{mock_notes, AssetPreservationStatus},
+        storage::{mock_fungible_faucet, mock_non_fungible_faucet},
+    },
+    transaction::{
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
+        TransactionArgs, TransactionInputs, TransactionOutputs,
+    },
+    BlockHeader, FieldElement,
+};
+use vm_processor::{
+    AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
+    ExecutionError, Felt, Host, HostResponse, MemAdviceProvider, ProcessState, Word,
+};
+
+use super::{account_procs::AccountProcedureIndexMap, chain_data::mock_chain_data};
 
 /// This is very similar to the TransactionHost in miden-tx. The differences include:
 /// - We do not track account delta here.

@@ -17,7 +17,7 @@ use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
 #[cfg(feature = "std")]
 use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
-use super::MockHost;
+use crate::testing::MockHost;
 
 // TEST BRACE
 // ================================================================================================

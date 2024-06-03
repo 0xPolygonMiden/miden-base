@@ -26,14 +26,14 @@ use miden_objects::{
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
     Digest,
 };
-use miden_tx::testing::{
+use vm_processor::AdviceInputs;
+
+use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
+use crate::testing::{
     mock_inputs, mock_inputs_with_account_seed,
     utils::{consumed_note_data_ptr, prepare_transaction, run_tx, run_tx_with_inputs},
     MockHost,
 };
-use vm_processor::AdviceInputs;
-
-use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 

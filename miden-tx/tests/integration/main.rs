@@ -26,8 +26,6 @@ use vm_processor::utils::Deserializable;
 pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
-    use miden_objects::testing::constants::MIN_PROOF_SECURITY_LEVEL;
-
     let executed_transaction_id = executed_transaction.id();
     // Prove the transaction
 
@@ -42,7 +40,7 @@ pub fn prove_and_verify_transaction(
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
 
     // Verify that the generated proof is valid
-    let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
+    let verifier = TransactionVerifier::new(miden_objects::MIN_PROOF_SECURITY_LEVEL);
 
     verifier.verify(proven_transaction)
 }

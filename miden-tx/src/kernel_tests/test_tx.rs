@@ -16,14 +16,14 @@ use miden_objects::{
     },
     transaction::{OutputNote, OutputNotes},
 };
-use miden_tx::testing::{
+use vm_processor::Process;
+
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::testing::{
     mock_inputs,
     utils::{prepare_transaction, run_tx, run_within_tx_kernel},
     MockHost,
 };
-use vm_processor::Process;
-
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
 #[test]
 fn test_create_note() {
     let (tx_inputs, tx_args) =

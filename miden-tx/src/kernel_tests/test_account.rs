@@ -22,15 +22,17 @@ use miden_objects::{
         },
     },
 };
-use miden_tx::testing::{
-    mock_executed_tx, mock_inputs,
-    utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
-    MockHost,
-};
 use vm_processor::{ContextId, Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::kernel_tests::output_notes_data_procedure;
+use crate::{
+    kernel_tests::output_notes_data_procedure,
+    testing::{
+        mock_executed_tx, mock_inputs,
+        utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
+        MockHost,
+    },
+};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================

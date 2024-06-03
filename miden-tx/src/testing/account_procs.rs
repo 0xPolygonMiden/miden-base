@@ -2,8 +2,7 @@ use alloc::collections::BTreeMap;
 
 use miden_lib::transaction::TransactionKernelError;
 use miden_objects::accounts::AccountCode;
-
-use super::{AdviceProvider, Digest, NodeIndex, ProcessState};
+use vm_processor::{crypto::NodeIndex, AdviceProvider, Digest, ProcessState};
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
