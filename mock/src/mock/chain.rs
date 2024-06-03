@@ -104,7 +104,7 @@ impl<R: Rng> Objects<R> {
             .enumerate()
             .map(|(index, note)| {
                 let auth_index = LeafIndex::new(index as u64).expect("index bigger than 2**20");
-                InputNote::new(
+                InputNote::authenticated(
                     note.clone(),
                     NoteInclusionProof::new(
                         header.block_num(),
@@ -621,7 +621,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
             let block_header = &block_chain[index];
             let auth_index = LeafIndex::new(index as u64).unwrap();
 
-            InputNote::new(
+            InputNote::authenticated(
                 note,
                 NoteInclusionProof::new(
                     block_header.block_num(),

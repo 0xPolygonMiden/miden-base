@@ -564,6 +564,7 @@ end
 #!      ARGS,
 #!      assets_count,
 #!      ASSET_0, ..., ASSET_N,
+#!      is_authenticated,
 #!      block_num,
 #!      SUB_HASH,
 #!      NOTE_ROOT,
@@ -580,6 +581,7 @@ end
 #! - ARGS, user arguments passed to the note.
 #! - assets_count, note's assets count.
 #! - ASSET_0, ..., ASSET_N, padded note's assets.
+#! - is_authenticated, boolean indicating if the note contains an authentication proof.
 #! - block_num, note's creation block number.
 #! - SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
@@ -735,7 +737,12 @@ proc.process_input_note
     movup.4 exec.memory::get_consumed_note_metadata hmerge
     # => [AUTH_DIGEST]
 
-    exec.authenticate_note
+    adv_push.1
+    if.true
+        exec.authenticate_note
+    else
+        dropw
+    end
 end
 
 #! Process the input notes data provided via the advice provider. This involves reading the data

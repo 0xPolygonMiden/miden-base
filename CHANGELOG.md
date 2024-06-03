@@ -13,6 +13,7 @@
 * [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes. Now the data
   is prefixed by its length, and the input and output notes encoding match (#707).
 * Added validation for the output stack to make sure it was properly cleaned (#717).
+* [BREAKING] Added support for delegated authenticated notes (#724).
 
 ## 0.3.0 (2024-05-14)
 

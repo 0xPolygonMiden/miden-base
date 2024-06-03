@@ -38,11 +38,10 @@ impl TransactionInputs {
         block_chain: ChainMmr,
         input_notes: InputNotes,
     ) -> Result<Self, TransactionInputError> {
-        // make sure the provided seed is valid in the context of the provided account
+        // validate the seed
         validate_account_seed(&account, account_seed)?;
 
-        // make sure block_chain and block_header are consistent
-
+        // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
         if block_chain.chain_length() != block_header.block_num() as usize {
             return Err(TransactionInputError::InconsistentChainLength {
@@ -58,25 +57,25 @@ impl TransactionInputs {
             });
         }
 
-        // make sure that block_chain has authentication paths for all input notes; for input notes
-        // which were created in the current block we skip this check because their authentication
-        // paths are derived implicitly
+        // check the authentication paths of the input notes.
         for note in input_notes.iter() {
-            let note_block_num = note.origin().block_num;
+            if let InputNote::Authenticated { note, proof } = note {
+                let note_block_num = proof.origin().block_num;
 
-            let block_header = if note_block_num == block_num {
-                &block_header
-            } else {
-                match block_chain.get_block(note_block_num) {
-                    Some(block_header) => block_header,
-                    None => Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?,
+                let block_header = if note_block_num == block_num {
+                    &block_header
+                } else {
+                    block_chain
+                        .get_block(note_block_num)
+                        .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
+                };
+
+                if !is_in_block(note, proof, block_header) {
+                    return Err(TransactionInputError::InputNoteNotInBlock(
+                        note.id(),
+                        note_block_num,
+                    ));
                 }
-            };
-
-            // this check may have non-negligible performance impact as we need to verify inclusion
-            // proofs for all notes; TODO: consider enabling this via a feature flag
-            if !note.is_in_block(block_header) {
-                return Err(TransactionInputError::InputNoteNotInBlock(note.id(), note_block_num));
             }
         }
 
@@ -148,7 +147,7 @@ pub trait ToNullifier:
 
 impl ToNullifier for InputNote {
     fn nullifier(&self) -> Nullifier {
-        self.note.nullifier()
+        self.note().nullifier()
     }
 }
 
@@ -327,46 +326,70 @@ fn build_nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
 // INPUT NOTE
 // ================================================================================================
 
+const AUTHENTICATED: u8 = 0;
+const UNAUTHENTICATED: u8 = 1;
+
 /// An input note for a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct InputNote {
-    note: Note,
-    proof: NoteInclusionProof,
+pub enum InputNote {
+    /// Input notes whose existences in the chain is verified by the transaction kernel.
+    Authenticated { note: Note, proof: NoteInclusionProof },
+
+    /// Input notes whose existence in the chain is not verified by the transaction kernel, but
+    /// instead is delegated to the rollup kernels.
+    Unauthenticated { note: Note },
 }
 
 impl InputNote {
-    /// Returns a new instance of an [InputNote] with the specified note and proof.
-    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
-        Self { note, proof }
+    // CONSTRUCTORS
+    // -------------------------------------------------------------------------------------------
+
+    /// Returns an authenticated [InputNote].
+    pub fn authenticated(note: Note, proof: NoteInclusionProof) -> Self {
+        Self::Authenticated { note, proof }
     }
+
+    /// Returns an unauthenticated [InputNote].
+    pub fn unauthenticated(note: Note) -> Self {
+        Self::Unauthenticated { note }
+    }
+
+    // ACCESSORS
+    // -------------------------------------------------------------------------------------------
 
     /// Returns the ID of the note.
     pub fn id(&self) -> NoteId {
-        self.note.id()
+        self.note().id()
     }
 
     /// Returns a reference to the underlying note.
     pub fn note(&self) -> &Note {
-        &self.note
+        match self {
+            Self::Authenticated { note, .. } => note,
+            Self::Unauthenticated { note } => note,
+        }
     }
 
     /// Returns a reference to the inclusion proof of the note.
-    pub fn proof(&self) -> &NoteInclusionProof {
-        &self.proof
+    pub fn proof(&self) -> Option<&NoteInclusionProof> {
+        match self {
+            Self::Authenticated { proof, .. } => Some(proof),
+            Self::Unauthenticated { .. } => None,
+        }
     }
 
     /// Returns a reference to the origin of the note.
-    pub fn origin(&self) -> &NoteOrigin {
-        self.proof.origin()
+    pub fn origin(&self) -> Option<&NoteOrigin> {
+        self.proof().map(|proof| proof.origin())
     }
+}
 
-    /// Returns true if this note belongs to the note tree of the specified block.
-    fn is_in_block(&self, block_header: &BlockHeader) -> bool {
-        let note_index = self.origin().node_index.value();
-        let note_hash = self.note.authentication_hash();
-        self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
-    }
+/// Returns true if this note belongs to the note tree of the specified block.
+fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
+    let note_index = proof.origin().node_index.value();
+    let note_hash = note.authentication_hash();
+    proof.note_path().verify(note_index, note_hash, &block_header.note_root())
 }
 
 // SERIALIZATION
@@ -374,17 +397,34 @@ impl InputNote {
 
 impl Serializable for InputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.note.write_into(target);
-        self.proof.write_into(target);
+        match self {
+            Self::Authenticated { note, proof } => {
+                target.write(AUTHENTICATED);
+                target.write(note);
+                target.write(proof);
+            },
+            Self::Unauthenticated { note } => {
+                target.write(UNAUTHENTICATED);
+                target.write(note);
+            },
+        }
     }
 }
 
 impl Deserializable for InputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let note = Note::read_from(source)?;
-        let proof = NoteInclusionProof::read_from(source)?;
-
-        Ok(Self { note, proof })
+        match source.read_u8()? {
+            AUTHENTICATED => {
+                let note = Note::read_from(source)?;
+                let proof = NoteInclusionProof::read_from(source)?;
+                Ok(Self::Authenticated { note, proof })
+            },
+            UNAUTHENTICATED => {
+                let note = Note::read_from(source)?;
+                Ok(Self::Unauthenticated { note })
+            },
+            v => Err(DeserializationError::InvalidValue(format!("Invalid input note type: {v}"))),
+        }
     }
 }
 
