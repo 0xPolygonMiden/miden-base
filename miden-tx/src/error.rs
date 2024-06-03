@@ -200,7 +200,7 @@ const ERR_NOTE_TOO_MANY_INPUTS: u32 = 131099;
 const ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS: u32 = 131100;
 const ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH: u32 = 131101;
 const ERR_PROLOGUE_TOO_MANY_INPUT_NOTES: u32 = 131102;
-const ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH: u32 = 131103;
+const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 131103;
 const ERR_TX_OUTPUT_NOTES_OVERFLOW: u32 = 131104;
 const ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW: u32 = 131105;
 const ERR_FAUCET_ISSUANCE_OVERFLOW: u32 = 131106;
@@ -273,7 +273,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS, "Number of note assets exceeded the maximum limit of 256"),
     (ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH, "Provided info about assets of an input do not match its commitment"),
     (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1023"),
-    (ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH, "Cannot compute matching nullifier commitment using the provided input note data"),
+    (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Commitment computed for input notes' from advice data doesn't match kernel inputs"),
     (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 4096"),
     (ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW, "Distribute would cause the max supply to be exceeded"),
     (ERR_FAUCET_ISSUANCE_OVERFLOW, "Asset mint operation would cause an issuance overflow"),

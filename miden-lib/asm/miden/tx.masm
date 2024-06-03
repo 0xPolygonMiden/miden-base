@@ -24,19 +24,18 @@ export.get_block_hash
     # => [BLOCK_HASH]
 end
 
-#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
-#! tuples over all input notes.
+#! Returns the input notes commitment hash.
 #!
-#! Inputs: []
-#! Outputs: [COM]
+#! See `transaction::api::get_input_notes_commitment` for details.
 #!
-#! COM is the input notes hash.
-export.get_input_notes_hash
-    padw
-    # => [0, 0, 0, 0]
-
-    syscall.get_input_notes_hash
-    # => [COM]
+#! Stack: []
+#! Outputs: [INPUT_NOTES_COMMITMENT]
+#!
+#! Where:
+#! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+export.get_input_notes_commitment
+    padw syscall.get_input_notes_commitment
+    # => [INPUT_NOTES_COMMITMENT]
 end
 
 #! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
@@ -94,14 +93,14 @@ end
 #! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
 #! Outputs: [RECIPIENT]
 #!
-#! Only allows a single input currently   
+#! Only allows a single input currently
 export.build_recipient_hash
   padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input] 
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
 
 # merge SERIAL_NUM_HASH and SCRIPT_HASH
   swapw hmerge
-  # => [SERIAL_SCRIPT_HASH, input] 
+  # => [SERIAL_SCRIPT_HASH, input]
 
   # compute the INPUT_HASH. Note: only one input is allowed
   swapw swap.3 padw hmerge

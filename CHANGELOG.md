@@ -4,7 +4,8 @@
 
 ### Enhancements
 
-* Removed the `mock` crate in favor of having mock code behind the `testing` flag on the remaining crates (#711).
+* Add new `NoteFile` object to represent serialized notes (#721).
+* Removed the `mock` crate in favor of having mock code behind the `testing` flag in remaining crates (#711).
 * [BREAKING] Create `auth` module for `TransactionAuthenticator` and other related objects (#714).
 * Implemented `build_recipient_hash` to build recipient hash for custom notes (#710).
 * Replaced `cargo-make` with just `make` for running tasks (#696).
@@ -12,6 +13,7 @@
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
 * [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes. Now the data
   is prefixed by its length, and the input and output notes encoding match (#707).
+* Added validation for the output stack to make sure it was properly cleaned (#717).
 
 ## 0.3.0 (2024-05-14)
 
