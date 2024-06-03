@@ -1,3 +1,4 @@
+use.miden::kernels::tx::constants
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -6,6 +7,9 @@ use.std::mem
 
 # Provided note data does not match the commitment
 const.ERR_NOTE_DATA_MISMATCH=0x00020040
+
+# Number of note inputs exceeded the maximum limit of 128
+const.ERR_NOTE_TOO_MANY_INPUTS=0x0002001B
 
 #! Writes the data currently on the advice stack into the memory at the specified location and
 #! verifies that the hash of the written data is equal to the provided hash.
@@ -66,26 +70,36 @@ export.get_assets
     # => [num_assets, dest_ptr]
 end
 
-#! Writes the inputs of the currently execute note into memory starting at the specified address.
+#! Loads the note's inputs to `dest_ptr`.
 #!
-#! Inputs: [dest_ptr]
-#! Outputs: [num_inputs, dest_ptr]
+#! Inputs:
+#!   Stack: [dest_ptr]
+#!   Advice Map: { INPUTS_HASH: [inputs_len, INPUTS] }
+#! Outputs:
+#!   Stack: [num_inputs, dest_ptr]
 #!
+#! Where:
 #! - dest_ptr is the memory address to write the inputs.
+#! - INPUTS_HASH, sequential hash of the padded note's inputs.
+#! - inputs_len, the note's input count.
+#! - INPUTS, the data corresponding to the note's inputs.
 export.get_inputs
-    padw push.0
-    # => [0, 0, 0, 0, 0, dest_ptr]
-
-    # get the current consumed note inputs hash
-    syscall.get_note_inputs_info
-    # => [INPUTS_HASH, num_inputs, dest_ptr]
+    padw syscall.get_note_inputs_hash
+    # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
     adv.push_mapval
-    # => [INPUTS_HASH, num_inputs, dest_ptr]
+    # => [INPUTS_HASH, dest_ptr]
+
+    adv_push.1
+    # => [num_inputs, INPUTS_HASH, dest_ptr]
+
+    # validate the input length
+    dup exec.constants::get_max_inputs_per_note lte assert.err=ERR_NOTE_TOO_MANY_INPUTS
+    # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # calculate the number of words required to store the inputs
-    dup.4 u32divmod.4 neq.0 add
+    dup movdn.5 u32divmod.4 neq.0 add
     # => [num_words, INPUTS_HASH, num_inputs, dest_ptr]
 
     # round up the number of words the next multiple of 2
@@ -96,7 +110,7 @@ export.get_inputs
     dup.6 add dup.6
     # => [start_ptr, end_ptr, INPUTS_HASH, num_inputs, dest_ptr]
 
-    # write the data from the advice stack into memory
+    # check the input data matches the commitment, and write it to memory.
     exec.write_advice_data_to_memory
     # => [num_inputs, dest_ptr]
 end

@@ -18,7 +18,7 @@ use crate::utils::{
 ///
 /// where `recipient` is defined as:
 ///
-/// > hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+/// > hash(hash(hash(serial_num, ZERO), script_hash), input_hash)
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.

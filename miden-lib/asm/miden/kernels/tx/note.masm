@@ -77,31 +77,27 @@ export.get_vault_info
     # => [VAULT_HASH, num_assets]
 end
 
-#! Returns the number of inputs and inputs hash for the note currently being processed. Panics if
-#! a note is not being processed.
+#! Returns the commitment to the note's inputs.
+#!
+#! Panics if a note is not being processed.
 #!
 #! Inputs: []
-#! Outputs: [NOTE_INPUTS_HASH, num_inputs]
+#! Outputs: [NOTE_INPUTS_HASH]
 #!
-#! - num_inputs is the number of inputs associated with the note.
+#! Where:
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_inputs_info
-    # get the current consumed note pointer
+export.get_note_inputs_hash
     exec.memory::get_current_consumed_note_ptr
     # => [ptr]
 
-    # assert the pointer is not zero - this would suggest the procedure has been called from an
-    # incorrect context
+    # The kernel memory is initialized by prologue::process_input_notes_data, and reset by
+    # note_processing_teardown before running the tx_script. If the value is `0` it is likely this
+    # procedure is being called outside of the kernel context.
     dup neq.0 assert.err=ERR_NOTE_INVALID_INPUTS
     # => [ptr]
 
-    # get the number of inputs for the note
-    dup exec.memory::get_consumed_note_num_inputs
-    # => [num_inputs, ptr]
-
-    # get the note inputs hash from the note pointer
-    swap exec.memory::get_consumed_note_inputs_hash
-    # => [NOTE_INPUTS_HASH, num_inputs]
+    exec.memory::get_consumed_note_inputs_hash
+    # => [NOTE_INPUTS_HASH]
 end
 
 #! Increment current consumed note pointer to the next note and returns the pointer value.
@@ -109,6 +105,7 @@ end
 #! Inputs: []
 #! Outputs: [current_consumed_note_ptr]
 #!
+#! Where:
 #! - current_consumed_note_ptr is the pointer to the next note to be processed.
 export.increment_current_consumed_note_ptr
     # get the current consumed note pointer
@@ -135,24 +132,23 @@ export.note_processing_teardown
     # => []
 end
 
-#! Prepares for the execution of a consumed note.  This involves:
-#! 1. Incrementing the current consumed note index and pointer.
-#! 2. Loading the note script root onto the stack.
+#! Prepares a note for execution.
+#!
+#! Loads the note's script root and args onto the stack.
 #!
 #! Stack: []
 #! Output: [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 #!
-#! - NOTE_SCRIPT_ROOT is the note script root of the note currently being executed.
-#! - NOTE_ARGS are the note args of the note currently being executed.
+#! Where:
+#! - NOTE_SCRIPT_ROOT, the note's script root.
+#! - NOTE_ARGS, the note's arguments.
 export.prepare_note
-    # convert the index of the consumed note being executed to a pointer and store in memory
     exec.memory::get_current_consumed_note_ptr
     # => [note_ptr]
 
     dup exec.memory::get_consumed_note_args movup.4
     # => [note_ptr, NOTE_ARGS]
 
-    # read the note script root onto the stack
     exec.memory::get_consumed_note_script_root
     # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 end

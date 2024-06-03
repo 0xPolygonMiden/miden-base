@@ -25,13 +25,10 @@ use account_procs::AccountProcedureIndexMap;
 mod note_builder;
 use note_builder::OutputNoteBuilder;
 
-mod tx_authenticator;
-pub use tx_authenticator::{BasicAuthenticator, TransactionAuthenticator};
-
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::KERNEL_ERRORS;
+use crate::{auth::TransactionAuthenticator, KERNEL_ERRORS};
 
 // CONSTANTS
 // ================================================================================================

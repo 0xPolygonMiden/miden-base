@@ -141,9 +141,8 @@ const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
 const.CONSUMED_NOTE_ASSETS_HASH_OFFSET=4
 const.CONSUMED_NOTE_METADATA_OFFSET=5
 const.CONSUMED_NOTE_ARGS_OFFSET=6
-const.CONSUMED_NOTE_NUM_INPUTS_OFFSET=7
-const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=8
-const.CONSUMED_NOTE_ASSETS_OFFSET=9
+const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=7
+const.CONSUMED_NOTE_ASSETS_OFFSET=8
 
 # CREATED NOTES
 # -------------------------------------------------------------------------------------------------
@@ -774,14 +773,15 @@ export.get_consumed_note_ptr
     exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_DATA_SECTION_OFFSET add
 end
 
-#! Set the hash of the consumed note at the specified memory address.
+#! Set the note id of the consumed note.
 #!
-#! Stack: [consumed_note_ptr, H]
-#! Output: [H]
+#! Stack: [consumed_note_ptr, NOTE_ID]
+#! Output: [NOTE_ID]
 #!
-#! - consumed_note_ptr is the memory address of the consumed note.
-#! - H is the hash of the consumed note.
-export.set_consumed_note_hash
+#! Where:
+#! - consumed_note_ptr, the consumed note's the memory address.
+#! - NOTE_ID, the note's id.
+export.set_consumed_note_id
     mem_storew
 end
 
@@ -871,17 +871,17 @@ export.set_consumed_note_metadata
     mem_storew dropw
 end
 
-#! Returns the note args of a consumed note located at the specified memory address.
+#! Returns the note's args.
 #!
 #! Stack: [consumed_note_ptr]
 #! Output: [NOTE_ARGS]
 #!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - NOTE_ARGS are optional note args of the consumed note.
+#! Where:
+#! - consumed_note_ptr, the start memory address of the note.
+#! - NOTE_ARGS, the note's args.
 export.get_consumed_note_args
     padw
-    movup.4 push.CONSUMED_NOTE_ARGS_OFFSET
- add
+    movup.4 push.CONSUMED_NOTE_ARGS_OFFSET add
     mem_loadw
 end
 
@@ -893,33 +893,8 @@ end
 #! - consumed_note_ptr is the memory address at which the consumed note data begins.
 #! - NOTE_ARGS are optional note args of the consumed note.
 export.set_consumed_note_args
-    push.CONSUMED_NOTE_ARGS_OFFSET
- add
+    push.CONSUMED_NOTE_ARGS_OFFSET add
     mem_storew dropw
-end
-
-#! Returns the number of inputs for the consumed note located at the specified memory address.
-#!
-#! Stack: [consumed_note_ptr]
-#! Output: [num_inputs]
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - num_inputs is the number of inputs defined for the consumed note.
-export.get_consumed_note_num_inputs
-    push.CONSUMED_NOTE_NUM_INPUTS_OFFSET add
-    mem_load
-end
-
-#! Sets the number of inputs for a consumed note located at the specified memory address.
-#!
-#! Stack: [consumed_note_ptr, num_inputs]
-#! Output: []
-#!
-#! - consumed_note_ptr is the memory address at which the consumed note data begins.
-#! - num_inputs is the number of inputs for the consumed note.
-export.set_consumed_note_num_inputs
-    push.CONSUMED_NOTE_NUM_INPUTS_OFFSET add
-    mem_store
 end
 
 #! Returns the number of assets in the consumed note located at the specified memory address.
