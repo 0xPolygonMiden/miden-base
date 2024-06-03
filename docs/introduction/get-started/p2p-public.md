@@ -54,7 +54,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     To do this, from the first client run:
 
     ```shell
-    miden send --sender <basic-account-id-A> --target <basic-account-id-B> --faucet <faucet-account-id> 50 --note-type public
+    miden send --sender <basic-account-id-A> --target <basic-account-id-C> --faucet <faucet-account-id> 50 --note-type public
     ```
 
     !!! note
@@ -76,10 +76,10 @@ To do this, we use two terminals with their own state (using their own `miden-cl
 
     Because the note was retrieved from the node, the commit height will be included and displayed.
 
-4. Have the second account consume the note.
+4. Have account C consume the note.
 
     ```sh
-    miden consume-notes --account <regular-account-ID-B> <input-note-id>
+    miden consume-notes --account <regular-account-ID-C> <input-note-id>
     ```
 
     !!! tip
