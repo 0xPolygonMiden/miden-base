@@ -16,6 +16,18 @@ pub enum NoteFile {
     NoteWithProof(Note, NoteInclusionProof),
 }
 
+impl From<NoteDetails> for NoteFile {
+    fn from(details: NoteDetails) -> Self {
+        NoteFile::NoteDetails(details)
+    }
+}
+
+impl From<NoteId> for NoteFile {
+    fn from(note_id: NoteId) -> Self {
+        NoteFile::NoteId(note_id)
+    }
+}
+
 // SERIALIZATION
 // ================================================================================================
 
