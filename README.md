@@ -16,7 +16,7 @@ Miden is a zero-knowledge rollup for high-throughput and private applications. M
 
 If you want to join the technical discussion or learn more about the project, please check out
 
-* the [documentation](https://0xpolygonmiden.github.io/miden-base/).
+* the [Documentation](https://docs.polygon.technology/miden/).
 * the [Discord](https://discord.gg/0xpolygondevs)
 * the [Repo](https://github.com/0xPolygonMiden)
 * the [Roadmap](roadmap.md)
