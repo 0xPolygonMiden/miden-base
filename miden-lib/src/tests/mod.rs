@@ -9,8 +9,7 @@ use miden_objects::assembly::Library;
 #[test]
 fn test_compile() {
     let path = "miden::kernels::tx::memory::get_consumed_note_ptr";
-    let var_name = super::MidenLib::default();
-    let miden = var_name;
+    let miden = super::MidenLib::default();
     let exists = miden.modules().any(|module| {
         module
             .ast
