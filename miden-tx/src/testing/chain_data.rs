@@ -44,7 +44,7 @@ pub fn mock_chain_data(consumed_notes: Vec<Note>) -> (ChainMmr, Vec<InputNote>) 
             let block_header = &block_chain[index];
             let auth_index = LeafIndex::new(index as u64).unwrap();
 
-            InputNote::new(
+            InputNote::authenticated(
                 note,
                 NoteInclusionProof::new(
                     block_header.block_num(),
