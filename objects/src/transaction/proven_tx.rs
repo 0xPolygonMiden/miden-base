@@ -16,9 +16,6 @@ use crate::{
 /// transaction was executed correctly.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenTransaction {
-    /// A unique identifier for the transaction, see [TransactionId] for additional details.
-    id: TransactionId,
-
     /// Account update data.
     account_update: TxAccountUpdate,
 
@@ -39,7 +36,7 @@ pub struct ProvenTransaction {
 impl ProvenTransaction {
     /// Returns unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
-        self.id
+        self.account_update.transaction_id()
     }
 
     /// Returns ID of the account against which this transaction was executed.
@@ -141,15 +138,7 @@ impl Deserializable for ProvenTransaction {
         let block_ref = Digest::read_from(source)?;
         let proof = ExecutionProof::read_from(source)?;
 
-        let id = TransactionId::new(
-            account_update.init_state_hash(),
-            account_update.final_state_hash(),
-            input_notes.nullifier_commitment(),
-            output_notes.commitment(),
-        );
-
         let proven_transaction = Self {
-            id,
             account_update,
             input_notes,
             output_notes,
@@ -256,13 +245,14 @@ impl ProvenTransactionBuilder {
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
         let output_notes = OutputNotes::new(self.output_notes)
             .map_err(ProvenTransactionError::OutputNotesError)?;
-        let id = TransactionId::new(
+        let transaction_id = TransactionId::new(
             self.initial_account_hash,
             self.final_account_hash,
             input_notes.nullifier_commitment(),
             output_notes.commitment(),
         );
         let account_update = TxAccountUpdate::new(
+            transaction_id,
             self.account_id,
             self.initial_account_hash,
             self.final_account_hash,
@@ -270,7 +260,6 @@ impl ProvenTransactionBuilder {
         );
 
         let proven_transaction = ProvenTransaction {
-            id,
             account_update,
             input_notes,
             output_notes,
@@ -288,6 +277,9 @@ impl ProvenTransactionBuilder {
 /// Describes the changes made to the account state resulting from a transaction execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxAccountUpdate {
+    /// A unique identifier for the transaction, see [TransactionId] for additional details.
+    transaction_id: TransactionId,
+
     /// ID of the account updated by a transaction.
     account_id: AccountId,
 
@@ -308,17 +300,24 @@ pub struct TxAccountUpdate {
 impl TxAccountUpdate {
     /// Returns a new [TxAccountUpdate] instantiated from the specified components.
     pub const fn new(
+        transaction_id: TransactionId,
         account_id: AccountId,
         init_state_hash: Digest,
         final_state_hash: Digest,
         details: AccountUpdateDetails,
     ) -> Self {
         Self {
+            transaction_id,
             account_id,
             init_state_hash,
             final_state_hash,
             details,
         }
+    }
+
+    /// Returns a unique identifier for the transaction, see [TransactionId] for additional details.
+    pub fn transaction_id(&self) -> TransactionId {
+        self.transaction_id
     }
 
     /// Returns the ID of the updated account.
@@ -352,6 +351,7 @@ impl TxAccountUpdate {
 
 impl Serializable for TxAccountUpdate {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.transaction_id.write_into(target);
         self.account_id.write_into(target);
         self.init_state_hash.write_into(target);
         self.final_state_hash.write_into(target);
@@ -362,6 +362,7 @@ impl Serializable for TxAccountUpdate {
 impl Deserializable for TxAccountUpdate {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Ok(Self {
+            transaction_id: TransactionId::read_from(source)?,
             account_id: AccountId::read_from(source)?,
             init_state_hash: Digest::read_from(source)?,
             final_state_hash: Digest::read_from(source)?,
