@@ -53,6 +53,9 @@ pub use recipient::NoteRecipient;
 mod script;
 pub use script::NoteScript;
 
+mod file;
+pub use file::NoteFile;
+
 // CONSTANTS
 // ================================================================================================
 
