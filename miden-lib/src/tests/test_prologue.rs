@@ -28,7 +28,7 @@ use crate::transaction::{
         CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
         CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
         CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
-        INIT_NONCE_PTR, NOTE_ROOT_PTR, NULLIFIER_COMMITMENT_PTR, NULLIFIER_DB_ROOT_PTR,
+        INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
         PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX,
         TX_SCRIPT_ROOT_PTR,
     },
@@ -112,9 +112,9 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     );
 
     assert_eq!(
-        read_root_mem_value(process, NULLIFIER_COMMITMENT_PTR),
+        read_root_mem_value(process, INPUT_NOTES_COMMITMENT_PTR),
         inputs.input_notes().nullifier_commitment().as_elements(),
-        "The nullifier commitment should be stored at the NULLIFIER_COMMITMENT_PTR"
+        "The nullifier commitment should be stored at the INPUT_NOTES_COMMITMENT_PTR"
     );
 
     assert_eq!(
