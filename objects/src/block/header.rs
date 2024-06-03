@@ -33,7 +33,7 @@ pub struct BlockHeader {
     account_root: Digest,
     nullifier_root: Digest,
     note_root: Digest,
-    batch_root: Digest,
+    tx_hash: Digest,
     proof_hash: Digest,
     timestamp: u32,
     sub_hash: Digest,
@@ -51,7 +51,7 @@ impl BlockHeader {
         account_root: Digest,
         nullifier_root: Digest,
         note_root: Digest,
-        batch_root: Digest,
+        tx_hash: Digest,
         proof_hash: Digest,
         timestamp: u32,
     ) -> Self {
@@ -62,7 +62,7 @@ impl BlockHeader {
             chain_root,
             account_root,
             nullifier_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
             block_num,
@@ -81,7 +81,7 @@ impl BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
             sub_hash,
@@ -140,9 +140,9 @@ impl BlockHeader {
         self.note_root
     }
 
-    /// Returns the batch root.
-    pub fn batch_root(&self) -> Digest {
-        self.batch_root
+    /// Returns the hash of IDs of all transactions in the block.
+    pub fn tx_hash(&self) -> Digest {
+        self.tx_hash
     }
 
     /// Returns the proof hash.
@@ -197,7 +197,7 @@ impl Serializable for BlockHeader {
         self.account_root.write_into(target);
         self.nullifier_root.write_into(target);
         self.note_root.write_into(target);
-        self.batch_root.write_into(target);
+        self.tx_hash.write_into(target);
         self.proof_hash.write_into(target);
         self.timestamp.write_into(target);
     }
@@ -212,7 +212,7 @@ impl Deserializable for BlockHeader {
         let account_root = source.read()?;
         let nullifier_root = source.read()?;
         let note_root = source.read()?;
-        let batch_root = source.read()?;
+        let tx_hash = source.read()?;
         let proof_hash = source.read()?;
         let timestamp = source.read()?;
 
@@ -224,7 +224,7 @@ impl Deserializable for BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
         ))
@@ -268,7 +268,7 @@ mod mock {
             let acct_root = acct_db.root();
             let nullifier_root = rand::rand_array().into();
             let note_root = note_root.unwrap_or(rand::rand_array().into());
-            let batch_root = rand::rand_array().into();
+            let tx_hash = rand::rand_array().into();
             let proof_hash = rand::rand_array().into();
 
             BlockHeader::new(
@@ -279,7 +279,7 @@ mod mock {
                 acct_root,
                 nullifier_root,
                 note_root,
-                batch_root,
+                tx_hash,
                 proof_hash,
                 rand::rand_value(),
             )

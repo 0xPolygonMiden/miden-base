@@ -132,7 +132,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
-    inputs.extend_stack(header.batch_root());
+    inputs.extend_stack(header.tx_hash());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),

@@ -14,6 +14,7 @@ use crate::{
     transaction::OutputNote,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
+use crate::transaction::TransactionId;
 
 pub type NoteBatch = Vec<OutputNote>;
 
@@ -193,6 +194,9 @@ pub struct BlockAccountUpdate {
     /// the last block) to get the new account state. For private accounts, this is set to
     /// [AccountUpdateDetails::Private].
     details: AccountUpdateDetails,
+
+    /// IDs of all transactions in the block that updated the account.
+    transactions: Vec<TransactionId>,
 }
 
 impl BlockAccountUpdate {
@@ -201,8 +205,9 @@ impl BlockAccountUpdate {
         account_id: AccountId,
         new_state_hash: Digest,
         details: AccountUpdateDetails,
+        transactions: Vec<TransactionId>,
     ) -> Self {
-        Self { account_id, new_state_hash, details }
+        Self { account_id, new_state_hash, details, transactions }
     }
 
     /// Returns the ID of the updated account.
@@ -223,6 +228,11 @@ impl BlockAccountUpdate {
         &self.details
     }
 
+    /// Returns the IDs of all transactions in the block that updated the account.
+    pub fn transactions(&self) -> &[TransactionId] {
+        &self.transactions
+    }
+
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         self.details.is_private()
@@ -234,6 +244,7 @@ impl Serializable for BlockAccountUpdate {
         self.account_id.write_into(target);
         self.new_state_hash.write_into(target);
         self.details.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -243,6 +254,7 @@ impl Deserializable for BlockAccountUpdate {
             account_id: AccountId::read_from(source)?,
             new_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
+            transactions: Vec::<TransactionId>::read_from(source)?,
         })
     }
 }
