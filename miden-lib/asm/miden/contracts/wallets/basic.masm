@@ -61,13 +61,13 @@ export.send_asset.1
     # => [tag, note_type, RECIPIENT, 0, 0, ZERO, ZERO, ...]
 
     exec.tx::create_note
-    # => [note_ptr, 0, ZERO, ZERO, ...]
+    # => [note_idx, 0, ZERO, ZERO, ...]
 
     padw loc_loadw.0 movup.4
-    # => [note_ptr, ASSET, 0, ZERO, ZERO, ...]
+    # => [note_idx, ASSET, 0, ZERO, ZERO, ...]
 
     exec.tx::add_asset_to_note
-    # => [note_ptr, 0, ZERO, ZERO, ...]
+    # => [note_idx, 0, ZERO, ZERO, ...]
 
     # prepare the stack for return - stack has 5 elements too many
     movupw.3 dropw swap drop

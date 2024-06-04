@@ -78,11 +78,11 @@ export.distribute.1
 
     # create a note
     exec.tx::create_note
-    # => [note_ptr, ZERO, ZERO, ...]
+    # => [note_idx, ZERO, ZERO, ...]
 
     # load the ASSET and add it to the note
     padw loc_loadw.0 movup.4 exec.tx::add_asset_to_note
-    # => [note_ptr, ASSET, ZERO, ...]
+    # => [note_idx, ASSET, ZERO, ...]
 end
 
 #! Burns fungible assets.
