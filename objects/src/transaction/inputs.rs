@@ -132,60 +132,17 @@ impl TransactionInputs {
     }
 }
 
-// TO NULLIFIER TRAIT
-// ================================================================================================
-
-/// Defines how a note object can be reduced to a nullifier.
-///
-/// This trait is implemented on both [InputNote] and [Nullifier] so that we can treat them
-/// generically as [InputNotes].
-pub trait ToNullifier:
-    Debug + Clone + PartialEq + Eq + Serializable + Deserializable + Sized
-{
-    fn nullifier(&self) -> Nullifier;
-}
-
-impl ToNullifier for InputNote {
-    fn nullifier(&self) -> Nullifier {
-        self.note().nullifier()
-    }
-}
-
-impl ToNullifier for Nullifier {
-    fn nullifier(&self) -> Nullifier {
-        *self
-    }
-}
-
-impl From<InputNotes> for InputNotes<Nullifier> {
-    fn from(value: InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: build_nullifier_commitment(&value.notes),
-        }
-    }
-}
-
-impl From<&InputNotes> for InputNotes<Nullifier> {
-    fn from(value: &InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: build_nullifier_commitment(&value.notes),
-        }
-    }
-}
-
 // INPUT NOTES
 // ================================================================================================
 
 /// Input notes for a transaction, empty if the transaction does not consume notes.
 #[derive(Debug, Clone)]
-pub struct InputNotes<T: ToNullifier = InputNote> {
-    notes: Vec<T>,
-    nullifier_commitment: Digest,
+pub struct InputNotes {
+    notes: Vec<InputNote>,
+    commitment: Digest,
 }
 
-impl<T: ToNullifier> InputNotes<T> {
+impl InputNotes {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns new [InputNotes] instantiated from the provided vector of notes.
@@ -194,7 +151,7 @@ impl<T: ToNullifier> InputNotes<T> {
     /// Returns an error if:
     /// - The total number of notes is greater than 1024.
     /// - The vector of notes contains duplicates.
-    pub fn new(notes: Vec<T>) -> Result<Self, TransactionInputError> {
+    pub fn new(notes: Vec<InputNote>) -> Result<Self, TransactionInputError> {
         if notes.len() > MAX_INPUT_NOTES_PER_TX {
             return Err(TransactionInputError::TooManyInputNotes {
                 max: MAX_INPUT_NOTES_PER_TX,
@@ -209,9 +166,9 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        let nullifier_commitment = build_nullifier_commitment(&notes);
+        let commitment = build_input_notes_commitment(&notes);
 
-        Ok(Self { notes, nullifier_commitment })
+        Ok(Self { notes, commitment })
     }
 
     // PUBLIC ACCESSORS
@@ -224,8 +181,8 @@ impl<T: ToNullifier> InputNotes<T> {
     /// > hash(nullifier_0 || ZERO || nullifier_1 || ZERO || .. || nullifier_n || ZERO)
     ///
     /// Otherwise defined as ZERO for empty lists.
-    pub fn nullifier_commitment(&self) -> Digest {
-        self.nullifier_commitment
+    pub fn commitment(&self) -> Digest {
+        self.commitment
     }
 
     /// Returns total number of input notes.
@@ -239,7 +196,7 @@ impl<T: ToNullifier> InputNotes<T> {
     }
 
     /// Returns a reference to the note located at the specified index.
-    pub fn get_note(&self, idx: usize) -> &T {
+    pub fn get_note(&self, idx: usize) -> &InputNote {
         &self.notes[idx]
     }
 
@@ -247,7 +204,7 @@ impl<T: ToNullifier> InputNotes<T> {
     // --------------------------------------------------------------------------------------------
 
     /// Returns an iterator over notes in this [InputNotes].
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl Iterator<Item = &InputNote> {
         self.notes.iter()
     }
 
@@ -255,13 +212,13 @@ impl<T: ToNullifier> InputNotes<T> {
     // --------------------------------------------------------------------------------------------
 
     /// Converts self into a vector of input notes.
-    pub fn into_vec(self) -> Vec<T> {
+    pub fn into_vec(self) -> Vec<InputNote> {
         self.notes
     }
 }
 
-impl<T: ToNullifier> IntoIterator for InputNotes<T> {
-    type Item = T;
+impl IntoIterator for InputNotes {
+    type Item = InputNote;
     type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -269,19 +226,19 @@ impl<T: ToNullifier> IntoIterator for InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> PartialEq for InputNotes<T> {
+impl PartialEq for InputNotes {
     fn eq(&self, other: &Self) -> bool {
         self.notes == other.notes
     }
 }
 
-impl<T: ToNullifier> Eq for InputNotes<T> {}
+impl Eq for InputNotes {}
 
-impl<T: ToNullifier> Default for InputNotes<T> {
+impl Default for InputNotes {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            nullifier_commitment: build_nullifier_commitment::<T>(&[]),
+            commitment: build_input_notes_commitment(&[]),
         }
     }
 }
@@ -289,19 +246,20 @@ impl<T: ToNullifier> Default for InputNotes<T> {
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
-impl<T: ToNullifier> Serializable for InputNotes<T> {
+impl Serializable for InputNotes {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // assert is OK here because we enforce max number of notes in the constructor
         assert!(self.notes.len() <= u16::MAX.into());
         target.write_u16(self.notes.len() as u16);
+        // the commitment is not serialized because it can be recomputed
         target.write_many(&self.notes);
     }
 }
 
-impl<T: ToNullifier> Deserializable for InputNotes<T> {
+impl Deserializable for InputNotes {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_notes = source.read_u16()?;
-        let notes = source.read_many::<T>(num_notes.into())?;
+        let notes = source.read_many::<InputNote>(num_notes.into())?;
         Self::new(notes).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
@@ -309,7 +267,7 @@ impl<T: ToNullifier> Deserializable for InputNotes<T> {
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-fn build_nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+fn build_input_notes_commitment(notes: &[InputNote]) -> Digest {
     // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
     if notes.is_empty() {
         return Digest::default();
@@ -369,6 +327,11 @@ impl InputNote {
             Self::Authenticated { note, .. } => note,
             Self::Unauthenticated { note } => note,
         }
+    }
+
+    /// Returns the note's nullifier.
+    fn nullifier(&self) -> Nullifier {
+        self.note().nullifier()
     }
 
     /// Returns a reference to the inclusion proof of the note.

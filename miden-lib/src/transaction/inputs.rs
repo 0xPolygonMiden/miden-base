@@ -27,7 +27,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -44,7 +44,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -62,7 +62,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -337,5 +337,5 @@ fn add_input_notes_to_advice_inputs(
     }
 
     // NOTE: keep map in sync with the `process_input_notes_data` kernel procedure
-    inputs.extend_map([(notes.nullifier_commitment(), note_data)]);
+    inputs.extend_map([(notes.commitment(), note_data)]);
 }

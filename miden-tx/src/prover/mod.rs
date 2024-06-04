@@ -3,10 +3,7 @@ use alloc::vec::Vec;
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
-    notes::Nullifier,
-    transaction::{
-        InputNotes, OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness,
-    },
+    transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
@@ -45,7 +42,7 @@ impl TransactionProver {
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let tx_witness: TransactionWitness = transaction.into();
 
-        let input_notes: InputNotes<Nullifier> = tx_witness.tx_inputs().input_notes().into();
+        let input_notes = tx_witness.tx_inputs().input_notes();
         let account_id = tx_witness.account().id();
         let block_hash = tx_witness.block_header().hash();
 
@@ -75,7 +72,7 @@ impl TransactionProver {
             block_hash,
             proof,
         )
-        .add_input_notes(input_notes)
+        .add_input_notes(input_notes.iter().cloned())
         .add_output_notes(output_notes);
 
         let builder = match account_id.is_on_chain() {

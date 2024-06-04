@@ -2,7 +2,7 @@ use alloc::{string::ToString, vec::Vec};
 
 use miden_verifier::ExecutionProof;
 
-use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
+use super::{AccountId, Digest, InputNote, InputNotes, OutputNote, OutputNotes, TransactionId};
 use crate::{
     accounts::delta::AccountUpdateDetails,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -23,7 +23,7 @@ pub struct ProvenTransaction {
     account_update: TxAccountUpdate,
 
     /// A list of nullifiers for all notes consumed by the transaction.
-    input_notes: InputNotes<Nullifier>,
+    input_notes: InputNotes,
 
     /// Notes created by the transaction. For private notes, this will contain only note headers,
     /// while for public notes this will also contain full note details.
@@ -53,7 +53,7 @@ impl ProvenTransaction {
     }
 
     /// Returns a reference to the notes consumed by the transaction.
-    pub fn input_notes(&self) -> &InputNotes<Nullifier> {
+    pub fn input_notes(&self) -> &InputNotes {
         &self.input_notes
     }
 
@@ -135,7 +135,7 @@ impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let account_update = TxAccountUpdate::read_from(source)?;
 
-        let input_notes = InputNotes::<Nullifier>::read_from(source)?;
+        let input_notes = InputNotes::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
@@ -144,7 +144,7 @@ impl Deserializable for ProvenTransaction {
         let id = TransactionId::new(
             account_update.init_state_hash(),
             account_update.final_state_hash(),
-            input_notes.nullifier_commitment(),
+            input_notes.commitment(),
             output_notes.commitment(),
         );
 
@@ -181,8 +181,8 @@ pub struct ProvenTransactionBuilder {
     /// State changes to the account due to the transaction.
     account_update_details: AccountUpdateDetails,
 
-    /// List of [Nullifier]s of all consumed notes by the transaction.
-    input_notes: Vec<Nullifier>,
+    /// List of [InputNote]s of all consumed notes by the transaction.
+    input_notes: Vec<InputNote>,
 
     /// List of [OutputNote]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
@@ -230,7 +230,7 @@ impl ProvenTransactionBuilder {
     /// Add notes consumed by the transaction.
     pub fn add_input_notes<T>(mut self, notes: T) -> Self
     where
-        T: IntoIterator<Item = Nullifier>,
+        T: IntoIterator<Item = InputNote>,
     {
         self.input_notes.extend(notes);
         self
@@ -259,7 +259,7 @@ impl ProvenTransactionBuilder {
         let id = TransactionId::new(
             self.initial_account_hash,
             self.final_account_hash,
-            input_notes.nullifier_commitment(),
+            input_notes.commitment(),
             output_notes.commitment(),
         );
         let account_update = TxAccountUpdate::new(
