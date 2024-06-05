@@ -46,7 +46,7 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-#[cfg(all(test, feature = "testing"))]
+#[cfg(test)]
 mod kernel_tests;
 
 // RE-EXPORTS
