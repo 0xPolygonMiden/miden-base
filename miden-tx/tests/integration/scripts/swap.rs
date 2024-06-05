@@ -11,15 +11,15 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType},
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::mock::account::DEFAULT_AUTH_SCRIPT;
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 #[test]

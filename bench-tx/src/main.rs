@@ -6,9 +6,7 @@ use std::{
     rc::Rc,
 };
 
-use miden_lib::{
-    notes::create_p2id_note, transaction::ToTransactionKernelInputs, utils::Serializable,
-};
+use miden_lib::{notes::create_p2id_note, transaction::ToTransactionKernelInputs};
 use miden_objects::{
     accounts::{AccountId, AuthSecretKey},
     assembly::ProgramAst,
@@ -19,14 +17,15 @@ use miden_objects::{
     Felt,
 };
 use miden_tx::{
-    auth::BasicAuthenticator, TransactionExecutor, TransactionHost, TransactionProgress,
+    auth::BasicAuthenticator, testing::data_store::MockDataStore, utils::Serializable,
+    TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, write_bench_results_to_json, MockDataStore,
+    get_account_with_default_account_code, write_bench_results_to_json,
     ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };

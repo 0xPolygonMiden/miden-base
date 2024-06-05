@@ -306,91 +306,6 @@ pub fn hash_account(
     Hasher::hash_elements(&elements)
 }
 
-// TESTING
-// ================================================================================================
-
-#[cfg(any(feature = "testing", test))]
-pub mod testing {
-    use alloc::vec::Vec;
-
-    use super::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        },
-        code::testing::make_account_code,
-        Account, AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
-        Felt, SlotItem, StorageMap, StorageSlot, StorageSlotType, Word,
-    };
-    use crate::assets::{Asset, AssetVault, FungibleAsset};
-
-    // UTILITIES
-    // --------------------------------------------------------------------------------------------
-
-    pub fn build_account(
-        assets: Vec<Asset>,
-        nonce: Felt,
-        storage_items: Vec<Word>,
-        storage_map: Option<StorageMap>,
-    ) -> Account {
-        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let code = make_account_code();
-
-        // build account data
-        let vault = AssetVault::new(&assets).unwrap();
-
-        let slot_type = StorageSlotType::Value { value_arity: 0 };
-        let mut slot_items: Vec<SlotItem> = storage_items
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| SlotItem {
-                index: index as u8,
-                slot: StorageSlot { slot_type, value: item },
-            })
-            .collect();
-
-        let mut maps = Vec::new();
-        let slot_type_map = StorageSlotType::Map { value_arity: 0 };
-        if let Some(storage_map) = storage_map {
-            let map_item = SlotItem {
-                // slot index * 10 to avoid conflicts with value slots
-                // this should only stay until we merge next with the proper solution
-                index: 100_u8,
-                slot: StorageSlot {
-                    slot_type: slot_type_map,
-                    value: storage_map.root().into(),
-                },
-            };
-            slot_items.push(map_item);
-            maps.push(storage_map);
-        }
-
-        let storage = AccountStorage::new(slot_items, maps).unwrap();
-
-        Account::from_parts(id, vault, storage, code, nonce)
-    }
-
-    pub fn build_account_delta(
-        added_assets: Vec<Asset>,
-        removed_assets: Vec<Asset>,
-        nonce: Felt,
-        storage_delta: AccountStorageDelta,
-    ) -> AccountDelta {
-        let vault_delta = AccountVaultDelta { added_assets, removed_assets };
-        AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
-    }
-
-    pub fn build_assets() -> (Asset, Asset) {
-        let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-        let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
-
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
-
-        (asset_0, asset_1)
-    }
-}
-
 // TESTS
 // ================================================================================================
 
@@ -401,10 +316,10 @@ mod tests {
         Felt, Word,
     };
 
-    use super::{testing::*, AccountDelta, AccountStorageDelta, AccountVaultDelta, Digest};
-    use crate::accounts::{
-        delta::{AccountStorageDeltaBuilder, StorageMapDelta},
-        Account, StorageMap,
+    use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use crate::{
+        accounts::{delta::AccountStorageDeltaBuilder, Account},
+        testing::storage::{build_account, build_account_delta, build_assets},
     };
 
     #[test]

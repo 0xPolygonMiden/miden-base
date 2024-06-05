@@ -4,7 +4,6 @@ members = [
     "bench-tx",
     "miden-lib",
     "miden-tx",
-    "mock",
     "objects",
 ]
 

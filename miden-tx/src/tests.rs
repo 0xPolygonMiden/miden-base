@@ -8,45 +8,38 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
         },
-        Account, AccountCode,
+        AccountCode,
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    block::BlockHeader,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
-    transaction::{
-        ChainMmr, InputNote, InputNotes, ProvenTransaction, TransactionArgs, TransactionWitness,
-    },
-    Felt, Word, ZERO,
-};
-use miden_prover::ProvingOptions;
-use mock::{
-    constants::{non_fungible_asset, FUNGIBLE_ASSET_AMOUNT, MIN_PROOF_SECURITY_LEVEL},
-    mock::{
-        account::{
-            MockAccountType, ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
+    testing::{
+        account_code::{
+            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
             ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
-            STORAGE_INDEX_0, STORAGE_INDEX_2,
         },
+        assets::non_fungible_asset,
+        constants::FUNGIBLE_ASSET_AMOUNT,
         notes::AssetPreservationStatus,
-        transaction::mock_inputs,
+        prepare_word,
+        storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    utils::prepare_word,
+    transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
+    Felt, Word, MIN_PROOF_SECURITY_LEVEL, ZERO,
 };
+use miden_prover::ProvingOptions;
 use vm_processor::{
     utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider,
 };
 use winter_maybe_async::maybe_async;
 
-use super::{
-    AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
-    TransactionProver, TransactionVerifier,
-};
+use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
+use crate::testing::data_store::MockDataStore;
 
 // TESTS
 // ================================================================================================
@@ -148,7 +141,6 @@ fn executed_transaction_account_delta() {
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
-
     let tx_script = format!(
         "\
         use.miden::account
@@ -508,7 +500,6 @@ fn executed_transaction_output_notes() {
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
-
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
@@ -562,7 +553,6 @@ fn prove_witness_and_verify() {
 
     let serialised_transaction = proven_transaction.to_bytes();
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
-
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }
@@ -619,78 +609,4 @@ fn test_tx_script() {
         "Transaction execution failed {:?}",
         executed_transaction,
     );
-}
-
-// MOCK DATA STORE
-// ================================================================================================
-
-#[derive(Clone)]
-struct MockDataStore {
-    pub account: Account,
-    pub block_header: BlockHeader,
-    pub block_chain: ChainMmr,
-    pub notes: Vec<InputNote>,
-    pub tx_args: TransactionArgs,
-}
-
-impl MockDataStore {
-    pub fn new(asset_preservation: AssetPreservationStatus) -> Self {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation);
-        let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
-
-        Self {
-            account,
-            block_header,
-            block_chain,
-            notes: notes.into_vec(),
-            tx_args,
-        }
-    }
-
-    fn tx_args(&self) -> &TransactionArgs {
-        &self.tx_args
-    }
-}
-
-impl Default for MockDataStore {
-    fn default() -> Self {
-        Self::new(AssetPreservationStatus::Preserved)
-    }
-}
-
-impl DataStore for MockDataStore {
-    #[maybe_async]
-    fn get_transaction_inputs(
-        &self,
-        account_id: AccountId,
-        block_num: u32,
-        notes: &[NoteId],
-    ) -> Result<TransactionInputs, DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        assert_eq!(block_num, self.block_header.block_num());
-        assert_eq!(notes.len(), self.notes.len());
-
-        let notes = self
-            .notes
-            .iter()
-            .filter(|note| notes.contains(&note.id()))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        Ok(TransactionInputs::new(
-            self.account.clone(),
-            None,
-            self.block_header,
-            self.block_chain.clone(),
-            InputNotes::new(notes).unwrap(),
-        )
-        .unwrap())
-    }
-
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
-        assert_eq!(account_id, self.account.id());
-        Ok(self.account.code().module().clone())
-    }
 }
