@@ -105,8 +105,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new note from the pointer and stores it in the `output_notes` field of the
-    /// [TransactionHost].
+    /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
+    /// `output_notes` field of this [TransactionHost].
     ///
     /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
     fn on_note_after_created<S: ProcessState>(
@@ -125,7 +125,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         Ok(())
     }
 
-    /// Adds an asset from the stack to the note stored by its pointer.
+    /// Adds an asset at the top of the [OutputNoteBuilder] identified by the note pointer.
     ///
     /// Expected stack state: [ASSET, note_ptr, ...]
     fn on_note_before_add_asset<S: ProcessState>(

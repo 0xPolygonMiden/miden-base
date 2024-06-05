@@ -409,11 +409,11 @@ export.set_map_item.2
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
-    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop dropw dropw
-    # => []
+    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop 
+    # => [KEY, NEW_VALUE, ...]
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack 
-    loc_loadw.1 padw loc_loadw.0
+    loc_loadw.1 swapw loc_loadw.0
     # => [OLD_VALUE, NEW_ROOT]
 end
 

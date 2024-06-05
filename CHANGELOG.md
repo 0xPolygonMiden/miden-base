@@ -8,6 +8,7 @@
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
 * [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes (#707).
+* Created additional `emit` events for kernel related `.masm` procedures (#708).
 * Implemented `build_recipient_hash` procedure to build recipient hash for custom notes (#710).
 * Removed the `mock` crate in favor of having mock code behind the `testing` flag in remaining crates (#711).
 * [BREAKING] Created `auth` module for `TransactionAuthenticator` and other related objects (#714).
