@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
+use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
@@ -19,7 +19,7 @@ pub struct TransactionInputs {
     account_seed: Option<Word>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
-    input_notes: InputNotes,
+    input_notes: InputNotes<InputNote>,
 }
 
 impl TransactionInputs {
@@ -36,7 +36,7 @@ impl TransactionInputs {
         account_seed: Option<Word>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
-        input_notes: InputNotes,
+        input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
         // validate the seed
         validate_account_seed(&account, account_seed)?;
@@ -113,7 +113,7 @@ impl TransactionInputs {
     }
 
     /// Returns the notes to be consumed in the transaction.
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         &self.input_notes
     }
 
@@ -121,7 +121,9 @@ impl TransactionInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes these transaction inputs and returns their underlying components.
-    pub fn into_parts(self) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes) {
+    pub fn into_parts(
+        self,
+    ) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes<InputNote>) {
         (
             self.account,
             self.account_seed,
@@ -132,60 +134,35 @@ impl TransactionInputs {
     }
 }
 
-// TO NULLIFIER TRAIT
+// TO INPUT NOTE COMMITMENT
 // ================================================================================================
 
-/// Defines how a note object can be reduced to a nullifier.
+/// Specifies the data used by the transaction kernel to commit to a note.
 ///
-/// This trait is implemented on both [InputNote] and [Nullifier] so that we can treat them
-/// generically as [InputNotes].
-pub trait ToNullifier:
-    Debug + Clone + PartialEq + Eq + Serializable + Deserializable + Sized
-{
+/// The commitment is composed of:
+///
+/// - nullifier, which prevents double spend and provides unlinkability.
+/// - an optional note_id, which allows for delayed note authentication.
+pub trait ToInputNoteCommitments {
     fn nullifier(&self) -> Nullifier;
-}
-
-impl ToNullifier for InputNote {
-    fn nullifier(&self) -> Nullifier {
-        self.note().nullifier()
-    }
-}
-
-impl ToNullifier for Nullifier {
-    fn nullifier(&self) -> Nullifier {
-        *self
-    }
-}
-
-impl From<InputNotes> for InputNotes<Nullifier> {
-    fn from(value: InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: build_nullifier_commitment(&value.notes),
-        }
-    }
-}
-
-impl From<&InputNotes> for InputNotes<Nullifier> {
-    fn from(value: &InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            nullifier_commitment: build_nullifier_commitment(&value.notes),
-        }
-    }
+    fn note_id(&self) -> Option<NoteId>;
 }
 
 // INPUT NOTES
 // ================================================================================================
 
 /// Input notes for a transaction, empty if the transaction does not consume notes.
+///
+/// This structure is generic over `T`, so it can be used to create the input notes for transaction
+/// execution, which require the note's details to run the transaction kernel, and the input notes
+/// for proof verification, which require only the commitment data.
 #[derive(Debug, Clone)]
-pub struct InputNotes<T: ToNullifier = InputNote> {
+pub struct InputNotes<T> {
     notes: Vec<T>,
-    nullifier_commitment: Digest,
+    commitment: Digest,
 }
 
-impl<T: ToNullifier> InputNotes<T> {
+impl<T: ToInputNoteCommitments> InputNotes<T> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns new [InputNotes] instantiated from the provided vector of notes.
@@ -209,9 +186,9 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        let nullifier_commitment = build_nullifier_commitment(&notes);
+        let commitment = build_input_note_commitment(&notes);
 
-        Ok(Self { notes, nullifier_commitment })
+        Ok(Self { notes, commitment })
     }
 
     // PUBLIC ACCESSORS
@@ -221,11 +198,11 @@ impl<T: ToNullifier> InputNotes<T> {
     ///
     /// For non empty lists the commitment is defined as:
     ///
-    /// > hash(nullifier_0 || ZERO || nullifier_1 || ZERO || .. || nullifier_n || ZERO)
+    /// > hash(nullifier_0 || noteid0_or_zero || nullifier_1 || noteid1_or_zero || .. || nullifier_n || noteidn_or_zero)
     ///
     /// Otherwise defined as ZERO for empty lists.
-    pub fn nullifier_commitment(&self) -> Digest {
-        self.nullifier_commitment
+    pub fn commitment(&self) -> Digest {
+        self.commitment
     }
 
     /// Returns total number of input notes.
@@ -260,7 +237,7 @@ impl<T: ToNullifier> InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> IntoIterator for InputNotes<T> {
+impl<T> IntoIterator for InputNotes<T> {
     type Item = T;
     type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
@@ -269,19 +246,28 @@ impl<T: ToNullifier> IntoIterator for InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> PartialEq for InputNotes<T> {
+impl<'a, T> IntoIterator for &'a InputNotes<T> {
+    type Item = &'a T;
+    type IntoIter = alloc::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> alloc::slice::Iter<'a, T> {
+        self.notes.iter()
+    }
+}
+
+impl<T: PartialEq> PartialEq for InputNotes<T> {
     fn eq(&self, other: &Self) -> bool {
         self.notes == other.notes
     }
 }
 
-impl<T: ToNullifier> Eq for InputNotes<T> {}
+impl<T: Eq> Eq for InputNotes<T> {}
 
-impl<T: ToNullifier> Default for InputNotes<T> {
+impl<T: ToInputNoteCommitments> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            nullifier_commitment: build_nullifier_commitment::<T>(&[]),
+            commitment: build_input_note_commitment::<T>(&[]),
         }
     }
 }
@@ -289,7 +275,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
-impl<T: ToNullifier> Serializable for InputNotes<T> {
+impl<T: Serializable> Serializable for InputNotes<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // assert is OK here because we enforce max number of notes in the constructor
         assert!(self.notes.len() <= u16::MAX.into());
@@ -298,18 +284,18 @@ impl<T: ToNullifier> Serializable for InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> Deserializable for InputNotes<T> {
+impl<T: Deserializable + ToInputNoteCommitments> Deserializable for InputNotes<T> {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_notes = source.read_u16()?;
         let notes = source.read_many::<T>(num_notes.into())?;
-        Self::new(notes).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        Self::new(notes).map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
     }
 }
 
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-fn build_nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest {
     // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
     if notes.is_empty() {
         return Digest::default();
@@ -318,7 +304,8 @@ fn build_nullifier_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
     for note in notes {
         elements.extend_from_slice(note.nullifier().as_elements());
-        elements.extend_from_slice(&Word::default());
+        elements
+            .extend_from_slice(&note.note_id().map_or(Word::default(), |note_id| note_id.into()));
     }
     Hasher::hash_elements(&elements)
 }
@@ -390,6 +377,29 @@ fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHead
     let note_index = proof.origin().node_index.value();
     let note_hash = note.authentication_hash();
     proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+}
+
+impl ToInputNoteCommitments for InputNote {
+    fn nullifier(&self) -> Nullifier {
+        self.note().nullifier()
+    }
+
+    fn note_id(&self) -> Option<NoteId> {
+        match self {
+            InputNote::Authenticated { .. } => None,
+            InputNote::Unauthenticated { note } => Some(note.id()),
+        }
+    }
+}
+
+impl ToInputNoteCommitments for &InputNote {
+    fn nullifier(&self) -> Nullifier {
+        (*self).nullifier()
+    }
+
+    fn note_id(&self) -> Option<NoteId> {
+        (*self).note_id()
+    }
 }
 
 // SERIALIZATION
