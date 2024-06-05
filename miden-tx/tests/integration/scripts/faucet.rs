@@ -14,16 +14,16 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
+    testing::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::utils::prepare_word;
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 // TESTS MINT FUNGIBLE ASSET

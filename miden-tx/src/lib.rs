@@ -40,8 +40,14 @@ pub use error::{
 
 pub mod auth;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod kernel_tests;
 
 // RE-EXPORTS
 // ================================================================================================
