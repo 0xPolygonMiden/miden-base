@@ -50,7 +50,7 @@ fn prove_p2id_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -153,7 +153,7 @@ fn p2id_script_multiple_assets() {
         target_account_id,
         vec![fungible_asset_1, fungible_asset_2],
         NoteType::Public,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
