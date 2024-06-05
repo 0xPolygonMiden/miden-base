@@ -25,14 +25,14 @@ end
 #! to the specified recipient.
 #!
 #! Inputs: [ASSET, tag, note_type, RECIPIENT, ...]
-#! Outputs: [note_ptr, ZERO, ZERO, 0, ...]
+#! Outputs: [note_idx, ZERO, ZERO, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
 #! - note_type is the note's storage type
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-#! - note_ptr is the pointer to the memory address in the kernel.
+#! - note_idx is the index of the created note.
 #!   This cannot directly be accessed from another context.
 #!
 #! Panics:

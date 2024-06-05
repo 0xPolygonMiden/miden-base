@@ -313,7 +313,7 @@ export.create_note
 end
 
 #! Adds an ASSET to the specified note and returns the index of the note
-#! at which the asset is added.
+#! to which the asset is added.
 #!
 #! Inputs: [note_idx, ASSET]
 #! Outputs: [note_idx]

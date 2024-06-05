@@ -71,8 +71,8 @@ export.create_note
     # => [note_idx]
 end
 
-#! Adds an ASSET to the specified note and returns the index index of the note
-#! at which the asset is added.
+#! Adds an ASSET to the specified note and returns the index of the note
+#! to which the asset is added.
 #!
 #! Inputs: [note_idx, ASSET]
 #! Outputs: [note_idx]
