@@ -7,12 +7,11 @@ use miden_lib::transaction::{TransactionEvent, TransactionKernel};
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
-        AccountDelta, AccountStub, AccountVaultDelta,
+        AccountCode, AccountDelta, AccountStub, AccountVaultDelta,
     },
     notes::Note,
     testing::{
         account::MockAccountType,
-        account_code::mock_account_code,
         block::{MockChain, MockChainBuilder},
         build_dummy_tx_program,
         notes::{mock_notes, AssetPreservationStatus},
@@ -129,19 +128,19 @@ pub fn mock_inputs_with_account_seed(
     let assembler = &TransactionKernel::assembler();
     let account = match account_type {
         MockAccountType::StandardNew { account_id } => {
-            let code = mock_account_code(assembler);
-            Account::new_dummy(account_id, Felt::ZERO, code)
+            let code = AccountCode::mock(assembler);
+            Account::mock(account_id, Felt::ZERO, code)
         },
-        MockAccountType::StandardExisting => Account::new_dummy(
+        MockAccountType::StandardExisting => Account::mock(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             Felt::ONE,
-            mock_account_code(assembler),
+            AccountCode::mock(assembler),
         ),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            Account::dummy_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+            Account::mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
         },
         MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            Account::dummy_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+            Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
         },
     };
 
@@ -169,14 +168,14 @@ pub fn mock_inputs_with_account_seed(
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
     let assembler = TransactionKernel::assembler();
 
-    let initial_account = Account::new_dummy(
+    let initial_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         Felt::ONE,
-        mock_account_code(&assembler),
+        AccountCode::mock(&assembler),
     );
 
     // nonce incremented by 1
-    let final_account = Account::new_dummy(
+    let final_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         Felt::new(2),
         initial_account.code().clone(),
@@ -228,19 +227,19 @@ pub fn mock_inputs_with_existing(
     } else {
         match account_type {
             MockAccountType::StandardNew { account_id } => {
-                let code = mock_account_code(assembler);
-                Account::new_dummy(account_id, Felt::ZERO, code)
+                let code = AccountCode::mock(assembler);
+                Account::mock(account_id, Felt::ZERO, code)
             },
-            MockAccountType::StandardExisting => Account::new_dummy(
+            MockAccountType::StandardExisting => Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ONE,
-                mock_account_code(assembler),
+                AccountCode::mock(assembler),
             ),
             MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-                Account::dummy_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+                Account::mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
             },
             MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-                Account::dummy_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+                Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
             },
         }
     };

@@ -43,7 +43,7 @@ fn test_get_balance() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get(0).as_int(),
@@ -70,7 +70,7 @@ fn test_get_balance_non_fungible_fails() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
 }
@@ -96,7 +96,7 @@ fn test_has_non_fungible_asset() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(process.stack.get(0), ONE);
 }
@@ -127,7 +127,7 @@ fn test_add_fungible_asset_success() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -166,7 +166,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(add_fungible_asset).is_err());
@@ -201,7 +201,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -241,7 +241,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
     assert!(account_vault.add_asset(non_fungible_asset).is_err());
@@ -273,7 +273,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -311,7 +311,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
 }
@@ -342,7 +342,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),
@@ -389,7 +389,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
     assert_eq!(
@@ -426,7 +426,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.stack.get_word(0),

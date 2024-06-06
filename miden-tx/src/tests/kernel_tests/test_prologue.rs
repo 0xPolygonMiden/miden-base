@@ -31,7 +31,7 @@ use vm_processor::AdviceInputs;
 use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
 use crate::testing::{
     mock_inputs, mock_inputs_with_account_seed,
-    utils::{consumed_note_data_ptr, prepare_transaction, run_tx, run_tx_with_inputs},
+    utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
     MockHost,
 };
 
@@ -83,7 +83,7 @@ fn test_transaction_prologue() {
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, Some(assembly_file));
 
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     global_input_memory_assertions(&process, &transaction);
     block_data_memory_assertions(&process, &transaction);
@@ -358,7 +358,7 @@ pub fn test_prologue_create_account() {
     ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx(&transaction, Default::default()).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -387,7 +387,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_ok());
 }
@@ -418,7 +418,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err());
 }
@@ -449,7 +449,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_ok())
 }
@@ -481,7 +481,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
     assert!(process.is_err());
 }
 
@@ -514,7 +514,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let process = run_tx_with_inputs(&transaction, adv_inputs);
+    let process = run_tx(&transaction, adv_inputs);
     assert!(process.is_err());
 }
 
@@ -533,7 +533,7 @@ fn test_get_blk_version() {
     ";
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().version().into());
 }
@@ -553,7 +553,7 @@ fn test_get_blk_timestamp() {
     ";
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp().into());
 }

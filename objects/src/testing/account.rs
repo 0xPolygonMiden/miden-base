@@ -10,15 +10,12 @@ use rand::Rng;
 use vm_core::FieldElement;
 
 use super::{
-    account_code::{mock_account_code, DEFAULT_ACCOUNT_CODE},
+    account_code::DEFAULT_ACCOUNT_CODE,
     account_id::{str_to_account_code, AccountIdBuilder},
     constants::{
         self, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
     },
-    storage::{
-        storage_item_0, storage_item_1, storage_item_2, storage_map_2, AccountStorageBuilder,
-        FAUCET_STORAGE_DATA_SLOT,
-    },
+    storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
 };
 use crate::{
     accounts::{
@@ -197,25 +194,25 @@ pub enum MockAccountType {
 
 impl Account {
     /// Creates a mock account with a defined number of assets and storage
-    pub fn new_dummy(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
-        let account_storage = mock_account_storage();
+    pub fn mock(account_id: u64, nonce: Felt, account_code: AccountCode) -> Self {
+        let account_storage = AccountStorage::mock();
 
         let account_vault = if nonce == Felt::ZERO {
             AssetVault::default()
         } else {
-            mock_account_vault()
+            AssetVault::mock()
         };
 
         let account_id = AccountId::try_from(account_id).unwrap();
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
     }
 
-    pub fn dummy_fungible_faucet(
+    pub fn mock_fungible_faucet(
         account_id: u64,
         nonce: Felt,
         empty_reserved_slot: bool,
         assembler: &Assembler,
-    ) -> Account {
+    ) -> Self {
         let initial_balance = if empty_reserved_slot {
             ZERO
         } else {
@@ -230,16 +227,16 @@ impl Account {
         )
         .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = mock_account_code(assembler);
+        let account_code = AccountCode::mock(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 
-    pub fn dummy_non_fungible_faucet(
+    pub fn mock_non_fungible_faucet(
         account_id: u64,
         nonce: Felt,
         empty_reserved_slot: bool,
         assembler: &Assembler,
-    ) -> Account {
+    ) -> Self {
         let entries = match empty_reserved_slot {
             true => vec![],
             false => {
@@ -264,43 +261,38 @@ impl Account {
         )
         .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
-        let account_code = mock_account_code(assembler);
+        let account_code = AccountCode::mock(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
     }
 }
 
-/// Creates an [AssetVault] with 4 assets.
-///
-/// The ids of the assets added to the vault are defined by the following constants:
-///
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
-/// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
-pub fn mock_account_vault() -> AssetVault {
-    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let fungible_asset =
-        Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
+impl AssetVault {
+    /// Creates an [AssetVault] with 4 assets.
+    ///
+    /// The ids of the assets added to the vault are defined by the following constants:
+    ///
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
+    /// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
+    pub fn mock() -> Self {
+        let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+        let fungible_asset =
+            Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
-    let fungible_asset_1 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
+        let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
+        let fungible_asset_1 =
+            Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
-    let fungible_asset_2 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
+        let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
+        let fungible_asset_2 =
+            Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-    let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
-    AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
-        .unwrap()
-}
-
-pub fn mock_account_storage() -> AccountStorage {
-    // create account storage
-    AccountStorage::new(
-        vec![storage_item_0(), storage_item_1(), storage_item_2()],
-        vec![storage_map_2()],
-    )
-    .unwrap()
+        let non_fungible_asset = Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA,
+        );
+        AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
+            .unwrap()
+    }
 }

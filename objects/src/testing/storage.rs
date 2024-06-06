@@ -4,10 +4,7 @@ use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
-use super::{
-    account_code::{make_account_code, mock_account_code},
-    prepare_word,
-};
+use super::{account_code::make_account_code, prepare_word};
 use crate::{
     accounts::{
         account_id::testing::{
@@ -16,7 +13,7 @@ use crate::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        get_account_seed_single, Account, AccountDelta, AccountId, AccountStorage,
+        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
         StorageMap, StorageSlot, StorageSlotType,
     },
@@ -87,28 +84,47 @@ pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
     ),
 ];
 
-pub fn storage_item_0() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_0,
-        slot: StorageSlot::new_value(STORAGE_VALUE_0),
+impl AccountStorage {
+    /// Create account storage with:
+    /// Item [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
+    /// Item [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
+    /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
+    /// Map with [STORAGE_LEAVES_2]
+    pub fn mock() -> Self {
+        AccountStorage::new(
+            vec![Self::mock_item_0(), Self::mock_item_1(), Self::mock_item_2()],
+            vec![Self::mock_map_2()],
+        )
+        .unwrap()
     }
-}
 
-pub fn storage_item_1() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_1,
-        slot: StorageSlot::new_value(STORAGE_VALUE_1),
+    /// Creates Slot with [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
+    pub fn mock_item_0() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_0,
+            slot: StorageSlot::new_value(STORAGE_VALUE_0),
+        }
     }
-}
 
-pub fn storage_map_2() -> StorageMap {
-    StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
-}
+    /// Creates Slot with [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
+    pub fn mock_item_1() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_1,
+            slot: StorageSlot::new_value(STORAGE_VALUE_1),
+        }
+    }
 
-pub fn storage_item_2() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_2,
-        slot: StorageSlot::new_map(Word::from(storage_map_2().root())),
+    /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
+    pub fn mock_item_2() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_2,
+            slot: StorageSlot::new_map(Word::from(Self::mock_map_2().root())),
+        }
+    }
+
+    /// Creates map with [STORAGE_LEAVES_2]
+    pub fn mock_map_2() -> StorageMap {
+        StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
     }
 }
 
@@ -133,7 +149,7 @@ pub fn generate_account_seed(
 
     let (account, account_type) = match account_seed_type {
         AccountSeedType::FungibleFaucetInvalidInitialBalance => (
-            Account::dummy_fungible_faucet(
+            Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -142,7 +158,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::FungibleFaucetValidInitialBalance => (
-            Account::dummy_fungible_faucet(
+            Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -151,7 +167,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
-            Account::dummy_non_fungible_faucet(
+            Account::mock_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -160,7 +176,7 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetValidReservedSlot => (
-            Account::dummy_non_fungible_faucet(
+            Account::mock_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -169,18 +185,18 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            Account::new_dummy(
+            Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 Felt::ZERO,
-                mock_account_code(assembler),
+                AccountCode::mock(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOffChain => (
-            Account::new_dummy(
+            Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ZERO,
-                mock_account_code(assembler),
+                AccountCode::mock(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),

@@ -47,7 +47,7 @@ fn test_create_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.get_stack_word(0),
@@ -91,7 +91,7 @@ fn test_create_non_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
     assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
 }
 
@@ -121,6 +121,6 @@ fn test_validate_non_fungible_asset() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
     assert_eq!(process.get_stack_word(0), encoded);
 }

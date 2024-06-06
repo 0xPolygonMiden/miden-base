@@ -33,12 +33,7 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
     complete_code.replace("export", "proc")
 }
 
-/// Inject `code` along side the specified file and run it
-pub fn run_tx(tx: &PreparedTransaction) -> Result<Process<MockHost>, ExecutionError> {
-    run_tx_with_inputs(tx, AdviceInputs::default())
-}
-
-pub fn run_tx_with_inputs(
+pub fn run_tx(
     tx: &PreparedTransaction,
     inputs: AdviceInputs,
 ) -> Result<Process<MockHost>, ExecutionError> {

@@ -55,7 +55,7 @@ fn test_create_note() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
@@ -112,7 +112,7 @@ fn test_create_note_with_invalid_tag() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
 }
@@ -246,7 +246,7 @@ fn test_get_output_notes_hash() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
@@ -310,7 +310,7 @@ fn test_create_note_and_add_asset() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -386,7 +386,7 @@ fn test_create_note_and_add_multiple_assets() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -453,7 +453,7 @@ fn test_create_note_and_add_same_nft_twice() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx(&transaction, Default::default());
 
     assert!(
         process.is_err(),
@@ -502,7 +502,7 @@ fn test_build_recipient_hash() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx(&transaction, Default::default()).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),

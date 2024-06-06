@@ -39,6 +39,8 @@ use vm_processor::{
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
 use crate::testing::data_store::MockDataStore;
 
+mod kernel_tests;
+
 // TESTS
 // ================================================================================================
 
