@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+* [BREAKING] Change rng to mutable reference in note creation functions (#733).
 * Add new `NoteFile` object to represent serialized notes (#721).
 * Removed the `mock` crate in favor of having mock code behind the `testing` flag in remaining crates (#711).
 * [BREAKING] Create `auth` module for `TransactionAuthenticator` and other related objects (#714).
