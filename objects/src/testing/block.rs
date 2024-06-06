@@ -106,7 +106,7 @@ impl<R: Rng> Objects<R> {
             .enumerate()
             .map(|(index, note)| {
                 let auth_index = LeafIndex::new(index as u64).expect("index bigger than 2**20");
-                InputNote::new(
+                InputNote::authenticated(
                     note.clone(),
                     NoteInclusionProof::new(
                         header.block_num(),
