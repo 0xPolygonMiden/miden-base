@@ -122,12 +122,12 @@ pub struct TransactionContextBuilder {
 }
 
 impl TransactionContextBuilder {
-    pub fn new(account: Account) -> Self {
+    pub fn new(account: Account, assembler: Assembler) -> Self {
         let tx_args = TransactionArgs::default();
         Self {
             account,
             account_seed: None,
-            assembler: TransactionKernel::assembler().with_debug_mode(true),
+            assembler,
             created_notes: Vec::new(),
             expected_output_notes: Vec::new(),
             tx_args,

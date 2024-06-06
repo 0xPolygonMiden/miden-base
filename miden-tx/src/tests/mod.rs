@@ -329,6 +329,7 @@ fn executed_transaction_account_delta() {
         .iter()
         .cloned()
         .collect::<Vec<_>>();
+
     assert!(executed_transaction
         .account_delta()
         .vault()

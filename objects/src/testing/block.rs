@@ -189,8 +189,11 @@ impl MockChain {
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
             block_headers_map.insert(
-                input_note.origin().block_num,
-                self.blocks.get(input_note.origin().block_num as usize).unwrap().header(),
+                input_note.origin().unwrap().block_num,
+                self.blocks
+                    .get(input_note.origin().unwrap().block_num as usize)
+                    .unwrap()
+                    .header(),
             );
             input_notes.push(input_note);
         }
@@ -284,8 +287,10 @@ impl MockChain {
                         )
                         .unwrap();
 
-                        self.available_notes
-                            .insert(note.id(), InputNote::authenticated(note.clone(), note_inclusion_proof));
+                        self.available_notes.insert(
+                            note.id(),
+                            InputNote::authenticated(note.clone(), note_inclusion_proof),
+                        );
                     },
                     _ => continue,
                 }

@@ -42,7 +42,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account.code().clone(),
     );
 
-    let tx_context = TransactionContextBuilder::new(initial_account)
+    let tx_context = TransactionContextBuilder::new(initial_account, assembler)
         .with_mock_notes(asset_preservation)
         .build();
 

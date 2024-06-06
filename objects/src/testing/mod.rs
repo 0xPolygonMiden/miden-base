@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use vm_core::{Word};
+use vm_core::Word;
 
 pub mod account;
 pub mod account_code;

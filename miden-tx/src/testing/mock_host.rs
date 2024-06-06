@@ -1,20 +1,16 @@
 // MOCK HOST
 // ================================================================================================
 
-use alloc::{string::ToString};
+use alloc::string::ToString;
 
-use miden_lib::transaction::{TransactionEvent};
-use miden_objects::{
-    accounts::{
-        AccountStub, AccountVaultDelta,
-    },
-};
+use miden_lib::transaction::TransactionEvent;
+use miden_objects::accounts::{AccountStub, AccountVaultDelta};
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
     ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
 };
 
-use super::{account_procs::AccountProcedureIndexMap};
+use super::account_procs::AccountProcedureIndexMap;
 
 // MOCK HOST
 // ================================================================================================
