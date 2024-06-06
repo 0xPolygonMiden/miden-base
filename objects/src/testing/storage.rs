@@ -1,31 +1,27 @@
 use alloc::{string::String, vec::Vec};
 
 use assembly::Assembler;
-use miden_crypto::merkle::Smt;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
 use super::{
-    account_code::mock_account_code, assets::non_fungible_asset_2,
-    constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word,
+    account_code::{make_account_code, mock_account_code},
+    prepare_word,
 };
 use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        code::testing::make_account_code,
         get_account_seed_single, Account, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
         StorageMap, StorageSlot, StorageSlotType,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
-    testing::account::mock_account,
 };
 
 #[derive(Default, Debug, Clone)]
@@ -116,65 +112,6 @@ pub fn storage_item_2() -> SlotItem {
     }
 }
 
-// MOCK FAUCET
-// ================================================================================================
-
-pub fn mock_fungible_faucet(
-    account_id: u64,
-    nonce: Felt,
-    empty_reserved_slot: bool,
-    assembler: &Assembler,
-) -> Account {
-    let initial_balance = if empty_reserved_slot {
-        ZERO
-    } else {
-        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
-    };
-    let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: FAUCET_STORAGE_DATA_SLOT,
-            slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-        }],
-        vec![],
-    )
-    .unwrap();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
-}
-
-pub fn mock_non_fungible_faucet(
-    account_id: u64,
-    nonce: Felt,
-    empty_reserved_slot: bool,
-    assembler: &Assembler,
-) -> Account {
-    let entries = match empty_reserved_slot {
-        true => vec![],
-        false => vec![(
-            Word::from(non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)).into(),
-            non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).into(),
-        )],
-    };
-
-    // construct nft tree
-    let nft_tree = Smt::with_entries(entries).unwrap();
-
-    // TODO: add nft tree data to account storage?
-
-    let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: FAUCET_STORAGE_DATA_SLOT,
-            slot: StorageSlot::new_map(*nft_tree.root()),
-        }],
-        vec![],
-    )
-    .unwrap();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
-}
-
 // ACCOUNT SEED GENERATION
 // ================================================================================================
 
@@ -196,7 +133,7 @@ pub fn generate_account_seed(
 
     let (account, account_type) = match account_seed_type {
         AccountSeedType::FungibleFaucetInvalidInitialBalance => (
-            mock_fungible_faucet(
+            Account::dummy_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -205,7 +142,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::FungibleFaucetValidInitialBalance => (
-            mock_fungible_faucet(
+            Account::dummy_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -214,7 +151,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
-            mock_non_fungible_faucet(
+            Account::dummy_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -223,7 +160,7 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetValidReservedSlot => (
-            mock_non_fungible_faucet(
+            Account::dummy_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -232,17 +169,17 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            mock_account(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ONE,
+            Account::new_dummy(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                Felt::ZERO,
                 mock_account_code(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOffChain => (
-            mock_account(
+            Account::new_dummy(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ONE,
+                Felt::ZERO,
                 mock_account_code(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,

@@ -42,8 +42,13 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
@@ -116,8 +121,13 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -207,12 +217,17 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args)
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

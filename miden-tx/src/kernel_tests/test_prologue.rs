@@ -339,14 +339,15 @@ fn consumed_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (_acct_id, account_seed) = generate_account_seed(
+    let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardNew,
+        MockAccountType::StandardNew { account_id: acct_id.into() },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -375,6 +376,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -405,6 +407,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -435,6 +438,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -457,6 +461,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
         &TransactionKernel::assembler(),
     );
+
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: acct_id.into(),
@@ -465,6 +470,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let code = "
     use.miden::kernels::tx::prologue
@@ -482,14 +488,15 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (_acct_id, account_seed) = generate_account_seed(
+    let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardNew,
+        MockAccountType::StandardNew { account_id: acct_id.into() },
         AssetPreservationStatus::Preserved,
         Some(account_seed),
+        None,
     );
     let account_seed_key = [tx_inputs.account().id().into(), ZERO, ZERO, ZERO];
 

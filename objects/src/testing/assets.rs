@@ -1,6 +1,5 @@
 use rand::{distributions::Standard, Rng};
 
-use super::constants::{self, NON_FUNGIBLE_ASSET_DATA_2};
 use crate::{
     accounts::{AccountId, AccountType},
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
@@ -84,23 +83,14 @@ impl FungibleAssetBuilder {
     }
 }
 
-pub fn non_fungible_asset(account_id: u64) -> Asset {
-    let non_fungible_asset_details = NonFungibleAssetDetails::new(
-        AccountId::try_from(account_id).unwrap(),
-        constants::NON_FUNGIBLE_ASSET_DATA.to_vec(),
-    )
-    .unwrap();
-    let non_fungible_asset = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
-    Asset::NonFungible(non_fungible_asset)
-}
-
-pub fn non_fungible_asset_2(account_id: u64) -> Asset {
-    let non_fungible_asset_2_details: NonFungibleAssetDetails = NonFungibleAssetDetails::new(
-        AccountId::try_from(account_id).unwrap(),
-        NON_FUNGIBLE_ASSET_DATA_2.to_vec(),
-    )
-    .unwrap();
-    let non_fungible_asset_2: NonFungibleAsset =
-        NonFungibleAsset::new(&non_fungible_asset_2_details).unwrap();
-    Asset::NonFungible(non_fungible_asset_2)
+impl Asset {
+    pub fn mock_non_fungible(account_id: u64, asset_data: &[u8]) -> Asset {
+        let non_fungible_asset_details = NonFungibleAssetDetails::new(
+            AccountId::try_from(account_id).unwrap(),
+            asset_data.to_vec(),
+        )
+        .unwrap();
+        let non_fungible_asset = NonFungibleAsset::new(&non_fungible_asset_details).unwrap();
+        Asset::NonFungible(non_fungible_asset)
+    }
 }

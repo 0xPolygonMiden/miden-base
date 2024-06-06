@@ -3,12 +3,12 @@ use miden_objects::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
     },
-    assets::FungibleAsset,
+    assets::{Asset, FungibleAsset},
     testing::{
         account::MockAccountType,
-        assets::{non_fungible_asset, non_fungible_asset_2},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
+            NON_FUNGIBLE_ASSET_DATA,
         },
         notes::AssetPreservationStatus,
         prepare_word,
@@ -175,7 +175,8 @@ fn test_mint_non_fungible_asset_succeeds() {
         },
         AssetPreservationStatus::Preserved,
     );
-    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
 
     let code = format!(
         "
@@ -223,7 +224,8 @@ fn test_mint_non_fungible_asset_succeeds() {
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
 
     let code = format!(
         "
@@ -250,7 +252,8 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
+    let non_fungible_asset =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3, 4]);
 
     let code = format!(
         "
@@ -283,7 +286,8 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
         },
         AssetPreservationStatus::Preserved,
     );
-    let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[3, 4, 5, 6]);
 
     let code = format!(
         "
@@ -461,7 +465,8 @@ fn test_burn_non_fungible_asset_succeeds() {
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
     );
-    let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset_burnt =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
 
     let code = format!(
         "
@@ -515,7 +520,8 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
     );
-    let non_fungible_asset_burnt = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset_burnt =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
 
     let code = format!(
         "
@@ -549,7 +555,8 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         MockAccountType::StandardExisting,
         AssetPreservationStatus::TooManyNonFungibleInput,
     );
-    let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let non_fungible_asset_burnt =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
 
     let code = format!(
         "
@@ -587,7 +594,8 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
     );
-    let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
+    let non_fungible_asset_burnt =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3]);
 
     let code = format!(
         "

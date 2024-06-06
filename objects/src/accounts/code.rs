@@ -198,37 +198,13 @@ fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt<PROCEDURE_TREE_DEPTH
     .expect("failed to build procedure tree")
 }
 
-// TESTING
-// ================================================================================================
-
-#[cfg(any(feature = "testing", test))]
-pub mod testing {
-    use super::{AccountCode, Assembler, ModuleAst};
-
-    pub const CODE: &str = "
-        export.foo
-            push.1 push.2 mul
-        end
-
-        export.bar
-            push.1 push.2 add
-        end
-    ";
-
-    pub fn make_account_code() -> AccountCode {
-        let mut module = ModuleAst::parse(CODE).unwrap();
-        // clears are needed since they're not serialized for account code
-        module.clear_imports();
-        module.clear_locations();
-        AccountCode::new(module, &Assembler::default()).unwrap()
-    }
-}
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
-    use super::{testing::*, AccountCode, Deserializable, Serializable};
+    use super::{AccountCode, Deserializable, Serializable};
+    use crate::testing::account_code::make_account_code;
 
     #[test]
     fn test_serde() {
