@@ -33,7 +33,7 @@ pub fn create_p2id_note<R: FeltRng>(
     target: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
-    mut rng: R,
+    rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
     let note_script = build_note_script(bytes)?;
@@ -67,7 +67,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     assets: Vec<Asset>,
     note_type: NoteType,
     recall_height: u32,
-    mut rng: R,
+    rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
     let note_script = build_note_script(bytes)?;
@@ -97,7 +97,7 @@ pub fn create_swap_note<R: FeltRng>(
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
-    mut rng: R,
+    rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
     let note_script = build_note_script(bytes)?;

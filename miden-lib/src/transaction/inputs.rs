@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::Account,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNotes, PreparedTransaction, TransactionArgs,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
-    Felt, Word, ZERO,
+    Felt, FieldElement, Word, ZERO,
 };
 
 use super::TransactionKernel;
@@ -284,7 +284,6 @@ fn add_input_notes_to_advice_inputs(
     for input_note in notes.iter() {
         let note = input_note.note();
         let assets = note.assets();
-        let proof = input_note.proof();
         let recipient = note.recipient();
         let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
 
@@ -295,14 +294,6 @@ fn add_input_notes_to_advice_inputs(
         )]);
 
         inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
-
-        // insert note authentication path nodes into the Merkle store
-        inputs.extend_merkle_store(
-            proof
-                .note_path()
-                .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
-                .unwrap(),
-        );
 
         // Note: keep in sync with the process_input_node kernel procedure
         note_data.extend(recipient.serial_num());
@@ -316,17 +307,33 @@ fn add_input_notes_to_advice_inputs(
         note_data.push((assets.num_assets() as u32).into());
         note_data.extend(assets.to_padded_assets());
 
-        note_data.push(proof.origin().block_num.into());
-        note_data.extend(*proof.sub_hash());
-        note_data.extend(*proof.note_root());
-        note_data.push(
-            proof
-                .origin()
-                .node_index
-                .value()
-                .try_into()
-                .expect("value is greater than or equal to the field modulus"),
-        );
+        // insert note authentication path nodes into the Merkle store
+        match input_note {
+            InputNote::Authenticated { note, proof } => {
+                inputs.extend_merkle_store(
+                    proof
+                        .note_path()
+                        .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
+                        .unwrap(),
+                );
+
+                note_data.push(Felt::ONE);
+                note_data.push(proof.origin().block_num.into());
+                note_data.extend(*proof.sub_hash());
+                note_data.extend(*proof.note_root());
+                note_data.push(
+                    proof
+                        .origin()
+                        .node_index
+                        .value()
+                        .try_into()
+                        .expect("value is greater than or equal to the field modulus"),
+                );
+            },
+            InputNote::Unauthenticated { .. } => {
+                note_data.push(Felt::ZERO);
+            },
+        }
     }
 
     // NOTE: keep map in sync with the `process_input_notes_data` kernel procedure

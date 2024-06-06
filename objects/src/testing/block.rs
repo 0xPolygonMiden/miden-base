@@ -285,7 +285,7 @@ impl MockChain {
                         .unwrap();
 
                         self.available_notes
-                            .insert(note.id(), InputNote::new(note.clone(), note_inclusion_proof));
+                            .insert(note.id(), InputNote::authenticated(note.clone(), note_inclusion_proof));
                     },
                     _ => continue,
                 }
