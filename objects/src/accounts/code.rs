@@ -204,11 +204,10 @@ fn build_procedure_tree(procedures: &[Digest]) -> SimpleSmt<PROCEDURE_TREE_DEPTH
 #[cfg(test)]
 mod tests {
     use super::{AccountCode, Deserializable, Serializable};
-    use crate::testing::account_code::make_account_code;
 
     #[test]
     fn test_serde() {
-        let code = make_account_code();
+        let code = AccountCode::mock();
         let serialized = code.to_bytes();
         let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, code)

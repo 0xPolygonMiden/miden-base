@@ -4,7 +4,7 @@ use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
-use super::{account_code::make_account_code, prepare_word};
+use super::prepare_word;
 use crate::{
     accounts::{
         account_id::testing::{
@@ -188,7 +188,7 @@ pub fn generate_account_seed(
             Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 Felt::ZERO,
-                AccountCode::mock(assembler),
+                AccountCode::mock_wallet(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -196,7 +196,7 @@ pub fn generate_account_seed(
             Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ZERO,
-                AccountCode::mock(assembler),
+                AccountCode::mock_wallet(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -221,7 +221,7 @@ pub fn generate_account_seed(
 
 pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-    let code = make_account_code();
+    let code = AccountCode::mock();
 
     // build account data
     let vault = AssetVault::new(&assets).unwrap();

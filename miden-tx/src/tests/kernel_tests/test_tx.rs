@@ -19,17 +19,13 @@ use miden_objects::{
 };
 use vm_processor::Process;
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::testing::{
-    mock_inputs,
-    utils::{prepare_transaction, run_tx, run_within_tx_kernel},
-    MockHost,
-};
+use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
+use crate::testing::{executor::CodeExecutor, MockHost, TransactionContextBuilder};
 #[test]
 fn test_create_note() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let account_id = tx_inputs.account().id();
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -54,8 +50,7 @@ fn test_create_note() {
         tag = tag,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
@@ -85,8 +80,8 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
@@ -111,8 +106,7 @@ fn test_create_note_with_invalid_tag() {
         tag = tag,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default());
+    let process = tx_context.execute_code(&code);
 
     assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
 }
@@ -144,8 +138,7 @@ fn test_create_note_too_many_notes() {
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
-    let process =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+    let process = CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code);
 
     // assert the process failed
     assert!(process.is_err());
@@ -153,21 +146,27 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
     // extract input note data
-    let input_note_1 = tx_inputs.input_notes().get_note(0).note();
+    let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
     let input_asset_1 = **input_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
-    let input_note_2 = tx_inputs.input_notes().get_note(1).note();
+    let input_note_2 = tx_context.tx_inputs().input_notes().get_note(1).note();
     let input_asset_2 = **input_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap();
 
     // create output note 1
     let output_serial_no_1 = [Felt::new(8); 4];
     let output_tag_1 = 8888.into();
     let assets = NoteAssets::new(vec![input_asset_1]).unwrap();
-    let metadata =
-        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_1, ZERO).unwrap();
+    let metadata = NoteMetadata::new(
+        tx_context.tx_inputs().account().id(),
+        NoteType::Public,
+        output_tag_1,
+        ZERO,
+    )
+    .unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_1, input_note_1.script().clone(), inputs);
     let output_note_1 = Note::new(assets, metadata, recipient);
@@ -176,8 +175,13 @@ fn test_get_output_notes_hash() {
     let output_serial_no_2 = [Felt::new(11); 4];
     let output_tag_2 = 1111.into();
     let assets = NoteAssets::new(vec![input_asset_2]).unwrap();
-    let metadata =
-        NoteMetadata::new(tx_inputs.account().id(), NoteType::Public, output_tag_2, ZERO).unwrap();
+    let metadata = NoteMetadata::new(
+        tx_context.tx_inputs().account().id(),
+        NoteType::Public,
+        output_tag_2,
+        ZERO,
+    )
+    .unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(output_serial_no_2, input_note_2.script().clone(), inputs);
     let output_note_2 = Note::new(assets, metadata, recipient);
@@ -245,8 +249,7 @@ fn test_get_output_notes_hash() {
         )),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
@@ -275,8 +278,8 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -309,8 +312,7 @@ fn test_create_note_and_add_asset() {
         asset = prepare_word(&asset),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -328,8 +330,8 @@ fn test_create_note_and_add_asset() {
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -385,8 +387,7 @@ fn test_create_note_and_add_multiple_assets() {
         nft = prepare_word(&non_fungible_asset_encoded),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -416,8 +417,8 @@ fn test_create_note_and_add_multiple_assets() {
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -452,8 +453,7 @@ fn test_create_note_and_add_same_nft_twice() {
         nft = prepare_word(&encoded),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default());
+    let process = tx_context.execute_code(&code);
 
     assert!(
         process.is_err(),
@@ -463,10 +463,11 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
-    let input_note_1 = tx_inputs.input_notes().get_note(0).note();
+    let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
 
     // create output note
     let output_serial_no = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -501,8 +502,7 @@ fn test_build_recipient_hash() {
         tag = tag,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),

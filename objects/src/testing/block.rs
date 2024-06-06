@@ -8,7 +8,7 @@ use vm_processor::Digest;
 use winter_rand_utils as rand;
 
 use crate::{
-    accounts::{delta::AccountUpdateDetails, Account, AccountId},
+    accounts::{delta::AccountUpdateDetails, Account},
     block::{Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
     notes::{Note, NoteId, NoteInclusionProof, Nullifier},
     transaction::{
@@ -87,9 +87,6 @@ pub struct MockChain {
     available_notes: BTreeMap<NoteId, InputNote>,
 
     removed_notes: Vec<NoteId>,
-
-    /// AccountID |-> Account mapping to simplify transaction inputs retrieval
-    included_accounts: BTreeMap<AccountId, Account>,
 }
 
 #[derive(Debug)]
@@ -125,7 +122,6 @@ impl MockChain {
             accounts: SimpleSmt::<ACCOUNT_TREE_DEPTH>::new().expect("depth too big for SimpleSmt"),
             pending_objects: PendingObjects::new(),
             available_notes: BTreeMap::new(),
-            included_accounts: BTreeMap::new(),
             removed_notes: vec![],
         }
     }
@@ -166,9 +162,8 @@ impl MockChain {
 
     /// Mark a [Note] as consumed by inserting its nullifier into the block.
     /// A block has to be created to finalize the new entity.
-    pub fn add_nullifier(&mut self, nullifier: Nullifier) -> Result<(), MockError> {
+    pub fn add_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
-        Ok(())
     }
 
     /// Add a new [Account] to the list of pending objects.
@@ -408,6 +403,7 @@ impl MockChainBuilder {
         self
     }
 
+    /// Returns a [MockChain] with a single block
     pub fn build(self) -> MockChain {
         let mut chain = MockChain::new();
         for account in self.accounts {

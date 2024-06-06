@@ -28,6 +28,16 @@ pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[8];
 pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
 pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
 
+pub const CODE: &str = "
+        export.foo
+            push.1 push.2 mul
+        end
+
+        export.bar
+            push.1 push.2 add
+        end
+    ";
+
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================
 
@@ -49,8 +59,8 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 ";
 
 impl AccountCode {
-    /// Creates a mock [AccountCode] that exposes basic functions
-    pub fn mock(assembler: &Assembler) -> AccountCode {
+    /// Creates a mock [AccountCode] that exposes wallet interface
+    pub fn mock_wallet(assembler: &Assembler) -> AccountCode {
         let account_code = "\
                 use.miden::account
                 use.miden::tx
@@ -159,22 +169,13 @@ impl AccountCode {
 
         code
     }
-}
 
-pub const CODE: &str = "
-        export.foo
-            push.1 push.2 mul
-        end
-
-        export.bar
-            push.1 push.2 add
-        end
-    ";
-
-pub fn make_account_code() -> AccountCode {
-    let mut module = ModuleAst::parse(CODE).unwrap();
-    // clears are needed since they're not serialized for account code
-    module.clear_imports();
-    module.clear_locations();
-    AccountCode::new(module, &Assembler::default()).unwrap()
+    /// Creates a mock [AccountCode] with default assembler and mock code
+    pub fn mock() -> AccountCode {
+        let mut module = ModuleAst::parse(CODE).unwrap();
+        // clears are needed since they're not serialized for account code
+        module.clear_imports();
+        module.clear_locations();
+        AccountCode::new(module, &Assembler::default()).unwrap()
+    }
 }

@@ -9,17 +9,12 @@ use miden_objects::{
 };
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::testing::{
-    mock_inputs,
-    utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
-    MockHost,
-};
+use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
     // calling get_sender should return sender
     let code = "
         use.miden::kernels::tx::memory
@@ -37,16 +32,16 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction, Default::default());
+    let process = tx_context.execute_code(code);
 
     assert!(process.is_err());
 }
 
 #[test]
 fn test_get_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
     // calling get_sender should return sender
     let code = "
@@ -62,19 +57,19 @@ fn test_get_sender() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let process = tx_context.execute_code(code).unwrap();
 
-    let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
+    let sender = tx_context.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
 }
 
 #[test]
 fn test_get_vault_data() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
-    let notes = tx_inputs.input_notes();
+    let notes = tx_context.input_notes();
 
     // calling get_vault_info should return vault info
     let code = format!(
@@ -115,14 +110,15 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction, Default::default()).unwrap();
+    tx_context.execute_code(&code).unwrap();
 }
 #[test]
 fn test_get_assets() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let notes = tx_inputs.input_notes();
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
+
+    let notes = tx_context.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
     const DEST_POINTER_NOTE_1: u32 = 200000000;
@@ -220,15 +216,16 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction, Default::default()).unwrap();
+    tx_context.execute_code(&code).unwrap();
 }
 
 #[test]
 fn test_get_inputs() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let notes = tx_inputs.input_notes();
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
+
+    let notes = tx_context.mock_chain().available_notes();
 
     fn construct_input_assertions(note: &Note) -> String {
         let mut code = String::new();
@@ -247,7 +244,7 @@ fn test_get_inputs() {
         code
     }
 
-    let note0 = notes.get_note(0).note();
+    let note0 = notes[0].note();
 
     let code = format!(
         "
@@ -290,14 +287,14 @@ fn test_get_inputs() {
         NOTE_0_PTR = 100000000,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction, Default::default()).unwrap();
+    tx_context.execute_code(&code).unwrap();
 }
 
 #[test]
 fn test_note_setup() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -309,10 +306,10 @@ fn test_note_setup() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    let prepared_tx = tx_context.get_prepared_transaction(code);
+    let process = tx_context.execute_code(code).unwrap();
 
-    note_setup_stack_assertions(&process, &transaction);
+    note_setup_stack_assertions(&process, &prepared_tx);
     note_setup_memory_assertions(&process);
 }
 
@@ -323,8 +320,10 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let (tx_inputs, tx_args_notes) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let mut tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+            .with_mock_notes(AssetPreservationStatus::Preserved)
+            .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -341,15 +340,15 @@ fn test_note_script_and_note_args() {
         ";
 
     let note_args_map = BTreeMap::from([
-        (tx_inputs.input_notes().get_note(0).note().id(), note_args[1]),
-        (tx_inputs.input_notes().get_note(1).note().id(), note_args[0]),
+        (tx_context.input_notes().get_note(0).note().id(), note_args[1]),
+        (tx_context.input_notes().get_note(1).note().id(), note_args[0]),
     ]);
 
     let tx_args =
-        TransactionArgs::new(None, Some(note_args_map), tx_args_notes.advice_map().clone());
+        TransactionArgs::new(None, Some(note_args_map), tx_context.tx_args().advice_map().clone());
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
-    let process = run_tx(&transaction, Default::default()).unwrap();
+    tx_context.set_tx_args(tx_args);
+    let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(process.stack.get_word(0), note_args[0]);
 

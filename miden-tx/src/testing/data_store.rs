@@ -8,11 +8,11 @@ use miden_objects::{
     assembly::ModuleAst,
     notes::{Note, NoteId},
     testing::{account::MockAccountType, notes::AssetPreservationStatus},
-    transaction::{InputNotes, OutputNote, TransactionArgs, TransactionInputs},
+    transaction::{InputNotes, TransactionArgs, TransactionInputs},
     BlockHeader,
 };
 
-use super::mock_host::{mock_inputs, mock_inputs_with_existing};
+use super::TransactionContextBuilder;
 use crate::{DataStore, DataStoreError};
 
 #[derive(Clone)]
@@ -23,25 +23,27 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation_status: AssetPreservationStatus) -> Self {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation_status);
+        let tx_context =
+            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+                .with_mock_notes(asset_preservation_status)
+                .build();
+        let (_, _, tx_args, tx_inputs) = tx_context.into_parts();
         Self { tx_inputs, tx_args }
     }
 
     pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let (tx_inputs, created_notes) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            input_notes,
-        );
-        let mut tx_args = TransactionArgs::default();
-        let output_notes = created_notes.into_iter().filter_map(|note| match note {
-            OutputNote::Full(note) => Some(note),
-            OutputNote::Partial(_) => None,
-            OutputNote::Header(_) => None,
-        });
-        tx_args.extend_expected_output_notes(output_notes);
+        let tx_context = if let Some(acc) = account {
+            TransactionContextBuilder::new(acc)
+        } else {
+            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        };
+
+        let tx_context = if let Some(notes) = input_notes {
+            tx_context.notes(notes)
+        } else {
+            tx_context.with_mock_notes(AssetPreservationStatus::Preserved)
+        };
+        let (_, _, tx_args, tx_inputs) = tx_context.build().into_parts();
 
         Self { tx_inputs, tx_args }
     }

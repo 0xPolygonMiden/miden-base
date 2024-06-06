@@ -1,12 +1,11 @@
 use alloc::string::{String, ToString};
 use std::{io::Read, path::PathBuf};
 
-use miden_lib::transaction::{TransactionKernel};
+use miden_lib::transaction::TransactionKernel;
 use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host,
-    Process, StackInputs,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
+    Program, StackInputs,
 };
-
 
 // MOCK CODE EXECUTOR
 // ================================================================================================
@@ -17,7 +16,7 @@ pub struct CodeExecutor<H> {
     stack_inputs: Option<StackInputs>,
     advice_inputs: AdviceInputs,
     file_path: Option<PathBuf>,
-    imports: String
+    imports: String,
 }
 
 impl<H: Host> CodeExecutor<H> {
@@ -49,23 +48,27 @@ impl<H: Host> CodeExecutor<H> {
     }
 
     pub fn imports(mut self, imports: &str) -> Self {
-        self.imports= imports.to_string();
+        self.imports = imports.to_string();
         self
     }
 
-    /// Runs the desired code in the host and returns the [Process] state
+    /// Compiles and runs the desired code in the host and returns the [Process] state
     ///
-    /// If a module file path was set, its contents will be inserted between `self.imports` and 
+    /// If a module file path was set, its contents will be inserted between `self.imports` and
     /// `code` before execution.
     /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
         let assembler = TransactionKernel::assembler();
-        let code = match self.file_path {
-            Some(file_path) => load_file_with_code(&self.imports, code, file_path),
+        let code = match &self.file_path {
+            Some(file_path) => load_file_with_code(&self.imports, code, file_path.to_path_buf()),
             None => format!("{}{code}", self.imports),
         };
 
         let program = assembler.compile(code).unwrap();
+        self.execute_program(program)
+    }
+
+    pub fn execute_program(self, program: Program) -> Result<Process<H>, ExecutionError> {
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.unwrap_or_default(),
@@ -88,8 +91,12 @@ where
     }
 }
 
+// UTILS
+// ================================================================================================
+
 /// Loads the specified file and append `code` into its end.
-fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
+#[cfg(feature = "std")]
+pub fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
     use alloc::string::String;
     use std::fs::File;
 
@@ -100,7 +107,3 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
     // This hack is going around issue #686 on miden-vm
     complete_code.replace("export", "proc")
 }
-
-
-// MOCK TRANSACTION EXECUTOR
-// ================================================================================================
