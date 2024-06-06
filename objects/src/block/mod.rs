@@ -7,12 +7,11 @@ pub use header::BlockHeader;
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
-use crate::transaction::TransactionId;
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
     errors::BlockError,
     notes::Nullifier,
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
