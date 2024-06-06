@@ -12,13 +12,13 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::TransactionExecutor;
-use mock::mock::account::DEFAULT_AUTH_SCRIPT;
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 
-use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator, MockDataStore};
+use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator};
 
 // P2IDR TESTS
 // ===============================================================================================

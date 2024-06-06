@@ -51,7 +51,6 @@ Polygon Miden is currently on release v0.4. This is an early version of the prot
 | [miden-lib](miden-lib)   | Contains the code of the Miden rollup kernels and standardized smart contracts. |
 | [miden-tx](miden-tx)     | Contains tool for creating, executing, and proving Miden rollup transaction. |
 | [bench-tx](bench-tx)     | Contains transaction execution and proving benchmarks. |
-| [mock](mock)             | Contains utilities to help with testing Miden rollup components.|
 
 ## Make commands
 We use `make` to automate building, testing, and other processes. In most cases, `make` commands are just wrappers around `cargo` commands with specific arguments. You can view the list of available commands in the [Makefile](Makefile), or just run the following command:

@@ -11,16 +11,16 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteTag, NoteType},
+    testing::{account_code::DEFAULT_AUTH_SCRIPT, prepare_word},
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
+use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
-    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 #[test]
@@ -136,9 +136,8 @@ fn prove_send_asset_via_wallet() {
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
-    let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+    let var_name = &format!(
+        "
         use.miden::contracts::auth::basic->auth_tx
         use.miden::contracts::wallets::basic->wallet
 
@@ -152,14 +151,12 @@ fn prove_send_asset_via_wallet() {
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
-            recipient = prepare_word(&recipient),
-            note_type = note_type as u8,
-            tag = tag,
-            asset = prepare_word(&fungible_asset_1.into())
-        )
-        .as_str(),
-    )
-    .unwrap();
+        recipient = prepare_word(&recipient),
+        note_type = note_type as u8,
+        tag = tag,
+        asset = prepare_word(&fungible_asset_1.into())
+    );
+    let tx_script_code = ProgramAst::parse(var_name.as_str()).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 

@@ -69,20 +69,21 @@ const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data
-const.ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH=0x0002001F
+const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
 # PUBLIC INPUTS
 # =================================================================================================
 
 #! Saves global inputs to memory.
 #!
-#! Stack: [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Stack: [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Output: []
 #!
+#! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
-#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 proc.process_global_inputs
     exec.memory::set_block_hash
     exec.memory::set_global_acct_id
@@ -744,12 +745,12 @@ end
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
-#! Advice map: { NULLIFIER_COMMITMENT => NOTE_DATA }
+#! Advice map: { INPUT_NOTES_COMMITMENT => NOTE_DATA }
 #! Output: []
 #!
 #! Where:
 #! - num_notes is the number of input notes.
-#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
 proc.process_input_notes_data
     # get the number of input notes from the advice stack
@@ -766,7 +767,7 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_nullifier_commitment adv.push_mapval dropw
+        exec.memory::get_input_notes_commitment adv.push_mapval dropw
     end
     # => [num_notes, ...]
 
@@ -830,13 +831,13 @@ proc.process_input_notes_data
 
     # extract nullifier hash
     exec.native::state_to_digest
-    # => [NULLIFIER_COMMITMENT, num_processed_notes + 1, num_notes, ...]
+    # => [INPUT_NOTES_COMMITMENT, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
     # hash should be [ZERO; 4] because the while loop above was not entered and, thus, hperm
     # instruction was not executed.
-    exec.memory::get_nullifier_commitment
-    assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH
+    exec.memory::get_input_notes_commitment
+    assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH
     # => [num_processed_notes + 1, num_notes, ...]
 
     # clear stack
@@ -883,7 +884,7 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, NULLIFIER_COMMITMENT]
+#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
 #! Advice stack: [
 #!     PREVIOUS_BLOCK_HASH,
 #!     CHAIN_MMR_HASH,
@@ -903,7 +904,7 @@ end
 #! ]
 #! Advice map: {
 #!      CHAIN_MMR_HASH: MMR_PEAKS,
-#!      NULLIFIER_COMMITMENT => NOTE_DATA,
+#!      INPUT_NOTES_COMMITMENT => NOTE_DATA,
 #! }
 #! Output: []
 #!
@@ -911,7 +912,7 @@ end
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
-#! - NULLIFIER_COMMITMENT, sequential hash of all input notes' nullifiers.
+#! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, tree with latest account states.
