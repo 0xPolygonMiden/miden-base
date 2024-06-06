@@ -7,6 +7,7 @@ pub use header::BlockHeader;
 mod note_tree;
 pub use note_tree::{BlockNoteIndex, BlockNoteTree};
 
+use crate::transaction::TransactionId;
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
     errors::BlockError,
@@ -14,7 +15,6 @@ use crate::{
     transaction::OutputNote,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
-use crate::transaction::TransactionId;
 
 pub type NoteBatch = Vec<OutputNote>;
 
@@ -207,7 +207,12 @@ impl BlockAccountUpdate {
         details: AccountUpdateDetails,
         transactions: Vec<TransactionId>,
     ) -> Self {
-        Self { account_id, new_state_hash, details, transactions }
+        Self {
+            account_id,
+            new_state_hash,
+            details,
+            transactions,
+        }
     }
 
     /// Returns the ID of the updated account.
