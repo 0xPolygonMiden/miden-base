@@ -23,9 +23,7 @@ use vm_processor::{ContextId, Felt, MemAdviceProvider};
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
     testing::{
-        mock_executed_tx, mock_inputs,
-        utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
-        MockHost,
+        executor::CodeExecutor, mock_executed_tx, mock_inputs, utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel}, MockHost
     },
     tests::kernel_tests::output_notes_data_procedure,
 };
@@ -185,8 +183,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
         "
     );
 
-    let result =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+    let result = CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code);
 
     assert!(result.is_err());
 }
@@ -219,14 +216,8 @@ fn test_is_faucet_procedure() {
             account_id = account_id,
         );
 
-        let process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::default(),
-            MemAdviceProvider::default(),
-            None,
-        )
-        .unwrap();
+        let process = CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code).unwrap();
+
         let is_faucet = account_id.is_faucet();
         assert_eq!(
             process.stack.get(0),

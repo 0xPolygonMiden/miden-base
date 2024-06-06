@@ -1,43 +1,36 @@
+use alloc::string::{String, ToString};
 use std::{io::Read, path::PathBuf};
 
-use alloc::{rc::Rc, string::String, vec::Vec};
-
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
-use miden_objects::{
-    accounts::{AccountCode, AccountId},
-    assembly::ProgramAst,
-    notes::{NoteId, NoteScript},
-    transaction::{
-        ExecutedTransaction, PreparedTransaction, TransactionArgs, TransactionInputs,
-        TransactionScript,
-    },
-    vm::{Program, StackOutputs},
-    Felt, Word, ZERO,
-};
+use miden_lib::transaction::{TransactionKernel};
 use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, Digest, ExecutionError, ExecutionOptions, Host, Process, RecAdviceProvider, StackInputs
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host,
+    Process, StackInputs,
 };
 
-use super::MockHost;
-use crate::{
-    auth::TransactionAuthenticator, DataStore, ScriptTarget, TransactionCompiler,
-    TransactionExecutorError, TransactionHost,
-};
 
-// MOCK TRANSACTION EXECUTOR
+// MOCK CODE EXECUTOR
 // ================================================================================================
 
-pub struct MockExecutor<H> {
+/// Helper for executing arbitrary code within arbitrary hosts.
+pub struct CodeExecutor<H> {
     host: H,
     stack_inputs: Option<StackInputs>,
     advice_inputs: AdviceInputs,
+    file_path: Option<PathBuf>,
+    imports: String
 }
 
-impl<H: Host> MockExecutor<H> {
+impl<H: Host> CodeExecutor<H> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     pub fn new(host: H) -> Self {
-        Self { host, stack_inputs: None, advice_inputs: AdviceInputs::default() }
+        Self {
+            host,
+            stack_inputs: None,
+            advice_inputs: AdviceInputs::default(),
+            file_path: None,
+            imports: String::new(),
+        }
     }
 
     pub fn extend_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
@@ -50,35 +43,55 @@ impl<H: Host> MockExecutor<H> {
         self
     }
 
-    pub fn run_code(&self, imports: &str, code: &str, file_path: Option<PathBuf>) {
+    pub fn module_file(mut self, file_path: PathBuf) -> Self {
+        self.file_path = Some(file_path);
+        self
+    }
+
+    pub fn imports(mut self, imports: &str) -> Self {
+        self.imports= imports.to_string();
+        self
+    }
+
+    /// Runs the desired code in the host and returns the [Process] state
+    ///
+    /// If a module file path was set, its contents will be inserted between `self.imports` and 
+    /// `code` before execution.
+    /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
+    pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
         let assembler = TransactionKernel::assembler();
-        let code = match file_path {
-            Some(file_path) => load_file_with_code(imports, code, file_path),
-            None => format!("{imports}{code}"),
+        let code = match self.file_path {
+            Some(file_path) => load_file_with_code(&self.imports, code, file_path),
+            None => format!("{}{code}", self.imports),
         };
-    
+
         let program = assembler.compile(code).unwrap();
-        let mut process =
-            Process::new(program.kernel().clone(), self.stack_inputs, host, ExecutionOptions::default());
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.unwrap_or_default(),
+            self.host,
+            ExecutionOptions::default(),
+        );
         process.execute(&program)?;
+
         Ok(process)
     }
 }
 
-impl<A> MockExecutor<DefaultHost<A>>
+impl<A> CodeExecutor<DefaultHost<A>>
 where
     A: AdviceProvider,
 {
     pub fn new_with_kernel(adv_provider: A) -> Self {
         let host = DefaultHost::new(adv_provider);
-        MockExecutor::new(host)
+        CodeExecutor::new(host)
     }
 }
 
 /// Loads the specified file and append `code` into its end.
 fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
-    use std::fs::File;
     use alloc::string::String;
+    use std::fs::File;
 
     let mut module = String::new();
     File::open(assembly_file).unwrap().read_to_string(&mut module).unwrap();
@@ -88,3 +101,6 @@ fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> Str
     complete_code.replace("export", "proc")
 }
 
+
+// MOCK TRANSACTION EXECUTOR
+// ================================================================================================
