@@ -591,7 +591,7 @@ impl BlockHeader {
         let acct_root = acct_db.root();
         let nullifier_root = rand::rand_array().into();
         let note_root = note_root.unwrap_or(rand::rand_array().into());
-        let batch_root = rand::rand_array().into();
+        let tx_hash = rand::rand_array().into();
         let proof_hash = rand::rand_array().into();
 
         BlockHeader::new(
@@ -602,7 +602,7 @@ impl BlockHeader {
             acct_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             rand::rand_value(),
         )
