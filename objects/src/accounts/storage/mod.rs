@@ -162,7 +162,7 @@ impl AccountStorage {
         let mut layout = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
 
         // set the slot type for the layout commitment
-        layout[Self::SLOT_LAYOUT_COMMITMENT_INDEX as usize] =
+        layout[usize::from(Self::SLOT_LAYOUT_COMMITMENT_INDEX)] =
             StorageSlotType::Value { value_arity: 64 };
 
         // process entries to extract type data
@@ -173,14 +173,14 @@ impl AccountStorage {
                     return Err(AccountError::StorageSlotIsReserved(item.index));
                 }
 
-                layout[item.index as usize] = item.slot.slot_type;
-                Ok((item.index as u64, item.slot.value))
+                layout[usize::from(item.index)] = item.slot.slot_type;
+                Ok((item.index.into(), item.slot.value))
             })
             .collect::<Result<Vec<_>, AccountError>>()?;
 
         // add layout commitment entry
         entries.push((
-            Self::SLOT_LAYOUT_COMMITMENT_INDEX as u64,
+            Self::SLOT_LAYOUT_COMMITMENT_INDEX.into(),
             *Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>()),
         ));
 
@@ -216,7 +216,7 @@ impl AccountStorage {
     ///
     /// If the item is not present in the storage, [ZERO; 4] is returned.
     pub fn get_item(&self, index: u8) -> Digest {
-        let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index as u64)
+        let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index.into())
             .expect("index is u8 - index within range");
         self.slots.get_node(item_index).expect("index is u8 - index within range")
     }
@@ -278,7 +278,7 @@ impl AccountStorage {
         }
 
         // only value slots of basic arity can currently be updated
-        match self.layout[index as usize] {
+        match self.layout[usize::from(index)] {
             StorageSlotType::Value { value_arity } => {
                 if value_arity > 0 {
                     return Err(AccountError::StorageSlotInvalidValueArity {
@@ -292,7 +292,7 @@ impl AccountStorage {
         }
 
         // update the slot and return
-        let index = LeafIndex::new(index as u64).expect("index is u8 - index within range");
+        let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
         let slot_value = self.slots.insert(index, value);
         Ok(slot_value)
     }
