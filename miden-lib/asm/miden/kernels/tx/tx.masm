@@ -58,11 +58,15 @@ const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020051
 # EVENTS
 # =================================================================================================
 
-# Event emitted when a new note is created.
-const.NEW_NOTE_EVENT=131077
+# Event emitted before a new note is created.
+const.NOTE_BEFORE_CREATED_EVENT=131083
+# Event emitted after a new note is created.
+const.NOTE_AFTER_CREATED_EVENT=131084
 
-# Event emitted when an ASSET is added to a note
-const.BEFORE_ADD_ASSET_TO_NOTE_EVENT=131079
+# Event emitted before an ASSET is added to a note
+const.NOTE_BEFORE_ADD_ASSET_EVENT=131085
+# Event emitted after an ASSET is added to a note
+const.NOTE_AFTER_ADD_ASSET_EVENT=131086
 
 #! Returns the block hash of the reference block to memory.
 #!
@@ -259,6 +263,9 @@ end
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
 #! - the number of created notes exceeds the maximum limit of 4096.
 export.create_note
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.NOTE_BEFORE_CREATED_EVENT
+
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
     dup.1 push.OFFCHAIN_NOTE eq dup.2 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
@@ -290,7 +297,8 @@ export.create_note
     push.0 # TODO: allow the user to push the aux data
     # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
 
-    emit.NEW_NOTE_EVENT
+    # emit event to signal that a new note is created
+    emit.NOTE_AFTER_CREATED_EVENT
 
     # set the metadata for the new created note
     dup.4 exec.memory::set_created_note_metadata
@@ -323,8 +331,9 @@ export.add_asset_to_note
     movdn.4 exec.asset::validate_asset
     # => [ASSET, note_ptr]
 
-    # emit the event (We need to push.0 drop for the decorator to work)
-    push.0 drop emit.BEFORE_ADD_ASSET_TO_NOTE_EVENT
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    # emit event to signal that a new asset is going to be added to the note.
+    emit.NOTE_BEFORE_ADD_ASSET_EVENT
     # => [ASSET, note_ptr]
 
     # Check if ASSET to add is fungible
@@ -341,4 +350,8 @@ export.add_asset_to_note
         # => [note_ptr]
     end
     # => [note_ptr]
+
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    # emit event to signal that a new asset was added to the note.
+    emit.NOTE_AFTER_ADD_ASSET_EVENT
 end
