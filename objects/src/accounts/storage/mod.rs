@@ -160,9 +160,9 @@ impl AccountStorage {
             .count();
 
         if maps.len() > count {
-            return Err(AccountError::StorageMapToManyMaps {
-                expected: (count),
-                actual: (maps.len()),
+            return Err(AccountError::StorageMapTooManyMaps {
+                expected: count,
+                actual: maps.len(),
             });
         }
 
