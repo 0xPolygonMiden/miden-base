@@ -140,7 +140,11 @@ impl BlockHeader {
         self.note_root
     }
 
-    /// Returns the hash of IDs of all transactions in the block.
+    /// Returns the commitment to all transactions in this block.
+    ///
+    /// The commitment is computed as sequential hash of (`transaction_id`, `account_id`) tuples. This
+    /// makes it possible for the verifier to link transaction IDs to the accounts which they were
+    /// executed against.
     pub fn tx_hash(&self) -> Digest {
         self.tx_hash
     }

@@ -466,9 +466,9 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let note_root = notes.root();
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
-
-        // TODO: Set tx_hash and proof_hash to the correct values once the kernel is available.
         let tx_hash = Digest::default();
+
+        // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
 
         let header = BlockHeader::new(
