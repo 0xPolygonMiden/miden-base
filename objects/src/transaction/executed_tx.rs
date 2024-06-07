@@ -1,9 +1,9 @@
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNotes,
-    OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs, TransactionOutputs,
-    TransactionWitness,
+    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNote,
+    InputNotes, OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs,
+    TransactionOutputs, TransactionWitness,
 };
 
 // EXECUTED TRANSACTION
@@ -89,7 +89,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns the notes consumed in this transaction.
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         self.tx_inputs.input_notes()
     }
 

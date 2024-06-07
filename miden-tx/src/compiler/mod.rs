@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
     assembly::{Assembler, AssemblyContext, ModuleAst, ProgramAst},
-    transaction::{InputNotes, TransactionScript},
+    transaction::{InputNote, InputNotes, TransactionScript},
     Felt, NoteError, TransactionScriptError, Word,
 };
 
@@ -150,7 +150,7 @@ impl TransactionCompiler {
     pub fn compile_transaction(
         &self,
         account_id: AccountId,
-        notes: &InputNotes,
+        notes: &InputNotes<InputNote>,
         tx_script: Option<&ProgramAst>,
     ) -> Result<Program, TransactionCompilerError> {
         // Fetch the account interface from the `account_procedures` map. Return an error if the
@@ -219,7 +219,7 @@ impl TransactionCompiler {
     fn compile_notes(
         &self,
         target_account_interface: &[Digest],
-        notes: &InputNotes,
+        notes: &InputNotes<InputNote>,
         assembly_context: &mut AssemblyContext,
     ) -> Result<Vec<CodeBlock>, TransactionCompilerError> {
         let mut note_programs = Vec::new();
