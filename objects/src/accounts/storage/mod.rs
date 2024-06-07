@@ -160,29 +160,37 @@ impl AccountStorage {
         items: Vec<SlotItem>,
         maps: Vec<StorageMap>,
     ) -> Result<AccountStorage, AccountError> {
-        // initialize storage layout
-        let mut layout = vec![StorageSlotType::default(); Self::NUM_STORAGE_SLOTS];
-
-        // set the slot type for the layout commitment
-        layout[usize::from(Self::SLOT_LAYOUT_COMMITMENT_INDEX)] =
+        // Empty layout
+        let mut layout = vec![StorageSlotType::default(); AccountStorage::NUM_STORAGE_SLOTS];
+        layout[usize::from(AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)] =
             StorageSlotType::Value { value_arity: 64 };
 
-        // process entries to extract type data
-        let mut entries = items
-            .into_iter()
-            .map(|item| {
-                if item.index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
-                    return Err(AccountError::StorageSlotIsReserved(item.index));
-                }
+        // The following loop will:
+        //
+        // - Validate the slot and check it doesn't assign a value to a reserved slot.
+        // - Extract the slot value.
+        // - Count the number of maps to validate `maps`.
+        //
+        // It won't detect duplicates, that is later done by the `SimpleSmt` instantiation.
+        //
+        let mut entries = Vec::with_capacity(AccountStorage::NUM_STORAGE_SLOTS);
+        let mut num_maps = 0;
+        for item in items {
+            if item.index == AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX {
+                return Err(AccountError::StorageSlotIsReserved(item.index));
+            }
 
-                layout[usize::from(item.index)] = item.slot.slot_type;
-                Ok((item.index.into(), item.slot.value))
-            })
-            .collect::<Result<Vec<_>, AccountError>>()?;
+            if matches!(item.slot.slot_type, StorageSlotType::Map { .. }) {
+                num_maps += 1;
+            }
+
+            layout[usize::from(item.index)] = item.slot.slot_type;
+            entries.push((item.index.into(), item.slot.value))
+        }
 
         // add layout commitment entry
         entries.push((
-            Self::SLOT_LAYOUT_COMMITMENT_INDEX.into(),
+            AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into(),
             *Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>()),
         ));
 
@@ -190,15 +198,9 @@ impl AccountStorage {
         let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        // check if the number of provided maps is bigger than the number of slots reserved for maps
-        let count = layout
-            .iter()
-            .filter(|&slot| matches!(slot, StorageSlotType::Map { .. }))
-            .count();
-
-        if maps.len() > count {
+        if maps.len() > num_maps {
             return Err(AccountError::StorageMapTooManyMaps {
-                expected: count,
+                expected: num_maps,
                 actual: maps.len(),
             });
         }
