@@ -1,3 +1,5 @@
+use vm_core::Felt;
+
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, Word,
 };
@@ -8,6 +10,13 @@ use crate::crypto::{
 
 // ACCOUNT STORAGE MAP
 // ================================================================================================
+
+pub const EMPTY_STORAGE_MAP: Word = [
+    Felt::new(15321474589252129342),
+    Felt::new(17373224439259377994),
+    Felt::new(15071539326562317628),
+    Felt::new(3312677166725950353),
+];
 
 /// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
 /// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
@@ -119,7 +128,7 @@ impl Deserializable for StorageMap {
 mod tests {
     use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-    use super::{Deserializable, Serializable, StorageMap, Word};
+    use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP};
 
     #[test]
     fn account_storage_serialization() {
@@ -143,5 +152,11 @@ mod tests {
 
         let bytes = storage_map.to_bytes();
         assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());
+    }
+
+    #[test]
+    fn test_empty_storage_map_constants() {
+        // If these values don't match, update the constants.
+        assert_eq!(*StorageMap::default().root(), EMPTY_STORAGE_MAP);
     }
 }

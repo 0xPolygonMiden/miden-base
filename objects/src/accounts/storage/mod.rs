@@ -10,7 +10,7 @@ mod slot;
 pub use slot::StorageSlotType;
 
 mod map;
-pub use map::StorageMap;
+pub use map::{StorageMap, EMPTY_STORAGE_MAP};
 
 // CONSTANTS
 // ================================================================================================
@@ -326,45 +326,37 @@ impl Serializable for AccountStorage {
 
         complex_types.write_into(target);
 
-        // serialize slot values; we serialize only non-empty values and also skip slot 255 as info
-        // for this slot was already serialized as a part of serializing slot type info above
         let filled_slots = self
             .slots
             .leaves()
-            .filter(|(idx, &value)| {
-                // TODO: consider checking empty values for complex types as well
-                value != SimpleSmt::<STORAGE_TREE_DEPTH>::EMPTY_VALUE
-                    && *idx as u8 != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX
+            // don't serialize the default values, these are implied.
+            .filter(|(index, &value)| {
+                let slot_type = self.layout
+                    [usize::try_from(*index).expect("Number of slot types is limited to u8")];
+                value != slot_type.empty_word()
             })
+            .map(|(index, value)| (u8::try_from(index).expect("Number of slot types is limited to u8"), value))
+            // don't serialized the layout commitment, it can be recomputed
+            .filter(|(index, _)| *index != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)
             .collect::<Vec<_>>();
 
-        target.write_u8(filled_slots.len() as u8);
-        for (idx, &value) in filled_slots {
-            target.write_u8(idx as u8);
-            target.write(value);
-        }
+        filled_slots.write_into(target);
 
-        // serialize the number of StorageMaps
-        target.write_u8(self.maps.len() as u8);
-
-        // serialize storage maps
-        for storage_map in &self.maps {
-            storage_map.write_into(target);
-        }
+        // serialize the storage maps
+        self.maps.write_into(target);
     }
 }
 
 impl Deserializable for AccountStorage {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        // read the non-default layout types
         let complex_types = <Vec<(u8, StorageSlotType)>>::read_from(source)?;
         let mut complex_types = BTreeMap::from_iter(complex_types);
 
-        // read filled slots and build a vector of slot items
+        // read the non-default entries
+        let filled_slots = <Vec<(u8, Word)>>::read_from(source)?;
         let mut items: Vec<SlotItem> = Vec::new();
-        let num_filled_slots = source.read_u8()?;
-        for _ in 0..num_filled_slots {
-            let index = source.read_u8()?;
-            let value: Word = source.read()?;
+        for (index, value) in filled_slots {
             let slot_type = complex_types.remove(&index).unwrap_or_default();
             items.push(SlotItem {
                 index,
@@ -372,16 +364,8 @@ impl Deserializable for AccountStorage {
             });
         }
 
-        // read the number of StorageMap instances
-        let num_storage_maps = source.read_u8()?;
-
-        let mut maps = Vec::with_capacity(num_storage_maps as usize);
-        for _ in 0..num_storage_maps {
-            maps.push(
-                StorageMap::read_from(source)
-                    .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?,
-            );
-        }
+        // read the storage maps
+        let maps = <Vec<StorageMap>>::read_from(source)?;
 
         Self::new(items, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
