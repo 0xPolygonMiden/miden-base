@@ -10,7 +10,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountId, AccountType, StorageSlotType,
+        AccountId, AccountType, SlotItem, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
     testing::{
@@ -18,7 +18,8 @@ use miden_objects::{
         notes::AssetPreservationStatus,
         prepare_word,
         storage::{
-            storage_item_0, storage_item_1, storage_item_2, storage_map_2, STORAGE_LEAVES_2,
+            storage_map_2, STORAGE_INDEX_0, STORAGE_INDEX_1, STORAGE_INDEX_2, STORAGE_LEAVES_2,
+            STORAGE_VALUE_0, STORAGE_VALUE_1,
         },
     },
 };
@@ -246,7 +247,10 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_get_item() {
-    for storage_item in [storage_item_0(), storage_item_1()] {
+    for storage_item in [
+        SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
+        SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
+    ] {
         let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
@@ -335,7 +339,11 @@ fn test_set_item() {
 // Test different account storage types
 #[test]
 fn test_get_storage_data_type() {
-    for storage_item in [storage_item_0(), storage_item_1(), storage_item_2()] {
+    for storage_item in [
+        SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
+        SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
+        SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
+    ] {
         let (tx_inputs, tx_args) =
             mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
@@ -385,7 +393,7 @@ fn test_get_map_item() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    let storage_item = storage_item_2();
+    let storage_item = SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into());
     for (key, value) in STORAGE_LEAVES_2 {
         let code = format!(
             "
@@ -433,7 +441,7 @@ fn test_set_map_item() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    let storage_item = storage_item_2();
+    let storage_item = SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into());
 
     let code = format!(
         "

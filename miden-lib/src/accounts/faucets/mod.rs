@@ -3,7 +3,6 @@ use alloc::string::ToString;
 use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
-        StorageSlot,
     },
     assembly::LibraryPath,
     assets::TokenSymbol,
@@ -72,16 +71,7 @@ pub fn create_basic_fungible_faucet(
     // - slot 0: authentication data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage = AccountStorage::new(
-        vec![
-            SlotItem {
-                index: 0,
-                slot: StorageSlot::new_value(auth_data),
-            },
-            SlotItem {
-                index: 1,
-                slot: StorageSlot::new_value(metadata),
-            },
-        ],
+        vec![SlotItem::new_value(0, 0, auth_data), SlotItem::new_value(1, 0, metadata)],
         vec![],
     )?;
 

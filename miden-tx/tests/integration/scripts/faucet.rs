@@ -8,7 +8,7 @@ use miden_lib::{
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, AccountStorageType, SlotItem, StorageSlot,
+        AccountStorage, AccountStorageType, SlotItem,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
@@ -294,14 +294,8 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(
         vec![
-            SlotItem {
-                index: 0,
-                slot: StorageSlot::new_value(public_key),
-            },
-            SlotItem {
-                index: 1,
-                slot: StorageSlot::new_value(faucet_storage_slot_1),
-            },
+            SlotItem::new_value(0, 0, public_key),
+            SlotItem::new_value(1, 0, faucet_storage_slot_1),
         ],
         vec![],
     )

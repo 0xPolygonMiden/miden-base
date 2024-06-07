@@ -32,6 +32,41 @@ pub struct SlotItem {
     pub slot: StorageSlot,
 }
 
+impl SlotItem {
+    /// Returns a new [SlotItem] with the [StorageSlotType::Value] type.
+    pub fn new_value(index: u8, arity: u8, value: Word) -> Self {
+        Self {
+            index,
+            slot: StorageSlot {
+                slot_type: StorageSlotType::Value { value_arity: arity },
+                value,
+            },
+        }
+    }
+
+    /// Returns a new [SlotItem] with the [StorageSlotType::Map] type.
+    pub fn new_map(index: u8, arity: u8, value: Word) -> Self {
+        Self {
+            index,
+            slot: StorageSlot {
+                slot_type: StorageSlotType::Map { value_arity: arity },
+                value,
+            },
+        }
+    }
+
+    /// Returns a new [SlotItem] with the [StorageSlotType::Array] type.
+    pub fn new_array(index: u8, arity: u8, depth: u8, value: Word) -> Self {
+        Self {
+            index,
+            slot: StorageSlot {
+                slot_type: StorageSlotType::Array { depth, value_arity: arity },
+                value,
+            },
+        }
+    }
+}
+
 /// Represents a single storage slot entry.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -360,10 +395,7 @@ mod tests {
 
     use miden_crypto::hash::rpo::RpoDigest;
 
-    use super::{
-        AccountStorage, Deserializable, Felt, Serializable, SlotItem, StorageMap, StorageSlot,
-        StorageSlotType, Word,
-    };
+    use super::{AccountStorage, Deserializable, Felt, Serializable, SlotItem, StorageMap, Word};
     use crate::{ONE, ZERO};
 
     #[test]
@@ -376,20 +408,8 @@ mod tests {
         // storage with values for default types
         let storage = AccountStorage::new(
             vec![
-                SlotItem {
-                    index: 0,
-                    slot: StorageSlot {
-                        slot_type: StorageSlotType::default(),
-                        value: [ONE, ONE, ONE, ONE],
-                    },
-                },
-                SlotItem {
-                    index: 2,
-                    slot: StorageSlot {
-                        slot_type: StorageSlotType::default(),
-                        value: [ONE, ONE, ONE, ZERO],
-                    },
-                },
+                SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
+                SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
             ],
             vec![],
         )
@@ -411,28 +431,10 @@ mod tests {
         let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
         let storage = AccountStorage::new(
             vec![
-                SlotItem {
-                    index: 0,
-                    slot: StorageSlot {
-                        slot_type: StorageSlotType::Value { value_arity: 1 },
-                        value: [ONE, ONE, ONE, ONE],
-                    },
-                },
-                SlotItem {
-                    index: 1,
-                    slot: StorageSlot::new_value([ONE, ONE, ONE, ZERO]),
-                },
-                SlotItem {
-                    index: 2,
-                    slot: StorageSlot::new_map(Word::from(storage_map.root())),
-                },
-                SlotItem {
-                    index: 3,
-                    slot: StorageSlot {
-                        slot_type: StorageSlotType::Array { depth: 4, value_arity: 3 },
-                        value: [ONE, ZERO, ZERO, ZERO],
-                    },
-                },
+                SlotItem::new_value(0, 1, [ONE, ONE, ONE, ONE]),
+                SlotItem::new_value(1, 0, [ONE, ONE, ONE, ZERO]),
+                SlotItem::new_map(2, 0, storage_map.root().into()),
+                SlotItem::new_array(3, 3, 4, [ONE, ZERO, ZERO, ZERO]),
             ],
             vec![storage_map],
         )

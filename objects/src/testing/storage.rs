@@ -21,7 +21,7 @@ use crate::{
         code::testing::make_account_code,
         get_account_seed_single, Account, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap, StorageSlot, StorageSlotType,
+        StorageMap,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
@@ -91,29 +91,8 @@ pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
     ),
 ];
 
-pub fn storage_item_0() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_0,
-        slot: StorageSlot::new_value(STORAGE_VALUE_0),
-    }
-}
-
-pub fn storage_item_1() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_1,
-        slot: StorageSlot::new_value(STORAGE_VALUE_1),
-    }
-}
-
 pub fn storage_map_2() -> StorageMap {
     StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
-}
-
-pub fn storage_item_2() -> SlotItem {
-    SlotItem {
-        index: STORAGE_INDEX_2,
-        slot: StorageSlot::new_map(Word::from(storage_map_2().root())),
-    }
 }
 
 // MOCK FAUCET
@@ -131,10 +110,11 @@ pub fn mock_fungible_faucet(
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
     };
     let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: FAUCET_STORAGE_DATA_SLOT,
-            slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-        }],
+        vec![SlotItem::new_value(
+            FAUCET_STORAGE_DATA_SLOT,
+            0,
+            [ZERO, ZERO, ZERO, initial_balance],
+        )],
         vec![],
     )
     .unwrap();
@@ -163,10 +143,7 @@ pub fn mock_non_fungible_faucet(
     // TODO: add nft tree data to account storage?
 
     let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: FAUCET_STORAGE_DATA_SLOT,
-            slot: StorageSlot::new_map(*nft_tree.root()),
-        }],
+        vec![SlotItem::new_map(FAUCET_STORAGE_DATA_SLOT, 0, *nft_tree.root())],
         vec![],
     )
     .unwrap();
@@ -270,17 +247,11 @@ pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) 
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = make_account_code();
 
-    // build account data
     let vault = AssetVault::new(&assets).unwrap();
-
-    let slot_type = StorageSlotType::Value { value_arity: 0 };
     let slot_items: Vec<SlotItem> = storage_items
         .into_iter()
         .enumerate()
-        .map(|(index, item)| SlotItem {
-            index: index as u8,
-            slot: StorageSlot { slot_type, value: item },
-        })
+        .map(|(index, item)| SlotItem::new_value(index as u8, 0, item))
         .collect();
     let storage = AccountStorage::new(slot_items, vec![]).unwrap();
 

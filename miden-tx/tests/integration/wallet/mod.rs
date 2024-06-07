@@ -5,7 +5,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountId, AccountStorage, SlotItem, StorageSlot,
+        Account, AccountId, AccountStorage, SlotItem,
     },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
@@ -85,14 +85,8 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: 0,
-            slot: StorageSlot::new_value(target_pub_key),
-        }],
-        vec![],
-    )
-    .unwrap();
+    let account_storage =
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], vec![]).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::from_parts(
@@ -167,14 +161,8 @@ fn prove_send_asset_via_wallet() {
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
-    let sender_account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: 0,
-            slot: StorageSlot::new_value(sender_pub_key),
-        }],
-        vec![],
-    )
-    .unwrap();
+    let sender_account_storage =
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], vec![]).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta

@@ -14,8 +14,8 @@ use super::{
     assets::non_fungible_asset,
     constants::FUNGIBLE_ASSET_AMOUNT,
     storage::{
-        generate_account_seed, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
-        AccountSeedType, AccountStorageBuilder,
+        generate_account_seed, storage_map_2, AccountSeedType, AccountStorageBuilder,
+        STORAGE_INDEX_0, STORAGE_INDEX_1, STORAGE_INDEX_2, STORAGE_VALUE_0, STORAGE_VALUE_1,
     },
 };
 use crate::{
@@ -235,7 +235,11 @@ pub fn mock_account_vault() -> AssetVault {
 pub fn mock_account_storage() -> AccountStorage {
     // create account storage
     AccountStorage::new(
-        vec![storage_item_0(), storage_item_1(), storage_item_2()],
+        vec![
+            SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
+            SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
+            SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
+        ],
         vec![storage_map_2()],
     )
     .unwrap()
