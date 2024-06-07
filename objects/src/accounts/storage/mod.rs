@@ -45,23 +45,25 @@ impl SlotItem {
     }
 
     /// Returns a new [SlotItem] with the [StorageSlotType::Map] type.
-    pub fn new_map(index: u8, arity: u8, value: Word) -> Self {
+    pub fn new_map(index: u8, arity: u8, root: Word) -> Self {
         Self {
             index,
             slot: StorageSlot {
                 slot_type: StorageSlotType::Map { value_arity: arity },
-                value,
+                value: root,
             },
         }
     }
 
     /// Returns a new [SlotItem] with the [StorageSlotType::Array] type.
-    pub fn new_array(index: u8, arity: u8, depth: u8, value: Word) -> Self {
+    ///
+    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
+    pub fn new_array(index: u8, arity: u8, log_n: u8, root: Word) -> Self {
         Self {
             index,
             slot: StorageSlot {
-                slot_type: StorageSlotType::Array { depth, value_arity: arity },
-                value,
+                slot_type: StorageSlotType::Array { depth: log_n, value_arity: arity },
+                value: root,
             },
         }
     }
@@ -303,20 +305,16 @@ impl AccountStorage {
 
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // serialize layout info; we don't serialize default type info as we'll assume that any
-        // slot type that wasn't serialized was a default slot type. also we skip the last slot
-        // type as it is a constant.
-        let complex_types = self.layout[..255]
+        // don't serialize last slot as it is a constant.
+        let complex_types = self.layout[..usize::from(AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)]
             .iter()
             .enumerate()
+            // don't serialize default types, these are implied.
             .filter(|(_, slot_type)| !slot_type.is_default())
+            .map(|(index, slot_type)| (u8::try_from(index).expect("Number of slot types is limited to u8"), slot_type))
             .collect::<Vec<_>>();
 
-        target.write_u8(complex_types.len() as u8);
-        for (idx, slot_type) in complex_types {
-            target.write_u8(idx as u8);
-            target.write_u16(slot_type.into());
-        }
+        complex_types.write_into(target);
 
         // serialize slot values; we serialize only non-empty values and also skip slot 255 as info
         // for this slot was already serialized as a part of serializing slot type info above
@@ -348,15 +346,8 @@ impl Serializable for AccountStorage {
 
 impl Deserializable for AccountStorage {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // read complex types
-        let mut complex_types = BTreeMap::new();
-        let num_complex_types = source.read_u8()?;
-        for _ in 0..num_complex_types {
-            let idx = source.read_u8()?;
-            let slot_type: StorageSlotType =
-                source.read_u16()?.try_into().map_err(DeserializationError::InvalidValue)?;
-            complex_types.insert(idx, slot_type);
-        }
+        let complex_types = <Vec<(u8, StorageSlotType)>>::read_from(source)?;
+        let mut complex_types = BTreeMap::from_iter(complex_types);
 
         // read filled slots and build a vector of slot items
         let mut items: Vec<SlotItem> = Vec::new();
