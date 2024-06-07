@@ -281,20 +281,6 @@ impl AccountStorage {
             return Err(AccountError::StorageSlotIsReserved(index));
         }
 
-        // only value slots of basic arity can currently be updated
-        match self.layout[usize::from(index)] {
-            StorageSlotType::Value { value_arity } => {
-                if value_arity > 0 {
-                    return Err(AccountError::StorageSlotInvalidValueArity {
-                        slot: index,
-                        expected: 0,
-                        actual: value_arity,
-                    });
-                }
-            },
-            slot_type => Err(AccountError::StorageSlotNotValueSlot(index, slot_type))?,
-        }
-
         // update the slot and return
         let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
         let slot_value = self.slots.insert(index, value);
