@@ -191,7 +191,7 @@ impl AccountStorage {
         // add layout commitment entry
         entries.push((
             AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into(),
-            *Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>()),
+            *layout_commitment(&layout),
         ));
 
         // construct storage slots smt and populate the types vector.
@@ -237,7 +237,7 @@ impl AccountStorage {
 
     /// Returns a commitment to the storage layout.
     pub fn layout_commitment(&self) -> Digest {
-        Hasher::hash_elements(&self.layout.iter().map(Felt::from).collect::<Vec<_>>())
+        layout_commitment(&self.layout)
     }
 
     /// Returns the storage maps for this storage.
@@ -300,6 +300,14 @@ impl AccountStorage {
         let slot_value = self.slots.insert(index, value);
         Ok(slot_value)
     }
+}
+
+// UTILITIES
+// ------------------------------------------------------------------------------------------------
+
+/// Computes the commitment to the given layout
+fn layout_commitment(layout: &[StorageSlotType]) -> Digest {
+    Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>())
 }
 
 // SERIALIZATION
