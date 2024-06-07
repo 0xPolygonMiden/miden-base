@@ -17,10 +17,12 @@ mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
 pub use executed_tx::ExecutedTransaction;
-pub use inputs::{InputNote, InputNotes, ToNullifier, TransactionInputs};
+pub use inputs::{InputNote, InputNotes, ToInputNoteCommitments, TransactionInputs};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use prepared_tx::PreparedTransaction;
-pub use proven_tx::{ProvenTransaction, ProvenTransactionBuilder, TxAccountUpdate};
+pub use proven_tx::{
+    InputNoteCommitment, ProvenTransaction, ProvenTransactionBuilder, TxAccountUpdate,
+};
 pub use transaction_id::TransactionId;
 pub use tx_args::{TransactionArgs, TransactionScript};
 pub use tx_witness::TransactionWitness;

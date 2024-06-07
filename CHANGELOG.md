@@ -17,6 +17,7 @@
 * [BREAKING] Added support for delegated authenticated notes (#724).
 * [BREAKING] Changed rng to mutable reference in note creation functions (#733).
 * Added transaction IDs to the `Block` struct (#734).
+* [BREAKING] Replaced `ToNullifier` trait with `ToInputNoteCommitments`, which includes the `note_id` for delayed note authentication (#732).
 
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).
