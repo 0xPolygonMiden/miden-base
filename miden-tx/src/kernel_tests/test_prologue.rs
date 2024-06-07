@@ -163,7 +163,7 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTr
 
     assert_eq!(
         read_root_mem_value(process, BATCH_ROOT_PTR),
-        inputs.block_header().batch_root().as_elements(),
+        inputs.block_header().tx_hash().as_elements(),
         "The batch root should be stored at the BATCH_ROOT_PTR"
     );
 

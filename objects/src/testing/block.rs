@@ -466,10 +466,9 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         let note_root = notes.root();
         let timestamp =
             previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
+        let tx_hash = Digest::default();
 
-        // TODO: Set batch_root and proof_hash to the correct values once the kernel is
-        // available.
-        let batch_root = Digest::default();
+        // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
 
         let header = BlockHeader::new(
@@ -480,7 +479,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             account_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
         );
@@ -592,7 +591,7 @@ impl BlockHeader {
         let acct_root = acct_db.root();
         let nullifier_root = rand::rand_array().into();
         let note_root = note_root.unwrap_or(rand::rand_array().into());
-        let batch_root = rand::rand_array().into();
+        let tx_hash = rand::rand_array().into();
         let proof_hash = rand::rand_array().into();
 
         BlockHeader::new(
@@ -603,7 +602,7 @@ impl BlockHeader {
             acct_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             rand::rand_value(),
         )
