@@ -367,6 +367,12 @@ export.add_asset_to_note
     # emit event to signal that a new asset was added to the note.
     emit.NOTE_AFTER_ADD_ASSET_EVENT
 
+
+
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    # emit event to signal that a new asset was added to the note.
+    emit.NOTE_AFTER_ADD_ASSET_EVENT
+
     drop
     # => [note_idx]
 end
