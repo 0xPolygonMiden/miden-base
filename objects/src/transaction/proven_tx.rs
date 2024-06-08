@@ -386,6 +386,16 @@ pub struct InputNoteCommitment {
     note_id: Option<NoteId>,
 }
 
+impl InputNoteCommitment {
+    pub fn nullifier(&self) -> Nullifier {
+        self.nullifier
+    }
+
+    pub fn note_id(&self) -> Option<NoteId> {
+        self.note_id
+    }
+}
+
 impl ToInputNoteCommitments for InputNoteCommitment {
     fn nullifier(&self) -> Nullifier {
         self.nullifier
