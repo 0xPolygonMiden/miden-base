@@ -115,7 +115,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 
     assert_eq!(
         read_root_mem_value(process, INPUT_NOTES_COMMITMENT_PTR),
-        inputs.input_notes().nullifier_commitment().as_elements(),
+        inputs.input_notes().commitment().as_elements(),
         "The nullifier commitment should be stored at the INPUT_NOTES_COMMITMENT_PTR"
     );
 
@@ -165,7 +165,7 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTr
 
     assert_eq!(
         read_root_mem_value(process, BATCH_ROOT_PTR),
-        inputs.block_header().batch_root().as_elements(),
+        inputs.block_header().tx_hash().as_elements(),
         "The batch root should be stored at the BATCH_ROOT_PTR"
     );
 

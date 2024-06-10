@@ -1,4 +1,6 @@
-use super::{Account, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs};
+use super::{
+    Account, BlockHeader, InputNote, InputNotes, Program, TransactionArgs, TransactionInputs,
+};
 
 // PREPARED TRANSACTION
 // ================================================================================================
@@ -44,7 +46,7 @@ impl PreparedTransaction {
     }
 
     /// Returns the notes to be consumed in this transaction.
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         self.tx_inputs.input_notes()
     }
 

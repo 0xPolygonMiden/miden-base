@@ -27,7 +27,7 @@ impl ToTransactionKernelInputs for PreparedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -44,7 +44,7 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -62,7 +62,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
-            self.input_notes().nullifier_commitment(),
+            self.input_notes().commitment(),
             self.block_header().hash(),
         );
 
@@ -132,7 +132,7 @@ fn build_advice_stack(
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
-    inputs.extend_stack(header.batch_root());
+    inputs.extend_stack(header.tx_hash());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),
@@ -271,7 +271,7 @@ fn add_account_to_advice_inputs(
 /// - And all notes details together under the nullifier commitment.
 ///
 fn add_input_notes_to_advice_inputs(
-    notes: &InputNotes,
+    notes: &InputNotes<InputNote>,
     tx_args: &TransactionArgs,
     inputs: &mut AdviceInputs,
 ) {
@@ -337,5 +337,5 @@ fn add_input_notes_to_advice_inputs(
     }
 
     // NOTE: keep map in sync with the `process_input_notes_data` kernel procedure
-    inputs.extend_map([(notes.nullifier_commitment(), note_data)]);
+    inputs.extend_map([(notes.commitment(), note_data)]);
 }
