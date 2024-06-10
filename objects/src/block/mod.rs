@@ -132,17 +132,9 @@ impl Block {
         })
     }
 
-    /// Computes a commitment to a set of IDs of transactions which affected accounts in this block.
-    pub fn compute_tx_hash(
-        updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
-    ) -> Digest {
-        let mut elements = vec![];
-        for (transaction_id, account_id) in updated_accounts {
-            elements.extend_from_slice(&[account_id.into(), ZERO, ZERO, ZERO]);
-            elements.extend_from_slice(transaction_id.as_elements());
-        }
-
-        Hasher::hash_elements(&elements)
+    /// Computes a commitment to the transactions included in this block.
+    pub fn compute_tx_hash(&self) -> Digest {
+        compute_tx_hash(self.transactions())
     }
 
     // HELPER METHODS
@@ -197,6 +189,22 @@ impl Deserializable for Block {
 
         Ok(block)
     }
+}
+
+// TRANSACTION HASH COMPUTATION
+// ================================================================================================
+
+/// Computes a commitment to the provided list of transactions.
+pub fn compute_tx_hash(
+    updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
+) -> Digest {
+    let mut elements = vec![];
+    for (transaction_id, account_id) in updated_accounts {
+        elements.extend_from_slice(&[account_id.into(), ZERO, ZERO, ZERO]);
+        elements.extend_from_slice(transaction_id.as_elements());
+    }
+
+    Hasher::hash_elements(&elements)
 }
 
 // BLOCK ACCOUNT UPDATE
