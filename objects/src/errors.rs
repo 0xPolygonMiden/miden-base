@@ -34,7 +34,7 @@ pub enum AccountError {
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
     StorageSlotNotValueSlot(u8, StorageSlotType),
-    StorageMapNotFound(u64),
+    StorageMapNotFound(u8),
     StorageMapTooManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),
 }

@@ -89,7 +89,7 @@ pub fn get_account_with_default_account_code(
 
     let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
     let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], vec![]).unwrap();
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

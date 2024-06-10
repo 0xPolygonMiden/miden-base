@@ -137,7 +137,7 @@ impl StorageSlot {
 pub struct AccountStorage {
     slots: SimpleSmt<STORAGE_TREE_DEPTH>,
     layout: Vec<StorageSlotType>,
-    maps: Vec<StorageMap>,
+    maps: BTreeMap<u8, StorageMap>,
 }
 
 impl AccountStorage {
@@ -158,7 +158,7 @@ impl AccountStorage {
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(
         items: Vec<SlotItem>,
-        maps: Vec<StorageMap>,
+        maps: BTreeMap<u8, StorageMap>,
     ) -> Result<AccountStorage, AccountError> {
         // Empty layout
         let mut layout = vec![StorageSlotType::default(); AccountStorage::NUM_STORAGE_SLOTS];
@@ -241,18 +241,13 @@ impl AccountStorage {
     }
 
     /// Returns the storage maps for this storage.
-    pub fn maps(&self) -> &[StorageMap] {
+    pub fn maps(&self) -> &BTreeMap<u8, StorageMap> {
         &self.maps
     }
 
-    // Returns the storage map with a given root.
-    pub fn find_storage_map_by_root(&mut self, target_root: Digest) -> Option<&mut StorageMap> {
-        for map in &mut self.maps {
-            if map.root() == target_root {
-                return Some(map);
-            }
-        }
-        None
+    /// Returns the mutable storage map with a given index.
+    pub fn get_storage_map_by_index(&mut self, index: u8) -> Option<&mut StorageMap> {
+        self.maps.get_mut(&index)
     }
 
     // DATA MUTATORS
@@ -268,18 +263,16 @@ impl AccountStorage {
     /// - The delta implies an update to a reserved account slot.
     /// - The updates violate storage layout constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-        // Map updates are applied first as we need to find the storage map by its old root
-        // and every map updates always involves updating the root in the Storage slots as well.
-        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-            self.set_map_item(slot_idx, map_delta.clone())?;
-        }
-
         for &slot_idx in delta.cleared_items.iter() {
             self.set_item(slot_idx, Word::default())?;
         }
 
         for &(slot_idx, slot_value) in delta.updated_items.iter() {
             self.set_item(slot_idx, slot_value)?;
+        }
+
+        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+            self.set_map_item(slot_idx, map_delta.clone())?;
         }
 
         Ok(())
@@ -343,13 +336,9 @@ impl AccountStorage {
             return Err(AccountError::StorageSlotIsReserved(index));
         }
 
-        // load the storage map
-        let index = LeafIndex::new(index as u64).expect("index is u8 - index within range");
-        let old_map_root: Digest = self.slots.get_leaf(&index).into();
-
         let storage_map = self
-            .find_storage_map_by_root(old_map_root)
-            .ok_or(AccountError::StorageMapNotFound(index.value()))?;
+            .get_storage_map_by_index(index)
+            .ok_or(AccountError::StorageMapNotFound(index))?;
 
         // apply the updated leaves to the storage map
         for (key, value) in map_delta.updated_leaves.iter() {
@@ -360,6 +349,11 @@ impl AccountStorage {
         for key in map_delta.cleared_leaves.iter() {
             storage_map.insert(key.into(), [ZERO; 4]);
         }
+
+        // sanity check that the corresponding storage slot items was set to the new maps root
+        let map_root = storage_map.root();
+        let slot_value = self.get_item(index);
+        assert_eq!(map_root, slot_value, "map root does not match the slot value");
 
         Ok(())
     }
@@ -428,7 +422,7 @@ impl Deserializable for AccountStorage {
         }
 
         // read the storage maps
-        let maps = <Vec<StorageMap>>::read_from(source)?;
+        let maps = <BTreeMap<u8, StorageMap>>::read_from(source)?;
 
         Self::new(items, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }

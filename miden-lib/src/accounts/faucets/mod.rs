@@ -1,4 +1,4 @@
-use alloc::string::ToString;
+use alloc::{collections::BTreeMap, string::ToString};
 
 use miden_objects::{
     accounts::{
@@ -72,7 +72,7 @@ pub fn create_basic_fungible_faucet(
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
     let account_storage = AccountStorage::new(
         vec![SlotItem::new_value(0, 0, auth_data), SlotItem::new_value(1, 0, metadata)],
-        vec![],
+        BTreeMap::new(),
     )?;
 
     let account_seed = AccountId::get_account_seed(
