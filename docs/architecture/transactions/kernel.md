@@ -60,7 +60,7 @@ Global inputs come from the `operand_stack` and go to the VM at transaction exec
 
 ### Block data
 
-The block data processing involves reading the block data from the advice provider and storing it at the appropriate memory addresses. Block data comes from the latest known block and consists of note, state and batch root, the block's previous hash and proof hash, as well as the block number. As the data is read from the advice provider, the block hash is computed. It is asserted that the computed block hash matches the block hash stored in the global inputs.
+The block data processing involves reading the block data from the advice provider and storing it at the appropriate memory addresses. Block data comes from the latest known block and consists of note, state and tx hash, the block's previous hash and proof hash, as well as the block number. As the data is read from the advice provider, the block hash is computed. It is asserted that the computed block hash matches the block hash stored in the global inputs.
 
 ### Chain data
 

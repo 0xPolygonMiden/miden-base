@@ -102,7 +102,7 @@ end
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     BATCH_ROOT,
+#!     TX_HASH,
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
 #!     ZERO,
@@ -115,7 +115,7 @@ end
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, rollup tree with latest account states.
 #! - NULLIFIER_ROOT, epoch tree with the nullifiers of consumed notes.
-#! - BATCH_ROOT, tree of batches included in the block.
+#! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
@@ -896,7 +896,7 @@ end
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
-#!     BATCH_ROOT,
+#!     TX_HASH,
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
 #!     ZERO,
@@ -923,7 +923,7 @@ end
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, tree with latest account states.
 #! - NULLIFIER_ROOT, epoch tree with nullifiers of consumed notes.
-#! - BATCH_ROOT, tree of batches included in the block.
+#! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, the current protocol version.
