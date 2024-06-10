@@ -96,7 +96,6 @@ impl StorageMap {
 
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
-
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
         self.map.insert(key, value) // Delegate to Smt's insert method
     }

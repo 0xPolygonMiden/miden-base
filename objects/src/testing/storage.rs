@@ -1,5 +1,4 @@
 use alloc::{string::String, vec::Vec};
-
 use assembly::Assembler;
 use miden_crypto::merkle::Smt;
 use vm_core::{Felt, FieldElement, Word, ZERO};
@@ -243,7 +242,7 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
+pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>, map: Option<StorageMap>) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = make_account_code();
 
@@ -253,7 +252,19 @@ pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) 
         .enumerate()
         .map(|(index, item)| SlotItem::new_value(index as u8, 0, item))
         .collect();
-    let storage = AccountStorage::new(slot_items, vec![]).unwrap();
+
+    let mut maps = Vec::new();
+    if let Some(map) = map {
+        let slot_map = StorageSlotType::Map { value_arity: 0 };
+        let slot_item_map_root: SlotItem = SlotItem {
+            index: 254,
+            slot: StorageSlot { slot_type: slot_map, value: *map.root() },
+        };
+        slot_items.push(slot_item_map_root);
+        maps.push(map);
+    }
+
+    let storage = AccountStorage::new(slot_items, maps).unwrap();
 
     Account::from_parts(id, vault, storage, code, nonce)
 }
