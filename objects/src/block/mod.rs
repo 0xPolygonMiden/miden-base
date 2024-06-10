@@ -122,6 +122,29 @@ impl Block {
         &self.created_nullifiers
     }
 
+    /// Returns an iterator over all transactions which affected accounts in the block with corresponding account IDs.
+    pub fn transaction(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
+        self.updated_accounts.iter().flat_map(|update| {
+            update
+                .transactions
+                .iter()
+                .map(|transaction_id| (*transaction_id, update.account_id))
+        })
+    }
+
+    /// Computes a commitment to a set of IDs of transactions which affected accounts in this block.
+    pub fn compute_tx_hash(
+        updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
+    ) -> Digest {
+        let mut elements = vec![];
+        for (transaction_id, account_id) in updated_accounts {
+            elements.extend_from_slice(&[account_id.into(), ZERO, ZERO, ZERO]);
+            elements.extend_from_slice(transaction_id.as_elements());
+        }
+
+        Hasher::hash_elements(&elements)
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
