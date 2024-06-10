@@ -108,7 +108,7 @@ fn extend_advice_inputs(
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
-///     BATCH_ROOT,
+///     TX_HASH,
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
 ///     ZERO,
