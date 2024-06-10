@@ -1,5 +1,7 @@
 extern crate alloc;
 
+use std::collections::BTreeMap;
+
 use miden_lib::{
     accounts::faucets::create_basic_fungible_faucet,
     transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
@@ -297,7 +299,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             SlotItem::new_value(0, 0, public_key),
             SlotItem::new_value(1, 0, faucet_storage_slot_1),
         ],
-        vec![],
+        BTreeMap::new(),
     )
     .unwrap();
 

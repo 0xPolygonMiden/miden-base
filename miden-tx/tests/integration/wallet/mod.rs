@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -86,7 +88,8 @@ fn prove_receive_asset_via_wallet() {
 
     // clone account info
     let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], vec![]).unwrap();
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], BTreeMap::new())
+            .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::from_parts(
@@ -162,7 +165,8 @@ fn prove_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], vec![]).unwrap();
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], BTreeMap::new())
+            .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta

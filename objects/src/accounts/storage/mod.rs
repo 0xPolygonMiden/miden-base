@@ -433,7 +433,7 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
+    use alloc::{collections::BTreeMap, vec::Vec};
 
     use miden_crypto::hash::rpo::RpoDigest;
 
@@ -443,7 +443,7 @@ mod tests {
     #[test]
     fn account_storage_serialization() {
         // empty storage
-        let storage = AccountStorage::new(Vec::new(), Vec::new()).unwrap();
+        let storage = AccountStorage::new(Vec::new(), BTreeMap::new()).unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
@@ -453,7 +453,7 @@ mod tests {
                 SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
                 SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
             ],
-            vec![],
+            BTreeMap::new(),
         )
         .unwrap();
         let bytes = storage.to_bytes();
@@ -471,6 +471,8 @@ mod tests {
             ),
         ];
         let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+        let mut maps = BTreeMap::new();
+        maps.insert(2, storage_map.clone());
         let storage = AccountStorage::new(
             vec![
                 SlotItem::new_value(0, 1, [ONE, ONE, ONE, ONE]),
@@ -478,7 +480,7 @@ mod tests {
                 SlotItem::new_map(2, 0, storage_map.root().into()),
                 SlotItem::new_array(3, 3, 4, [ONE, ZERO, ZERO, ZERO]),
             ],
-            vec![storage_map],
+            maps,
         )
         .unwrap();
         let bytes = storage.to_bytes();
