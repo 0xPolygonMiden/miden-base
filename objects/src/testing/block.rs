@@ -1,9 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use core::fmt;
-use std::println;
+use core::{fmt, hash::Hasher};
 
 use miden_crypto::merkle::{Mmr, PartialMmr, SimpleSmt, Smt};
-use vm_core::{Felt, Word, ZERO};
+use vm_core::{utils::Serializable, Felt, Word, ZERO};
 use vm_processor::Digest;
 use winter_rand_utils as rand;
 
@@ -12,8 +11,8 @@ use crate::{
     block::{Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
     notes::{Note, NoteId, NoteInclusionProof, Nullifier},
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToNullifier,
-        TransactionInputs,
+        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
+        TransactionId, TransactionInputs,
     },
     BlockHeader, ACCOUNT_TREE_DEPTH,
 };
@@ -33,6 +32,9 @@ pub struct PendingObjects {
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
+
+    /// Transaction IDs added to the block.
+    transaction_ids: Vec<TransactionId>,
 }
 
 impl PendingObjects {
@@ -41,6 +43,7 @@ impl PendingObjects {
             updated_accounts: vec![],
             created_notes: vec![],
             created_nullifiers: vec![],
+            transaction_ids: vec![],
         }
     }
 
@@ -140,6 +143,7 @@ impl MockChain {
             transaction.account_id(),
             account.hash(),
             account_update_details,
+            vec![transaction.id()],
         );
         self.pending_objects.updated_accounts.push(block_account_update);
 
@@ -173,6 +177,7 @@ impl MockChain {
             account.id(),
             account.hash(),
             AccountUpdateDetails::New(account),
+            vec![],
         ));
     }
 
@@ -201,7 +206,6 @@ impl MockChain {
         let block_headers: Vec<BlockHeader> = block_headers_map.values().cloned().collect();
         let mmr = mmr_to_chain_mmr(&self.chain, &block_headers);
 
-        println!("{:?}", account_seed);
         TransactionInputs::new(
             account,
             account_seed,
@@ -243,8 +247,9 @@ impl MockChain {
         let nullifier_root = self.nullifiers.root();
         let note_root = notes_tree.root();
         let timestamp =
-            previous.map_or(TIMESTAMP_START, |header| header.timestamp() + TIMESTAMP_STEP);
-        let tx_hash = Digest::default();
+            previous.map_or(TIMESTAMP_START, |block| block.header().timestamp() + TIMESTAMP_STEP);
+        // TODO: Implement proper tx_hash once https://github.com/0xPolygonMiden/miden-base/pull/740 is merged
+        let tx_hash = crate::Hasher::hash(&self.pending_objects.transaction_ids.to_bytes());
 
         // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();

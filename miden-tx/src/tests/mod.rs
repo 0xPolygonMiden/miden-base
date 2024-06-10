@@ -322,7 +322,7 @@ fn executed_transaction_account_delta() {
         .tx_inputs
         .input_notes()
         .iter()
-        .last()
+        .find(|n| n.note().assets().num_assets() == 3)
         .unwrap()
         .note()
         .assets()

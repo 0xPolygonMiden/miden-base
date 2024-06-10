@@ -307,6 +307,7 @@ pub fn mock_notes(
         ),
     ])
     .unwrap();
+
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_5_script, inputs);
     let consumed_note_5 = Note::new(vault, metadata, recipient);

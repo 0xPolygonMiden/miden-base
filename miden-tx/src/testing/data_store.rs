@@ -9,7 +9,7 @@ use miden_objects::{
     assembly::ModuleAst,
     notes::{Note, NoteId},
     testing::{account::MockAccountType, notes::AssetPreservationStatus},
-    transaction::{InputNotes, TransactionArgs, TransactionInputs},
+    transaction::{InputNote, InputNotes, TransactionArgs, TransactionInputs},
     BlockHeader,
 };
 
@@ -49,7 +49,7 @@ impl MockDataStore {
         Self { tx_inputs, tx_args }
     }
 
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         self.tx_inputs.input_notes()
     }
 

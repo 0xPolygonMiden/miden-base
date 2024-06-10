@@ -17,7 +17,7 @@ use miden_objects::{
         notes::{mock_notes, AssetPreservationStatus},
     },
     transaction::{
-        InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
+        InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
     FieldElement,
 };
@@ -88,7 +88,7 @@ impl TransactionContext {
         &self.mock_chain
     }
 
-    pub fn input_notes(&self) -> InputNotes {
+    pub fn input_notes(&self) -> InputNotes<InputNote> {
         InputNotes::new(self.mock_chain.available_notes().clone()).unwrap()
     }
 
