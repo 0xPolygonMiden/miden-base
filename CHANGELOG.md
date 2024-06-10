@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+* Add `Option<NoteTag>`to `NoteFile` (#741).
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 * [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).

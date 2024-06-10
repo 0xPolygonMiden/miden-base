@@ -1,7 +1,7 @@
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
-use super::{Note, NoteDetails, NoteId, NoteInclusionProof};
+use super::{Note, NoteDetails, NoteId, NoteInclusionProof, NoteTag};
 
 // NOTE FILE
 // ================================================================================================
@@ -11,14 +11,16 @@ pub enum NoteFile {
     /// The note's details aren't known.
     NoteId(NoteId),
     /// The note has not yet been recorded on chain.
-    NoteDetails(NoteDetails),
+    ///
+    /// An optional tag is included for note tracking.
+    NoteDetails(NoteDetails, Option<NoteTag>),
     /// The note has been recorded on chain.
     NoteWithProof(Note, NoteInclusionProof),
 }
 
 impl From<NoteDetails> for NoteFile {
     fn from(details: NoteDetails) -> Self {
-        NoteFile::NoteDetails(details)
+        NoteFile::NoteDetails(details, None)
     }
 }
 
@@ -39,9 +41,10 @@ impl Serializable for NoteFile {
                 target.write_u8(0);
                 note_id.write_into(target);
             },
-            NoteFile::NoteDetails(details) => {
+            NoteFile::NoteDetails(details, tag) => {
                 target.write_u8(1);
                 details.write_into(target);
+                tag.write_into(target);
             },
             NoteFile::NoteWithProof(note, proof) => {
                 target.write_u8(2);
@@ -62,7 +65,11 @@ impl Deserializable for NoteFile {
         }
         match source.read_u8()? {
             0 => Ok(NoteFile::NoteId(NoteId::read_from(source)?)),
-            1 => Ok(NoteFile::NoteDetails(NoteDetails::read_from(source)?)),
+            1 => {
+                let details = NoteDetails::read_from(source)?;
+                let tag = Option::<NoteTag>::read_from(source)?;
+                Ok(NoteFile::NoteDetails(details, tag))
+            },
             2 => {
                 let note = Note::read_from(source)?;
                 let proof = NoteInclusionProof::read_from(source)?;
@@ -153,15 +160,16 @@ mod tests {
     #[test]
     fn serialize_details() {
         let note = create_example_note();
-        let file = NoteFile::NoteDetails(note.details.clone());
+        let file = NoteFile::NoteDetails(note.details.clone(), Some(NoteTag::from(123)));
         let mut buffer = Vec::new();
         file.write_into(&mut buffer);
 
         let file_copy = NoteFile::read_from_bytes(&buffer).unwrap();
 
         match file_copy {
-            NoteFile::NoteDetails(details) => {
+            NoteFile::NoteDetails(details, tag) => {
                 assert_eq!(details, note.details);
+                assert_eq!(tag, Some(NoteTag::from(123)));
             },
             _ => panic!("Invalid note file variant"),
         }
