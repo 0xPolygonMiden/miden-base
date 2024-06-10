@@ -123,7 +123,7 @@ impl Block {
     }
 
     /// Returns an iterator over all transactions which affected accounts in the block with corresponding account IDs.
-    pub fn transaction(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
+    pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|update| {
             update
                 .transactions
