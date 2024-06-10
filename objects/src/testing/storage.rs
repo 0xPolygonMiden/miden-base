@@ -1,4 +1,5 @@
 use alloc::{string::String, vec::Vec};
+
 use assembly::Assembler;
 use miden_crypto::merkle::Smt;
 use vm_core::{Felt, FieldElement, Word, ZERO};
@@ -242,12 +243,17 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>, map: Option<StorageMap>) -> Account {
+pub fn build_account(
+    assets: Vec<Asset>,
+    nonce: Felt,
+    storage_items: Vec<Word>,
+    map: Option<StorageMap>,
+) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = make_account_code();
 
     let vault = AssetVault::new(&assets).unwrap();
-    let slot_items: Vec<SlotItem> = storage_items
+    let mut slot_items: Vec<SlotItem> = storage_items
         .into_iter()
         .enumerate()
         .map(|(index, item)| SlotItem::new_value(index as u8, 0, item))
@@ -255,12 +261,8 @@ pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>, 
 
     let mut maps = Vec::new();
     if let Some(map) = map {
-        let slot_map = StorageSlotType::Map { value_arity: 0 };
-        let slot_item_map_root: SlotItem = SlotItem {
-            index: 254,
-            slot: StorageSlot { slot_type: slot_map, value: *map.root() },
-        };
-        slot_items.push(slot_item_map_root);
+        let slot_item_map = SlotItem::new_map(254, 0, *map.root());
+        slot_items.push(slot_item_map);
         maps.push(map);
     }
 

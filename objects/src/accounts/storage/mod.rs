@@ -1,7 +1,8 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use super::{
-    AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Hasher, Serializable, StorageMapDelta, Word, ZERO
+    AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, Serializable, StorageMapDelta, Word, ZERO,
 };
 use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
 
@@ -315,7 +316,7 @@ impl AccountStorage {
                         actual: value_arity,
                     });
                 }
-            }
+            },
             slot_type => Err(AccountError::StorageSlotNotValueSlot(index, slot_type))?,
         }
 
@@ -332,7 +333,11 @@ impl AccountStorage {
     /// - The index specifies a reserved storage slot.
     /// - The index is not u8.
     /// - The map does not exist at the specified index.
-    pub fn set_map_item(&mut self, index: u8, map_delta: StorageMapDelta) -> Result<(), AccountError> {
+    pub fn set_map_item(
+        &mut self,
+        index: u8,
+        map_delta: StorageMapDelta,
+    ) -> Result<(), AccountError> {
         // layout commitment slot cannot be updated
         if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
             return Err(AccountError::StorageSlotIsReserved(index));
@@ -340,11 +345,10 @@ impl AccountStorage {
 
         // load the storage map
         let index = LeafIndex::new(index as u64).expect("index is u8 - index within range");
-        let old_map_root: Digest = self
-            .slots
-            .get_leaf(&index).into();
+        let old_map_root: Digest = self.slots.get_leaf(&index).into();
 
-        let storage_map = self.find_storage_map_by_root(old_map_root)
+        let storage_map = self
+            .find_storage_map_by_root(old_map_root)
             .ok_or(AccountError::StorageMapNotFound(index.value()))?;
 
         // apply the updated leaves to the storage map

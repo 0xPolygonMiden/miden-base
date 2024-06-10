@@ -370,17 +370,25 @@ mod tests {
             ),
         ];
         let mut storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
-        let mut account = build_account(vec![asset_0], init_nonce, vec![word], Some(storage_map.clone()));
+        let mut account =
+            build_account(vec![asset_0], init_nonce, vec![word], Some(storage_map.clone()));
 
-        let new_map_entry = (Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]), [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)]);
-        let updated_map = StorageMapDelta::from(vec![], vec![(new_map_entry.0.into(), new_map_entry.1)]);
+        let new_map_entry = (
+            Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+            [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
+        );
+        let updated_map =
+            StorageMapDelta::from(vec![], vec![(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
 
         // build account delta
         let final_nonce = Felt::new(2);
         let storage_delta = AccountStorageDeltaBuilder::new()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]), (254_u8, storage_map.root().into())])
+            .add_updated_items([
+                (1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+                (254_u8, storage_map.root().into()),
+            ])
             .add_updated_maps([(254_u8, updated_map)])
             .build()
             .unwrap();
@@ -390,7 +398,12 @@ mod tests {
         // apply delta and create final_account
         account.apply_delta(&account_delta).unwrap();
 
-        let final_account = build_account(vec![asset_1], final_nonce, vec![Word::default(), word], Some(storage_map));
+        let final_account = build_account(
+            vec![asset_1],
+            final_nonce,
+            vec![Word::default(), word],
+            Some(storage_map),
+        );
 
         // assert account is what it should be
         assert_eq!(account, final_account);
