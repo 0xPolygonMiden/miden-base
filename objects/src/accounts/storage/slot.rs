@@ -7,7 +7,7 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
-use super::{Felt, EMPTY_STORAGE_MAP, STORAGE_TREE_DEPTH};
+use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, STORAGE_TREE_DEPTH};
 
 // CONSTANTS
 // ================================================================================================
@@ -57,15 +57,16 @@ impl StorageSlotType {
     pub fn is_default(&self) -> bool {
         match self {
             StorageSlotType::Value { value_arity } => *value_arity == 0,
+            StorageSlotType::Map { value_arity } => *value_arity == 0,
             _ => false,
         }
     }
 
     /// Returns the empty [Word] for a value of this type.
-    pub fn empty_word(&self) -> Word {
+    pub fn default_word(&self) -> Word {
         match self {
             StorageSlotType::Value { .. } => SimpleSmt::<STORAGE_TREE_DEPTH>::EMPTY_VALUE,
-            StorageSlotType::Map { .. } => EMPTY_STORAGE_MAP,
+            StorageSlotType::Map { .. } => EMPTY_STORAGE_MAP_ROOT,
             StorageSlotType::Array { .. } => EMPTY_WORD,
         }
     }

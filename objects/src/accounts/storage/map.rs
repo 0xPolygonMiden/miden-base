@@ -1,5 +1,3 @@
-use vm_core::EMPTY_WORD;
-
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word,
@@ -14,8 +12,8 @@ use crate::{
 
 // ACCOUNT STORAGE MAP
 // ================================================================================================
-
-pub const EMPTY_STORAGE_MAP: Word = [
+/// Empty storage map root.
+pub const EMPTY_STORAGE_MAP_ROOT: Word = [
     Felt::new(15321474589252129342),
     Felt::new(17373224439259377994),
     Felt::new(15071539326562317628),
@@ -108,15 +106,15 @@ impl StorageMap {
     ///
     /// This method assumes that the delta has been validated by the calling method and so, no
     /// additional validation of delta is performed.
-    pub(super) fn apply_delta(&mut self, map_delta: StorageMapDelta) -> Result<(), AccountError> {
+    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Result<(), AccountError> {
         // apply the updated leaves to the storage map
-        for (key, value) in map_delta.updated_leaves.iter() {
+        for (key, value) in delta.updated_leaves.iter() {
             self.insert(key.into(), *value);
         }
 
         // apply the cleared leaves to the storage map
-        for key in map_delta.cleared_leaves.iter() {
-            self.insert(key.into(), EMPTY_WORD);
+        for key in delta.cleared_leaves.iter() {
+            self.insert(key.into(), Smt::EMPTY_VALUE);
         }
 
         Ok(())
@@ -149,7 +147,7 @@ impl Deserializable for StorageMap {
 mod tests {
     use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-    use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP};
+    use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP_ROOT};
 
     #[test]
     fn account_storage_serialization() {
@@ -178,6 +176,6 @@ mod tests {
     #[test]
     fn test_empty_storage_map_constants() {
         // If these values don't match, update the constants.
-        assert_eq!(*StorageMap::default().root(), EMPTY_STORAGE_MAP);
+        assert_eq!(*StorageMap::default().root(), EMPTY_STORAGE_MAP_ROOT);
     }
 }
