@@ -403,7 +403,7 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
+    use alloc::{collections::BTreeMap, vec::Vec};
 
     use miden_crypto::hash::rpo::RpoDigest;
 
@@ -412,22 +412,22 @@ mod tests {
 
     #[test]
     fn account_storage_serialization() {
-        // // empty storage
-        // let storage = AccountStorage::new(Vec::new(), BTreeMap::new()).unwrap();
-        // let bytes = storage.to_bytes();
-        // assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
+        // empty storage
+        let storage = AccountStorage::new(Vec::new(), BTreeMap::new()).unwrap();
+        let bytes = storage.to_bytes();
+        assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
-        // // storage with values for default types
-        // let storage = AccountStorage::new(
-        //     vec![
-        //         SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
-        //         SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
-        //     ],
-        //     BTreeMap::new(),
-        // )
-        // .unwrap();
-        // let bytes = storage.to_bytes();
-        // assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
+        // storage with values for default types
+        let storage = AccountStorage::new(
+            vec![
+                SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
+                SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
+            ],
+            BTreeMap::new(),
+        )
+        .unwrap();
+        let bytes = storage.to_bytes();
+        assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
         // storage with values for complex types
         let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
