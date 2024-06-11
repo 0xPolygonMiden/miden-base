@@ -1,4 +1,5 @@
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -14,8 +15,8 @@ use super::{
     assets::non_fungible_asset,
     constants::FUNGIBLE_ASSET_AMOUNT,
     storage::{
-        generate_account_seed, storage_item_0, storage_item_1, storage_item_2, storage_map_2,
-        AccountSeedType, AccountStorageBuilder,
+        generate_account_seed, storage_map_2, AccountSeedType, AccountStorageBuilder,
+        STORAGE_INDEX_0, STORAGE_INDEX_1, STORAGE_INDEX_2, STORAGE_VALUE_0, STORAGE_VALUE_1,
     },
 };
 use crate::{
@@ -134,7 +135,7 @@ impl<T: Rng> AccountBuilder<T> {
         let inner_storage = self.storage_builder.build();
 
         for (key, value) in inner_storage.slots().leaves() {
-            if key != 255 {
+            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into() {
                 // don't copy the reserved key
                 storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
             }
@@ -234,9 +235,15 @@ pub fn mock_account_vault() -> AssetVault {
 
 pub fn mock_account_storage() -> AccountStorage {
     // create account storage
+    let mut maps = BTreeMap::new();
+    maps.insert(STORAGE_INDEX_2, storage_map_2());
     AccountStorage::new(
-        vec![storage_item_0(), storage_item_1(), storage_item_2()],
-        vec![storage_map_2()],
+        vec![
+            SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
+            SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
+            SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
+        ],
+        maps,
     )
     .unwrap()
 }

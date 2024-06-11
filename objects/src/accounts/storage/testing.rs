@@ -32,12 +32,6 @@ impl AccountStorageBuilder {
         self
     }
 
-    #[allow(dead_code)]
-    pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
-        self.maps.extend(maps);
-        self
-    }
-
     pub fn build(&self) -> AccountStorage {
         AccountStorage::new(self.items.clone(), self.maps.clone()).unwrap()
     }
