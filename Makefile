@@ -8,17 +8,18 @@ help:
 
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
+ALL_FEATURES_BUT_ASYNC=--features concurrent,testing,serde
 
 # -- linting --------------------------------------------------------------------------------------
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	cargo +nightly clippy --workspace --all-targets --all-features -- -D warnings
+	cargo +nightly clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
 .PHONY: fix
 fix: ## Runs Fix with configs
-	cargo +nightly fix --allow-staged --allow-dirty --all-targets --all-features
+	cargo +nightly fix --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 
 .PHONY: format
@@ -37,8 +38,8 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 # --- docs ----------------------------------------------------------------------------------------
 
 .PHONY: doc
-doc: ## Generates & checks documentation 
-	$(WARNINGS) cargo doc --all-features --keep-going --release
+doc: ## Generates & checks documentation
+	$(WARNINGS) cargo doc $(ALL_FEATURES_BUT_ASYNC) --keep-going --release
 
 
 .PHONY: doc-serve
@@ -70,6 +71,11 @@ build: ## By default we should build in release mode
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
 	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
+
+.PHONY: build-async
+build-async: ## Build with the `async` feature enabled (only libraries)
+	cargo build --lib --release --features async
+
 
 # --- benchmarking --------------------------------------------------------------------------------
 
