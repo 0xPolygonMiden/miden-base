@@ -264,7 +264,6 @@ impl AccountStorage {
     /// - The updates violate storage layout constraints.
     /// - The updated value has an arity different from 0.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-
         // --- update storage maps --------------------------------------------
 
         for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
