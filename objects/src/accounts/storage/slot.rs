@@ -1,6 +1,13 @@
 use alloc::string::{String, ToString};
 
-use super::Felt;
+use miden_crypto::merkle::SimpleSmt;
+use vm_core::{
+    utils::{Deserializable, Serializable},
+    Word, EMPTY_WORD,
+};
+use vm_processor::DeserializationError;
+
+use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, STORAGE_TREE_DEPTH};
 
 // CONSTANTS
 // ================================================================================================
@@ -51,6 +58,15 @@ impl StorageSlotType {
         match self {
             StorageSlotType::Value { value_arity } => *value_arity == 0,
             _ => false,
+        }
+    }
+
+    /// Returns the empty [Word] for a value of this type.
+    pub fn default_word(&self) -> Word {
+        match self {
+            StorageSlotType::Value { .. } => SimpleSmt::<STORAGE_TREE_DEPTH>::EMPTY_VALUE,
+            StorageSlotType::Map { .. } => EMPTY_STORAGE_MAP_ROOT,
+            StorageSlotType::Array { .. } => EMPTY_WORD,
         }
     }
 }
@@ -137,5 +153,23 @@ impl From<StorageSlotType> for Felt {
 impl From<&StorageSlotType> for Felt {
     fn from(value: &StorageSlotType) -> Self {
         Self::from(*value)
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for StorageSlotType {
+    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
+        target.write_u16(self.into());
+    }
+}
+
+impl Deserializable for StorageSlotType {
+    fn read_from<R: vm_core::utils::ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, vm_processor::DeserializationError> {
+        let encoded = source.read_u16()?;
+        StorageSlotType::try_from(encoded).map_err(DeserializationError::InvalidValue)
     }
 }

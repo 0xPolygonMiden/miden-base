@@ -311,14 +311,19 @@ pub fn hash_account(
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
     };
+    use vm_processor::Digest;
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{delta::AccountStorageDeltaBuilder, Account},
+        accounts::{
+            delta::AccountStorageDeltaBuilder, Account, SlotItem, StorageMap, StorageMapDelta,
+        },
         testing::storage::{build_account, build_account_delta, build_assets},
     };
 
@@ -327,7 +332,8 @@ mod tests {
         let init_nonce = Felt::new(1);
         let (asset_0, _) = build_assets();
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let account = build_account(vec![asset_0], init_nonce, vec![word], None);
+        let slot_item = SlotItem::new_value(0, 0, word);
+        let account = build_account(vec![asset_0], init_nonce, vec![slot_item], None);
 
         let serialized = account.to_bytes();
         let deserialized = Account::read_from_bytes(&serialized).unwrap();
@@ -356,7 +362,11 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset_0, asset_1) = build_assets();
+
+        // Simple SlotItem
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let slot_item = SlotItem::new_value(0, 0, word);
+
         // StorageMap with values
         let storage_map_leaves_2: [(Digest, Word); 2] = [
             (
@@ -369,8 +379,16 @@ mod tests {
             ),
         ];
         let mut storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
-        let mut account =
-            build_account(vec![asset_0], init_nonce, vec![word], Some(storage_map.clone()));
+        let mut maps = BTreeMap::new();
+        maps.insert(2u8, storage_map.clone());
+        let storage_map_root_as_slot_item = SlotItem::new_map(2u8, 0, storage_map.root().into());
+
+        let mut account = build_account(
+            vec![asset_0],
+            init_nonce,
+            vec![slot_item, storage_map_root_as_slot_item],
+            Some(maps.clone()),
+        );
 
         let new_map_entry = (
             Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
@@ -379,6 +397,7 @@ mod tests {
         let updated_map =
             StorageMapDelta::from(vec![], vec![(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
+        maps.insert(2u8, storage_map.clone());
 
         // build account delta
         let final_nonce = Felt::new(2);
@@ -386,9 +405,9 @@ mod tests {
             .add_cleared_items([0])
             .add_updated_items([
                 (1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
-                (100_u8, storage_map.root().into()),
+                (2_u8, storage_map.root().into()),
             ])
-            .add_updated_maps([(100_u8, updated_map)])
+            .add_updated_maps([(2_u8, updated_map)])
             .build()
             .unwrap();
         let account_delta =
@@ -396,6 +415,17 @@ mod tests {
 
         // apply delta and create final_account
         account.apply_delta(&account_delta).unwrap();
+
+        let final_account = build_account(
+            vec![asset_1],
+            final_nonce,
+            vec![
+                SlotItem::new_value(0, 0, Word::default()),
+                SlotItem::new_value(1, 0, word),
+                SlotItem::new_map(2, 0, storage_map.root().into()),
+            ],
+            Some(maps),
+        );
 
         let final_account = build_account(
             vec![asset_1],
@@ -413,7 +443,12 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()], None);
+        let mut account = build_account(
+            vec![asset],
+            init_nonce,
+            vec![SlotItem::new_value(0, 0, Word::default())],
+            None,
+        );
 
         // build account delta
         let storage_delta = AccountStorageDeltaBuilder::new()
@@ -433,7 +468,12 @@ mod tests {
         // build account
         let init_nonce = Felt::new(2);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()], None);
+        let mut account = build_account(
+            vec![asset],
+            init_nonce,
+            vec![SlotItem::new_value(0, 0, Word::default())],
+            None,
+        );
 
         // build account delta
         let final_nonce = Felt::new(1);
@@ -454,7 +494,8 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let mut account = build_account(vec![], init_nonce, vec![word], None);
+        let slot_item = SlotItem::new_value(0, 0, word);
+        let mut account = build_account(vec![], init_nonce, vec![slot_item], None);
 
         // build account delta
         let final_nonce = Felt::new(2);

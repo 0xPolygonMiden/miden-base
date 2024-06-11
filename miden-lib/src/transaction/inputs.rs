@@ -223,7 +223,7 @@ fn add_account_to_advice_inputs(
 
     // If there are storage maps, we populate the merkle store and advice map
     if !account.storage().maps().is_empty() {
-        for map in account.storage().maps() {
+        for map in account.storage().maps().values() {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
 
