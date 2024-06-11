@@ -21,7 +21,7 @@ jobs:
       - name: Build using `async` feature
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
-          cargo build --features async
+          cargo build --lib --features async
 
   no-std:
     name: Build for no-std
@@ -37,4 +37,3 @@ jobs:
           rustup update --no-self-update ${{ matrix.toolchain }}
           rustup target add wasm32-unknown-unknown
           make build-no-std
-
