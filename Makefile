@@ -72,6 +72,11 @@ build: ## By default we should build in release mode
 build-no-std: ## Build without the standard library
 	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
 
+.PHONY: build-async
+build-async: ## Build with the `async` feature enabled (only libraries)
+	cargo build --lib --release --features async
+
+
 # --- benchmarking --------------------------------------------------------------------------------
 
 .PHONY: bench-tx

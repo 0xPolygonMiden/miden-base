@@ -21,7 +21,7 @@ jobs:
       - name: Build using `async` feature
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
-          cargo build --lib --features async
+          make build-async
 
   no-std:
     name: Build for no-std
