@@ -203,7 +203,8 @@ impl AccountStorage {
         let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        if maps.len() > num_maps {
+        // make sure the number of provide maps matches the number of map slots
+        if maps.len() != num_maps {
             return Err(AccountError::StorageMapTooManyMaps {
                 expected: num_maps,
                 actual: maps.len(),
@@ -263,13 +264,8 @@ impl AccountStorage {
     /// - The updates violate storage layout constraints.
     /// - The updated value has an arity different from 0.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-        for &slot_idx in delta.cleared_items.iter() {
-            self.set_item(slot_idx, Word::default())?;
-        }
 
-        for &(slot_idx, slot_value) in delta.updated_items.iter() {
-            self.set_item(slot_idx, slot_value)?;
-        }
+        // --- update storage maps --------------------------------------------
 
         for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
             // layout commitment slot cannot be updated
@@ -281,6 +277,18 @@ impl AccountStorage {
             let storage_map =
                 self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
             storage_map.apply_delta(map_delta)?;
+        }
+
+        // --- update storage slots -------------------------------------------
+        // this will also update roots of updated storage maps, and thus should be run after we
+        // update storage maps - otherwise the roots won't match
+
+        for &slot_idx in delta.cleared_items.iter() {
+            self.set_item(slot_idx, Word::default())?;
+        }
+
+        for &(slot_idx, slot_value) in delta.updated_items.iter() {
+            self.set_item(slot_idx, slot_value)?;
         }
 
         Ok(())
@@ -318,6 +326,12 @@ impl AccountStorage {
                         actual: value_arity,
                     });
                 }
+
+                // make sure the value matches the root of the corresponding storage map
+                // TODO: we should remove handling of storage map updates from set_item();
+                // once this is done, these checks would not be necessary
+                let storage_map = self.maps.get(&index).expect("storage map not found");
+                assert_eq!(storage_map.root(), value.into());
             },
             slot_type => Err(AccountError::StorageSlotArrayNotAllowed(index, slot_type))?,
         }
