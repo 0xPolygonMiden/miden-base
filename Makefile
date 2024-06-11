@@ -8,7 +8,7 @@ help:
 
 WARNINGS=RUSTDOCFLAGS="-D warnings"
 DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
-ALL_FEATURES_BUT_ASYNC=--features concurrent,default,std,testing,serde
+ALL_FEATURES_BUT_ASYNC=--features concurrent,testing,serde
 
 # -- linting --------------------------------------------------------------------------------------
 
