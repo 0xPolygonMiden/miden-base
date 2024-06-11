@@ -57,7 +57,6 @@ impl StorageSlotType {
     pub fn is_default(&self) -> bool {
         match self {
             StorageSlotType::Value { value_arity } => *value_arity == 0,
-            StorageSlotType::Map { value_arity } => *value_arity == 0,
             _ => false,
         }
     }

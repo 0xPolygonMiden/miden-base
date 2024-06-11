@@ -1,7 +1,6 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use assembly::Assembler;
-use miden_crypto::merkle::Smt;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
@@ -132,13 +131,13 @@ pub fn mock_non_fungible_faucet(
     };
 
     // construct nft tree
-    let nft_tree = Smt::with_entries(entries).unwrap();
-
-    // TODO: add nft tree data to account storage?
+    let nft_storage_map = StorageMap::with_entries(entries).unwrap();
+    let mut maps = BTreeMap::new();
+    maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
 
     let account_storage = AccountStorage::new(
-        vec![SlotItem::new_map(FAUCET_STORAGE_DATA_SLOT, 0, *nft_tree.root())],
-        BTreeMap::new(),
+        vec![SlotItem::new_map(FAUCET_STORAGE_DATA_SLOT, 0, *nft_storage_map.root())],
+        maps,
     )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
@@ -240,25 +239,15 @@ pub fn generate_account_seed(
 pub fn build_account(
     assets: Vec<Asset>,
     nonce: Felt,
-    storage_items: Vec<Word>,
-    map: Option<StorageMap>,
+    slot_items: Vec<SlotItem>,
+    maps: Option<BTreeMap<u8, StorageMap>>,
 ) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = make_account_code();
 
     let vault = AssetVault::new(&assets).unwrap();
-    let mut slot_items: Vec<SlotItem> = storage_items
-        .into_iter()
-        .enumerate()
-        .map(|(index, item)| SlotItem::new_value(index as u8, 0, item))
-        .collect();
-
-    let mut maps = BTreeMap::new();
-    if let Some(map) = map {
-        let slot_item_map = SlotItem::new_map(254, 0, *map.root());
-        slot_items.push(slot_item_map);
-        maps.insert(254_u8, map);
-    }
+    // Use the provided maps or create an empty BTreeMap if None is provided
+    let maps = maps.unwrap_or_default();
 
     let storage = AccountStorage::new(slot_items, maps).unwrap();
 

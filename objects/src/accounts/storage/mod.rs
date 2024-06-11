@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
-use std::println;
+
 use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
@@ -203,7 +203,6 @@ impl AccountStorage {
         let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
             .map_err(AccountError::DuplicateStorageItems)?;
 
-        println!("numbers: {:?}, num_maps: {:?}", maps.len(), num_maps);
         if maps.len() > num_maps {
             return Err(AccountError::StorageMapTooManyMaps {
                 expected: num_maps,
@@ -344,6 +343,7 @@ fn layout_commitment(layout: &[StorageSlotType]) -> Digest {
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // don't serialize last slot as it is a constant.
+        // complex types are all types different from StorageSlotType::Value { value_arity: 0 }
         let complex_types = self.layout[..usize::from(AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)]
             .iter()
             .enumerate()
@@ -367,8 +367,6 @@ impl Serializable for AccountStorage {
             // don't serialized the layout commitment, it can be recomputed
             .filter(|(index, _)| *index != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)
             .collect::<Vec<_>>();
-        println!("complex_type: {:?}", complex_types);
-        println!("filled_slots: {:?}", filled_slots);
 
         filled_slots.write_into(target);
 
@@ -393,8 +391,6 @@ impl Deserializable for AccountStorage {
                 slot: StorageSlot { slot_type, value },
             });
         }
-        println!("items: {:?}", items);
-
         // read the storage maps
         let maps = <BTreeMap<u8, StorageMap>>::read_from(source)?;
 
@@ -407,7 +403,7 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{collections::BTreeMap, vec::Vec};
+    use alloc::collections::BTreeMap;
 
     use miden_crypto::hash::rpo::RpoDigest;
 
