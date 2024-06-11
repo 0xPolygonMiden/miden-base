@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Digest, Felt, Hasher, Serializable, StorageMapDelta, Word, ZERO,
+    DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
 use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
 
@@ -205,6 +205,13 @@ impl AccountStorage {
             });
         }
 
+        // validate the map indices
+        for key in maps.keys() {
+            if *key == AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX {
+                return Err(AccountError::StorageSlotIsReserved(*key));
+            }
+        }
+
         Ok(Self { slots, layout, maps })
     }
 
@@ -245,11 +252,6 @@ impl AccountStorage {
         &self.maps
     }
 
-    /// Returns the mutable storage map with a given index.
-    pub fn get_storage_map_by_index(&mut self, index: u8) -> Option<&mut StorageMap> {
-        self.maps.get_mut(&index)
-    }
-
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -258,10 +260,10 @@ impl AccountStorage {
     /// This method assumes that the delta has been validated by the calling method and so, no
     /// additional validation of delta is performed.
     ///
-    /// # Errors
     /// Returns an error if:
     /// - The delta implies an update to a reserved account slot.
     /// - The updates violate storage layout constraints.
+    /// - The updated value has an arity different from 0.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         for &slot_idx in delta.cleared_items.iter() {
             self.set_item(slot_idx, Word::default())?;
@@ -272,7 +274,15 @@ impl AccountStorage {
         }
 
         for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-            self.set_map_item(slot_idx, map_delta.clone())?;
+            // layout commitment slot cannot be updated
+            if slot_idx == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+                return Err(AccountError::StorageSlotIsReserved(slot_idx));
+            }
+
+            // pick the right storage map and apply delta
+            let storage_map =
+                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+            storage_map.apply_delta(map_delta.clone())?;
         }
 
         Ok(())
@@ -283,7 +293,8 @@ impl AccountStorage {
     /// # Errors
     /// Returns an error if:
     /// - The index specifies a reserved storage slot.
-    /// - The update violates storage layout constraints.
+    /// - The update tries to set a slot of type array.
+    /// - The update has a value arity different from 0.
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
         // layout commitment slot cannot be updated
         if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
@@ -310,52 +321,13 @@ impl AccountStorage {
                     });
                 }
             },
-            slot_type => Err(AccountError::StorageSlotNotValueSlot(index, slot_type))?,
+            slot_type => Err(AccountError::StorageSlotArrayNotAllowed(index, slot_type))?,
         }
 
         // update the slot and return
         let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
         let slot_value = self.slots.insert(index, value);
         Ok(slot_value)
-    }
-
-    /// Updates a storage map at the specified index.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The index specifies a reserved storage slot.
-    /// - The index is not u8.
-    /// - The map does not exist at the specified index.
-    pub fn set_map_item(
-        &mut self,
-        index: u8,
-        map_delta: StorageMapDelta,
-    ) -> Result<(), AccountError> {
-        // layout commitment slot cannot be updated
-        if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
-            return Err(AccountError::StorageSlotIsReserved(index));
-        }
-
-        let storage_map = self
-            .get_storage_map_by_index(index)
-            .ok_or(AccountError::StorageMapNotFound(index))?;
-
-        // apply the updated leaves to the storage map
-        for (key, value) in map_delta.updated_leaves.iter() {
-            storage_map.insert(key.into(), *value);
-        }
-
-        // apply the cleared leaves to the storage map
-        for key in map_delta.cleared_leaves.iter() {
-            storage_map.insert(key.into(), [ZERO; 4]);
-        }
-
-        // sanity check that the corresponding storage slot items was set to the new maps root
-        let map_root = storage_map.root();
-        let slot_value = self.get_item(index);
-        assert_eq!(map_root, slot_value, "map root does not match the slot value");
-
-        Ok(())
     }
 }
 
