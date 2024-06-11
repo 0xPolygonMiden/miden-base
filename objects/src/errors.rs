@@ -33,7 +33,8 @@ pub enum AccountError {
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
-    StorageSlotNotValueSlot(u8, StorageSlotType),
+    StorageSlotArrayNotAllowed(u8, StorageSlotType),
+    StorageMapNotFound(u8),
     StorageMapTooManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),
 }

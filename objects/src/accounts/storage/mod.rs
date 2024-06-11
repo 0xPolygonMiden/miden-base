@@ -137,7 +137,7 @@ impl StorageSlot {
 pub struct AccountStorage {
     slots: SimpleSmt<STORAGE_TREE_DEPTH>,
     layout: Vec<StorageSlotType>,
-    maps: Vec<StorageMap>,
+    maps: BTreeMap<u8, StorageMap>,
 }
 
 impl AccountStorage {
@@ -158,7 +158,7 @@ impl AccountStorage {
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(
         items: Vec<SlotItem>,
-        maps: Vec<StorageMap>,
+        maps: BTreeMap<u8, StorageMap>,
     ) -> Result<AccountStorage, AccountError> {
         // Empty layout
         let mut layout = vec![StorageSlotType::default(); AccountStorage::NUM_STORAGE_SLOTS];
@@ -205,6 +205,13 @@ impl AccountStorage {
             });
         }
 
+        // validate the map indices
+        for key in maps.keys() {
+            if *key == AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX {
+                return Err(AccountError::StorageSlotIsReserved(*key));
+            }
+        }
+
         Ok(Self { slots, layout, maps })
     }
 
@@ -241,7 +248,7 @@ impl AccountStorage {
     }
 
     /// Returns the storage maps for this storage.
-    pub fn maps(&self) -> &[StorageMap] {
+    pub fn maps(&self) -> &BTreeMap<u8, StorageMap> {
         &self.maps
     }
 
@@ -253,10 +260,10 @@ impl AccountStorage {
     /// This method assumes that the delta has been validated by the calling method and so, no
     /// additional validation of delta is performed.
     ///
-    /// # Errors
     /// Returns an error if:
     /// - The delta implies an update to a reserved account slot.
     /// - The updates violate storage layout constraints.
+    /// - The updated value has an arity different from 0.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         for &slot_idx in delta.cleared_items.iter() {
             self.set_item(slot_idx, Word::default())?;
@@ -264,6 +271,18 @@ impl AccountStorage {
 
         for &(slot_idx, slot_value) in delta.updated_items.iter() {
             self.set_item(slot_idx, slot_value)?;
+        }
+
+        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+            // layout commitment slot cannot be updated
+            if slot_idx == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+                return Err(AccountError::StorageSlotIsReserved(slot_idx));
+            }
+
+            // pick the right storage map and apply delta
+            let storage_map =
+                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+            storage_map.apply_delta(map_delta.clone())?;
         }
 
         Ok(())
@@ -274,11 +293,35 @@ impl AccountStorage {
     /// # Errors
     /// Returns an error if:
     /// - The index specifies a reserved storage slot.
-    /// - The update violates storage layout constraints.
+    /// - The update tries to set a slot of type array.
+    /// - The update has a value arity different from 0.
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
         // layout commitment slot cannot be updated
         if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
             return Err(AccountError::StorageSlotIsReserved(index));
+        }
+
+        // only value slots of basic arity can currently be updated
+        match self.layout[index as usize] {
+            StorageSlotType::Value { value_arity } => {
+                if value_arity > 0 {
+                    return Err(AccountError::StorageSlotInvalidValueArity {
+                        slot: index,
+                        expected: 0,
+                        actual: value_arity,
+                    });
+                }
+            },
+            StorageSlotType::Map { value_arity } => {
+                if value_arity > 0 {
+                    return Err(AccountError::StorageSlotInvalidValueArity {
+                        slot: index,
+                        expected: 0,
+                        actual: value_arity,
+                    });
+                }
+            },
+            slot_type => Err(AccountError::StorageSlotArrayNotAllowed(index, slot_type))?,
         }
 
         // update the slot and return
@@ -351,7 +394,7 @@ impl Deserializable for AccountStorage {
         }
 
         // read the storage maps
-        let maps = <Vec<StorageMap>>::read_from(source)?;
+        let maps = <BTreeMap<u8, StorageMap>>::read_from(source)?;
 
         Self::new(items, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
@@ -362,7 +405,7 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
+    use alloc::{collections::BTreeMap, vec::Vec};
 
     use miden_crypto::hash::rpo::RpoDigest;
 
@@ -372,7 +415,7 @@ mod tests {
     #[test]
     fn account_storage_serialization() {
         // empty storage
-        let storage = AccountStorage::new(Vec::new(), Vec::new()).unwrap();
+        let storage = AccountStorage::new(Vec::new(), BTreeMap::new()).unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
@@ -382,7 +425,7 @@ mod tests {
                 SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
                 SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
             ],
-            vec![],
+            BTreeMap::new(),
         )
         .unwrap();
         let bytes = storage.to_bytes();
@@ -400,6 +443,8 @@ mod tests {
             ),
         ];
         let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+        let mut maps = BTreeMap::new();
+        maps.insert(2, storage_map.clone());
         let storage = AccountStorage::new(
             vec![
                 SlotItem::new_value(0, 1, [ONE, ONE, ONE, ONE]),
@@ -407,7 +452,7 @@ mod tests {
                 SlotItem::new_map(2, 0, storage_map.root().into()),
                 SlotItem::new_array(3, 3, 4, [ONE, ZERO, ZERO, ZERO]),
             ],
-            vec![storage_map],
+            maps,
         )
         .unwrap();
         let bytes = storage.to_bytes();

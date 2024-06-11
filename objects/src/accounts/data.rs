@@ -94,6 +94,8 @@ impl Deserializable for AccountData {
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
     use miden_crypto::{
         dsa::rpo_falcon512::SecretKey,
         utils::{Deserializable, Serializable},
@@ -118,7 +120,7 @@ mod tests {
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();
-        let storage = AccountStorage::new(vec![], vec![]).unwrap();
+        let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
         let nonce = Felt::new(0);
         let account = Account::from_parts(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());

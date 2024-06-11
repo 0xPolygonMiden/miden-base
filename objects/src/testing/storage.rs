@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use assembly::Assembler;
 use miden_crypto::merkle::Smt;
@@ -31,13 +31,13 @@ use crate::{
 #[derive(Default, Debug, Clone)]
 pub struct AccountStorageBuilder {
     items: Vec<SlotItem>,
-    maps: Vec<StorageMap>,
+    maps: BTreeMap<u8, StorageMap>,
 }
 
 /// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
 impl AccountStorageBuilder {
     pub fn new() -> Self {
-        Self { items: vec![], maps: vec![] }
+        Self { items: vec![], maps: BTreeMap::new() }
     }
 
     pub fn add_item(&mut self, item: SlotItem) -> &mut Self {
@@ -53,14 +53,8 @@ impl AccountStorageBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn add_map(&mut self, map: StorageMap) -> &mut Self {
-        self.maps.push(map);
-        self
-    }
-
-    #[allow(dead_code)]
-    pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
-        self.maps.extend(maps);
+    pub fn add_map(&mut self, index: u8, map: StorageMap) -> &mut Self {
+        self.maps.insert(index, map);
         self
     }
 
@@ -115,7 +109,7 @@ pub fn mock_fungible_faucet(
             0,
             [ZERO, ZERO, ZERO, initial_balance],
         )],
-        vec![],
+        BTreeMap::new(),
     )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
@@ -144,7 +138,7 @@ pub fn mock_non_fungible_faucet(
 
     let account_storage = AccountStorage::new(
         vec![SlotItem::new_map(FAUCET_STORAGE_DATA_SLOT, 0, *nft_tree.root())],
-        vec![],
+        BTreeMap::new(),
     )
     .unwrap();
     let account_id = AccountId::try_from(account_id).unwrap();
@@ -243,17 +237,30 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
+pub fn build_account(
+    assets: Vec<Asset>,
+    nonce: Felt,
+    storage_items: Vec<Word>,
+    map: Option<StorageMap>,
+) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = make_account_code();
 
     let vault = AssetVault::new(&assets).unwrap();
-    let slot_items: Vec<SlotItem> = storage_items
+    let mut slot_items: Vec<SlotItem> = storage_items
         .into_iter()
         .enumerate()
         .map(|(index, item)| SlotItem::new_value(index as u8, 0, item))
         .collect();
-    let storage = AccountStorage::new(slot_items, vec![]).unwrap();
+
+    let mut maps = BTreeMap::new();
+    if let Some(map) = map {
+        let slot_item_map = SlotItem::new_map(254, 0, *map.root());
+        slot_items.push(slot_item_map);
+        maps.insert(254_u8, map);
+    }
+
+    let storage = AccountStorage::new(slot_items, maps).unwrap();
 
     Account::from_parts(id, vault, storage, code, nonce)
 }

@@ -1,4 +1,5 @@
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -234,13 +235,15 @@ pub fn mock_account_vault() -> AssetVault {
 
 pub fn mock_account_storage() -> AccountStorage {
     // create account storage
+    let mut maps = BTreeMap::new();
+    maps.insert(STORAGE_INDEX_2, storage_map_2());
     AccountStorage::new(
         vec![
             SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
             SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
             SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
         ],
-        vec![storage_map_2()],
+        maps,
     )
     .unwrap()
 }
