@@ -3,7 +3,6 @@
 ## 0.4.0 (TBD)
 
 ### Enhancements
-
 - Made `DataStore` conditionally async using `winter-maybe-async` (#725)
 - Add `Option<NoteTag>`to `NoteFile` (#741).
 - Replaced `cargo-make` with just `make` for running tasks (#696).
@@ -20,6 +19,7 @@
 - [BREAKING] Changed rng to mutable reference in note creation functions (#733).
 - Added transaction IDs to the `Block` struct (#734).
 - [BREAKING] Replaced `ToNullifier` trait with `ToInputNoteCommitments`, which includes the `note_id` for delayed note authentication (#732).
+- Changed note pointer from Memory `note_ptr` to `note_index` (#728)
 
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).

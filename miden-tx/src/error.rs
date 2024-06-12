@@ -238,10 +238,11 @@ const ERR_ASSET_NOT_FUNGIBLE_ID: u32 = 131137;
 const ERR_ASSET_INVALID_AMOUNT: u32 = 131138;
 const ERR_ASSET_NOT_NON_FUNGIBLE_ID: u32 = 131139;
 const ERR_INVALID_NOTE_TYPE: u32 = 131140;
+const ERR_INVALID_NOTE_IDX: u32 = 131154;
 const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
 const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
 
-pub const KERNEL_ERRORS: [(u32, &str); 71] = [
+pub const KERNEL_ERRORS: [(u32, &str); 72] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -311,6 +312,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_ASSET_INVALID_AMOUNT, "Can not build the asset because amount exceeds the maximum"),
     (ERR_ASSET_NOT_NON_FUNGIBLE_ID, "Can not build the non-fungible asset because provided id is not a non-fungible id"),
     (ERR_INVALID_NOTE_TYPE, "Invalid note type"),
+    (ERR_INVALID_NOTE_IDX, "Invalid note index"),
     (ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE, "The note's tag failed the most significant validation"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag high bits must be set to 0"),
 ];

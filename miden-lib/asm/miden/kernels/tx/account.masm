@@ -403,7 +403,6 @@ export.set_map_item.2
     # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
-
     # store OLD_VALUE and NEW_ROOT until the end of the procedure 
     loc_storew.0 dropw loc_storew.1 dropw
     # => [KEY, NEW_VALUE, index, ...]
