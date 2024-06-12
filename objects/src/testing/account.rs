@@ -206,7 +206,7 @@ impl Account {
                 index: FAUCET_STORAGE_DATA_SLOT,
                 slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
             }],
-            vec![],
+            BTreeMap::new(),
         )
         .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
@@ -240,7 +240,7 @@ impl Account {
                 index: FAUCET_STORAGE_DATA_SLOT,
                 slot: StorageSlot::new_map(*nft_tree.root()),
             }],
-            vec![],
+            BTreeMap::new(),
         )
         .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();

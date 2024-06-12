@@ -15,7 +15,7 @@ use crate::{
         },
         get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap,
+        StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
@@ -85,9 +85,11 @@ impl AccountStorage {
     /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
     /// Map with [STORAGE_LEAVES_2]
     pub fn mock() -> Self {
+        let mut maps = BTreeMap::new();
+        maps.insert(STORAGE_INDEX_2, Self::mock_map_2());
         AccountStorage::new(
             vec![Self::mock_item_0(), Self::mock_item_1(), Self::mock_item_2()],
-            vec![Self::mock_map_2()],
+            maps,
         )
         .unwrap()
     }
