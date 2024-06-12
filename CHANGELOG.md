@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+- Fixed documentation and added `make doc` CI job (#746)
 - Made `DataStore` conditionally async using `winter-maybe-async` (#725)
 - Add `Option<NoteTag>`to `NoteFile` (#741).
 - Replaced `cargo-make` with just `make` for running tasks (#696).
