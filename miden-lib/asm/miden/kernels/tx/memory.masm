@@ -67,8 +67,8 @@ const.ACCT_DB_ROOT_PTR=202
 # The memory address at which the nullifier root is stored
 const.NULLIFIER_ROOT_PTR=203
 
-# The memory address at which the batch root is stored
-const.BATCH_ROOT_PTR=204
+# The memory address at which the tx hash is stored
+const.TX_HASH_PTR=204
 
 # The memory address at which the proof hash is stored
 const.PROOF_HASH_PTR=205
@@ -471,14 +471,14 @@ export.get_nullifier_db_root
     padw push.NULLIFIER_ROOT_PTR mem_loadw
 end
 
-#! Returns the batch root of the last known block.
+#! Returns the tx hash of the last known block.
 #!
 #! Stack: []
-#! Output: [BATCH_ROOT]
+#! Output: [TX_HASH]
 #!
-#! - BATCH_ROOT is the batch root of the last known block.
-export.get_batch_root
-    padw push.BATCH_ROOT_PTR mem_loadw
+#! - TX_HASH is the tx hash of the last known block.
+export.get_tx_hash
+    padw push.TX_HASH_PTR mem_loadw
 end
 
 #! Returns the proof hash of the last known block.
