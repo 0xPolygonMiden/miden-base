@@ -144,3 +144,100 @@ export.get_serial_number
     syscall.get_note_serial_number
     # => [SERIAL_NUMBER]
 end
+
+#! Computes hash of note inputs starting at the specified memory address.
+#!
+#! Inputs:  [inputs_ptr, num_inputs]
+#! Outputs: [HASH]
+#!
+#! Panics if num_inputs is greater than 128.
+export.compute_inputs_hash
+    swap
+    # => [num_inputs, inputs_ptr]
+
+    # check that number of inputs is less than 128
+    dup push.128 u32lte assert
+    # => [num_inputs, inputs_ptr]
+
+    # get the number of word pairs to be hashed
+    u32divmod.8 swap
+    # => [num_inputs/8, num_inputs%8, inputs_ptr]
+
+    # get the end_addr for hash_memory_even proc
+    u32wrapping_mul.2 dup.2 u32wrapping_add movup.2
+    # => [inputs_ptr, end_addr, num_inputs%8]
+
+    # get the padding flag to add it to the capacity part
+    dup.2 push.0 neq 
+    # => [pad_flag, inputs_ptr, end_addr, num_inputs%8]
+    
+    # prepare hasher state for RPO permutation 
+    push.0.0.0 padw padw 
+    # => [C, B, A, inputs_ptr, end_addr, num_inputs%8]
+
+    exec.native::hash_memory_even
+    # => [C', B', A', inputs_ptr', end_addr, num_inputs%8] where inputs_ptr' = end_addr
+
+    # if num_inputs%8 is not ZERO
+    dup.14 push.0 neq
+    if.true
+        mem_stream
+        # => [E, D, A', inputs_ptr'+2, end_addr, num_inputs%8]
+
+        # clean the stack
+        movup.12 drop movup.12 drop
+        # => [E, D, A', num_inputs%8]
+
+        # get the number of elements we need to drop
+        push.8 movup.13 u32wrapping_sub movdn.12
+        # => [E, D, A', drop_counter]
+
+        # get the number of zeros we will need to dap
+        dup.12 u32wrapping_sub.1 movdn.13
+        # => [E, D, A', drop_counter, zero_counter]
+
+        # check the drop_counter
+        dup.12 neq.0
+        while.true
+            # decrease the counter
+            movup.12 u32wrapping_sub.1 movdn.12
+
+            # drop the top element, push 0 to the stack and move it down to maintain the overall number
+            # of elements on stack to be able to access the drop_counter at position 12
+            drop push.0 movdn.11
+
+            # check the drop_counter
+            dup.12 neq.0
+        end
+        # => [a, ..., x, A', 0, ..., 0, 0, zero_counter]
+        #                               ^-- 12th position
+
+        # push the dividing 1 (move the previously added zero and incr it)
+        movup.12 add.1
+        # => [1, a, ..., x, A', 0, ..., 0, 0, zero_counter]
+        #                                  ^-- 12th position
+
+        # check the zero_counter
+        dup.13 neq.0
+        while.true
+            # decrease the counter
+            movup.13 u32wrapping_sub.1 movdn.13
+
+            # move the previously added zero
+            movup.12
+
+            # check the zero_counter
+            dup.13 neq.0
+        end
+        # => [C, B, A', 0, 0, ... ]
+        
+        hperm
+        # => [F, E, D]
+
+        exec.native::state_to_digest
+        # => [E]
+    else
+        dropw movdnw.2 dropw dropw
+        # => [B']
+    end
+end
