@@ -81,8 +81,8 @@ pub const ACCT_DB_ROOT_PTR: MemoryAddress = 202;
 /// The memory address at which the nullifier db root is store
 pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 
-/// The memory address at which the batch root is stored
-pub const BATCH_ROOT_PTR: MemoryAddress = 204;
+/// The memory address at which the TX hash is stored
+pub const TX_HASH_PTR: MemoryAddress = 204;
 
 /// The memory address at which the proof hash is stored
 pub const PROOF_HASH_PTR: MemoryAddress = 205;
