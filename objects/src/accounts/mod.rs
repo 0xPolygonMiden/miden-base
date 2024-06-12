@@ -294,6 +294,7 @@ pub fn hash_account(
 #[cfg(any(feature = "testing", test))]
 pub mod testing {
     use alloc::vec::Vec;
+
     use super::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,

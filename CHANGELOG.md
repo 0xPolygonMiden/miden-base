@@ -3,6 +3,7 @@
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * Made `DataStore` conditionally async using `winter-maybe-async` (#725)
+* Fixed `StorageMap`s implementation and included into apply_delta (#745)
 
 ## 0.3.0 (2024-05-14)
 
