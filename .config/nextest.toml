@@ -1,15 +1,8 @@
 [profile.default]
-slow-timeout = { period = "5s", terminate-after = 2 }
-
-[profile.prove]
-# A test which also generates a proof takes around 1min to complete on a M2
-slow-timeout = { period = "120s", terminate-after = 2 }
-
-[profile.ci-default]
 failure-output = "immediate-final"
 fail-fast = false
 
-[profile.ci-prove]
+[profile.prove]
 # A test which also generates a proof takes around 120sec to complete in the CI
 slow-timeout = { period = "200s", terminate-after = 2 }
 failure-output = "immediate-final"

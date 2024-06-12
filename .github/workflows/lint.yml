@@ -3,18 +3,17 @@
 name: lint
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, reopened, synchronize]
+ push:
+   branches: [main, next]
+ pull_request:
+   types: [opened, reopened, synchronize] 
 
 jobs:
   version:
     name: check rust version consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@main
         with:
           profile: minimal
           override: true
@@ -25,29 +24,20 @@ jobs:
     name: rustfmt check nightly on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install minimal Rust with rustfmt & cargo-make
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-          override: true
-      - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - format-check
-        run: cargo make format-check
+      - uses: actions/checkout@main
+      - name: Rustfmt
+        run: |
+          rustup update --no-self-update nightly
+          rustup +nightly component add rustfmt
+          make format-check
 
   clippy:
     name: clippy stable on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install minimal Rust with clippy & cargo-make
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: clippy
-          override: true
-      - uses: davidB/rust-cargo-make@v1
-      - name: cargo make - clippy
-        run: cargo make clippy
+      - uses: actions/checkout@main
+      - name: Install minimal Rust with clippy
+        run: |
+          rustup update --no-self-update nightly
+          rustup +nightly component add clippy
+          make clippy
