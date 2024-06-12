@@ -231,7 +231,7 @@ impl Deserializable for BlockHeader {
     }
 }
 
-#[cfg(feature = "testing")]
+#[cfg(all(feature = "testing", not(target_family = "wasm")))]
 mod mock {
     use alloc::vec::Vec;
 
