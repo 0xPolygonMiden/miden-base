@@ -33,6 +33,7 @@ use mock::{
 };
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
+use winter_maybe_async::maybe_async;
 
 // MOCK DATA STORE
 // ================================================================================================
@@ -98,6 +99,7 @@ impl Default for MockDataStore {
 }
 
 impl DataStore for MockDataStore {
+    #[maybe_async]
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
@@ -125,6 +127,7 @@ impl DataStore for MockDataStore {
         .unwrap())
     }
 
+    #[maybe_async]
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())

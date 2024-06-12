@@ -41,6 +41,7 @@ use vm_processor::{
     utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider,
 };
+use winter_maybe_async::maybe_async;
 
 use super::{
     AccountId, DataStore, DataStoreError, TransactionExecutor, TransactionHost, TransactionInputs,
@@ -659,6 +660,7 @@ impl Default for MockDataStore {
 }
 
 impl DataStore for MockDataStore {
+    #[maybe_async]
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
@@ -686,6 +688,7 @@ impl DataStore for MockDataStore {
         .unwrap())
     }
 
+    #[maybe_async]
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.account.id());
         Ok(self.account.code().module().clone())
