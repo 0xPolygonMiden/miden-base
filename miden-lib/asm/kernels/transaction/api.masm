@@ -517,55 +517,54 @@ export.get_output_notes_hash
     # => [COM]
 end
 
-#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#! Creates a new note and returns the index of the note.
 #!
 #! Inputs: [tag, note_type, RECIPIENT]
-#! Outputs: [note_ptr, 0, 0, 0, 0, 0]
+#! Outputs: [note_idx, 0, 0, 0, 0, 0]
 #!
 #! tag is the tag to be included in the note.
 #! note_type is the note storage type
 #! RECIPIENT is the recipient of the note.
-#! note_ptr is the pointer to the memory address at which the note is stored.
+#! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [tag, note_type, RECIPIENT]
 
     exec.tx::create_note
-    # => [note_ptr]
+    # => [note_idx]
 
     # prepare stack for return. Note: when create_note is called, the stack looks
     # like [tag, note_type, RECIPIENT, x, x, X], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [note_ptr, x, x, X, 0, ZERO] adding 0's.
+    # for the user. Without padding the kernel returns [note_idx, x, x, X, 0, ZERO] adding 0's.
     # To keep the data in position we insert 0's between ptr and the potentially important
     # first element x.
     movupw.3 movup.15 movup.5
-    # => [note_ptr, 0, 0, 0, 0, 0]
+    # => [note_idx, 0, 0, 0, 0, 0]
 end
 
-#! Adds an ASSET to the specified note and returns a pointer to the memory address
-#! at which the note is stored.
+#! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_ptr, ASSET]
-#! Outputs: [note_ptr, 0, 0, 0, 0]
+#! Inputs: [note_idx, ASSET]
+#! Outputs: [note_idx, 0, 0, 0, 0]
 #!
-#! - note_ptr is the pointer to the memory address at which the note is stored.
-#! - ASSET can be a fungible or non-fungible asset.
+#! note_idx is the index of the the note to which the asset is added.
+#! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [note_ptr, ASSET]
+    # => [note_idx, ASSET]
 
     exec.tx::add_asset_to_note
-    # => [note_ptr]
+    # => [note_idx]
 
     # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
-    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's.
-    # To keep the data in position we insert 0's between ptr and the potentially important
+    # like [idx, ASSET, X, X, x, x, x], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, ZERO] adding 0's.
+    # To keep the data in position we insert 0's between idx and the potentially important
     # first element x.
     movupw.3 movup.4
-    # => [note_ptr, 0, 0, 0, 0]
+    # => [note_idx, 0, 0, 0, 0]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.

@@ -74,11 +74,10 @@ fn test_create_note() {
         "metadata must be stored at the correct memory location",
     );
 
-    let note_ptr = CREATED_NOTE_SECTION_OFFSET;
     assert_eq!(
         process.stack.get(0),
-        Felt::from(note_ptr),
-        "top item on the stack is a pointer to the created note"
+        ZERO,
+        "top item on the stack is the index of the created note"
     );
 }
 
@@ -204,7 +203,7 @@ fn test_get_output_notes_hash() {
         push.{PUBLIC_NOTE}
         push.{tag_1}
         exec.tx::create_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset_1} movup.4
         exec.tx::add_asset_to_note
@@ -218,7 +217,7 @@ fn test_get_output_notes_hash() {
         push.{PUBLIC_NOTE}
         push.{tag_2}
         exec.tx::create_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset_2} movup.4
         exec.tx::add_asset_to_note
@@ -295,7 +294,7 @@ fn test_create_note_and_add_asset() {
         push.{tag}
 
         exec.tx::create_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset} movup.4
         exec.tx::add_asset_to_note
@@ -317,11 +316,10 @@ fn test_create_note_and_add_asset() {
         "asset must be stored at the correct memory location",
     );
 
-    let note_ptr = CREATED_NOTE_SECTION_OFFSET;
     assert_eq!(
         process.stack.get(0),
-        Felt::from(note_ptr),
-        "top item on the stack is a pointer to the created note"
+        ZERO,
+        "top item on the stack is the index to the created note"
     );
 }
 
@@ -353,23 +351,23 @@ fn test_create_note_and_add_multiple_assets() {
         push.{tag}
 
         exec.tx::create_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset} movup.4
         exec.tx::add_asset_to_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset_2} movup.4
         exec.tx::add_asset_to_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{asset_3} movup.4
         exec.tx::add_asset_to_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{nft} movup.4
         exec.tx::add_asset_to_note
-        # => [note_ptr]
+        # => [note_idx]
     end
     ",
         recipient = prepare_word(&recipient),
@@ -402,11 +400,10 @@ fn test_create_note_and_add_multiple_assets() {
         "non_fungible_asset must be stored at the correct memory location",
     );
 
-    let note_ptr = CREATED_NOTE_SECTION_OFFSET;
     assert_eq!(
         process.stack.get(0),
-        Felt::from(note_ptr),
-        "top item on the stack is a pointer to the created note"
+        ZERO,
+        "top item on the stack is the index to the created note"
     );
 }
 
@@ -434,11 +431,11 @@ fn test_create_note_and_add_same_nft_twice() {
         push.{nft}
 
         exec.tx::create_note
-        # => [note_ptr]
+        # => [note_idx]
 
         push.{nft} movup.4
         exec.tx::add_asset_to_note
-        # => [note_ptr]
+        # => [note_idx]
     end
     ",
         recipient = prepare_word(&recipient),
@@ -483,7 +480,7 @@ fn test_build_recipient_hash() {
         # SERIAL_NUM
         push.{output_serial_no}
         exec.tx::build_recipient_hash
-        
+
         push.{PUBLIC_NOTE}
         push.{tag}
         exec.tx::create_note

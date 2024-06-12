@@ -34,14 +34,14 @@ export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
 #! Inputs: [amount, tag, note_type, RECIPIENT]
-#! Outputs: [note_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, 0, ...]
 #!
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.
 #! - note_type is the type of the note that holds the asset.
 #! - RECIPIENT is the recipient of the asset, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
-#! - note_ptr is the pointer to the memory address in the kernel.
+#! - note_idx is the index of the created note.
 #!   This cannot directly be accessed from another context.
 #!
 #! FAILS if:
@@ -78,11 +78,11 @@ export.distribute.1
 
     # create a note
     exec.tx::create_note
-    # => [note_ptr, ZERO, ZERO, ...]
+    # => [note_idx, ZERO, ZERO, ...]
 
     # load the ASSET and add it to the note
     padw loc_loadw.0 movup.4 exec.tx::add_asset_to_note
-    # => [note_ptr, ASSET, ZERO, ...]
+    # => [note_idx, ASSET, ZERO, ...]
 end
 
 #! Burns fungible assets.
