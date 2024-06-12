@@ -12,6 +12,7 @@ use miden_objects::{
     transaction::{InputNote, InputNotes, TransactionArgs, TransactionInputs},
     BlockHeader,
 };
+use winter_maybe_async::maybe_async;
 
 use super::TransactionContextBuilder;
 use crate::{DataStore, DataStoreError};
@@ -69,6 +70,7 @@ impl Default for MockDataStore {
 }
 
 impl DataStore for MockDataStore {
+    #[maybe_async]
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
@@ -82,6 +84,7 @@ impl DataStore for MockDataStore {
         Ok(self.tx_inputs.clone())
     }
 
+    #[maybe_async]
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.tx_inputs.account().id());
         Ok(self.tx_inputs.account().code().module().clone())

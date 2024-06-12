@@ -1,4 +1,5 @@
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -134,7 +135,7 @@ impl<T: Rng> AccountBuilder<T> {
         let inner_storage = self.storage_builder.build();
 
         for (key, value) in inner_storage.slots().leaves() {
-            if key != 255 {
+            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into() {
                 // don't copy the reserved key
                 storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
             }

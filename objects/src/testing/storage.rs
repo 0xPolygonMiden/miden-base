@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
@@ -15,7 +15,7 @@ use crate::{
         },
         get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap, StorageSlot, StorageSlotType,
+        StorageMap,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
@@ -24,13 +24,13 @@ use crate::{
 #[derive(Default, Debug, Clone)]
 pub struct AccountStorageBuilder {
     items: Vec<SlotItem>,
-    maps: Vec<StorageMap>,
+    maps: BTreeMap<u8, StorageMap>,
 }
 
 /// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
 impl AccountStorageBuilder {
     pub fn new() -> Self {
-        Self { items: vec![], maps: vec![] }
+        Self { items: vec![], maps: BTreeMap::new() }
     }
 
     pub fn add_item(&mut self, item: SlotItem) -> &mut Self {
@@ -46,14 +46,8 @@ impl AccountStorageBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn add_map(&mut self, map: StorageMap) -> &mut Self {
-        self.maps.push(map);
-        self
-    }
-
-    #[allow(dead_code)]
-    pub fn add_maps<I: IntoIterator<Item = StorageMap>>(&mut self, maps: I) -> &mut Self {
-        self.maps.extend(maps);
+    pub fn add_map(&mut self, index: u8, map: StorageMap) -> &mut Self {
+        self.maps.insert(index, map);
         self
     }
 
@@ -219,23 +213,20 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(assets: Vec<Asset>, nonce: Felt, storage_items: Vec<Word>) -> Account {
+pub fn build_account(
+    assets: Vec<Asset>,
+    nonce: Felt,
+    slot_items: Vec<SlotItem>,
+    maps: Option<BTreeMap<u8, StorageMap>>,
+) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = AccountCode::mock();
 
-    // build account data
     let vault = AssetVault::new(&assets).unwrap();
+    // Use the provided maps or create an empty BTreeMap if None is provided
+    let maps = maps.unwrap_or_default();
 
-    let slot_type = StorageSlotType::Value { value_arity: 0 };
-    let slot_items: Vec<SlotItem> = storage_items
-        .into_iter()
-        .enumerate()
-        .map(|(index, item)| SlotItem {
-            index: index as u8,
-            slot: StorageSlot { slot_type, value: item },
-        })
-        .collect();
-    let storage = AccountStorage::new(slot_items, vec![]).unwrap();
+    let storage = AccountStorage::new(slot_items, maps).unwrap();
 
     Account::from_parts(id, vault, storage, code, nonce)
 }

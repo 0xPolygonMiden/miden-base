@@ -428,13 +428,13 @@ fn executed_transaction_output_notes() {
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
             swapw dropw swapw dropw swapw dropw
-            # => [note_ptr]
+            # => [note_idx]
         end
 
         proc.add_asset_to_note
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             swapw dropw
-            # => [note_ptr]
+            # => [note_idx]
         end
 
         proc.remove_asset
@@ -460,12 +460,12 @@ fn executed_transaction_output_notes() {
             push.{NOTETYPE1}                    # note_type
             push.{tag1}                         # tag
             exec.create_note
-            # => [note_ptr]
+            # => [note_idx]
 
             push.{REMOVED_ASSET_1}              # asset
             exec.remove_asset
             movup.4 exec.add_asset_to_note
-            # => [note_ptr]
+            # => [note_idx]
 
 
             push.{REMOVED_ASSET_2}              # asset_2
@@ -479,16 +479,16 @@ fn executed_transaction_output_notes() {
             push.{NOTETYPE2}                    # note_type
             push.{tag2}                         # tag
             exec.create_note
-            # => [note_ptr]
+            # => [note_idx]
 
             push.{REMOVED_ASSET_3}              # asset_3
             exec.remove_asset
             movup.4 exec.add_asset_to_note
-            # => [note_ptr]
+            # => [note_idx]
 
             push.{REMOVED_ASSET_4}              # asset_4
             exec.remove_asset
-            # => [ASSET, note_ptr]
+            # => [ASSET, note_idx]
             movup.4 exec.add_asset_to_note drop
             # => []
 
