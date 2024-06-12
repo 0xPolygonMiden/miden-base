@@ -41,9 +41,9 @@ impl StorageMap {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AccountStorageMap].
+    /// Returns a new [StorageMap].
     ///
-    /// All leaves in the returned tree are set to [Self::EMPTY_VALUE].
+    /// All leaves in the returned tree are set to \[Self::EMPTY_VALUE\].
     pub fn new() -> Self {
         StorageMap { map: Smt::new() }
     }
