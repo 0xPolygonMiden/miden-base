@@ -61,7 +61,7 @@ end
 #! tag is the tag to be included in the note.
 #! note_type is the storage type of the note
 #! RECIPIENT is the recipient of the note.
-#! note_idx is the index of the the note to which the asset is added.
+#! note_idx is the index of the crated note.
 export.create_note
     syscall.create_note
     # => [note_idx, ZERO, 0]
@@ -71,13 +71,12 @@ export.create_note
     # => [note_idx]
 end
 
-#! Adds an ASSET to the specified note and returns the index of the note
-#! to which the asset is added.
+#! Adds the ASSET to the note specified by the index.
 #!
 #! Inputs: [note_idx, ASSET]
 #! Outputs: [note_idx]
 #!
-#! note_idx is the index of the the note to which the asset is added.
+#! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     syscall.add_asset_to_note

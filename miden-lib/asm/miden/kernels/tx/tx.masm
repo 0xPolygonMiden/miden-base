@@ -251,14 +251,14 @@ proc.add_fungible_asset_to_note
     # => [note_ptr, note_idx]
 end
 
-#! Creates a new note and returns the index of the created note.
+#! Creates a new note and returns the index of the note.
 #!
 #! Inputs: [tag, note_type, RECIPIENT]
 #! Outputs: [note_idx]
 #!
 #! - tag is the tag to be included in the note.
 #! - RECIPIENT defines spend conditions for the note.
-#! - note_idx is the index of the the note.
+#! - note_idx is the index of the crated note.
 #!
 #! Panics if:
 #! - the note_type is not valid.
@@ -312,13 +312,12 @@ export.create_note
     # => [note_idx]
 end
 
-#! Adds an ASSET to the specified note and returns the index of the note
-#! to which the asset is added.
+#! Adds the ASSET to the note specified by the index.
 #!
 #! Inputs: [note_idx, ASSET]
 #! Outputs: [note_idx]
 #!
-#! note_idx is the index of the the note to which the asset is added.
+#! - note_idx is the index of the the note to which the asset is added.
 #! - ASSET can be a fungible or non-fungible asset.
 #!
 #! Panics if:

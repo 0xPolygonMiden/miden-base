@@ -525,7 +525,7 @@ end
 #! tag is the tag to be included in the note.
 #! note_type is the note storage type
 #! RECIPIENT is the recipient of the note.
-#! note_idx is the index of the the note.
+#! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
@@ -543,8 +543,7 @@ export.create_note
     # => [note_idx, 0, 0, 0, 0, 0]
 end
 
-#! Adds an ASSET to the specified note and returns the index of the note
-#! to which the asset is added.
+#! Adds the ASSET to the note specified by the index.
 #!
 #! Inputs: [note_idx, ASSET]
 #! Outputs: [note_idx, 0, 0, 0, 0]

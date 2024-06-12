@@ -1,8 +1,7 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::{ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
-    TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::CURRENT_CONSUMED_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
@@ -118,6 +117,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
         let note_idx: usize = stack[9].as_int() as usize;
 
+        assert_eq!(note_idx, self.output_notes.len(), "note index mismatch");
+
         let note_builder = OutputNoteBuilder::new(stack, &self.adv_provider)?;
 
         self.output_notes.insert(note_idx, note_builder);
@@ -135,21 +136,16 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         let stack = process.get_stack_state();
         //# => [ASSET, note_ptr, num_of_assets, note_idx]
 
-        // this is a safe conversion because the note index (in theory) is always a u64
-        // in theory, the user can provide any note index. However, we already check in
-        // the kernel that the note index < MAX_OUTPUT_NOTES_PER_TX
-        let note_idx_u64 = stack[6].as_int();
-        if note_idx_u64 >= usize::MAX as u64 {
-            return Err(TransactionKernelError::MalformedNoteIndex(note_idx_u64));
-        }
-        let note_idx = note_idx_u64 as usize;
+        let note_idx = stack[6].as_int();
+        assert!(note_idx < self.output_notes.len() as u64);
+        let node_idx = note_idx as usize;
 
         let asset = Asset::try_from(process.get_stack_word(0))
             .map_err(TransactionKernelError::MalformedAsset)?;
 
         let note_builder = self
             .output_notes
-            .get_mut(&note_idx)
+            .get_mut(&node_idx)
             .ok_or_else(|| TransactionKernelError::MissingNote(format!("{:?}", &note_idx)))?;
 
         note_builder.add_asset(asset)?;

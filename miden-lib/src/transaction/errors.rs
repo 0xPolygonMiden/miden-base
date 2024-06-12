@@ -23,7 +23,6 @@ pub enum TransactionKernelError {
     MalformedAssetOnAccountVaultUpdate(AssetError),
     MalformedNoteInputs(NoteError),
     MalformedNoteMetadata(NoteError),
-    MalformedNoteIndex(u64),
     MalformedNoteScript(Vec<Felt>),
     MalformedNoteType(NoteError),
     MalformedRecipientData(Vec<Felt>),
@@ -67,9 +66,6 @@ impl fmt::Display for TransactionKernelError {
             },
             TransactionKernelError::MalformedNoteMetadata(err) => {
                 write!(f, "Note metadata created by the event handler is not well formed {err}")
-            },
-            TransactionKernelError::MalformedNoteIndex(err) => {
-                write!(f, "Note index is malformed {err}")
             },
             TransactionKernelError::MalformedNoteScript(data) => {
                 write!( f, "Note script data extracted from the advice map by the event handler is not well formed {data:?}")
