@@ -42,7 +42,7 @@ pub trait TransactionAuthenticator {
 // ================================================================================================
 
 #[derive(Clone, Debug)]
-/// Represents a signer for [KeySecret] keys
+/// Represents a signer for [AuthSecretKey] keys
 pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
     keys: BTreeMap<Digest, AuthSecretKey>,
@@ -70,7 +70,7 @@ impl<R: Rng> BasicAuthenticator<R> {
 
 impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets a signature over a message, given a public key.
-    /// The key should be included in the `keys` map and should be a variant of [SecretKey].
+    /// The key should be included in the `keys` map and should be a variant of [AuthSecretKey].
     ///
     /// Supported signature schemes:
     /// - RpoFalcon512
