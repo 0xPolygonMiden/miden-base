@@ -70,10 +70,6 @@ make test
 
 Some of the functions in this project are computationally intensive and may take a significant amount of time to compile and complete during testing. To ensure optimal results we use the `make test` command. It enables the running of tests in release mode and using specific configurations replicates the test conditions of the development mode and verifies all debug assertions.
 
-## Commiting
-
-To make sure all commits adhere to our programming standards we use [pre-commit](https://pre-commit.com/) ([file](.pre-commit-config.yaml)) to run automatic commands on each commit. Please install it and follow the setup instructions for your machine.
-
 ## License
 
 This project is [MIT licensed](./LICENSE)
