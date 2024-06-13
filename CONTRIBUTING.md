@@ -47,7 +47,7 @@ We are using [Github Flow](https://docs.github.com/en/get-started/quickstart/git
 ### Commit messages
 
 - Commit messages should be written in a short, descriptive manner and be prefixed with tags for the change type and scope (if possible) according to the [semantic commit](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) scheme.
-  For example, a new change to the `miden-node-store` crate might have the following message: `feat(miden-node-store): fix block-headers database schema`
+  For example, a new change to the `miden-objects` crate might have the following message: `feat(miden-objects): Added Account deserialization`
 
 - Also squash commits to logically separated, distinguishable stages to keep git log clean:
 
