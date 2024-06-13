@@ -70,7 +70,7 @@ impl<R: Rng> BasicAuthenticator<R> {
 
 impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets a signature over a message, given a public key.
-    /// The key should be included in the `keys` map and should be a variant of \[SecretKey\].
+    /// The key should be included in the `keys` map and should be a variant of [AuthSecretKey].
     ///
     /// Supported signature schemes:
     /// - RpoFalcon512
