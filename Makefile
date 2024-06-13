@@ -61,6 +61,12 @@ test-prove: ## Run `prove` tests (tests which use the Miden prover)
 .PHONY: test
 test: test-default test-prove ## Run all tests
 
+# --- checking ------------------------------------------------------------------------------------
+
+.PHONY: check
+check: ## Check all targets and features for errors without code generation
+	cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
