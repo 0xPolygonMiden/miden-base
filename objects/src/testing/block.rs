@@ -406,7 +406,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
         faucet_id
     }
 
-    /// Creates [FungibleAsset] from the fungible faucet at position `faucet_pos`.
+    /// Creates [crate::assets::FungibleAsset] from the fungible faucet at position `faucet_pos`.
     pub fn build_fungible_asset(&mut self, faucet_pos: usize, amount: u64) -> Asset {
         self.objects.fungible_faucets[faucet_pos]
             .1
@@ -417,7 +417,7 @@ impl<R: Rng + SeedableRng> MockChain<R> {
             .unwrap()
     }
 
-    /// Creates [NonFungibleAsset] from the nonfungible faucet at position `faucet_pos`.
+    /// Creates [crate::assets::NonFungibleAsset] from the nonfungible faucet at position `faucet_pos`.
     pub fn build_nonfungible_asset(&mut self, faucet_pos: usize) -> Asset {
         self.objects.nonfungible_faucets[faucet_pos]
             .1
