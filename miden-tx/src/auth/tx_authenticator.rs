@@ -42,7 +42,7 @@ pub trait TransactionAuthenticator {
 // ================================================================================================
 
 #[derive(Clone, Debug)]
-/// Represents a signer for \[KeySecret\] keys
+/// Represents a signer for [AuthSecretKey] keys
 pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
     keys: BTreeMap<Digest, AuthSecretKey>,

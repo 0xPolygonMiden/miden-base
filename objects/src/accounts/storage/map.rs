@@ -43,7 +43,7 @@ impl StorageMap {
 
     /// Returns a new [StorageMap].
     ///
-    /// All leaves in the returned tree are set to \[Self::EMPTY_VALUE\].
+    /// All leaves in the returned tree are set to [EMPTY_VALUE](https://github.com/0xPolygonMiden/crypto/blob/f72add58cd813e3398e0b9b4c4e14a7c24aecdde/src/merkle/smt/full/mod.rs#L53).
     pub fn new() -> Self {
         StorageMap { map: Smt::new() }
     }

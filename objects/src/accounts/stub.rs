@@ -9,9 +9,9 @@ use super::{hash_account, Account, AccountId, Digest, Felt};
 /// The [AccountStub] is composed of:
 /// - id: the account id ([AccountId]) of the account.
 /// - nonce: the nonce of the account.
-/// - vault_root: a commitment to the account's vault (\[AccountVault\]).
-/// - storage_root: accounts storage root (\[AccountStorage\]).
-/// - code_root: a commitment to the account's code (\[AccountCode\]).
+/// - vault_root: a commitment to the account's vault ([super::AssetVault]).
+/// - storage_root: accounts storage root ([super::AccountStorage]).
+/// - code_root: a commitment to the account's code ([super::AccountCode]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStub {
