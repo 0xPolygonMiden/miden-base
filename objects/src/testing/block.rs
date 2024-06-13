@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use core::{fmt, hash::Hasher};
+use core::fmt;
 
 use miden_crypto::merkle::{Mmr, PartialMmr, SimpleSmt, Smt};
 use vm_core::{utils::Serializable, Felt, Word, ZERO};
