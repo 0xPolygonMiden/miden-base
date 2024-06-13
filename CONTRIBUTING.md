@@ -76,20 +76,20 @@ We are using [Github Flow](https://docs.github.com/en/get-started/quickstart/git
   // ================================================================================
   ```
 
-- [Rustfmt](https://github.com/rust-lang/rustfmt), [Clippy](https://github.com/rust-lang/rust-clippy) and [Rustdoc](https://doc.rust-lang.org/rustdoc/index.html) linting is included in CI pipeline. Anyways it's preferable to run linting locally before push. To simplify running these commands in a reproducible manner we use [cargo-make](https://github.com/sagiegurari/cargo-make), you can run:
+- [Rustfmt](https://github.com/rust-lang/rustfmt), [Clippy](https://github.com/rust-lang/rust-clippy) and [Rustdoc](https://doc.rust-lang.org/rustdoc/index.html) linting is included in CI pipeline. Anyways it's preferable to run linting locally before push. To simplify running these commands in a reproducible manner we use `make` commands, you can run:
 
   ```
-  cargo make lint
+  make lint
   ```
 
-You can find more information about the `cargo make` commands in the [Makefile](Makefile.toml)
+You can find more information about the `make` commands in the [Makefile](Makefile)
 
 ### Testing
 
 After writing code different types of tests (unit, integration, end-to-end) are required to make sure that the correct behavior has been achieved and that no bugs have been introduced. You can run tests using the following command:
 
 ```
-cargo make test
+make test
 ```
 
 ### Versioning
