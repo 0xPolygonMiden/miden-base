@@ -34,7 +34,7 @@ export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
 #! Inputs: [amount, tag, aux, note_type, RECIPIENT]
-#! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, 0, ...]
+#! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, ...]
 #!
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.

@@ -25,7 +25,7 @@ end
 #! to the specified recipient.
 #!
 #! Inputs: [ASSET, tag, aux, note_type, RECIPIENT, ...]
-#! Outputs: [note_idx, ZERO, ZERO, 0, ...]
+#! Outputs: [note_idx, ZERO, ZERO, 0, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
