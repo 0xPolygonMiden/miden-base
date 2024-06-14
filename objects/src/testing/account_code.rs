@@ -4,19 +4,7 @@ use crate::accounts::AccountCode;
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 11] = [
-    "0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167",
-    "0x53f9670f00286a3751775c598df074a420c242818120d65668dd5d427bbbb347",
-    "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35",
-    "0xa27f4acf44ab50969468ea3fccbaae3893bd2117d2e0a60b7440df4ddb3a4585",
-    "0x646ab6d0a53288f01083943116d01f216e77adfe21a495ae8d4670b4be40facf",
-    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x4be138ac7957951b2f5dd55bb122f0e45397e45bb169704f00bfb99791069a4b",
-    "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
-    "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
-    "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
-    "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
-];
+const MASTS: [&str; 11] = ["0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167", "0x549d264f00f1a6e90d47284e99eab6d0f93a3d41bb5324743607b6902978a809", "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35", "0xa27f4acf44ab50969468ea3fccbaae3893bd2117d2e0a60b7440df4ddb3a4585", "0x646ab6d0a53288f01083943116d01f216e77adfe21a495ae8d4670b4be40facf", "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4", "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872", "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa", "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae", "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5", "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794"];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
@@ -98,15 +86,15 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
             # acct proc 6
             export.create_note
                 exec.tx::create_note
-                # => [ptr]
+                # => [note_idx]
 
-                swap drop swap drop swap drop
+                swapw dropw swap drop
             end
 
             # acct proc 7
             export.add_asset_to_note
                 exec.tx::add_asset_to_note
-                # => [ptr]
+                # => [note_idx]
 
                 swap drop swap drop swap drop
             end

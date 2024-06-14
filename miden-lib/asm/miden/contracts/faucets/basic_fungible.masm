@@ -33,11 +33,12 @@ const.METADATA_SLOT=1
 export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
-#! Inputs: [amount, tag, note_type, RECIPIENT]
+#! Inputs: [amount, tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, 0, ...]
 #!
 #! - amount is the amount to be minted and sent.
 #! - tag is the tag to be included in the note.
+#! - aux is the auxiliary data to be included in the note.
 #! - note_type is the type of the note that holds the asset.
 #! - RECIPIENT is the recipient of the asset, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash).
@@ -50,7 +51,7 @@ export.basic::auth_tx_rpo_falcon512
 export.distribute.1
     # get max supply of this faucet. We assume it is stored at pos 3 of slot 1
     push.METADATA_SLOT exec.account::get_item drop drop drop
-    # => [max_supply, amount, tag, note_type, RECIPIENT, ...]
+    # => [max_supply, amount, tag, aux, note_type, RECIPIENT, ...]
 
     # get total issuance of this faucet so far and add amount to be minted
     exec.faucet::get_total_issuance
@@ -62,19 +63,19 @@ export.distribute.1
 
     # check that amount =< max_supply - total_issuance, fails if otherwise
     dup.1 gte assert.err=ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW
-    # => [asset, tag, note_type, RECIPIENT, ...]
+    # => [asset, tag, aux, note_type, RECIPIENT, ...]
 
     # creating the asset
     exec.asset::create_fungible_asset
-    # => [ASSET, tag, note_type, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, RECIPIENT, ...]
 
     # mint the asset; this is needed to satisfy asset preservation logic.
     exec.faucet::mint
-    # => [ASSET, tag, note_type, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, RECIPIENT, ...]
 
     # store and drop the ASSET
     loc_storew.0 dropw
-    # => [tag, note_type, RECIPIENT, ...]
+    # => [tag, aux, note_type, RECIPIENT, ...]
 
     # create a note
     exec.tx::create_note

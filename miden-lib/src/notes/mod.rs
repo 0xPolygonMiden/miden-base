@@ -8,7 +8,7 @@ use miden_objects::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
         NoteTag, NoteType,
     },
-    NoteError, Word, ZERO,
+    NoteError, Word, Felt,
 };
 
 use self::utils::build_note_script;
@@ -33,6 +33,7 @@ pub fn create_p2id_note<R: FeltRng>(
     target: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
+    aux: Felt,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
@@ -41,7 +42,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let inputs = NoteInputs::new(vec![target.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
-    let aux = ZERO;
+    let aux = aux;
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
     let vault = NoteAssets::new(assets)?;
@@ -66,6 +67,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     target: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
+    aux: Felt,
     recall_height: u32,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
@@ -75,7 +77,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
-    let aux = ZERO;
+    let aux = aux;
 
     let vault = NoteAssets::new(assets)?;
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
@@ -97,6 +99,7 @@ pub fn create_swap_note<R: FeltRng>(
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
+    aux: Felt,
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
@@ -124,7 +127,7 @@ pub fn create_swap_note<R: FeltRng>(
     // build the tag for the SWAP use case
     let tag = build_swap_tag(note_type, &offered_asset, &requested_asset)?;
     let serial_num = rng.draw_word();
-    let aux = ZERO;
+    let aux = aux;
 
     // build the outgoing note
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
