@@ -65,6 +65,7 @@ fn p2idr_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
+        Felt::new(0),
         reclaim_block_height_in_time,
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -76,6 +77,7 @@ fn p2idr_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
+        Felt::new(0),
         reclaim_block_height_reclaimable,
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )

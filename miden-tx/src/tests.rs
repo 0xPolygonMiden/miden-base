@@ -29,7 +29,7 @@ use miden_objects::{
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
-    Felt, Word, MIN_PROOF_SECURITY_LEVEL, ZERO,
+    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
 use vm_processor::{
@@ -134,6 +134,10 @@ fn executed_transaction_account_delta() {
     let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
     let tag3 = NoteTag::for_local_use_case(0, 0).unwrap();
 
+    let aux1 = Felt::new(27);
+    let aux2 = Felt::new(28);
+    let aux3 = Felt::new(29);
+
     let note_type1 = NoteType::OffChain;
     let note_type2 = NoteType::OffChain;
     let note_type3 = NoteType::OffChain;
@@ -221,6 +225,7 @@ fn executed_transaction_account_delta() {
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{NOTETYPE1}        # note_type
+            push.{aux1}             # aux
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
             call.wallet::send_asset dropw dropw dropw dropw
@@ -229,6 +234,7 @@ fn executed_transaction_account_delta() {
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{NOTETYPE2}        # note_type
+            push.{aux2}             # aux
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
             call.wallet::send_asset dropw dropw dropw dropw
@@ -237,6 +243,7 @@ fn executed_transaction_account_delta() {
             # send non-fungible asset
             push.0.1.2.3            # recipient
             push.{NOTETYPE3}        # note_type
+            push.{aux3}             # aux
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
             call.wallet::send_asset dropw dropw dropw dropw
@@ -385,6 +392,8 @@ fn executed_transaction_output_notes() {
     )
     .unwrap();
     let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let aux1 = Felt::new(27);
+    let aux2 = Felt::new(28);
 
     let note_type1 = NoteType::OffChain;
     let note_type2 = NoteType::Public;
@@ -397,7 +406,7 @@ fn executed_transaction_output_notes() {
     let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &Assembler::default()).unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
-    let metadata = NoteMetadata::new(account_id, note_type2, tag2, ZERO).unwrap();
+    let metadata = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
     let vault = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     let expected_output_note = Note::new(vault, metadata, recipient);
@@ -443,6 +452,7 @@ fn executed_transaction_output_notes() {
             # partially deplete fungible asset balance
             push.0.1.2.3                        # recipient
             push.{NOTETYPE1}                    # note_type
+            push.{aux1}                         # aux
             push.{tag1}                         # tag
             exec.create_note
             # => [note_idx]
@@ -462,6 +472,7 @@ fn executed_transaction_output_notes() {
             # send non-fungible asset
             push.{RECIPIENT2}                   # recipient
             push.{NOTETYPE2}                    # note_type
+            push.{aux2}                         # aux
             push.{tag2}                         # tag
             exec.create_note
             # => [note_idx]

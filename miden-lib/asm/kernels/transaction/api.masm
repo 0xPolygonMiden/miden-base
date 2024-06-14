@@ -519,28 +519,29 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx, 0, 0, 0, 0, 0]
 #!
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary metadata to be included in the note.
 #! note_type is the note storage type
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [tag, note_type, RECIPIENT]
+    # => [tag, aux, note_type, RECIPIENT]
 
     exec.tx::create_note
     # => [note_idx]
 
     # prepare stack for return. Note: when create_note is called, the stack looks
-    # like [tag, note_type, RECIPIENT, x, x, X], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [note_idx, x, x, X, 0, ZERO] adding 0's.
-    # To keep the data in position we insert 0's between ptr and the potentially important
-    # first element x.
-    movupw.3 movup.15 movup.5
-    # => [note_idx, 0, 0, 0, 0, 0]
+    # like [tag, aux, note_type, RECIPIENT, x, X, X], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, ZERO] adding 0's.
+    # To keep the data in position we move 0's to the left between note_idx and the potentially
+    # important first element x.
+    movupw.3 movup.15 movup.15 movup.6
+    # => [note_idx, 0, 0, 0, 0, 0, 0]
 end
 
 #! Adds the ASSET to the note specified by the index.

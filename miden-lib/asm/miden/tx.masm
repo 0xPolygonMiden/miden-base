@@ -55,10 +55,11 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx]
 #!
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary metadata to be included in the note.
 #! note_type is the storage type of the note
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
