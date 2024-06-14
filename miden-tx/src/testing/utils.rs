@@ -6,14 +6,18 @@ use std::{
     string::{String, ToString},
 };
 
-use miden_lib::transaction::{memory, ToTransactionKernelInputs, TransactionKernel};
+#[cfg(not(target_family = "wasm"))]
+use miden_lib::transaction::TransactionKernel;
+use miden_lib::transaction::{memory, ToTransactionKernelInputs};
 use miden_objects::transaction::PreparedTransaction;
 #[cfg(feature = "std")]
 use miden_objects::{
     transaction::{TransactionArgs, TransactionInputs},
     Felt,
 };
-use vm_processor::{AdviceInputs, ExecutionError, Process, Word};
+#[cfg(not(target_family = "wasm"))]
+use vm_processor::Word;
+use vm_processor::{AdviceInputs, ExecutionError, Process};
 #[cfg(feature = "std")]
 use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
