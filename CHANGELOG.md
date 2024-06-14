@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+- Added ability for users to set the aux field when creating a note (#752)
 - Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748)
 - Fixed documentation and added `make doc` CI job (#746)
 - Made `DataStore` conditionally async using `winter-maybe-async` (#725)
