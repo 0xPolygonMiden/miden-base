@@ -24,7 +24,7 @@ use miden_objects::{
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
-    Digest,
+    Digest, EMPTY_WORD,
 };
 use vm_processor::AdviceInputs;
 
@@ -505,7 +505,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 
     // override the seed with an invalid seed to ensure the kernel fails
     let adv_inputs =
-        AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
+        AdviceInputs::default().with_map([(Digest::from(account_seed_key), EMPTY_WORD.to_vec())]);
 
     let process = run_tx_with_inputs(&transaction, adv_inputs);
     assert!(process.is_err());

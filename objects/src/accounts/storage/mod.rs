@@ -224,7 +224,7 @@ impl AccountStorage {
 
     /// Returns an item from the storage at the specified index.
     ///
-    /// If the item is not present in the storage, [ZERO; 4] is returned.
+    /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
     pub fn get_item(&self, index: u8) -> Digest {
         let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index.into())
             .expect("index is u8 - index within range");

@@ -7,7 +7,7 @@ use miden_objects::{
         TransactionInputs, TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
-    Felt, FieldElement, Word, ZERO,
+    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
 };
 
 use super::TransactionKernel;
@@ -140,7 +140,7 @@ fn build_advice_stack(
         header.timestamp().into(),
         ZERO,
     ]);
-    inputs.extend_stack([ZERO; 4]);
+    inputs.extend_stack(EMPTY_WORD);
     inputs.extend_stack(header.note_root());
 
     // push core account items onto the stack
@@ -285,7 +285,7 @@ fn add_input_notes_to_advice_inputs(
         let note = input_note.note();
         let assets = note.assets();
         let recipient = note.recipient();
-        let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&[ZERO; 4]);
+        let note_arg = tx_args.get_note_args(note.id()).unwrap_or(&EMPTY_WORD);
 
         // NOTE: keep map in sync with the `note::get_inputs` API procedure
         inputs.extend_map([(

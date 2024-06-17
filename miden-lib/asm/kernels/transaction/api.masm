@@ -425,14 +425,14 @@ end
 
 #! Returns the current note's inputs hash.
 #!
-#! Inputs: [ZERO]
+#! Inputs: [EMPTY_WORD]
 #! Outputs: [NOTE_INPUTS_HASH]
 #!
 #! Where:
 #! - NOTE_INPUTS_HASH, is the current note's inputs hash.
 export.get_note_inputs_hash
     exec.note::get_note_inputs_hash
-    # => [NOTE_INPUTS_HASH, ZERO]
+    # => [NOTE_INPUTS_HASH, EMPTY_WORD]
 
     swapw dropw
     # => [NOTE_INPUTS_HASH]
@@ -469,7 +469,7 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [ZERO]
+#! Stack: [EMPTY_WORD]
 #! Output: [BLOCK_HASH]
 #!
 #! Where:
@@ -481,8 +481,8 @@ end
 
 #! Returns the input notes commitment.
 #!
-#! This is computed as a sequential hash of `(NULLIFIER, ZERO_OR_NOTEID)` over all input notes. The
-#! data `ZERO_OR_NOTEID` functions as a flag, if the value is set to zero, then the notes are
+#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTEID)` over all input notes. The
+#! data `EMPTY_WORD_OR_NOTEID` functions as a flag, if the value is set to zero, then the notes are
 #! authenticated by the transaction kernel. If the value is non-zero, then note authentication will
 #! be delayed to the batch/block kernel. The delayed authentication allows a transaction to consume a
 #! public note that is not yet included to a block.
@@ -537,7 +537,7 @@ export.create_note
 
     # prepare stack for return. Note: when create_note is called, the stack looks
     # like [tag, aux, note_type, RECIPIENT, x, X, X], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, ZERO] adding 0's.
+    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, EMPTY_WORD] adding 0's.
     # To keep the data in position we move 0's to the left between note_idx and the potentially
     # important first element x.
     movupw.3 movup.15 movup.15 movup.6
@@ -561,7 +561,7 @@ export.add_asset_to_note
 
     # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
     # like [idx, ASSET, X, X, x, x, x], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, ZERO] adding 0's.
+    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, EMPTY_WORD] adding 0's.
     # To keep the data in position we insert 0's between idx and the potentially important
     # first element x.
     movupw.3 movup.4
