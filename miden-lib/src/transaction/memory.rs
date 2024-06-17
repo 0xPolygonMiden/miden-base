@@ -14,7 +14,7 @@ pub type StorageSlot = u8;
 // ------------------------------------------------------------------------------------------------
 
 /// The account storage slot at which faucet data is stored.
-/// Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+/// Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 /// Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
 

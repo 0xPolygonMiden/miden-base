@@ -120,7 +120,7 @@ impl Deserializable for OutputNotes {
 /// Build a commitment to output notes.
 ///
 /// For a non-empty list of notes, this is a sequential hash of (note_id, metadata) tuples for the
-/// notes created in a transaction. For an empty list, [ZERO; 4] is returned.
+/// notes created in a transaction. For an empty list, [EMPTY_WORD] is returned.
 fn build_output_notes_commitment(notes: &[OutputNote]) -> Digest {
     if notes.is_empty() {
         return Digest::default();

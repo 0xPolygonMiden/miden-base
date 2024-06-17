@@ -25,7 +25,7 @@ impl BlockNoteTree {
     ///
     /// Entry format: (note_index, note_id, note_metadata).
     ///
-    /// All leaves omitted from the entries list are set to [ZERO; 4].
+    /// All leaves omitted from the entries list are set to [crate::EMPTY_WORD].
     ///
     /// # Errors
     /// Returns an error if:

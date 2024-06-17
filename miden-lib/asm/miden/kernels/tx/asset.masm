@@ -57,11 +57,11 @@ end
 #!
 #! ASSET is the asset to validate.
 export.validate_fungible_asset
-    # assert that ASSET[1] == ZERO
+    # assert that ASSET[1] == EMPTY_WORD
     dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO
     # => [ASSET]
 
-    # assert that ASSET[2] == ZERO
+    # assert that ASSET[2] == EMPTY_WORD
     dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO
     # => [ASSET]
 
@@ -87,8 +87,8 @@ end
 #! is_fungible_asset is a boolean indicating whether the asset is fungible.
 export.is_fungible_asset
     # check the first element, it will be:
-    # - ZERO for a fungible asset
-    # - non-ZERO for a non-fungible asset
+    # - zero for a fungible asset
+    # - non zero for a non-fungible asset
     dup.2 eq.0
     # => [is_fungible_asset, ASSET]
 end
@@ -122,8 +122,8 @@ end
 #! is_non_fungible_asset is a boolean indicating whether the asset is non-fungible.
 export.is_non_fungible_asset
     # check the first element, it will be:
-    # - ZERO for a fungible asset
-    # - non-ZERO for a non-fungible asset
+    # - zero for a fungible asset
+    # - non zero for a non-fungible asset
     exec.is_fungible_asset not
     # => [is_non_fungible_asset, ASSET]
 end

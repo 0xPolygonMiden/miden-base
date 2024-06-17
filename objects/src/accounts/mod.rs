@@ -113,10 +113,11 @@ impl Account {
     /// proofs.
     ///
     /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
-    /// accounts this value is set to [ZERO; 4]. This is because when a transaction is executed
-    /// against a new account, public input for the initial account state is set to [ZERO; 4] to
-    /// distinguish new accounts from existing accounts. The actual hash of the initial account
-    /// state (and the initial state itself), are provided to the VM via the advice provider.
+    /// accounts this value is set to [crate::EMPTY_WORD]. This is because when a transaction is
+    /// executed against a new account, public input for the initial account state is set to
+    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual hash of
+    /// the initial account state (and the initial state itself), are provided to the VM via the
+    /// advice provider.
     pub fn init_hash(&self) -> Digest {
         if self.is_new() {
             Digest::default()
