@@ -605,7 +605,7 @@ proc.process_input_note
     # => [NULLIFIER, note_ptr, idx]
 
     # save nullifier to memory
-    movup.6 exec.memory::get_consumed_note_nullifier_ptr
+    movup.5 exec.memory::get_consumed_note_nullifier_ptr
     mem_storew dropw
     # => [note_ptr]
 
