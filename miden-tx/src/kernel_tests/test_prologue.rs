@@ -18,6 +18,7 @@ use miden_lib::transaction::{
 };
 use miden_objects::{
     assembly::ProgramAst,
+    notes::Nullifier,
     testing::{
         account::MockAccountType,
         notes::AssetPreservationStatus,
@@ -273,8 +274,11 @@ fn consumed_notes_memory_assertions(
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx),
-            note.nullifier().as_elements(),
+            Nullifier::from(read_root_mem_value(
+                process,
+                CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx
+            )),
+            note.nullifier(),
             "note nullifier should be computer and stored at the correct offset"
         );
 
