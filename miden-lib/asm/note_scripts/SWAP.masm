@@ -77,7 +77,7 @@ begin
 
     # create a note using inputs
     call.wallet::send_asset
-    # => [ptr, ZERO, ZERO, 0]
+    # => [ptr, EMPTY_WORD, EMPTY_WORD, 0]
 
     # clean stack
     dropw dropw drop drop

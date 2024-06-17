@@ -156,7 +156,7 @@ proc.mint_non_fungible_asset
     exec.smt::set
     # => [OLD_VAL, SMT_ROOT', ASSET]
 
-    # assert the `OLD_VAL` is ZERO, indicating that the non-fungible asset did not already exist
+    # assert the `OLD_VAL` is EMPTY_WORD, indicating that the non-fungible asset did not already exist
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
     drop drop eq.0 assert.err=ERR_FAUCET_NON_FUNGIBLE_ALREADY_EXISTS drop
     # => [SMT_ROOT', ASSET]
@@ -199,13 +199,13 @@ proc.burn_non_fungible_asset
 
     # prepare stack for removal of non-fungible asset from tracking SMT
     swapw padw
-    # => [ZERO, ASSET, SMT_ROOT, ASSET]
+    # => [EMPTY_WORD, ASSET, SMT_ROOT, ASSET]
 
     # remove the non-fungible asset from the tracking SMT
     exec.smt::set
     # => [OLD_VAL, SMT_ROOT', ASSET]
 
-    # assert the `OLD_VAL` is not ZERO, indicating that the non-fungible asset exists.
+    # assert the `OLD_VAL` is not EMPTY_WORD, indicating that the non-fungible asset exists.
     # we only need to check ASSET[1] as this is always set to the faucet_id and can not be 0.
     drop drop eq.0 not assert.err=ERR_FAUCET_NONEXISTING_TOKEN drop
     # => [SMT_ROOT', ASSET]

@@ -14,7 +14,7 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [ZERO]
+#! Stack: [EMPTY_WORD]
 #! Output: [BLOCK_HASH]
 #!
 #! Where:
@@ -65,7 +65,7 @@ end
 #! note_idx is the index of the crated note.
 export.create_note
     syscall.create_note
-    # => [note_idx, ZERO, 0]
+    # => [note_idx, EMPTY_WORD, 0]
 
     # clear the padding from the kernel response
     movdn.4 dropw swap drop
@@ -81,7 +81,7 @@ end
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     syscall.add_asset_to_note
-    # => [note_idx, ZERO]
+    # => [note_idx, EMPTY_WORD]
 
     # clear the padding from the kernel response
     movdn.4 dropw
