@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+- Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706)
 - Added ability for users to set the aux field when creating a note (#752)
 - Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748)
 - Fixed documentation and added `make doc` CI job (#746)

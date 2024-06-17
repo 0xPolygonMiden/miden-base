@@ -486,8 +486,9 @@ fn test_build_recipient_hash() {
     let aux = Felt::new(27);
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
-    let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
+    let input_hash = inputs.commitment();
 
+    let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
     use.miden::kernels::tx::prologue
@@ -495,7 +496,7 @@ fn test_build_recipient_hash() {
     begin
         exec.prologue::prepare_transaction
         # input
-        push.{inputs}
+        push.{input_hash}
         # SCRIPT_HASH
         push.{script_hash}
         # SERIAL_NUM
@@ -508,7 +509,7 @@ fn test_build_recipient_hash() {
         exec.tx::create_note
     end
     ",
-        inputs = single_input,
+        input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
         output_serial_no = prepare_word(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
