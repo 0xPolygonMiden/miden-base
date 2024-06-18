@@ -181,31 +181,35 @@ pub fn mock_notes(
             # create note 0
             push.{recipient0}
             push.{PUBLIC_NOTE}
+            push.{aux0}
             push.{tag0}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
             push.{asset0} movup.4
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            dropw dropw dropw
 
             # create note 1
             push.{recipient1}
             push.{PUBLIC_NOTE}
+            push.{aux1}
             push.{tag1}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
             push.{asset1} movup.4
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            dropw dropw dropw
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient0 = prepare_word(&created_note_1.recipient().digest()),
+        aux0 = created_note_1.metadata().aux(),
         tag0 = created_note_1.metadata().tag(),
         asset0 = prepare_assets(created_note_1.assets())[0],
         recipient1 = prepare_word(&created_note_2.recipient().digest()),
+        aux1 = created_note_2.metadata().aux(),
         tag1 = created_note_2.metadata().tag(),
         asset1 = prepare_assets(created_note_2.assets())[0],
     );
@@ -223,17 +227,19 @@ pub fn mock_notes(
             # create note 2
             push.{recipient}
             push.{PUBLIC_NOTE}
+            push.{aux}
             push.{tag}
             # MAST root of the `create_note` mock account procedure
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
             push.{asset} movup.4
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            drop drop dropw dropw
+            dropw dropw dropw
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient = prepare_word(&created_note_3.recipient().digest()),
+        aux = created_note_3.metadata().aux(),
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );

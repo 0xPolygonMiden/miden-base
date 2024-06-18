@@ -7,6 +7,7 @@ use miden_objects::{
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
+use vm_processor::EMPTY_WORD;
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
 use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
@@ -230,7 +231,7 @@ fn test_get_inputs() {
     fn construct_input_assertions(note: &Note) -> String {
         let mut code = String::new();
         for input_chunk in note.inputs().values().chunks(WORD_SIZE) {
-            let mut input_word = [ZERO; 4];
+            let mut input_word = EMPTY_WORD;
             input_word[..input_chunk.len()].copy_from_slice(input_chunk);
 
             code += &format!(

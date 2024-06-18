@@ -253,10 +253,12 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx]
 #!
 #! - tag is the tag to be included in the note.
+#! - aux is the auxiliary metadata to be included in the note.
+#! - note_type is the type of the note.
 #! - RECIPIENT defines spend conditions for the note.
 #! - note_idx is the index of the crated note.
 #!
@@ -271,33 +273,30 @@ export.create_note
 
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
-    dup.1 push.OFFCHAIN_NOTE eq dup.2 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
-    # => [tag, note_type, RECIPIENT]
+    dup.2 push.OFFCHAIN_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    # => [tag, aux, note_type, RECIPIENT]
 
     # copy data to validate the tag
-    dup.1 push.PUBLIC_NOTE dup.1 dup.3
-    # => [tag, note_type, public_note, note_type, tag, note_type, RECIPIENT]
+    dup.2 push.PUBLIC_NOTE dup.1 dup.3
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, RECIPIENT]
 
     u32assert.err=ERR_NOTE_TAG_MUST_BE_U32
-    # => [tag, note_type, public_note, note_type, tag, note_type, RECIPIENT]
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, RECIPIENT]
 
     # enforce the note type depending on the tag's bits
     u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
-    # => [tag, note_type, RECIPIENT]
+    # => [tag, aux, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
-    exec.increment_num_created_notes dup movdn.7
-    # => [note_idx, tag, note_type, RECIPIENT, note_idx]
+    exec.increment_num_created_notes dup movdn.8
+    # => [note_idx, tag, aux, note_type, RECIPIENT, note_idx]
 
     # get a pointer to the memory address at which the note will be stored
     exec.memory::get_created_note_ptr
-    # => [note_ptr, tag, note_type, RECIPIENT, note_idx]
+    # => [note_ptr, tag, aux, note_type, RECIPIENT, note_idx]
 
     # populate the metadata
-    swap exec.account::get_id movup.3
-    # => [note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
-
-    push.0 # TODO: allow the user to push the aux data
+    swap exec.account::get_id movup.4 movup.4
     # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
     # emit event to signal that a new note is created

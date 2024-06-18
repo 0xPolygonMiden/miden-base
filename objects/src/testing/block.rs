@@ -4,6 +4,7 @@ use core::fmt;
 use miden_crypto::merkle::{Mmr, PartialMmr, SimpleSmt, Smt};
 use vm_core::{utils::Serializable, Felt, Word, ZERO};
 use vm_processor::Digest;
+#[cfg(not(target_family = "wasm"))]
 use winter_rand_utils as rand;
 
 use crate::{
@@ -342,14 +343,20 @@ impl MockChain {
 }
 
 impl BlockHeader {
+    /// Creates a mock block. The account tree is formed from the provided `accounts`,
+    /// and the chain root and note root are set to the provided `chain_root` and `note_root`
+    /// values respectively.
+    ///
+    /// For non-WASM targets, the remaining header values are initialized randomly. For WASM
+    /// targets, values are initialized to [Default::default()]
     pub fn mock(
         block_num: u32,
         chain_root: Option<Digest>,
         note_root: Option<Digest>,
-        accts: &[Account],
+        accounts: &[Account],
     ) -> Self {
         let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
-            accts
+            accounts
                 .iter()
                 .flat_map(|acct| {
                     if acct.is_new() {
@@ -362,14 +369,24 @@ impl BlockHeader {
                 .collect::<Vec<_>>(),
         )
         .expect("failed to create account db");
-
-        let prev_hash = rand::rand_array().into();
-        let chain_root = chain_root.unwrap_or(rand::rand_array().into());
         let acct_root = acct_db.root();
-        let nullifier_root = rand::rand_array().into();
-        let note_root = note_root.unwrap_or(rand::rand_array().into());
-        let tx_hash = rand::rand_array().into();
-        let proof_hash = rand::rand_array().into();
+
+        #[cfg(not(target_family = "wasm"))]
+        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
+            let prev_hash = rand::rand_array().into();
+            let chain_root = chain_root.unwrap_or(rand::rand_array().into());
+            let nullifier_root = rand::rand_array().into();
+            let note_root = note_root.unwrap_or(rand::rand_array().into());
+            let tx_hash = rand::rand_array().into();
+            let proof_hash = rand::rand_array().into();
+            let timestamp = rand::rand_value();
+
+            (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp)
+        };
+
+        #[cfg(target_family = "wasm")]
+        let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) =
+            Default::default();
 
         BlockHeader::new(
             0,
@@ -381,7 +398,7 @@ impl BlockHeader {
             note_root,
             tx_hash,
             proof_hash,
-            rand::rand_value(),
+            timestamp,
         )
     }
 }

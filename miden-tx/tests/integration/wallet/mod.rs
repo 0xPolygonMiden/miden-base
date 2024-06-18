@@ -138,6 +138,7 @@ fn prove_send_asset_via_wallet() {
         .collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let note_type = NoteType::OffChain;
 
@@ -151,10 +152,11 @@ fn prove_send_asset_via_wallet() {
         begin
             push.{recipient}
             push.{note_type}
+            push.{aux}
             push.{tag}
             push.{asset}
             call.wallet::send_asset
-            drop drop dropw dropw
+            dropw dropw dropw dropw
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ",

@@ -54,6 +54,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let aux = Felt::new(27);
     let note_type = NoteType::OffChain;
     let amount = Felt::new(100);
 
@@ -69,6 +70,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -80,6 +82,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             ",
             note_type = note_type as u8,
             recipient = prepare_word(&recipient),
+            aux = aux,
             tag = u32::from(tag),
         )
         .as_str(),
@@ -106,7 +109,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(created_note.id(), id);
     assert_eq!(
         created_note.metadata(),
-        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, aux).unwrap()
     );
 }
 
@@ -132,6 +135,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         .collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = Felt::new(4);
     let amount = Felt::new(250);
 
@@ -145,6 +149,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute

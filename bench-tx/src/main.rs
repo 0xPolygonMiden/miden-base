@@ -127,6 +127,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
+        Felt::new(0),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();

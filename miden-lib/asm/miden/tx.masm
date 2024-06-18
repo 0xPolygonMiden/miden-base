@@ -14,7 +14,7 @@ end
 
 #! Returns the block hash of the reference block.
 #!
-#! Stack: [ZERO]
+#! Stack: [EMPTY_WORD]
 #! Output: [BLOCK_HASH]
 #!
 #! Where:
@@ -55,16 +55,17 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx]
 #!
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary metadata to be included in the note.
 #! note_type is the storage type of the note
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
     syscall.create_note
-    # => [note_idx, ZERO, 0]
+    # => [note_idx, EMPTY_WORD, 0]
 
     # clear the padding from the kernel response
     movdn.4 dropw swap drop
@@ -80,31 +81,25 @@ end
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     syscall.add_asset_to_note
-    # => [note_idx, ZERO]
+    # => [note_idx, EMPTY_WORD]
 
     # clear the padding from the kernel response
     movdn.4 dropw
     # => [note_idx]
 end
 
-#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and input
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
 #!
-#! Inputs: [SERIAL_NUM, SCRIPT_HASH, input]
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
 #! Outputs: [RECIPIENT]
 #!
-#! Only allows a single input currently
 export.build_recipient_hash
   padw hmerge
-  # => [SERIAL_NUM_HASH, SCRIPT_HASH, input]
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
 
-# merge SERIAL_NUM_HASH and SCRIPT_HASH
   swapw hmerge
-  # => [SERIAL_SCRIPT_HASH, input]
+  # => [MERGE_SCRIPT, INPUT_HASH]
 
-  # compute the INPUT_HASH. Note: only one input is allowed
-  swapw swap.3 padw hmerge
-  # => [INPUT_HASH, SERIAL_SCRIPT_HASH]
-
-  hmerge
+  swapw hmerge
   # [RECIPIENT]
 end

@@ -52,9 +52,9 @@ export.get_balance
     padw movup.5 mem_loadw
     # => [ASSET_VAULT_ROOT, faucet_id]
 
-    # prepare the key for fungible asset lookup (pad least significant elements with ZERO)
+    # prepare the key for fungible asset lookup (pad least significant elements with zeros)
     push.0 push.0 push.0 movup.7
-    # => [faucet_id, PAD, PAD, PAD, ASSET_VAULT_ROOT]
+    # => [faucet_id, 0, 0, 0, ASSET_VAULT_ROOT]
 
     # lookup asset
     exec.smt::get swapw dropw

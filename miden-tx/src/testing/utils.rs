@@ -1,6 +1,10 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::{memory, TransactionKernel};
+#[cfg(not(target_family = "wasm"))]
+use miden_lib::transaction::TransactionKernel;
+use miden_lib::transaction::{memory, ToTransactionKernelInputs};
+#[cfg(feature = "std")]
+use miden_objects::Felt;
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
@@ -11,13 +15,20 @@ use miden_objects::{
         block::{MockChain, MockChainBuilder},
         notes::AssetPreservationStatus,
     },
-    transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
+    transaction::{
+        ExecutedTransaction, OutputNote, OutputNotes, PreparedTransaction, TransactionOutputs,
+    },
     vm::CodeBlock,
     FieldElement,
 };
-use vm_processor::{AdviceInputs, Felt, Operation, Program, ZERO};
+#[cfg(not(target_family = "wasm"))]
+use vm_processor::Word;
+use vm_processor::{AdviceInputs, ExecutionError, Operation, Process, Program, ZERO};
+#[cfg(feature = "std")]
+use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
 
 use super::TransactionContextBuilder;
+use crate::testing::MockHost;
 
 // TEST HELPERS
 // ================================================================================================
@@ -52,6 +63,7 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         .cloned()
         .map(OutputNote::Full)
         .collect();
+
     let tx_outputs = TransactionOutputs {
         account: final_account.into(),
         output_notes: OutputNotes::new(output_notes).unwrap(),

@@ -53,7 +53,7 @@ const.STORAGE_TREE_DEPTH=8
 const.ACCOUNT_CODE_TREE_DEPTH=8
 
 # The account storage slot at which faucet data is stored.
-# Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+# Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
 # Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 const.FAUCET_STORAGE_DATA_SLOT=254
 
@@ -76,9 +76,9 @@ const.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT=131078
 # Event emitted after an account storage map item is updated.
 const.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT=131079
 
-# Event emitted before an account nonce is incremented. 
+# Event emitted before an account nonce is incremented.
 const.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT=131080
-# Event emitted after an account nonce is incremented. 
+# Event emitted after an account nonce is incremented.
 const.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT=131081
 
 # Event emitted to push the index of the account procedure at the top of the operand stack onto
@@ -89,7 +89,7 @@ const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 # =================================================================================================
 
 #! Returns the account storage slot at which faucet data is stored.
-#! Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+#! Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
 #! Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 #!
 #! Stack: []
@@ -357,7 +357,7 @@ export.set_item
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
-    # duplicate the index and the V' to be able to emit an event after an account storage item is 
+    # duplicate the index and the V' to be able to emit an event after an account storage item is
     # being updated
     movdn.4 dupw dup.8
     # => [index, V', V', index]
@@ -394,7 +394,7 @@ export.set_map_item.2
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is 
+    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item is
     # being updated
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
@@ -403,15 +403,15 @@ export.set_map_item.2
     # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
-    # store OLD_VALUE and NEW_ROOT until the end of the procedure 
+    # store OLD_VALUE and NEW_ROOT until the end of the procedure
     loc_storew.0 dropw loc_storew.1 dropw
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
-    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop 
+    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
     # => [KEY, NEW_VALUE, ...]
 
-    # load OLD_VALUE and NEW_ROOT on the top of the stack 
+    # load OLD_VALUE and NEW_ROOT on the top of the stack
     loc_loadw.1 swapw loc_loadw.0
     # => [OLD_VALUE, NEW_ROOT]
 end

@@ -6,7 +6,7 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
     utils::{group_slice_elements, serde::DeserializationError},
     vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word, ZERO,
+    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
 
@@ -29,11 +29,6 @@ mod errors;
 pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
-
-// CONSTANTS
-// ================================================================================================
-
-const ZERO_WORD: [Felt; 4] = [ZERO, ZERO, ZERO, ZERO];
 
 // TRANSACTION KERNEL
 // ================================================================================================
@@ -101,7 +96,7 @@ impl TransactionKernel {
     /// Where:
     /// - BLOCK_HASH, reference block for the transaction execution.
     /// - acct_id, the account that the transaction is being executed against.
-    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
         acct_id: AccountId,
@@ -143,7 +138,7 @@ impl TransactionKernel {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - Words 3 and 4 on the stack are not ZERO.
+    /// - Words 3 and 4 on the stack are not 0.
     /// - Overflow addresses are not empty.
     pub fn parse_output_stack(
         stack: &StackOutputs,
@@ -158,12 +153,12 @@ impl TransactionKernel {
             .into();
 
         // make sure that the stack has been properly cleaned
-        if stack.get_stack_word(8).expect("third word missing") != ZERO_WORD {
+        if stack.get_stack_word(8).expect("third word missing") != EMPTY_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Third word on output stack should consist only of ZEROs".into(),
             ));
         }
-        if stack.get_stack_word(12).expect("fourth word missing") != ZERO_WORD {
+        if stack.get_stack_word(12).expect("fourth word missing") != EMPTY_WORD {
             return Err(TransactionOutputError::OutputStackInvalid(
                 "Fourth word on output stack should consist only of ZEROs".into(),
             ));

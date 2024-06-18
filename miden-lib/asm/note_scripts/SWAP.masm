@@ -39,11 +39,11 @@ begin
     dropw
     # => []
 
-    # store asset into memory at address 3
+    # store ASSET into memory at address 3
     push.3 exec.note::get_assets assert.err=ERR_SWAP_WRONG_NUMBER_OF_ASSETS
     # => [ptr]
 
-    # load the asset and add it to the account
+    # load the ASSET and add it to the account
     mem_loadw call.wallet::receive_asset dropw
     # => []
 
@@ -55,7 +55,7 @@ begin
     eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
-    # load recipient
+    # load RECIPIENT
     drop padw mem_loadw
     # => [RECIPIENT]
 
@@ -71,9 +71,13 @@ begin
     push.OFFCHAIN_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
 
+    # we add aux = 0 to the note assuming we don't need it for the second leg of the SWAP
+    push.0 movdn.5
+    # => [ASSET, tag, aux, note_type, RECIPIENT]
+
     # create a note using inputs
     call.wallet::send_asset
-    # => [ptr, ZERO, ZERO, 0]
+    # => [ptr, EMPTY_WORD, EMPTY_WORD, 0]
 
     # clean stack
     dropw dropw drop drop

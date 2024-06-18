@@ -3,6 +3,11 @@
 ## 0.4.0 (TBD)
 
 ### Enhancements
+
+- Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706)
+- Added ability for users to set the aux field when creating a note (#752)
+- Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748)
+- Fixed documentation and added `make doc` CI job (#746)
 - Made `DataStore` conditionally async using `winter-maybe-async` (#725)
 - Add `Option<NoteTag>`to `NoteFile` (#741).
 - Replaced `cargo-make` with just `make` for running tasks (#696).

@@ -82,7 +82,7 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - acct_id is the account id of the account that the transaction is being executed against.
-#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 proc.process_global_inputs
     exec.memory::set_block_hash
@@ -105,7 +105,7 @@ end
 #!     TX_HASH,
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     ZERO,
+#!     EMPTY_WORD,
 #!     NOTE_ROOT,
 #! ]
 #! Output: []
@@ -214,7 +214,7 @@ proc.ingest_acct_storage_types
 
     # prepare the stack for reading storage slot types
     padw padw padw
-    # => [ZERO, ZERO, ZERO, slot_type_data_ptr, TYPES_COM]
+    # => [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, slot_type_data_ptr, TYPES_COM]
 
     # read the storage slot types from the advice provider and store in memory
     repeat.32
@@ -390,7 +390,7 @@ end
 #!
 #! - Read the account data from the advice stack
 #! - Save it to memory
-#! - For new accounts, signaled by having a INITIAL_ACCOUNT_HASH set to ZERO as a global input,
+#! - For new accounts, signaled by having a INITIAL_ACCOUNT_HASH set to EMPTY_WORD as a global input,
 #!   validate the account's id and initial state
 #! - For existing accounts, verify the INITIAL_ACCOUNT_HASH commitment matches the provided data,
 #!   and the account nonce is not zero
@@ -425,9 +425,9 @@ proc.process_account_data
     # Validate the account
     # ---------------------------------------------------------------------------------------------
 
-    # It is a new account if the global input INITIAL_ACCOUNT_HASH was set to ZERO.
+    # It is a new account if the global input INITIAL_ACCOUNT_HASH was set to EMPTY_WORD.
     padw exec.memory::get_init_acct_hash eqw
-    # => [is_new, INITIAL_ACCOUNT_HASH, ZERO, ACCT_HASH]
+    # => [is_new, INITIAL_ACCOUNT_HASH, EMPTY_WORD, ACCT_HASH]
 
     # clean the stack
     movdn.8 dropw dropw
@@ -605,7 +605,7 @@ proc.process_input_note
     # => [NULLIFIER, note_ptr, idx]
 
     # save nullifier to memory
-    movup.6 exec.memory::get_consumed_note_nullifier_ptr
+    movup.5 exec.memory::get_consumed_note_nullifier_ptr
     mem_storew dropw
     # => [note_ptr]
 
@@ -712,15 +712,15 @@ proc.process_input_note
     # authentication hash
     # ---------------------------------------------------------------------------------------------
 
-    # compute the serial hash: hash(serial_num, ZERO)
+    # compute the serial hash: hash(SERIAL_NUMBER, EMPTY_WORD)
     dup exec.memory::get_consumed_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
-    # compute merge script hash: hash(hash(serial_num, ZERO), script_hash)
+    # compute merge script hash: hash(hash(serial_num, EMPTY_WORD), script_hash)
     dup.4 exec.memory::get_consumed_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
-    # compute recipient: hash(hash(hash(serial_num, ZERO), script_hash), input_hash)
+    # compute recipient: hash(hash(hash(serial_num, EMPTY_WORD), script_hash), input_hash)
     dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
     # => [RECIPIENT, note_ptr]
 
@@ -747,7 +747,7 @@ end
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
 #! processed its hash and nullifier are computed. The transaction nullifier commitment is computed via
-#! a sequential hash of all (nullifier, ZERO) pairs for all input notes.
+#! a sequential hash of all (nullifier, EMPTY_WORD) pairs for all input notes.
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
@@ -826,7 +826,7 @@ proc.process_input_notes_data
         # hasher operates in overwrite mode, drop rate words
         dropw dropw
 
-        # ingest next pair `(NULLIFIER, ZERO)`
+        # ingest next pair `(NULLIFIER, EMPTY_WORD)`
         dup.4 exec.memory::get_consumed_note_nullifier padw hperm
         # => [PERM, PERM, CAP, num_processed_notes, num_notes, ...]
 
@@ -840,7 +840,7 @@ proc.process_input_notes_data
     # => [INPUT_NOTES_COMMITMENT, num_processed_notes + 1, num_notes, ...]
 
     # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
-    # hash should be [ZERO; 4] because the while loop above was not entered and, thus, hperm
+    # hash should be EMPTY_WORD because the while loop above was not entered and, thus, hperm
     # instruction was not executed.
     exec.memory::get_input_notes_commitment
     assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH
@@ -899,7 +899,7 @@ end
 #!     TX_HASH,
 #!     PROOF_HASH,
 #!     [block_num, version, timestamp, 0],
-#!     ZERO,
+#!     EMPTY_WORD,
 #!     NOTE_ROOT,
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
@@ -917,7 +917,7 @@ end
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
-#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, ZERO for new accounts.
+#! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.

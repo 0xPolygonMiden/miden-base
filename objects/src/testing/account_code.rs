@@ -6,12 +6,12 @@ use crate::accounts::AccountCode;
 // account's procedures.
 const MASTS: [&str; 11] = [
     "0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167",
-    "0x53f9670f00286a3751775c598df074a420c242818120d65668dd5d427bbbb347",
+    "0x549d264f00f1a6e90d47284e99eab6d0f93a3d41bb5324743607b6902978a809",
     "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35",
     "0xa27f4acf44ab50969468ea3fccbaae3893bd2117d2e0a60b7440df4ddb3a4585",
     "0x646ab6d0a53288f01083943116d01f216e77adfe21a495ae8d4670b4be40facf",
     "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x4be138ac7957951b2f5dd55bb122f0e45397e45bb169704f00bfb99791069a4b",
+    "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872",
     "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
     "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
@@ -62,85 +62,85 @@ impl AccountCode {
     /// Creates a mock [AccountCode] that exposes wallet interface
     pub fn mock_wallet(assembler: &Assembler) -> AccountCode {
         let account_code = "\
-                use.miden::account
-                use.miden::tx
-                use.miden::contracts::wallets::basic->wallet
-    
-                # acct proc 0
-                export.wallet::receive_asset
-                # acct proc 1
-                export.wallet::send_asset
-    
-                # acct proc 2
-                export.incr_nonce
-                    push.0 swap
-                    # => [value, 0]
-    
-                    exec.account::incr_nonce
-                    # => [0]
-                end
-    
-                # acct proc 3
-                export.set_item
-                    exec.account::set_item
-                    # => [R', V, 0, 0, 0]
-    
-                    movup.8 drop movup.8 drop movup.8 drop
-                    # => [R', V]
-                end
-    
-                # acct proc 4
-                export.set_map_item
-                    exec.account::set_map_item
-                    # => [R', V, 0, 0, 0]
-    
-                    movup.8 drop movup.8 drop movup.8 drop
-                    # => [R', V]
-                end
-    
-                # acct proc 5
-                export.set_code
-                    padw swapw
-                    # => [CODE_ROOT, 0, 0, 0, 0]
-    
-                    exec.account::set_code
-                    # => [0, 0, 0, 0]
-                end
-    
-                # acct proc 6
-                export.create_note
-                    exec.tx::create_note
-                    # => [ptr]
-    
-                    swap drop swap drop swap drop
-                end
-    
-                # acct proc 7
-                export.add_asset_to_note
-                    exec.tx::add_asset_to_note
-                    # => [ptr]
-    
-                    swap drop swap drop swap drop
-                end
-    
-                # acct proc 8
-                export.remove_asset
-                    exec.account::remove_asset
-                    # => [ASSET]
-                end
-    
-                # acct proc 9
-                export.account_procedure_1
-                    push.1.2
-                    add
-                end
-    
-                # acct proc 10
-                export.account_procedure_2
-                    push.2.1
-                    sub
-                end
-                ";
+        use.miden::account
+        use.miden::tx
+        use.miden::contracts::wallets::basic->wallet
+
+        # acct proc 0
+        export.wallet::receive_asset
+        # acct proc 1
+        export.wallet::send_asset
+
+        # acct proc 2
+        export.incr_nonce
+            push.0 swap
+            # => [value, 0]
+
+            exec.account::incr_nonce
+            # => [0]
+        end
+
+        # acct proc 3
+        export.set_item
+            exec.account::set_item
+            # => [R', V, 0, 0, 0]
+
+            movup.8 drop movup.8 drop movup.8 drop
+            # => [R', V]
+        end
+
+        # acct proc 4
+        export.set_map_item
+            exec.account::set_map_item
+            # => [R', V, 0, 0, 0]
+
+            movup.8 drop movup.8 drop movup.8 drop
+            # => [R', V]
+        end
+
+        # acct proc 5
+        export.set_code
+            padw swapw
+            # => [CODE_ROOT, 0, 0, 0, 0]
+
+            exec.account::set_code
+            # => [0, 0, 0, 0]
+        end
+
+        # acct proc 6
+        export.create_note
+            exec.tx::create_note
+            # => [note_idx]
+
+            swapw dropw swap drop
+        end
+
+        # acct proc 7
+        export.add_asset_to_note
+            exec.tx::add_asset_to_note
+            # => [note_idx]
+
+            swap drop swap drop swap drop
+        end
+
+        # acct proc 8
+        export.remove_asset
+            exec.account::remove_asset
+            # => [ASSET]
+        end
+
+        # acct proc 9
+        export.account_procedure_1
+            push.1.2
+            add
+        end
+
+        # acct proc 10
+        export.account_procedure_2
+            push.2.1
+            sub
+        end
+        ";
         let account_module_ast = ModuleAst::parse(account_code).unwrap();
         let code = AccountCode::new(account_module_ast, assembler).unwrap();
 

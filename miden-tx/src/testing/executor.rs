@@ -1,7 +1,26 @@
 use alloc::string::{String, ToString};
 use std::{io::Read, path::PathBuf};
 
+#[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
+use miden_lib::transaction::{memory, ToTransactionKernelInputs};
+use miden_objects::{
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountCode, AccountDelta,
+    },
+    notes::Note,
+    testing::{
+        block::{MockChain, MockChainBuilder},
+        notes::AssetPreservationStatus,
+    },
+    transaction::{
+        ExecutedTransaction, OutputNote, OutputNotes, PreparedTransaction, TransactionOutputs,
+    },
+    vm::CodeBlock,
+    FieldElement,
+};
+#[cfg(feature = "std")]
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
     Program, StackInputs,

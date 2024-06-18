@@ -38,10 +38,13 @@ impl StorageMap {
     /// Depth of the storage tree.
     pub const STORAGE_MAP_TREE_DEPTH: u8 = SMT_DEPTH;
 
+    /// The default value of empty leaves.
+    pub const EMPTY_VALUE: Word = Smt::EMPTY_VALUE;
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AccountStorageMap].
+    /// Returns a new [StorageMap].
     ///
     /// All leaves in the returned tree are set to [Self::EMPTY_VALUE].
     pub fn new() -> Self {
