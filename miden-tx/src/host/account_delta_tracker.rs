@@ -132,6 +132,11 @@ impl AccountStorageDeltaTracker {
     pub fn maps_update(&mut self, slot_index: u8, key: [Felt; 4], new_value: [Felt; 4]) {
         self.maps_updates.entry(slot_index).or_default().push((key, new_value));
     }
+
+    /// Returns true if there is a maps_update for the given slot_index
+    pub fn has_maps_update(&mut self, slot_index: &u8) -> bool {
+        self.maps_updates.contains_key(slot_index)
+    }
 }
 
 // ACCOUNT VAULT DELTA TRACKER

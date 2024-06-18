@@ -272,10 +272,27 @@ impl AccountStorage {
                 return Err(AccountError::StorageSlotIsReserved(slot_idx));
             }
 
-            // pick the right storage map and apply delta
-            let storage_map =
-                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
-            storage_map.apply_delta(map_delta)?;
+            // only storage slots of type map can be updated. is_default() returns true for
+            // StorageSlotType::Value { value_arity: 0 }
+            if self.layout()[slot_idx as usize].is_default() {
+                return Err(AccountError::MapUpdateToStorageSlotValue(slot_idx));
+            }
+
+            {
+                // Scope the mutable borrow of self.maps
+                // pick the right storage map and apply delta
+                let storage_map = self
+                    .maps
+                    .get_mut(&slot_idx)
+                    .ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+                storage_map.apply_delta(map_delta)?;
+
+                // update the root of the storage map in the corresponding storage slot
+                let new_root = storage_map.root().into();
+
+                // update the root of the storage map in the corresponding storage slot
+                self.set_item(slot_idx, new_root)?;
+            }
         }
 
         // --- update storage slots -------------------------------------------
