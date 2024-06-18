@@ -309,3 +309,18 @@ export.compute_output_notes_commitment
     movup.4 drop
     # => [OUTPUT_NOTES_COMMITMENT, ...]
 end
+
+#! Returns the serial number of the note currently being processed.
+#! Panics if no note is not being processed.
+#!
+#! Inputs: []
+#! Outputs: [SERIAL_NUMBER]
+#!
+#! - SERIAL_NUMBER is the serial number of the note currently being processed.
+export.get_serial_number
+    exec.memory::get_current_consumed_note_ptr
+    # => [note_ptr]
+
+    exec.memory::get_consumed_note_serial_num
+    # => [serial_number, note_ptr]
+end
