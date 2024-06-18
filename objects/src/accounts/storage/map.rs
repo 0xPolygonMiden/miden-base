@@ -1,15 +1,10 @@
-use vm_core::EMPTY_WORD;
-
 use super::{
     AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word,
 };
-use crate::{
-    accounts::StorageMapDelta,
-    crypto::{
-        hash::rpo::RpoDigest,
-        merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
-    },
+use crate::crypto::{
+    hash::rpo::RpoDigest,
+    merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
 };
 
 // ACCOUNT STORAGE MAP
@@ -105,41 +100,6 @@ impl StorageMap {
     // --------------------------------------------------------------------------------------------
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
         self.map.insert(key, value) // Delegate to Smt's insert method
-    }
-
-    /// Applies the provided delta to this account storage.
-    ///
-    /// This method assumes that the delta has been validated by the calling method and so, no
-    /// additional validation of delta is performed.
-    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Result<(), AccountError> {
-        // apply the updated leaves to the storage map
-        for &(key, value) in delta.updated_leaves.iter() {
-            self.set_map_item(key, value)?;
-        }
-
-        // apply the cleared leaves to the storage map
-        // currently we cannot remove leaves from the storage map, so we just set them to empty
-        for &key in delta.cleared_leaves.iter() {
-            self.set_map_item(key, EMPTY_WORD)?;
-        }
-
-        Ok(())
-    }
-
-    /// Sets a map item from the storage at the specified index.
-    pub fn set_map_item(&mut self, key: Word, value: Word) -> Result<(Word, Word), AccountError> {
-        let old_map_root = self.root();
-        let old_value = self.get_value(&RpoDigest::from(key));
-
-        if value == EMPTY_WORD {
-            // if the value is empty, remove the leaf from the storage map
-            self.map.insert(key.into(), value);
-        } else {
-            // insert the value into the storage map
-            self.map.insert(key.into(), value);
-        }
-
-        Ok((old_map_root.into(), old_value))
     }
 }
 
