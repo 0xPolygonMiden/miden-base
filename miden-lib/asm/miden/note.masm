@@ -156,14 +156,14 @@ export.compute_inputs_hash
     # => [num_inputs, inputs_ptr]
 
     # check that number of inputs is less than 128
-    dup push.128 u32lte assert
+    dup push.128 u32assert2 u32lte assert.err=ERR_NOTE_TOO_MANY_INPUTS
     # => [num_inputs, inputs_ptr]
 
-    # get the number of word pairs to be hashed
+    # get the number of double words
     u32divmod.8 swap
     # => [num_inputs/8, num_inputs%8, inputs_ptr]
 
-    # get the end_addr for hash_memory_even proc
+    # get the end_addr for hash_memory_even proc (end address for pairs of words)
     u32wrapping_mul.2 dup.2 u32wrapping_add movup.2
     # => [inputs_ptr, end_addr, num_inputs%8]
 
@@ -175,67 +175,93 @@ export.compute_inputs_hash
     push.0.0.0 padw padw 
     # => [C, B, A, inputs_ptr, end_addr, num_inputs%8]
 
-    exec.native::hash_memory_even
+    # hash every pair of words
+    dup.13 dup.13 neq
+    if.true
+        exec.native::hash_memory_even
+    end
     # => [C', B', A', inputs_ptr', end_addr, num_inputs%8] where inputs_ptr' = end_addr
 
+    # hash remaining input values if there any left
     # if num_inputs%8 is not ZERO
     dup.14 push.0 neq
     if.true
-        mem_stream
-        # => [E, D, A', inputs_ptr'+2, end_addr, num_inputs%8]
+        # if there are exactly 4 elements left to hash, just pad them with [0, 0, 0, 1] Word
+        dup.14 eq.4
+        if.true
+            # load the remaining word
+            dropw movup.8 mem_loadw
+            # => [B'', A', end_addr, num_inputs%8]
 
-        # clean the stack
-        movup.12 drop movup.12 drop
-        # => [E, D, A', num_inputs%8]
+            # clean the stack
+            movupw.2 dropw
+            # => [B'', A', end_addr, num_inputs%8]
 
-        # get the number of elements we need to drop
-        push.8 movup.13 u32wrapping_sub movdn.12
-        # => [E, D, A', drop_counter]
+            # push the capacity word
+            push.1.0.0.0
+            hperm
+            # => [F, E, D]
 
-        # get the number of zeros we will need to dap
-        dup.12 u32wrapping_sub.1 movdn.13
-        # => [E, D, A', drop_counter, zero_counter]
+            exec.native::state_to_digest
+            # => [E]
+        else
+            # load the remaining double word
+            mem_stream
+            # => [E, D, A', inputs_ptr'+2, end_addr, num_inputs%8]
 
-        # check the drop_counter
-        dup.12 neq.0
-        while.true
-            # decrease the counter
-            movup.12 u32wrapping_sub.1 movdn.12
+            # clean the stack
+            movup.12 drop movup.12 drop
+            # => [E, D, A', num_inputs%8]
 
-            # drop the top element, push 0 to the stack and move it down to maintain the overall number
-            # of elements on stack to be able to access the drop_counter at position 12
-            drop push.0 movdn.11
+            # get the number of elements we need to drop
+            push.8 movup.13 u32wrapping_sub movdn.12
+            # => [E, D, A', drop_counter]
+
+            # get the number of zeros we will need to pad
+            dup.12 u32wrapping_sub.1 movdn.13
+            # => [E, D, A', drop_counter, zero_counter]
 
             # check the drop_counter
             dup.12 neq.0
-        end
-        # => [a, ..., x, A', 0, ..., 0, 0, zero_counter]
-        #                               ^-- 12th position
+            while.true
+                # decrease the counter
+                movup.12 u32wrapping_sub.1 movdn.12
 
-        # push the dividing 1 (move the previously added zero and incr it)
-        movup.12 add.1
-        # => [1, a, ..., x, A', 0, ..., 0, 0, zero_counter]
-        #                                  ^-- 12th position
+                # drop the top element, push 0 to the stack and move it down to maintain the overall
+                # number of elements on stack to be able to access the drop_counter at position 12
+                drop push.0 movdn.11
 
-        # check the zero_counter
-        dup.13 neq.0
-        while.true
-            # decrease the counter
-            movup.13 u32wrapping_sub.1 movdn.13
+                # check the drop_counter
+                dup.12 neq.0
+            end
+            # => [a, ..., x, A', 0, ..., 0, 0, zero_counter]
+            #                               ^-- 12th position
 
-            # move the previously added zero
-            movup.12
+            # push the dividing 1 (move the previously added zero and incr it)
+            movup.12 add.1
+            # => [1, a, ..., x, A', 0, ..., 0, 0, zero_counter]
+            #                                  ^-- 12th position
 
             # check the zero_counter
             dup.13 neq.0
-        end
-        # => [C, B, A', 0, 0, ... ]
-        
-        hperm
-        # => [F, E, D]
+            while.true
+                # decrease the counter
+                movup.13 u32wrapping_sub.1 movdn.13
 
-        exec.native::state_to_digest
-        # => [E]
+                # move the previously added zero
+                movup.12
+
+                # check the zero_counter
+                dup.13 neq.0
+            end
+            # => [C, B, A', 0, 0, ... ]
+            
+            hperm
+            # => [F, E, D]
+
+            exec.native::state_to_digest
+            # => [E]
+        end
     else
         dropw movdnw.2 dropw dropw
         # => [B']
