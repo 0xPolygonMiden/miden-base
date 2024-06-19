@@ -33,7 +33,7 @@ use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs_with_account_seed,
+        create_mock_account, mock_inputs_with_account_seed,
         utils::{
             consumed_note_data_ptr, load_file_with_code, prepare_transaction, run_tx_with_inputs,
         },
@@ -49,7 +49,7 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 #[test]
 fn test_transaction_prologue() {
     let (tx_inputs, tx_args_notes) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -360,7 +360,7 @@ pub fn test_prologue_create_account() {
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardNew,
+        create_mock_account(MockAccountType::StandardNew),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -384,11 +384,11 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: true,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -414,11 +414,11 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -444,11 +444,11 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: true,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -474,11 +474,11 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: acct_id.into(),
             nonce: ZERO,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -503,7 +503,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         &TransactionKernel::assembler(),
     );
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardNew,
+        create_mock_account(MockAccountType::StandardNew),
         AssetPreservationStatus::Preserved,
         Some(account_seed),
     );
@@ -530,7 +530,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 #[test]
 fn test_get_blk_version() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -553,7 +553,7 @@ fn test_get_blk_version() {
 #[test]
 fn test_get_blk_timestamp() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );

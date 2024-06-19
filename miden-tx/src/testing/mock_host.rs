@@ -6,9 +6,10 @@ use alloc::string::ToString;
 use miden_lib::transaction::{TransactionEvent, TransactionKernel};
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, AccountDelta,
-        AccountStub, AccountVaultDelta,
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountDelta, AccountStub, AccountVaultDelta,
     },
+    assembly::Assembler,
     testing::{
         account::{mock_account, mock_new_account, MockAccountType},
         account_code::mock_account_code,
@@ -112,28 +113,33 @@ impl Host for MockHost {
     }
 }
 
-pub fn mock_inputs_with_account_seed(
-    account_type: MockAccountType,
-    asset_preservation: AssetPreservationStatus,
-    account_seed: Option<Word>,
-) -> (TransactionInputs, TransactionArgs) {
-    let assembler = &TransactionKernel::assembler();
+pub fn create_mock_account(account_type: MockAccountType) -> (Account, Assembler) {
+    let assembler = TransactionKernel::assembler();
     let account = match account_type {
-        MockAccountType::StandardNew => mock_new_account(assembler),
+        MockAccountType::StandardNew => mock_new_account(&assembler),
         MockAccountType::StandardExisting => mock_account(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             Felt::ONE,
-            mock_account_code(assembler),
+            mock_account_code(&assembler),
         ),
         MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+            mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
         MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
+            mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
         },
     };
 
-    let (input_notes, output_notes) = mock_notes(assembler, &asset_preservation);
+    (account, assembler)
+}
+
+pub fn mock_inputs_with_account_seed(
+    account_assembler: (Account, Assembler),
+    asset_preservation: AssetPreservationStatus,
+    account_seed: Option<Word>,
+) -> (TransactionInputs, TransactionArgs) {
+    let (account, assembler) = account_assembler;
+    let (input_notes, output_notes) = mock_notes(&assembler, &asset_preservation);
 
     let (chain_mmr, recorded_notes) = mock_chain_data(input_notes);
 

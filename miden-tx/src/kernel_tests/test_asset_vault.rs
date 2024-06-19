@@ -22,7 +22,7 @@ use super::{Felt, Word, ONE, ZERO};
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs_with_account_seed,
+        create_mock_account, mock_inputs_with_account_seed,
         utils::{prepare_transaction, run_tx_with_inputs},
     },
 };
@@ -30,7 +30,7 @@ use crate::{
 #[test]
 fn test_get_balance() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -61,7 +61,7 @@ fn test_get_balance() {
 #[test]
 fn test_get_balance_non_fungible_fails() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -88,7 +88,7 @@ fn test_get_balance_non_fungible_fails() {
 #[test]
 fn test_has_non_fungible_asset() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -117,7 +117,7 @@ fn test_has_non_fungible_asset() {
 #[test]
 fn test_add_fungible_asset_success() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -159,7 +159,7 @@ fn test_add_fungible_asset_success() {
 #[test]
 fn test_add_non_fungible_asset_fail_overflow() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -194,7 +194,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
 #[test]
 fn test_add_non_fungible_asset_success() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -239,7 +239,7 @@ fn test_add_non_fungible_asset_success() {
 #[test]
 fn test_add_non_fungible_asset_fail_duplicate() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -275,7 +275,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 #[test]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -317,7 +317,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 #[test]
 fn test_remove_fungible_asset_fail_remove_too_much() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -350,7 +350,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 #[test]
 fn test_remove_fungible_asset_success_balance_remaining() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -392,7 +392,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 #[test]
 fn test_remove_inexisting_non_fungible_asset_fails() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -439,7 +439,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 #[test]
 fn test_remove_non_fungible_asset_success() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );

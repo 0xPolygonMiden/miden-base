@@ -13,7 +13,7 @@ use super::{Felt, Process, ZERO};
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs_with_account_seed,
+        create_mock_account, mock_inputs_with_account_seed,
         utils::{consumed_note_data_ptr, prepare_transaction, run_tx_with_inputs},
         MockHost,
     },
@@ -22,7 +22,7 @@ use crate::{
 #[test]
 fn test_get_sender_no_sender() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -51,7 +51,7 @@ fn test_get_sender_no_sender() {
 #[test]
 fn test_get_sender() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -79,7 +79,7 @@ fn test_get_sender() {
 #[test]
 fn test_get_vault_data() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -131,7 +131,7 @@ fn test_get_vault_data() {
 #[test]
 fn test_get_assets() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -240,7 +240,7 @@ fn test_get_assets() {
 #[test]
 fn test_get_inputs() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -313,7 +313,7 @@ fn test_get_inputs() {
 #[test]
 fn test_note_setup() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -343,7 +343,7 @@ fn test_note_script_and_note_args() {
     ];
 
     let (tx_inputs, tx_args_notes) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );

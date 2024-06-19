@@ -19,7 +19,7 @@ use vm_processor::AdviceInputs;
 
 use super::ONE;
 use crate::testing::{
-    mock_inputs_with_account_seed,
+    create_mock_account, mock_inputs_with_account_seed,
     utils::{prepare_transaction, run_tx_with_inputs},
 };
 
@@ -29,11 +29,11 @@ use crate::testing::{
 #[test]
 fn test_mint_fungible_asset_succeeds() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -79,7 +79,7 @@ fn test_mint_fungible_asset_succeeds() {
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -106,11 +106,11 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 #[test]
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -138,11 +138,11 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -176,11 +176,11 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 #[test]
 fn test_mint_non_fungible_asset_succeeds() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -231,7 +231,7 @@ fn test_mint_non_fungible_asset_succeeds() {
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -261,7 +261,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -291,11 +291,11 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 #[test]
 fn test_mint_non_fungible_asset_fails_asset_already_exists() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -328,11 +328,11 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 #[test]
 fn test_burn_fungible_asset_succeeds() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -379,7 +379,7 @@ fn test_burn_fungible_asset_succeeds() {
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -407,11 +407,11 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 #[test]
 fn test_burn_fungible_asset_inconsistent_faucet_id() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -438,11 +438,11 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 #[test]
 fn test_burn_fungible_asset_insufficient_input_amount() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -476,11 +476,11 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 #[test]
 fn test_burn_non_fungible_asset_succeeds() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::TooManyNonFungibleInput,
         None,
     );
@@ -531,11 +531,11 @@ fn test_burn_non_fungible_asset_succeeds() {
 #[test]
 fn test_burn_non_fungible_asset_fails_does_not_exist() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::TooManyNonFungibleInput,
         None,
     );
@@ -570,7 +570,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 #[test]
 fn test_burn_non_fungible_asset_fails_not_faucet_account() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::TooManyNonFungibleInput,
         None,
     );
@@ -605,11 +605,11 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 #[test]
 fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::NonFungibleFaucet {
+        create_mock_account(MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::TooManyNonFungibleInput,
         None,
     );
@@ -647,11 +647,11 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 #[test]
 fn test_get_total_issuance_succeeds() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::FungibleFaucet {
+        create_mock_account(MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
-        },
+        }),
         AssetPreservationStatus::TooManyNonFungibleInput,
         None,
     );

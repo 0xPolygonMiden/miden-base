@@ -22,7 +22,7 @@ use super::{Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO}
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs_with_account_seed,
+        create_mock_account, mock_inputs_with_account_seed,
         utils::{prepare_transaction, run_tx_with_inputs, run_within_host},
     },
 };
@@ -30,7 +30,7 @@ use crate::{
 #[test]
 fn test_create_note() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -92,7 +92,7 @@ fn test_create_note() {
 #[test]
 fn test_create_note_with_invalid_tag() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -172,7 +172,7 @@ fn test_create_note_too_many_notes() {
 #[test]
 fn test_get_output_notes_hash() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -303,7 +303,7 @@ fn test_get_output_notes_hash() {
 #[test]
 fn test_create_note_and_add_asset() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -361,7 +361,7 @@ fn test_create_note_and_add_asset() {
 #[test]
 fn test_create_note_and_add_multiple_assets() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -451,7 +451,7 @@ fn test_create_note_and_add_multiple_assets() {
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
@@ -502,7 +502,7 @@ fn test_create_note_and_add_same_nft_twice() {
 #[test]
 fn test_build_recipient_hash() {
     let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
-        MockAccountType::StandardExisting,
+        create_mock_account(MockAccountType::StandardExisting),
         AssetPreservationStatus::Preserved,
         None,
     );
