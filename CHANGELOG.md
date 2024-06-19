@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+- Created `get_serial_number` procedure to get the serial num of the currently processed note(#760)
 - Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706)
 - Added ability for users to set the aux field when creating a note (#752)
 - Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748)

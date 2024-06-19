@@ -658,3 +658,19 @@ export.get_fungible_faucet_total_issuance
     swap drop
     # => []
 end
+
+#! Returns the serial number of the note currently being processed.
+#! Panics if no note is not being processed.
+#!
+#! Inputs: []
+#! Outputs: [SERIAL_NUMBER]
+#!
+#! - SERIAL_NUMBER is the serial number of the note currently being processed.
+export.get_note_serial_number
+    exec.note::get_serial_number
+    # => [SERIAL_NUMBER]
+
+    # drop the padding
+    swapw dropw
+    # => [SERIAL_NUMBER]
+end
