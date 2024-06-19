@@ -1,10 +1,5 @@
 #[cfg(feature = "std")]
-use std::{
-    fs::File,
-    io::Read,
-    path::PathBuf,
-    string::{String, ToString},
-};
+use std::{fs::File, io::Read, path::PathBuf, string::String};
 
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
@@ -76,16 +71,8 @@ pub fn prepare_transaction(
     tx_inputs: TransactionInputs,
     tx_args: TransactionArgs,
     code: &str,
-    file_path: Option<PathBuf>,
 ) -> PreparedTransaction {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    let code = match file_path {
-        Some(file_path) => load_file_with_code("", code, file_path),
-        None => code.to_string(),
-    };
-
     let program = assembler.compile(code).unwrap();
-
     PreparedTransaction::new(program, tx_inputs, tx_args)
 }

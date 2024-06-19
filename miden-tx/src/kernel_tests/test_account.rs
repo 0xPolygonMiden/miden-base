@@ -53,7 +53,7 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     // assert the code root is not changed
@@ -277,7 +277,7 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.slot.value)
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code);
         let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
     }
 }
@@ -331,7 +331,7 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
@@ -366,7 +366,7 @@ fn test_get_storage_data_type() {
             item_index = storage_item.index,
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code);
         let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
         let storage_slot_data_type = match storage_item.slot.slot_type {
@@ -418,8 +418,7 @@ fn test_get_map_item() {
             map_key = prepare_word(&key),
         );
 
-        let transaction =
-            prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
+        let transaction = prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str());
         let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
         assert_eq!(value, process.get_stack_word(0));
 
@@ -474,7 +473,7 @@ fn test_set_map_item() {
         new_value = prepare_word(&new_value),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str());
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     let mut new_storage_map = storage_map_2();
@@ -514,7 +513,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
@@ -559,7 +558,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+        let transaction = prepare_transaction(tx_inputs, tx_args, &code);
         let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
         match valid {

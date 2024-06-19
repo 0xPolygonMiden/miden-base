@@ -55,7 +55,7 @@ fn test_create_note() {
         tag = tag,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
@@ -114,7 +114,7 @@ fn test_create_note_with_invalid_tag() {
         tag = tag,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
@@ -258,7 +258,7 @@ fn test_get_output_notes_hash() {
         )),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
@@ -325,7 +325,7 @@ fn test_create_note_and_add_asset() {
         asset = prepare_word(&asset),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
@@ -400,7 +400,7 @@ fn test_create_note_and_add_multiple_assets() {
         nft = prepare_word(&non_fungible_asset_encoded),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
@@ -467,7 +467,7 @@ fn test_create_note_and_add_same_nft_twice() {
         nft = prepare_word(&encoded),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(
@@ -520,7 +520,7 @@ fn test_build_recipient_hash() {
         aux = aux,
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(

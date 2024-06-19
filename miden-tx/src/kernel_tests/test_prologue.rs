@@ -32,7 +32,7 @@ use vm_processor::AdviceInputs;
 use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
 use crate::testing::{
     mock_inputs, mock_inputs_with_account_seed,
-    utils::{consumed_note_data_ptr, prepare_transaction, run_tx_with_inputs},
+    utils::{consumed_note_data_ptr, load_file_with_code, prepare_transaction, run_tx_with_inputs},
     MockHost,
 };
 
@@ -82,7 +82,11 @@ fn test_transaction_prologue() {
         tx_args_notes.advice_map().clone(),
     );
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, Some(assembly_file));
+    let transaction = prepare_transaction(
+        tx_inputs.clone(),
+        tx_args,
+        &load_file_with_code("", code, assembly_file),
+    );
 
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
@@ -360,7 +364,7 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
@@ -388,7 +392,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_ok());
@@ -418,7 +422,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
@@ -448,7 +452,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_ok())
@@ -478,7 +482,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
     assert!(process.is_err());
 }
@@ -505,7 +509,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs, tx_args, code);
 
     // override the seed with an invalid seed to ensure the kernel fails
     let adv_inputs =
@@ -529,7 +533,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().version().into());
@@ -549,7 +553,7 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
+    let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_inputs.block_header().timestamp().into());
