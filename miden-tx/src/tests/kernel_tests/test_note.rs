@@ -378,8 +378,9 @@ fn note_setup_memory_assertions(process: &Process<MockHost>) {
 
 #[test]
 fn test_get_note_serial_number() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
     // calling get_serial_number should return the serial number of the note
     let code = "
@@ -395,9 +396,8 @@ fn test_get_note_serial_number() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = tx_context.execute_code(code).unwrap();
 
-    let serial_number = transaction.input_notes().get_note(0).note().serial_num();
+    let serial_number = tx_context.input_notes().get_note(0).note().serial_num();
     assert_eq!(process.stack.get_word(0), serial_number);
 }
