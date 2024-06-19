@@ -112,12 +112,6 @@ impl Host for MockHost {
         Ok(HostResponse::None)
     }
 }
-pub fn mock_inputs(
-    account_type: MockAccountType,
-    asset_preservation: AssetPreservationStatus,
-) -> (TransactionInputs, TransactionArgs) {
-    mock_inputs_with_account_seed(account_type, asset_preservation, None)
-}
 
 pub fn mock_inputs_with_account_seed(
     account_type: MockAccountType,

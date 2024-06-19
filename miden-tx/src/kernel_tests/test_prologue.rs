@@ -33,7 +33,7 @@ use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs, mock_inputs_with_account_seed,
+        mock_inputs_with_account_seed,
         utils::{
             consumed_note_data_ptr, load_file_with_code, prepare_transaction, run_tx_with_inputs,
         },
@@ -48,8 +48,11 @@ const PROLOGUE_FILE: &str = "prologue.masm";
 
 #[test]
 fn test_transaction_prologue() {
-    let (tx_inputs, tx_args_notes) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args_notes) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = "
         begin
@@ -526,8 +529,11 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -546,8 +552,11 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue

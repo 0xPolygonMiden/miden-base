@@ -15,7 +15,7 @@ use miden_objects::{
 };
 use winter_maybe_async::maybe_async;
 
-use super::mock_host::{mock_inputs, mock_inputs_with_existing};
+use super::mock_host::{mock_inputs_with_account_seed, mock_inputs_with_existing};
 use crate::{DataStore, DataStoreError};
 
 #[derive(Clone)]
@@ -29,8 +29,11 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation_status: AssetPreservationStatus) -> Self {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, asset_preservation_status);
+        let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+            MockAccountType::StandardExisting,
+            asset_preservation_status,
+            None,
+        );
         let (account, _, block_header, block_chain, notes) = tx_inputs.into_parts();
         Self {
             account,

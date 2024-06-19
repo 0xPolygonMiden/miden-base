@@ -13,7 +13,7 @@ use super::{Felt, Process, ZERO};
 use crate::{
     kernel_tests::read_root_mem_value,
     testing::{
-        mock_inputs,
+        mock_inputs_with_account_seed,
         utils::{consumed_note_data_ptr, prepare_transaction, run_tx_with_inputs},
         MockHost,
     },
@@ -21,8 +21,11 @@ use crate::{
 
 #[test]
 fn test_get_sender_no_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = "
         use.miden::kernels::tx::memory
@@ -47,8 +50,11 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -72,8 +78,11 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let notes = tx_inputs.input_notes();
 
@@ -121,8 +130,11 @@ fn test_get_vault_data() {
 
 #[test]
 fn test_get_assets() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let notes = tx_inputs.input_notes();
 
     const DEST_POINTER_NOTE_0: u32 = 100000000;
@@ -227,8 +239,11 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let notes = tx_inputs.input_notes();
 
     fn construct_input_assertions(note: &Note) -> String {
@@ -297,8 +312,11 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -324,8 +342,11 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let (tx_inputs, tx_args_notes) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args_notes) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = "
         use.miden::kernels::tx::prologue

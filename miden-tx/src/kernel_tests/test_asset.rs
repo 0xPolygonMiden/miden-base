@@ -14,19 +14,20 @@ use vm_processor::AdviceInputs;
 
 use super::{Felt, Hasher, ProcessState, Word, ONE};
 use crate::testing::{
-    mock_inputs,
+    mock_inputs_with_account_seed,
     utils::{prepare_transaction, run_tx_with_inputs},
 };
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -63,13 +64,14 @@ fn test_create_fungible_asset_succeeds() {
 
 #[test]
 fn test_create_non_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -97,13 +99,14 @@ fn test_create_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_validate_non_fungible_asset() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
     let encoded = Word::from(non_fungible_asset);

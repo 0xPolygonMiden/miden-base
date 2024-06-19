@@ -19,7 +19,7 @@ use vm_processor::AdviceInputs;
 
 use super::ONE;
 use crate::testing::{
-    mock_inputs,
+    mock_inputs_with_account_seed,
     utils::{prepare_transaction, run_tx_with_inputs},
 };
 
@@ -28,13 +28,14 @@ use crate::testing::{
 
 #[test]
 fn test_mint_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -77,8 +78,11 @@ fn test_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = format!(
         "
@@ -101,13 +105,14 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -132,13 +137,14 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -169,13 +175,14 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 #[ignore]
 #[test]
 fn test_mint_non_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -223,8 +230,11 @@ fn test_mint_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
     let code = format!(
@@ -250,8 +260,11 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
     let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
 
     let code = format!(
@@ -277,13 +290,14 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_asset_already_exists() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
     let non_fungible_asset = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -313,13 +327,14 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
 #[test]
 fn test_burn_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -363,8 +378,11 @@ fn test_burn_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
+        MockAccountType::StandardExisting,
+        AssetPreservationStatus::Preserved,
+        None,
+    );
 
     let code = format!(
         "
@@ -388,13 +406,14 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_burn_fungible_asset_inconsistent_faucet_id() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -418,13 +437,14 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_burn_fungible_asset_insufficient_input_amount() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::Preserved,
+        None,
     );
 
     let code = format!(
@@ -455,13 +475,14 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 #[ignore]
 #[test]
 fn test_burn_non_fungible_asset_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
+        None,
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -509,13 +530,14 @@ fn test_burn_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_does_not_exist() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
+        None,
     );
     let non_fungible_asset_burnt = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -547,9 +569,10 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_not_faucet_account() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::StandardExisting,
         AssetPreservationStatus::TooManyNonFungibleInput,
+        None,
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
 
@@ -581,13 +604,14 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::NonFungibleFaucet {
             acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
+        None,
     );
     let non_fungible_asset_burnt = non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1);
 
@@ -622,13 +646,14 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
 #[test]
 fn test_get_total_issuance_succeeds() {
-    let (tx_inputs, tx_args) = mock_inputs(
+    let (tx_inputs, tx_args) = mock_inputs_with_account_seed(
         MockAccountType::FungibleFaucet {
             acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
             nonce: ONE,
             empty_reserved_slot: false,
         },
         AssetPreservationStatus::TooManyNonFungibleInput,
+        None,
     );
 
     let code = format!(
