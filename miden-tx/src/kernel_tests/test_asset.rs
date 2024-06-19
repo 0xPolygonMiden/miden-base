@@ -10,11 +10,12 @@ use miden_objects::{
         prepare_word,
     },
 };
+use vm_processor::AdviceInputs;
 
 use super::{Felt, Hasher, ProcessState, Word, ONE};
 use crate::testing::{
     mock_inputs,
-    utils::{prepare_transaction, run_tx},
+    utils::{prepare_transaction, run_tx_with_inputs},
 };
 
 #[test]
@@ -47,7 +48,7 @@ fn test_create_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
         process.get_stack_word(0),
@@ -90,7 +91,7 @@ fn test_create_non_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
     assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
 }
 
@@ -119,6 +120,6 @@ fn test_validate_non_fungible_asset() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
     assert_eq!(process.get_stack_word(0), encoded);
 }

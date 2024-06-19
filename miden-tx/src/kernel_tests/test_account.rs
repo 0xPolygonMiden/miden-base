@@ -23,14 +23,14 @@ use miden_objects::{
         },
     },
 };
-use vm_processor::{ContextId, Felt, MemAdviceProvider};
+use vm_processor::{AdviceInputs, ContextId, Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
     kernel_tests::output_notes_data_procedure,
     testing::{
         mock_executed_tx, mock_inputs,
-        utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
+        utils::{prepare_transaction, run_tx_with_inputs, run_within_host, run_within_tx_kernel},
         MockHost,
     },
 };
@@ -54,7 +54,7 @@ pub fn test_set_code_is_not_immediate() {
         ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     // assert the code root is not changed
     assert_eq!(
@@ -279,7 +279,7 @@ fn test_get_item() {
         );
 
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let _process = run_tx(&transaction).unwrap();
+        let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
     }
 }
 
@@ -333,7 +333,7 @@ fn test_set_item() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 // Test different account storage types
@@ -368,7 +368,7 @@ fn test_get_storage_data_type() {
         );
 
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let process = run_tx(&transaction).unwrap();
+        let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
         let storage_slot_data_type = match storage_item.slot.slot_type {
             StorageSlotType::Value { value_arity } => (value_arity, 0),
@@ -421,7 +421,7 @@ fn test_get_map_item() {
 
         let transaction =
             prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
-        let process = run_tx(&transaction).unwrap();
+        let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
         assert_eq!(value, process.get_stack_word(0));
 
         // check that the rest of the stack is empty
@@ -476,7 +476,7 @@ fn test_set_map_item() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     let mut new_storage_map = storage_map_2();
     new_storage_map.insert(new_key, new_value);
@@ -516,7 +516,7 @@ fn test_get_vault_commitment() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 // PROCEDURE AUTHENTICATION TESTS
@@ -561,7 +561,7 @@ fn test_authenticate_procedure() {
         );
 
         let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let process = run_tx(&transaction);
+        let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
         match valid {
             true => assert!(process.is_ok()),

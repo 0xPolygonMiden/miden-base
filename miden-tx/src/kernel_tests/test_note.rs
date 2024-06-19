@@ -7,12 +7,12 @@ use miden_objects::{
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
-use vm_processor::EMPTY_WORD;
+use vm_processor::{AdviceInputs, EMPTY_WORD};
 
 use super::{ContextId, Felt, Process, ProcessState, ZERO};
 use crate::testing::{
     mock_inputs,
-    utils::{consumed_note_data_ptr, prepare_transaction, run_tx},
+    utils::{consumed_note_data_ptr, prepare_transaction, run_tx_with_inputs},
     MockHost,
 };
 
@@ -39,7 +39,7 @@ fn test_get_sender_no_sender() {
         ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -64,7 +64,7 @@ fn test_get_sender() {
         ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
@@ -117,7 +117,7 @@ fn test_get_vault_data() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 #[test]
 fn test_get_assets() {
@@ -222,7 +222,7 @@ fn test_get_assets() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -292,7 +292,7 @@ fn test_get_inputs() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -311,7 +311,7 @@ fn test_note_setup() {
         ";
 
     let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     note_setup_stack_assertions(&process, &transaction);
     note_setup_memory_assertions(&process);
@@ -350,7 +350,7 @@ fn test_note_script_and_note_args() {
         TransactionArgs::new(None, Some(note_args_map), tx_args_notes.advice_map().clone());
 
     let transaction = prepare_transaction(tx_inputs.clone(), tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(process.stack.get_word(0), note_args[0]);
 

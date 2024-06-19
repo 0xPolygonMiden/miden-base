@@ -15,11 +15,12 @@ use miden_objects::{
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
 };
+use vm_processor::AdviceInputs;
 
 use super::ONE;
 use crate::testing::{
     mock_inputs,
-    utils::{prepare_transaction, run_tx},
+    utils::{prepare_transaction, run_tx_with_inputs},
 };
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
@@ -70,7 +71,7 @@ fn test_mint_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -93,7 +94,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
     assert!(process.is_err());
 }
 
@@ -123,7 +124,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -155,7 +156,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -216,7 +217,7 @@ fn test_mint_non_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -241,7 +242,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -268,7 +269,7 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -301,7 +302,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -356,7 +357,7 @@ fn test_burn_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -379,7 +380,7 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -410,7 +411,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
     assert!(process.is_err());
 }
 
@@ -441,7 +442,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -502,7 +503,7 @@ fn test_burn_non_fungible_asset_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
 
 #[test]
@@ -538,7 +539,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -572,7 +573,7 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -610,7 +611,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let process = run_tx(&transaction);
+    let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
     assert!(process.is_err());
 }
@@ -650,5 +651,5 @@ fn test_get_total_issuance_succeeds() {
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
