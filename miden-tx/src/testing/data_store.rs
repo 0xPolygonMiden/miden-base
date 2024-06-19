@@ -3,19 +3,28 @@
 
 use alloc::vec::Vec;
 
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountId,
+    },
     assembly::ModuleAst,
     notes::{Note, NoteId},
-    testing::{account::MockAccountType, notes::AssetPreservationStatus},
+    testing::{
+        account::{mock_account, MockAccountType},
+        account_code::mock_account_code,
+        notes::{mock_notes, AssetPreservationStatus},
+    },
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
     },
-    BlockHeader,
+    BlockHeader, FieldElement,
 };
+use vm_processor::Felt;
 use winter_maybe_async::maybe_async;
 
-use super::mock_host::{mock_inputs_with_account_seed, mock_inputs_with_existing};
+use super::{chain_data::mock_chain_data, mock_host::mock_inputs_with_account_seed};
 use crate::{DataStore, DataStoreError};
 
 #[derive(Clone)]
@@ -45,19 +54,25 @@ impl MockDataStore {
     }
 
     pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let (
-            account,
-            block_header,
-            block_chain,
-            consumed_notes,
-            _auxiliary_data_inputs,
-            created_notes,
-        ) = mock_inputs_with_existing(
-            MockAccountType::StandardExisting,
-            AssetPreservationStatus::Preserved,
-            account,
-            input_notes,
-        );
+        let assembler = &TransactionKernel::assembler();
+
+        let account = account.unwrap_or(mock_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            Felt::ONE,
+            mock_account_code(assembler),
+        ));
+
+        let (mut consumed_notes, created_notes) =
+            mock_notes(assembler, &AssetPreservationStatus::Preserved);
+        if let Some(ref notes) = input_notes {
+            consumed_notes = notes.to_vec();
+        }
+
+        let (block_chain, recorded_notes) = mock_chain_data(consumed_notes);
+
+        let block_header =
+            BlockHeader::mock(4, Some(block_chain.peaks().hash_peaks()), None, &[account.clone()]);
+
         let output_notes = created_notes.into_iter().filter_map(|note| match note {
             OutputNote::Full(note) => Some(note),
             OutputNote::Partial(_) => None,
@@ -70,7 +85,7 @@ impl MockDataStore {
             account,
             block_header,
             block_chain,
-            notes: consumed_notes,
+            notes: recorded_notes,
             tx_args,
         }
     }

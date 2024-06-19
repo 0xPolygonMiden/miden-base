@@ -1,15 +1,14 @@
 // MOCK HOST
 // ================================================================================================
 
-use alloc::{string::ToString, vec::Vec};
+use alloc::string::ToString;
 
 use miden_lib::transaction::{TransactionEvent, TransactionKernel};
 use miden_objects::{
     accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
-        AccountDelta, AccountStub, AccountVaultDelta,
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, AccountDelta,
+        AccountStub, AccountVaultDelta,
     },
-    notes::Note,
     testing::{
         account::{mock_account, mock_new_account, MockAccountType},
         account_code::mock_account_code,
@@ -18,8 +17,8 @@ use miden_objects::{
         storage::{mock_fungible_faucet, mock_non_fungible_faucet},
     },
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, OutputNotes,
-        TransactionArgs, TransactionInputs, TransactionOutputs,
+        ExecutedTransaction, InputNotes, OutputNote, OutputNotes, TransactionArgs,
+        TransactionInputs, TransactionOutputs,
     },
     BlockHeader, FieldElement,
 };
@@ -155,43 +154,6 @@ pub fn mock_inputs_with_account_seed(
     tx_args.extend_expected_output_notes(output_notes);
 
     (tx_inputs, tx_args)
-}
-
-pub fn mock_inputs_with_existing(
-    account_type: MockAccountType,
-    asset_preservation: AssetPreservationStatus,
-    account: Option<Account>,
-    consumed_notes_from: Option<Vec<Note>>,
-) -> (Account, BlockHeader, ChainMmr, Vec<InputNote>, AdviceInputs, Vec<OutputNote>) {
-    let auxiliary_data = AdviceInputs::default();
-    let assembler = &TransactionKernel::assembler();
-
-    let account = match account_type {
-        MockAccountType::StandardNew => mock_new_account(assembler),
-        MockAccountType::StandardExisting => account.unwrap_or(mock_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            Felt::ONE,
-            mock_account_code(assembler),
-        )),
-        MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            account.unwrap_or(mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler))
-        },
-        MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-            mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, assembler)
-        },
-    };
-
-    let (mut consumed_notes, created_notes) = mock_notes(assembler, &asset_preservation);
-    if let Some(ref notes) = consumed_notes_from {
-        consumed_notes = notes.to_vec();
-    }
-
-    let (chain_mmr, recorded_notes) = mock_chain_data(consumed_notes);
-
-    let block_header =
-        BlockHeader::mock(4, Some(chain_mmr.peaks().hash_peaks()), None, &[account.clone()]);
-
-    (account, block_header, chain_mmr, recorded_notes, auxiliary_data, created_notes)
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
