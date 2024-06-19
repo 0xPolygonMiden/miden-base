@@ -101,7 +101,7 @@ pub fn test_set_code_succeeds() {
 
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let host = MockHost::new(executed_transaction.initial_account().into(), advice_inputs);
-    let process = run_within_host("", &code, stack_inputs, host, None).unwrap();
+    let process = run_within_host(&code, stack_inputs, host).unwrap();
 
     // assert the code root is changed after the epilogue
     assert_eq!(

@@ -62,35 +62,24 @@ where
 {
     // mock account method for testing from root context
     adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
-
-    let assembler = TransactionKernel::assembler();
-    let program = assembler.compile(code).unwrap();
-
     let host = DefaultHost::new(adv);
-    let exec_options = ExecutionOptions::default().with_tracing();
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
-    process.execute(&program)?;
-    Ok(process)
+    run_within_host(code, stack_inputs, host)
 }
 
-/// Inject `code` along side the specified file and run it
 #[cfg(feature = "std")]
 pub fn run_within_host<H: Host>(
-    imports: &str,
     code: &str,
     stack_inputs: StackInputs,
     host: H,
-    file_path: Option<PathBuf>,
 ) -> Result<Process<H>, ExecutionError> {
     let assembler = TransactionKernel::assembler();
-    let code = match file_path {
-        Some(file_path) => load_file_with_code(imports, code, file_path),
-        None => format!("{imports}{code}"),
-    };
-
     let program = assembler.compile(code).unwrap();
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
+    let mut process = Process::new(
+        program.kernel().clone(),
+        stack_inputs,
+        host,
+        ExecutionOptions::default().with_tracing(),
+    );
     process.execute(&program)?;
     Ok(process)
 }
