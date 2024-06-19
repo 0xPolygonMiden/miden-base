@@ -16,12 +16,12 @@ use miden_objects::{
     },
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::{AdviceInputs, Process};
+use vm_processor::{AdviceInputs, DefaultHost, Process};
 
 use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::testing::{
     mock_inputs,
-    utils::{prepare_transaction, run_tx_with_inputs, run_within_tx_kernel},
+    utils::{prepare_transaction, run_tx_with_inputs, run_within_host},
     MockHost,
 };
 #[test]
@@ -150,7 +150,11 @@ fn test_create_note_too_many_notes() {
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
-    let process = run_within_tx_kernel(&code, StackInputs::default(), MemAdviceProvider::default());
+    let process = run_within_host(
+        &code,
+        StackInputs::default(),
+        DefaultHost::new(MemAdviceProvider::default()),
+    );
 
     // assert the process failed
     assert!(process.is_err());

@@ -11,15 +11,11 @@ use miden_lib::transaction::TransactionKernel;
 use miden_lib::transaction::{memory, ToTransactionKernelInputs};
 use miden_objects::transaction::PreparedTransaction;
 #[cfg(feature = "std")]
-use miden_objects::{
-    transaction::{TransactionArgs, TransactionInputs},
-    Felt,
-};
+use miden_objects::transaction::{TransactionArgs, TransactionInputs};
 #[cfg(not(target_family = "wasm"))]
-use vm_processor::Word;
 use vm_processor::{AdviceInputs, ExecutionError, Process};
 #[cfg(feature = "std")]
-use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
+use vm_processor::{ExecutionOptions, Host, StackInputs};
 
 use crate::testing::MockHost;
 
@@ -49,21 +45,6 @@ pub fn run_tx_with_inputs(
     let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
     process.execute(&program)?;
     Ok(process)
-}
-
-#[cfg(feature = "std")]
-pub fn run_within_tx_kernel<A>(
-    code: &str,
-    stack_inputs: StackInputs,
-    mut adv: A,
-) -> Result<Process<DefaultHost<A>>, ExecutionError>
-where
-    A: AdviceProvider,
-{
-    // mock account method for testing from root context
-    adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
-    let host = DefaultHost::new(adv);
-    run_within_host(code, stack_inputs, host)
 }
 
 #[cfg(feature = "std")]
