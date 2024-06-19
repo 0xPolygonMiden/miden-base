@@ -1,7 +1,6 @@
 use miden_lib::transaction::TransactionKernelError;
-use miden_objects::accounts::AccountCode;
 
-use super::{AdviceProvider, BTreeMap, Digest, NodeIndex, ProcessState};
+use super::{AdviceProvider, BTreeMap, Digest, ProcessState};
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
@@ -9,6 +8,9 @@ use super::{AdviceProvider, BTreeMap, Digest, NodeIndex, ProcessState};
 /// A map of proc_root |-> proc_index for all known procedures of an account interface.
 pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
 
+// Get the AccountCode procedures -> (Digest, Felt) from the AdviceProvider that has been populated
+// in miden-lib/transaction/inputs.rs and build the AccountProcedureIndexMap using it.
+// Logic handling merkle trees will be replaced.
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
@@ -17,23 +19,25 @@ impl AccountProcedureIndexMap {
     /// Merkle store of the provided advice provider.
     pub fn new<A: AdviceProvider>(account_code_root: Digest, adv_provider: &A) -> Self {
         // get the Merkle store with the procedure tree from the advice provider
-        let proc_store = adv_provider.get_store_subset([account_code_root].iter());
+        // let proc_store = adv_provider.get_store_subset([account_code_root].iter());
 
         // iterate over all possible procedure indexes
-        let mut result = BTreeMap::new();
-        for i in 0..AccountCode::MAX_NUM_PROCEDURES {
-            let index = NodeIndex::new(AccountCode::PROCEDURE_TREE_DEPTH, i as u64)
-                .expect("procedure tree index is valid");
-            // if the node at the current index does not exist, skip it and try the next node;this
-            // situation is valid if not all account procedures are loaded into the advice provider
-            if let Ok(proc_root) = proc_store.get_node(account_code_root, index) {
-                // if we got an empty digest, this means we got to the end of the procedure list
-                if proc_root == Digest::default() {
-                    break;
-                }
-                result.insert(proc_root, i as u8);
-            }
-        }
+        let result = BTreeMap::new();
+
+        // for i in 0..AccountCode::MAX_NUM_PROCEDURES {
+        //     let index = NodeIndex::new(AccountCode::PROCEDURE_TREE_DEPTH, i as u64)
+        //         .expect("procedure tree index is valid");
+        //     // if the node at the current index does not exist, skip it and try the next node;this
+        //     // situation is valid if not all account procedures are loaded into the advice provider
+        //     if let Ok(proc_root) = proc_store.get_node(account_code_root, index) {
+        //         // if we got an empty digest, this means we got to the end of the procedure list
+        //         if proc_root == Digest::default() {
+        //             break;
+        //         }
+        //         result.insert(proc_root, i as u8);
+        //     }
+        // }
+
         Self(result)
     }
 

@@ -193,6 +193,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             self.authenticator.clone(),
         );
 
+        // INFO: This is the location where most tests fail. Procs can't be authenticated.
         let result = vm_processor::execute(
             transaction.program(),
             stack_inputs,

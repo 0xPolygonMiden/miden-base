@@ -11,7 +11,7 @@ use miden_objects::{
     Digest, Hasher,
 };
 use vm_processor::{
-    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
+    AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
     ExecutionError, Felt, Host, HostResponse, ProcessState,
 };
 

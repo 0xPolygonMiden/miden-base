@@ -245,8 +245,11 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
+    // TODO: Use extend_map instead of merkle_store
+    // Pass in the procedures -> (Digest, Felt) from AccountCode
+
     // extend the merkle store with account code tree
-    inputs.extend_merkle_store(code.procedure_tree().inner_nodes());
+    // inputs.extend_merkle_store(code.procedure_tree().inner_nodes());
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

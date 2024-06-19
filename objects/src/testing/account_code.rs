@@ -141,17 +141,17 @@ pub fn mock_account_code(assembler: &Assembler) -> AccountCode {
     // Comparing all the values together, in case multiple of them change, a single test run will
     // detect it.
     let current = [
-        code.procedures()[0].to_hex(),
-        code.procedures()[1].to_hex(),
-        code.procedures()[2].to_hex(),
-        code.procedures()[3].to_hex(),
-        code.procedures()[4].to_hex(),
-        code.procedures()[5].to_hex(),
-        code.procedures()[6].to_hex(),
-        code.procedures()[7].to_hex(),
-        code.procedures()[8].to_hex(),
-        code.procedures()[9].to_hex(),
-        code.procedures()[10].to_hex(),
+        code.procedures()[0].0.to_hex(),
+        code.procedures()[1].0.to_hex(),
+        code.procedures()[2].0.to_hex(),
+        code.procedures()[3].0.to_hex(),
+        code.procedures()[4].0.to_hex(),
+        code.procedures()[5].0.to_hex(),
+        code.procedures()[6].0.to_hex(),
+        code.procedures()[7].0.to_hex(),
+        code.procedures()[8].0.to_hex(),
+        code.procedures()[9].0.to_hex(),
+        code.procedures()[10].0.to_hex(),
     ];
     assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
 
