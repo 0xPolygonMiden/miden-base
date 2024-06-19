@@ -22,6 +22,7 @@ use crate::testing::{
     mock_inputs,
     utils::{prepare_transaction, run_tx_with_inputs},
 };
+
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 
@@ -631,23 +632,23 @@ fn test_get_total_issuance_succeeds() {
     );
 
     let code = format!(
-        "\
-    use.miden::kernels::tx::prologue
-    use.miden::faucet
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::faucet
 
-    begin
-        # prepare the transaction
-        exec.prologue::prepare_transaction
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
 
-        # get the fungible faucet balance
-        exec.faucet::get_total_issuance
-        # => [total_issuance]
+            # get the fungible faucet balance
+            exec.faucet::get_total_issuance
+            # => [total_issuance]
 
-        # assert the correct balance is returned
-        push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
-        # => []
-    end
-    ",
+            # assert the correct balance is returned
+            push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
+            # => []
+        end
+        ",
     );
 
     let transaction = prepare_transaction(tx_inputs, tx_args, &code);

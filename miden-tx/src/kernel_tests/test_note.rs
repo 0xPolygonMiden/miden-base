@@ -21,7 +21,6 @@ fn test_get_sender_no_sender() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    // calling get_sender should return sender
     let code = "
         use.miden::kernels::tx::memory
         use.miden::kernels::tx::prologue
@@ -33,7 +32,6 @@ fn test_get_sender_no_sender() {
             # force the current consumed note pointer to 0
             push.0 exec.memory::set_current_consumed_note_ptr
 
-            # get the sender
             exec.note::get_sender
         end
         ";
@@ -41,7 +39,7 @@ fn test_get_sender_no_sender() {
     let transaction = prepare_transaction(tx_inputs, tx_args, code);
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default());
 
-    assert!(process.is_err());
+    assert!(process.is_err(), "no sender available, transaction must fail");
 }
 
 #[test]
@@ -49,7 +47,6 @@ fn test_get_sender() {
     let (tx_inputs, tx_args) =
         mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
 
-    // calling get_sender should return sender
     let code = "
         use.miden::kernels::tx::prologue
         use.miden::kernels::tx::note->note_internal
@@ -67,7 +64,7 @@ fn test_get_sender() {
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     let sender = transaction.input_notes().get_note(0).note().metadata().sender().into();
-    assert_eq!(process.stack.get(0), sender);
+    assert_eq!(process.stack.get(0), sender, "get_sender must return the expected value");
 }
 
 #[test]
@@ -77,7 +74,6 @@ fn test_get_vault_data() {
 
     let notes = tx_inputs.input_notes();
 
-    // calling get_vault_info should return vault info
     let code = format!(
         "
         use.miden::kernels::tx::prologue
@@ -119,6 +115,7 @@ fn test_get_vault_data() {
     let transaction = prepare_transaction(tx_inputs, tx_args, &code);
     let _process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 }
+
 #[test]
 fn test_get_assets() {
     let (tx_inputs, tx_args) =

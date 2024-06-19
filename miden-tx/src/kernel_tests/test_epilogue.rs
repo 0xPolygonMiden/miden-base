@@ -77,13 +77,13 @@ fn test_compute_created_note_id() {
         let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
             "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-            exec.create_mock_notes
-            exec.finalize_transaction
-        end
-        "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                exec.finalize_transaction
+            end
+            "
         );
 
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
@@ -102,7 +102,8 @@ fn test_compute_created_note_id() {
             CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
         let actual_asset_hash =
             process.get_mem_value(ContextId::root(), asset_hash_memory_address).unwrap();
-        assert_eq!(expected_asset_hash.as_elements(), actual_asset_hash);
+
+        assert_eq!(expected_asset_hash.as_elements(), actual_asset_hash, "Asset hash mismatch");
 
         // assert the note ID is correct
         let expected_id = note.id();
@@ -127,13 +128,13 @@ fn test_epilogue_asset_preservation_violation() {
         let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
             "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-            exec.create_mock_notes
-            push.1 exec.account::incr_nonce
-            exec.finalize_transaction
-        end
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                push.1 exec.account::incr_nonce
+                exec.finalize_transaction
+            end
         "
         );
 
@@ -145,8 +146,7 @@ fn test_epilogue_asset_preservation_violation() {
             DefaultHost::new(MemAdviceProvider::from(advice_inputs)),
         );
 
-        // assert the process results in error
-        assert!(process.is_err());
+        assert!(process.is_err(), "Transaction must fail with invalid inputs");
     }
 }
 

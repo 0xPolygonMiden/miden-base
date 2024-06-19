@@ -35,7 +35,7 @@ fn build_module_path(dir: &str, file: &str) -> PathBuf {
 }
 
 // OUTPUT NOTES PROCEDURES
-// ============================================================================================
+// ================================================================================================
 
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let OutputNote::Full(note0) = notes.get_note(0) else {
