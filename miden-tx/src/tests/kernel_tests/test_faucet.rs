@@ -8,7 +8,7 @@ use miden_objects::{
         account::MockAccountType,
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
-            NON_FUNGIBLE_ASSET_DATA,
+            NON_FUNGIBLE_ASSET_DATA, NON_FUNGIBLE_ASSET_DATA_2,
         },
         notes::AssetPreservationStatus,
         prepare_word,
@@ -263,8 +263,10 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
 
-    let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[3, 4, 5, 6]);
+    let non_fungible_asset = Asset::mock_non_fungible(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        &NON_FUNGIBLE_ASSET_DATA_2,
+    );
 
     let code = format!(
         "

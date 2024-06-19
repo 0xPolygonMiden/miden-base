@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
+use miden_lib::transaction::memory;
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
-use miden_lib::transaction::{memory, ToTransactionKernelInputs};
 #[cfg(feature = "std")]
 use miden_objects::Felt;
 use miden_objects::{
@@ -15,20 +15,13 @@ use miden_objects::{
         block::{MockChain, MockChainBuilder},
         notes::AssetPreservationStatus,
     },
-    transaction::{
-        ExecutedTransaction, OutputNote, OutputNotes, PreparedTransaction, TransactionOutputs,
-    },
+    transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
     vm::CodeBlock,
     FieldElement,
 };
-#[cfg(not(target_family = "wasm"))]
-use vm_processor::Word;
-use vm_processor::{AdviceInputs, ExecutionError, Operation, Process, Program, ZERO};
-#[cfg(feature = "std")]
-use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
+use vm_processor::{AdviceInputs, Operation, Program, ZERO};
 
 use super::TransactionContextBuilder;
-use crate::testing::MockHost;
 
 // TEST HELPERS
 // ================================================================================================
@@ -53,7 +46,8 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         initial_account.code().clone(),
     );
 
-    let tx_context = TransactionContextBuilder::new(initial_account, assembler)
+    let tx_context = TransactionContextBuilder::new(initial_account)
+        .assembler(assembler)
         .with_mock_notes(asset_preservation)
         .build();
 

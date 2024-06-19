@@ -28,6 +28,7 @@ fn test_create_note() {
     let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = Felt::new(4);
 
     let code = format!(
@@ -40,6 +41,7 @@ fn test_create_note() {
 
         push.{recipient}
         push.{PUBLIC_NOTE}
+        push.{aux}
         push.{tag}
 
         exec.tx::create_note
@@ -66,7 +68,7 @@ fn test_create_note() {
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
-        [tag, Felt::from(account_id), NoteType::Public.into(), ZERO],
+        [tag, Felt::from(account_id), NoteType::Public.into(), Felt::new(27)],
         "metadata must be stored at the correct memory location",
     );
 
@@ -137,7 +139,7 @@ fn test_create_note_too_many_notes() {
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
-    let process = CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code);
+    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
     // assert the process failed
     assert!(process.is_err());
@@ -206,6 +208,7 @@ fn test_get_output_notes_hash() {
         # create output note 1
         push.{recipient_1}
         push.{PUBLIC_NOTE}
+        push.{aux_1}
         push.{tag_1}
         exec.tx::create_note
         # => [note_idx]
@@ -220,6 +223,7 @@ fn test_get_output_notes_hash() {
         # create output note 2
         push.{recipient_2}
         push.{PUBLIC_NOTE}
+        push.{aux_2}
         push.{tag_2}
         exec.tx::create_note
         # => [note_idx]
@@ -238,11 +242,13 @@ fn test_get_output_notes_hash() {
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient_1 = prepare_word(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
+        aux_1 = output_note_1.metadata().aux(),
         asset_1 = prepare_word(&Word::from(
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
         recipient_2 = prepare_word(&output_note_2.recipient().digest()),
         tag_2 = output_note_2.metadata().tag(),
+        aux_2 = output_note_2.metadata().aux(),
         asset_2 = prepare_word(&Word::from(
             **output_note_2.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
@@ -281,6 +287,7 @@ fn test_create_note_and_add_asset() {
         TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
 
@@ -295,6 +302,7 @@ fn test_create_note_and_add_asset() {
 
         push.{recipient}
         push.{PUBLIC_NOTE}
+        push.{aux}
         push.{tag}
 
         exec.tx::create_note
@@ -332,6 +340,7 @@ fn test_create_note_and_add_multiple_assets() {
         TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = Felt::new(4);
     let asset = [Felt::new(10), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN)];
     let asset_2 = [Felt::new(20), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
@@ -354,6 +363,7 @@ fn test_create_note_and_add_multiple_assets() {
 
         push.{recipient}
         push.{PUBLIC_NOTE}
+        push.{aux}
         push.{tag}
 
         exec.tx::create_note
@@ -468,11 +478,13 @@ fn test_build_recipient_hash() {
 
     // create output note
     let output_serial_no = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = 8888;
     let single_input = 2;
     let inputs = NoteInputs::new(vec![Felt::new(single_input)]).unwrap();
-    let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
+    let input_hash = inputs.commitment();
 
+    let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
     use.miden::kernels::tx::prologue
@@ -480,7 +492,7 @@ fn test_build_recipient_hash() {
     begin
         exec.prologue::prepare_transaction
         # input
-        push.{inputs}
+        push.{input_hash}
         # SCRIPT_HASH
         push.{script_hash}
         # SERIAL_NUM
@@ -488,15 +500,17 @@ fn test_build_recipient_hash() {
         exec.tx::build_recipient_hash
 
         push.{PUBLIC_NOTE}
+        push.{aux}
         push.{tag}
         exec.tx::create_note
     end
     ",
-        inputs = single_input,
+        input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
         output_serial_no = prepare_word(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
+        aux = aux,
     );
 
     let process = tx_context.execute_code(&code).unwrap();

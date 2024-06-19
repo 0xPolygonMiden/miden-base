@@ -137,7 +137,7 @@ pub fn test_account_type() {
                 procedure
             );
 
-            let process = CodeExecutor::new_with_kernel(MemAdviceProvider::default())
+            let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
                 .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
                 .run(&code)
                 .unwrap();
@@ -176,7 +176,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
         "
     );
 
-    let result = CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code);
+    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
     assert!(result.is_err());
 }
@@ -209,8 +209,9 @@ fn test_is_faucet_procedure() {
             account_id = account_id,
         );
 
-        let process =
-            CodeExecutor::new_with_kernel(MemAdviceProvider::default()).run(&code).unwrap();
+        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
+            .run(&code)
+            .unwrap();
 
         let is_faucet = account_id.is_faucet();
         assert_eq!(

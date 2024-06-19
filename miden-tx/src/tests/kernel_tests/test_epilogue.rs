@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
@@ -11,9 +11,19 @@ use super::{
     build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, TX_KERNEL_DIR,
     ZERO,
 };
-use crate::testing::{executor::CodeExecutor, utils::mock_executed_tx};
+use crate::testing::{
+    executor::{load_file_with_code, CodeExecutor},
+    utils::mock_executed_tx,
+};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
+
+/// Loads epilogue file and returns the complete code formatted as
+/// "{imports}{epilogue_code}{code}"`
+fn insert_epilogue(imports: &str, code: &str) -> String {
+    let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
+    load_file_with_code(imports, &code, assembly_file)
+}
 
 #[test]
 fn test_epilogue() {
@@ -36,11 +46,10 @@ fn test_epilogue() {
     );
 
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    let process = CodeExecutor::new_with_kernel(MemAdviceProvider::from(advice_inputs))
+    let code = insert_epilogue(imports, &code);
+
+    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
         .stack_inputs(stack_inputs)
-        .imports(imports)
-        .module_file(assembly_file)
         .run(&code)
         .unwrap();
 
@@ -84,12 +93,10 @@ fn test_compute_created_note_id() {
         );
 
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-        let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
+        let test = insert_epilogue(imports, &test);
 
-        let process = CodeExecutor::new_with_kernel(MemAdviceProvider::from(advice_inputs))
+        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
             .stack_inputs(stack_inputs)
-            .module_file(assembly_file)
-            .imports(imports)
             .run(&test)
             .unwrap();
 
@@ -136,11 +143,10 @@ fn test_epilogue_asset_preservation_violation() {
         );
 
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-        let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-        let process = CodeExecutor::new_with_kernel(MemAdviceProvider::from(advice_inputs))
+        let code = insert_epilogue(imports, &code);
+
+        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
             .stack_inputs(stack_inputs)
-            .imports(imports)
-            .module_file(assembly_file)
             .run(&code);
 
         // assert the process results in error
@@ -170,11 +176,10 @@ fn test_epilogue_increment_nonce_success() {
     );
 
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    let _process = CodeExecutor::new_with_kernel(MemAdviceProvider::from(advice_inputs))
+    let code = insert_epilogue(imports, &code);
+
+    let _process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
         .stack_inputs(stack_inputs)
-        .imports(imports)
-        .module_file(assembly_file)
         .run(&code)
         .unwrap();
 }
@@ -200,11 +205,10 @@ fn test_epilogue_increment_nonce_violation() {
     );
 
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    let process = CodeExecutor::new_with_kernel(MemAdviceProvider::from(advice_inputs))
+    let code = insert_epilogue(imports, &code);
+
+    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
         .stack_inputs(stack_inputs)
-        .imports(imports)
-        .module_file(assembly_file)
         .run(&code);
 
     assert!(process.is_err());

@@ -482,12 +482,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
         &TransactionKernel::assembler(),
     );
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardNew {
-        account_id: acct_id.into(),
-    })
-    .account_seed(account_seed)
-    .build();
-    let account_seed_key = [tx_context.tx_inputs().account().id().into(), ZERO, ZERO, ZERO];
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -498,9 +492,18 @@ pub fn test_prologue_create_account_invalid_seed() {
     ";
 
     // override the seed with an invalid seed to ensure the kernel fails
+    let account_seed_key = [acct_id.into(), ZERO, ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
-    let process = tx_context.execute_with_inputs(code, adv_inputs);
+
+    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardNew {
+        account_id: acct_id.into(),
+    })
+    .account_seed(account_seed)
+    .advice_inputs(adv_inputs)
+    .build();
+
+    let process = tx_context.execute_code(code);
     assert!(process.is_err());
 }
 

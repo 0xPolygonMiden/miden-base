@@ -6,7 +6,7 @@ use alloc::{
 use core::fmt::Display;
 
 use assembly::Assembler;
-use miden_crypto::merkle::{MerkleError, Smt};
+use miden_crypto::merkle::MerkleError;
 use rand::Rng;
 use vm_core::FieldElement;
 
@@ -25,7 +25,7 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
-        StorageSlot,
+        StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     AccountError, AssetVaultError, Felt, Word, ZERO,
@@ -231,16 +231,16 @@ impl Account {
             },
         };
         // construct nft tree
-        let nft_tree = Smt::with_entries(entries).unwrap();
-
-        // TODO: add nft tree data to account storage?
+        let nft_storage_map = StorageMap::with_entries(entries).unwrap();
+        let mut maps = BTreeMap::new();
+        maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
 
         let account_storage = AccountStorage::new(
             vec![SlotItem {
                 index: FAUCET_STORAGE_DATA_SLOT,
-                slot: StorageSlot::new_map(*nft_tree.root()),
+                slot: StorageSlot::new_map(*nft_storage_map.root()),
             }],
-            BTreeMap::new(),
+            maps,
         )
         .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();

@@ -1,25 +1,8 @@
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use std::{io::Read, path::PathBuf};
 
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
-use miden_lib::transaction::{memory, ToTransactionKernelInputs};
-use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
-        AccountCode, AccountDelta,
-    },
-    notes::Note,
-    testing::{
-        block::{MockChain, MockChainBuilder},
-        notes::AssetPreservationStatus,
-    },
-    transaction::{
-        ExecutedTransaction, OutputNote, OutputNotes, PreparedTransaction, TransactionOutputs,
-    },
-    vm::CodeBlock,
-    FieldElement,
-};
 #[cfg(feature = "std")]
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
@@ -61,16 +44,6 @@ impl<H: Host> CodeExecutor<H> {
         self
     }
 
-    pub fn module_file(mut self, file_path: PathBuf) -> Self {
-        self.file_path = Some(file_path);
-        self
-    }
-
-    pub fn imports(mut self, imports: &str) -> Self {
-        self.imports = imports.to_string();
-        self
-    }
-
     /// Compiles and runs the desired code in the host and returns the [Process] state
     ///
     /// If a module file path was set, its contents will be inserted between `self.imports` and
@@ -104,7 +77,7 @@ impl<A> CodeExecutor<DefaultHost<A>>
 where
     A: AdviceProvider,
 {
-    pub fn new_with_kernel(adv_provider: A) -> Self {
+    pub fn with_advice_provider(adv_provider: A) -> Self {
         let host = DefaultHost::new(adv_provider);
         CodeExecutor::new(host)
     }
