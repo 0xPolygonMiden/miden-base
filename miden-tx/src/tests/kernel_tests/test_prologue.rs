@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{
@@ -29,12 +29,24 @@ use miden_objects::{
 use vm_processor::AdviceInputs;
 
 use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
-use crate::testing::{
-    executor::load_file_with_code, utils::consumed_note_data_ptr, MockHost,
-    TransactionContextBuilder,
-};
+use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
 
 const PROLOGUE_FILE: &str = "prologue.masm";
+
+/// Loads epilogue file and returns the complete code formatted as
+/// "{prologue_code}{code}"`
+#[cfg(feature = "std")]
+fn insert_prologue(code: &str) -> String {
+    use std::fs::File;
+
+    let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
+    let mut module = String::new();
+    std::io::Read::read_to_string(&mut File::open(assembly_file).unwrap(), &mut module).unwrap();
+    let complete_code = format!("{module}{code}");
+
+    // This hack is going around issue #686 on miden-vm
+    complete_code.replace("export", "proc")
+}
 
 // TESTS
 // ================================================================================================
@@ -64,8 +76,7 @@ fn test_transaction_prologue() {
         TransactionScript::new(mock_tx_script_code, vec![], &TransactionKernel::assembler())
             .unwrap();
 
-    let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
-    let code = load_file_with_code("", code, assembly_file);
+    let code = insert_prologue(code);
 
     let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],

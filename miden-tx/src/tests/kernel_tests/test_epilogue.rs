@@ -11,18 +11,23 @@ use super::{
     build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, TX_KERNEL_DIR,
     ZERO,
 };
-use crate::testing::{
-    executor::{load_file_with_code, CodeExecutor},
-    utils::mock_executed_tx,
-};
+use crate::testing::{executor::CodeExecutor, utils::mock_executed_tx};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
 /// Loads epilogue file and returns the complete code formatted as
 /// "{imports}{epilogue_code}{code}"`
+#[cfg(feature = "std")]
 fn insert_epilogue(imports: &str, code: &str) -> String {
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    load_file_with_code(imports, code, assembly_file)
+    use std::fs::File;
+
+    let mut module = String::new();
+    std::io::Read::read_to_string(&mut File::open(assembly_file).unwrap(), &mut module).unwrap();
+    let complete_code = format!("{imports}{module}{code}");
+
+    // This hack is going around issue #686 on miden-vm
+    complete_code.replace("export", "proc")
 }
 
 #[test]

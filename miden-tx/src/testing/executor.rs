@@ -1,6 +1,3 @@
-use alloc::string::String;
-use std::{io::Read, path::PathBuf};
-
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
 #[cfg(feature = "std")]
@@ -17,8 +14,6 @@ pub struct CodeExecutor<H> {
     host: H,
     stack_inputs: Option<StackInputs>,
     advice_inputs: AdviceInputs,
-    file_path: Option<PathBuf>,
-    imports: String,
 }
 
 impl<H: Host> CodeExecutor<H> {
@@ -29,8 +24,6 @@ impl<H: Host> CodeExecutor<H> {
             host,
             stack_inputs: None,
             advice_inputs: AdviceInputs::default(),
-            file_path: None,
-            imports: String::new(),
         }
     }
 
@@ -51,10 +44,6 @@ impl<H: Host> CodeExecutor<H> {
     /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
         let assembler = TransactionKernel::assembler();
-        let code = match &self.file_path {
-            Some(file_path) => load_file_with_code(&self.imports, code, file_path.to_path_buf()),
-            None => format!("{}{code}", self.imports),
-        };
 
         let program = assembler.compile(code).unwrap();
         self.execute_program(program)
@@ -81,21 +70,4 @@ where
         let host = DefaultHost::new(adv_provider);
         CodeExecutor::new(host)
     }
-}
-
-// UTILS
-// ================================================================================================
-
-/// Loads the specified file and append `code` into its end.
-#[cfg(feature = "std")]
-pub fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
-    use alloc::string::String;
-    use std::fs::File;
-
-    let mut module = String::new();
-    File::open(assembly_file).unwrap().read_to_string(&mut module).unwrap();
-    let complete_code = format!("{imports}{module}{code}");
-
-    // This hack is going around issue #686 on miden-vm
-    complete_code.replace("export", "proc")
 }
