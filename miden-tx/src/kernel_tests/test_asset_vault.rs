@@ -18,10 +18,13 @@ use miden_objects::{
 };
 use vm_processor::AdviceInputs;
 
-use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
-use crate::testing::{
-    mock_inputs,
-    utils::{prepare_transaction, run_tx_with_inputs},
+use super::{Felt, Word, ONE, ZERO};
+use crate::{
+    kernel_tests::read_root_mem_value,
+    testing::{
+        mock_inputs,
+        utils::{prepare_transaction, run_tx_with_inputs},
+    },
 };
 
 #[test]
@@ -136,7 +139,7 @@ fn test_add_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -210,7 +213,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -282,7 +285,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -351,7 +354,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -435,7 +438,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }

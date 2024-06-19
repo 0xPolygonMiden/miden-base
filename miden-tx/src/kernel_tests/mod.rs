@@ -12,7 +12,7 @@ use miden_objects::{
     vm::StackInputs,
     Felt, Hasher, Word, ONE, ZERO,
 };
-use vm_processor::{ContextId, MemAdviceProvider, Process, ProcessState};
+use vm_processor::{ContextId, Host, MemAdviceProvider, Process, ProcessState};
 
 const TX_KERNEL_DIR: &str = "miden/kernels/tx";
 
@@ -32,6 +32,10 @@ fn build_module_path(dir: &str, file: &str) -> PathBuf {
     [env!("CARGO_MANIFEST_DIR"), "..", "miden-lib", "asm", dir, file]
         .iter()
         .collect()
+}
+
+pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
+    process.get_mem_value(ContextId::root(), addr).unwrap()
 }
 
 // OUTPUT NOTES PROCEDURES

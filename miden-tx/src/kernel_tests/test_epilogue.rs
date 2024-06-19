@@ -8,12 +8,14 @@ use miden_objects::testing::notes::AssetPreservationStatus;
 use vm_processor::DefaultHost;
 
 use super::{
-    build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, ProcessState,
-    TX_KERNEL_DIR, ZERO,
+    build_module_path, output_notes_data_procedure, MemAdviceProvider, TX_KERNEL_DIR, ZERO,
 };
-use crate::testing::{
-    mock_executed_tx,
-    utils::{load_file_with_code, run_within_host},
+use crate::{
+    kernel_tests::read_root_mem_value,
+    testing::{
+        mock_executed_tx,
+        utils::{load_file_with_code, run_within_host},
+    },
 };
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
@@ -100,16 +102,14 @@ fn test_compute_created_note_id() {
             note.assets().expect("Output note should be full note").commitment();
         let asset_hash_memory_address =
             CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
-        let actual_asset_hash =
-            process.get_mem_value(ContextId::root(), asset_hash_memory_address).unwrap();
+        let actual_asset_hash = read_root_mem_value(&process, asset_hash_memory_address);
 
         assert_eq!(expected_asset_hash.as_elements(), actual_asset_hash, "Asset hash mismatch");
 
         // assert the note ID is correct
         let expected_id = note.id();
         let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
-        let actual_note_id =
-            process.get_mem_value(ContextId::root(), note_id_memory_address).unwrap();
+        let actual_note_id = read_root_mem_value(&process, note_id_memory_address);
         assert_eq!(&actual_note_id, expected_id.as_elements());
     }
 }

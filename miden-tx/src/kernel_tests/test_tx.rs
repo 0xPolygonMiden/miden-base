@@ -16,13 +16,15 @@ use miden_objects::{
     },
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::{AdviceInputs, DefaultHost, Process};
+use vm_processor::{AdviceInputs, DefaultHost};
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
-use crate::testing::{
-    mock_inputs,
-    utils::{prepare_transaction, run_tx_with_inputs, run_within_host},
-    MockHost,
+use super::{Felt, MemAdviceProvider, ProcessState, StackInputs, Word, ONE, ZERO};
+use crate::{
+    kernel_tests::read_root_mem_value,
+    testing::{
+        mock_inputs,
+        utils::{prepare_transaction, run_tx_with_inputs, run_within_host},
+    },
 };
 
 #[test]
@@ -60,7 +62,7 @@ fn test_create_note() {
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of created notes must increment by 1",
     );
@@ -263,24 +265,26 @@ fn test_get_output_notes_hash() {
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
-        Some([Felt::new(2), ZERO, ZERO, ZERO]),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        [Felt::new(2), ZERO, ZERO, ZERO],
         "The test creates two notes",
     );
     assert_eq!(
-        process.get_mem_value(
-            ContextId::root(),
+        NoteMetadata::try_from(read_root_mem_value(
+            &process,
             CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
-        ),
-        Some(output_note_1.metadata().into()),
+        ))
+        .unwrap(),
+        *output_note_1.metadata(),
         "Validate the output note 1 metadata",
     );
     assert_eq!(
-        process.get_mem_value(
-            ContextId::root(),
+        NoteMetadata::try_from(read_root_mem_value(
+            &process,
             CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
-        ),
-        Some(output_note_2.metadata().into()),
+        ))
+        .unwrap(),
+        *output_note_2.metadata(),
         "Validate the output note 1 metadata",
     );
 
@@ -525,7 +529,7 @@ fn test_build_recipient_hash() {
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of created notes must increment by 1",
     );
@@ -537,11 +541,4 @@ fn test_build_recipient_hash() {
         recipient_digest.as_slice(),
         "recipient hash not correct",
     );
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
-    process.get_mem_value(ContextId::root(), addr).unwrap()
 }

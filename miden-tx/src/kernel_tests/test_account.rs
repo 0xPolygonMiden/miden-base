@@ -23,11 +23,11 @@ use miden_objects::{
         },
     },
 };
-use vm_processor::{AdviceInputs, ContextId, DefaultHost, Felt, MemAdviceProvider};
+use vm_processor::{AdviceInputs, DefaultHost, Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
-    kernel_tests::output_notes_data_procedure,
+    kernel_tests::{output_notes_data_procedure, read_root_mem_value},
     testing::{
         mock_executed_tx, mock_inputs,
         utils::{prepare_transaction, run_tx_with_inputs, run_within_host},
@@ -57,13 +57,13 @@ pub fn test_set_code_is_not_immediate() {
     let process = run_tx_with_inputs(&transaction, AdviceInputs::default()).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
         transaction.account().code().root().as_elements(),
         "the code root must not have changed",
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_NEW_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_NEW_CODE_ROOT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the new code root must be cached",
     );
@@ -104,7 +104,7 @@ pub fn test_set_code_succeeds() {
     let process = run_within_host(&code, stack_inputs, host).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
         "the code root must have changed after the epilogue",
     );

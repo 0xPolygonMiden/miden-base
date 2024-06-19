@@ -29,11 +29,16 @@ use miden_objects::{
 };
 use vm_processor::AdviceInputs;
 
-use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
-use crate::testing::{
-    mock_inputs, mock_inputs_with_account_seed,
-    utils::{consumed_note_data_ptr, load_file_with_code, prepare_transaction, run_tx_with_inputs},
-    MockHost,
+use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
+use crate::{
+    kernel_tests::read_root_mem_value,
+    testing::{
+        mock_inputs, mock_inputs_with_account_seed,
+        utils::{
+            consumed_note_data_ptr, load_file_with_code, prepare_transaction, run_tx_with_inputs,
+        },
+        MockHost,
+    },
 };
 
 const PROLOGUE_FILE: &str = "prologue.masm";
@@ -561,10 +566,6 @@ fn test_get_blk_timestamp() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
-    process.get_mem_value(ContextId::root(), addr).unwrap()
-}
 
 fn read_note_element(process: &Process<MockHost>, note_idx: u32, offset: MemoryOffset) -> Word {
     read_root_mem_value(process, consumed_note_data_ptr(note_idx) + offset)
