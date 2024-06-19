@@ -391,24 +391,42 @@ fn executed_transaction_output_notes() {
     )
     .unwrap();
     let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let tag3 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
     let aux1 = Felt::new(27);
     let aux2 = Felt::new(28);
+    let aux3 = Felt::new(29);
 
     let note_type1 = NoteType::OffChain;
     let note_type2 = NoteType::Public;
+    let note_type3 = NoteType::Public;
 
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
+    assert_eq!(tag3.validate(note_type3), Ok(tag3));
 
-    // create the expected output note
-    let serial_num = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
-    let (note_script, _) = NoteScript::new(note_program_ast, &Assembler::default()).unwrap();
-    let inputs = NoteInputs::new(vec![]).unwrap();
-    let metadata = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
-    let vault = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
-    let recipient = NoteRecipient::new(serial_num, note_script, inputs);
-    let expected_output_note = Note::new(vault, metadata, recipient);
+    // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public without assets.
+    // However, the MockDataStore always creates 3 notes as well.
+
+    // Create the expected output note for Note 2 which is public
+    let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    let note_program_ast_2 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
+    let inputs_2 = NoteInputs::new(vec![]).unwrap();
+    let metadata_2 = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
+    let vault_2 = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
+    let recipient_2 = NoteRecipient::new(serial_num_2, note_script_2, inputs_2);
+    let expected_output_note_2 = Note::new(vault_2, metadata_2, recipient_2);
+
+    // Create the expected output note for Note 3 which is public
+    let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
+    let note_program_ast_3 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
+    let inputs_3 = NoteInputs::new(vec![]).unwrap();
+    let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();
+    let vault_3 = NoteAssets::new(vec![]).unwrap();
+    let recipient_3 = NoteRecipient::new(serial_num_3, note_script_3, inputs_3);
+    let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
+
     let tx_script = format!(
         "\
         use.miden::account
@@ -487,6 +505,15 @@ fn executed_transaction_output_notes() {
             movup.4 exec.add_asset_to_note drop
             # => []
 
+            # create a public note without assets
+            push.{RECIPIENT3}                   # recipient
+            push.{NOTETYPE3}                    # note_type
+            push.{aux3}                         # aux
+            push.{tag3}                         # tag
+            exec.create_note
+
+            drop
+
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
             push.1 exec.incr_nonce drop
@@ -497,16 +524,19 @@ fn executed_transaction_output_notes() {
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
         REMOVED_ASSET_4 = prepare_word(&Word::from(removed_asset_4)),
-        RECIPIENT2 = prepare_word(&Word::from(expected_output_note.recipient().digest())),
+        RECIPIENT2 = prepare_word(&Word::from(expected_output_note_2.recipient().digest())),
+        RECIPIENT3 = prepare_word(&Word::from(expected_output_note_3.recipient().digest())),
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
+        NOTETYPE3 = note_type3 as u8,
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let mut tx_args =
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
-    tx_args.add_expected_output_note(&expected_output_note);
+    tx_args.add_expected_output_note(&expected_output_note_2);
+    tx_args.add_expected_output_note(&expected_output_note_3);
 
     let block_ref = data_store.block_header.block_num();
     let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
@@ -523,7 +553,7 @@ fn executed_transaction_output_notes() {
     // assert that the expected output note is present
     // for some reason we always create 3 output notes when we use the MockDataStore
     // there is already an issue to change that
-    assert_eq!(output_notes.num_notes(), 5);
+    assert_eq!(output_notes.num_notes(), 6);
 
     let created_note_id_3 = executed_transaction.output_notes().get_note(3).id();
     let recipient_3 = Digest::from([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]);
@@ -533,9 +563,14 @@ fn executed_transaction_output_notes() {
 
     // assert that the expected output note 2 is present
     let created_note = executed_transaction.output_notes().get_note(4);
-    let note_id = expected_output_note.id();
-    let note_metadata = expected_output_note.metadata();
+    let note_id = expected_output_note_2.id();
+    let note_metadata = expected_output_note_2.metadata();
     assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, *note_metadata));
+
+    // assert that the expected output note 3 is present and has no assets
+    let created_note_3 = executed_transaction.output_notes().get_note(5);
+    assert_eq!(expected_output_note_3.id(), created_note_3.id());
+    assert_eq!(expected_output_note_3.assets(), created_note_3.assets().unwrap());
 }
 
 #[test]
