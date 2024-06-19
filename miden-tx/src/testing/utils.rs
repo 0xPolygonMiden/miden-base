@@ -10,7 +10,7 @@ use miden_objects::transaction::{TransactionArgs, TransactionInputs};
 #[cfg(not(target_family = "wasm"))]
 use vm_processor::{AdviceInputs, ExecutionError, Process};
 #[cfg(feature = "std")]
-use vm_processor::{ExecutionOptions, Host, StackInputs};
+use vm_processor::{Host, StackInputs};
 
 use crate::testing::MockHost;
 
@@ -48,14 +48,9 @@ pub fn run_within_host<H: Host>(
     stack_inputs: StackInputs,
     host: H,
 ) -> Result<Process<H>, ExecutionError> {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
     let program = assembler.compile(code).unwrap();
-    let mut process = Process::new(
-        program.kernel().clone(),
-        stack_inputs,
-        host,
-        ExecutionOptions::default().with_tracing(),
-    );
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
     process.execute(&program)?;
     Ok(process)
 }
