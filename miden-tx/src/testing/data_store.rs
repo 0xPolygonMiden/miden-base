@@ -5,23 +5,19 @@ use alloc::vec::Vec;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
-        AccountId,
-    },
+    accounts::{Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
     testing::{
-        account::{mock_account, MockAccountType},
+        account::MockAccountType,
         account_code::mock_account_code,
         notes::{mock_notes, AssetPreservationStatus},
     },
     transaction::{
         ChainMmr, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
     },
-    BlockHeader, FieldElement,
+    BlockHeader,
 };
-use vm_processor::Felt;
 use winter_maybe_async::maybe_async;
 
 use super::{chain_data::mock_chain_data, mock_host::mock_inputs_with_account_seed};
@@ -53,14 +49,14 @@ impl MockDataStore {
         }
     }
 
-    pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
+    pub fn with_existing(account: Account, input_notes: Option<Vec<Note>>) -> Self {
         let assembler = &TransactionKernel::assembler();
 
-        let account = account.unwrap_or(mock_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            Felt::ONE,
-            mock_account_code(assembler),
-        ));
+        // NOTE: this function is called because of its side effects, it will modify the state of
+        // the assembler, the changes are required to register the account's procedures into the
+        // assembler procedure cache, which is then required to successfully compile the
+        // transaction.
+        let _ = mock_account_code(assembler);
 
         let (mut consumed_notes, created_notes) =
             mock_notes(assembler, &AssetPreservationStatus::Preserved);

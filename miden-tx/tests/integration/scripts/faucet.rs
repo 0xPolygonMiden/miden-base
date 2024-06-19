@@ -39,7 +39,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(faucet_account.clone(), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
@@ -116,7 +116,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(faucet_account.clone(), Some(vec![]));
 
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
@@ -208,8 +208,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
+    let data_store = MockDataStore::with_existing(faucet_account.clone(), Some(vec![note.clone()]));
 
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();

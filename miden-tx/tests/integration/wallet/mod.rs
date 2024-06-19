@@ -62,7 +62,7 @@ fn prove_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
+    let data_store = MockDataStore::with_existing(target_account.clone(), Some(vec![note]));
 
     let mut executor =
         TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
@@ -118,7 +118,7 @@ fn prove_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
+    let data_store = MockDataStore::with_existing(sender_account.clone(), Some(vec![]));
 
     let mut executor =
         TransactionExecutor::new(data_store.clone(), Some(sender_falcon_auth.clone()));
