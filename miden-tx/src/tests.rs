@@ -404,7 +404,7 @@ fn executed_transaction_output_notes() {
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
 
-    // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public without assets. 
+    // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public without assets.
     // However, the MockDataStore always creates 3 notes as well.
 
     // Create the expected output note for Note 2 which is public
@@ -420,7 +420,7 @@ fn executed_transaction_output_notes() {
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
     let note_program_ast_3 = ProgramAst::parse("begin push.1 drop end").unwrap();
-    let (note_script_3, _ ) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
+    let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();
     let vault_3 = NoteAssets::new(vec![]).unwrap();
