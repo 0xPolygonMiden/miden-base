@@ -28,7 +28,7 @@ use crate::testing::MockHost;
 
 /// Loads the specified file and append `code` into its end.
 #[cfg(feature = "std")]
-fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
+pub fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
     let mut module = String::new();
     File::open(assembly_file).unwrap().read_to_string(&mut module).unwrap();
     let complete_code = format!("{imports}{module}{code}");
@@ -51,14 +51,11 @@ pub fn run_tx_with_inputs(
     Ok(process)
 }
 
-/// Inject `code` along side the specified file and run it
 #[cfg(feature = "std")]
 pub fn run_within_tx_kernel<A>(
-    imports: &str,
     code: &str,
     stack_inputs: StackInputs,
     mut adv: A,
-    file_path: Option<PathBuf>,
 ) -> Result<Process<DefaultHost<A>>, ExecutionError>
 where
     A: AdviceProvider,
@@ -67,12 +64,6 @@ where
     adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
 
     let assembler = TransactionKernel::assembler();
-
-    let code = match file_path {
-        Some(file_path) => load_file_with_code(imports, code, file_path),
-        None => format!("{imports}{code}"),
-    };
-
     let program = assembler.compile(code).unwrap();
 
     let host = DefaultHost::new(adv);

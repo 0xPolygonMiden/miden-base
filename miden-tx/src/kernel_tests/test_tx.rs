@@ -150,8 +150,7 @@ fn test_create_note_too_many_notes() {
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
-    let process =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+    let process = run_within_tx_kernel(&code, StackInputs::default(), MemAdviceProvider::default());
 
     // assert the process failed
     assert!(process.is_err());

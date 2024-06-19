@@ -148,11 +148,9 @@ pub fn test_account_type() {
             );
 
             let process = run_within_tx_kernel(
-                "",
                 &code,
                 StackInputs::new(vec![account_id.into()]).unwrap(),
                 MemAdviceProvider::default(),
-                None,
             )
             .unwrap();
 
@@ -190,8 +188,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
         "
     );
 
-    let result =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+    let result = run_within_tx_kernel(&code, StackInputs::default(), MemAdviceProvider::default());
 
     assert!(result.is_err());
 }
@@ -224,14 +221,9 @@ fn test_is_faucet_procedure() {
             account_id = account_id,
         );
 
-        let process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::default(),
-            MemAdviceProvider::default(),
-            None,
-        )
-        .unwrap();
+        let process =
+            run_within_tx_kernel(&code, StackInputs::default(), MemAdviceProvider::default())
+                .unwrap();
         let is_faucet = account_id.is_faucet();
         assert_eq!(
             process.stack.get(0),

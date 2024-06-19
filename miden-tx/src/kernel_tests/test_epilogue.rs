@@ -10,7 +10,10 @@ use super::{
     build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, ProcessState,
     TX_KERNEL_DIR, ZERO,
 };
-use crate::testing::{mock_executed_tx, utils::run_within_tx_kernel};
+use crate::testing::{
+    mock_executed_tx,
+    utils::{load_file_with_code, run_within_tx_kernel},
+};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
@@ -37,11 +40,9 @@ fn test_epilogue() {
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
-        imports,
-        &code,
+        &load_file_with_code(imports, &code, assembly_file),
         stack_inputs,
         MemAdviceProvider::from(advice_inputs),
-        Some(assembly_file),
     )
     .unwrap();
 
@@ -73,7 +74,7 @@ fn test_compute_created_note_id() {
 
     for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
         let imports = "use.miden::kernels::tx::prologue\n";
-        let test = format!(
+        let code = format!(
             "
         {output_notes_data_procedure}
         begin
@@ -87,11 +88,9 @@ fn test_compute_created_note_id() {
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
-            imports,
-            &test,
+            &load_file_with_code(imports, &code, assembly_file),
             stack_inputs,
             MemAdviceProvider::from(advice_inputs),
-            Some(assembly_file),
         )
         .unwrap();
 
@@ -140,11 +139,9 @@ fn test_epilogue_asset_preservation_violation() {
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
         let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
         let process = run_within_tx_kernel(
-            imports,
-            &code,
+            &load_file_with_code(imports, &code, assembly_file),
             stack_inputs,
             MemAdviceProvider::from(advice_inputs),
-            Some(assembly_file),
         );
 
         // assert the process results in error
@@ -176,11 +173,9 @@ fn test_epilogue_increment_nonce_success() {
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let _process = run_within_tx_kernel(
-        imports,
-        &code,
+        &load_file_with_code(imports, &code, assembly_file),
         stack_inputs,
         MemAdviceProvider::from(advice_inputs),
-        Some(assembly_file),
     )
     .unwrap();
 }
@@ -208,11 +203,9 @@ fn test_epilogue_increment_nonce_violation() {
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
     let process = run_within_tx_kernel(
-        imports,
-        &code,
+        &load_file_with_code(imports, &code, assembly_file),
         stack_inputs,
         MemAdviceProvider::from(advice_inputs),
-        Some(assembly_file),
     );
 
     assert!(process.is_err());
