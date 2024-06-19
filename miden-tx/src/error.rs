@@ -241,8 +241,11 @@ const ERR_INVALID_NOTE_TYPE: u32 = 131140;
 const ERR_INVALID_NOTE_IDX: u32 = 131154;
 const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
 const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
+const ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT: u32 = 131143;
+const ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 131144;
+const ERR_SLOT_TYPE_NOT_MAP: u32 = 131145;
 
-pub const KERNEL_ERRORS: [(u32, &str); 72] = [
+pub const KERNEL_ERRORS: [(u32, &str); 75] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -315,4 +318,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 72] = [
     (ERR_INVALID_NOTE_IDX, "Invalid note index"),
     (ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE, "The note's tag failed the most significant validation"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag high bits must be set to 0"),
+    (ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT, "Setting a non-value item on a value slot"),
+    (ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Setting a map item on a non-map slot"),
+    (ERR_SLOT_TYPE_NOT_MAP, "Slot type is not a map"),
 ];
