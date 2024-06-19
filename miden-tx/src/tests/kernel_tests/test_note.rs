@@ -375,3 +375,29 @@ fn note_setup_memory_assertions(process: &Process<MockHost>) {
         Felt::from(consumed_note_data_ptr(0))
     );
 }
+
+#[test]
+fn test_get_note_serial_number() {
+    let (tx_inputs, tx_args) =
+        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+
+    // calling get_serial_number should return the serial number of the note
+    let code = "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::note->note_internal
+        use.miden::note
+
+        begin
+            exec.prologue::prepare_transaction
+            exec.note_internal::prepare_note
+            dropw dropw dropw dropw
+            exec.note::get_serial_number
+        end
+        ";
+
+    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
+    let process = run_tx(&transaction).unwrap();
+
+    let serial_number = transaction.input_notes().get_note(0).note().serial_num();
+    assert_eq!(process.stack.get_word(0), serial_number);
+}

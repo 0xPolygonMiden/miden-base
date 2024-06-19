@@ -129,3 +129,18 @@ export.get_sender
     syscall.get_note_sender
     # => [sender]
 end
+
+#! Returns the serial number of the note currently being processed.
+#! Panics if no note is not being processed.
+#!
+#! Inputs: []
+#! Outputs: [SERIAL_NUMBER]
+#!
+#! - SERIAL_NUMBER is the serial number of the note currently being processed.
+export.get_serial_number
+    padw
+    # => [0, 0, 0, 0]
+
+    syscall.get_note_serial_number
+    # => [SERIAL_NUMBER]
+end
