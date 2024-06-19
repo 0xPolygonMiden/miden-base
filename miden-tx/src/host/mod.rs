@@ -190,7 +190,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        // # => [index, NEW_VALUE, OLD_VALUE, ... ]
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
         if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
@@ -216,14 +215,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {
             let slot_index = slot_index.as_int() as u8;
-            // if the new value is the new root of a StorageMap, there is no update of the
-            // delta tracker via slot_update. The map update will exclusively be tracked
-            // in maps_update. Any update with an index that is already in maps_update
-            // will be ignored. There should be never be a case where the map of a root is
-            // updated but there is no corresponding map update.
-            if !self.account_delta.storage_tracker().has_maps_update(&slot_index) {
-                self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
-            }
+            self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
         }
 
         Ok(())
@@ -237,7 +229,6 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        // # => [index, KEY, NEW_VALUE, ...]
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
         if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {

@@ -183,6 +183,14 @@ export.set_account_item
     exec.authenticate_account_origin
     # => [index, V', 0, 0, 0]
 
+    # check if storage type is slot
+    dup exec.account::get_storage_slot_type_info drop
+    # => [slot_type, index, V', 0, 0, 0]
+
+    # fails if slot_type is not 0 = value
+    push.STORAGE_VALUE eq assert
+    # => [index, V', 0, 0, 0]
+
     # set the account storage item
     exec.account::set_item
     # => [R', V, 0, 0, 0]
@@ -265,7 +273,7 @@ export.set_account_map_item.1
     # => [NEW_MAP_ROOT, OLD_MAP_VALUE, ...]
 
     # set the root of the map in the respective account storage slot
-    loc_load.0 exec.account::set_item
+    loc_load.0 exec.account::set_item_raw
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
 
     # organize the stack for return (16 elements)

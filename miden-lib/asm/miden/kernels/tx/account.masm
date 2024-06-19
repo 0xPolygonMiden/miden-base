@@ -362,7 +362,6 @@ export.set_item
     movdn.4 dupw dup.8
     # => [index, V', V', index]
 
-    # get the storage root
     exec.memory::get_acct_storage_root
     # => [R, index, V', V', index]
 
@@ -376,6 +375,30 @@ export.set_item
 
     # emit event to signal that an account storage item is being updated
     swapw movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
+    # => [V]
+end
+
+#! Sets an item in the account storage. Doesn't emit any events.
+#!
+#! Stack: [index, V']
+#! Output: [V]
+#!
+#! - index is the index of the item to set.
+#! - V' is the value to set.
+#! - V is the previous value of the item.
+#! - R is th old storage root.
+#! - R' is the new storage root.
+export.set_item_raw
+    # get the storage root
+    exec.memory::get_acct_storage_root
+    # => [R, index, V']
+
+    # set the item in storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_set
+    # => [V, R']
+
+    # set the new storage root
+    swapw exec.memory::set_acct_storage_root
     # => [V]
 end
 

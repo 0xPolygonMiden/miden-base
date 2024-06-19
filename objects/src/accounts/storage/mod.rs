@@ -276,13 +276,13 @@ impl AccountStorage {
         // --- update storage maps --------------------------------------------
 
         for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-            for &key in map_delta.cleared_leaves.iter() {
-                self.set_map_item(slot_idx, key, Word::default())?;
-            }
+            let storage_map =
+                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
 
-            for &(key, value) in map_delta.updated_leaves.iter() {
-                self.set_map_item(slot_idx, key, value)?;
-            }
+            let new_root = storage_map.apply_delta(map_delta)?;
+
+            let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
+            self.slots.insert(index, new_root.into());
         }
 
         // --- update storage slots -------------------------------------------
@@ -298,7 +298,10 @@ impl AccountStorage {
         Ok(())
     }
 
-    /// Sets an item into the storage at the specified index.
+    /// Updates the value of the storage slot at the specified index.
+    ///
+    /// This method should be used only to update simple value slots. For updating values
+    /// in storage maps, please see [AccountStorage::set_map_item()].
     ///
     /// # Errors
     /// Returns an error if:
@@ -331,7 +334,10 @@ impl AccountStorage {
         Ok(slot_value)
     }
 
-    /// Sets a map item in the storage at the specified index.
+    /// Updates the value of a key-value pair of a storage map at the specified index.
+    ///
+    /// This method should be used only to update storage maps. For updating values
+    /// in storage slots, please see [AccountStorage::set_item()].
     ///
     /// # Errors
     /// Returns an error if:
@@ -350,7 +356,7 @@ impl AccountStorage {
             return Err(AccountError::StorageSlotIsReserved(index));
         }
 
-        // only value slots of basic arity can currently be updated
+        // only map slots of basic arity can currently be updated
         match self.layout[index as usize] {
             StorageSlotType::Map { value_arity } => {
                 if value_arity > 0 {
@@ -370,15 +376,13 @@ impl AccountStorage {
 
         // get old values to return
         let old_map_root = storage_map.root();
-        let old_value = storage_map.get_value(&Digest::from(key));
 
         // apply the delta
-        storage_map.insert(key.into(), value);
+        let old_value = storage_map.insert(key.into(), value);
 
         // update the root of the storage map in the corresponding storage slot
-        let new_root = storage_map.root().into();
         let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
-        self.slots.insert(index, new_root);
+        self.slots.insert(index, storage_map.root().into());
 
         Ok((old_map_root.into(), old_value))
     }
