@@ -22,7 +22,7 @@ const EPILOGUE_FILE: &str = "epilogue.masm";
 /// "{imports}{epilogue_code}{code}"`
 fn insert_epilogue(imports: &str, code: &str) -> String {
     let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    load_file_with_code(imports, &code, assembly_file)
+    load_file_with_code(imports, code, assembly_file)
 }
 
 #[test]

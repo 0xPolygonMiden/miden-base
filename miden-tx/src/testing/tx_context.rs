@@ -198,10 +198,9 @@ impl TransactionContextBuilder {
     }
 
     pub fn add_expected_output_note(mut self, output_note: OutputNote) -> Self {
-        match output_note {
-            OutputNote::Full(note) => self.expected_output_notes.extend([note].into_iter()),
-            _ => {},
-        };
+        if let OutputNote::Full(note) = output_note {
+            self.expected_output_notes.extend([note]);
+        }
         self
     }
 
