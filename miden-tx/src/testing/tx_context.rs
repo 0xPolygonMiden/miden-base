@@ -2,10 +2,7 @@ use alloc::vec::Vec;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    accounts::{
-        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
-        AccountCode,
-    },
+    accounts::{Account, AccountCode},
     assembly::Assembler,
     notes::{Note, NoteId},
     testing::{
@@ -15,7 +12,6 @@ use miden_objects::{
     transaction::{
         InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
-    FieldElement,
 };
 use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 
@@ -124,29 +120,9 @@ impl TransactionContextBuilder {
         }
     }
 
-    pub fn with_new_standard_account(account_id: u64) -> Self {
+    pub fn with_standard_account(account_id: u64, nonce: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let code = AccountCode::mock_wallet(&assembler);
-        let account = Account::mock(account_id, Felt::ZERO, code);
-
-        Self {
-            assembler,
-            account,
-            account_seed: None,
-            input_notes: Vec::new(),
-            expected_output_notes: Vec::new(),
-            tx_args: TransactionArgs::default(),
-            advice_inputs: None,
-        }
-    }
-
-    pub fn with_standard_existing_account() -> Self {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = Account::mock(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            Felt::ONE,
-            AccountCode::mock_wallet(&assembler),
-        );
+        let account = Account::mock(account_id, nonce, AccountCode::mock_wallet(&assembler));
 
         Self {
             assembler,

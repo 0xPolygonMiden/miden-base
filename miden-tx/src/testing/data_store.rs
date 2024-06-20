@@ -4,13 +4,17 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, AccountId},
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountId,
+    },
     assembly::ModuleAst,
     notes::{Note, NoteId},
     testing::notes::AssetPreservationStatus,
     transaction::{InputNote, InputNotes, TransactionArgs, TransactionInputs},
     BlockHeader,
 };
+use vm_processor::ONE;
 use winter_maybe_async::maybe_async;
 
 use super::TransactionContextBuilder;
@@ -24,9 +28,12 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation_status: AssetPreservationStatus) -> Self {
-        let tx_context = TransactionContextBuilder::with_standard_existing_account()
-            .with_mock_notes(asset_preservation_status)
-            .build();
+        let tx_context = TransactionContextBuilder::with_standard_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ONE,
+        )
+        .with_mock_notes(asset_preservation_status)
+        .build();
         let (_, _, tx_args, tx_inputs) = tx_context.into_parts();
         Self { tx_inputs, tx_args }
     }
@@ -35,7 +42,10 @@ impl MockDataStore {
         let tx_context = if let Some(acc) = account {
             TransactionContextBuilder::new(acc)
         } else {
-            TransactionContextBuilder::with_standard_existing_account()
+            TransactionContextBuilder::with_standard_account(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+                ONE,
+            )
         };
 
         let tx_context = if let Some(notes) = input_notes {

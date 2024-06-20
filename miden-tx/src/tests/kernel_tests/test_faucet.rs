@@ -2,6 +2,7 @@ use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assets::{Asset, FungibleAsset},
     testing::{
@@ -70,7 +71,11 @@ fn test_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let code = format!(
         "
@@ -92,7 +97,11 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let code = format!(
         "
@@ -114,7 +123,11 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let code = format!(
         "
@@ -195,7 +208,11 @@ fn test_mint_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
@@ -221,7 +238,11 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3, 4]);
@@ -331,7 +352,11 @@ fn test_burn_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let code = format!(
         "
@@ -502,7 +527,11 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);

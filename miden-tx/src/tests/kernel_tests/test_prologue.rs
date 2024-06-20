@@ -17,6 +17,7 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
+    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     assembly::ProgramAst,
     testing::{
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
@@ -26,7 +27,7 @@ use miden_objects::{
     transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, ONE};
 
 use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
 use crate::{
@@ -56,9 +57,12 @@ fn insert_prologue(code: &str) -> String {
 
 #[test]
 fn test_transaction_prologue() {
-    let mut tx_context = TransactionContextBuilder::with_standard_existing_account()
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let code = "
         begin
@@ -361,7 +365,7 @@ pub fn test_prologue_create_account() {
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
         &TransactionKernel::assembler().with_debug_mode(true),
     );
-    let tx_context = TransactionContextBuilder::with_new_standard_account(acct_id.into())
+    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
         .account_seed(account_seed)
         .build();
 
@@ -502,7 +506,7 @@ pub fn test_prologue_create_account_invalid_seed() {
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::with_new_standard_account(acct_id.into())
+    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
         .account_seed(account_seed)
         .advice_inputs(adv_inputs)
         .build();
@@ -513,7 +517,11 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -531,7 +539,11 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
