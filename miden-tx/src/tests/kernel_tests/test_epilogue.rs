@@ -5,13 +5,14 @@ use miden_lib::transaction::{
     ToTransactionKernelInputs,
 };
 use miden_objects::testing::notes::AssetPreservationStatus;
-use vm_processor::ProcessState;
 
 use super::{
-    build_module_path, output_notes_data_procedure, ContextId, MemAdviceProvider, TX_KERNEL_DIR,
-    ZERO,
+    build_module_path, output_notes_data_procedure, MemAdviceProvider, TX_KERNEL_DIR, ZERO,
 };
-use crate::testing::{executor::CodeExecutor, utils::mock_executed_tx};
+use crate::{
+    testing::{executor::CodeExecutor, utils::mock_executed_tx},
+    tests::kernel_tests::read_root_mem_value,
+};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
@@ -109,8 +110,7 @@ fn test_compute_created_note_id() {
             note.assets().expect("Output note should be full note").commitment();
         let asset_hash_memory_address =
             CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
-        let actual_asset_hash =
-            process.get_mem_value(ContextId::root(), asset_hash_memory_address).unwrap();
+        let actual_asset_hash = read_root_mem_value(&process, asset_hash_memory_address);
         assert_eq!(
             expected_asset_hash.as_elements(),
             actual_asset_hash,
@@ -119,8 +119,7 @@ fn test_compute_created_note_id() {
 
         let expected_id = note.id();
         let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
-        let actual_note_id =
-            process.get_mem_value(ContextId::root(), note_id_memory_address).unwrap();
+        let actual_note_id = read_root_mem_value(&process, note_id_memory_address);
         assert_eq!(
             &actual_note_id,
             expected_id.as_elements(),

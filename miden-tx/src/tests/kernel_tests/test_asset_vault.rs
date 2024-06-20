@@ -15,8 +15,8 @@ use miden_objects::{
     AssetVaultError,
 };
 
-use super::{ContextId, Felt, ProcessState, Word, ONE, ZERO};
-use crate::testing::TransactionContextBuilder;
+use super::{Felt, Word, ONE, ZERO};
+use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
 
 #[test]
 fn test_get_balance() {
@@ -120,7 +120,7 @@ fn test_add_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -189,7 +189,7 @@ fn test_add_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -256,7 +256,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -320,7 +320,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }
@@ -398,7 +398,7 @@ fn test_remove_non_fungible_asset_success() {
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), memory::ACCT_VAULT_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, memory::ACCT_VAULT_ROOT_PTR),
         *account_vault.commitment()
     );
 }

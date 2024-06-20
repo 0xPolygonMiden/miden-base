@@ -15,14 +15,14 @@ use miden_objects::{
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
     testing::{notes::AssetPreservationStatus, prepare_word, storage::STORAGE_LEAVES_2},
 };
-use vm_processor::{ContextId, Felt, MemAdviceProvider};
+use vm_processor::{Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
     testing::{
         executor::CodeExecutor, utils::mock_executed_tx, MockHost, TransactionContextBuilder,
     },
-    tests::kernel_tests::output_notes_data_procedure,
+    tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
 
 // ACCOUNT CODE TESTS
@@ -44,13 +44,13 @@ pub fn test_set_code_is_not_immediate() {
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
         tx_context.account().code().root().as_elements(),
         "the code root must not change immediatelly",
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_NEW_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_NEW_CODE_ROOT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the code root must be cached",
     );
@@ -91,7 +91,7 @@ pub fn test_set_code_succeeds() {
     let process = CodeExecutor::new(host).stack_inputs(stack_inputs).run(&code).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
+        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
         "the code root must change after the epilogue",
     );

@@ -9,8 +9,11 @@ use miden_objects::{
 };
 use vm_processor::EMPTY_WORD;
 
-use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
+use super::{Felt, Process, ZERO};
+use crate::{
+    testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder},
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_get_sender_no_sender() {
@@ -369,7 +372,7 @@ fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTra
 fn note_setup_memory_assertions(process: &Process<MockHost>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
+        read_root_mem_value(process, CURRENT_CONSUMED_NOTE_PTR)[0],
         Felt::from(consumed_note_data_ptr(0))
     );
 }
