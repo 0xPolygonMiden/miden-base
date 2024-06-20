@@ -1,6 +1,3 @@
-// MOCK DATA STORE
-// ================================================================================================
-
 use alloc::vec::Vec;
 
 use miden_objects::{
@@ -19,6 +16,9 @@ use winter_maybe_async::maybe_async;
 
 use super::TransactionContextBuilder;
 use crate::{DataStore, DataStoreError};
+
+// MOCK DATA STORE
+// ================================================================================================
 
 #[derive(Clone)]
 pub struct MockDataStore {
