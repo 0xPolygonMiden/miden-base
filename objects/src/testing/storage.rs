@@ -4,7 +4,7 @@ use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
-use super::prepare_word;
+use super::{constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word};
 use crate::{
     accounts::{
         account_id::testing::{
@@ -148,7 +148,7 @@ pub fn generate_account_seed(
             Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
-                false,
+                Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
                 assembler,
             ),
             AccountType::FungibleFaucet,
@@ -157,7 +157,7 @@ pub fn generate_account_seed(
             Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
-                true,
+                ZERO,
                 assembler,
             ),
             AccountType::FungibleFaucet,

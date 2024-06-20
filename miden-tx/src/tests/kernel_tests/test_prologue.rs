@@ -19,6 +19,7 @@ use miden_lib::transaction::{
 use miden_objects::{
     assembly::ProgramAst,
     testing::{
+        constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         notes::AssetPreservationStatus,
         storage::{generate_account_seed, AccountSeedType},
     },
@@ -384,7 +385,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     );
 
     let tx_context =
-        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, true)
+        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
             .account_seed(account_seed)
             .build();
 
@@ -408,10 +409,13 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         &TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context =
-        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(account_seed)
-            .build();
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        acct_id.into(),
+        Felt::ZERO,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
+    )
+    .account_seed(account_seed)
+    .build();
 
     let code = "
     use.miden::kernels::tx::prologue

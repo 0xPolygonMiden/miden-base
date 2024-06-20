@@ -159,10 +159,9 @@ impl TransactionContextBuilder {
         }
     }
 
-    pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
+    pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account =
-            Account::mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler);
+        let account = Account::mock_fungible_faucet(acct_id, nonce, initial_balance, &assembler);
 
         Self {
             assembler,

@@ -14,6 +14,7 @@ use miden_objects::{
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
 };
+use vm_processor::Felt;
 
 use super::ONE;
 use crate::testing::TransactionContextBuilder;
@@ -26,7 +27,7 @@ fn test_mint_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ONE,
-        false,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 
@@ -285,7 +286,7 @@ fn test_burn_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ONE,
-        false,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .with_mock_notes(AssetPreservationStatus::Preserved)
     .build();
@@ -576,7 +577,7 @@ fn test_get_total_issuance_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ONE,
-        false,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 

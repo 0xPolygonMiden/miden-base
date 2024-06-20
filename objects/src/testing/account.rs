@@ -13,9 +13,7 @@ use vm_core::FieldElement;
 use super::{
     account_code::DEFAULT_ACCOUNT_CODE,
     account_id::{str_to_account_code, AccountIdBuilder},
-    constants::{
-        self, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
-    },
+    constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
 };
 use crate::{
@@ -195,14 +193,9 @@ impl Account {
     pub fn mock_fungible_faucet(
         account_id: u64,
         nonce: Felt,
-        empty_reserved_slot: bool,
+        initial_balance: Felt,
         assembler: &Assembler,
     ) -> Self {
-        let initial_balance = if empty_reserved_slot {
-            ZERO
-        } else {
-            Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
-        };
         let account_storage = AccountStorage::new(
             vec![SlotItem {
                 index: FAUCET_STORAGE_DATA_SLOT,

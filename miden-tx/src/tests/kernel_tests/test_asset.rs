@@ -4,7 +4,9 @@ use miden_objects::{
     },
     assets::Asset,
     testing::{
-        constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+        constants::{
+            FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
+        },
         prepare_word,
     },
 };
@@ -18,7 +20,7 @@ fn test_create_fungible_asset_succeeds() {
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
         ONE,
-        false,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
     .build();
 
