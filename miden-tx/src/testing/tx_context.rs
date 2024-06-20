@@ -188,11 +188,6 @@ impl TransactionContextBuilder {
         self
     }
 
-    pub fn assembler(mut self, assembler: Assembler) -> Self {
-        self.assembler = assembler;
-        self
-    }
-
     pub fn advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
         self.advice_inputs = Some(advice_inputs);
         self

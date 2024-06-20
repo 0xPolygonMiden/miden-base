@@ -29,23 +29,22 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
     // use empty main program to produce the mock transaction
     let program = assembler.compile("begin push.0 drop end").unwrap();
 
-    let initial_account = Account::mock(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        Felt::ONE,
-        AccountCode::mock_wallet(&assembler),
-    );
+    // simulate a transaction that modifies the account state, and increases the nonce by one
+    let initial_nonce = Felt::ONE;
+    let final_nonce = initial_nonce + Felt::ONE;
 
-    // nonce incremented by 1
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        initial_nonce,
+    )
+    .with_mock_notes(asset_preservation)
+    .build();
+
     let final_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        Felt::new(2),
-        initial_account.code().clone(),
+        final_nonce,
+        AccountCode::mock_wallet(&assembler),
     );
-
-    let tx_context = TransactionContextBuilder::new(initial_account)
-        .assembler(assembler)
-        .with_mock_notes(asset_preservation)
-        .build();
 
     let output_notes = tx_context
         .expected_output_notes()
