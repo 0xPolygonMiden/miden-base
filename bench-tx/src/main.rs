@@ -13,15 +13,16 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
     notes::NoteType,
+    testing::notes::AssetPreservationStatus,
     transaction::TransactionArgs,
     Felt,
 };
 use miden_tx::{
-    auth::BasicAuthenticator, testing::data_store::MockDataStore, utils::Serializable,
+    auth::BasicAuthenticator, testing::TransactionContextBuilder, utils::Serializable,
     TransactionExecutor, TransactionHost, TransactionProgress,
 };
 use rand::rngs::StdRng;
-use vm_processor::{ExecutionOptions, RecAdviceProvider, Word};
+use vm_processor::{ExecutionOptions, RecAdviceProvider, Word, ONE};
 
 mod utils;
 use utils::{
@@ -66,23 +67,28 @@ fn main() -> Result<(), String> {
 
 /// Runs the default transaction with empty transaction script and two default notes.
 pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
-    let data_store = MockDataStore::default();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_tracing();
+        TransactionExecutor::new(tx_context.clone(), None).with_tracing();
 
-    let account_id = data_store.account().id();
+    let account_id = tx_context.account().id();
     executor.load_account(account_id).map_err(|e| e.to_string())?;
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
     let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, data_store.tx_args.clone())
+        .prepare_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
@@ -132,15 +138,17 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     )
     .unwrap();
 
-    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note.clone()]);
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_tracing();
+        TransactionExecutor::new(tx_context.clone(), None).with_tracing();
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())

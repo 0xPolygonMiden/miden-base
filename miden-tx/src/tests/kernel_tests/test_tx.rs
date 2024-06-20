@@ -17,8 +17,10 @@ use miden_objects::{
 };
 
 use super::{Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
-use crate::testing::{executor::CodeExecutor, TransactionContextBuilder};
-use crate::tests::kernel_tests::read_root_mem_value;
+use crate::{
+    testing::{executor::CodeExecutor, TransactionContextBuilder},
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_create_note() {

@@ -17,7 +17,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
@@ -62,15 +62,17 @@ fn prove_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note]);
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account.id()).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -123,15 +125,15 @@ fn prove_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(sender_account.clone(), vec![]);
+    let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(sender_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
     executor.load_account(sender_account.id()).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -183,7 +185,7 @@ fn prove_send_asset_via_wallet() {
 
     // vault delta
     let sender_account_after: Account = Account::from_parts(
-        data_store.account().id(),
+        tx_context.account().id(),
         AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,

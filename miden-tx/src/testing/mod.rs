@@ -1,5 +1,4 @@
 mod account_procs;
-pub mod data_store;
 pub mod executor;
 
 pub use mock_host::MockHost;

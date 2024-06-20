@@ -10,7 +10,7 @@ use miden_objects::{
         },
         Account, AccountCode, AccountId,
     },
-    assembly::Assembler,
+    assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteId, NoteType},
     testing::{
@@ -31,12 +31,15 @@ use miden_objects::{
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
+use winter_maybe_async::maybe_async;
 
 use super::{executor::CodeExecutor, MockHost};
+use crate::{DataStore, DataStoreError};
 
 // TRANSACTION CONTEXT
 // ================================================================================================
 
+#[derive(Debug, Clone)]
 pub struct TransactionContext {
     mock_chain: MockChain,
     expected_output_notes: Vec<Note>,
@@ -107,6 +110,28 @@ impl TransactionContext {
 
     pub fn into_parts(self) -> (MockChain, Vec<Note>, TransactionArgs, TransactionInputs) {
         (self.mock_chain, self.expected_output_notes, self.tx_args, self.tx_inputs)
+    }
+}
+
+impl DataStore for TransactionContext {
+    #[maybe_async]
+    fn get_transaction_inputs(
+        &self,
+        account_id: AccountId,
+        block_num: u32,
+        notes: &[NoteId],
+    ) -> Result<TransactionInputs, DataStoreError> {
+        assert_eq!(account_id, self.tx_inputs.account().id());
+        assert_eq!(block_num, self.tx_inputs.block_header().block_num());
+        assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
+
+        Ok(self.tx_inputs.clone())
+    }
+
+    #[maybe_async]
+    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
+        assert_eq!(account_id, self.tx_inputs.account().id());
+        Ok(self.tx_inputs.account().code().module().clone())
     }
 }
 

@@ -15,7 +15,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, ZERO,
 };
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
@@ -60,15 +60,17 @@ fn prove_swap_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note.clone()]);
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())

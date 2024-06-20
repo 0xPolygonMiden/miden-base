@@ -20,7 +20,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
@@ -39,14 +39,14 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(faucet_account.clone(), vec![]);
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -121,14 +121,14 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(faucet_account.clone(), vec![]);
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -218,14 +218,16 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(faucet_account.clone(), vec![note.clone()]);
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -233,7 +235,12 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args)
+        .execute_transaction(
+            faucet_account.id(),
+            block_ref,
+            &note_ids,
+            tx_context.tx_args().clone(),
+        )
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
