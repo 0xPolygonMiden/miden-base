@@ -38,15 +38,11 @@ impl MockDataStore {
         Self { tx_inputs, tx_args }
     }
 
-    pub fn with_existing(account: Account, input_notes: Option<Vec<Note>>) -> Self {
-        let tx_context = TransactionContextBuilder::new(account);
-
-        let tx_context = if let Some(notes) = input_notes {
-            tx_context.input_notes(notes)
-        } else {
-            tx_context.with_mock_notes(AssetPreservationStatus::Preserved)
-        };
-        let (_, _, tx_args, tx_inputs) = tx_context.build().into_parts();
+    pub fn with_existing(account: Account, input_notes: Vec<Note>) -> Self {
+        let (_, _, tx_args, tx_inputs) = TransactionContextBuilder::new(account)
+            .input_notes(input_notes)
+            .build()
+            .into_parts();
 
         Self { tx_inputs, tx_args }
     }

@@ -57,7 +57,7 @@ fn prove_p2id_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(target_account.clone(), Some(vec![note.clone()]));
+    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note.clone()]);
 
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
@@ -104,8 +104,7 @@ fn prove_p2id_script() {
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
-    let data_store_malicious_account =
-        MockDataStore::with_existing(malicious_account, Some(vec![note]));
+    let data_store_malicious_account = MockDataStore::with_existing(malicious_account, vec![note]);
     let mut executor_2 =
         TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();
@@ -166,7 +165,7 @@ fn p2id_script_multiple_assets() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(target_account.clone(), Some(vec![note.clone()]));
+    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note.clone()]);
 
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth));
     executor.load_account(target_account_id).unwrap();
@@ -210,8 +209,7 @@ fn p2id_script_multiple_assets() {
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
-    let data_store_malicious_account =
-        MockDataStore::with_existing(malicious_account, Some(vec![note]));
+    let data_store_malicious_account = MockDataStore::with_existing(malicious_account, vec![note]);
     let mut executor_2 =
         TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();

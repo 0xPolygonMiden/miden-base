@@ -132,7 +132,7 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     )
     .unwrap();
 
-    let data_store = MockDataStore::with_existing(target_account.clone(), Some(vec![note.clone()]));
+    let data_store = MockDataStore::with_existing(target_account.clone(), vec![note.clone()]);
 
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None).with_tracing();
