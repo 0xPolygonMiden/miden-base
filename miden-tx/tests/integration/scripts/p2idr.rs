@@ -91,10 +91,8 @@ fn p2idr_script() {
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_1 = MockDataStore::with_existing(
-        Some(target_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let data_store_1 =
+        MockDataStore::with_existing(target_account.clone(), Some(vec![note_in_time.clone()]));
     let mut executor_1 =
         TransactionExecutor::new(data_store_1.clone(), Some(target_falcon_auth.clone()));
 
@@ -125,10 +123,8 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Sender Account Execution Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store_2 = MockDataStore::with_existing(
-        Some(sender_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let data_store_2 =
+        MockDataStore::with_existing(sender_account.clone(), Some(vec![note_in_time.clone()]));
     let mut executor_2 =
         TransactionExecutor::new(data_store_2.clone(), Some(sender_falcon_auth.clone()));
     executor_2.load_account(sender_account_id).unwrap();
@@ -153,10 +149,8 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Malicious Target Account Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store_3 = MockDataStore::with_existing(
-        Some(malicious_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let data_store_3 =
+        MockDataStore::with_existing(malicious_account.clone(), Some(vec![note_in_time.clone()]));
     let mut executor_3 =
         TransactionExecutor::new(data_store_3.clone(), Some(malicious_falcon_auth.clone()));
     executor_3.load_account(malicious_account_id).unwrap();
@@ -180,10 +174,8 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "reclaimable" - Execution Target Account Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_4 = MockDataStore::with_existing(
-        Some(target_account.clone()),
-        Some(vec![note_reclaimable.clone()]),
-    );
+    let data_store_4 =
+        MockDataStore::with_existing(target_account.clone(), Some(vec![note_reclaimable.clone()]));
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone(), Some(target_falcon_auth));
     executor_4.load_account(target_account_id).unwrap();
 
@@ -212,10 +204,8 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_5 = MockDataStore::with_existing(
-        Some(sender_account.clone()),
-        Some(vec![note_reclaimable.clone()]),
-    );
+    let data_store_5 =
+        MockDataStore::with_existing(sender_account.clone(), Some(vec![note_reclaimable.clone()]));
     let mut executor_5 = TransactionExecutor::new(data_store_5.clone(), Some(sender_falcon_auth));
 
     executor_5.load_account(sender_account_id).unwrap();
@@ -245,7 +235,7 @@ fn p2idr_script() {
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
     let data_store_6 = MockDataStore::with_existing(
-        Some(malicious_account.clone()),
+        malicious_account.clone(),
         Some(vec![note_reclaimable.clone()]),
     );
     let mut executor_6 =

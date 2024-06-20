@@ -38,15 +38,8 @@ impl MockDataStore {
         Self { tx_inputs, tx_args }
     }
 
-    pub fn with_existing(account: Option<Account>, input_notes: Option<Vec<Note>>) -> Self {
-        let tx_context = if let Some(acc) = account {
-            TransactionContextBuilder::new(acc)
-        } else {
-            TransactionContextBuilder::with_standard_account(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                ONE,
-            )
-        };
+    pub fn with_existing(account: Account, input_notes: Option<Vec<Note>>) -> Self {
+        let tx_context = TransactionContextBuilder::new(account);
 
         let tx_context = if let Some(notes) = input_notes {
             tx_context.input_notes(notes)
