@@ -71,7 +71,6 @@ fn test_create_non_fungible_asset_succeeds() {
         use.miden::asset
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
             # push non-fungible asset data hash onto the stack

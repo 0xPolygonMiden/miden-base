@@ -88,13 +88,13 @@ fn test_compute_created_note_id() {
         let imports = "use.miden::kernels::tx::prologue\n";
         let test = format!(
             "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-            exec.create_mock_notes
-            exec.finalize_transaction
-        end
-        "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                exec.finalize_transaction
+            end
+            "
         );
 
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
@@ -137,14 +137,14 @@ fn test_epilogue_asset_preservation_violation() {
         let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
             "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-            exec.create_mock_notes
-            push.1 exec.account::incr_nonce
-            exec.finalize_transaction
-        end
-        "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                push.1 exec.account::incr_nonce
+                exec.finalize_transaction
+            end
+            "
         );
 
         let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();

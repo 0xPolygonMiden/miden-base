@@ -33,20 +33,20 @@ fn test_create_note() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -89,19 +89,19 @@ fn test_create_note_with_invalid_tag() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -119,21 +119,21 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::constants
-    use.miden::kernels::tx::memory
-    use.miden::tx
+        use.miden::kernels::tx::constants
+        use.miden::kernels::tx::memory
+        use.miden::tx
 
-    begin
-        exec.constants::get_max_num_created_notes
-        exec.memory::set_num_created_notes
+        begin
+            exec.constants::get_max_num_created_notes
+            exec.memory::set_num_created_notes
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         tag = tag,
         PUBLIC_NOTE = NoteType::Public as u8,
@@ -197,48 +197,48 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        # => [BH, acct_id, IAH, NC]
-        exec.prologue::prepare_transaction
-        # => []
+        begin
+            # => [BH, acct_id, IAH, NC]
+            exec.prologue::prepare_transaction
+            # => []
 
-        # create output note 1
-        push.{recipient_1}
-        push.{PUBLIC_NOTE}
-        push.{aux_1}
-        push.{tag_1}
-        exec.tx::create_note
-        # => [note_idx]
+            # create output note 1
+            push.{recipient_1}
+            push.{PUBLIC_NOTE}
+            push.{aux_1}
+            push.{tag_1}
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset_1} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset_1} movup.4
+            exec.tx::add_asset_to_note
 
 
-        drop
-        # => []
+            drop
+            # => []
 
-        # create output note 2
-        push.{recipient_2}
-        push.{PUBLIC_NOTE}
-        push.{aux_2}
-        push.{tag_2}
-        exec.tx::create_note
-        # => [note_idx]
+            # create output note 2
+            push.{recipient_2}
+            push.{PUBLIC_NOTE}
+            push.{aux_2}
+            push.{tag_2}
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset_2} movup.4
+            exec.tx::add_asset_to_note
 
-        drop
-        # => []
+            drop
+            # => []
 
-        # compute the output notes hash
-        exec.tx::get_output_notes_hash
-        # => [COMM]
-    end
-    ",
+            # compute the output notes hash
+            exec.tx::get_output_notes_hash
+            # => [COMM]
+        end
+        ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient_1 = prepare_word(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
@@ -293,26 +293,26 @@ fn test_create_note_and_add_asset() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
-    use.miden::kernels::tx::memory
+        use.miden::kernels::tx::prologue
+        use.miden::tx
+        use.miden::kernels::tx::memory
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset} movup.4
+            exec.tx::add_asset_to_note
 
-    end
-    ",
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -355,37 +355,37 @@ fn test_create_note_and_add_multiple_assets() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset_2} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{asset_3} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset_3} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{nft} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
-    end
-    ",
+            push.{nft} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -435,25 +435,25 @@ fn test_create_note_and_add_same_nft_twice() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
-        push.{nft}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
+            push.{nft}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{nft} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
-    end
-    ",
+            push.{nft} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -487,24 +487,24 @@ fn test_build_recipient_hash() {
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
-    begin
-        exec.prologue::prepare_transaction
-        # input
-        push.{input_hash}
-        # SCRIPT_HASH
-        push.{script_hash}
-        # SERIAL_NUM
-        push.{output_serial_no}
-        exec.tx::build_recipient_hash
+        use.miden::kernels::tx::prologue
+        use.miden::tx
+        begin
+            exec.prologue::prepare_transaction
+            # input
+            push.{input_hash}
+            # SCRIPT_HASH
+            push.{script_hash}
+            # SERIAL_NUM
+            push.{output_serial_no}
+            exec.tx::build_recipient_hash
 
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
-        exec.tx::create_note
-    end
-    ",
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
+            exec.tx::create_note
+        end
+        ",
         input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
         output_serial_no = prepare_word(&output_serial_no),

@@ -69,7 +69,7 @@ fn test_transaction_prologue() {
         begin
             push.1.2.3.4 dropw
         end
-    ",
+        ",
     )
     .unwrap();
     let (tx_script, _) =

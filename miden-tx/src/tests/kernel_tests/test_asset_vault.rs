@@ -35,7 +35,7 @@ fn test_get_balance() {
             push.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.account::get_balance
         end
-    "
+        "
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -51,7 +51,7 @@ fn test_get_balance_non_fungible_fails() {
     let tx_context =
         TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
     let code = format!(
-        r#"
+        "
         use.miden::kernels::tx::prologue
         use.miden::account
 
@@ -60,7 +60,7 @@ fn test_get_balance_non_fungible_fails() {
             push.{ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.account::get_balance
         end
-    "#
+        "
     );
 
     let process = tx_context.execute_code(&code);
@@ -113,7 +113,7 @@ fn test_add_fungible_asset_success() {
             push.{FUNGIBLE_ASSET}
             exec.account::add_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
@@ -151,7 +151,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
             push.{FUNGIBLE_ASSET}
             exec.account::add_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&add_fungible_asset.into())
     );
 
@@ -184,7 +184,7 @@ fn test_add_non_fungible_asset_success() {
             push.{FUNGIBLE_ASSET}
             exec.account::add_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&add_non_fungible_asset.into())
     );
 
@@ -222,7 +222,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
             push.{NON_FUNGIBLE_ASSET}
             exec.account::add_asset
         end
-    ",
+        ",
         NON_FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 
@@ -253,7 +253,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
@@ -289,7 +289,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
@@ -319,7 +319,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&remove_fungible_asset.into())
     );
 
@@ -364,7 +364,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&non_existent_non_fungible_asset.into())
     );
 
@@ -399,7 +399,7 @@ fn test_remove_non_fungible_asset_success() {
             push.{FUNGIBLE_ASSET}
             exec.account::remove_asset
         end
-    ",
+        ",
         FUNGIBLE_ASSET = prepare_word(&non_fungible_asset.into())
     );
 

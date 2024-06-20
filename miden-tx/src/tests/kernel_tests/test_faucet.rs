@@ -18,6 +18,7 @@ use miden_objects::{
 
 use super::ONE;
 use crate::testing::TransactionContextBuilder;
+
 // FUNGIBLE FAUCET MINT TESTS
 // ================================================================================================
 
@@ -101,7 +102,6 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
             exec.faucet::mint
@@ -125,7 +125,6 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{saturating_amount}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.faucet::mint
@@ -605,23 +604,23 @@ fn test_get_total_issuance_succeeds() {
     let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
 
     let code = format!(
-        "\
-    use.miden::kernels::tx::prologue
-    use.miden::faucet
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::faucet
 
-    begin
-        # prepare the transaction
-        exec.prologue::prepare_transaction
+        begin
+            # prepare the transaction
+            exec.prologue::prepare_transaction
 
-        # get the fungible faucet balance
-        exec.faucet::get_total_issuance
-        # => [total_issuance]
+            # get the fungible faucet balance
+            exec.faucet::get_total_issuance
+            # => [total_issuance]
 
-        # assert the correct balance is returned
-        push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
-        # => []
-    end
-    ",
+            # assert the correct balance is returned
+            push.{FUNGIBLE_FAUCET_INITIAL_BALANCE} assert_eq
+            # => []
+        end
+        ",
     );
 
     tx_context.execute_code(&code).unwrap();
