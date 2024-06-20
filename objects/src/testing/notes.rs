@@ -57,9 +57,10 @@ impl NoteBuilder {
         }
     }
 
-    pub fn note_inputs(mut self, inputs: Vec<Felt>) -> Result<Self, NoteError> {
+    pub fn note_inputs(mut self, inputs: impl AsRef<[Felt]>) -> Result<Self, NoteError> {
+        let inputs = inputs.as_ref();
         NoteInputs::new(inputs.to_vec())?;
-        self.inputs = inputs;
+        self.inputs = inputs.to_vec();
         Ok(self)
     }
 

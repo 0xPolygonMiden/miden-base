@@ -32,7 +32,7 @@ use miden_objects::{
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word, ONE, ZERO};
+use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word, ZERO};
 
 use super::{executor::CodeExecutor, utils::create_test_chain, MockHost};
 
@@ -309,21 +309,21 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
     let seed = [0_u8; 32];
     let mut rng = ChaCha20Rng::from_seed(seed);
     let created_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs(vec![ONE])
+        .note_inputs([1u32.into()])
         .unwrap()
         .add_asset(fungible_asset_1)
         .build(assembler)
         .unwrap();
 
     let created_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs(vec![Felt::new(2)])
+        .note_inputs([2u32.into()])
         .unwrap()
         .add_asset(fungible_asset_2)
         .build(assembler)
         .unwrap();
 
     let created_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs(vec![Felt::new(3)])
+        .note_inputs([3u32.into()])
         .unwrap()
         .add_asset(fungible_asset_3)
         .build(assembler)
