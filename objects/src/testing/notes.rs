@@ -8,8 +8,10 @@ use rand::Rng;
 
 use super::{
     account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
-    assets::non_fungible_asset_2,
-    constants::{CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT},
+    constants::{
+        CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
+        NON_FUNGIBLE_ASSET_DATA_2,
+    },
     prepare_word,
     storage::prepare_assets,
 };
@@ -260,9 +262,11 @@ pub fn mock_notes(
     let note_4_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault =
-        NoteAssets::new(vec![non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)])
-            .unwrap();
+    let vault = NoteAssets::new(vec![Asset::mock_non_fungible(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        &NON_FUNGIBLE_ASSET_DATA_2,
+    )])
+    .unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_4_script, inputs);
     let consumed_note_4 = Note::new(vault, metadata, recipient);
@@ -303,9 +307,13 @@ pub fn mock_notes(
     let vault = NoteAssets::new(vec![
         fungible_asset_1,
         fungible_asset_3,
-        non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN),
+        Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA_2,
+        ),
     ])
     .unwrap();
+
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_5_script, inputs);
     let consumed_note_5 = Note::new(vault, metadata, recipient);

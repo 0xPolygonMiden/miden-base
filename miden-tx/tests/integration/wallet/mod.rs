@@ -68,8 +68,13 @@ fn prove_receive_asset_via_wallet() {
         TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
@@ -124,8 +129,13 @@ fn prove_send_asset_via_wallet() {
         TransactionExecutor::new(data_store.clone(), Some(sender_falcon_auth.clone()));
     executor.load_account(sender_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -173,7 +183,7 @@ fn prove_send_asset_via_wallet() {
 
     // vault delta
     let sender_account_after: Account = Account::from_parts(
-        data_store.account.id(),
+        data_store.account().id(),
         AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,

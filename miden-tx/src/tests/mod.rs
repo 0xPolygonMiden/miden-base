@@ -22,8 +22,7 @@ use miden_objects::{
             ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
-        assets::non_fungible_asset,
-        constants::FUNGIBLE_ASSET_AMOUNT,
+        constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::AssetPreservationStatus,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
@@ -40,6 +39,8 @@ use vm_processor::{
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
 use crate::testing::data_store::MockDataStore;
 
+mod kernel_tests;
+
 // TESTS
 // ================================================================================================
 
@@ -49,14 +50,19 @@ fn transaction_executor_witness() {
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None);
 
-    let account_id = data_store.account.id();
+    let account_id = data_store.account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args)
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
@@ -88,7 +94,7 @@ fn executed_transaction_account_delta() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None);
-    let account_id = data_store.account.id();
+    let account_id = data_store.account().id();
     executor.load_account(account_id).unwrap();
 
     let new_acct_code_src = "\
@@ -122,7 +128,8 @@ fn executed_transaction_account_delta() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
 
     let tag1 = NoteTag::from_account_id(
@@ -275,8 +282,13 @@ fn executed_transaction_account_delta() {
     let tx_args =
         TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     // expected delta
     // --------------------------------------------------------------------------------------------
@@ -314,14 +326,17 @@ fn executed_transaction_account_delta() {
     // --------------------------------------------------------------------------------------------
     // assert that added assets are tracked
     let added_assets = data_store
-        .notes
-        .last()
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .find(|n| n.note().assets().num_assets() == 3)
         .unwrap()
         .note()
         .assets()
         .iter()
         .cloned()
         .collect::<Vec<_>>();
+
     assert!(executed_transaction
         .account_delta()
         .vault()
@@ -351,7 +366,7 @@ fn executed_transaction_output_notes() {
     let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
-    let account_id = data_store.account.id();
+    let account_id = data_store.account().id();
     executor.load_account(account_id).unwrap();
 
     // removed assets
@@ -376,7 +391,8 @@ fn executed_transaction_output_notes() {
         )
         .expect("asset is valid"),
     );
-    let removed_asset_3 = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
     let removed_asset_4 = Asset::Fungible(
         FungibleAsset::new(
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
@@ -538,8 +554,8 @@ fn executed_transaction_output_notes() {
     tx_args.add_expected_output_note(&expected_output_note_2);
     tx_args.add_expected_output_note(&expected_output_note_3);
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
@@ -579,14 +595,19 @@ fn prove_witness_and_verify() {
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None);
 
-    let account_id = data_store.account.id();
+    let account_id = data_store.tx_inputs.account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args)
         .unwrap();
     let executed_transaction_id = executed_transaction.id();
 
@@ -611,11 +632,16 @@ fn test_tx_script() {
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None);
 
-    let account_id = data_store.account.id();
+    let account_id = data_store.tx_inputs.account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
