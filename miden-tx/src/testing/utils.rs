@@ -10,10 +10,9 @@ use miden_objects::{
     },
     testing::notes::AssetPreservationStatus,
     transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
-    vm::CodeBlock,
     FieldElement,
 };
-use vm_processor::{AdviceInputs, Operation, Program, ZERO};
+use vm_processor::AdviceInputs;
 
 use super::TransactionContextBuilder;
 
@@ -26,6 +25,9 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
+
+    // use empty main program to produce the mock transaction
+    let program = assembler.compile("begin push.0 drop end").unwrap();
 
     let initial_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
@@ -57,7 +59,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
-    let program = build_dummy_tx_program();
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
 
@@ -69,10 +70,4 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         tx_context.tx_args().clone(),
         advice_witness,
     )
-}
-
-pub fn build_dummy_tx_program() -> Program {
-    let operations = vec![Operation::Push(ZERO), Operation::Drop];
-    let span = CodeBlock::new_span(operations);
-    Program::new(span)
 }
