@@ -11,10 +11,7 @@ use miden_objects::{
     },
     assets::Asset,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::{
-        account::MockAccountType, constants::NON_FUNGIBLE_ASSET_DATA_2,
-        notes::AssetPreservationStatus, prepare_word,
-    },
+    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, notes::AssetPreservationStatus, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
 use vm_processor::Process;
@@ -23,8 +20,7 @@ use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
 use crate::testing::{executor::CodeExecutor, MockHost, TransactionContextBuilder};
 #[test]
 fn test_create_note() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -81,8 +77,7 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
@@ -147,7 +142,7 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -283,8 +278,7 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -336,8 +330,7 @@ fn test_create_note_and_add_asset() {
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -424,8 +417,7 @@ fn test_create_note_and_add_multiple_assets() {
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -470,7 +462,7 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 

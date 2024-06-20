@@ -9,7 +9,6 @@ use miden_objects::{
     assembly::Assembler,
     notes::{Note, NoteId},
     testing::{
-        account::MockAccountType,
         block::MockChain,
         notes::{mock_notes, AssetPreservationStatus},
     },
@@ -125,25 +124,61 @@ impl TransactionContextBuilder {
         }
     }
 
-    pub fn with_acc_type(account_type: MockAccountType) -> Self {
+    pub fn with_new_standard_account(account_id: u64) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = match account_type {
-            MockAccountType::StandardNew { account_id } => {
-                let code = AccountCode::mock_wallet(&assembler);
-                Account::mock(account_id, Felt::ZERO, code)
-            },
-            MockAccountType::StandardExisting => Account::mock(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ONE,
-                AccountCode::mock_wallet(&assembler),
-            ),
-            MockAccountType::FungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-                Account::mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
-            },
-            MockAccountType::NonFungibleFaucet { acct_id, nonce, empty_reserved_slot } => {
-                Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler)
-            },
-        };
+        let code = AccountCode::mock_wallet(&assembler);
+        let account = Account::mock(account_id, Felt::ZERO, code);
+
+        Self {
+            assembler,
+            account,
+            account_seed: None,
+            input_notes: Vec::new(),
+            expected_output_notes: Vec::new(),
+            tx_args: TransactionArgs::default(),
+            advice_inputs: None,
+        }
+    }
+
+    pub fn with_standard_existing_account() -> Self {
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
+        let account = Account::mock(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            Felt::ONE,
+            AccountCode::mock_wallet(&assembler),
+        );
+
+        Self {
+            assembler,
+            account,
+            account_seed: None,
+            input_notes: Vec::new(),
+            expected_output_notes: Vec::new(),
+            tx_args: TransactionArgs::default(),
+            advice_inputs: None,
+        }
+    }
+
+    pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
+        let account =
+            Account::mock_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler);
+
+        Self {
+            assembler,
+            account,
+            account_seed: None,
+            input_notes: Vec::new(),
+            expected_output_notes: Vec::new(),
+            tx_args: TransactionArgs::default(),
+            advice_inputs: None,
+        }
+    }
+
+    pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
+        let account =
+            Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler);
 
         Self {
             assembler,

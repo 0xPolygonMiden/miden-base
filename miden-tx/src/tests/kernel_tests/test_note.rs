@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, string::String};
 use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{
     notes::Note,
-    testing::{account::MockAccountType, notes::AssetPreservationStatus, prepare_word},
+    testing::{notes::AssetPreservationStatus, prepare_word},
     transaction::{PreparedTransaction, TransactionArgs},
     WORD_SIZE,
 };
@@ -14,8 +14,7 @@ use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContext
 
 #[test]
 fn test_get_sender_no_sender() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     // calling get_sender should return sender
     let code = "
         use.miden::kernels::tx::memory
@@ -40,7 +39,7 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -66,7 +65,7 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -115,7 +114,7 @@ fn test_get_vault_data() {
 }
 #[test]
 fn test_get_assets() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -222,7 +221,7 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -293,7 +292,7 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 
@@ -321,10 +320,9 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let mut tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-            .with_mock_notes(AssetPreservationStatus::Preserved)
-            .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_existing_account()
+        .with_mock_notes(AssetPreservationStatus::Preserved)
+        .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -378,7 +376,7 @@ fn note_setup_memory_assertions(process: &Process<MockHost>) {
 
 #[test]
 fn test_get_note_serial_number() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+    let tx_context = TransactionContextBuilder::with_standard_existing_account()
         .with_mock_notes(AssetPreservationStatus::Preserved)
         .build();
 

@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::{Account, AccountId},
     assembly::ModuleAst,
     notes::{Note, NoteId},
-    testing::{account::MockAccountType, notes::AssetPreservationStatus},
+    testing::notes::AssetPreservationStatus,
     transaction::{InputNote, InputNotes, TransactionArgs, TransactionInputs},
     BlockHeader,
 };
@@ -24,10 +24,9 @@ pub struct MockDataStore {
 
 impl MockDataStore {
     pub fn new(asset_preservation_status: AssetPreservationStatus) -> Self {
-        let tx_context =
-            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-                .with_mock_notes(asset_preservation_status)
-                .build();
+        let tx_context = TransactionContextBuilder::with_standard_existing_account()
+            .with_mock_notes(asset_preservation_status)
+            .build();
         let (_, _, tx_args, tx_inputs) = tx_context.into_parts();
         Self { tx_inputs, tx_args }
     }
@@ -36,7 +35,7 @@ impl MockDataStore {
         let tx_context = if let Some(acc) = account {
             TransactionContextBuilder::new(acc)
         } else {
-            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
+            TransactionContextBuilder::with_standard_existing_account()
         };
 
         let tx_context = if let Some(notes) = input_notes {

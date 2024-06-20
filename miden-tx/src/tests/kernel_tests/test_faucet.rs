@@ -5,7 +5,6 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset},
     testing::{
-        account::MockAccountType,
         constants::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
             NON_FUNGIBLE_ASSET_DATA, NON_FUNGIBLE_ASSET_DATA_2,
@@ -24,11 +23,11 @@ use crate::testing::TransactionContextBuilder;
 
 #[test]
 fn test_mint_fungible_asset_succeeds() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::FungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    })
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
     .build();
 
     let code = format!(
@@ -70,8 +69,8 @@ fn test_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
+
     let code = format!(
         "
         use.miden::kernels::tx::prologue
@@ -92,8 +91,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let code = format!(
         "
@@ -115,8 +113,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let code = format!(
         "
@@ -144,13 +141,13 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 #[ignore]
 #[test]
 fn test_mint_non_fungible_asset_succeeds() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
 
@@ -197,8 +194,7 @@ fn test_mint_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
@@ -224,8 +220,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3, 4]);
@@ -251,13 +246,12 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_asset_already_exists() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset = Asset::mock_non_fungible(
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
@@ -288,15 +282,13 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
 #[test]
 fn test_burn_fungible_asset_succeeds() {
-    let acc_type = MockAccountType::FungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ONE,
+        false,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let code = format!(
         "
@@ -338,8 +330,7 @@ fn test_burn_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let code = format!(
         "
@@ -361,13 +352,12 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_burn_fungible_asset_inconsistent_faucet_id() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let code = format!(
         "
@@ -388,13 +378,12 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_burn_fungible_asset_insufficient_input_amount() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
+        ONE,
+        false,
+    )
+    .build();
 
     let code = format!(
         "
@@ -422,13 +411,12 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 #[ignore]
 #[test]
 fn test_burn_non_fungible_asset_succeeds() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
@@ -476,13 +464,12 @@ fn test_burn_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_does_not_exist() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
@@ -514,8 +501,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
@@ -547,13 +533,12 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3]);
@@ -588,13 +573,12 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
 
 #[test]
 fn test_get_total_issuance_succeeds() {
-    let acc_type = MockAccountType::FungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let code = format!(
         "

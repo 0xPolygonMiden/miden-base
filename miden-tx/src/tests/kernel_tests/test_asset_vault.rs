@@ -9,7 +9,6 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     testing::{
-        account::MockAccountType,
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         prepare_word,
     },
@@ -21,8 +20,7 @@ use crate::testing::TransactionContextBuilder;
 
 #[test]
 fn test_get_balance() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let code = format!(
@@ -48,8 +46,7 @@ fn test_get_balance() {
 
 #[test]
 fn test_get_balance_non_fungible_fails() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let code = format!(
         "
         use.miden::kernels::tx::prologue
@@ -70,8 +67,7 @@ fn test_get_balance_non_fungible_fails() {
 
 #[test]
 fn test_has_non_fungible_asset() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let non_fungible_asset = tx_context.account().vault().assets().next().unwrap();
 
     let code = format!(
@@ -95,8 +91,7 @@ fn test_has_non_fungible_asset() {
 
 #[test]
 fn test_add_fungible_asset_success() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let mut account_vault = tx_context.account().vault().clone();
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_ASSET_AMOUNT;
@@ -132,8 +127,7 @@ fn test_add_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_overflow() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let mut account_vault = tx_context.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -163,8 +157,7 @@ fn test_add_non_fungible_asset_fail_overflow() {
 
 #[test]
 fn test_add_non_fungible_asset_success() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
     let add_non_fungible_asset = Asset::NonFungible(
@@ -203,8 +196,7 @@ fn test_add_non_fungible_asset_success() {
 
 #[test]
 fn test_add_non_fungible_asset_fail_duplicate() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
     let non_fungible_asset_details =
@@ -234,8 +226,7 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 
 #[test]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let mut account_vault = tx_context.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -272,8 +263,7 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 
 #[test]
 fn test_remove_fungible_asset_fail_remove_too_much() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let amount = FUNGIBLE_ASSET_AMOUNT + 1;
     let remove_fungible_asset =
@@ -300,8 +290,7 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 
 #[test]
 fn test_remove_fungible_asset_success_balance_remaining() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let mut account_vault = tx_context.account().vault().clone();
 
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -338,8 +327,7 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 
 #[test]
 fn test_remove_inexisting_non_fungible_asset_fails() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
 
@@ -380,8 +368,7 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 
 #[test]
 fn test_remove_non_fungible_asset_success() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_existing_account().build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
     let mut account_vault = tx_context.account().vault().clone();
     let non_fungible_asset_details =
