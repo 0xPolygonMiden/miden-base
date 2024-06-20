@@ -10,11 +10,9 @@ use miden_objects::{
         },
         Account, AccountCode, AccountId,
     },
-    assembly::{Assembler, ProgramAst},
+    assembly::Assembler,
     assets::{Asset, FungibleAsset},
-    notes::{
-        Note, NoteAssets, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType,
-    },
+    notes::{Note, NoteId, NoteType},
     testing::{
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         block::MockChain,
@@ -22,7 +20,7 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::{AssetPreservationStatus, NoteBuilder, DEFAULT_NOTE_CODE},
+        notes::{AssetPreservationStatus, NoteBuilder},
         prepare_word,
         storage::prepare_assets,
     },
@@ -32,7 +30,7 @@ use miden_objects::{
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word, ZERO};
+use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 
 use super::{executor::CodeExecutor, utils::create_test_chain, MockHost};
 
@@ -286,8 +284,6 @@ impl TransactionContextBuilder {
 }
 
 fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
-    let mut serial_num_gen = SerialNumGenerator::new();
-
     // ACCOUNT IDS
     // --------------------------------------------------------------------------------------------
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -370,13 +366,14 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         tag1 = created_note_2.metadata().tag(),
         asset1 = prepare_assets(created_note_2.assets())[0],
     );
-    let note_1_script_ast = ProgramAst::parse(&note_1_script_src).unwrap();
-    let (note_1_script, _) = NoteScript::new(note_1_script_ast, assembler).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_1]).unwrap();
-    let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_1_script, inputs);
-    let consumed_note_1 = Note::new(vault, metadata, recipient);
+
+    let consumed_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs([1u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_1)
+        .code(note_1_script_src)
+        .build(assembler)
+        .unwrap();
 
     let note_2_script_src = format!(
         "\
@@ -400,37 +397,36 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         tag = created_note_3.metadata().tag(),
         asset = prepare_assets(created_note_3.assets())[0],
     );
-    let note_2_script_ast = ProgramAst::parse(&note_2_script_src).unwrap();
-    let (note_2_script, _) = NoteScript::new(note_2_script_ast, assembler).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_2, fungible_asset_3]).unwrap();
-    let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_2_script, inputs);
-    let consumed_note_2 = Note::new(vault, metadata, recipient);
 
-    let note_3_script_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_2, fungible_asset_3]).unwrap();
-    let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_3_script, inputs);
-    let consumed_note_3 = Note::new(vault, metadata, recipient);
+    let consumed_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs([2u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_2)
+        .add_asset(fungible_asset_3)
+        .code(note_2_script_src)
+        .build(assembler)
+        .unwrap();
 
-    let note_4_script_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault = NoteAssets::new(vec![Asset::mock_non_fungible(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        &NON_FUNGIBLE_ASSET_DATA_2,
-    )])
-    .unwrap();
-    let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_4_script, inputs);
-    let consumed_note_4 = Note::new(vault, metadata, recipient);
+    let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs([2u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_2)
+        .add_asset(fungible_asset_3)
+        .build(assembler)
+        .unwrap();
+
+    let consumed_note_4 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs([1u32.into()])
+        .unwrap()
+        .add_asset(Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA_2,
+        ))
+        .build(assembler)
+        .unwrap();
 
     // note that changes the account vault
-    let note_5_script_ast = ProgramAst::parse(
-        "\
+    let note_5_script_src = "\
         use.miden::note
         use.miden::contracts::wallets::basic->wallet
 
@@ -455,25 +451,18 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
             push.1 add padw movup.4 mem_loadw call.wallet::receive_asset dropw
             # => []
         end
-        ",
-    )
-    .unwrap();
-    let (note_5_script, _) = NoteScript::new(note_5_script_ast, assembler).unwrap();
+        ";
 
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let vault = NoteAssets::new(vec![
-        fungible_asset_1,
-        fungible_asset_3,
-        Asset::mock_non_fungible(
+    let consumed_note_5 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .add_asset(fungible_asset_1)
+        .add_asset(fungible_asset_3)
+        .add_asset(Asset::mock_non_fungible(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA_2,
-        ),
-    ])
-    .unwrap();
-
-    let inputs = NoteInputs::new(vec![]).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_5_script, inputs);
-    let consumed_note_5 = Note::new(vault, metadata, recipient);
+        ))
+        .code(note_5_script_src)
+        .build(assembler)
+        .unwrap();
 
     let consumed_notes = vec![
         consumed_note_1,
@@ -489,25 +478,4 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
     ];
 
     (consumed_notes, output_notes)
-}
-
-struct SerialNumGenerator {
-    state: u64,
-}
-
-impl SerialNumGenerator {
-    pub fn new() -> Self {
-        Self { state: 0 }
-    }
-
-    pub fn next(&mut self) -> Word {
-        let serial_num = [
-            Felt::new(self.state),
-            Felt::new(self.state + 1),
-            Felt::new(self.state + 2),
-            Felt::new(self.state + 3),
-        ];
-        self.state += 4;
-        serial_num
-    }
 }
