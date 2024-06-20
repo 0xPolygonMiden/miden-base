@@ -15,7 +15,7 @@ use miden_objects::{
     notes::{Note, NoteId, NoteType},
     testing::{
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
-        block::MockChain,
+        block::{MockChain, MockChainBuilder},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
@@ -32,7 +32,7 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 
-use super::{executor::CodeExecutor, utils::create_test_chain, MockHost};
+use super::{executor::CodeExecutor, MockHost};
 
 // TRANSACTION CONTEXT
 // ================================================================================================
@@ -261,7 +261,11 @@ impl TransactionContextBuilder {
     }
 
     pub fn build(mut self) -> TransactionContext {
-        let mock_chain = create_test_chain(self.input_notes.clone());
+        let mut mock_chain = MockChainBuilder::new().notes(self.input_notes.clone()).build();
+        mock_chain.seal_block();
+        mock_chain.seal_block();
+        mock_chain.seal_block();
+
         let input_note_ids: Vec<NoteId> =
             mock_chain.available_notes().iter().map(|n| n.id()).collect();
 

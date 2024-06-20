@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use miden_lib::transaction::memory;
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
@@ -10,11 +8,7 @@ use miden_objects::{
         account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
         AccountCode, AccountDelta,
     },
-    notes::Note,
-    testing::{
-        block::{MockChain, MockChainBuilder},
-        notes::AssetPreservationStatus,
-    },
+    testing::notes::AssetPreservationStatus,
     transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
     vm::CodeBlock,
     FieldElement,
@@ -75,15 +69,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         tx_context.tx_args().clone(),
         advice_witness,
     )
-}
-
-pub fn create_test_chain(created_notes: Vec<Note>) -> MockChain {
-    let mut mock_chain = MockChainBuilder::new().notes(created_notes).build();
-    mock_chain.seal_block();
-    mock_chain.seal_block();
-    mock_chain.seal_block();
-
-    mock_chain
 }
 
 pub fn build_dummy_tx_program() -> Program {
