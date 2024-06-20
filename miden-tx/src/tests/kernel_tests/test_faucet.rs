@@ -78,7 +78,6 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN}
             exec.faucet::mint
@@ -210,7 +209,6 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::mint
@@ -238,7 +236,6 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::mint
@@ -273,7 +270,6 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::mint
@@ -351,7 +347,6 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
             exec.faucet::burn
@@ -380,7 +375,6 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{FUNGIBLE_ASSET_AMOUNT}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
             exec.faucet::burn
@@ -408,7 +402,6 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
         use.miden::faucet
 
         begin
-            # mint asset
             exec.prologue::prepare_transaction
             push.{saturating_amount}.0.0.{ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1}
             exec.faucet::burn
@@ -451,7 +444,7 @@ fn test_burn_non_fungible_asset_succeeds() {
         use.miden::faucet
 
         begin
-            # mint asset
+            # burn asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::burn
@@ -505,7 +498,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         use.miden::faucet
 
         begin
-            # mint asset
+            # burn asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::burn
@@ -538,7 +531,7 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         use.miden::faucet
 
         begin
-            # mint asset
+            # burn asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::burn
@@ -576,7 +569,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         use.miden::faucet
 
         begin
-            # mint asset
+            # burn asset
             exec.prologue::prepare_transaction
             push.{non_fungible_asset}
             exec.faucet::burn
@@ -609,7 +602,6 @@ fn test_get_total_issuance_succeeds() {
         use.miden::faucet
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
             # get the fungible faucet balance

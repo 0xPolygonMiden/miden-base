@@ -105,21 +105,27 @@ fn test_compute_created_note_id() {
             .run(&test)
             .unwrap();
 
-        // assert the note asset hash is correct
         let expected_asset_hash =
             note.assets().expect("Output note should be full note").commitment();
         let asset_hash_memory_address =
             CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
         let actual_asset_hash =
             process.get_mem_value(ContextId::root(), asset_hash_memory_address).unwrap();
-        assert_eq!(expected_asset_hash.as_elements(), actual_asset_hash);
+        assert_eq!(
+            expected_asset_hash.as_elements(),
+            actual_asset_hash,
+            "Asset hash didn't match expected value"
+        );
 
-        // assert the note ID is correct
         let expected_id = note.id();
         let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
         let actual_note_id =
             process.get_mem_value(ContextId::root(), note_id_memory_address).unwrap();
-        assert_eq!(&actual_note_id, expected_id.as_elements());
+        assert_eq!(
+            &actual_note_id,
+            expected_id.as_elements(),
+            "note id didn't match expected value"
+        );
     }
 }
 
@@ -141,7 +147,8 @@ fn test_epilogue_asset_preservation_violation() {
             begin
                 exec.prologue::prepare_transaction
                 exec.create_mock_notes
-                push.1 exec.account::incr_nonce
+                push.1
+                exec.account::incr_nonce
                 exec.finalize_transaction
             end
             "
@@ -154,8 +161,7 @@ fn test_epilogue_asset_preservation_violation() {
             .stack_inputs(stack_inputs)
             .run(&code);
 
-        // assert the process results in error
-        assert!(process.is_err());
+        assert!(process.is_err(), "Violating asset preservation must result in a failure");
     }
 }
 
@@ -172,9 +178,17 @@ fn test_epilogue_increment_nonce_success() {
         {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
+
             exec.create_mock_notes
-            push.1.2.3.4 push.0 exec.account::set_item dropw
-            push.1 exec.account::incr_nonce
+
+            push.1.2.3.4
+            push.0
+            exec.account::set_item
+            dropw
+
+            push.1
+            exec.account::incr_nonce
+
             exec.finalize_transaction
         end
         "
@@ -202,8 +216,14 @@ fn test_epilogue_increment_nonce_violation() {
         {output_notes_data_procedure}
         begin
             exec.prologue::prepare_transaction
+
             exec.create_mock_notes
-            push.1.2.3.4 push.0 exec.account::set_item dropw
+
+            push.1.2.3.4
+            push.0
+            exec.account::set_item
+            dropw
+
             exec.finalize_transaction
         end
         "

@@ -28,13 +28,10 @@ fn test_create_fungible_asset_succeeds() {
         use.miden::asset
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
-            # push asset amount onto stack
-            push.{FUNGIBLE_ASSET_AMOUNT}
-
             # create fungible asset
+            push.{FUNGIBLE_ASSET_AMOUNT}
             exec.asset::create_fungible_asset
         end
         "

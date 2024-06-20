@@ -46,16 +46,17 @@ pub fn test_set_code_is_not_immediate() {
         ";
 
     let process = tx_context.execute_code(code).unwrap();
-    // assert the code root is not changed
+
     assert_eq!(
         process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
-        tx_context.account().code().root().as_elements()
+        tx_context.account().code().root().as_elements(),
+        "the code root must not change immediatelly",
     );
 
-    // assert the new code root is cached
     assert_eq!(
         process.get_mem_value(ContextId::root(), ACCT_NEW_CODE_ROOT_PTR).unwrap(),
-        [ONE, Felt::new(2), Felt::new(3), Felt::new(4)]
+        [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
+        "the code root must be cached",
     );
 }
 
@@ -93,10 +94,10 @@ pub fn test_set_code_succeeds() {
     let host = MockHost::new(executed_transaction.initial_account().into(), advice_inputs);
     let process = CodeExecutor::new(host).stack_inputs(stack_inputs).run(&code).unwrap();
 
-    // assert the code root is changed after the epilogue
     assert_eq!(
         process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
-        [ZERO, ONE, Felt::new(2), Felt::new(3)]
+        [ZERO, ONE, Felt::new(2), Felt::new(3)],
+        "the code root must change after the epilogue",
     );
 }
 
@@ -142,12 +143,10 @@ pub fn test_account_type() {
                 .run(&code)
                 .unwrap();
 
-            let expected_result = if account_id.account_type() == expected_type {
-                has_type = true;
-                ONE
-            } else {
-                ZERO
-            };
+            let type_matches = account_id.account_type() == expected_type;
+            let expected_result = Felt::from(type_matches);
+            has_type |= type_matches;
+
             assert_eq!(
                 process.stack.get(0),
                 expected_result,
@@ -193,16 +192,12 @@ fn test_is_faucet_procedure() {
     for account_id in test_cases.iter() {
         let account_id = AccountId::try_from(*account_id).unwrap();
 
-        // assembly codes that checks if an account is a faucet
         let code = format!(
             "
             use.miden::kernels::tx::account
 
             begin
-                # push the account id on to the stack
                 push.{account_id}
-
-                # execute is_faucet procedure
                 exec.account::is_faucet
             end
             ",
@@ -239,17 +234,15 @@ fn test_get_item() {
 
 
             begin
-                # prepare the transaction
                 exec.prologue::prepare_transaction
 
                 # push the account storage item index
                 push.{item_index}
 
-                # get the item
-                exec.account::get_item
-
                 # assert the item value is correct
-                push.{item_value} assert_eqw
+                exec.account::get_item
+                push.{item_value}
+                assert_eqw
             end
             ",
             item_index = storage_item.index,
@@ -282,25 +275,18 @@ fn test_set_item() {
         use.miden::kernels::tx::prologue
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
-            # push the new storage item onto the stack
+            # set the storage item
             push.{new_value}
-
-            # push the account storage item index
             push.{new_item_index}
-
-            # get the item
             exec.account::set_item
 
-            # assert empty old value
+            # assert old value was empty
             padw assert_eqw
 
-            # get the new storage root
+            # assert the new item value is properly stored
             exec.memory::get_acct_storage_root
-
-            # assert the item value is correct
             push.{new_root} assert_eqw
         end
         ",
@@ -329,7 +315,6 @@ fn test_get_storage_data_type() {
             use.miden::kernels::tx::prologue
 
             begin
-                # prepare the transaction
                 exec.prologue::prepare_transaction
 
                 # push the account storage item index
@@ -337,9 +322,8 @@ fn test_get_storage_data_type() {
 
                 # get the data type of the respective storage slot
                 exec.account::get_storage_slot_type_info
-
             end
-        ",
+            ",
             item_index = storage_item.index,
         );
 
@@ -351,15 +335,21 @@ fn test_get_storage_data_type() {
             StorageSlotType::Array { value_arity, depth } => (value_arity, depth),
         };
 
-        assert_eq!(process.get_stack_item(0), Felt::from(storage_slot_data_type.0));
-        assert_eq!(process.get_stack_item(1), Felt::from(storage_slot_data_type.1));
-
-        // check that the rest of the stack is empty
-        assert_eq!(process.get_stack_item(2), ZERO);
-        assert_eq!(process.get_stack_item(3), ZERO);
-        assert_eq!(Word::default(), process.get_stack_word(1));
-        assert_eq!(Word::default(), process.get_stack_word(2));
-        assert_eq!(Word::default(), process.get_stack_word(3));
+        assert_eq!(
+            process.get_stack_item(0),
+            Felt::from(storage_slot_data_type.0),
+            "Arity must match",
+        );
+        assert_eq!(
+            process.get_stack_item(1),
+            Felt::from(storage_slot_data_type.1),
+            "Depth must match",
+        );
+        assert_eq!(process.get_stack_item(2), ZERO, "the rest of the stack is empty");
+        assert_eq!(process.get_stack_item(3), ZERO, "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(1), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(2), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(3), "the rest of the stack is empty");
     }
 }
 
@@ -376,31 +366,39 @@ fn test_get_map_item() {
             use.miden::kernels::tx::prologue
 
             begin
-                # prepare the transaction
                 exec.prologue::prepare_transaction
 
-                # push the item's KEY
-                push.{map_key}
-
-                # push the account storage item index
-                push.{item_index}
-
                 # get the map item
+                push.{map_key}
+                push.{item_index}
                 exec.account::get_map_item
-
             end
             ",
             item_index = storage_item.index,
             map_key = prepare_word(&key),
         );
-
         let process = tx_context.execute_code(&code).unwrap();
-        assert_eq!(value, process.get_stack_word(0));
 
-        // check that the rest of the stack is empty
-        assert_eq!(Word::default(), process.get_stack_word(1));
-        assert_eq!(Word::default(), process.get_stack_word(2));
-        assert_eq!(Word::default(), process.get_stack_word(3));
+        assert_eq!(
+            value,
+            process.get_stack_word(0),
+            "get_map_item result doesn't match the expected value",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(1),
+            "The the rest of the stack must be cleared",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(2),
+            "The the rest of the stack must be cleared",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(3),
+            "The the rest of the stack must be cleared",
+        );
     }
 }
 
@@ -422,25 +420,17 @@ fn test_set_map_item() {
         use.miden::kernels::tx::prologue
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
-            # push the new VALUE
-            push.{new_value}
-
-            # push the new KEY
-            push.{new_key}
-
-            # push the account storage item index
-            push.{item_index}
-
             # set the map item
+            push.{new_value}
+            push.{new_key}
+            push.{item_index}
             exec.account::set_map_item
 
             # double check that on storage slot is indeed the new map
             push.{item_index}
             exec.account::get_item
-
         end
         ",
         item_index = storage_item.index,
@@ -453,11 +443,16 @@ fn test_set_map_item() {
     let mut new_storage_map = AccountStorage::mock_map_2();
     new_storage_map.insert(new_key, new_value);
 
-    // check the new storage root in the process state is what we expect
-    assert_eq!(new_storage_map.root(), RpoDigest::from(process.get_stack_word(0)));
-
-    // check the old storage root in the process state is what we expect
-    assert_eq!(storage_item.slot.value, process.get_stack_word(1));
+    assert_eq!(
+        new_storage_map.root(),
+        RpoDigest::from(process.get_stack_word(0)),
+        "get_item must return the new updated value",
+    );
+    assert_eq!(
+        storage_item.slot.value,
+        process.get_stack_word(1),
+        "The original value stored in the map doesn't match the expected value",
+    );
 }
 
 // ACCOUNT VAULT TESTS
@@ -475,7 +470,6 @@ fn test_get_vault_commitment() {
         use.miden::kernels::tx::prologue
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
             # push the new storage item onto the stack
@@ -518,13 +512,10 @@ fn test_authenticate_procedure() {
             use.miden::kernels::tx::prologue
 
             begin
-                # prepare the transaction
                 exec.prologue::prepare_transaction
 
-                # push test procedure root onto stack
-                push.{root}
-
                 # authenticate procedure
+                push.{root}
                 exec.account::authenticate_procedure
             end
             ",
@@ -534,8 +525,8 @@ fn test_authenticate_procedure() {
         let process = tx_context.execute_code(&code);
 
         match valid {
-            true => assert!(process.is_ok()),
-            false => assert!(process.is_err()),
+            true => assert!(process.is_ok(), "A valid procedure must successfully authenticate"),
+            false => assert!(process.is_err(), "An invalid procedure must fail to authenticate"),
         }
     }
 }

@@ -84,7 +84,7 @@ fn test_has_non_fungible_asset() {
             push.{non_fungible_asset_key}
             exec.account::has_non_fungible_asset
         end
-    ",
+        ",
         non_fungible_asset_key = prepare_word(&non_fungible_asset.vault_key())
     );
 
