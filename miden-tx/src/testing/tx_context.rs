@@ -65,10 +65,6 @@ impl TransactionContext {
         self.tx_inputs.account()
     }
 
-    pub fn account_seed(&self) -> Option<Word> {
-        self.tx_inputs.account_seed()
-    }
-
     pub fn expected_output_notes(&self) -> &[Note] {
         &self.expected_output_notes
     }
@@ -91,10 +87,6 @@ impl TransactionContext {
 
     pub fn tx_inputs(&self) -> &TransactionInputs {
         &self.tx_inputs
-    }
-
-    pub fn into_parts(self) -> (MockChain, Vec<Note>, TransactionArgs, TransactionInputs) {
-        (self.mock_chain, self.expected_output_notes, self.tx_args, self.tx_inputs)
     }
 }
 
@@ -208,16 +200,6 @@ impl TransactionContextBuilder {
         self
     }
 
-    pub fn add_input_note(mut self, input_note: Note) -> Self {
-        self.input_notes.extend(vec![input_note]);
-        self
-    }
-
-    pub fn tx_args(mut self, tx_args: TransactionArgs) -> Self {
-        self.tx_args = tx_args;
-        self
-    }
-
     pub fn expected_notes(mut self, output_notes: Vec<OutputNote>) -> Self {
         let output_notes = output_notes.into_iter().filter_map(|n| match n {
             OutputNote::Full(note) => Some(note),
@@ -226,13 +208,6 @@ impl TransactionContextBuilder {
         });
 
         self.expected_output_notes.extend(output_notes);
-        self
-    }
-
-    pub fn add_expected_output_note(mut self, output_note: OutputNote) -> Self {
-        if let OutputNote::Full(note) = output_note {
-            self.expected_output_notes.extend([note]);
-        }
         self
     }
 
