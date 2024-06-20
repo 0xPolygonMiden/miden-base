@@ -20,7 +20,7 @@ path = "tests/integration/main.rs"
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
-testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/internals"]
+testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/internals", "dep:rand_chacha"]
 async = ["winter-maybe-async/async"]
 
 [dependencies]
@@ -29,8 +29,9 @@ miden-objects = { path = "../objects", version = "0.4", default-features = false
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true }
-winter-maybe-async = "0.10.0"
+rand_chacha = { version = "0.3", default-features = false, optional = true }
 vm-processor = { workspace = true }
+winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
 rand_chacha = { version = "0.3", default-features = false }

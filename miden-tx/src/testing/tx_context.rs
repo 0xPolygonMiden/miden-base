@@ -22,7 +22,7 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::{AssetPreservationStatus, DEFAULT_NOTE_CODE},
+        notes::{AssetPreservationStatus, NoteBuilder, DEFAULT_NOTE_CODE},
         prepare_word,
         storage::prepare_assets,
     },
@@ -30,7 +30,9 @@ use miden_objects::{
         InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
 };
-use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word, ZERO};
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word, ONE, ZERO};
 
 use super::{executor::CodeExecutor, utils::create_test_chain, MockHost};
 
@@ -304,26 +306,28 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
 
     // CREATED NOTES
     // --------------------------------------------------------------------------------------------
-    let note_program_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+    let created_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs(vec![ONE])
+        .unwrap()
+        .add_asset(fungible_asset_1)
+        .build(assembler)
+        .unwrap();
 
-    let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_1]).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
-    let created_note_1 = Note::new(vault, metadata, recipient);
+    let created_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs(vec![Felt::new(2)])
+        .unwrap()
+        .add_asset(fungible_asset_2)
+        .build(assembler)
+        .unwrap();
 
-    let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_2]).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
-    let created_note_2 = Note::new(vault, metadata, recipient);
-
-    let inputs = NoteInputs::new(vec![Felt::new(3)]).unwrap();
-    let vault = NoteAssets::new(vec![fungible_asset_3]).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
-    let recipient = NoteRecipient::new(serial_num_gen.next(), note_script.clone(), inputs);
-    let created_note_3 = Note::new(vault, metadata, recipient);
+    let created_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+        .note_inputs(vec![Felt::new(3)])
+        .unwrap()
+        .add_asset(fungible_asset_3)
+        .build(assembler)
+        .unwrap();
 
     // CONSUMED NOTES
     // --------------------------------------------------------------------------------------------

@@ -88,9 +88,9 @@ impl NoteBuilder {
         self
     }
 
-    pub fn build(self, assembler: Assembler) -> Result<Note, NoteError> {
+    pub fn build(self, assembler: &Assembler) -> Result<Note, NoteError> {
         let note_ast = ProgramAst::parse(&self.code).unwrap();
-        let (note_script, _) = NoteScript::new(note_ast, &assembler)?;
+        let (note_script, _) = NoteScript::new(note_ast, assembler)?;
         let vault = NoteAssets::new(self.assets)?;
         let metadata = NoteMetadata::new(self.sender, self.note_type, self.tag, self.aux)?;
         let inputs = NoteInputs::new(self.inputs)?;
