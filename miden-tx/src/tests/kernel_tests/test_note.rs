@@ -5,14 +5,16 @@ use miden_objects::{
     accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     notes::Note,
     testing::{notes::AssetPreservationStatus, prepare_word},
-    transaction::{PreparedTransaction, TransactionArgs},
+    transaction::TransactionArgs,
     WORD_SIZE,
 };
 use vm_processor::{EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
-    testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder},
+    testing::{
+        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+    },
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -329,10 +331,9 @@ fn test_note_setup() {
         end
         ";
 
-    let prepared_tx = tx_context.get_prepared_transaction(code);
     let process = tx_context.execute_code(code).unwrap();
 
-    note_setup_stack_assertions(&process, &prepared_tx);
+    note_setup_stack_assertions(&process, &tx_context);
     note_setup_memory_assertions(&process);
 }
 
@@ -380,7 +381,7 @@ fn test_note_script_and_note_args() {
     assert_eq!(process.stack.get_word(1), note_args[1]);
 }
 
-fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root

@@ -24,14 +24,16 @@ use miden_objects::{
         notes::AssetPreservationStatus,
         storage::{generate_account_seed, AccountSeedType},
     },
-    transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
+    transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
 use vm_processor::{AdviceInputs, ONE};
 
 use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
 use crate::{
-    testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder},
+    testing::{
+        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+    },
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -104,20 +106,19 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let transaction = tx_context.get_prepared_transaction(&code);
-    let process = tx_context.execute_transaction(&transaction).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
-    global_input_memory_assertions(&process, &transaction);
-    block_data_memory_assertions(&process, &transaction);
-    chain_mmr_memory_assertions(&process, &transaction);
-    account_data_memory_assertions(&process, &transaction);
-    consumed_notes_memory_assertions(&process, &transaction, &note_args);
+    global_input_memory_assertions(&process, &tx_context);
+    block_data_memory_assertions(&process, &tx_context);
+    chain_mmr_memory_assertions(&process, &tx_context);
+    account_data_memory_assertions(&process, &tx_context);
+    consumed_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
-fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
-        inputs.block_header().hash().as_elements(),
+        inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
@@ -152,75 +153,75 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     );
 }
 
-fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
-        inputs.block_header().hash().as_elements(),
+        inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, PREV_BLOCK_HASH_PTR),
-        inputs.block_header().prev_hash().as_elements(),
+        inputs.tx_inputs().block_header().prev_hash().as_elements(),
         "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, CHAIN_ROOT_PTR),
-        inputs.block_header().chain_root().as_elements(),
+        inputs.tx_inputs().block_header().chain_root().as_elements(),
         "The chain root should be stored at the CHAIN_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, ACCT_DB_ROOT_PTR),
-        inputs.block_header().account_root().as_elements(),
+        inputs.tx_inputs().block_header().account_root().as_elements(),
         "The account db root should be stored at the ACCT_DB_ROOT_PRT"
     );
 
     assert_eq!(
         read_root_mem_value(process, NULLIFIER_DB_ROOT_PTR),
-        inputs.block_header().nullifier_root().as_elements(),
+        inputs.tx_inputs().block_header().nullifier_root().as_elements(),
         "The nullifier db root should be stored at the NULLIFIER_DB_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, TX_HASH_PTR),
-        inputs.block_header().tx_hash().as_elements(),
+        inputs.tx_inputs().block_header().tx_hash().as_elements(),
         "The TX hash should be stored at the TX_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, NOTE_ROOT_PTR),
-        inputs.block_header().note_root().as_elements(),
+        inputs.tx_inputs().block_header().note_root().as_elements(),
         "The note root should be stored at the NOTE_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, PROOF_HASH_PTR),
-        inputs.block_header().proof_hash().as_elements(),
+        inputs.tx_inputs().block_header().proof_hash().as_elements(),
         "The proof hash should be stored at the PROOF_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
-        inputs.block_header().block_num().into(),
+        inputs.tx_inputs().block_header().block_num().into(),
         "The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
-        inputs.block_header().version().into(),
+        inputs.tx_inputs().block_header().version().into(),
         "The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
-        inputs.block_header().timestamp().into(),
+        inputs.tx_inputs().block_header().timestamp().into(),
         "The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]"
     );
 }
 
-fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &PreparedTransaction) {
+fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
     chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
@@ -240,7 +241,7 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Prepar
     }
 }
 
-fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
@@ -282,7 +283,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 
 fn consumed_notes_memory_assertions(
     process: &Process<MockHost>,
-    inputs: &PreparedTransaction,
+    inputs: &TransactionContext,
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(

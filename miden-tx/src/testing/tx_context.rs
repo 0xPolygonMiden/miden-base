@@ -50,30 +50,15 @@ pub struct TransactionContext {
 
 impl TransactionContext {
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
-        let tx = self.get_prepared_transaction(code);
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
+        let program = assembler.compile(code).unwrap();
+        let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
         let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
         advice_inputs.extend(self.advice_inputs.clone());
 
         CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)
             .run(code)
-    }
-
-    pub fn execute_transaction(
-        &self,
-        tx: &PreparedTransaction,
-    ) -> Result<Process<MockHost>, ExecutionError> {
-        let (stack_inputs, advice_inputs) = tx.get_kernel_inputs();
-
-        CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
-            .stack_inputs(stack_inputs)
-            .execute_program(tx.program().clone())
-    }
-
-    pub fn get_prepared_transaction(&self, code: &str) -> PreparedTransaction {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let program = assembler.compile(code).unwrap();
-        PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone())
     }
 
     pub fn account(&self) -> &Account {
