@@ -63,8 +63,13 @@ fn prove_p2id_script() {
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
 
@@ -109,9 +114,9 @@ fn prove_p2id_script() {
 
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref = data_store_malicious_account.block_header.block_num();
+    let block_ref = data_store_malicious_account.block_header().block_num();
     let note_ids = data_store_malicious_account
-        .notes
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
@@ -144,6 +149,7 @@ fn p2id_script_multiple_assets() {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN).unwrap();
+
     let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
@@ -167,8 +173,13 @@ fn p2id_script_multiple_assets() {
     let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target =
@@ -210,9 +221,9 @@ fn p2id_script_multiple_assets() {
         executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref = data_store_malicious_account.block_header.block_num();
+    let block_ref = data_store_malicious_account.block_header().block_num();
     let note_origins = data_store_malicious_account
-        .notes
+        .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();

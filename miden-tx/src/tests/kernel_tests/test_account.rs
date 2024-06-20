@@ -10,29 +10,22 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountId, AccountType, SlotItem, StorageSlotType,
+        AccountId, AccountStorage, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
     testing::{
-        account::MockAccountType,
-        notes::AssetPreservationStatus,
-        prepare_word,
-        storage::{
-            storage_map_2, STORAGE_INDEX_0, STORAGE_INDEX_1, STORAGE_INDEX_2, STORAGE_LEAVES_2,
-            STORAGE_VALUE_0, STORAGE_VALUE_1,
-        },
+        account::MockAccountType, notes::AssetPreservationStatus, prepare_word,
+        storage::STORAGE_LEAVES_2,
     },
 };
 use vm_processor::{ContextId, Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
-    kernel_tests::output_notes_data_procedure,
     testing::{
-        mock_executed_tx, mock_inputs,
-        utils::{prepare_transaction, run_tx, run_within_host, run_within_tx_kernel},
-        MockHost,
+        executor::CodeExecutor, utils::mock_executed_tx, MockHost, TransactionContextBuilder,
     },
+    tests::kernel_tests::output_notes_data_procedure,
 };
 
 // ACCOUNT CODE TESTS
@@ -40,9 +33,8 @@ use crate::{
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
     let code = "
         use.miden::kernels::tx::prologue
         use.miden::account
@@ -53,13 +45,11 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code, None);
-    let process = run_tx(&transaction).unwrap();
-
+    let process = tx_context.execute_code(code).unwrap();
     // assert the code root is not changed
     assert_eq!(
         process.get_mem_value(ContextId::root(), ACCT_CODE_ROOT_PTR).unwrap(),
-        transaction.account().code().root().as_elements()
+        tx_context.account().code().root().as_elements()
     );
 
     // assert the new code root is cached
@@ -101,7 +91,7 @@ pub fn test_set_code_succeeds() {
 
     let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
     let host = MockHost::new(executed_transaction.initial_account().into(), advice_inputs);
-    let process = run_within_host("", &code, stack_inputs, host, None).unwrap();
+    let process = CodeExecutor::new(host).stack_inputs(stack_inputs).run(&code).unwrap();
 
     // assert the code root is changed after the epilogue
     assert_eq!(
@@ -147,14 +137,10 @@ pub fn test_account_type() {
                 procedure
             );
 
-            let process = run_within_tx_kernel(
-                "",
-                &code,
-                StackInputs::new(vec![account_id.into()]).unwrap(),
-                MemAdviceProvider::default(),
-                None,
-            )
-            .unwrap();
+            let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
+                .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
+                .run(&code)
+                .unwrap();
 
             let expected_result = if account_id.account_type() == expected_type {
                 has_type = true;
@@ -190,8 +176,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
         "
     );
 
-    let result =
-        run_within_tx_kernel("", &code, StackInputs::default(), MemAdviceProvider::default(), None);
+    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
     assert!(result.is_err());
 }
@@ -224,14 +209,10 @@ fn test_is_faucet_procedure() {
             account_id = account_id,
         );
 
-        let process = run_within_tx_kernel(
-            "",
-            &code,
-            StackInputs::default(),
-            MemAdviceProvider::default(),
-            None,
-        )
-        .unwrap();
+        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
+            .run(&code)
+            .unwrap();
+
         let is_faucet = account_id.is_faucet();
         assert_eq!(
             process.stack.get(0),
@@ -247,12 +228,9 @@ fn test_is_faucet_procedure() {
 
 #[test]
 fn test_get_item() {
-    for storage_item in [
-        SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
-        SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
-    ] {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    for storage_item in [AccountStorage::mock_item_0(), AccountStorage::mock_item_1()] {
+        let tx_context =
+            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
         let code = format!(
             "
@@ -278,18 +256,17 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.slot.value)
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let _process = run_tx(&transaction).unwrap();
+        tx_context.execute_code(&code).unwrap();
     }
 }
 
 #[test]
 fn test_set_item() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
     // copy the initial account slots (SMT)
-    let mut account_smt = tx_inputs.account().storage().slots().clone();
+    let mut account_smt = tx_context.account().storage().slots().clone();
     let init_root = account_smt.root();
 
     // insert a new leaf value
@@ -332,20 +309,19 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    tx_context.execute_code(&code).unwrap();
 }
 
 // Test different account storage types
 #[test]
 fn test_get_storage_data_type() {
     for storage_item in [
-        SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
-        SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
-        SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
+        AccountStorage::mock_item_0(),
+        AccountStorage::mock_item_1(),
+        AccountStorage::mock_item_2(),
     ] {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let tx_context =
+            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
         let code = format!(
             "
@@ -367,8 +343,7 @@ fn test_get_storage_data_type() {
             item_index = storage_item.index,
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let process = run_tx(&transaction).unwrap();
+        let process = tx_context.execute_code(&code).unwrap();
 
         let storage_slot_data_type = match storage_item.slot.slot_type {
             StorageSlotType::Value { value_arity } => (value_arity, 0),
@@ -390,10 +365,10 @@ fn test_get_storage_data_type() {
 
 #[test]
 fn test_get_map_item() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
-    let storage_item = SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into());
+    let storage_item = AccountStorage::mock_item_2();
     for (key, value) in STORAGE_LEAVES_2 {
         let code = format!(
             "
@@ -419,9 +394,7 @@ fn test_get_map_item() {
             map_key = prepare_word(&key),
         );
 
-        let transaction =
-            prepare_transaction(tx_inputs.clone(), tx_args.clone(), code.as_str(), None);
-        let process = run_tx(&transaction).unwrap();
+        let process = tx_context.execute_code(&code).unwrap();
         assert_eq!(value, process.get_stack_word(0));
 
         // check that the rest of the stack is empty
@@ -438,10 +411,10 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
-    let storage_item = SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into());
+    let storage_item = AccountStorage::mock_item_2();
 
     let code = format!(
         "
@@ -475,10 +448,9 @@ fn test_set_map_item() {
         new_value = prepare_word(&new_value),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, code.as_str(), None);
-    let process = run_tx(&transaction).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
-    let mut new_storage_map = storage_map_2();
+    let mut new_storage_map = AccountStorage::mock_map_2();
     new_storage_map.insert(new_key, new_value);
 
     // check the new storage root in the process state is what we expect
@@ -493,10 +465,10 @@ fn test_set_map_item() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let (tx_inputs, tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
-    let account = tx_inputs.account();
+    let account = tx_context.account();
     let code = format!(
         "
     use.miden::account
@@ -515,8 +487,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-    let _process = run_tx(&transaction).unwrap();
+    tx_context.execute_code(&code).unwrap();
 }
 
 // PROCEDURE AUTHENTICATION TESTS
@@ -524,9 +495,9 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let (tx_inputs, _tx_args) =
-        mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
-    let account = tx_inputs.account();
+    let tx_context =
+        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let account = tx_context.tx_inputs().account();
 
     let proc0_index = LeafIndex::new(0).unwrap();
     let proc1_index = LeafIndex::new(1).unwrap();
@@ -538,8 +509,8 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let (tx_inputs, tx_args) =
-            mock_inputs(MockAccountType::StandardExisting, AssetPreservationStatus::Preserved);
+        let tx_context =
+            TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
 
         let code = format!(
             "\
@@ -560,8 +531,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let transaction = prepare_transaction(tx_inputs, tx_args, &code, None);
-        let process = run_tx(&transaction);
+        let process = tx_context.execute_code(&code);
 
         match valid {
             true => assert!(process.is_ok()),

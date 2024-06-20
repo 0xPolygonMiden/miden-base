@@ -67,8 +67,13 @@ fn prove_swap_script() {
         TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target =

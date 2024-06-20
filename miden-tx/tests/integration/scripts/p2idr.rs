@@ -100,8 +100,8 @@ fn p2idr_script() {
 
     executor_1.load_account(target_account_id).unwrap();
 
-    let block_ref_1 = data_store_1.block_header.block_num();
-    let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_1 = data_store_1.block_header().block_num();
+    let note_ids = data_store_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target =
@@ -136,8 +136,8 @@ fn p2idr_script() {
         executor_2.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
-    let block_ref_2 = data_store_2.block_header.block_num();
-    let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_2 = data_store_2.block_header().block_num();
+    let note_ids_2 = data_store_2.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_2 = executor_2.execute_transaction(
@@ -163,8 +163,8 @@ fn p2idr_script() {
     let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref_3 = data_store_3.block_header.block_num();
-    let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_3 = data_store_3.block_header().block_num();
+    let note_ids_3 = data_store_3.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_3 = executor_3.execute_transaction(
@@ -187,8 +187,8 @@ fn p2idr_script() {
     let mut executor_4 = TransactionExecutor::new(data_store_4.clone(), Some(target_falcon_auth));
     executor_4.load_account(target_account_id).unwrap();
 
-    let block_ref_4 = data_store_4.block_header.block_num();
-    let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_4 = data_store_4.block_header().block_num();
+    let note_ids_4 = data_store_4.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_4 = executor_4
@@ -220,8 +220,8 @@ fn p2idr_script() {
 
     executor_5.load_account(sender_account_id).unwrap();
 
-    let block_ref_5 = data_store_5.block_header.block_num();
-    let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_5 = data_store_5.block_header().block_num();
+    let note_ids_5 = data_store_5.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_5 = executor_5
@@ -253,8 +253,8 @@ fn p2idr_script() {
 
     executor_6.load_account(malicious_account_id).unwrap();
 
-    let block_ref_6 = data_store_6.block_header.block_num();
-    let note_ids_6 = data_store_6.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_6 = data_store_6.block_header().block_num();
+    let note_ids_6 = data_store_6.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_6 = executor_6.execute_transaction(

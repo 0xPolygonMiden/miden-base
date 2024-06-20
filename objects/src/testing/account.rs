@@ -8,16 +8,15 @@ use core::fmt::Display;
 use assembly::Assembler;
 use miden_crypto::merkle::MerkleError;
 use rand::Rng;
+use vm_core::FieldElement;
 
 use super::{
-    account_code::{mock_account_code, DEFAULT_ACCOUNT_CODE},
+    account_code::DEFAULT_ACCOUNT_CODE,
     account_id::{str_to_account_code, AccountIdBuilder},
-    assets::non_fungible_asset,
-    constants::FUNGIBLE_ASSET_AMOUNT,
-    storage::{
-        generate_account_seed, storage_map_2, AccountSeedType, AccountStorageBuilder,
-        STORAGE_INDEX_0, STORAGE_INDEX_1, STORAGE_INDEX_2, STORAGE_VALUE_0, STORAGE_VALUE_1,
+    constants::{
+        self, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
     },
+    storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
 };
 use crate::{
     accounts::{
@@ -26,6 +25,7 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     AccountError, AssetVaultError, Felt, Word, ZERO,
@@ -175,9 +175,116 @@ impl std::error::Error for AccountBuilderError {}
 // MOCK ACCOUNT
 // ================================================================================================
 
+impl Account {
+    /// Creates a mock account with a defined number of assets and storage  
+    pub fn mock(account_id: u64, nonce: Felt, account_code: AccountCode) -> Self {
+        let account_storage = AccountStorage::mock();
+
+        let account_vault = if nonce == Felt::ZERO {
+            AssetVault::default()
+        } else {
+            AssetVault::mock()
+        };
+
+        let account_id = AccountId::try_from(account_id).unwrap();
+        Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
+    }
+
+    pub fn mock_fungible_faucet(
+        account_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+        assembler: &Assembler,
+    ) -> Self {
+        let initial_balance = if empty_reserved_slot {
+            ZERO
+        } else {
+            Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
+        };
+        let account_storage = AccountStorage::new(
+            vec![SlotItem {
+                index: FAUCET_STORAGE_DATA_SLOT,
+                slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
+            }],
+            BTreeMap::new(),
+        )
+        .unwrap();
+        let account_id = AccountId::try_from(account_id).unwrap();
+        let account_code = AccountCode::mock_wallet(assembler);
+        Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
+    }
+
+    pub fn mock_non_fungible_faucet(
+        account_id: u64,
+        nonce: Felt,
+        empty_reserved_slot: bool,
+        assembler: &Assembler,
+    ) -> Self {
+        let entries = match empty_reserved_slot {
+            true => vec![],
+            false => {
+                let asset = Asset::mock_non_fungible(
+                    ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+                    &constants::NON_FUNGIBLE_ASSET_DATA_2,
+                );
+                vec![(Word::from(asset).into(), asset.into())]
+            },
+        };
+        // construct nft tree
+        let nft_storage_map = StorageMap::with_entries(entries).unwrap();
+        let mut maps = BTreeMap::new();
+        maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
+
+        let account_storage = AccountStorage::new(
+            vec![SlotItem {
+                index: FAUCET_STORAGE_DATA_SLOT,
+                slot: StorageSlot::new_map(*nft_storage_map.root()),
+            }],
+            maps,
+        )
+        .unwrap();
+        let account_id = AccountId::try_from(account_id).unwrap();
+        let account_code = AccountCode::mock_wallet(assembler);
+        Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
+    }
+}
+
+impl AssetVault {
+    /// Creates an [AssetVault] with 4 default assets.
+    ///
+    /// The ids of the assets added to the vault are defined by the following constants:
+    ///
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
+    /// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
+    /// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
+    pub fn mock() -> Self {
+        let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
+        let fungible_asset =
+            Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
+
+        let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
+        let fungible_asset_1 =
+            Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
+
+        let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
+        let fungible_asset_2 =
+            Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
+
+        let non_fungible_asset = Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA,
+        );
+        AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
+            .unwrap()
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum MockAccountType {
-    StandardNew,
+    StandardNew {
+        account_id: u64,
+    },
     StandardExisting,
     FungibleFaucet {
         acct_id: u64,
@@ -189,61 +296,4 @@ pub enum MockAccountType {
         nonce: Felt,
         empty_reserved_slot: bool,
     },
-}
-
-pub fn mock_new_account(assembler: &Assembler) -> Account {
-    let (acct_id, _account_seed) =
-        generate_account_seed(AccountSeedType::RegularAccountUpdatableCodeOffChain, assembler);
-    let account_storage = mock_account_storage();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(acct_id, AssetVault::default(), account_storage, account_code, ZERO)
-}
-
-pub fn mock_account(account_id: u64, nonce: Felt, account_code: AccountCode) -> Account {
-    let account_storage = mock_account_storage();
-    let account_vault = mock_account_vault();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
-}
-
-/// Creates an [AssetVault] with 4 assets.
-///
-/// The ids of the assets added to the vault are defined by the following constants:
-///
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1
-/// - ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2
-/// - ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN
-///
-pub fn mock_account_vault() -> AssetVault {
-    let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
-    let fungible_asset =
-        Asset::Fungible(FungibleAsset::new(faucet_id, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let faucet_id_1: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
-    let fungible_asset_1 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_1, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let faucet_id_2: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().unwrap();
-    let fungible_asset_2 =
-        Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
-
-    let non_fungible_asset = non_fungible_asset(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN);
-    AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
-        .unwrap()
-}
-
-pub fn mock_account_storage() -> AccountStorage {
-    // create account storage
-    let mut maps = BTreeMap::new();
-    maps.insert(STORAGE_INDEX_2, storage_map_2());
-    AccountStorage::new(
-        vec![
-            SlotItem::new_value(STORAGE_INDEX_0, 0, STORAGE_VALUE_0),
-            SlotItem::new_value(STORAGE_INDEX_1, 0, STORAGE_VALUE_1),
-            SlotItem::new_map(STORAGE_INDEX_2, 0, storage_map_2().root().into()),
-        ],
-        maps,
-    )
-    .unwrap()
 }

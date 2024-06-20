@@ -1,134 +1,93 @@
-#[cfg(feature = "std")]
-use std::{
-    fs::File,
-    io::Read,
-    path::PathBuf,
-    string::{String, ToString},
-};
+use alloc::vec::Vec;
 
+use miden_lib::transaction::memory;
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
-use miden_lib::transaction::{memory, ToTransactionKernelInputs};
-use miden_objects::transaction::PreparedTransaction;
 #[cfg(feature = "std")]
+use miden_objects::Felt;
 use miden_objects::{
-    transaction::{TransactionArgs, TransactionInputs},
-    Felt,
+    accounts::{
+        account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
+        AccountCode, AccountDelta,
+    },
+    notes::Note,
+    testing::{
+        block::{MockChain, MockChainBuilder},
+        notes::AssetPreservationStatus,
+    },
+    transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
+    vm::CodeBlock,
+    FieldElement,
 };
-#[cfg(not(target_family = "wasm"))]
-use vm_processor::Word;
-use vm_processor::{AdviceInputs, ExecutionError, Process};
-#[cfg(feature = "std")]
-use vm_processor::{AdviceProvider, DefaultHost, ExecutionOptions, Host, StackInputs};
+use vm_processor::{AdviceInputs, Operation, Program, ZERO};
 
-use crate::testing::MockHost;
-
-// TEST BRACE
-// ================================================================================================
-
-/// Loads the specified file and append `code` into its end.
-#[cfg(feature = "std")]
-fn load_file_with_code(imports: &str, code: &str, assembly_file: PathBuf) -> String {
-    let mut module = String::new();
-    File::open(assembly_file).unwrap().read_to_string(&mut module).unwrap();
-    let complete_code = format!("{imports}{module}{code}");
-
-    // This hack is going around issue #686 on miden-vm
-    complete_code.replace("export", "proc")
-}
-
-/// Inject `code` along side the specified file and run it
-pub fn run_tx(tx: &PreparedTransaction) -> Result<Process<MockHost>, ExecutionError> {
-    run_tx_with_inputs(tx, AdviceInputs::default())
-}
-
-pub fn run_tx_with_inputs(
-    tx: &PreparedTransaction,
-    inputs: AdviceInputs,
-) -> Result<Process<MockHost>, ExecutionError> {
-    let program = tx.program().clone();
-    let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
-    advice_inputs.extend(inputs);
-    let host = MockHost::new(tx.account().into(), advice_inputs);
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
-    process.execute(&program)?;
-    Ok(process)
-}
-
-/// Inject `code` along side the specified file and run it
-#[cfg(feature = "std")]
-pub fn run_within_tx_kernel<A>(
-    imports: &str,
-    code: &str,
-    stack_inputs: StackInputs,
-    mut adv: A,
-    file_path: Option<PathBuf>,
-) -> Result<Process<DefaultHost<A>>, ExecutionError>
-where
-    A: AdviceProvider,
-{
-    // mock account method for testing from root context
-    adv.insert_into_map(Word::default(), vec![Felt::new(255)]).unwrap();
-
-    let assembler = TransactionKernel::assembler();
-
-    let code = match file_path {
-        Some(file_path) => load_file_with_code(imports, code, file_path),
-        None => format!("{imports}{code}"),
-    };
-
-    let program = assembler.compile(code).unwrap();
-
-    let host = DefaultHost::new(adv);
-    let exec_options = ExecutionOptions::default().with_tracing();
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, exec_options);
-    process.execute(&program)?;
-    Ok(process)
-}
-
-/// Inject `code` along side the specified file and run it
-#[cfg(feature = "std")]
-pub fn run_within_host<H: Host>(
-    imports: &str,
-    code: &str,
-    stack_inputs: StackInputs,
-    host: H,
-    file_path: Option<PathBuf>,
-) -> Result<Process<H>, ExecutionError> {
-    let assembler = TransactionKernel::assembler();
-    let code = match file_path {
-        Some(file_path) => load_file_with_code(imports, code, file_path),
-        None => format!("{imports}{code}"),
-    };
-
-    let program = assembler.compile(code).unwrap();
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, host, ExecutionOptions::default());
-    process.execute(&program)?;
-    Ok(process)
-}
+use super::TransactionContextBuilder;
 
 // TEST HELPERS
 // ================================================================================================
+
 pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
     memory::CONSUMED_NOTE_DATA_SECTION_OFFSET + note_idx * memory::NOTE_MEM_SIZE
 }
 
-#[cfg(feature = "std")]
-pub fn prepare_transaction(
-    tx_inputs: TransactionInputs,
-    tx_args: TransactionArgs,
-    code: &str,
-    file_path: Option<PathBuf>,
-) -> PreparedTransaction {
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
+    let assembler = TransactionKernel::assembler();
 
-    let code = match file_path {
-        Some(file_path) => load_file_with_code("", code, file_path),
-        None => code.to_string(),
+    let initial_account = Account::mock(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        Felt::ONE,
+        AccountCode::mock_wallet(&assembler),
+    );
+
+    // nonce incremented by 1
+    let final_account = Account::mock(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        Felt::new(2),
+        initial_account.code().clone(),
+    );
+
+    let tx_context = TransactionContextBuilder::new(initial_account)
+        .assembler(assembler)
+        .with_mock_notes(asset_preservation)
+        .build();
+
+    let output_notes = tx_context
+        .expected_output_notes()
+        .iter()
+        .cloned()
+        .map(OutputNote::Full)
+        .collect();
+
+    let tx_outputs = TransactionOutputs {
+        account: final_account.into(),
+        output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
-    let program = assembler.compile(code).unwrap();
+    let program = build_dummy_tx_program();
+    let account_delta = AccountDelta::default();
+    let advice_witness = AdviceInputs::default();
 
-    PreparedTransaction::new(program, tx_inputs, tx_args)
+    ExecutedTransaction::new(
+        program,
+        tx_context.tx_inputs().clone(),
+        tx_outputs,
+        account_delta,
+        tx_context.tx_args().clone(),
+        advice_witness,
+    )
+}
+
+pub fn create_test_chain(created_notes: Vec<Note>) -> MockChain {
+    let mut mock_chain = MockChainBuilder::new().notes(created_notes).build();
+    mock_chain.seal_block();
+    mock_chain.seal_block();
+    mock_chain.seal_block();
+
+    mock_chain
+}
+
+pub fn build_dummy_tx_program() -> Program {
+    let operations = vec![Operation::Push(ZERO), Operation::Drop];
+    let span = CodeBlock::new_span(operations);
+    Program::new(span)
 }

@@ -70,14 +70,19 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(data_store.clone(), None).with_tracing();
 
-    let account_id = data_store.account.id();
+    let account_id = data_store.account().id();
     executor.load_account(account_id).map_err(|e| e.to_string())?;
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, data_store.tx_args().clone())
+        .prepare_transaction(account_id, block_ref, &note_ids, data_store.tx_args.clone())
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
@@ -134,8 +139,13 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         TransactionExecutor::new(data_store.clone(), None).with_tracing();
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = data_store.block_header().block_num();
+    let note_ids = data_store
+        .tx_inputs
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
 

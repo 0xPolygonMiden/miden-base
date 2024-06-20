@@ -34,9 +34,6 @@ fn build_module_path(dir: &str, file: &str) -> PathBuf {
         .collect()
 }
 
-// OUTPUT NOTES PROCEDURES
-// ============================================================================================
-
 pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
     let OutputNote::Full(note0) = notes.get_note(0) else {
         panic!("Note 0 must be a full note")

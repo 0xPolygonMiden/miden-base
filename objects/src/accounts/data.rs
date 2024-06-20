@@ -107,16 +107,15 @@ mod tests {
     use super::AccountData;
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            code::testing::make_account_code, storage, Account, AccountId, AuthSecretKey, Felt,
-            Word,
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, storage,
+            Account, AccountCode, AccountId, AuthSecretKey, Felt, Word,
         },
         assets::AssetVault,
     };
 
     fn build_account_data() -> AccountData {
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let code = make_account_code();
+        let code = AccountCode::mock();
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();

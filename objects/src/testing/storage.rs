@@ -4,27 +4,21 @@ use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
-use super::{
-    account_code::mock_account_code, assets::non_fungible_asset_2,
-    constants::FUNGIBLE_FAUCET_INITIAL_BALANCE, prepare_word,
-};
+use super::prepare_word;
 use crate::{
     accounts::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
-        code::testing::make_account_code,
-        get_account_seed_single, Account, AccountDelta, AccountId, AccountStorage,
+        get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap,
+        StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
-    testing::account::mock_account,
 };
 
 #[derive(Default, Debug, Clone)]
@@ -84,65 +78,50 @@ pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
     ),
 ];
 
-pub fn storage_map_2() -> StorageMap {
-    StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
-}
+impl AccountStorage {
+    /// Create account storage with:
+    /// Item [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
+    /// Item [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
+    /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
+    /// Map with [STORAGE_LEAVES_2]
+    pub fn mock() -> Self {
+        let mut maps = BTreeMap::new();
+        maps.insert(STORAGE_INDEX_2, Self::mock_map_2());
+        AccountStorage::new(
+            vec![Self::mock_item_0(), Self::mock_item_1(), Self::mock_item_2()],
+            maps,
+        )
+        .unwrap()
+    }
 
-// MOCK FAUCET
-// ================================================================================================
+    /// Creates Slot with [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
+    pub fn mock_item_0() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_0,
+            slot: StorageSlot::new_value(STORAGE_VALUE_0),
+        }
+    }
 
-pub fn mock_fungible_faucet(
-    account_id: u64,
-    nonce: Felt,
-    empty_reserved_slot: bool,
-    assembler: &Assembler,
-) -> Account {
-    let initial_balance = if empty_reserved_slot {
-        ZERO
-    } else {
-        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
-    };
-    let account_storage = AccountStorage::new(
-        vec![SlotItem::new_value(
-            FAUCET_STORAGE_DATA_SLOT,
-            0,
-            [ZERO, ZERO, ZERO, initial_balance],
-        )],
-        BTreeMap::new(),
-    )
-    .unwrap();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
-}
+    /// Creates Slot with [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
+    pub fn mock_item_1() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_1,
+            slot: StorageSlot::new_value(STORAGE_VALUE_1),
+        }
+    }
 
-pub fn mock_non_fungible_faucet(
-    account_id: u64,
-    nonce: Felt,
-    empty_reserved_slot: bool,
-    assembler: &Assembler,
-) -> Account {
-    let entries = match empty_reserved_slot {
-        true => vec![],
-        false => vec![(
-            Word::from(non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN)).into(),
-            non_fungible_asset_2(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).into(),
-        )],
-    };
+    /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
+    pub fn mock_item_2() -> SlotItem {
+        SlotItem {
+            index: STORAGE_INDEX_2,
+            slot: StorageSlot::new_map(Word::from(Self::mock_map_2().root())),
+        }
+    }
 
-    // construct nft tree
-    let nft_storage_map = StorageMap::with_entries(entries).unwrap();
-    let mut maps = BTreeMap::new();
-    maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
-
-    let account_storage = AccountStorage::new(
-        vec![SlotItem::new_map(FAUCET_STORAGE_DATA_SLOT, 0, *nft_storage_map.root())],
-        maps,
-    )
-    .unwrap();
-    let account_id = AccountId::try_from(account_id).unwrap();
-    let account_code = mock_account_code(assembler);
-    Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
+    /// Creates map with [STORAGE_LEAVES_2]
+    pub fn mock_map_2() -> StorageMap {
+        StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
+    }
 }
 
 // ACCOUNT SEED GENERATION
@@ -166,7 +145,7 @@ pub fn generate_account_seed(
 
     let (account, account_type) = match account_seed_type {
         AccountSeedType::FungibleFaucetInvalidInitialBalance => (
-            mock_fungible_faucet(
+            Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -175,7 +154,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::FungibleFaucetValidInitialBalance => (
-            mock_fungible_faucet(
+            Account::mock_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -184,7 +163,7 @@ pub fn generate_account_seed(
             AccountType::FungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot => (
-            mock_non_fungible_faucet(
+            Account::mock_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 false,
@@ -193,7 +172,7 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::NonFungibleFaucetValidReservedSlot => (
-            mock_non_fungible_faucet(
+            Account::mock_non_fungible_faucet(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 ZERO,
                 true,
@@ -202,18 +181,18 @@ pub fn generate_account_seed(
             AccountType::NonFungibleFaucet,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOnChain => (
-            mock_account(
-                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ONE,
-                mock_account_code(assembler),
+            Account::mock(
+                ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+                Felt::ZERO,
+                AccountCode::mock_wallet(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
         AccountSeedType::RegularAccountUpdatableCodeOffChain => (
-            mock_account(
+            Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-                Felt::ONE,
-                mock_account_code(assembler),
+                Felt::ZERO,
+                AccountCode::mock_wallet(assembler),
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -243,7 +222,7 @@ pub fn build_account(
     maps: Option<BTreeMap<u8, StorageMap>>,
 ) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-    let code = make_account_code();
+    let code = AccountCode::mock();
 
     let vault = AssetVault::new(&assets).unwrap();
     // Use the provided maps or create an empty BTreeMap if None is provided
