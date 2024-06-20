@@ -22,7 +22,7 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::AssetPreservationStatus,
+        notes::{AssetPreservationStatus, DEFAULT_NOTE_CODE},
         prepare_word,
         storage::prepare_assets,
     },
@@ -233,7 +233,30 @@ impl TransactionContextBuilder {
 
     /// Populates input and expected notes.
     pub fn with_mock_notes(self, asset_preservation: AssetPreservationStatus) -> Self {
-        let (notes, output_notes) = mock_notes(&self.assembler, &asset_preservation);
+        let (mut input_notes, output_notes) = mock_notes(&self.assembler);
+
+        let consumed_note_5 = input_notes.pop().unwrap();
+        let consumed_note_4 = input_notes.pop().unwrap();
+        let consumed_note_3 = input_notes.pop().unwrap();
+        let consumed_note_2 = input_notes.pop().unwrap();
+        let consumed_note_1 = input_notes.pop().unwrap();
+
+        let notes = match asset_preservation {
+            AssetPreservationStatus::TooFewInput => vec![consumed_note_1],
+            AssetPreservationStatus::Preserved => {
+                vec![consumed_note_1, consumed_note_2]
+            },
+            AssetPreservationStatus::PreservedWithAccountVaultDelta => {
+                vec![consumed_note_1, consumed_note_2, consumed_note_5]
+            },
+            AssetPreservationStatus::TooManyFungibleInput => {
+                vec![consumed_note_1, consumed_note_2, consumed_note_3]
+            },
+            AssetPreservationStatus::TooManyNonFungibleInput => {
+                vec![consumed_note_1, consumed_note_2, consumed_note_4]
+            },
+        };
+
         self.input_notes(notes).expected_notes(output_notes)
     }
 
@@ -260,10 +283,7 @@ impl TransactionContextBuilder {
     }
 }
 
-fn mock_notes(
-    assembler: &Assembler,
-    asset_preservation: &AssetPreservationStatus,
-) -> (Vec<Note>, Vec<OutputNote>) {
+fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
     let mut serial_num_gen = SerialNumGenerator::new();
 
     // ACCOUNT IDS
@@ -284,7 +304,7 @@ fn mock_notes(
 
     // CREATED NOTES
     // --------------------------------------------------------------------------------------------
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, assembler).unwrap();
 
     let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
@@ -384,7 +404,7 @@ fn mock_notes(
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_2_script, inputs);
     let consumed_note_2 = Note::new(vault, metadata, recipient);
 
-    let note_3_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_3_script_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_3_script, _) = NoteScript::new(note_3_script_ast, assembler).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![fungible_asset_2, fungible_asset_3]).unwrap();
@@ -392,7 +412,7 @@ fn mock_notes(
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_3_script, inputs);
     let consumed_note_3 = Note::new(vault, metadata, recipient);
 
-    let note_4_script_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_4_script_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_4_script, _) = NoteScript::new(note_4_script_ast, assembler).unwrap();
     let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
     let vault = NoteAssets::new(vec![Asset::mock_non_fungible(
@@ -451,28 +471,20 @@ fn mock_notes(
     let recipient = NoteRecipient::new(serial_num_gen.next(), note_5_script, inputs);
     let consumed_note_5 = Note::new(vault, metadata, recipient);
 
-    let consumed_notes = match asset_preservation {
-        AssetPreservationStatus::TooFewInput => vec![consumed_note_1],
-        AssetPreservationStatus::Preserved => {
-            vec![consumed_note_1, consumed_note_2]
-        },
-        AssetPreservationStatus::PreservedWithAccountVaultDelta => {
-            vec![consumed_note_1, consumed_note_2, consumed_note_5]
-        },
-        AssetPreservationStatus::TooManyFungibleInput => {
-            vec![consumed_note_1, consumed_note_2, consumed_note_3]
-        },
-        AssetPreservationStatus::TooManyNonFungibleInput => {
-            vec![consumed_note_1, consumed_note_2, consumed_note_4]
-        },
-    };
-    let created_notes = vec![
+    let consumed_notes = vec![
+        consumed_note_1,
+        consumed_note_2,
+        consumed_note_3,
+        consumed_note_4,
+        consumed_note_5,
+    ];
+    let output_notes = vec![
         OutputNote::Full(created_note_1),
         OutputNote::Full(created_note_2),
         OutputNote::Full(created_note_3),
     ];
 
-    (consumed_notes, created_notes)
+    (consumed_notes, output_notes)
 }
 
 struct SerialNumGenerator {

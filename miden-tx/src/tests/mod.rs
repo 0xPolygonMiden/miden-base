@@ -23,7 +23,7 @@ use miden_objects::{
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        notes::AssetPreservationStatus,
+        notes::{AssetPreservationStatus, DEFAULT_NOTE_CODE},
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
@@ -426,7 +426,7 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_program_ast_2 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast_2 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
     let metadata_2 = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
@@ -436,7 +436,7 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
-    let note_program_ast_3 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast_3 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();

@@ -13,7 +13,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::{NoteScript, NoteType},
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
+    testing::{account_code::DEFAULT_AUTH_SCRIPT, notes::DEFAULT_NOTE_CODE},
     transaction::TransactionArgs,
     Felt,
 };
@@ -244,7 +244,7 @@ fn p2id_script_multiple_assets() {
 fn test_note_script_to_from_felt() {
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &assembler).unwrap();
 
     let encoded: Vec<Felt> = (&note_script).into();

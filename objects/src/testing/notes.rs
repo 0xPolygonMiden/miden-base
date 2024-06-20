@@ -17,7 +17,7 @@ use crate::{
     Felt, NoteError, Word, ZERO,
 };
 
-const DEFAULT_NOTE_CODE: &str = "\
+pub const DEFAULT_NOTE_CODE: &str = "\
 begin
 end
 ";
