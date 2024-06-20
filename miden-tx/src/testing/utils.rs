@@ -31,7 +31,7 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let initial_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,

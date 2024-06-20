@@ -72,9 +72,12 @@ fn test_transaction_prologue() {
         ",
     )
     .unwrap();
-    let (tx_script, _) =
-        TransactionScript::new(mock_tx_script_code, vec![], &TransactionKernel::assembler())
-            .unwrap();
+    let (tx_script, _) = TransactionScript::new(
+        mock_tx_script_code,
+        vec![],
+        &TransactionKernel::assembler().with_debug_mode(true),
+    )
+    .unwrap();
 
     let code = insert_prologue(code);
 
@@ -354,7 +357,7 @@ fn consumed_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
     let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardNew {
         account_id: acct_id.into(),
@@ -377,7 +380,7 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::FungibleFaucet {
@@ -405,7 +408,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::FungibleFaucet {
@@ -433,7 +436,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::NonFungibleFaucet {
@@ -462,7 +465,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::NonFungibleFaucet {
@@ -491,7 +494,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let code = "

@@ -232,7 +232,6 @@ fn test_get_item() {
             use.miden::account
             use.miden::kernels::tx::prologue
 
-
             begin
                 exec.prologue::prepare_transaction
 

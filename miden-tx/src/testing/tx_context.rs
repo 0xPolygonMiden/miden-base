@@ -1,6 +1,3 @@
-// TRANSACTION CONTEXT
-// ================================================================================================
-
 use alloc::vec::Vec;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
@@ -24,6 +21,9 @@ use miden_objects::{
 use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 
 use super::{executor::CodeExecutor, utils::create_test_chain, MockHost};
+
+// TRANSACTION CONTEXT
+// ================================================================================================
 
 pub struct TransactionContext {
     mock_chain: MockChain,
@@ -56,7 +56,7 @@ impl TransactionContext {
     }
 
     pub fn get_prepared_transaction(&self, code: &str) -> PreparedTransaction {
-        let assembler = TransactionKernel::assembler();
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
         let program = assembler.compile(code).unwrap();
         PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone())
     }

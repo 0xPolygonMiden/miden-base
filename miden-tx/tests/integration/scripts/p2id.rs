@@ -242,7 +242,7 @@ fn p2id_script_multiple_assets() {
 
 #[test]
 fn test_note_script_to_from_felt() {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &assembler).unwrap();
