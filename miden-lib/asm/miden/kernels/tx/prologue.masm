@@ -297,7 +297,7 @@ proc.validate_new_account
     # => []
 
     # Assert the initial vault is empty
-    # -----------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------
     # get the account vault root
     exec.memory::get_acct_vault_root
     # => [ACCT_VAULT_ROOT]
@@ -310,13 +310,13 @@ proc.validate_new_account
     # => []
 
     # Assert storage slot types are well formed
-    # -----------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------
     # validate storage slot types
     exec.validate_storage_slot_types
     # => []
 
     # Assert slot types reserved slot is correctly initialized
-    # -----------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------
     exec.account::get_slot_types_commitment_storage_slot exec.account::get_storage_slot_type_info
     # => [entry_arity, storage_type]
 
@@ -329,7 +329,7 @@ proc.validate_new_account
     drop drop
 
     # Assert faucet reserved slot is correctly initialized
-    # -----------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
     exec.account::get_id dup exec.account::is_faucet
     # => [is_faucet, acct_id]
@@ -379,7 +379,7 @@ proc.validate_new_account
     end
 
     # Assert the provided account seed satisfies the seed requirements
-    # -----------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------
     exec.account::validate_seed
     # => []
 end
@@ -549,11 +549,230 @@ proc.authenticate_note.2
     # => []
 end
 
-#! Reads data for the ith input note from the advice provider and stores it in memory at the
-#! appropriate memory address. This includes computing and storing the nullifier and the
-#! note hash.
+#! Copies the input note's details from the advice stack to memory and computes its nullifier.
 #!
-#! Stack: [idx]
+#! Stack: [note_ptr]
+#! Advice stack: [
+#!      SERIAL_NUMBER,
+#!      SCRIPT_ROOT,
+#!      INPUTS_HASH,
+#!      ASSETS_HASH,
+#! ]
+#! Output: [NULLIFIER]
+#!
+#! Where:
+#! - note_ptr, memory location for the input note.
+#! - SERIAL_NUMBER, note's serial.
+#! - SCRIPT_ROOT, note's script root.
+#! - INPUTS_HASH, sequential hash of the padded note's inputs.
+#! - ASSETS_HASH, sequential hash of the padded note's assets.
+#! - NULLIFIER result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_HASH || ASSETS_HASH)`.
+proc.process_input_note_details
+    exec.memory::get_consumed_note_core_ptr
+    # => [note_data_ptr]
+
+    # read note details (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
+    padw padw padw
+    adv_pipe hperm
+    adv_pipe hperm
+    exec.native::state_to_digest
+    # => [NULLIFIER, note_data_ptr + 4]
+
+    movup.4 drop
+    # => [NULLIFIER]
+end
+
+#! Copies the note's metadata and args from the advice stack to memory.
+#!
+#! Note: The note's metadata is validated when the note is authenticated, since
+#! the authentication is `hash(NOTE_ID || NOTE_METADATA)`. This is either done
+#! by the procedure `authenticate_note` for or delayed to another kernel.
+#!
+#! Stack: [note_ptr]
+#! Advice stack: [
+#!      METADATA,
+#!      ARGS,
+#! ]
+#! Output: []
+#!
+#! Where:
+#! - note_ptr, memory location for the input note.
+#! - METADATA, note's metadata.
+#! - ARGS, user arguments passed to the note.
+proc.process_note_metadata
+    padw adv_loadw dup.4 exec.memory::set_consumed_note_metadata
+    # => [note_ptr]
+
+    padw adv_loadw movup.4 exec.memory::set_consumed_note_args
+    # => []
+end
+
+#! Copies the note's assets the advice stack to memory and verifies the commitment.
+#!
+#! Stack: [note_ptr]
+#! Advice stack: [
+#!      assets_count,
+#!      ASSET_0, ..., ASSET_N,
+#! ]
+#! Output: []
+#!
+#! Where:
+#! - note_ptr, memory location for the input note.
+#! - assets_count, note's assets count.
+#! - ASSET_0, ..., ASSET_N, padded note's assets.
+proc.process_note_assets
+    # verify and save the assets count
+    # ---------------------------------------------------------------------------------------------
+
+    adv_push.1
+    # => [assets_count, note_ptr]
+
+    dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
+    # => [assets_count, note_ptr]
+
+    dup dup.2 exec.memory::set_consumed_note_num_assets
+    # => [assets_count, note_ptr]
+
+    # round up the number of assets, to the its padded length
+    dup push.1 u32and add
+    # => [rounded_num_assets, note_ptr]
+
+    # read the note's assets
+    # ---------------------------------------------------------------------------------------------
+
+    # Stack organization:
+    # - Top of the stack contains the hash state. The complete state is needed to extract the final
+    #   hash.
+    # - Followed by the assets_ptr, with the target address used to pipe data from the advice
+    #   provider.
+    # - Followed by a copy of the note_ptr for later use.
+    # - Followed by the loop variables, the current counter and rounded_num_assets, laid at this
+    #   depth because dup.15 is an efficient operation.
+
+    push.0 movup.2
+    # => [note_ptr, counter, rounded_num_assets]
+
+    dup exec.memory::get_consumed_note_assets_ptr
+    # => [assets_ptr, note_ptr, counter, rounded_num_assets]
+
+    padw padw padw
+    # => [PERM, PERM, PERM, assets_ptr, note_ptr, counter, rounded_num_assets]
+
+    # loop condition: counter != rounded_num_assets
+    dup.15 dup.15 neq
+    # => [should_loop, PERM, PERM, PERM, assets_ptr, note_ptr, counter, rounded_num_assets]
+
+    # loop and read assets from the advice provider
+    while.true
+        # read assets (ASSET_n, ASSET_n+1)
+        adv_pipe hperm
+        # => [PERM, PERM, PERM, assets_ptr+2, note_ptr, counter, rounded_num_assets]
+
+        # update counter
+        swapw.3 movup.2 add.2 movdn.2 swapw.3
+        # => [PERM, PERM, PERM, assets_ptr+2, note_ptr, counter+2, rounded_num_assets]
+
+        # loop condition: counter != rounded_num_assets
+        dup.15 dup.15 neq
+        # => [should_loop, PERM, PERM, PERM, assets_ptr+2, note_ptr, counter+2, rounded_num_assets]
+    end
+    # => [PERM, PERM, PERM, assets_ptr+n, note_ptr, counter+n, rounded_num_assets]
+
+    exec.native::state_to_digest
+    # => [ASSET_HASH_COMPUTED, assets_ptr+n, note_ptr, counter+n, rounded_num_assets]
+
+    swapw drop movdn.2 drop drop
+    # => [note_ptr, ASSET_HASH_COMPUTED]
+
+    # VERIFY: computed ASSET_HASH matches the provided hash
+    exec.memory::get_consumed_note_assets_hash
+    assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
+    # => []
+end
+
+#! Adds the assets of an input note to the input vault.
+#!
+#! Stack: [note_ptr]
+#! Output: []
+#!
+#! Where:
+#! - note_ptr, memory location for the input note.
+proc.add_input_note_assets_to_vault
+    # prepare the stack
+    # ---------------------------------------------------------------------------------------------
+
+    exec.memory::get_input_vault_root_ptr
+    # => [input_vault_root_ptr, note_ptr]
+
+    dup.1 exec.memory::get_consumed_note_assets_ptr
+    # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
+
+    dup movup.3 exec.memory::get_consumed_note_num_assets add swap
+    # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
+
+    # add input note's assets to input vault
+    # ---------------------------------------------------------------------------------------------
+
+    # loop condition: assets_start_ptr != assets_end_ptr
+    dup.1 dup.1 neq
+    # => [should_loop, assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
+
+    while.true
+        dup.2
+        # => [input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
+
+        padw dup.5 mem_loadw
+        # => [ASSET, input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
+
+        exec.asset_vault::add_asset dropw
+        # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
+
+        add.1
+        # => [assets_start_ptr+1, assets_end_ptr, input_vault_root_ptr]
+
+        # loop condition: assets_start_ptr != assets_end_ptr
+        dup.1 dup.1 neq
+        # => [should_loop, assets_start_ptr+1, assets_end_ptr, input_vault_root_ptr]
+    end
+
+    drop drop drop
+    # => []
+end
+
+#! Computes the inpute note's id.
+#!
+#! Stack: [note_ptr]
+#! Output: [NOTE_ID]
+#!
+#! Where:
+#! - note_ptr, memory location for the input note.
+#! - NOTE_ID, the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
+proc.compute_note_id
+    # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
+    dup exec.memory::get_consumed_note_serial_num padw hmerge
+    # => [SERIAL_HASH, note_ptr]
+
+    # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_HASH)
+    dup.4 exec.memory::get_consumed_note_script_root hmerge
+    # => [MERGE_SCRIPT, note_ptr]
+
+    # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_HASH)
+    dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
+    # => [RECIPIENT, note_ptr]
+
+    # compute NOTE_ID: hash(RECIPIENT || ASSET_HASH)
+    movup.4 exec.memory::get_consumed_note_assets_hash hmerge
+    # => [NOTE_ID]
+end
+
+#! Reads data for the input note from the advice provider and stores it in memory at the appropriate
+#! memory address.
+#!
+#! This procedures will also compute the note's nullifier. Store the note's nullifier, metadata,
+#! args, assets, id, and hash to memory. And return the hasher state in the stack so that the
+#! commitment can be extracted.
+#!
+#! Stack: [idx, HASHER_CAPACITY]
 #! Advice stack: [
 #!      SERIAL_NUMBER,
 #!      SCRIPT_ROOT,
@@ -564,14 +783,17 @@ end
 #!      assets_count,
 #!      ASSET_0, ..., ASSET_N,
 #!      is_authenticated,
-#!      block_num,
-#!      SUB_HASH,
-#!      NOTE_ROOT,
+#!      (
+#!          block_num,
+#!          SUB_HASH,
+#!          NOTE_ROOT,
+#!      )?
 #! ]
-#! Output: []
+#! Output: [PERM, PERM, PERM]
 #!
 #! Where:
-#! - idx is the index of the input note.
+#! - idx, the index of the input note.
+#! - HASHER_CAPACITY, state of the hasher capacity word, with the commitment to the previous notes.
 #! - SERIAL_NUMBER, note's serial.
 #! - SCRIPT_ROOT, note's script root.
 #! - INPUTS_HASH, sequential hash of the padded note's inputs.
@@ -581,173 +803,92 @@ end
 #! - assets_count, note's assets count.
 #! - ASSET_0, ..., ASSET_N, padded note's assets.
 #! - is_authenticated, boolean indicating if the note contains an authentication proof.
+#!
+#! Optional values, required if `is_authenticated` is true:
+#!
 #! - block_num, note's creation block number.
 #! - SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
+#!
 proc.process_input_note
     # note details
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.memory::get_consumed_note_ptr
-    # => [note_ptr, idx]
+    dup exec.memory::get_consumed_note_ptr dup
+    # => [note_ptr, note_ptr, idx, HASHER_CAPACITY]
 
-    dup exec.memory::get_consumed_note_core_ptr
-    # => [note_data_ptr, note_ptr, idx]
-
-    # read note details (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
-    padw padw padw
-    adv_pipe hperm
-    adv_pipe hperm
-    exec.native::state_to_digest
-    # => [NULLIFIER, note_data_ptr + 4, note_ptr, idx]
-
-    movup.4 drop
-    # => [NULLIFIER, note_ptr, idx]
+    exec.process_input_note_details
+    # => [NULLIFIER, note_ptr, idx, HASHER_CAPACITY]
 
     # save nullifier to memory
-    movup.5 exec.memory::get_consumed_note_nullifier_ptr
-    mem_storew dropw
-    # => [note_ptr]
+    movup.5 exec.memory::get_consumed_note_nullifier_ptr mem_storew
+    # => [NULLIFIER, note_ptr, HASHER_CAPACITY]
 
-    # metadata & args
+    # note metadata & args
     # ---------------------------------------------------------------------------------------------
 
-    padw adv_loadw dup.4 exec.memory::set_consumed_note_metadata
-    # => [note_ptr]
+    movup.4
+    # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    padw adv_loadw dup.4 exec.memory::set_consumed_note_args
-    # => [note_ptr]
+    dup exec.process_note_metadata
+    # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    # assets
+    # note assets
     # ---------------------------------------------------------------------------------------------
 
-    adv_push.1
-    # => [num_assets, note_ptr]
+    dup exec.process_note_assets
+    dup exec.add_input_note_assets_to_vault
+    # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
-    # => [num_assets, note_ptr]
-
-    dup dup.2 exec.memory::set_consumed_note_num_assets
-    # => [num_assets, note_ptr]
-
-    # round up the number of assets, to the its padded length
-    dup push.1 u32and add
-    # => [rounded_num_assets, note_ptr]
-
-    push.0
-    # => [counter, rounded_num_assets, note_ptr]
-
-    # prepare address and stack for reading assets
-    dup.2 exec.memory::get_consumed_note_assets_ptr padw padw padw
-    # => [PAD, PAD, PADW, assets_ptr, counter, rounded_num_assets, note_ptr]
-
-    # check if the number of assets is greater then 0
-    dup.14 dup.14 neq
-    # => [should_loop, PAD, PAD, PAD, assets_ptr, counter, rounded_num_assets, note_ptr]
-
-    # loop and read assets from the advice provider
-    while.true
-        # read assets from advice provider
-        adv_pipe hperm
-        # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
-
-        # check if we should loop again
-        movup.13 push.2 add dup movdn.14 dup.15 neq
-        # => [should_loop, PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
-    end
-    # => [PERM, PERM, PERM, assets_ptr, counter, rounded_num_assets, note_ptr]
-
-    exec.native::state_to_digest
-    # => [ASSET_HASH_COMPUTED, assets_ptr, counter, rounded_num_assets, note_ptr]
-
-    # clean and rearrange stack
-    swapw drop drop drop dup movdn.5
-    # => [note_ptr, ASSET_HASH_COMPUTED, note_ptr]
-
-    # get expected note vault from memory
-    exec.memory::get_consumed_note_assets_hash
-    # => [ASSET_HASH, ASSET_HASH_COMPUTED, note_ptr]
-
-    # assert that the computed hash matches the expected hash
-    assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
-    # => [note_ptr]
-
-    # add the note assets into the input vault
-    # ---------------------------------------------------------------------------------------------
-    # prepare stack for iteration over note assets
-    exec.memory::get_input_vault_root_ptr dup.1 exec.memory::get_consumed_note_assets_ptr
-    # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
-
-    # calculate assets end ptr
-    dup dup.3 exec.memory::get_consumed_note_num_assets add swap
-    # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-
-    # loop over assets and insert them into input vault
-
-    # assess if we should loop
-    dup.1 dup.1 neq
-    # => [should_loop, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-
-    while.true
-        # duplicate input_vault_root_ptr
-        dup.2
-        # => [input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-
-        # read the asset from memory
-        padw dup.5 mem_loadw
-        # => [ASSET, input_vault_root_ptr, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-
-        # insert asset into input vault
-        exec.asset_vault::add_asset dropw
-        # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-
-        # increment assets_start_ptr and asses if we should loop again
-        add.1 dup.1 dup.1 neq
-        # => [should_loop, assets_start_ptr, assets_end_ptr, input_vault_root_ptr, note_ptr]
-    end
-
-    # clean stack
-    drop drop drop
-
-    # authentication hash
+    # note id
     # ---------------------------------------------------------------------------------------------
 
-    # compute the serial hash: hash(SERIAL_NUMBER, EMPTY_WORD)
-    dup exec.memory::get_consumed_note_serial_num padw hmerge
-    # => [SERIAL_HASH, note_ptr]
+    dup exec.compute_note_id
+    # => [NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    # compute merge script hash: hash(hash(serial_num, EMPTY_WORD), script_hash)
-    dup.4 exec.memory::get_consumed_note_script_root hmerge
-    # => [MERGE_SCRIPT, note_ptr]
-
-    # compute recipient: hash(hash(hash(serial_num, EMPTY_WORD), script_hash), input_hash)
-    dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
-    # => [RECIPIENT, note_ptr]
-
-    # compute the note's id: hash(recipient, asset_hash)
-    dup.4 exec.memory::get_consumed_note_assets_hash hmerge
-    # => [NOTE_ID, note_ptr]
-
-    # store note id in memory and clear stack
+    # save note id to memory
     dup.4 exec.memory::set_consumed_note_id
-    # => [NOTE_ID]
+    # => [NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    # compute the authentication hash: hash(note_id, note_metadata)
-    movup.4 exec.memory::get_consumed_note_metadata hmerge
-    # => [AUTH_DIGEST]
+    # note authentication
+    # ---------------------------------------------------------------------------------------------
 
     adv_push.1
+    # => [authenticated, NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
+
     if.true
+        # if the note is authenticated
+        # -----------------------------------------------------------------------------------------
+
+        # compute AUTH_DIGEST: hash(NOTE_ID || NOTE_METADATA)
+        movup.4 exec.memory::get_consumed_note_metadata hmerge
+        # => [AUTH_DIGEST, NULLIFIER, HASHER_CAPACITY]
+
         exec.authenticate_note
+        # => [NULLIFIER, HASHER_CAPACITY]
+
+        padw
+        # => [EMPTY_WORD, NULLIFIER, HASHER_CAPACITY]
+
     else
-        dropw
+        # if the note authentication is delayed
+        # -----------------------------------------------------------------------------------------
+
+        movup.4 drop
+        # => [NOTE_ID, NULLIFIER, HASHER_CAPACITY]
     end
+    # => [EMPTY_WORD_OR_NOTEID, NULLIFIER, HASHER_CAPACITY]
+
+    # update the input note commitment
+    hperm
+    # => [PERM, PERM, PERM]
 end
 
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
-#! processed its hash and nullifier are computed. The transaction nullifier commitment is computed via
-#! a sequential hash of all (nullifier, EMPTY_WORD) pairs for all input notes.
+#! processed its hash and nullifier are computed. The transaction input notes commitment is
+#! computed via a sequential hash of all (nullifier, NOTEID_OR_EMPTY_WORD) pairs for all input
+#! notes.
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
@@ -757,101 +898,86 @@ end
 #! Where:
 #! - num_notes is the number of input notes.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - NOTE_DATA, input notes' details, for format see prologue::process_input_note.
+#! - NOTE_DATA, input notes' details, for format see `prologue::process_input_note`.
 proc.process_input_notes_data
     # get the number of input notes from the advice stack
     adv_push.1
-    # => [num_notes, ...]
+    # => [num_notes]
 
     # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
     dup
     exec.constants::get_max_num_consumed_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     u32lte assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
-    # => [num_notes, ...]
+    # => [num_notes]
 
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
         exec.memory::get_input_notes_commitment adv.push_mapval dropw
     end
-    # => [num_notes, ...]
+    # => [num_notes]
 
     # store the number of input notes into kernel memory
     dup exec.memory::set_total_num_consumed_notes
-    # => [num_notes, ...]
+    # => [num_notes]
 
     # loop over input notes and read data
     # ---------------------------------------------------------------------------------------------
 
-    # initialize counter of already processed notes
-    push.0
-    # => [num_processed_notes = 0, num_notes, ...]
+    # Stack organization:
+    # - On the top of the stack is the hasher state containing the input notes commitment. The
+    #   hasher state will be updated by `process_input_note`. After the loop the commitment is
+    #   extracted.
+    # - Below the hasher state in the stack is the current note index. This number is used for two
+    #   purposes:
+    #   1. Compute the input note's memory addresses, the index works as an offset.
+    #   2. Determine the loop condition. The loop below runs until all inpute notes have been
+    #      processed.
+    # - The num_notes is kept at position 13, because dup.13 is cheap.
+    # - The [idx, num_notes] pair is kept in a word boundary, so that its word can be swapped with a
+    #   cheap mov intructions to update the `idx` counter.
 
-    # check if the number of input notes is greater then 0. Conditional for the while loop.
-    dup.1 dup.1 neq
-    # => [has_more_notes, num_processed_notes, num_notes, ...]
+    push.0 padw padw padw
+    # => [PERM, PERM, PERM, idx, num_notes]
 
-    # loop and read note data from the advice provider
-    while.true
-        dup exec.process_input_note
-        # => [num_processed_notes, num_notes, ...]
-
-        # increment processed note counter and check if we should loop again
-        add.1 dup.1 dup.1 neq
-        # => [has_more_notes, num_processed_notes + 1, num_notes, ...]
-    end
-
-    # drop counter
-    drop
-    # => [num_notes, ...]
-
-    # compute nullifier commitment
-    # ---------------------------------------------------------------------------------------------
-
-    # initiate counter of notes processed for nullifier hashing
-    push.0
-    # => [num_processed_notes = 0, num_notes, ...]
-
-    # initialize the hasher's state
-    padw padw padw
-    # => [R1, R0, CAP, num_processed_notes, num_notes, ...]
-
-    # check if the number of input notes is greater then 0. Conditional for the while loop.
+    # loop condition: idx != num_notes
     dup.13 dup.13 neq
-    # => [has_more_notes, R1, R0, CAP, num_processed_notes, num_notes, ...]
+    # => [has_more_notes, PERM, PERM, PERM, idx, num_notes]
 
-    # compute the nullifier commitment from the advice stack data
     while.true
-        # hasher operates in overwrite mode, drop rate words
+        # the hasher operates in overwrite mode, so discard the rate words, and keep the capacity
         dropw dropw
+        # => [HASHER_CAPACITY, idx, num_notes]
 
-        # ingest next pair `(NULLIFIER, EMPTY_WORD)`
-        dup.4 exec.memory::get_consumed_note_nullifier padw hperm
-        # => [PERM, PERM, CAP, num_processed_notes, num_notes, ...]
+        # process the note
+        dup.4 exec.process_input_note
+        # => [PERM, PERM, PERM, idx, num_notes]
 
-        # increment processed note counter and check if we should loop again
-        movup.12 add.1 dup movdn.13 dup.14 neq
-        # => [has_more_notes, PERM, PERM, CAP, num_processed_notes + 1, num_notes, ...]
+        # update the idx counter
+        swapw.3 add.1 swapw.3
+        # => [PERM, PERM, PERM, idx+1, num_notes]
+
+        # loop condition: idx != num_notes
+        dup.13 dup.13 neq
+        # => [has_more_notes, PERM, PERM, PERM, idx+1, num_notes]
     end
 
-    # extract nullifier hash
     exec.native::state_to_digest
-    # => [INPUT_NOTES_COMMITMENT, num_processed_notes + 1, num_notes, ...]
+    # => [INPUT_NOTES_COMMITMENT, idx+1, num_notes]
 
-    # assert nullifier hash is what we would expect; when there are no input notes, the nullifier
-    # hash should be EMPTY_WORD because the while loop above was not entered and, thus, hperm
-    # instruction was not executed.
+    # assert the input notes and the commitment matches
     exec.memory::get_input_notes_commitment
     assert_eqw.err=ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH
-    # => [num_processed_notes + 1, num_notes, ...]
+    # => [idx+1, num_notes]
 
-    # clear stack
+    # set the current input note ptr to the address of the first input note
+    push.0
+    exec.memory::get_consumed_note_ptr
+    exec.memory::set_current_consumed_note_ptr
+    # => [idx+1, num_notes]
+
     drop drop
-    # => [...]
-
-    # set the current input note pointer to the first input note
-    push.0 exec.memory::get_consumed_note_ptr exec.memory::set_current_consumed_note_ptr
     # => [...]
 end
 
