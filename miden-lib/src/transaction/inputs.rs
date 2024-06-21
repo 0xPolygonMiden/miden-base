@@ -268,7 +268,7 @@ fn add_account_to_advice_inputs(
 ///     - The note's authentication path against its block's note tree.
 ///     - The note's input padded prefixed by its length.
 ///     - The note's asset padded.
-/// - And all notes details together under the nullifier commitment.
+/// - And all notes details together under the input notes' commitment.
 ///
 fn add_input_notes_to_advice_inputs(
     notes: &InputNotes<InputNote>,
@@ -295,7 +295,7 @@ fn add_input_notes_to_advice_inputs(
 
         inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
-        // Note: keep in sync with the process_input_node kernel procedure
+        // NOTE: keep in sync with the `prologue::process_input_node` kernel procedure
         note_data.extend(recipient.serial_num());
         note_data.extend(*recipient.script().hash());
         note_data.extend(*recipient.inputs().commitment());
@@ -336,6 +336,6 @@ fn add_input_notes_to_advice_inputs(
         }
     }
 
-    // NOTE: keep map in sync with the `process_input_notes_data` kernel procedure
+    // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
     inputs.extend_map([(notes.commitment(), note_data)]);
 }

@@ -302,10 +302,13 @@ fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest
     }
 
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
-    for note in notes {
-        elements.extend_from_slice(note.nullifier().as_elements());
-        elements
-            .extend_from_slice(&note.note_id().map_or(Word::default(), |note_id| note_id.into()));
+    for commitment_data in notes {
+        let nullifier = commitment_data.nullifier();
+        let zero_or_noteid =
+            &commitment_data.note_id().map_or(Word::default(), |note_id| note_id.into());
+
+        elements.extend_from_slice(nullifier.as_elements());
+        elements.extend_from_slice(zero_or_noteid);
     }
     Hasher::hash_elements(&elements)
 }
