@@ -886,8 +886,9 @@ end
 
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
-#! processed its hash and nullifier are computed. The transaction nullifier commitment is computed via
-#! a sequential hash of all (nullifier, NOTEID_OR_EMPTY_WORD) pairs for all input notes.
+#! processed its hash and nullifier are computed. The transaction input notes commitment is
+#! computed via a sequential hash of all (nullifier, NOTEID_OR_EMPTY_WORD) pairs for all input
+#! notes.
 #!
 #! Stack: []
 #! Advice stack: [num_notes],
