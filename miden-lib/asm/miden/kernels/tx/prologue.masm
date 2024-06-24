@@ -495,12 +495,12 @@ end
 #! - authenticate the note and its metadata in the note Merkle tree from the block the note was
 #!   created in.
 #!
-#! Operand stack: [AUTH_DIGEST]
+#! Operand stack: [NOTE_HASH]
 #! Advice stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
 #! Output: []
 #!
 #! Where:
-#! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
+#! - NOTE_HASH is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
 #! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
 #!   in. This is equivalent to the block number.
 #! - SUB_HASH, the block's sub_hash for which the note was created.
@@ -509,40 +509,40 @@ end
 proc.authenticate_note.2
     # load data required for MMR get operation
     exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [leaf_pos, chain_mmr_ptr, AUTH_DIGEST]
+    # => [leaf_pos, chain_mmr_ptr, NOTE_HASH]
 
     # get the chain MMR leaf associated with the block the note was created in
     exec.mmr::get
-    # => [MMR_LEAF, AUTH_DIGEST]
+    # => [MMR_LEAF, NOTE_HASH]
 
     # prepare the stack to read the sub hash and note root from the advice provider
     locaddr.0 padw padw padw
-    # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, AUTH_DIGEST]
+    # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, NOTE_HASH]
 
     # read the core hash and note root from the advice provider
     adv_pipe hperm
-    # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, AUTH_DIGEST]
+    # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, NOTE_HASH]
 
     # extract the digest and assert it matches MMR_LEAF
     dropw movup.8 drop movupw.2
     assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
-    # => [AUTH_DIGEST]
+    # => [NOTE_HASH]
 
     # load the note root from memory
     loc_loadw.1 swapw
-    # => [AUTH_DIGEST, NOTE_ROOT]
+    # => [NOTE_HASH, NOTE_ROOT]
 
     # load the index of the note
     adv_push.1 movdn.4
-    # => [AUTH_DIGEST, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, note_index, NOTE_ROOT]
 
     # get the depth of the note tree
     exec.constants::get_note_tree_depth movdn.4
-    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
 
     # verify the note hash
     mtree_verify
-    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
 
     # clean the stack
     dropw drop drop dropw
@@ -860,9 +860,9 @@ proc.process_input_note
         # if the note is authenticated
         # -----------------------------------------------------------------------------------------
 
-        # compute AUTH_DIGEST: hash(NOTE_ID || NOTE_METADATA)
+        # NOTE_HASH: `hash(NOTE_ID || NOTE_METADATA)`
         movup.4 exec.memory::get_consumed_note_metadata hmerge
-        # => [AUTH_DIGEST, NULLIFIER, HASHER_CAPACITY]
+        # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
 
         exec.authenticate_note
         # => [NULLIFIER, HASHER_CAPACITY]
