@@ -135,7 +135,9 @@ impl<T: Rng> AccountBuilder<T> {
         let inner_storage = self.storage_builder.build();
 
         for (key, value) in inner_storage.slots().leaves() {
-            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into() {
+            // Explicitly cast to `u64` to silence "type annotations needed" error.
+            // Using `as u64` makes the intended type clear and avoids type inference issues.
+            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX as u64 {
                 // don't copy the reserved key
                 storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
             }
