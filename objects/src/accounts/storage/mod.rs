@@ -231,6 +231,15 @@ impl AccountStorage {
         self.slots.get_node(item_index).expect("index is u8 - index within range")
     }
 
+    /// Returns a map item from the storage at the specified index.
+    ///
+    /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
+    pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
+        let storage_map = self.maps.get(&index).ok_or(AccountError::StorageMapNotFound(index))?;
+
+        Ok(storage_map.get_value(&Digest::from(key)))
+    }
+
     /// Returns a reference to the Sparse Merkle Tree that backs the storage slots.
     pub fn slots(&self) -> &SimpleSmt<STORAGE_TREE_DEPTH> {
         &self.slots
@@ -267,20 +276,16 @@ impl AccountStorage {
         // --- update storage maps --------------------------------------------
 
         for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-            // layout commitment slot cannot be updated
-            if slot_idx == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
-                return Err(AccountError::StorageSlotIsReserved(slot_idx));
-            }
-
-            // pick the right storage map and apply delta
             let storage_map =
                 self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
-            storage_map.apply_delta(map_delta)?;
+
+            let new_root = storage_map.apply_delta(map_delta)?;
+
+            let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
+            self.slots.insert(index, new_root.into());
         }
 
         // --- update storage slots -------------------------------------------
-        // this will also update roots of updated storage maps, and thus should be run after we
-        // update storage maps - otherwise the roots won't match
 
         for &slot_idx in delta.cleared_items.iter() {
             self.set_item(slot_idx, Word::default())?;
@@ -293,7 +298,10 @@ impl AccountStorage {
         Ok(())
     }
 
-    /// Sets an item from the storage at the specified index.
+    /// Updates the value of the storage slot at the specified index.
+    ///
+    /// This method should be used only to update simple value slots. For updating values
+    /// in storage maps, please see [AccountStorage::set_map_item()].
     ///
     /// # Errors
     /// Returns an error if:
@@ -317,6 +325,39 @@ impl AccountStorage {
                     });
                 }
             },
+            slot_type => Err(AccountError::StorageSlotMapOrArrayNotAllowed(index, slot_type))?,
+        }
+
+        // update the slot and return
+        let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
+        let slot_value = self.slots.insert(index, value);
+        Ok(slot_value)
+    }
+
+    /// Updates the value of a key-value pair of a storage map at the specified index.
+    ///
+    /// This method should be used only to update storage maps. For updating values
+    /// in storage slots, please see [AccountStorage::set_item()].
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The index specifies a reserved storage slot.
+    /// - The index is not a map slot.
+    /// - The update tries to set a slot of type value or array.
+    /// - The update has a value arity different from 0.
+    pub fn set_map_item(
+        &mut self,
+        index: u8,
+        key: Word,
+        value: Word,
+    ) -> Result<(Word, Word), AccountError> {
+        // layout commitment slot cannot be updated
+        if index == Self::SLOT_LAYOUT_COMMITMENT_INDEX {
+            return Err(AccountError::StorageSlotIsReserved(index));
+        }
+
+        // only map slots of basic arity can currently be updated
+        match self.layout[index as usize] {
             StorageSlotType::Map { value_arity } => {
                 if value_arity > 0 {
                     return Err(AccountError::StorageSlotInvalidValueArity {
@@ -325,20 +366,25 @@ impl AccountStorage {
                         actual: value_arity,
                     });
                 }
-
-                // make sure the value matches the root of the corresponding storage map
-                // TODO: we should remove handling of storage map updates from set_item();
-                // once this is done, these checks would not be necessary
-                let storage_map = self.maps.get(&index).expect("storage map not found");
-                assert_eq!(storage_map.root(), value.into());
             },
-            slot_type => Err(AccountError::StorageSlotArrayNotAllowed(index, slot_type))?,
+            slot_type => Err(AccountError::MapsUpdateToNonMapsSlot(index, slot_type))?,
         }
 
-        // update the slot and return
+        // get the correct map
+        let storage_map =
+            self.maps.get_mut(&index).ok_or(AccountError::StorageMapNotFound(index))?;
+
+        // get old map root to return
+        let old_map_root = storage_map.root();
+
+        // update the key-value pair in the map
+        let old_value = storage_map.insert(key.into(), value);
+
+        // update the root of the storage map in the corresponding storage slot
         let index = LeafIndex::new(index.into()).expect("index is u8 - index within range");
-        let slot_value = self.slots.insert(index, value);
-        Ok(slot_value)
+        self.slots.insert(index, storage_map.root().into());
+
+        Ok((old_map_root.into(), old_value))
     }
 }
 

@@ -2,6 +2,7 @@ use.std::collections::smt
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
+use.miden::kernels::tx::constants
 use.miden::kernels::tx::faucet
 use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
@@ -16,6 +17,9 @@ const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
 # Procedure can only be called from faucet accounts
 const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 
+# Getting a map item on a non-map slot
+const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
+
 # EVENTS
 # =================================================================================================
 
@@ -28,14 +32,6 @@ const.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT=131073
 const.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT=131074
 # Event emitted after an asset is removed from the account vault.
 const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
-
-# TYPES
-# =================================================================================================
-
-# Type of storage slot item in the account storage
-const.STORAGE_VALUE=0
-const.STORAGE_MAP=1
-const.STORAGE_ARRAY=2
 
 # AUTHENTICATION
 # =================================================================================================
@@ -208,7 +204,7 @@ export.get_account_map_item
     # => [slot_type, index, KEY, ...]
 
     # fails if slot_type is not 1 = map
-    push.STORAGE_MAP eq assert
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
 
     # fetch the account storage item, which is ROOT of the map
@@ -244,15 +240,7 @@ export.set_account_map_item.1
     exec.authenticate_account_origin
     # => [index, KEY, NEW_VALUE, ...]
 
-    # check if storage type is map
-    dup exec.account::get_storage_slot_type_info drop
-    # => [slot_type, index, KEY, NEW_VALUE, ...]
-
-    # fails if slot_type is not 1 = map
-    push.STORAGE_MAP eq assert
-    # => [index, KEY, NEW_VALUE, ...]
-
-    # stores index for later
+    # store index for later
     dup loc_store.0
     # => [index, KEY, NEW_VALUE, ...]
 
@@ -261,12 +249,8 @@ export.set_account_map_item.1
     # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
 
     # set the new map item
-    loc_load.0 exec.account::set_map_item swapw
-    # => [NEW_MAP_ROOT, OLD_MAP_VALUE, ...]
-
-    # set the root of the map in the respective account storage slot
-    loc_load.0 exec.account::set_item
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
+    loc_load.0 exec.account::set_map_item
+    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 
     # organize the stack for return (16 elements)
     movupw.2 dropw

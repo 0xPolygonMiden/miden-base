@@ -95,12 +95,6 @@ impl AccountStorageDelta {
             if index > &MAX_MUTABLE_STORAGE_SLOT_IDX {
                 return Err(AccountDeltaError::ImmutableStorageSlot(*index as usize));
             }
-            // for every storage map delta there should be one corresponding storage item update
-            if !self.updated_items.iter().any(|(idx, _)| idx == index) {
-                return Err(AccountDeltaError::StorageMapDeltaWithoutStorageItemChange(
-                    *index as usize,
-                ));
-            }
             if !storage_map_delta.is_empty() {
                 storage_map_delta.validate()?;
             }
