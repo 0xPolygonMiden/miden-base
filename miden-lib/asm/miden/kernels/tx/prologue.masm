@@ -526,7 +526,7 @@ proc.authenticate_note.2
     # extract the digest and assert it matches MMR_LEAF
     dropw movup.8 drop movupw.2
     assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
-    # => [NOTE_HASH]
+    # => [PERM, NOTE_HASH]
 
     # load the note root from memory
     loc_loadw.1 swapw
