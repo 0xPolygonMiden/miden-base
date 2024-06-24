@@ -22,6 +22,12 @@ const.ERR_ACCOUNT_SEED_DIGEST_MISMATCH=0x0002003E
 # Account pow is insufficient
 const.ERR_ACCOUNT_INVALID_POW=0x0002003F
 
+# Setting non-value item on a value slot
+const.ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT=0x00020047
+
+# Setting a map item on a non-map slot
+const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
+
 # CONSTANTS
 # =================================================================================================
 
@@ -344,7 +350,33 @@ export.get_item
     # => [VALUE]
 end
 
-#! Sets an item in the account storage. Panics if the index is out of bounds.
+#! Sets an item in the account storage. Doesn't emit any events.
+#!
+#! Stack: [index, NEW_VALUE]
+#! Output: [OLD_VALUE]
+#!
+#! - index is the index of the item to set.
+#! - NEW_VALUE is the value to set.
+#! - OLD_VALUE is the previous value of the item.
+#! - OLD_ROOT is the old storage root.
+#! - NEW_ROOT is the new storage root.
+proc.set_item_raw
+    # get the storage root
+    exec.memory::get_acct_storage_root
+    # => [OLD_ROOT, index, NEW_VALUE]
+
+    # set the item in storage
+    movup.4 push.STORAGE_TREE_DEPTH mtree_set
+    # => [OLD_VALUE, NEW_ROOT]
+
+    # set the new storage root
+    swapw exec.memory::set_acct_storage_root
+    # => [OLD_VALUE]
+end
+
+#! Sets an item in the account storage. Panics if 
+#! - the index is out of bounds
+#! - the slot type is not value
 #!
 #! Stack: [index, V']
 #! Output: [V]
@@ -357,21 +389,21 @@ export.set_item
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
+    # check if storage type is slot
+    dup exec.memory::get_acct_storage_slot_type_data u32split drop
+    # => [slot_type, index, V', 0, 0, 0]
+
+    # fails if slot_type is not 0 = value
+    exec.constants::get_storage_slot_type_value eq assert.err=ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT
+    # => [index, V', 0, 0, 0]
+
     # duplicate the index and the V' to be able to emit an event after an account storage item is
     # being updated
     movdn.4 dupw dup.8
     # => [index, V', V', index]
 
-    # get the storage root
-    exec.memory::get_acct_storage_root
-    # => [R, index, V', V', index]
-
-    # set the item in storage
-    movup.4 push.STORAGE_TREE_DEPTH mtree_set
-    # => [V, R', V', index]
-
-    # set the new storage root
-    swapw exec.memory::set_acct_storage_root
+    # set V' in the storage slot
+    exec.set_item_raw
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
@@ -379,7 +411,7 @@ export.set_item
     # => [V]
 end
 
-#! Sets an item in the specified account storage map. Panics if no map is found for ROOT.
+#! Sets an item in the specified account storage map.
 #!
 #! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
@@ -389,7 +421,23 @@ end
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
-export.set_map_item.2
+#!
+#! Panics if
+#! - the slot type is not map
+#! - no map is found for ROOT
+export.set_map_item.3
+    # store index for later
+    dup loc_store.0
+    # => [index, KEY, NEW_VALUE, ...]
+
+    # check if storage type is map
+    dup exec.memory::get_acct_storage_slot_type_data u32split drop
+    # => [slot_type, index, KEY, NEW_VALUE, OLD_ROOT]
+
+    # fails if slot_type is not 1 = map
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
+    # => [index, KEY, NEW_VALUE, OLD_ROOT]
+
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
@@ -403,8 +451,9 @@ export.set_map_item.2
     # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
+
     # store OLD_VALUE and NEW_ROOT until the end of the procedure
-    loc_storew.0 dropw loc_storew.1 dropw
+    loc_storew.1 dropw loc_storew.2 dropw
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
@@ -412,8 +461,12 @@ export.set_map_item.2
     # => [KEY, NEW_VALUE, ...]
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack
-    loc_loadw.1 swapw loc_loadw.0
-    # => [OLD_VALUE, NEW_ROOT]
+    loc_loadw.2 swapw loc_loadw.1 swapw
+    # => [NEW_ROOT, OLD_VALUE, ...]
+
+    # set the root of the map in the respective account storage slot
+    loc_load.0 exec.set_item_raw
+    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 end
 
 #! Verifies that the procedure root is part of the account code Merkle tree. Panics if the

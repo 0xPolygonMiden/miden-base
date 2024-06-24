@@ -404,10 +404,7 @@ mod tests {
         let final_nonce = Felt::new(2);
         let storage_delta = AccountStorageDeltaBuilder::new()
             .add_cleared_items([0])
-            .add_updated_items([
-                (1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
-                (2_u8, storage_map.root().into()),
-            ])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .add_updated_maps([(2_u8, updated_map)])
             .build()
             .unwrap();

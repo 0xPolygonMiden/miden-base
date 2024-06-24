@@ -303,7 +303,8 @@ fn executed_transaction_account_delta() {
 
     // storage delta
     // --------------------------------------------------------------------------------------------
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 2);
+    // We expect one updated item and one updated map
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
     assert_eq!(
         executed_transaction.account_delta().storage().updated_items[0].0,
         STORAGE_INDEX_0
