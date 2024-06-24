@@ -330,12 +330,7 @@ export.compute_inputs_hash_cdrop
         
         # if current value is the last value to drop (\"cycle\" number equals to the number of values 
         # to drop), push 1 instead of 0 to the stack
-        dup.12 eq.1
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.12 eq.1 swap
         # => [e_0, 0/1, e_1, e_2, e_3, d_0, d_1, d_2, d_3, A', drop_counter]
 
         # we need to drop first value anyway, since number of values is not divisible by 8
@@ -351,12 +346,7 @@ export.compute_inputs_hash_cdrop
         # prepare the second element of the E Word (e_1) for cdrop instruction
         # if current value is the last value to drop (\"cycle\" number equals to the number of values 
         # to drop), push 1 instead of 0 to the stack
-        dup.12 eq.2
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.12 eq.2 swap
         # => [e_1, 0/1, e_2, e_3, d_0, d_1, d_2, 0/1, d_3, A', drop_counter]
 
         # push latch variable onto the stack; this will be the control for the cdrop instruction
@@ -386,12 +376,7 @@ export.compute_inputs_hash_cdrop
         ### 2nd value ########################################################
 
         # repeat the above process but now compare drop_counter to 2
-        dup.13 eq.3
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.13 eq.3 swap
         movup.13 dup.14 eq.2 or
         dup movdn.14
         cdrop movdn.6
@@ -400,12 +385,7 @@ export.compute_inputs_hash_cdrop
         ### 3rd value ########################################################
 
         # repeat the above process but now compare drop_counter to 3
-        dup.13 eq.4
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.13 eq.4 swap
         movup.13 dup.14 eq.3 or
         dup movdn.14
         cdrop movdn.6
@@ -414,12 +394,7 @@ export.compute_inputs_hash_cdrop
         ### 4th value ########################################################
 
         # repeat the above process but now compare drop_counter to 4
-        dup.13 eq.5
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.13 eq.5 swap
         movup.13 dup.14 eq.4 or
         dup movdn.14
         cdrop movdn.6
@@ -428,12 +403,7 @@ export.compute_inputs_hash_cdrop
         ### 5th value ########################################################
 
         # repeat the above process but now compare drop_counter to 5
-        dup.13 eq.6
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.13 eq.6 swap
         movup.13 dup.14 eq.5 or
         dup movdn.14
         cdrop movdn.6
@@ -442,12 +412,7 @@ export.compute_inputs_hash_cdrop
         ### 6th value ########################################################
 
         # repeat the above process but now compare drop_counter to 6
-        dup.13 eq.7
-        if.true
-            push.1 swap
-        else
-            push.0 swap
-        end
+        dup.13 eq.7 swap
         movup.13 dup.14 eq.6 or
         cdrop movdn.6
         # => [0/1, e_1_or_0/1, e_2_or_0/1, e_3_or_0/1, d_0_or_0/1, d_1_or_0/1, d_2_or_0/1, d_3, A', drop_counter]
