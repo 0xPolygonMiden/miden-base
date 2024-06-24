@@ -352,26 +352,26 @@ end
 
 #! Sets an item in the account storage. Doesn't emit any events.
 #!
-#! Stack: [index, V']
-#! Output: [V]
+#! Stack: [index, NEW_VALUE]
+#! Output: [OLD_VALUE]
 #!
 #! - index is the index of the item to set.
-#! - V' is the value to set.
-#! - V is the previous value of the item.
-#! - R is th old storage root.
-#! - R' is the new storage root.
+#! - NEW_VALUE is the value to set.
+#! - OLD_VALUE is the previous value of the item.
+#! - OLD_ROOT is the old storage root.
+#! - NEW_ROOT is the new storage root.
 proc.set_item_raw
     # get the storage root
     exec.memory::get_acct_storage_root
-    # => [R, index, V']
+    # => [OLD_ROOT, index, NEW_VALUE]
 
     # set the item in storage
     movup.4 push.STORAGE_TREE_DEPTH mtree_set
-    # => [V, R']
+    # => [OLD_VALUE, NEW_ROOT]
 
     # set the new storage root
     swapw exec.memory::set_acct_storage_root
-    # => [V]
+    # => [OLD_VALUE]
 end
 
 #! Sets an item in the account storage. Panics if 
@@ -394,7 +394,7 @@ export.set_item
     # => [slot_type, index, V', 0, 0, 0]
 
     # fails if slot_type is not 0 = value
-    exec.constants::get_type_storage_value eq assert.err=ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT
+    exec.constants::get_storage_slot_type_value eq assert.err=ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT
     # => [index, V', 0, 0, 0]
 
     # duplicate the index and the V' to be able to emit an event after an account storage item is
@@ -411,9 +411,7 @@ export.set_item
     # => [V]
 end
 
-#! Sets an item in the specified account storage map. Panics if 
-#! - the slot type is not map
-#! - no map is found for ROOT
+#! Sets an item in the specified account storage map.
 #!
 #! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
@@ -423,6 +421,10 @@ end
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
+#!
+#! Panics if
+#! - the slot type is not map
+#! - no map is found for ROOT
 export.set_map_item.3
     # store index for later
     dup loc_store.0
@@ -433,7 +435,7 @@ export.set_map_item.3
     # => [slot_type, index, KEY, NEW_VALUE, OLD_ROOT]
 
     # fails if slot_type is not 1 = map
-    exec.constants::get_type_storage_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122

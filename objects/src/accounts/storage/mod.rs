@@ -374,10 +374,10 @@ impl AccountStorage {
         let storage_map =
             self.maps.get_mut(&index).ok_or(AccountError::StorageMapNotFound(index))?;
 
-        // get old values to return
+        // get old map root to return
         let old_map_root = storage_map.root();
 
-        // apply the delta
+        // update the key-value pair in the map
         let old_value = storage_map.insert(key.into(), value);
 
         // update the root of the storage map in the corresponding storage slot

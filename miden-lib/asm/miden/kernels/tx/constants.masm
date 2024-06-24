@@ -34,9 +34,9 @@ const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2147483648
 # =================================================================================================
 
 # Type of storage slot item in the account storage
-const.STORAGE_VALUE=0
-const.STORAGE_MAP=1
-const.STORAGE_ARRAY=2
+const.STORAGE_SLOT_TYPE_VALUE=0
+const.STORAGE_SLOT_TYPE_MAP=1
+const.STORAGE_SLOT_TYPE_ARRAY=2
 
 # PROCEDURES
 # =================================================================================================
@@ -151,8 +151,8 @@ end
 #! Output: [type_storage_value]
 #!
 #! - type_storage_value is the type of storage slot item in the account storage.
-export.get_type_storage_value
-    push.STORAGE_VALUE
+export.get_storage_slot_type_value
+    push.STORAGE_SLOT_TYPE_VALUE
 end
 
 #! Returns the type of storage slot map in the account storage.
@@ -161,8 +161,8 @@ end
 #! Output: [type_storage_map]
 #!
 #! - type_storage_map is the type of storage slot item in the account storage.
-export.get_type_storage_map
-    push.STORAGE_MAP
+export.get_storage_slot_type_map
+    push.STORAGE_SLOT_TYPE_MAP
 end
 
 #! Returns the type of storage slot array in the account storage.
@@ -171,6 +171,6 @@ end
 #! Output: [type_storage_array]
 #!
 #! - type_storage_array is the type of storage slot item in the account storage.
-export.get_type_storage_array
-    push.STORAGE_ARRAY
+export.get_storage_slot_type_array
+    push.STORAGE_SLOT_TYPE_ARRAY
 end

@@ -18,7 +18,7 @@ const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
 const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 
 # Getting a map item on a non-map slot
-const.ERR_SLOT_TYPE_NOT_MAP=0x00020049
+const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
 
 # EVENTS
 # =================================================================================================
@@ -204,7 +204,7 @@ export.get_account_map_item
     # => [slot_type, index, KEY, ...]
 
     # fails if slot_type is not 1 = map
-    exec.constants::get_type_storage_map eq assert.err=ERR_SLOT_TYPE_NOT_MAP
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
 
     # fetch the account storage item, which is ROOT of the map
