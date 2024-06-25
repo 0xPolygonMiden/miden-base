@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 
 use miden_lib::transaction::memory::{
     CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
@@ -10,25 +10,8 @@ use miden_objects::{
 };
 use vm_processor::ONE;
 
-use super::{build_module_path, output_notes_data_procedure, TX_KERNEL_DIR, ZERO};
+use super::{output_notes_data_procedure, ZERO};
 use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
-
-const EPILOGUE_FILE: &str = "epilogue.masm";
-
-/// Loads epilogue file and returns the complete code formatted as
-/// "{imports}{epilogue_code}{code}"`
-#[cfg(feature = "std")]
-fn insert_epilogue(imports: &str, code: &str) -> String {
-    let assembly_file = build_module_path(TX_KERNEL_DIR, EPILOGUE_FILE);
-    use std::fs::File;
-
-    let mut module = String::new();
-    std::io::Read::read_to_string(&mut File::open(assembly_file).unwrap(), &mut module).unwrap();
-    let complete_code = format!("{imports}{module}{code}");
-
-    // This hack is going around issue #686 on miden-vm
-    complete_code.replace("export", "proc")
-}
 
 #[test]
 fn test_epilogue() {
@@ -42,19 +25,25 @@ fn test_epilogue() {
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let code = insert_epilogue(
-        "use.miden::kernels::tx::prologue\n",
-        &format!(
-            "
-            {output_notes_data_procedure}
-            begin
-                exec.prologue::prepare_transaction
-                exec.create_mock_notes
-                push.1 exec.account::incr_nonce
-                exec.finalize_transaction
-            end
-            "
-        ),
+    let code = format!(
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::account
+        use.miden::kernels::tx::epilogue
+
+        {output_notes_data_procedure}
+
+        begin
+            exec.prologue::prepare_transaction
+
+            exec.create_mock_notes
+
+            push.1
+            exec.account::incr_nonce
+
+            exec.epilogue::finalize_transaction
+        end
+        "
     );
 
     let process = tx_context.execute_code(&code).unwrap();
@@ -106,18 +95,19 @@ fn test_compute_created_note_id() {
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     for (note, i) in tx_context.expected_output_notes().iter().zip(0u32..) {
-        let code = insert_epilogue(
-            "use.miden::kernels::tx::prologue\n",
-            &format!(
-                "
-                {output_notes_data_procedure}
-                begin
-                    exec.prologue::prepare_transaction
-                    exec.create_mock_notes
-                    exec.finalize_transaction
-                end
-                "
-            ),
+        let code = format!(
+            "
+            use.miden::kernels::tx::prologue
+            use.miden::kernels::tx::epilogue
+
+            {output_notes_data_procedure}
+
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                exec.epilogue::finalize_transaction
+            end
+            "
         );
 
         let process = tx_context.execute_code(&code).unwrap();
@@ -155,21 +145,22 @@ fn test_epilogue_asset_preservation_violation() {
         let output_notes_data_procedure =
             output_notes_data_procedure(tx_context.expected_output_notes());
 
-        let imports = "use.miden::kernels::tx::prologue\n";
-        let code = insert_epilogue(
-            imports,
-            &format!(
-                "
-                {output_notes_data_procedure}
-                begin
-                    exec.prologue::prepare_transaction
-                    exec.create_mock_notes
-                    push.1
-                    exec.account::incr_nonce
-                    exec.finalize_transaction
-                end
-                "
-            ),
+        let code = format!(
+            "
+            use.miden::kernels::tx::prologue
+            use.miden::kernels::tx::account
+            use.miden::kernels::tx::epilogue
+
+            {output_notes_data_procedure}
+
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                push.1
+                exec.account::incr_nonce
+                exec.epilogue::finalize_transaction
+            end
+            "
         );
 
         let process = tx_context.execute_code(&code);
@@ -189,28 +180,30 @@ fn test_epilogue_increment_nonce_success() {
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let code = insert_epilogue(
-        "use.miden::kernels::tx::prologue\n",
-        &format!(
-            "
-            {output_notes_data_procedure}
-            begin
-                exec.prologue::prepare_transaction
+    let code = format!(
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::account
+        use.miden::kernels::tx::epilogue
 
-                exec.create_mock_notes
+        {output_notes_data_procedure}
 
-                push.1.2.3.4
-                push.0
-                exec.account::set_item
-                dropw
+        begin
+            exec.prologue::prepare_transaction
 
-                push.1
-                exec.account::incr_nonce
+            exec.create_mock_notes
 
-                exec.finalize_transaction
-            end
-            "
-        ),
+            push.1.2.3.4
+            push.0
+            exec.account::set_item
+            dropw
+
+            push.1
+            exec.account::incr_nonce
+
+            exec.epilogue::finalize_transaction
+        end
+        "
     );
 
     let process = tx_context.execute_code(&code);
@@ -229,25 +222,27 @@ fn test_epilogue_increment_nonce_violation() {
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let code = insert_epilogue(
-        "use.miden::kernels::tx::prologue\n",
-        &format!(
-            "
-            {output_notes_data_procedure}
-            begin
-                exec.prologue::prepare_transaction
+    let code = format!(
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::account
+        use.miden::kernels::tx::epilogue
 
-                exec.create_mock_notes
+        {output_notes_data_procedure}
 
-                push.1.2.3.4
-                push.0
-                exec.account::set_item
-                dropw
+        begin
+            exec.prologue::prepare_transaction
 
-                exec.finalize_transaction
-            end
-            "
-        ),
+            exec.create_mock_notes
+
+            push.1.2.3.4
+            push.0
+            exec.account::set_item
+            dropw
+
+            exec.epilogue::finalize_transaction
+        end
+        "
     );
 
     let process = tx_context.execute_code(&code);
