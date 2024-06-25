@@ -233,6 +233,45 @@ impl TransactionContextBuilder {
         note
     }
 
+    fn input_note_with_one_output_note(
+        &mut self,
+        sender: AccountId,
+        assets: impl IntoIterator<Item = Asset>,
+        inputs: impl IntoIterator<Item = Felt>,
+        output: &Note,
+    ) -> Note {
+        let code = format!(
+            "
+            begin
+                # NOTE
+                # ---------------------------------------------------------------------------------
+                push.{recipient}
+                push.{PUBLIC_NOTE}
+                push.{aux}
+                push.{tag}
+                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+
+                push.{asset} movup.4
+                call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+                dropw dropw dropw
+            end
+            ",
+            PUBLIC_NOTE = NoteType::Public as u8,
+            recipient = prepare_word(&output.recipient().digest()),
+            aux = output.metadata().aux(),
+            tag = output.metadata().tag(),
+            asset = prepare_assets(output.assets())[0],
+        );
+
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+            .note_inputs(inputs)
+            .unwrap()
+            .add_assets(assets)
+            .code(code)
+            .build(&self.assembler)
+            .unwrap()
+    }
+
     fn input_note_with_two_output_notes(
         &mut self,
         sender: AccountId,
@@ -280,8 +319,6 @@ impl TransactionContextBuilder {
             asset1 = prepare_assets(output1.assets())[0],
         );
 
-        // XXX: should the two output notes total assets add to the input note total assets?
-
         NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
             .note_inputs(inputs)
             .unwrap()
@@ -322,26 +359,31 @@ impl TransactionContextBuilder {
             &output_notes[1],
             fungible_asset_1,
         );
-        let mut input_notes = input_mock_notes(&self.assembler, &output_notes, &mut self.rng);
+        let input_note2 = self.input_note_with_one_output_note(
+            sender,
+            [fungible_asset_2, fungible_asset_3],
+            [1u32.into()],
+            &output_notes[2],
+        );
+        let mut input_notes = input_mock_notes(&self.assembler, &mut self.rng);
 
         let consumed_note_5 = input_notes.pop().unwrap();
         let consumed_note_4 = input_notes.pop().unwrap();
         let consumed_note_3 = input_notes.pop().unwrap();
-        let consumed_note_2 = input_notes.pop().unwrap();
 
         let notes = match asset_preservation {
             AssetPreservationStatus::TooFewInput => vec![input_note1],
             AssetPreservationStatus::Preserved => {
-                vec![input_note1, consumed_note_2]
+                vec![input_note1, input_note2]
             },
             AssetPreservationStatus::PreservedWithAccountVaultDelta => {
-                vec![input_note1, consumed_note_2, consumed_note_5]
+                vec![input_note1, input_note2, consumed_note_5]
             },
             AssetPreservationStatus::TooManyFungibleInput => {
-                vec![input_note1, consumed_note_2, consumed_note_3]
+                vec![input_note1, input_note2, consumed_note_3]
             },
             AssetPreservationStatus::TooManyNonFungibleInput => {
-                vec![input_note1, consumed_note_2, consumed_note_4]
+                vec![input_note1, input_note2, consumed_note_4]
             },
         };
 
@@ -375,11 +417,7 @@ impl TransactionContextBuilder {
     }
 }
 
-fn input_mock_notes(
-    assembler: &Assembler,
-    output_notes: &[Note],
-    rng: &mut ChaCha20Rng,
-) -> Vec<Note> {
+fn input_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> {
     // ACCOUNT IDS
     // --------------------------------------------------------------------------------------------
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -398,38 +436,6 @@ fn input_mock_notes(
 
     // NOTES
     // --------------------------------------------------------------------------------------------
-
-    let note_2_script_src = format!(
-        "
-        begin
-            # create note 2
-            push.{recipient}
-            push.{PUBLIC_NOTE}
-            push.{aux}
-            push.{tag}
-            # MAST root of the `create_note` mock account procedure
-            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
-
-            push.{asset} movup.4
-            call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            dropw dropw dropw
-        end
-        ",
-        PUBLIC_NOTE = NoteType::Public as u8,
-        recipient = prepare_word(&output_notes[2].recipient().digest()),
-        aux = output_notes[2].metadata().aux(),
-        tag = output_notes[2].metadata().tag(),
-        asset = prepare_assets(output_notes[2].assets())[0],
-    );
-
-    let consumed_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
-        .note_inputs([2u32.into()])
-        .unwrap()
-        .add_assets([fungible_asset_2])
-        .add_assets([fungible_asset_3])
-        .code(note_2_script_src)
-        .build(assembler)
-        .unwrap();
 
     let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
@@ -488,5 +494,5 @@ fn input_mock_notes(
         .build(assembler)
         .unwrap();
 
-    vec![consumed_note_2, consumed_note_3, consumed_note_4, consumed_note_5]
+    vec![consumed_note_3, consumed_note_4, consumed_note_5]
 }
