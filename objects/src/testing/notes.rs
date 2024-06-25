@@ -64,8 +64,8 @@ impl NoteBuilder {
         Ok(self)
     }
 
-    pub fn add_asset(mut self, asset: Asset) -> Self {
-        self.assets.push(asset);
+    pub fn add_assets(mut self, assets: impl IntoIterator<Item = Asset>) -> Self {
+        self.assets.extend(assets);
         self
     }
 
