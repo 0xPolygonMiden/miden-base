@@ -507,26 +507,35 @@ end
 #! - NOTE_ROOT, the merkle root of the note's tree.
 #! - note_index is the index of the note in the note Merkle tree.
 proc.authenticate_note.2
-    # load data required for MMR get operation
+    # Load the BLOCK_HASH from the CHAIN_MMR
+    # ---------------------------------------------------------------------------------------------
+
     exec.memory::get_chain_mmr_ptr adv_push.1
     # => [leaf_pos, chain_mmr_ptr, NOTE_HASH]
 
-    # get the chain MMR leaf associated with the block the note was created in
     exec.mmr::get
-    # => [MMR_LEAF, NOTE_HASH]
+    # => [BLOCK_HASH, NOTE_HASH]
 
-    # prepare the stack to read the sub hash and note root from the advice provider
-    locaddr.0 padw padw padw
-    # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, NOTE_HASH]
+    locaddr.0
+    # => [mem_ptr, BLOCK_HASH, NOTE_HASH]
 
-    # read the core hash and note root from the advice provider
+    # Load and authenticate the NOTE_ROOT
+    # ---------------------------------------------------------------------------------------------
+
+    # read data from advice and compute hash(BLOCK_SUB_HASH || NOTE_ROOT)
+    padw padw padw
     adv_pipe hperm
-    # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, NOTE_HASH]
+    # => [PERM, COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
 
-    # extract the digest and assert it matches MMR_LEAF
-    dropw movup.8 drop movupw.2
-    assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
+    dropw
+    # => [COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+
+    # assert the computed block hash matches
+    movup.8 drop movupw.2 assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
     # => [PERM, NOTE_HASH]
+
+    # Authenticate the NOTE_HASH
+    # ---------------------------------------------------------------------------------------------
 
     # load the note root from memory
     loc_loadw.1 swapw
@@ -544,7 +553,6 @@ proc.authenticate_note.2
     mtree_verify
     # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
 
-    # clean the stack
     dropw drop drop dropw
     # => []
 end
