@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use miden_lib::transaction::memory;
 #[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
@@ -10,16 +8,11 @@ use miden_objects::{
         account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account,
         AccountCode, AccountDelta,
     },
-    notes::Note,
-    testing::{
-        block::{MockChain, MockChainBuilder},
-        notes::AssetPreservationStatus,
-    },
+    testing::notes::AssetPreservationStatus,
     transaction::{ExecutedTransaction, OutputNote, OutputNotes, TransactionOutputs},
-    vm::CodeBlock,
     FieldElement,
 };
-use vm_processor::{AdviceInputs, Operation, Program, ZERO};
+use vm_processor::AdviceInputs;
 
 use super::TransactionContextBuilder;
 
@@ -31,25 +24,27 @@ pub fn consumed_note_data_ptr(note_idx: u32) -> memory::MemoryAddress {
 }
 
 pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> ExecutedTransaction {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let initial_account = Account::mock(
+    // use empty main program to produce the mock transaction
+    let program = assembler.compile("begin push.0 drop end").unwrap();
+
+    // simulate a transaction that modifies the account state, and increases the nonce by one
+    let initial_nonce = Felt::ONE;
+    let final_nonce = initial_nonce + Felt::ONE;
+
+    let tx_context = TransactionContextBuilder::with_standard_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        Felt::ONE,
-        AccountCode::mock_wallet(&assembler),
-    );
+        initial_nonce,
+    )
+    .with_mock_notes(asset_preservation)
+    .build();
 
-    // nonce incremented by 1
     let final_account = Account::mock(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        Felt::new(2),
-        initial_account.code().clone(),
+        final_nonce,
+        AccountCode::mock_wallet(&assembler),
     );
-
-    let tx_context = TransactionContextBuilder::new(initial_account)
-        .assembler(assembler)
-        .with_mock_notes(asset_preservation)
-        .build();
 
     let output_notes = tx_context
         .expected_output_notes()
@@ -63,7 +58,6 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         output_notes: OutputNotes::new(output_notes).unwrap(),
     };
 
-    let program = build_dummy_tx_program();
     let account_delta = AccountDelta::default();
     let advice_witness = AdviceInputs::default();
 
@@ -75,19 +69,4 @@ pub fn mock_executed_tx(asset_preservation: AssetPreservationStatus) -> Executed
         tx_context.tx_args().clone(),
         advice_witness,
     )
-}
-
-pub fn create_test_chain(created_notes: Vec<Note>) -> MockChain {
-    let mut mock_chain = MockChainBuilder::new().notes(created_notes).build();
-    mock_chain.seal_block();
-    mock_chain.seal_block();
-    mock_chain.seal_block();
-
-    mock_chain
-}
-
-pub fn build_dummy_tx_program() -> Program {
-    let operations = vec![Operation::Push(ZERO), Operation::Drop];
-    let span = CodeBlock::new_span(operations);
-    Program::new(span)
 }

@@ -8,23 +8,27 @@ use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assets::Asset,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::{
-        account::MockAccountType, constants::NON_FUNGIBLE_ASSET_DATA_2,
-        notes::AssetPreservationStatus, prepare_word,
-    },
+    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, notes::AssetPreservationStatus, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
-use vm_processor::Process;
 
-use super::{ContextId, Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
-use crate::testing::{executor::CodeExecutor, MockHost, TransactionContextBuilder};
+use super::{Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
+use crate::{
+    testing::{executor::CodeExecutor, TransactionContextBuilder},
+    tests::kernel_tests::read_root_mem_value,
+};
+
 #[test]
 fn test_create_note() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -33,20 +37,20 @@ fn test_create_note() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -55,7 +59,7 @@ fn test_create_note() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of created notes must increment by 1",
     );
@@ -81,27 +85,30 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -119,21 +126,21 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::constants
-    use.miden::kernels::tx::memory
-    use.miden::tx
+        use.miden::kernels::tx::constants
+        use.miden::kernels::tx::memory
+        use.miden::tx
 
-    begin
-        exec.constants::get_max_num_created_notes
-        exec.memory::set_num_created_notes
+        begin
+            exec.constants::get_max_num_created_notes
+            exec.memory::set_num_created_notes
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
 
-        exec.tx::create_note
-    end
-    ",
+            exec.tx::create_note
+        end
+        ",
         recipient = prepare_word(&recipient),
         tag = tag,
         PUBLIC_NOTE = NoteType::Public as u8,
@@ -147,9 +154,12 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     // extract input note data
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
@@ -197,48 +207,48 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        # => [BH, acct_id, IAH, NC]
-        exec.prologue::prepare_transaction
-        # => []
+        begin
+            # => [BH, acct_id, IAH, NC]
+            exec.prologue::prepare_transaction
+            # => []
 
-        # create output note 1
-        push.{recipient_1}
-        push.{PUBLIC_NOTE}
-        push.{aux_1}
-        push.{tag_1}
-        exec.tx::create_note
-        # => [note_idx]
+            # create output note 1
+            push.{recipient_1}
+            push.{PUBLIC_NOTE}
+            push.{aux_1}
+            push.{tag_1}
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset_1} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset_1} movup.4
+            exec.tx::add_asset_to_note
 
 
-        drop
-        # => []
+            drop
+            # => []
 
-        # create output note 2
-        push.{recipient_2}
-        push.{PUBLIC_NOTE}
-        push.{aux_2}
-        push.{tag_2}
-        exec.tx::create_note
-        # => [note_idx]
+            # create output note 2
+            push.{recipient_2}
+            push.{PUBLIC_NOTE}
+            push.{aux_2}
+            push.{tag_2}
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset_2} movup.4
+            exec.tx::add_asset_to_note
 
-        drop
-        # => []
+            drop
+            # => []
 
-        # compute the output notes hash
-        exec.tx::get_output_notes_hash
-        # => [COMM]
-    end
-    ",
+            # compute the output notes hash
+            exec.tx::get_output_notes_hash
+            # => [COMM]
+        end
+        ",
         PUBLIC_NOTE = NoteType::Public as u8,
         recipient_1 = prepare_word(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
@@ -257,24 +267,26 @@ fn test_get_output_notes_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR),
-        Some([Felt::new(2), ZERO, ZERO, ZERO]),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        [Felt::new(2), ZERO, ZERO, ZERO],
         "The test creates two notes",
     );
     assert_eq!(
-        process.get_mem_value(
-            ContextId::root(),
+        NoteMetadata::try_from(read_root_mem_value(
+            &process,
             CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
-        ),
-        Some(output_note_1.metadata().into()),
+        ))
+        .unwrap(),
+        *output_note_1.metadata(),
         "Validate the output note 1 metadata",
     );
     assert_eq!(
-        process.get_mem_value(
-            ContextId::root(),
+        NoteMetadata::try_from(read_root_mem_value(
+            &process,
             CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
-        ),
-        Some(output_note_2.metadata().into()),
+        ))
+        .unwrap(),
+        *output_note_2.metadata(),
         "Validate the output note 1 metadata",
     );
 
@@ -283,8 +295,11 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -293,26 +308,26 @@ fn test_create_note_and_add_asset() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
-    use.miden::kernels::tx::memory
+        use.miden::kernels::tx::prologue
+        use.miden::tx
+        use.miden::kernels::tx::memory
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset} movup.4
-        exec.tx::add_asset_to_note
+            push.{asset} movup.4
+            exec.tx::add_asset_to_note
 
-    end
-    ",
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -336,8 +351,11 @@ fn test_create_note_and_add_asset() {
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -355,37 +373,37 @@ fn test_create_note_and_add_multiple_assets() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{asset} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{asset_2} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset_2} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{asset_3} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
+            push.{asset_3} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
 
-        push.{nft} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
-    end
-    ",
+            push.{nft} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -424,8 +442,11 @@ fn test_create_note_and_add_multiple_assets() {
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -435,25 +456,25 @@ fn test_create_note_and_add_same_nft_twice() {
 
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
+        use.miden::kernels::tx::prologue
+        use.miden::tx
 
-    begin
-        exec.prologue::prepare_transaction
+        begin
+            exec.prologue::prepare_transaction
 
-        push.{recipient}
-        push.{PUBLIC_NOTE}
-        push.{tag}
-        push.{nft}
+            push.{recipient}
+            push.{PUBLIC_NOTE}
+            push.{tag}
+            push.{nft}
 
-        exec.tx::create_note
-        # => [note_idx]
+            exec.tx::create_note
+            # => [note_idx]
 
-        push.{nft} movup.4
-        exec.tx::add_asset_to_note
-        # => [note_idx]
-    end
-    ",
+            push.{nft} movup.4
+            exec.tx::add_asset_to_note
+            # => [note_idx]
+        end
+        ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
@@ -470,9 +491,12 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
 
@@ -487,24 +511,24 @@ fn test_build_recipient_hash() {
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
-    use.miden::kernels::tx::prologue
-    use.miden::tx
-    begin
-        exec.prologue::prepare_transaction
-        # input
-        push.{input_hash}
-        # SCRIPT_HASH
-        push.{script_hash}
-        # SERIAL_NUM
-        push.{output_serial_no}
-        exec.tx::build_recipient_hash
+        use.miden::kernels::tx::prologue
+        use.miden::tx
+        begin
+            exec.prologue::prepare_transaction
+            # input
+            push.{input_hash}
+            # SCRIPT_HASH
+            push.{script_hash}
+            # SERIAL_NUM
+            push.{output_serial_no}
+            exec.tx::build_recipient_hash
 
-        push.{PUBLIC_NOTE}
-        push.{aux}
-        push.{tag}
-        exec.tx::create_note
-    end
-    ",
+            push.{PUBLIC_NOTE}
+            push.{aux}
+            push.{tag}
+            exec.tx::create_note
+        end
+        ",
         input_hash = input_hash,
         script_hash = input_note_1.script().clone().hash(),
         output_serial_no = prepare_word(&output_serial_no),
@@ -516,7 +540,7 @@ fn test_build_recipient_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), NUM_CREATED_NOTES_PTR).unwrap(),
+        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
         "number of created notes must increment by 1",
     );
@@ -528,11 +552,4 @@ fn test_build_recipient_hash() {
         recipient_digest.as_slice(),
         "recipient hash not correct",
     );
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
-    process.get_mem_value(ContextId::root(), addr).unwrap()
 }

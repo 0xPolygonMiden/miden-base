@@ -4,23 +4,25 @@ use miden_objects::{
     },
     assets::Asset,
     testing::{
-        account::MockAccountType,
-        constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
+        constants::{
+            FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
+        },
         prepare_word,
     },
 };
+use vm_processor::ProcessState;
 
-use super::{Felt, Hasher, ProcessState, Word, ONE};
+use super::{Felt, Hasher, Word, ONE};
 use crate::testing::TransactionContextBuilder;
 
 #[test]
 fn test_create_fungible_asset_succeeds() {
-    let acc_type = MockAccountType::FungibleFaucet {
-        acct_id: ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
+    )
+    .build();
 
     let code = format!(
         "
@@ -28,13 +30,10 @@ fn test_create_fungible_asset_succeeds() {
         use.miden::asset
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
-            # push asset amount onto stack
-            push.{FUNGIBLE_ASSET_AMOUNT}
-
             # create fungible asset
+            push.{FUNGIBLE_ASSET_AMOUNT}
             exec.asset::create_fungible_asset
         end
         "
@@ -55,12 +54,12 @@ fn test_create_fungible_asset_succeeds() {
 
 #[test]
 fn test_create_non_fungible_asset_succeeds() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
@@ -71,7 +70,6 @@ fn test_create_non_fungible_asset_succeeds() {
         use.miden::asset
 
         begin
-            # prepare the transaction
             exec.prologue::prepare_transaction
 
             # push non-fungible asset data hash onto the stack
@@ -89,12 +87,12 @@ fn test_create_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_validate_non_fungible_asset() {
-    let acc_type = MockAccountType::NonFungibleFaucet {
-        acct_id: ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        nonce: ONE,
-        empty_reserved_slot: false,
-    };
-    let tx_context = TransactionContextBuilder::with_acc_type(acc_type).build();
+    let tx_context = TransactionContextBuilder::with_non_fungible_faucet(
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ONE,
+        false,
+    )
+    .build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);

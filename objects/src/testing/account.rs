@@ -13,9 +13,7 @@ use vm_core::FieldElement;
 use super::{
     account_code::DEFAULT_ACCOUNT_CODE,
     account_id::{str_to_account_code, AccountIdBuilder},
-    constants::{
-        self, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE, NON_FUNGIBLE_ASSET_DATA,
-    },
+    constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
 };
 use crate::{
@@ -178,7 +176,7 @@ impl std::error::Error for AccountBuilderError {}
 // ================================================================================================
 
 impl Account {
-    /// Creates a mock account with a defined number of assets and storage  
+    /// Creates a mock account with a defined number of assets and storage
     pub fn mock(account_id: u64, nonce: Felt, account_code: AccountCode) -> Self {
         let account_storage = AccountStorage::mock();
 
@@ -195,14 +193,9 @@ impl Account {
     pub fn mock_fungible_faucet(
         account_id: u64,
         nonce: Felt,
-        empty_reserved_slot: bool,
+        initial_balance: Felt,
         assembler: &Assembler,
     ) -> Self {
-        let initial_balance = if empty_reserved_slot {
-            ZERO
-        } else {
-            Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE)
-        };
         let account_storage = AccountStorage::new(
             vec![SlotItem {
                 index: FAUCET_STORAGE_DATA_SLOT,
@@ -280,22 +273,4 @@ impl AssetVault {
         AssetVault::new(&[fungible_asset, fungible_asset_1, fungible_asset_2, non_fungible_asset])
             .unwrap()
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum MockAccountType {
-    StandardNew {
-        account_id: u64,
-    },
-    StandardExisting,
-    FungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
-    NonFungibleFaucet {
-        acct_id: u64,
-        nonce: Felt,
-        empty_reserved_slot: bool,
-    },
 }

@@ -12,7 +12,7 @@ use miden_objects::{
     vm::StackInputs,
     Felt, Hasher, Word, ONE, ZERO,
 };
-use vm_processor::{ContextId, MemAdviceProvider, Process, ProcessState};
+use vm_processor::{ContextId, Host, MemAdviceProvider, Process, ProcessState};
 
 const TX_KERNEL_DIR: &str = "miden/kernels/tx";
 
@@ -27,6 +27,10 @@ mod test_tx;
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
+    process.get_mem_value(ContextId::root(), addr).unwrap()
+}
 
 fn build_module_path(dir: &str, file: &str) -> PathBuf {
     [env!("CARGO_MANIFEST_DIR"), "..", "miden-lib", "asm", dir, file]
@@ -64,53 +68,53 @@ pub fn output_notes_data_procedure(notes: &OutputNotes) -> String {
 
     format!(
         "
-    proc.create_mock_notes
-        # remove padding from prologue
-        dropw dropw dropw dropw
+        proc.create_mock_notes
+            # remove padding from prologue
+            dropw dropw dropw dropw
 
-        # populate note 0
-        push.{note_0_metadata}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add mem_storew dropw
+            # populate note 0
+            push.{note_0_metadata}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add mem_storew dropw
 
-        push.{note_0_recipient}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
+            push.{note_0_recipient}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
 
-        push.{note_0_num_assets}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add mem_store
+            push.{note_0_num_assets}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add mem_store
 
-        push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add mem_storew dropw
+            push.{}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add mem_storew dropw
 
-        # populate note 1
-        push.{note_1_metadata}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
+            # populate note 1
+            push.{note_1_metadata}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
 
-        push.{note_1_recipient}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
+            push.{note_1_recipient}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
-        push.{note_1_num_assets}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+            push.{note_1_num_assets}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
 
-        push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
+            push.{}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
-        # populate note 2
-        push.{note_2_metadata}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
+            # populate note 2
+            push.{note_2_metadata}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
 
-        push.{note_2_recipient}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
+            push.{note_2_recipient}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
-        push.{note_2_num_assets}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+            push.{note_2_num_assets}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
 
-        push.{}
-        push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
+            push.{}
+            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
-        # set num created notes
-        push.{}.{NUM_CREATED_NOTES_PTR} mem_store
-    end
-    ",
+            # set num created notes
+            push.{}.{NUM_CREATED_NOTES_PTR} mem_store
+        end
+        ",
         note_0_assets[0],
         note_1_assets[0],
         note_2_assets[0],

@@ -17,19 +17,25 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
+    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     assembly::ProgramAst,
     testing::{
-        account::MockAccountType,
+        constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         notes::AssetPreservationStatus,
         storage::{generate_account_seed, AccountSeedType},
     },
-    transaction::{PreparedTransaction, TransactionArgs, TransactionScript},
+    transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
-use vm_processor::AdviceInputs;
+use vm_processor::{AdviceInputs, ONE};
 
-use super::{build_module_path, ContextId, Felt, Process, ProcessState, Word, TX_KERNEL_DIR, ZERO};
-use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
+use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
+use crate::{
+    testing::{
+        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+    },
+    tests::kernel_tests::read_root_mem_value,
+};
 
 const PROLOGUE_FILE: &str = "prologue.masm";
 
@@ -53,10 +59,12 @@ fn insert_prologue(code: &str) -> String {
 
 #[test]
 fn test_transaction_prologue() {
-    let mut tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-            .with_mock_notes(AssetPreservationStatus::Preserved)
-            .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let code = "
         begin
@@ -69,12 +77,15 @@ fn test_transaction_prologue() {
         begin
             push.1.2.3.4 dropw
         end
-    ",
+        ",
     )
     .unwrap();
-    let (tx_script, _) =
-        TransactionScript::new(mock_tx_script_code, vec![], &TransactionKernel::assembler())
-            .unwrap();
+    let (tx_script, _) = TransactionScript::new(
+        mock_tx_script_code,
+        vec![],
+        &TransactionKernel::assembler().with_debug_mode(true),
+    )
+    .unwrap();
 
     let code = insert_prologue(code);
 
@@ -95,20 +106,19 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let transaction = tx_context.get_prepared_transaction(&code);
-    let process = tx_context.execute_transaction(&transaction).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
-    global_input_memory_assertions(&process, &transaction);
-    block_data_memory_assertions(&process, &transaction);
-    chain_mmr_memory_assertions(&process, &transaction);
-    account_data_memory_assertions(&process, &transaction);
-    consumed_notes_memory_assertions(&process, &transaction, &note_args);
+    global_input_memory_assertions(&process, &tx_context);
+    block_data_memory_assertions(&process, &tx_context);
+    chain_mmr_memory_assertions(&process, &tx_context);
+    account_data_memory_assertions(&process, &tx_context);
+    consumed_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
-fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
-        inputs.block_header().hash().as_elements(),
+        inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
@@ -143,75 +153,75 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
     );
 }
 
-fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
-        inputs.block_header().hash().as_elements(),
+        inputs.tx_inputs().block_header().hash().as_elements(),
         "The block hash should be stored at the BLK_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, PREV_BLOCK_HASH_PTR),
-        inputs.block_header().prev_hash().as_elements(),
+        inputs.tx_inputs().block_header().prev_hash().as_elements(),
         "The previous block hash should be stored at the PREV_BLK_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, CHAIN_ROOT_PTR),
-        inputs.block_header().chain_root().as_elements(),
+        inputs.tx_inputs().block_header().chain_root().as_elements(),
         "The chain root should be stored at the CHAIN_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, ACCT_DB_ROOT_PTR),
-        inputs.block_header().account_root().as_elements(),
+        inputs.tx_inputs().block_header().account_root().as_elements(),
         "The account db root should be stored at the ACCT_DB_ROOT_PRT"
     );
 
     assert_eq!(
         read_root_mem_value(process, NULLIFIER_DB_ROOT_PTR),
-        inputs.block_header().nullifier_root().as_elements(),
+        inputs.tx_inputs().block_header().nullifier_root().as_elements(),
         "The nullifier db root should be stored at the NULLIFIER_DB_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, TX_HASH_PTR),
-        inputs.block_header().tx_hash().as_elements(),
+        inputs.tx_inputs().block_header().tx_hash().as_elements(),
         "The TX hash should be stored at the TX_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, NOTE_ROOT_PTR),
-        inputs.block_header().note_root().as_elements(),
+        inputs.tx_inputs().block_header().note_root().as_elements(),
         "The note root should be stored at the NOTE_ROOT_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, PROOF_HASH_PTR),
-        inputs.block_header().proof_hash().as_elements(),
+        inputs.tx_inputs().block_header().proof_hash().as_elements(),
         "The proof hash should be stored at the PROOF_HASH_PTR"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[BLOCK_NUMBER_IDX],
-        inputs.block_header().block_num().into(),
+        inputs.tx_inputs().block_header().block_num().into(),
         "The block number should be stored at BLOCK_METADATA_PTR[BLOCK_NUMBER_IDX]"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[PROTOCOL_VERSION_IDX],
-        inputs.block_header().version().into(),
+        inputs.tx_inputs().block_header().version().into(),
         "The protocol version should be stored at BLOCK_METADATA_PTR[PROTOCOL_VERSION_IDX]"
     );
 
     assert_eq!(
         read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
-        inputs.block_header().timestamp().into(),
+        inputs.tx_inputs().block_header().timestamp().into(),
         "The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]"
     );
 }
 
-fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &PreparedTransaction) {
+fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &TransactionContext) {
     // update the chain MMR to point to the block against which this transaction is being executed
     let mut chain_mmr = prepared_tx.tx_inputs().block_chain().clone();
     chain_mmr.add_block(*prepared_tx.tx_inputs().block_header(), true);
@@ -231,7 +241,7 @@ fn chain_mmr_memory_assertions(process: &Process<MockHost>, prepared_tx: &Prepar
     }
 }
 
-fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     assert_eq!(
         read_root_mem_value(process, ACCT_ID_AND_NONCE_PTR),
         [inputs.account().id().into(), ZERO, ZERO, inputs.account().nonce()],
@@ -273,7 +283,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Prepared
 
 fn consumed_notes_memory_assertions(
     process: &Process<MockHost>,
-    inputs: &PreparedTransaction,
+    inputs: &TransactionContext,
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(
@@ -354,13 +364,12 @@ fn consumed_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardNew {
-        account_id: acct_id.into(),
-    })
-    .account_seed(account_seed)
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
+        .account_seed(account_seed)
+        .build();
+
     let code = "
     use.miden::kernels::tx::prologue
 
@@ -377,16 +386,13 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::FungibleFaucet {
-        acct_id: acct_id.into(),
-        nonce: Felt::ZERO,
-        empty_reserved_slot: true,
-    })
-    .account_seed(account_seed)
-    .build();
+    let tx_context =
+        TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
+            .account_seed(account_seed)
+            .build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -405,14 +411,14 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::FungibleFaucet {
-        acct_id: acct_id.into(),
-        nonce: Felt::ZERO,
-        empty_reserved_slot: false,
-    })
+    let tx_context = TransactionContextBuilder::with_fungible_faucet(
+        acct_id.into(),
+        Felt::ZERO,
+        Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
+    )
     .account_seed(account_seed)
     .build();
 
@@ -433,16 +439,13 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::NonFungibleFaucet {
-        acct_id: acct_id.into(),
-        nonce: Felt::ZERO,
-        empty_reserved_slot: true,
-    })
-    .account_seed(account_seed)
-    .build();
+    let tx_context =
+        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
+            .account_seed(account_seed)
+            .build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -462,16 +465,13 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::NonFungibleFaucet {
-        acct_id: acct_id.into(),
-        nonce: Felt::ZERO,
-        empty_reserved_slot: false,
-    })
-    .account_seed(account_seed)
-    .build();
+    let tx_context =
+        TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
+            .account_seed(account_seed)
+            .build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -491,7 +491,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler(),
+        &TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let code = "
@@ -507,12 +507,10 @@ pub fn test_prologue_create_account_invalid_seed() {
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardNew {
-        account_id: acct_id.into(),
-    })
-    .account_seed(account_seed)
-    .advice_inputs(adv_inputs)
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
+        .account_seed(account_seed)
+        .advice_inputs(adv_inputs)
+        .build();
 
     let process = tx_context.execute_code(code);
     assert!(process.is_err());
@@ -520,8 +518,11 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -539,8 +540,11 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -558,10 +562,6 @@ fn test_get_blk_timestamp() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn read_root_mem_value(process: &Process<MockHost>, addr: u32) -> Word {
-    process.get_mem_value(ContextId::root(), addr).unwrap()
-}
 
 fn read_note_element(process: &Process<MockHost>, note_idx: u32, offset: MemoryOffset) -> Word {
     read_root_mem_value(process, consumed_note_data_ptr(note_idx) + offset)

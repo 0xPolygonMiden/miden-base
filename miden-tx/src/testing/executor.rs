@@ -2,8 +2,7 @@
 use miden_lib::transaction::TransactionKernel;
 #[cfg(feature = "std")]
 use vm_processor::{
-    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, Host, Process,
-    Program, StackInputs,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
 };
 
 // MOCK CODE EXECUTOR
@@ -43,18 +42,17 @@ impl<H: Host> CodeExecutor<H> {
     /// `code` before execution.
     /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
-        let assembler = TransactionKernel::assembler();
+        let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
         let program = assembler.compile(code).unwrap();
         self.execute_program(program)
     }
 
     pub fn execute_program(self, program: Program) -> Result<Process<H>, ExecutionError> {
-        let mut process = Process::new(
+        let mut process = Process::new_debug(
             program.kernel().clone(),
             self.stack_inputs.unwrap_or_default(),
             self.host,
-            ExecutionOptions::default(),
         );
         process.execute(&program)?;
 
