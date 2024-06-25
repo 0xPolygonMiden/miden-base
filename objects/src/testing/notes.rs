@@ -104,14 +104,3 @@ impl NoteBuilder {
         Ok(Note::new(vault, metadata, recipient))
     }
 }
-
-// CHAIN DATA UTILS
-// ============================================================================================
-
-pub enum AssetPreservationStatus {
-    TooFewInput,
-    Preserved,
-    PreservedWithAccountVaultDelta,
-    TooManyFungibleInput,
-    TooManyNonFungibleInput,
-}

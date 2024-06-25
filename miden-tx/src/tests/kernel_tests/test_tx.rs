@@ -12,7 +12,7 @@ use miden_objects::{
     },
     assets::Asset,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
-    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, notes::AssetPreservationStatus, prepare_word},
+    testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
 
@@ -158,7 +158,7 @@ fn test_get_output_notes_hash() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     // extract input note data
@@ -495,7 +495,7 @@ fn test_build_recipient_hash() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();

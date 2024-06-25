@@ -21,7 +21,6 @@ use miden_objects::{
     assembly::ProgramAst,
     testing::{
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
-        notes::AssetPreservationStatus,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
@@ -43,7 +42,7 @@ fn test_transaction_prologue() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "

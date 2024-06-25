@@ -13,7 +13,6 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
     notes::NoteType,
-    testing::notes::AssetPreservationStatus,
     transaction::TransactionArgs,
     Felt,
 };
@@ -71,7 +70,7 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None).with_tracing();
