@@ -336,7 +336,7 @@ fn input_mock_notes(
     let consumed_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([1u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_1)
+        .add_assets([fungible_asset_1])
         .code(note_1_script_src)
         .build(assembler)
         .unwrap();
@@ -367,8 +367,8 @@ fn input_mock_notes(
     let consumed_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_2)
-        .add_asset(fungible_asset_3)
+        .add_assets([fungible_asset_2])
+        .add_assets([fungible_asset_3])
         .code(note_2_script_src)
         .build(assembler)
         .unwrap();
@@ -376,18 +376,18 @@ fn input_mock_notes(
     let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_2)
-        .add_asset(fungible_asset_3)
+        .add_assets([fungible_asset_2])
+        .add_assets([fungible_asset_3])
         .build(assembler)
         .unwrap();
 
     let consumed_note_4 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([1u32.into()])
         .unwrap()
-        .add_asset(Asset::mock_non_fungible(
+        .add_assets([Asset::mock_non_fungible(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA_2,
-        ))
+        )])
         .build(assembler)
         .unwrap();
 
@@ -420,12 +420,12 @@ fn input_mock_notes(
         ";
 
     let consumed_note_5 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
-        .add_asset(fungible_asset_1)
-        .add_asset(fungible_asset_3)
-        .add_asset(Asset::mock_non_fungible(
+        .add_assets([fungible_asset_1])
+        .add_assets([fungible_asset_3])
+        .add_assets([Asset::mock_non_fungible(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA_2,
-        ))
+        )])
         .code(note_5_script_src)
         .build(assembler)
         .unwrap();
@@ -462,21 +462,21 @@ fn output_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> 
     let note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([1u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_1)
+        .add_assets([fungible_asset_1])
         .build(assembler)
         .unwrap();
 
     let note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_2)
+        .add_assets([fungible_asset_2])
         .build(assembler)
         .unwrap();
 
     let note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([3u32.into()])
         .unwrap()
-        .add_asset(fungible_asset_3)
+        .add_assets([fungible_asset_3])
         .build(assembler)
         .unwrap();
 
