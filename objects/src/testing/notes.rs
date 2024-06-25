@@ -57,10 +57,15 @@ impl NoteBuilder {
         }
     }
 
-    pub fn note_inputs(mut self, inputs: impl AsRef<[Felt]>) -> Result<Self, NoteError> {
-        let inputs = inputs.as_ref();
-        NoteInputs::new(inputs.to_vec())?;
-        self.inputs = inputs.to_vec();
+    /// Set the note's input to `inputs`.
+    ///
+    /// Note: This overwrite the inputs, the previous input values are discarded.
+    pub fn note_inputs(
+        mut self,
+        inputs: impl IntoIterator<Item = Felt>,
+    ) -> Result<Self, NoteError> {
+        let validate = NoteInputs::new(inputs.into_iter().collect())?;
+        self.inputs = validate.into();
         Ok(self)
     }
 
