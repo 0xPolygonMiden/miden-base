@@ -40,24 +40,6 @@ pub enum AccountError {
     StubDataIncorrectLength(usize, usize),
 }
 
-impl AccountError {
-    pub fn account_id_invalid_field_element(msg: String) -> Self {
-        Self::AccountIdInvalidFieldElement(msg)
-    }
-
-    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
-        Self::AccountIdTooFewOnes(expected, actual)
-    }
-
-    pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
-        Self::SeedDigestTooFewTrailingZeros { expected, actual }
-    }
-
-    pub fn fungible_faucet_id_invalid_first_bit() -> Self {
-        Self::FungibleFaucetIdInvalidFirstBit
-    }
-}
-
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)

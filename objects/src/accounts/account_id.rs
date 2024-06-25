@@ -247,10 +247,10 @@ impl AccountId {
 
         let trailing_zeros = digest_pow(*digest);
         if required_zeros > trailing_zeros {
-            return Err(AccountError::seed_digest_too_few_trailing_zeros(
-                required_zeros,
-                trailing_zeros,
-            ));
+            return Err(AccountError::SeedDigestTooFewTrailingZeros {
+                expected: required_zeros,
+                actual: trailing_zeros,
+            });
         }
 
         Ok(())
@@ -322,7 +322,7 @@ impl TryFrom<Felt> for AccountId {
 
         let count = int_value.count_ones();
         if count < Self::MIN_ACCOUNT_ONES {
-            return Err(AccountError::account_id_too_few_ones(Self::MIN_ACCOUNT_ONES, count));
+            return Err(AccountError::AccountIdTooFewOnes(Self::MIN_ACCOUNT_ONES, count));
         }
 
         let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
