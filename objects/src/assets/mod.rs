@@ -232,7 +232,7 @@ fn parse_word(bytes: [u8; 32]) -> Result<Word, AssetError> {
 }
 
 fn parse_felt(bytes: &[u8]) -> Result<Felt, AssetError> {
-    Felt::try_from(bytes).map_err(|err| AssetError::invalid_field_element(err.to_string()))
+    Felt::try_from(bytes).map_err(|err| AssetError::InvalidFieldElement(err.to_string()))
 }
 
 /// Returns `true` if asset in [Word] is not a non-fungible asset.

@@ -49,7 +49,7 @@ impl NonFungibleAsset {
     /// Returns an error if the provided faucet ID is not for a non-fungible asset faucet.
     pub fn from_parts(faucet_id: AccountId, mut data_hash: Word) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
+            return Err(AssetError::NotANonFungibleFaucetId(faucet_id));
         }
         data_hash[FAUCET_ID_POS] = faucet_id.into();
 
@@ -112,7 +112,7 @@ impl NonFungibleAsset {
 
         let account_type = faucet_id.account_type();
         if !matches!(account_type, AccountType::NonFungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(faucet_id, account_type));
+            return Err(AssetError::NotAFungibleFaucetId(faucet_id, account_type));
         }
 
         Ok(())
@@ -187,7 +187,7 @@ impl NonFungibleAssetDetails {
     /// Returns an error if the provided faucet ID is not for a non-fungible asset faucet.
     pub fn new(faucet_id: AccountId, asset_data: Vec<u8>) -> Result<Self, AssetError> {
         if !matches!(faucet_id.account_type(), AccountType::NonFungibleFaucet) {
-            return Err(AssetError::not_a_non_fungible_faucet_id(faucet_id));
+            return Err(AssetError::NotANonFungibleFaucetId(faucet_id));
         }
 
         Ok(Self { faucet_id, asset_data })

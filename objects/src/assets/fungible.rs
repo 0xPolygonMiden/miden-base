@@ -85,12 +85,12 @@ impl FungibleAsset {
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, other: Self) -> Result<Self, AssetError> {
         if self.faucet_id != other.faucet_id {
-            return Err(AssetError::inconsistent_faucet_ids(self.faucet_id, other.faucet_id));
+            return Err(AssetError::InconsistentFaucetIds(self.faucet_id, other.faucet_id));
         }
 
         let amount = self.amount.checked_add(other.amount).expect("overflow!");
         if amount > Self::MAX_AMOUNT {
-            return Err(AssetError::amount_too_big(amount));
+            return Err(AssetError::AmountTooBig(amount));
         }
 
         Ok(Self { faucet_id: self.faucet_id, amount })
@@ -120,11 +120,11 @@ impl FungibleAsset {
     fn validate(&self) -> Result<(), AssetError> {
         let account_type = self.faucet_id.account_type();
         if !matches!(account_type, AccountType::FungibleFaucet) {
-            return Err(AssetError::not_a_fungible_faucet_id(self.faucet_id, account_type));
+            return Err(AssetError::NotAFungibleFaucetId(self.faucet_id, account_type));
         }
 
         if self.amount > Self::MAX_AMOUNT {
-            return Err(AssetError::amount_too_big(self.amount));
+            return Err(AssetError::AmountTooBig(self.amount));
         }
 
         Ok(())
@@ -162,10 +162,10 @@ impl TryFrom<Word> for FungibleAsset {
 
     fn try_from(value: Word) -> Result<Self, Self::Error> {
         if (value[1], value[2]) != (ZERO, ZERO) {
-            return Err(AssetError::fungible_asset_invalid_word(value));
+            return Err(AssetError::FungibleAssetInvalidWord(value));
         }
         let faucet_id = AccountId::try_from(value[3])
-            .map_err(|e| AssetError::invalid_account_id(e.to_string()))?;
+            .map_err(|e| AssetError::InvalidAccountId(e.to_string()))?;
         let amount = value[0].as_int();
         Self::new(faucet_id, amount)
     }
