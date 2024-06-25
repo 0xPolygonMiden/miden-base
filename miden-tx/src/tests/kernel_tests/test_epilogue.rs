@@ -5,7 +5,6 @@ use miden_lib::transaction::memory::{
 };
 use miden_objects::{
     accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
-    testing::notes::AssetPreservationStatus,
     transaction::{OutputNote, OutputNotes},
 };
 use vm_processor::ONE;
@@ -19,7 +18,7 @@ fn test_epilogue() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let output_notes_data_procedure =
@@ -88,7 +87,7 @@ fn test_compute_created_note_id() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let output_notes_data_procedure =
@@ -130,42 +129,71 @@ fn test_compute_created_note_id() {
 }
 
 #[test]
-fn test_epilogue_asset_preservation_violation() {
-    for asset_preservation in [
-        AssetPreservationStatus::TooFewInput,
-        AssetPreservationStatus::TooManyFungibleInput,
-    ] {
-        let tx_context = TransactionContextBuilder::with_standard_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ONE,
-        )
-        .with_mock_notes(asset_preservation)
-        .build();
+fn test_epilogue_asset_preservation_violation_too_few_input() {
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes_too_few_input()
+    .build();
 
-        let output_notes_data_procedure =
-            output_notes_data_procedure(tx_context.expected_output_notes());
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
-        let code = format!(
-            "
-            use.miden::kernels::tx::prologue
-            use.miden::kernels::tx::account
-            use.miden::kernels::tx::epilogue
+    let code = format!(
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::account
+        use.miden::kernels::tx::epilogue
 
-            {output_notes_data_procedure}
+        {output_notes_data_procedure}
 
-            begin
-                exec.prologue::prepare_transaction
-                exec.create_mock_notes
-                push.1
-                exec.account::incr_nonce
-                exec.epilogue::finalize_transaction
-            end
-            "
-        );
+        begin
+            exec.prologue::prepare_transaction
+            exec.create_mock_notes
+            push.1
+            exec.account::incr_nonce
+            exec.epilogue::finalize_transaction
+        end
+        "
+    );
 
-        let process = tx_context.execute_code(&code);
-        assert!(process.is_err(), "Violating asset preservation must result in a failure");
-    }
+    let process = tx_context.execute_code(&code);
+    assert!(process.is_err(), "Violating asset preservation must result in a failure");
+}
+
+#[test]
+fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes_too_many_fungible_input()
+    .build();
+
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
+
+    let code = format!(
+        "
+        use.miden::kernels::tx::prologue
+        use.miden::kernels::tx::account
+        use.miden::kernels::tx::epilogue
+
+        {output_notes_data_procedure}
+
+        begin
+            exec.prologue::prepare_transaction
+            exec.create_mock_notes
+            push.1
+            exec.account::incr_nonce
+            exec.epilogue::finalize_transaction
+        end
+        "
+    );
+
+    let process = tx_context.execute_code(&code);
+    assert!(process.is_err(), "Violating asset preservation must result in a failure");
 }
 
 #[test]
@@ -174,7 +202,7 @@ fn test_epilogue_increment_nonce_success() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let output_notes_data_procedure =
@@ -216,7 +244,7 @@ fn test_epilogue_increment_nonce_violation() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let output_notes_data_procedure =

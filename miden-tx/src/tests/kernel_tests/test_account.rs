@@ -10,7 +10,7 @@ use miden_objects::{
         AccountId, AccountStorage, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    testing::{notes::AssetPreservationStatus, prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{prepare_word, storage::STORAGE_LEAVES_2},
 };
 use vm_processor::{Felt, MemAdviceProvider};
 
@@ -61,7 +61,7 @@ pub fn test_set_code_succeeds() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let output_notes_data_procedure =

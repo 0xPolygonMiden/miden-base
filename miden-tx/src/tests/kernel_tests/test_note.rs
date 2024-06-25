@@ -3,10 +3,7 @@ use alloc::{collections::BTreeMap, string::String};
 use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{
     accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    notes::Note,
-    testing::{notes::AssetPreservationStatus, prepare_word},
-    transaction::TransactionArgs,
-    Hasher, WORD_SIZE,
+    notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
 };
 use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 
@@ -53,7 +50,7 @@ fn test_get_sender() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     // calling get_sender should return sender
@@ -82,7 +79,7 @@ fn test_get_vault_data() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.input_notes();
@@ -134,7 +131,7 @@ fn test_get_assets() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.input_notes();
@@ -244,7 +241,7 @@ fn test_get_inputs() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.mock_chain().available_notes();
@@ -318,7 +315,7 @@ fn test_note_setup() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
@@ -348,7 +345,7 @@ fn test_note_script_and_note_args() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
@@ -407,7 +404,7 @@ fn test_get_note_serial_number() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     // calling get_serial_number should return the serial number of the note
@@ -436,12 +433,12 @@ fn test_get_inputs_hash() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
         use.miden::note
-        
+
         begin
             # put the values that will be hashed into the memory
             push.1.2.3.4.1000 mem_storew dropw
@@ -466,7 +463,7 @@ fn test_get_inputs_hash() {
             # => [HASH_15, HASH_8, HASH_5]
 
             push.0.1000
-            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an 
+            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an
             # empty word
             exec.note::compute_inputs_hash
             # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]

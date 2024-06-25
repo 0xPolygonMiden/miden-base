@@ -20,7 +20,7 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::{AssetPreservationStatus, NoteBuilder},
+        notes::NoteBuilder,
         prepare_word,
         storage::prepare_assets,
     },
@@ -381,8 +381,79 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
-    /// Populates input and expected notes.
-    pub fn with_mock_notes(mut self, asset_preservation: AssetPreservationStatus) -> Self {
+    pub fn with_mock_notes_too_few_input(mut self) -> Self {
+        // ACCOUNT IDS
+        // --------------------------------------------------------------------------------------------
+        let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+
+        // ASSETS
+        // --------------------------------------------------------------------------------------------
+        let fungible_asset_1: Asset =
+            FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
+        let fungible_asset_2: Asset =
+            FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
+        let fungible_asset_3: Asset =
+            FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+
+        // expected by `output_notes_data_procedure`
+        let _output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+
+        let input_note1 = self.input_note_with_two_output_notes(
+            sender,
+            [1u32.into()],
+            &output_note0,
+            &output_note1,
+            fungible_asset_1,
+        );
+
+        self.input_notes(vec![input_note1])
+    }
+
+    pub fn with_mock_notes_preserved(mut self) -> Self {
+        // ACCOUNT IDS
+        // --------------------------------------------------------------------------------------------
+        let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+
+        // ASSETS
+        // --------------------------------------------------------------------------------------------
+        let fungible_asset_1: Asset =
+            FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
+        let fungible_asset_2: Asset =
+            FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
+        let fungible_asset_3: Asset =
+            FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+
+        let input_note1 = self.input_note_with_two_output_notes(
+            sender,
+            [1u32.into()],
+            &output_note0,
+            &output_note1,
+            fungible_asset_1,
+        );
+        let input_note2 = self.input_note_with_one_output_note(
+            sender,
+            [fungible_asset_2, fungible_asset_3],
+            [1u32.into()],
+            &output_note2,
+        );
+
+        self.input_notes(vec![input_note1, input_note2])
+    }
+
+    pub fn with_mock_notes_preserved_with_account_vault_delta(mut self) -> Self {
         // ACCOUNT IDS
         // --------------------------------------------------------------------------------------------
         let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -403,49 +474,111 @@ impl TransactionContextBuilder {
             &NON_FUNGIBLE_ASSET_DATA_2,
         );
 
-        let output_notes = vec![
-            self.add_output_note([1u32.into()], [fungible_asset_1]),
-            self.add_output_note([2u32.into()], [fungible_asset_2]),
-            self.add_output_note([3u32.into()], [fungible_asset_3]),
-        ];
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,
             [1u32.into()],
-            &output_notes[0],
-            &output_notes[1],
+            &output_note0,
+            &output_note1,
             fungible_asset_1,
         );
         let input_note2 = self.input_note_with_one_output_note(
             sender,
             [fungible_asset_2, fungible_asset_3],
             [1u32.into()],
-            &output_notes[2],
+            &output_note2,
         );
-        let input_note3 =
-            self.input_note_simple(sender, [fungible_asset_2, fungible_asset_3], [2u32.into()]);
-        let input_note4 = self.input_note_simple(sender, [nonfungible_asset_1], [1u32.into()]);
 
         let input_note5 = self
             .input_note_transfer(sender, [fungible_asset_1, fungible_asset_3, nonfungible_asset_1]);
 
-        let notes = match asset_preservation {
-            AssetPreservationStatus::TooFewInput => vec![input_note1],
-            AssetPreservationStatus::Preserved => {
-                vec![input_note1, input_note2]
-            },
-            AssetPreservationStatus::PreservedWithAccountVaultDelta => {
-                vec![input_note1, input_note2, input_note5]
-            },
-            AssetPreservationStatus::TooManyFungibleInput => {
-                vec![input_note1, input_note2, input_note3]
-            },
-            AssetPreservationStatus::TooManyNonFungibleInput => {
-                vec![input_note1, input_note2, input_note4]
-            },
-        };
+        self.input_notes(vec![input_note1, input_note2, input_note5])
+    }
 
-        self.input_notes(notes)
+    pub fn with_mock_notes_too_many_fungible_input(mut self) -> Self {
+        // ACCOUNT IDS
+        // --------------------------------------------------------------------------------------------
+        let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+
+        // ASSETS
+        // --------------------------------------------------------------------------------------------
+        let fungible_asset_1: Asset =
+            FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
+        let fungible_asset_2: Asset =
+            FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
+        let fungible_asset_3: Asset =
+            FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+
+        let input_note1 = self.input_note_with_two_output_notes(
+            sender,
+            [1u32.into()],
+            &output_note0,
+            &output_note1,
+            fungible_asset_1,
+        );
+        let input_note2 = self.input_note_with_one_output_note(
+            sender,
+            [fungible_asset_2, fungible_asset_3],
+            [1u32.into()],
+            &output_note2,
+        );
+        let input_note3 =
+            self.input_note_simple(sender, [fungible_asset_2, fungible_asset_3], [2u32.into()]);
+
+        self.input_notes(vec![input_note1, input_note2, input_note3])
+    }
+
+    pub fn with_mock_notes_too_many_non_fungible_input(mut self) -> Self {
+        // ACCOUNT IDS
+        // --------------------------------------------------------------------------------------------
+        let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+        let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+        let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+
+        // ASSETS
+        // --------------------------------------------------------------------------------------------
+        let fungible_asset_1: Asset =
+            FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
+        let fungible_asset_2: Asset =
+            FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
+        let fungible_asset_3: Asset =
+            FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+        let nonfungible_asset_1: Asset = Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA_2,
+        );
+
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+
+        let input_note1 = self.input_note_with_two_output_notes(
+            sender,
+            [1u32.into()],
+            &output_note0,
+            &output_note1,
+            fungible_asset_1,
+        );
+        let input_note2 = self.input_note_with_one_output_note(
+            sender,
+            [fungible_asset_2, fungible_asset_3],
+            [1u32.into()],
+            &output_note2,
+        );
+        let input_note4 = self.input_note_simple(sender, [nonfungible_asset_1], [1u32.into()]);
+
+        self.input_notes(vec![input_note1, input_note2, input_note4])
     }
 
     pub fn build(mut self) -> TransactionContext {
