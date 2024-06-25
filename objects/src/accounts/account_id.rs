@@ -40,24 +40,29 @@ pub enum AccountType {
     RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
 }
 
+pub const fn account_type_from_u64(value: u64) -> AccountType {
+    debug_assert!(
+        ACCOUNT_TYPE_MASK.count_ones() == 2,
+        "This method assumes there are only 2bits in the mask"
+    );
+
+    let bits = (value & ACCOUNT_TYPE_MASK) >> ACCOUNT_TYPE_MASK_SHIFT;
+    match bits {
+        REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
+        REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
+        FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
+        NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
+        _ => {
+            // "account_type mask contains only 2bits, there are 4 options total"
+            unreachable!()
+        },
+    }
+}
+
 /// Returns the [AccountType] given an integer representation of `account_id`.
 impl From<u64> for AccountType {
     fn from(value: u64) -> Self {
-        debug_assert!(
-            ACCOUNT_TYPE_MASK.count_ones() == 2,
-            "This method assumes there are only 2bits in the mask"
-        );
-
-        let bits = (value & ACCOUNT_TYPE_MASK) >> ACCOUNT_TYPE_MASK_SHIFT;
-        match bits {
-            REGULAR_ACCOUNT_UPDATABLE_CODE => AccountType::RegularAccountUpdatableCode,
-            REGULAR_ACCOUNT_IMMUTABLE_CODE => AccountType::RegularAccountImmutableCode,
-            FUNGIBLE_FAUCET => AccountType::FungibleFaucet,
-            NON_FUNGIBLE_FAUCET => AccountType::NonFungibleFaucet,
-            _ => {
-                unreachable!("account_type mask contains only 2bits, there are 4 options total")
-            },
-        }
+        account_type_from_u64(value)
     }
 }
 
@@ -168,8 +173,8 @@ impl AccountId {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the type of this account ID.
-    pub fn account_type(&self) -> AccountType {
-        self.0.as_int().into()
+    pub const fn account_type(&self) -> AccountType {
+        account_type_from_u64(self.0.as_int())
     }
 
     /// Returns true if an account with this ID is a faucet (can issue assets).
@@ -308,6 +313,23 @@ impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 // CONVERSIONS TO ACCOUNT ID
 // ================================================================================================
 
+pub const fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError> {
+    let int_value = value.as_int();
+
+    let count = int_value.count_ones();
+    if count < AccountId::MIN_ACCOUNT_ONES {
+        return Err(AccountError::AccountIdTooFewOnes(AccountId::MIN_ACCOUNT_ONES, count));
+    }
+
+    let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
+    match bits {
+        ON_CHAIN | OFF_CHAIN => (),
+        _ => return Err(AccountError::InvalidAccountStorageType),
+    };
+
+    Ok(AccountId(value))
+}
+
 impl TryFrom<Felt> for AccountId {
     type Error = AccountError;
 
@@ -318,20 +340,7 @@ impl TryFrom<Felt> for AccountId {
     /// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the provided value.
     /// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
-        let int_value = value.as_int();
-
-        let count = int_value.count_ones();
-        if count < Self::MIN_ACCOUNT_ONES {
-            return Err(AccountError::AccountIdTooFewOnes(Self::MIN_ACCOUNT_ONES, count));
-        }
-
-        let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
-        match bits {
-            ON_CHAIN | OFF_CHAIN => (),
-            _ => return Err(AccountError::InvalidAccountStorageType),
-        };
-
-        Ok(Self(value))
+        account_id_from_felt(value)
     }
 }
 

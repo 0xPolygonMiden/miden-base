@@ -33,11 +33,9 @@ impl FungibleAsset {
     /// Returns an error if:
     /// - The faucet_id is not a valid fungible faucet ID.
     /// - The provided amount is greater than 2^63 - 1.
-    pub fn new(faucet_id: AccountId, amount: u64) -> Result<Self, AssetError> {
+    pub const fn new(faucet_id: AccountId, amount: u64) -> Result<Self, AssetError> {
         let asset = Self { faucet_id, amount };
-        asset.validate()?;
-
-        Ok(asset)
+        asset.validate()
     }
 
     /// Creates a new [FungibleAsset] without checking its validity.
@@ -117,7 +115,7 @@ impl FungibleAsset {
     /// Returns an error if:
     /// - The faucet_id is not a valid fungible faucet ID.
     /// - The provided amount is greater than 2^63 - 1.
-    fn validate(&self) -> Result<(), AssetError> {
+    const fn validate(self) -> Result<Self, AssetError> {
         let account_type = self.faucet_id.account_type();
         if !matches!(account_type, AccountType::FungibleFaucet) {
             return Err(AssetError::NotAFungibleFaucetId(self.faucet_id, account_type));
@@ -127,7 +125,7 @@ impl FungibleAsset {
             return Err(AssetError::AmountTooBig(self.amount));
         }
 
-        Ok(())
+        Ok(self)
     }
 }
 
