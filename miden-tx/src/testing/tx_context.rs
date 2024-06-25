@@ -342,6 +342,45 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
+    fn input_note_transfer(
+        &mut self,
+        sender: AccountId,
+        assets: impl IntoIterator<Item = Asset>,
+    ) -> Note {
+        let code = "
+            use.miden::note
+            use.miden::contracts::wallets::basic->wallet
+
+            begin
+                # read the assets to memory
+                push.0 exec.note::get_assets
+                # => [num_assets, dest_ptr]
+
+                # assert the number of assets is 3
+                push.3 assert_eq
+                # => [dest_ptr]
+
+                # add the first asset to the vault
+                padw dup.4 mem_loadw call.wallet::receive_asset dropw
+                # => [dest_ptr]
+
+                # add the second asset to the vault
+                push.1 add padw dup.4 mem_loadw call.wallet::receive_asset dropw
+                # => [dest_ptr+1]
+
+                # add the third asset to the vault
+                push.1 add padw movup.4 mem_loadw call.wallet::receive_asset dropw
+                # => []
+            end
+        ";
+
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+            .add_assets(assets)
+            .code(code)
+            .build(&self.assembler)
+            .unwrap()
+    }
+
     /// Populates input and expected notes.
     pub fn with_mock_notes(mut self, asset_preservation: AssetPreservationStatus) -> Self {
         // ACCOUNT IDS
@@ -387,9 +426,8 @@ impl TransactionContextBuilder {
             self.input_note_simple(sender, [fungible_asset_2, fungible_asset_3], [2u32.into()]);
         let input_note4 = self.input_note_simple(sender, [nonfungible_asset_1], [1u32.into()]);
 
-        let mut input_notes = input_mock_notes(&self.assembler, &mut self.rng);
-
-        let consumed_note_5 = input_notes.pop().unwrap();
+        let input_note5 = self
+            .input_note_transfer(sender, [fungible_asset_1, fungible_asset_3, nonfungible_asset_1]);
 
         let notes = match asset_preservation {
             AssetPreservationStatus::TooFewInput => vec![input_note1],
@@ -397,7 +435,7 @@ impl TransactionContextBuilder {
                 vec![input_note1, input_note2]
             },
             AssetPreservationStatus::PreservedWithAccountVaultDelta => {
-                vec![input_note1, input_note2, consumed_note_5]
+                vec![input_note1, input_note2, input_note5]
             },
             AssetPreservationStatus::TooManyFungibleInput => {
                 vec![input_note1, input_note2, input_note3]
@@ -435,63 +473,4 @@ impl TransactionContextBuilder {
             advice_inputs: self.advice_inputs.unwrap_or_default(),
         }
     }
-}
-
-fn input_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> {
-    // ACCOUNT IDS
-    // --------------------------------------------------------------------------------------------
-    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
-
-    // ASSETS
-    // --------------------------------------------------------------------------------------------
-    let fungible_asset_1: Asset =
-        FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
-    let fungible_asset_3: Asset =
-        FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
-
-    // NOTES
-    // --------------------------------------------------------------------------------------------
-
-    // note that changes the account vault
-    let note_5_script_src = "
-        use.miden::note
-        use.miden::contracts::wallets::basic->wallet
-
-        begin
-            # read the assets to memory
-            push.0 exec.note::get_assets
-            # => [num_assets, dest_ptr]
-
-            # assert the number of assets is 3
-            push.3 assert_eq
-            # => [dest_ptr]
-
-            # add the first asset to the vault
-            padw dup.4 mem_loadw call.wallet::receive_asset dropw
-            # => [dest_ptr]
-
-            # add the second asset to the vault
-            push.1 add padw dup.4 mem_loadw call.wallet::receive_asset dropw
-            # => [dest_ptr+1]
-
-            # add the third asset to the vault
-            push.1 add padw movup.4 mem_loadw call.wallet::receive_asset dropw
-            # => []
-        end
-        ";
-
-    let consumed_note_5 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
-        .add_assets([fungible_asset_1])
-        .add_assets([fungible_asset_3])
-        .add_assets([Asset::mock_non_fungible(
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            &NON_FUNGIBLE_ASSET_DATA_2,
-        )])
-        .code(note_5_script_src)
-        .build(assembler)
-        .unwrap();
-
-    vec![consumed_note_5]
 }
