@@ -7,6 +7,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
         AccountCode,
     },
@@ -23,7 +24,7 @@ use miden_objects::{
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        notes::AssetPreservationStatus,
+        notes::{AssetPreservationStatus, DEFAULT_NOTE_CODE},
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
@@ -33,12 +34,12 @@ use miden_objects::{
 use miden_prover::ProvingOptions;
 use vm_processor::{
     utils::{Deserializable, Serializable},
-    Digest, MemAdviceProvider,
+    Digest, MemAdviceProvider, ONE,
 };
 use winter_maybe_async::maybe_async;
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::testing::data_store::MockDataStore;
+use crate::testing::TransactionContextBuilder;
 
 mod kernel_tests;
 
@@ -47,23 +48,28 @@ mod kernel_tests;
 
 #[test]
 fn transaction_executor_witness() {
-    let data_store = MockDataStore::default();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None);
+        TransactionExecutor::new(tx_context.clone(), None);
 
-    let account_id = data_store.account().id();
+    let account_id = tx_context.account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args)
+        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
@@ -92,10 +98,16 @@ fn transaction_executor_witness() {
 
 #[test]
 fn executed_transaction_account_delta() {
-    let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::PreservedWithAccountVaultDelta)
+    .build();
+
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None);
-    let account_id = data_store.account().id();
+        TransactionExecutor::new(tx_context.clone(), None);
+    let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
     let new_acct_code_src = "\
@@ -281,11 +293,11 @@ fn executed_transaction_account_delta() {
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args =
-        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
+        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -327,8 +339,8 @@ fn executed_transaction_account_delta() {
     // vault delta
     // --------------------------------------------------------------------------------------------
     // assert that added assets are tracked
-    let added_assets = data_store
-        .tx_inputs
+    let added_assets = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .find(|n| n.note().assets().num_assets() == 3)
@@ -365,10 +377,16 @@ fn executed_transaction_account_delta() {
 
 #[test]
 fn executed_transaction_output_notes() {
-    let data_store = MockDataStore::new(AssetPreservationStatus::PreservedWithAccountVaultDelta);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::PreservedWithAccountVaultDelta)
+    .build();
+
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None).with_debug_mode(true);
-    let account_id = data_store.account().id();
+        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
     // removed assets
@@ -423,11 +441,10 @@ fn executed_transaction_output_notes() {
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
 
     // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public without assets.
-    // However, the MockDataStore always creates 3 notes as well.
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_program_ast_2 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast_2 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
     let metadata_2 = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
@@ -437,7 +454,7 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
-    let note_program_ast_3 = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast_3 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();
@@ -551,13 +568,18 @@ fn executed_transaction_output_notes() {
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let mut tx_args =
-        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
+        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
 
     tx_args.add_expected_output_note(&expected_output_note_2);
     tx_args.add_expected_output_note(&expected_output_note_3);
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
@@ -569,8 +591,7 @@ fn executed_transaction_output_notes() {
     let output_notes = executed_transaction.output_notes();
 
     // assert that the expected output note is present
-    // for some reason we always create 3 output notes when we use the MockDataStore
-    // there is already an issue to change that
+    // NOTE: the mock state already contains 3 output notes
     assert_eq!(output_notes.num_notes(), 6);
 
     let created_note_id_3 = executed_transaction.output_notes().get_note(3).id();
@@ -593,23 +614,28 @@ fn executed_transaction_output_notes() {
 
 #[test]
 fn prove_witness_and_verify() {
-    let data_store = MockDataStore::default();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None);
+        TransactionExecutor::new(tx_context.clone(), None);
 
-    let account_id = data_store.tx_inputs.account().id();
+    let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, data_store.tx_args)
+        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
     let executed_transaction_id = executed_transaction.id();
 
@@ -630,16 +656,21 @@ fn prove_witness_and_verify() {
 
 #[test]
 fn test_tx_script() {
-    let data_store = MockDataStore::default();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
     let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(data_store.clone(), None);
+        TransactionExecutor::new(tx_context.clone(), None);
 
-    let account_id = data_store.tx_inputs.account().id();
+    let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -672,7 +703,7 @@ fn test_tx_script() {
         )
         .unwrap();
     let tx_args =
-        TransactionArgs::new(Some(tx_script), None, data_store.tx_args.advice_map().clone());
+        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
 
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);

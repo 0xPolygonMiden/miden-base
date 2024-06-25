@@ -2,20 +2,29 @@ use alloc::{collections::BTreeMap, string::String};
 
 use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{
+    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     notes::Note,
-    testing::{account::MockAccountType, notes::AssetPreservationStatus, prepare_word},
-    transaction::{PreparedTransaction, TransactionArgs},
+    testing::{notes::AssetPreservationStatus, prepare_word},
+    transaction::TransactionArgs,
     WORD_SIZE,
 };
-use vm_processor::EMPTY_WORD;
+use vm_processor::{EMPTY_WORD, ONE};
 
-use super::{ContextId, Felt, Process, ProcessState, ZERO};
-use crate::testing::{utils::consumed_note_data_ptr, MockHost, TransactionContextBuilder};
+use super::{Felt, Process, ZERO};
+use crate::{
+    testing::{
+        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+    },
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_get_sender_no_sender() {
-    let tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting).build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
     // calling get_sender should return sender
     let code = "
         use.miden::kernels::tx::memory
@@ -40,9 +49,12 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     // calling get_sender should return sender
     let code = "
@@ -66,9 +78,12 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let notes = tx_context.input_notes();
 
@@ -115,9 +130,12 @@ fn test_get_vault_data() {
 }
 #[test]
 fn test_get_assets() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let notes = tx_context.input_notes();
 
@@ -222,9 +240,12 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let notes = tx_context.mock_chain().available_notes();
 
@@ -293,9 +314,12 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -307,10 +331,9 @@ fn test_note_setup() {
         end
         ";
 
-    let prepared_tx = tx_context.get_prepared_transaction(code);
     let process = tx_context.execute_code(code).unwrap();
 
-    note_setup_stack_assertions(&process, &prepared_tx);
+    note_setup_stack_assertions(&process, &tx_context);
     note_setup_memory_assertions(&process);
 }
 
@@ -321,10 +344,12 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let mut tx_context =
-        TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-            .with_mock_notes(AssetPreservationStatus::Preserved)
-            .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -356,7 +381,7 @@ fn test_note_script_and_note_args() {
     assert_eq!(process.stack.get_word(1), note_args[1]);
 }
 
-fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTransaction) {
+fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
     let mut expected_stack = [ZERO; 16];
 
     // replace the top four elements with the tx script root
@@ -371,16 +396,19 @@ fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &PreparedTra
 fn note_setup_memory_assertions(process: &Process<MockHost>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        process.get_mem_value(ContextId::root(), CURRENT_CONSUMED_NOTE_PTR).unwrap()[0],
+        read_root_mem_value(process, CURRENT_CONSUMED_NOTE_PTR)[0],
         Felt::from(consumed_note_data_ptr(0))
     );
 }
 
 #[test]
 fn test_get_note_serial_number() {
-    let tx_context = TransactionContextBuilder::with_acc_type(MockAccountType::StandardExisting)
-        .with_mock_notes(AssetPreservationStatus::Preserved)
-        .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
     // calling get_serial_number should return the serial number of the note
     let code = "

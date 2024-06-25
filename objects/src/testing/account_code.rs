@@ -29,14 +29,14 @@ pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
 pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
 
 pub const CODE: &str = "
-        export.foo
-            push.1 push.2 mul
-        end
+    export.foo
+        push.1 push.2 mul
+    end
 
-        export.bar
-            push.1 push.2 add
-        end
-    ";
+    export.bar
+        push.1 push.2 add
+    end
+";
 
 // ACCOUNT ASSEMBLY CODE
 // ================================================================================================

@@ -13,11 +13,11 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::{NoteScript, NoteType},
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
+    testing::{account_code::DEFAULT_AUTH_SCRIPT, notes::DEFAULT_NOTE_CODE},
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::{testing::data_store::MockDataStore, TransactionExecutor};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
@@ -57,15 +57,16 @@ fn prove_p2id_script() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -105,17 +106,18 @@ fn prove_p2id_script() {
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
-    let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+    let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
+        .input_notes(vec![note])
+        .build();
     let mut executor_2 =
-        TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
+        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
 
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref = data_store_malicious_account.block_header().block_num();
-    let note_ids = data_store_malicious_account
+    let block_ref = tx_context_malicious_account.tx_inputs().block_header().block_num();
+    let note_ids = tx_context_malicious_account
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -167,15 +169,16 @@ fn p2id_script_multiple_assets() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note.clone()]));
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
     executor.load_account(target_account_id).unwrap();
 
-    let block_ref = data_store.block_header().block_num();
-    let note_ids = data_store
-        .tx_inputs
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -212,17 +215,18 @@ fn p2id_script_multiple_assets() {
     let malicious_account =
         get_account_with_default_account_code(malicious_account_id, malicious_pub_key, None);
 
-    let data_store_malicious_account =
-        MockDataStore::with_existing(Some(malicious_account), Some(vec![note]));
+    let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
+        .input_notes(vec![note])
+        .build();
     let mut executor_2 =
-        TransactionExecutor::new(data_store_malicious_account.clone(), Some(malicious_falcon_auth));
+        TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
     executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious =
         executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref = data_store_malicious_account.block_header().block_num();
-    let note_origins = data_store_malicious_account
+    let block_ref = tx_context_malicious_account.tx_inputs().block_header().block_num();
+    let note_origins = tx_context_malicious_account
         .input_notes()
         .iter()
         .map(|note| note.id())
@@ -242,9 +246,9 @@ fn p2id_script_multiple_assets() {
 
 #[test]
 fn test_note_script_to_from_felt() {
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let note_program_ast = ProgramAst::parse("begin push.1 drop end").unwrap();
+    let note_program_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script, _) = NoteScript::new(note_program_ast, &assembler).unwrap();
 
     let encoded: Vec<Felt> = (&note_script).into();
