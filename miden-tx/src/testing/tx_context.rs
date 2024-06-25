@@ -233,6 +233,20 @@ impl TransactionContextBuilder {
         note
     }
 
+    fn input_note_simple(
+        &mut self,
+        sender: AccountId,
+        assets: impl IntoIterator<Item = Asset>,
+        inputs: impl IntoIterator<Item = Felt>,
+    ) -> Note {
+        NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
+            .note_inputs(inputs)
+            .unwrap()
+            .add_assets(assets)
+            .build(&self.assembler)
+            .unwrap()
+    }
+
     fn input_note_with_one_output_note(
         &mut self,
         sender: AccountId,
@@ -345,6 +359,10 @@ impl TransactionContextBuilder {
             FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+        let nonfungible_asset_1: Asset = Asset::mock_non_fungible(
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            &NON_FUNGIBLE_ASSET_DATA_2,
+        );
 
         let output_notes = vec![
             self.add_output_note([1u32.into()], [fungible_asset_1]),
@@ -365,11 +383,13 @@ impl TransactionContextBuilder {
             [1u32.into()],
             &output_notes[2],
         );
+        let input_note3 =
+            self.input_note_simple(sender, [fungible_asset_2, fungible_asset_3], [2u32.into()]);
+        let input_note4 = self.input_note_simple(sender, [nonfungible_asset_1], [1u32.into()]);
+
         let mut input_notes = input_mock_notes(&self.assembler, &mut self.rng);
 
         let consumed_note_5 = input_notes.pop().unwrap();
-        let consumed_note_4 = input_notes.pop().unwrap();
-        let consumed_note_3 = input_notes.pop().unwrap();
 
         let notes = match asset_preservation {
             AssetPreservationStatus::TooFewInput => vec![input_note1],
@@ -380,10 +400,10 @@ impl TransactionContextBuilder {
                 vec![input_note1, input_note2, consumed_note_5]
             },
             AssetPreservationStatus::TooManyFungibleInput => {
-                vec![input_note1, input_note2, consumed_note_3]
+                vec![input_note1, input_note2, input_note3]
             },
             AssetPreservationStatus::TooManyNonFungibleInput => {
-                vec![input_note1, input_note2, consumed_note_4]
+                vec![input_note1, input_note2, input_note4]
             },
         };
 
@@ -422,38 +442,17 @@ fn input_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> {
     // --------------------------------------------------------------------------------------------
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
-    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
     let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
 
     // ASSETS
     // --------------------------------------------------------------------------------------------
     let fungible_asset_1: Asset =
         FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
-    let fungible_asset_2: Asset =
-        FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
     let fungible_asset_3: Asset =
         FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
     // NOTES
     // --------------------------------------------------------------------------------------------
-
-    let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
-        .note_inputs([2u32.into()])
-        .unwrap()
-        .add_assets([fungible_asset_2])
-        .add_assets([fungible_asset_3])
-        .build(assembler)
-        .unwrap();
-
-    let consumed_note_4 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
-        .note_inputs([1u32.into()])
-        .unwrap()
-        .add_assets([Asset::mock_non_fungible(
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            &NON_FUNGIBLE_ASSET_DATA_2,
-        )])
-        .build(assembler)
-        .unwrap();
 
     // note that changes the account vault
     let note_5_script_src = "
@@ -494,5 +493,5 @@ fn input_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> {
         .build(assembler)
         .unwrap();
 
-    vec![consumed_note_3, consumed_note_4, consumed_note_5]
+    vec![consumed_note_5]
 }
