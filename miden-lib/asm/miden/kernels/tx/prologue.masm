@@ -496,14 +496,14 @@ end
 #!   created in.
 #!
 #! Operand stack: [NOTE_HASH]
-#! Advice stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
+#! Advice stack: [leaf_pos, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
 #! Output: []
 #!
 #! Where:
 #! - NOTE_HASH is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
 #! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
 #!   in. This is equivalent to the block number.
-#! - SUB_HASH, the block's sub_hash for which the note was created.
+#! - BLOCK_SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
 #! - note_index is the index of the note in the note Merkle tree.
 proc.authenticate_note.2
@@ -785,7 +785,7 @@ end
 #!      is_authenticated,
 #!      (
 #!          block_num,
-#!          SUB_HASH,
+#!          BLOCK_SUB_HASH,
 #!          NOTE_ROOT,
 #!      )?
 #! ]
@@ -807,7 +807,7 @@ end
 #! Optional values, required if `is_authenticated` is true:
 #!
 #! - block_num, note's creation block number.
-#! - SUB_HASH, the block's sub_hash for which the note was created.
+#! - BLOCK_SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
 #!
 proc.process_input_note
