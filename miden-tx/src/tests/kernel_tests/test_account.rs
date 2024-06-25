@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use miden_lib::transaction::{
     memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
     ToTransactionKernelInputs,
@@ -13,7 +15,9 @@ use miden_objects::{
         AccountId, AccountStorage, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
+    notes::Note,
     testing::{notes::AssetPreservationStatus, prepare_word, storage::STORAGE_LEAVES_2},
+    transaction::OutputNote,
 };
 use vm_processor::{Felt, MemAdviceProvider};
 
@@ -64,8 +68,20 @@ pub fn test_set_code_is_not_immediate() {
 pub fn test_set_code_succeeds() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes: Vec<Note> = executed_transaction
+        .output_notes()
+        .iter()
+        .filter_map(|note| {
+            if let OutputNote::Full(note) = note {
+                Some(note)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+
+    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
     let code = format!(
         "

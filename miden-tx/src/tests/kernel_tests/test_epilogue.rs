@@ -4,7 +4,9 @@ use miden_lib::transaction::{
     memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
     ToTransactionKernelInputs,
 };
-use miden_objects::testing::notes::AssetPreservationStatus;
+use miden_objects::{
+    notes::Note, testing::notes::AssetPreservationStatus, transaction::OutputNote,
+};
 
 use super::{
     build_module_path, output_notes_data_procedure, MemAdviceProvider, TX_KERNEL_DIR, ZERO,
@@ -35,8 +37,20 @@ fn insert_epilogue(imports: &str, code: &str) -> String {
 fn test_epilogue() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes: Vec<Note> = executed_transaction
+        .output_notes()
+        .iter()
+        .filter_map(|note| {
+            if let OutputNote::Full(note) = note {
+                Some(note)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+
+    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
     let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
@@ -82,8 +96,19 @@ fn test_epilogue() {
 fn test_compute_created_note_id() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes: Vec<Note> = executed_transaction
+        .output_notes()
+        .iter()
+        .filter_map(|note| {
+            if let OutputNote::Full(note) = note {
+                Some(note)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
     for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
         let imports = "use.miden::kernels::tx::prologue\n";
@@ -136,8 +161,19 @@ fn test_epilogue_asset_preservation_violation() {
     ] {
         let executed_transaction = mock_executed_tx(asset_preservation);
 
-        let output_notes_data_procedure =
-            output_notes_data_procedure(executed_transaction.output_notes());
+        let output_notes: Vec<Note> = executed_transaction
+            .output_notes()
+            .iter()
+            .filter_map(|note| {
+                if let OutputNote::Full(note) = note {
+                    Some(note)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .collect();
+        let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
         let imports = "use.miden::kernels::tx::prologue\n";
         let code = format!(
@@ -168,8 +204,20 @@ fn test_epilogue_asset_preservation_violation() {
 fn test_epilogue_increment_nonce_success() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes: Vec<Note> = executed_transaction
+        .output_notes()
+        .iter()
+        .filter_map(|note| {
+            if let OutputNote::Full(note) = note {
+                Some(note)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+
+    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
     let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
@@ -206,8 +254,20 @@ fn test_epilogue_increment_nonce_success() {
 fn test_epilogue_increment_nonce_violation() {
     let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(executed_transaction.output_notes());
+    let output_notes: Vec<Note> = executed_transaction
+        .output_notes()
+        .iter()
+        .filter_map(|note| {
+            if let OutputNote::Full(note) = note {
+                Some(note)
+            } else {
+                None
+            }
+        })
+        .cloned()
+        .collect();
+
+    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
 
     let imports = "use.miden::kernels::tx::prologue\n";
     let code = format!(
