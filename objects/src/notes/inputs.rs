@@ -96,6 +96,23 @@ impl PartialEq for NoteInputs {
 
 impl Eq for NoteInputs {}
 
+// CONVERSION
+// ================================================================================================
+
+impl From<NoteInputs> for Vec<Felt> {
+    fn from(value: NoteInputs) -> Self {
+        value.values
+    }
+}
+
+impl TryFrom<Vec<Felt>> for NoteInputs {
+    type Error = NoteError;
+
+    fn try_from(value: Vec<Felt>) -> Result<Self, Self::Error> {
+        NoteInputs::new(value)
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
