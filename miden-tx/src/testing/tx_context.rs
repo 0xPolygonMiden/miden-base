@@ -28,7 +28,7 @@ use miden_objects::{
         InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
 };
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 use winter_maybe_async::maybe_async;
@@ -213,7 +213,9 @@ impl TransactionContextBuilder {
 
     /// Populates input and expected notes.
     pub fn with_mock_notes(self, asset_preservation: AssetPreservationStatus) -> Self {
-        let (mut input_notes, output_notes) = mock_notes(&self.assembler);
+        let mut rng = ChaCha20Rng::from_seed([0_u8; 32]);
+        let output_notes = output_mock_notes(&self.assembler, &mut rng);
+        let mut input_notes = input_mock_notes(&self.assembler, &output_notes, &mut rng);
 
         let consumed_note_5 = input_notes.pop().unwrap();
         let consumed_note_4 = input_notes.pop().unwrap();
@@ -237,7 +239,8 @@ impl TransactionContextBuilder {
             },
         };
 
-        self.input_notes(notes).expected_notes(output_notes)
+        self.input_notes(notes)
+            .expected_notes(output_notes.into_iter().map(OutputNote::Full).collect())
     }
 
     pub fn build(mut self) -> TransactionContext {
@@ -267,7 +270,11 @@ impl TransactionContextBuilder {
     }
 }
 
-fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
+fn input_mock_notes(
+    assembler: &Assembler,
+    output_notes: &[Note],
+    rng: &mut ChaCha20Rng,
+) -> Vec<Note> {
     // ACCOUNT IDS
     // --------------------------------------------------------------------------------------------
     let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
@@ -284,36 +291,11 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
     let fungible_asset_3: Asset =
         FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
-    // CREATED NOTES
-    // --------------------------------------------------------------------------------------------
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-    let created_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs([1u32.into()])
-        .unwrap()
-        .add_asset(fungible_asset_1)
-        .build(assembler)
-        .unwrap();
-
-    let created_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs([2u32.into()])
-        .unwrap()
-        .add_asset(fungible_asset_2)
-        .build(assembler)
-        .unwrap();
-
-    let created_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
-        .note_inputs([3u32.into()])
-        .unwrap()
-        .add_asset(fungible_asset_3)
-        .build(assembler)
-        .unwrap();
-
-    // CONSUMED NOTES
+    // NOTES
     // --------------------------------------------------------------------------------------------
 
     let note_1_script_src = format!(
-        "\
+        "
         begin
             # create note 0
             push.{recipient0}
@@ -341,17 +323,17 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient0 = prepare_word(&created_note_1.recipient().digest()),
-        aux0 = created_note_1.metadata().aux(),
-        tag0 = created_note_1.metadata().tag(),
-        asset0 = prepare_assets(created_note_1.assets())[0],
-        recipient1 = prepare_word(&created_note_2.recipient().digest()),
-        aux1 = created_note_2.metadata().aux(),
-        tag1 = created_note_2.metadata().tag(),
-        asset1 = prepare_assets(created_note_2.assets())[0],
+        recipient0 = prepare_word(&output_notes[0].recipient().digest()),
+        aux0 = output_notes[0].metadata().aux(),
+        tag0 = output_notes[0].metadata().tag(),
+        asset0 = prepare_assets(output_notes[0].assets())[0],
+        recipient1 = prepare_word(&output_notes[1].recipient().digest()),
+        aux1 = output_notes[1].metadata().aux(),
+        tag1 = output_notes[1].metadata().tag(),
+        asset1 = prepare_assets(output_notes[1].assets())[0],
     );
 
-    let consumed_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+    let consumed_note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([1u32.into()])
         .unwrap()
         .add_asset(fungible_asset_1)
@@ -360,7 +342,7 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         .unwrap();
 
     let note_2_script_src = format!(
-        "\
+        "
         begin
             # create note 2
             push.{recipient}
@@ -376,13 +358,13 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
-        recipient = prepare_word(&created_note_3.recipient().digest()),
-        aux = created_note_3.metadata().aux(),
-        tag = created_note_3.metadata().tag(),
-        asset = prepare_assets(created_note_3.assets())[0],
+        recipient = prepare_word(&output_notes[2].recipient().digest()),
+        aux = output_notes[2].metadata().aux(),
+        tag = output_notes[2].metadata().tag(),
+        asset = prepare_assets(output_notes[2].assets())[0],
     );
 
-    let consumed_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+    let consumed_note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
         .unwrap()
         .add_asset(fungible_asset_2)
@@ -391,7 +373,7 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         .build(assembler)
         .unwrap();
 
-    let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+    let consumed_note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([2u32.into()])
         .unwrap()
         .add_asset(fungible_asset_2)
@@ -399,7 +381,7 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         .build(assembler)
         .unwrap();
 
-    let consumed_note_4 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+    let consumed_note_4 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .note_inputs([1u32.into()])
         .unwrap()
         .add_asset(Asset::mock_non_fungible(
@@ -410,7 +392,7 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         .unwrap();
 
     // note that changes the account vault
-    let note_5_script_src = "\
+    let note_5_script_src = "
         use.miden::note
         use.miden::contracts::wallets::basic->wallet
 
@@ -437,7 +419,7 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         end
         ";
 
-    let consumed_note_5 = NoteBuilder::new(sender, ChaCha20Rng::from_rng(&mut rng).unwrap())
+    let consumed_note_5 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
         .add_asset(fungible_asset_1)
         .add_asset(fungible_asset_3)
         .add_asset(Asset::mock_non_fungible(
@@ -448,18 +430,55 @@ fn mock_notes(assembler: &Assembler) -> (Vec<Note>, Vec<OutputNote>) {
         .build(assembler)
         .unwrap();
 
-    let consumed_notes = vec![
+    vec![
         consumed_note_1,
         consumed_note_2,
         consumed_note_3,
         consumed_note_4,
         consumed_note_5,
-    ];
-    let output_notes = vec![
-        OutputNote::Full(created_note_1),
-        OutputNote::Full(created_note_2),
-        OutputNote::Full(created_note_3),
-    ];
+    ]
+}
 
-    (consumed_notes, output_notes)
+fn output_mock_notes(assembler: &Assembler, rng: &mut ChaCha20Rng) -> Vec<Note> {
+    // ACCOUNT IDS
+    // --------------------------------------------------------------------------------------------
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+    let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
+    let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
+    let faucet_id_3 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3).unwrap();
+
+    // ASSETS
+    // --------------------------------------------------------------------------------------------
+    let fungible_asset_1: Asset =
+        FungibleAsset::new(faucet_id_1, CONSUMED_ASSET_1_AMOUNT).unwrap().into();
+    let fungible_asset_2: Asset =
+        FungibleAsset::new(faucet_id_2, CONSUMED_ASSET_2_AMOUNT).unwrap().into();
+    let fungible_asset_3: Asset =
+        FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
+
+    // NOTES
+    // --------------------------------------------------------------------------------------------
+
+    let note_1 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
+        .note_inputs([1u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_1)
+        .build(assembler)
+        .unwrap();
+
+    let note_2 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
+        .note_inputs([2u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_2)
+        .build(assembler)
+        .unwrap();
+
+    let note_3 = NoteBuilder::new(sender, ChaCha20Rng::from_seed(rng.gen()))
+        .note_inputs([3u32.into()])
+        .unwrap()
+        .add_asset(fungible_asset_3)
+        .build(assembler)
+        .unwrap();
+
+    vec![note_1, note_2, note_3]
 }
