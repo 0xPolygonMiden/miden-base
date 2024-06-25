@@ -1,9 +1,4 @@
-use alloc::vec::Vec;
-
-use miden_lib::transaction::{
-    memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR},
-    ToTransactionKernelInputs,
-};
+use miden_lib::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -15,17 +10,13 @@ use miden_objects::{
         AccountId, AccountStorage, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    notes::Note,
     testing::{notes::AssetPreservationStatus, prepare_word, storage::STORAGE_LEAVES_2},
-    transaction::OutputNote,
 };
 use vm_processor::{Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
-    testing::{
-        executor::CodeExecutor, utils::mock_executed_tx, MockHost, TransactionContextBuilder,
-    },
+    testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
 
@@ -66,22 +57,15 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
-    let output_notes: Vec<Note> = executed_transaction
-        .output_notes()
-        .iter()
-        .filter_map(|note| {
-            if let OutputNote::Full(note) = note {
-                Some(note)
-            } else {
-                None
-            }
-        })
-        .cloned()
-        .collect();
-
-    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
@@ -106,9 +90,7 @@ pub fn test_set_code_succeeds() {
         "
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let host = MockHost::new(executed_transaction.initial_account().into(), advice_inputs);
-    let process = CodeExecutor::new(host).stack_inputs(stack_inputs).run(&code).unwrap();
+    let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
