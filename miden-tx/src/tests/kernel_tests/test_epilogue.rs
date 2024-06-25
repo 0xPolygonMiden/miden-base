@@ -1,20 +1,17 @@
 use alloc::{string::String, vec::Vec};
 
-use miden_lib::transaction::{
-    memory::{CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE},
-    ToTransactionKernelInputs,
+use miden_lib::transaction::memory::{
+    CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
 };
 use miden_objects::{
-    notes::Note, testing::notes::AssetPreservationStatus, transaction::OutputNote,
+    accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
+    testing::notes::AssetPreservationStatus,
+    transaction::{OutputNote, OutputNotes},
 };
+use vm_processor::ONE;
 
-use super::{
-    build_module_path, output_notes_data_procedure, MemAdviceProvider, TX_KERNEL_DIR, ZERO,
-};
-use crate::{
-    testing::{executor::CodeExecutor, utils::mock_executed_tx},
-    tests::kernel_tests::read_root_mem_value,
-};
+use super::{build_module_path, output_notes_data_procedure, TX_KERNEL_DIR, ZERO};
+use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
 
 const EPILOGUE_FILE: &str = "epilogue.masm";
 
@@ -35,48 +32,52 @@ fn insert_epilogue(imports: &str, code: &str) -> String {
 
 #[test]
 fn test_epilogue() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
-    let output_notes: Vec<Note> = executed_transaction
-        .output_notes()
-        .iter()
-        .filter_map(|note| {
-            if let OutputNote::Full(note) = note {
-                Some(note)
-            } else {
-                None
-            }
-        })
-        .cloned()
-        .collect();
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
-
-    let imports = "use.miden::kernels::tx::prologue\n";
-    let code = format!(
-        "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
-            exec.create_mock_notes
-            push.1 exec.account::incr_nonce
-            exec.finalize_transaction
-        end
-        "
+    let code = insert_epilogue(
+        "use.miden::kernels::tx::prologue\n",
+        &format!(
+            "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
+                exec.create_mock_notes
+                push.1 exec.account::incr_nonce
+                exec.finalize_transaction
+            end
+            "
+        ),
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let code = insert_epilogue(imports, &code);
+    let process = tx_context.execute_code(&code).unwrap();
 
-    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
-        .stack_inputs(stack_inputs)
-        .run(&code)
-        .unwrap();
+    let final_account = Account::mock(
+        tx_context.account().id().into(),
+        tx_context.account().nonce() + ONE,
+        tx_context.account().code().clone(),
+    );
+
+    let output_notes = OutputNotes::new(
+        tx_context
+            .expected_output_notes()
+            .iter()
+            .cloned()
+            .map(OutputNote::Full)
+            .collect(),
+    )
+    .unwrap();
 
     let mut expected_stack = Vec::with_capacity(16);
-    expected_stack
-        .extend(executed_transaction.output_notes().commitment().as_elements().iter().rev());
-    expected_stack.extend(executed_transaction.final_account().hash().as_elements().iter().rev());
+    expected_stack.extend(output_notes.commitment().as_elements().iter().rev());
+    expected_stack.extend(final_account.hash().as_elements().iter().rev());
     expected_stack.extend((8..16).map(|_| ZERO));
 
     assert_eq!(
@@ -94,61 +95,46 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_created_note_id() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
-    let output_notes: Vec<Note> = executed_transaction
-        .output_notes()
-        .iter()
-        .filter_map(|note| {
-            if let OutputNote::Full(note) = note {
-                Some(note)
-            } else {
-                None
-            }
-        })
-        .cloned()
-        .collect();
-    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
-    for (note, i) in executed_transaction.output_notes().iter().zip(0u32..) {
-        let imports = "use.miden::kernels::tx::prologue\n";
-        let test = format!(
-            "
-            {output_notes_data_procedure}
-            begin
-                exec.prologue::prepare_transaction
-                exec.create_mock_notes
-                exec.finalize_transaction
-            end
-            "
+    for (note, i) in tx_context.expected_output_notes().iter().zip(0u32..) {
+        let code = insert_epilogue(
+            "use.miden::kernels::tx::prologue\n",
+            &format!(
+                "
+                {output_notes_data_procedure}
+                begin
+                    exec.prologue::prepare_transaction
+                    exec.create_mock_notes
+                    exec.finalize_transaction
+                end
+                "
+            ),
         );
 
-        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-        let test = insert_epilogue(imports, &test);
+        let process = tx_context.execute_code(&code).unwrap();
 
-        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
-            .stack_inputs(stack_inputs)
-            .run(&test)
-            .unwrap();
-
-        let expected_asset_hash =
-            note.assets().expect("Output note should be full note").commitment();
-        let asset_hash_memory_address =
-            CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET;
-        let actual_asset_hash = read_root_mem_value(&process, asset_hash_memory_address);
         assert_eq!(
-            expected_asset_hash.as_elements(),
-            actual_asset_hash,
-            "Asset hash didn't match expected value"
+            note.assets().commitment().as_elements(),
+            read_root_mem_value(
+                &process,
+                CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET
+            ),
+            "ASSET_HASH didn't match expected value",
         );
 
-        let expected_id = note.id();
-        let note_id_memory_address = CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE;
-        let actual_note_id = read_root_mem_value(&process, note_id_memory_address);
         assert_eq!(
-            &actual_note_id,
-            expected_id.as_elements(),
-            "note id didn't match expected value"
+            note.id().as_elements(),
+            &read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
+            "NOTE_ID didn't match expected value",
         );
     }
 }
@@ -159,141 +145,114 @@ fn test_epilogue_asset_preservation_violation() {
         AssetPreservationStatus::TooFewInput,
         AssetPreservationStatus::TooManyFungibleInput,
     ] {
-        let executed_transaction = mock_executed_tx(asset_preservation);
+        let tx_context = TransactionContextBuilder::with_standard_account(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+            ONE,
+        )
+        .with_mock_notes(asset_preservation)
+        .build();
 
-        let output_notes: Vec<Note> = executed_transaction
-            .output_notes()
-            .iter()
-            .filter_map(|note| {
-                if let OutputNote::Full(note) = note {
-                    Some(note)
-                } else {
-                    None
-                }
-            })
-            .cloned()
-            .collect();
-        let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
+        let output_notes_data_procedure =
+            output_notes_data_procedure(tx_context.expected_output_notes());
 
         let imports = "use.miden::kernels::tx::prologue\n";
-        let code = format!(
-            "
-            {output_notes_data_procedure}
-            begin
-                exec.prologue::prepare_transaction
-                exec.create_mock_notes
-                push.1
-                exec.account::incr_nonce
-                exec.finalize_transaction
-            end
-            "
+        let code = insert_epilogue(
+            imports,
+            &format!(
+                "
+                {output_notes_data_procedure}
+                begin
+                    exec.prologue::prepare_transaction
+                    exec.create_mock_notes
+                    push.1
+                    exec.account::incr_nonce
+                    exec.finalize_transaction
+                end
+                "
+            ),
         );
 
-        let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-        let code = insert_epilogue(imports, &code);
-
-        let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
-            .stack_inputs(stack_inputs)
-            .run(&code);
-
+        let process = tx_context.execute_code(&code);
         assert!(process.is_err(), "Violating asset preservation must result in a failure");
     }
 }
 
 #[test]
 fn test_epilogue_increment_nonce_success() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
-    let output_notes: Vec<Note> = executed_transaction
-        .output_notes()
-        .iter()
-        .filter_map(|note| {
-            if let OutputNote::Full(note) = note {
-                Some(note)
-            } else {
-                None
-            }
-        })
-        .cloned()
-        .collect();
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
+    let code = insert_epilogue(
+        "use.miden::kernels::tx::prologue\n",
+        &format!(
+            "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
 
-    let imports = "use.miden::kernels::tx::prologue\n";
-    let code = format!(
-        "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
+                exec.create_mock_notes
 
-            exec.create_mock_notes
+                push.1.2.3.4
+                push.0
+                exec.account::set_item
+                dropw
 
-            push.1.2.3.4
-            push.0
-            exec.account::set_item
-            dropw
+                push.1
+                exec.account::incr_nonce
 
-            push.1
-            exec.account::incr_nonce
-
-            exec.finalize_transaction
-        end
-        "
+                exec.finalize_transaction
+            end
+            "
+        ),
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let code = insert_epilogue(imports, &code);
-
-    let _process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
-        .stack_inputs(stack_inputs)
-        .run(&code)
-        .unwrap();
+    let process = tx_context.execute_code(&code);
+    assert!(process.is_ok(), "Calling incr_nonce should succeed");
 }
 
 #[test]
 fn test_epilogue_increment_nonce_violation() {
-    let executed_transaction = mock_executed_tx(AssetPreservationStatus::Preserved);
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
 
-    let output_notes: Vec<Note> = executed_transaction
-        .output_notes()
-        .iter()
-        .filter_map(|note| {
-            if let OutputNote::Full(note) = note {
-                Some(note)
-            } else {
-                None
-            }
-        })
-        .cloned()
-        .collect();
+    let output_notes_data_procedure =
+        output_notes_data_procedure(tx_context.expected_output_notes());
 
-    let output_notes_data_procedure = output_notes_data_procedure(&output_notes);
+    let code = insert_epilogue(
+        "use.miden::kernels::tx::prologue\n",
+        &format!(
+            "
+            {output_notes_data_procedure}
+            begin
+                exec.prologue::prepare_transaction
 
-    let imports = "use.miden::kernels::tx::prologue\n";
-    let code = format!(
-        "
-        {output_notes_data_procedure}
-        begin
-            exec.prologue::prepare_transaction
+                exec.create_mock_notes
 
-            exec.create_mock_notes
+                push.1.2.3.4
+                push.0
+                exec.account::set_item
+                dropw
 
-            push.1.2.3.4
-            push.0
-            exec.account::set_item
-            dropw
-
-            exec.finalize_transaction
-        end
-        "
+                exec.finalize_transaction
+            end
+            "
+        ),
     );
 
-    let (stack_inputs, advice_inputs) = executed_transaction.get_kernel_inputs();
-    let code = insert_epilogue(imports, &code);
-
-    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::from(advice_inputs))
-        .stack_inputs(stack_inputs)
-        .run(&code);
-
-    assert!(process.is_err());
+    let process = tx_context.execute_code(&code);
+    assert!(
+        process.is_err(),
+        "Not incrementing the nonce when the state changes must be an error",
+    );
 }
