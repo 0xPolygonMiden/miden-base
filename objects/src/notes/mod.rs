@@ -166,7 +166,7 @@ impl Note {
     ///
     /// This value is used authenticate the note's presence in the note tree, it is computed as:
     ///
-    /// > hash(note_id, note_metadata)
+    /// > hash(NOTE_ID || NOTE_METADATA)
     ///
     pub fn authentication_hash(&self) -> Digest {
         Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])

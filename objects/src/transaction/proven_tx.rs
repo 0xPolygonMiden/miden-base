@@ -5,7 +5,6 @@ use miden_verifier::ExecutionProof;
 use super::ToInputNoteCommitments;
 use crate::{
     accounts::delta::AccountUpdateDetails,
-    notes::NoteId,
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
@@ -383,7 +382,7 @@ impl Deserializable for TxAccountUpdate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputNoteCommitment {
     nullifier: Nullifier,
-    note_id: Option<NoteId>,
+    note_hash: Option<Digest>,
 }
 
 impl InputNoteCommitment {
@@ -391,8 +390,8 @@ impl InputNoteCommitment {
         self.nullifier
     }
 
-    pub fn note_id(&self) -> Option<NoteId> {
-        self.note_id
+    pub fn note_hash(&self) -> Option<Digest> {
+        self.note_hash
     }
 }
 
@@ -401,8 +400,8 @@ impl ToInputNoteCommitments for InputNoteCommitment {
         self.nullifier
     }
 
-    fn note_id(&self) -> Option<NoteId> {
-        self.note_id
+    fn note_hash(&self) -> Option<Digest> {
+        self.note_hash
     }
 }
 
@@ -414,7 +413,7 @@ impl InputNoteCommitment {
     fn from_commitable<T: ToInputNoteCommitments>(value: &T) -> Self {
         Self {
             nullifier: value.nullifier(),
-            note_id: value.note_id(),
+            note_hash: value.note_hash(),
         }
     }
 }
@@ -425,16 +424,16 @@ impl InputNoteCommitment {
 impl Serializable for InputNoteCommitment {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.nullifier.write_into(target);
-        self.note_id.write_into(target);
+        self.note_hash.write_into(target);
     }
 }
 
 impl Deserializable for InputNoteCommitment {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let nullifier = Nullifier::read_from(source)?;
-        let note_id = <Option<NoteId>>::read_from(source)?;
+        let note_hash = <Option<Digest>>::read_from(source)?;
 
-        Ok(Self { nullifier, note_id })
+        Ok(Self { nullifier, note_hash })
     }
 }
 
