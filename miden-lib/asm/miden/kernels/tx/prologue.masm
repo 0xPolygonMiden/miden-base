@@ -495,23 +495,25 @@ end
 #! - authenticate the note and its metadata in the note Merkle tree from the block the note was
 #!   created in.
 #!
-#! Operand stack: [NOTE_HASH]
-#! Advice stack: [leaf_pos, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
-#! Output: []
+#! Inputs:
+#!   Stack: [NOTE_HASH]
+#!   Advice stack: [block_num, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
+#! Outputs:
+#!   Stack: []
+#!   Advice stack: []
 #!
 #! Where:
-#! - NOTE_HASH is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
-#! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
-#!   in. This is equivalent to the block number.
-#! - BLOCK_SUB_HASH, the block's sub_hash for which the note was created.
-#! - NOTE_ROOT, the merkle root of the note's tree.
-#! - note_index is the index of the note in the note Merkle tree.
+#! - NOTE_HASH, input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
+#! - block_num, leaf position in the MMR chain of the block which created the input note.
+#! - BLOCK_SUB_HASH, sub_hash of the block which created the input note.
+#! - NOTE_ROOT, merkle root of the notes tree containing the input note.
+#! - note_index, input note's position in the notes tree.
 proc.authenticate_note.2
     # Load the BLOCK_HASH from the CHAIN_MMR
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [leaf_pos, chain_mmr_ptr, NOTE_HASH]
+    # => [block_num, chain_mmr_ptr, NOTE_HASH]
 
     exec.mmr::get
     # => [BLOCK_HASH, NOTE_HASH]
