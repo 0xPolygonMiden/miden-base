@@ -165,7 +165,7 @@ impl Note {
     /// Returns a commitment to the note and its metadata.
     ///
     /// > hash(NOTE_ID || NOTE_METADATA)
-    /// 
+    ///
     /// This value is used primarily for authenticating notes consumed when the are consumed
     /// in a transaction.
     pub fn hash(&self) -> Digest {

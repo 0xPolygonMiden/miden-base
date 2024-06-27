@@ -224,7 +224,7 @@ end
 #! The note ID is computed as follows:
 #! - we define, recipient =
 #!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-#! - we then compute the output note hash as:
+#! - we then compute the output note ID as:
 #!       hash(recipient, assets_hash)
 #!
 #! Stack: [note_data_ptr]
@@ -279,11 +279,11 @@ export.compute_output_notes_commitment
 
     # loop and hash output notes
     while.true
-        # compute output note hash (this also computes the note's asset hash)
+        # compute and save output note ID to memory (this also computes the note's asset hash)
         dup.12 exec.compute_output_note_id
         # => [NOTE_ID, PERM, PERM, PERM, note_ptr, end_ptr, ...]
 
-        # drop output note hash from stack
+        # drop output note ID from stack (it will be read from memory by the next instruction)
         dropw
         # => [PERM, PERM, PERM, note_ptr, end_ptr, ...]
 
