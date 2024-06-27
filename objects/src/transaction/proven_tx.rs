@@ -2,9 +2,10 @@ use alloc::{string::ToString, vec::Vec};
 
 use miden_verifier::ExecutionProof;
 
-use super::ToInputNoteCommitments;
+use super::{InputNote, ToInputNoteCommitments};
 use crate::{
     accounts::delta::AccountUpdateDetails,
+    notes::NoteHeader,
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
@@ -231,13 +232,12 @@ impl ProvenTransactionBuilder {
     }
 
     /// Add notes consumed by the transaction.
-    pub fn add_input_notes<T, I>(mut self, notes: T) -> Self
+    pub fn add_input_notes<I, T>(mut self, notes: I) -> Self
     where
-        T: IntoIterator<Item = I>,
-        I: ToInputNoteCommitments,
+        I: IntoIterator<Item = T>,
+        T: Into<InputNoteCommitment>,
     {
-        self.input_notes
-            .extend(notes.into_iter().map(|note| InputNoteCommitment::from_commitable(&note)));
+        self.input_notes.extend(notes.into_iter().map(|note| note.into()));
         self
     }
 
@@ -378,11 +378,15 @@ impl Deserializable for TxAccountUpdate {
 // INPUT NOTE COMMITMENT
 // ================================================================================================
 
-/// The commitment of a consumed notes.
+/// The commitment to an input note.
+///
+/// For notes authenticated by the transaction kernel, the commitment consists only of the note's
+/// nullifier. For notes whose authentication is delayed to batch/block kernels, the commitment
+/// also includes full note header (i.e., note ID and metadata).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputNoteCommitment {
     nullifier: Nullifier,
-    note_hash: Option<Digest>,
+    header: Option<NoteHeader>,
 }
 
 impl InputNoteCommitment {
@@ -390,8 +394,29 @@ impl InputNoteCommitment {
         self.nullifier
     }
 
-    pub fn note_hash(&self) -> Option<Digest> {
-        self.note_hash
+    pub fn header(&self) -> Option<NoteHeader> {
+        self.header
+    }
+}
+
+impl From<InputNote> for InputNoteCommitment {
+    fn from(note: InputNote) -> Self {
+        Self::from(&note)
+    }
+}
+
+impl From<&InputNote> for InputNoteCommitment {
+    fn from(note: &InputNote) -> Self {
+        match note {
+            InputNote::Authenticated { note, .. } => Self {
+                nullifier: note.nullifier(),
+                header: None,
+            },
+            InputNote::Unauthenticated { note } => Self {
+                nullifier: note.nullifier(),
+                header: Some(*note.header()),
+            },
+        }
     }
 }
 
@@ -401,20 +426,7 @@ impl ToInputNoteCommitments for InputNoteCommitment {
     }
 
     fn note_hash(&self) -> Option<Digest> {
-        self.note_hash
-    }
-}
-
-impl InputNoteCommitment {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Converts a value of type `T` into a [InputNoteCommitment].
-    fn from_commitable<T: ToInputNoteCommitments>(value: &T) -> Self {
-        Self {
-            nullifier: value.nullifier(),
-            note_hash: value.note_hash(),
-        }
+        self.header.map(|header| header.hash())
     }
 }
 
@@ -424,16 +436,16 @@ impl InputNoteCommitment {
 impl Serializable for InputNoteCommitment {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.nullifier.write_into(target);
-        self.note_hash.write_into(target);
+        self.header.write_into(target);
     }
 }
 
 impl Deserializable for InputNoteCommitment {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let nullifier = Nullifier::read_from(source)?;
-        let note_hash = <Option<Digest>>::read_from(source)?;
+        let header = <Option<NoteHeader>>::read_from(source)?;
 
-        Ok(Self { nullifier, note_hash })
+        Ok(Self { nullifier, header })
     }
 }
 

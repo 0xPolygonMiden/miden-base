@@ -169,7 +169,7 @@ impl Note {
     /// This value is used primarily for authenticating notes consumed when the are consumed
     /// in a transaction.
     pub fn hash(&self) -> Digest {
-        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+        self.header.hash()
     }
 }
 

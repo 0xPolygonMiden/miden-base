@@ -1,9 +1,10 @@
 use alloc::vec::Vec;
 
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, NoteId, NoteMetadata,
-    Serializable, Word,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, NoteId,
+    NoteMetadata, Serializable, Word,
 };
+use crate::Hasher;
 
 // NOTE HEADER
 // ================================================================================================
@@ -34,6 +35,16 @@ impl NoteHeader {
     /// Returns the note's metadata.
     pub fn metadata(&self) -> &NoteMetadata {
         &self.note_metadata
+    }
+
+    /// Returns a commitment to the note and its metadata.
+    ///
+    /// > hash(NOTE_ID || NOTE_METADATA)
+    ///
+    /// This value is used primarily for authenticating notes consumed when the are consumed
+    /// in a transaction.
+    pub fn hash(&self) -> Digest {
+        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
     }
 }
 
