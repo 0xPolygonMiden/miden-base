@@ -4,16 +4,10 @@
 
 ### Enhancements
 
-- Created `get_serial_number` procedure to get the serial num of the currently processed note(#760)
-- Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706)
-- Added ability for users to set the aux field when creating a note (#752)
-- Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748)
-- Fixed documentation and added `make doc` CI job (#746)
-- Made `DataStore` conditionally async using `winter-maybe-async` (#725)
-- Add `Option<NoteTag>`to `NoteFile` (#741).
 - Replaced `cargo-make` with just `make` for running tasks (#696).
 - [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 - [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
+- Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706).
 - [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes (#707).
 - Created additional `emit` events for kernel related `.masm` procedures (#708).
 - Implemented `build_recipient_hash` procedure to build recipient hash for custom notes (#710).
@@ -21,11 +15,17 @@
 - [BREAKING] Created `auth` module for `TransactionAuthenticator` and other related objects (#714).
 - Added validation for the output stack to make sure it was properly cleaned (#717).
 - Added new `NoteFile` object to represent serialized notes (#721).
-- [BREAKING] Added support for delegated authenticated notes (#724).
+- Made `DataStore` conditionally async using `winter-maybe-async` (#725).
+- Changed note pointer from Memory `note_ptr` to `note_index` (#728).
 - [BREAKING] Changed rng to mutable reference in note creation functions (#733).
 - Added transaction IDs to the `Block` struct (#734).
 - [BREAKING] Replaced `ToNullifier` trait with `ToInputNoteCommitments`, which includes the `note_id` for delayed note authentication (#732).
-- Changed note pointer from Memory `note_ptr` to `note_index` (#728)
+- Added `Option<NoteTag>`to `NoteFile` (#741).
+- Fixed documentation and added `make doc` CI job (#746).
+- Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748).
+- Added ability for users to set the aux field when creating a note (#752).
+- Created `get_serial_number` procedure to get the serial num of the currently processed note (#760).
+- [BREAKING] Added support for input notes with delayed verification of inclusion proofs (#724, #732, #759, #770, #772).
 
 ## 0.3.1 (2024-06-12)
 * Replaced `cargo-make` with just `make` for running tasks (#696).

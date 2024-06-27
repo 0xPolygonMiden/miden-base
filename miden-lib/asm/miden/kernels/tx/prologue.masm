@@ -125,7 +125,7 @@ proc.process_block_data
     exec.memory::get_block_data_ptr
     # => [block_data_ptr]
 
-    # read block data and compute its digest
+    # read block data and compute its subhash. See `Advice stack` above for details.
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
@@ -214,9 +214,9 @@ proc.ingest_acct_storage_types
 
     # prepare the stack for reading storage slot types
     padw padw padw
-    # => [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, slot_type_data_ptr, TYPES_COM]
+    # => [PERM, PERM, PERM, slot_type_data_ptr, TYPES_COM]
 
-    # read the storage slot types from the advice provider and store in memory
+    # read slot types and compute its digest. See `Advice Map` above for details.
     repeat.32
         adv_pipe hperm
         # => [PERM, PERM, PERM, slot_type_data_ptr', TYPES_COM]
@@ -412,7 +412,7 @@ proc.process_account_data
     exec.memory::get_acct_data_ptr
     # => [acct_data_ptr]
 
-    # read account data and compute its digest
+    # read account details and compute its digest. See `Advice stack` above for details.
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
@@ -581,7 +581,7 @@ proc.process_input_note_details
     exec.memory::get_consumed_note_core_ptr
     # => [note_data_ptr]
 
-    # read note details (SERIAL_NUMBER, SCRIPT_ROOT, INPUTS_HASH, ASSETS_HASH)
+    # read input note's data and compute its digest. See `Advice stack` above for details.
     padw padw padw
     adv_pipe hperm
     adv_pipe hperm
@@ -594,27 +594,32 @@ end
 
 #! Copies the note's metadata and args from the advice stack to memory.
 #!
-#! Note: The note's metadata is validated when the note is authenticated, since
-#! the authentication is `hash(NOTE_ID || NOTE_METADATA)`. This is either done
-#! by the procedure `authenticate_note` for or delayed to another kernel.
+#! # Notes
 #!
-#! Stack: [note_ptr]
-#! Advice stack: [
-#!      METADATA,
-#!      ARGS,
-#! ]
-#! Output: []
+#! - The note's ARGS are not authenticated, these are optional arguments the user can provide when
+#!   consuming the note.
+#! - The note's metadata is authenticated, so the data is returned in the stack. The value is used
+#!   to compute the NOTE_HASH as `hash(NOTE_ID || NOTE_METADATA)`, which is the leaf value of the note's
+#!   tree in the contained in the block header. The NOTE_HASH is either verified by this kernel, or
+#!   delayed to be verified by another kernel (e.g. block or batch kernels).
+#!
+#! Inputs:
+#!   Stack: [note_ptr]
+#!   Advice stack: [NOTE_ARGS, NOTE_METADATA]
+#! Outputs:
+#!   Stack: [NOTE_METADATA]
+#!   Advice stack: []
 #!
 #! Where:
 #! - note_ptr, memory location for the input note.
-#! - METADATA, note's metadata.
-#! - ARGS, user arguments passed to the note.
-proc.process_note_metadata
-    padw adv_loadw dup.4 exec.memory::set_consumed_note_metadata
+#! - NOTE_ARGS, user arguments passed to the note.
+#! - NOTE_METADATA, note's metadata.
+proc.process_note_args_and_metadata
+    padw adv_loadw dup.4 exec.memory::set_consumed_note_args
     # => [note_ptr]
 
-    padw adv_loadw movup.4 exec.memory::set_consumed_note_args
-    # => []
+    padw adv_loadw movup.4 exec.memory::set_consumed_note_metadata
+    # => [NOTE_METADATA]
 end
 
 #! Copies the note's assets the advice stack to memory and verifies the commitment.
@@ -674,7 +679,7 @@ proc.process_note_assets
 
     # loop and read assets from the advice provider
     while.true
-        # read assets (ASSET_n, ASSET_n+1)
+        # read data and compute its digest. See `Advice stack` above for details.
         adv_pipe hperm
         # => [PERM, PERM, PERM, assets_ptr+2, note_ptr, counter, rounded_num_assets]
 
@@ -788,8 +793,8 @@ end
 #!      SCRIPT_ROOT,
 #!      INPUTS_HASH,
 #!      ASSETS_HASH,
-#!      METADATA,
 #!      ARGS,
+#!      NOTE_METADATA,
 #!      assets_count,
 #!      ASSET_0, ..., ASSET_N,
 #!      is_authenticated,
@@ -808,7 +813,7 @@ end
 #! - SCRIPT_ROOT, note's script root.
 #! - INPUTS_HASH, sequential hash of the padded note's inputs.
 #! - ASSETS_HASH, sequential hash of the padded note's assets.
-#! - METADATA, note's metadata.
+#! - NOTE_METADATA, note's metadata.
 #! - ARGS, user arguments passed to the note.
 #! - assets_count, note's assets count.
 #! - ASSET_0, ..., ASSET_N, padded note's assets.
@@ -830,7 +835,7 @@ proc.process_input_note
     exec.process_input_note_details
     # => [NULLIFIER, note_ptr, idx, HASHER_CAPACITY]
 
-    # save nullifier to memory
+    # save NULLIFIER to memory
     movup.5 exec.memory::get_consumed_note_nullifier_ptr mem_storew
     # => [NULLIFIER, note_ptr, HASHER_CAPACITY]
 
@@ -840,38 +845,40 @@ proc.process_input_note
     movup.4
     # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
 
-    dup exec.process_note_metadata
-    # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
+    dup exec.process_note_args_and_metadata
+    # => [NOTE_METADATA, note_ptr, NULLIFIER, HASHER_CAPACITY]
+
+    movup.4
+    # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note assets
     # ---------------------------------------------------------------------------------------------
 
     dup exec.process_note_assets
     dup exec.add_input_note_assets_to_vault
-    # => [note_ptr, NULLIFIER, HASHER_CAPACITY]
+    # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note id
     # ---------------------------------------------------------------------------------------------
 
     dup exec.compute_note_id
-    # => [NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
+    # => [NOTE_ID, note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # save note id to memory
-    dup.4 exec.memory::set_consumed_note_id
-    # => [NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
+    movup.4 exec.memory::set_consumed_note_id
+    # => [NOTE_ID, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note authentication
     # ---------------------------------------------------------------------------------------------
 
+    # NOTE_HASH: `hash(NOTE_ID || NOTE_METADATA)`
+    swapw hmerge
+    # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
+
     adv_push.1
-    # => [authenticated, NOTE_ID, note_ptr, NULLIFIER, HASHER_CAPACITY]
+    # => [is_authenticated, NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
 
     if.true
-        # if the note is authenticated
-        # -----------------------------------------------------------------------------------------
-
-        # NOTE_HASH: `hash(NOTE_ID || NOTE_METADATA)`
-        movup.4 exec.memory::get_consumed_note_metadata hmerge
         # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
 
         exec.authenticate_note
@@ -879,15 +886,8 @@ proc.process_input_note
 
         padw
         # => [EMPTY_WORD, NULLIFIER, HASHER_CAPACITY]
-
-    else
-        # if the note authentication is delayed
-        # -----------------------------------------------------------------------------------------
-
-        movup.4 drop
-        # => [NOTE_ID, NULLIFIER, HASHER_CAPACITY]
     end
-    # => [EMPTY_WORD_OR_NOTEID, NULLIFIER, HASHER_CAPACITY]
+    # => [EMPTY_WORD_OR_NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
 
     # update the input note commitment
     hperm
@@ -897,7 +897,7 @@ end
 #! Process the input notes data provided via the advice provider. This involves reading the data
 #! from the advice provider and storing it at the appropriate memory addresses. As each note is
 #! processed its hash and nullifier are computed. The transaction input notes commitment is
-#! computed via a sequential hash of all (nullifier, NOTEID_OR_EMPTY_WORD) pairs for all input
+#! computed via a sequential hash of all (NULLIFIER, EMPTY_WORD_NOTE_HASH) pairs for all input
 #! notes.
 #!
 #! Stack: []
@@ -946,7 +946,7 @@ proc.process_input_notes_data
     #      processed.
     # - The num_notes is kept at position 13, because dup.13 is cheap.
     # - The [idx, num_notes] pair is kept in a word boundary, so that its word can be swapped with a
-    #   cheap mov intructions to update the `idx` counter.
+    #   cheap swapw.3 intruction to update the `idx` counter.
 
     push.0 padw padw padw
     # => [PERM, PERM, PERM, idx, num_notes]
