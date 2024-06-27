@@ -168,7 +168,7 @@ impl Note {
     ///
     /// > hash(NOTE_ID || NOTE_METADATA)
     ///
-    pub fn authentication_hash(&self) -> Digest {
+    pub fn hash(&self) -> Digest {
         Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
     }
 }

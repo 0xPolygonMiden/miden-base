@@ -270,7 +270,7 @@ fn add_account_to_advice_inputs(
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
 ///     - The note's asset padded. Prefixed by its length and padded to an even word length.
-///     - For autheticated notes:
+///     - For autheticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
 ///         - The block number, sub hash, note root.
 ///         - The note's position in the note tree
@@ -319,13 +319,14 @@ fn add_input_notes_to_advice_inputs(
         match input_note {
             InputNote::Authenticated { note, proof } => {
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
+                // Push the `is_authenticated` flag
                 note_data.push(Felt::ONE);
 
                 // NOTE: keep in sync with the `prologue::authenticate_note` kernel procedure
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
+                        .inner_nodes(proof.origin().node_index.value(), note.hash())
                         .unwrap(),
                 );
                 note_data.push(proof.origin().block_num.into());
@@ -342,6 +343,7 @@ fn add_input_notes_to_advice_inputs(
             },
             InputNote::Unauthenticated { .. } => {
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
+                // Push the `is_authenticated` flag
                 note_data.push(Felt::ZERO);
             },
         }

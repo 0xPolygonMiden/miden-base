@@ -378,7 +378,7 @@ impl InputNote {
 /// Returns true if this note belongs to the note tree of the specified block.
 fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
     let note_index = proof.origin().node_index.value();
-    let note_hash = note.authentication_hash();
+    let note_hash = note.hash();
     proof.note_path().verify(note_index, note_hash, &block_header.note_root())
 }
 
@@ -390,7 +390,7 @@ impl ToInputNoteCommitments for InputNote {
     fn note_hash(&self) -> Option<Digest> {
         match self {
             InputNote::Authenticated { .. } => None,
-            InputNote::Unauthenticated { note } => Some(note.authentication_hash()),
+            InputNote::Unauthenticated { note } => Some(note.hash()),
         }
     }
 }

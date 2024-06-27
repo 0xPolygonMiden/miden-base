@@ -603,12 +603,12 @@ end
 #!   tree in the contained in the block header. The NOTE_HASH is either verified by this kernel, or
 #!   delayed to be verified by another kernel (e.g. block or batch kernels).
 #!
-#! Stack: [note_ptr]
-#! Advice stack: [
-#!      ARGS,
-#!      NOTE_METADATA,
-#! ]
-#! Output: [NOTE_METADATA]
+#! Inputs:
+#!   Stack: [note_ptr]
+#!   Advice stack: [NOTE_ARGS, NOTE_METADATA]
+#! Outputs:
+#!   Stack: [NOTE_METADATA]
+#!   Advice stack: []
 #!
 #! Where:
 #! - note_ptr, memory location for the input note.
