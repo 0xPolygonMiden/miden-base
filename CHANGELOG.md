@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+- Added `create_wallet_with_custom_code` wallet helper function in miden-lib
 - Created `get_serial_number` procedure to get the serial num of the currently processed note(#760)
 - Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706)
 - Added ability for users to set the aux field when creating a note (#752)
