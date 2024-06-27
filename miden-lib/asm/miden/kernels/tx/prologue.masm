@@ -612,16 +612,13 @@ end
 #!
 #! Where:
 #! - note_ptr, memory location for the input note.
-#! - ARGS, user arguments passed to the note.
+#! - NOTE_ARGS, user arguments passed to the note.
 #! - NOTE_METADATA, note's metadata.
 proc.process_note_args_and_metadata
     padw adv_loadw dup.4 exec.memory::set_consumed_note_args
     # => [note_ptr]
 
-    padw adv_loadw movup.4 exec.memory::get_consumed_note_metadata_ptr
-    # => [metadata_ptr, NOTE_METADATA]
-
-    mem_storew
+    padw adv_loadw movup.4 exec.memory::set_consumed_note_metadata
     # => [NOTE_METADATA]
 end
 

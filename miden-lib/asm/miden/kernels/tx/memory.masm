@@ -916,16 +916,17 @@ export.get_consumed_note_metadata
     mem_loadw
 end
 
-#! Returns a pointer to the memory address of the note's metadata.
+#! Sets the metadata for a consumed note located at the specified memory address.
 #!
-#! Stack: [note_ptr]
-#! Output: [metadata_ptr]
+#! Stack: [note_ptr, NOTE_METADATA]
+#! Output: [NOTE_METADATA]
 #!
 #! Where:
-#! - note_ptr, the start memory address of the note.
-#! - metadata_ptr, the memory address of the note's metadata.
-export.get_consumed_note_metadata_ptr
+#! - note_ptr, the memory address at which the consumed note data begins.
+#! - NOTE_METADATA, the metadata of the consumed note.
+export.set_consumed_note_metadata
     push.CONSUMED_NOTE_METADATA_OFFSET add
+    mem_storew
 end
 
 #! Returns the note's args.
