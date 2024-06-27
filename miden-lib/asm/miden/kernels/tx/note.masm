@@ -22,7 +22,7 @@ const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
 # =================================================================================================
 
 # The diff between the memory address after first mem_stream operation and the next target when
-# generating the consumed notes commitment. Must be NOTE_MEM_SIZE - 2;
+# generating the output notes commitment. Must be NOTE_MEM_SIZE - 2;
 const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
 
 # INPUT NOTE PROCEDURES
@@ -219,20 +219,20 @@ proc.compute_output_note_assets_hash
     # => []
 end
 
-#! Computes the hash of an output note located at the specified memory address.
+#! Computes the ID of an output note located at the specified memory address.
 #!
-#! The hash is computed as follows:
+#! The note ID is computed as follows:
 #! - we define, recipient =
 #!       hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 #! - we then compute the output note hash as:
 #!       hash(recipient, assets_hash)
 #!
 #! Stack: [note_data_ptr]
-#! Output: [OUTPUT_NOTE_HASH]
+#! Output: [NOTE_ID]
 #!
 #! - note_data_ptr is a pointer to the data section of the output note.
-#! - OUTPUT_NOTE_HASH is the hash of the output note located at note_data_ptr.
-proc.compute_output_note_hash
+#! - NOTE_ID is the ID of the output note located at note_data_ptr.
+proc.compute_output_note_id
     # pad capacity elements of hasher
     padw
 
@@ -250,7 +250,7 @@ proc.compute_output_note_hash
 end
 
 #! Computes a commitment to the output notes. This is computed as a sequential hash of
-#! (note_hash, note_metadata) tuples.
+#! (note_id, note_metadata) tuples.
 #!
 #! Stack: []
 #! Output: [OUTPUT_NOTES_COMMITMENT]
@@ -280,14 +280,14 @@ export.compute_output_notes_commitment
     # loop and hash output notes
     while.true
         # compute output note hash (this also computes the note's asset hash)
-        dup.12 exec.compute_output_note_hash
-        # => [NOTE_HASH, PERM, PERM, PERM, note_ptr, end_ptr, ...]
+        dup.12 exec.compute_output_note_id
+        # => [NOTE_ID, PERM, PERM, PERM, note_ptr, end_ptr, ...]
 
         # drop output note hash from stack
         dropw
         # => [PERM, PERM, PERM, note_ptr, end_ptr, ...]
 
-        # permute over (note_hash, note_metadata)
+        # permute over (note_id, note_metadata)
         mem_stream hperm
         # => [PERM, PERM, PERM, note_ptr + 2, end_ptr, ...]
 

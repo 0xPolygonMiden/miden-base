@@ -133,7 +133,7 @@ const.CONSUMED_NOTE_DATA_SECTION_OFFSET=1064960
 const.CONSUMED_NOTE_NUM_PTR=1048576
 
 # The offsets at which data of a consumed note is stored relative to the start of its data segment
-const.CONSUMED_NOTE_HASH_OFFSET=0
+const.CONSUMED_NOTE_ID_OFFSET=0
 const.CONSUMED_NOTE_CORE_DATA_OFFSET=1
 const.CONSUMED_NOTE_SERIAL_NUM_OFFSET=1
 const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
@@ -151,7 +151,7 @@ const.CONSUMED_NOTE_ASSETS_OFFSET=8
 const.CREATED_NOTE_SECTION_OFFSET=4194304
 
 # The offsets at which data of a created note is stored relative to the start of its data segment.
-const.CREATED_NOTE_HASH_OFFSET=0
+const.CREATED_NOTE_ID_OFFSET=0
 const.CREATED_NOTE_METADATA_OFFSET=1
 const.CREATED_NOTE_RECIPIENT_OFFSET=2
 const.CREATED_NOTE_ASSETS_HASH_OFFSET=3

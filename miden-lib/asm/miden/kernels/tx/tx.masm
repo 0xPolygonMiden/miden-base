@@ -99,7 +99,7 @@ export.memory::get_blk_num->get_block_number
 #! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
 export.memory::get_input_notes_commitment
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs: []
