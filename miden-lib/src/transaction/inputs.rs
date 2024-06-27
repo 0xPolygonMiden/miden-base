@@ -265,11 +265,17 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's authentication path against its block's note tree.
-///     - The note's input padded prefixed by its length.
-///     - The note's asset padded.
-/// - And all notes details together under the input notes' commitment.
+///     - The note's details (serial number, script root, and its' input / assets hash).
+///     - The note's private arguments.
+///     - The note's public metadata.
+///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
+///     - The note's asset padded. Prefixed by its length and padded to an even word length.
+///     - For autheticated notes (determined by the `is_authenticated` flag):
+///         - The note's authentication path against its block's note tree.
+///         - The block number, sub hash, note root.
+///         - The note's position in the note tree
 ///
+/// The data above is processed by `prologue::process_input_notes_data`.
 fn add_input_notes_to_advice_inputs(
     notes: &InputNotes<InputNote>,
     tx_args: &TransactionArgs,
@@ -295,29 +301,34 @@ fn add_input_notes_to_advice_inputs(
 
         inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
-        // NOTE: keep in sync with the `prologue::process_input_node` kernel procedure
+        // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
         note_data.extend(*recipient.script().hash());
         note_data.extend(*recipient.inputs().commitment());
         note_data.extend(*assets.commitment());
 
-        note_data.extend(Word::from(note.metadata()));
+        // NOTE: keep in sync with the `prologue::process_note_args_and_metadata` kernel procedure
         note_data.extend(Word::from(*note_arg));
+        note_data.extend(Word::from(note.metadata()));
 
+        // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
         note_data.push((assets.num_assets() as u32).into());
         note_data.extend(assets.to_padded_assets());
 
         // insert note authentication path nodes into the Merkle store
         match input_note {
             InputNote::Authenticated { note, proof } => {
+                // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
+                // Push the `is_authenticated` flag
+                note_data.push(Felt::ONE);
+
+                // NOTE: keep in sync with the `prologue::authenticate_note` kernel procedure
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.origin().node_index.value(), note.authentication_hash())
+                        .inner_nodes(proof.origin().node_index.value(), note.hash())
                         .unwrap(),
                 );
-
-                note_data.push(Felt::ONE);
                 note_data.push(proof.origin().block_num.into());
                 note_data.extend(*proof.sub_hash());
                 note_data.extend(*proof.note_root());
@@ -331,6 +342,8 @@ fn add_input_notes_to_advice_inputs(
                 );
             },
             InputNote::Unauthenticated { .. } => {
+                // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
+                // Push the `is_authenticated` flag
                 note_data.push(Felt::ZERO);
             },
         }

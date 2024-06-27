@@ -145,7 +145,7 @@ impl TransactionInputs {
 /// - an optional note_id, which allows for delayed note authentication.
 pub trait ToInputNoteCommitments {
     fn nullifier(&self) -> Nullifier;
-    fn note_id(&self) -> Option<NoteId>;
+    fn note_hash(&self) -> Option<Digest>;
 }
 
 // INPUT NOTES
@@ -304,11 +304,11 @@ fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
     for commitment_data in notes {
         let nullifier = commitment_data.nullifier();
-        let zero_or_noteid =
-            &commitment_data.note_id().map_or(Word::default(), |note_id| note_id.into());
+        let zero_or_notehash =
+            &commitment_data.note_hash().map_or(Word::default(), |note_id| note_id.into());
 
         elements.extend_from_slice(nullifier.as_elements());
-        elements.extend_from_slice(zero_or_noteid);
+        elements.extend_from_slice(zero_or_notehash);
     }
     Hasher::hash_elements(&elements)
 }
@@ -378,7 +378,7 @@ impl InputNote {
 /// Returns true if this note belongs to the note tree of the specified block.
 fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
     let note_index = proof.origin().node_index.value();
-    let note_hash = note.authentication_hash();
+    let note_hash = note.hash();
     proof.note_path().verify(note_index, note_hash, &block_header.note_root())
 }
 
@@ -387,10 +387,10 @@ impl ToInputNoteCommitments for InputNote {
         self.note().nullifier()
     }
 
-    fn note_id(&self) -> Option<NoteId> {
+    fn note_hash(&self) -> Option<Digest> {
         match self {
             InputNote::Authenticated { .. } => None,
-            InputNote::Unauthenticated { note } => Some(note.id()),
+            InputNote::Unauthenticated { note } => Some(note.hash()),
         }
     }
 }
@@ -400,8 +400,8 @@ impl ToInputNoteCommitments for &InputNote {
         (*self).nullifier()
     }
 
-    fn note_id(&self) -> Option<NoteId> {
-        (*self).note_id()
+    fn note_hash(&self) -> Option<Digest> {
+        (*self).note_hash()
     }
 }
 
