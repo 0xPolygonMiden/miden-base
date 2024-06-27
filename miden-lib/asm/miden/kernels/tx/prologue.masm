@@ -495,56 +495,66 @@ end
 #! - authenticate the note and its metadata in the note Merkle tree from the block the note was
 #!   created in.
 #!
-#! Operand stack: [AUTH_DIGEST]
-#! Advice stack: [leaf_pos, SUB_HASH, NOTE_ROOT, note_index]
-#! Output: []
+#! Inputs:
+#!   Stack: [NOTE_HASH]
+#!   Advice stack: [block_num, BLOCK_SUB_HASH, NOTE_ROOT, note_index]
+#! Outputs:
+#!   Stack: []
+#!   Advice stack: []
 #!
 #! Where:
-#! - AUTH_DIGEST is the digest of the input note data computed as hash(NOTE_HASH, NOTE_METADATA).
-#! - leaf_pos is the position of the leaf in the MMR associated with the block the note was created.
-#!   in. This is equivalent to the block number.
-#! - SUB_HASH, the block's sub_hash for which the note was created.
-#! - NOTE_ROOT, the merkle root of the note's tree.
-#! - note_index is the index of the note in the note Merkle tree.
+#! - NOTE_HASH, input note's commitment computed as `hash(NOTE_ID || NOTE_METADATA)`.
+#! - block_num, leaf position in the MMR chain of the block which created the input note.
+#! - BLOCK_SUB_HASH, sub_hash of the block which created the input note.
+#! - NOTE_ROOT, merkle root of the notes tree containing the input note.
+#! - note_index, input note's position in the notes tree.
 proc.authenticate_note.2
-    # load data required for MMR get operation
+    # Load the BLOCK_HASH from the CHAIN_MMR
+    # ---------------------------------------------------------------------------------------------
+
     exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [leaf_pos, chain_mmr_ptr, AUTH_DIGEST]
+    # => [block_num, chain_mmr_ptr, NOTE_HASH]
 
-    # get the chain MMR leaf associated with the block the note was created in
     exec.mmr::get
-    # => [MMR_LEAF, AUTH_DIGEST]
+    # => [BLOCK_HASH, NOTE_HASH]
 
-    # prepare the stack to read the sub hash and note root from the advice provider
-    locaddr.0 padw padw padw
-    # => [PAD, PAD, PAD, mem_ptr, MMR_LEAF, AUTH_DIGEST]
+    locaddr.0
+    # => [mem_ptr, BLOCK_HASH, NOTE_HASH]
 
-    # read the core hash and note root from the advice provider
+    # Load and authenticate the NOTE_ROOT
+    # ---------------------------------------------------------------------------------------------
+
+    # read data from advice and compute hash(BLOCK_SUB_HASH || NOTE_ROOT)
+    padw padw padw
     adv_pipe hperm
-    # => [PERM, PERM, PERM, mem_ptr', MMR_LEAF, AUTH_DIGEST]
+    # => [PERM, COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
 
-    # extract the digest and assert it matches MMR_LEAF
-    dropw movup.8 drop movupw.2
-    assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
-    # => [AUTH_DIGEST]
+    dropw
+    # => [COMPUTED_BLOCK_HASH, PERM, mem_ptr', BLOCK_HASH, NOTE_HASH]
+
+    # assert the computed block hash matches
+    movup.8 drop movupw.2 assert_eqw.err=ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH
+    # => [PERM, NOTE_HASH]
+
+    # Authenticate the NOTE_HASH
+    # ---------------------------------------------------------------------------------------------
 
     # load the note root from memory
     loc_loadw.1 swapw
-    # => [AUTH_DIGEST, NOTE_ROOT]
+    # => [NOTE_HASH, NOTE_ROOT]
 
     # load the index of the note
     adv_push.1 movdn.4
-    # => [AUTH_DIGEST, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, note_index, NOTE_ROOT]
 
     # get the depth of the note tree
     exec.constants::get_note_tree_depth movdn.4
-    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
 
     # verify the note hash
     mtree_verify
-    # => [AUTH_DIGEST, depth, note_index, NOTE_ROOT]
+    # => [NOTE_HASH, depth, note_index, NOTE_ROOT]
 
-    # clean the stack
     dropw drop drop dropw
     # => []
 end
@@ -785,7 +795,7 @@ end
 #!      is_authenticated,
 #!      (
 #!          block_num,
-#!          SUB_HASH,
+#!          BLOCK_SUB_HASH,
 #!          NOTE_ROOT,
 #!      )?
 #! ]
@@ -807,7 +817,7 @@ end
 #! Optional values, required if `is_authenticated` is true:
 #!
 #! - block_num, note's creation block number.
-#! - SUB_HASH, the block's sub_hash for which the note was created.
+#! - BLOCK_SUB_HASH, the block's sub_hash for which the note was created.
 #! - NOTE_ROOT, the merkle root of the note's tree.
 #!
 proc.process_input_note
@@ -860,9 +870,9 @@ proc.process_input_note
         # if the note is authenticated
         # -----------------------------------------------------------------------------------------
 
-        # compute AUTH_DIGEST: hash(NOTE_ID || NOTE_METADATA)
+        # NOTE_HASH: `hash(NOTE_ID || NOTE_METADATA)`
         movup.4 exec.memory::get_consumed_note_metadata hmerge
-        # => [AUTH_DIGEST, NULLIFIER, HASHER_CAPACITY]
+        # => [NOTE_HASH, NULLIFIER, HASHER_CAPACITY]
 
         exec.authenticate_note
         # => [NULLIFIER, HASHER_CAPACITY]
