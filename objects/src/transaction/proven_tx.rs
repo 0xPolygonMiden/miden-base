@@ -5,7 +5,7 @@ use miden_verifier::ExecutionProof;
 use super::{InputNote, ToInputNoteCommitments};
 use crate::{
     accounts::delta::AccountUpdateDetails,
-    notes::NoteHeader,
+    notes::{NoteHeader, NoteId},
     transaction::{
         AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
     },
@@ -74,6 +74,13 @@ impl ProvenTransaction {
     /// Returns the block reference the transaction was executed against.
     pub fn block_ref(&self) -> Digest {
         self.block_ref
+    }
+
+    /// Returns and iterator over the unauthenticated input notes in this transaction.
+    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = NoteId> + '_ {
+        self.input_notes
+            .iter()
+            .filter_map(|note| note.header().map(|header| header.id()))
     }
 
     // HELPER METHODS
@@ -394,8 +401,8 @@ impl InputNoteCommitment {
         self.nullifier
     }
 
-    pub fn header(&self) -> Option<NoteHeader> {
-        self.header
+    pub fn header(&self) -> Option<&NoteHeader> {
+        self.header.as_ref()
     }
 }
 
@@ -417,6 +424,12 @@ impl From<&InputNote> for InputNoteCommitment {
                 header: Some(*note.header()),
             },
         }
+    }
+}
+
+impl From<Nullifier> for InputNoteCommitment {
+    fn from(nullifier: Nullifier) -> Self {
+        Self { nullifier, header: None }
     }
 }
 
