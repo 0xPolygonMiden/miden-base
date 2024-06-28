@@ -76,6 +76,18 @@ impl ProvenTransaction {
         self.block_ref
     }
 
+    /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
+    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
+        self.input_notes.iter().filter_map(|note| note.header())
+    }
+
+    /// Returns an iterator over the nullifiers of all input notes in this transaction.
+    ///
+    /// This includes both authenticated and unauthenticated notes.
+    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+        self.input_notes.iter().map(InputNoteCommitment::nullifier)
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -394,8 +406,8 @@ impl InputNoteCommitment {
         self.nullifier
     }
 
-    pub fn header(&self) -> Option<NoteHeader> {
-        self.header
+    pub fn header(&self) -> Option<&NoteHeader> {
+        self.header.as_ref()
     }
 }
 
@@ -417,6 +429,12 @@ impl From<&InputNote> for InputNoteCommitment {
                 header: Some(*note.header()),
             },
         }
+    }
+}
+
+impl From<Nullifier> for InputNoteCommitment {
+    fn from(nullifier: Nullifier) -> Self {
+        Self { nullifier, header: None }
     }
 }
 
