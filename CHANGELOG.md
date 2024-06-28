@@ -26,6 +26,7 @@
 - Added ability for users to set the aux field when creating a note (#752).
 - Created `get_serial_number` procedure to get the serial num of the currently processed note (#760).
 - [BREAKING] Added support for input notes with delayed verification of inclusion proofs (#724, #732, #759, #770, #772).
+- [BREAKING] Added support for conversion from `Nullifier` to `InputNoteCommitment`, commitment header return reference (#774).
 
 ## 0.3.0 (2024-05-14)
 
