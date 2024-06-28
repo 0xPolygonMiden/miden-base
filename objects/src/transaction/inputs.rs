@@ -142,7 +142,7 @@ impl TransactionInputs {
 /// The commitment is composed of:
 ///
 /// - nullifier, which prevents double spend and provides unlinkability.
-/// - an optional note_id, which allows for delayed note authentication.
+/// - an optional note hash, which allows for delayed note authentication.
 pub trait ToInputNoteCommitments {
     fn nullifier(&self) -> Nullifier;
     fn note_hash(&self) -> Option<Digest>;
@@ -304,11 +304,11 @@ fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest
     let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
     for commitment_data in notes {
         let nullifier = commitment_data.nullifier();
-        let zero_or_notehash =
+        let zero_or_note_hash =
             &commitment_data.note_hash().map_or(Word::default(), |note_id| note_id.into());
 
         elements.extend_from_slice(nullifier.as_elements());
-        elements.extend_from_slice(zero_or_notehash);
+        elements.extend_from_slice(zero_or_note_hash);
     }
     Hasher::hash_elements(&elements)
 }
