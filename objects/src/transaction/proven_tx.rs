@@ -76,11 +76,16 @@ impl ProvenTransaction {
         self.block_ref
     }
 
-    /// Returns and iterator over the unauthenticated input notes in this transaction.
+    /// Returns an iterator over the unauthenticated input notes in this transaction.
     pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = NoteId> + '_ {
         self.input_notes
             .iter()
             .filter_map(|note| note.header().map(|header| header.id()))
+    }
+
+    /// Returns an iterator over the nullifiers of input notes in this transaction.
+    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+        self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
     // HELPER METHODS
