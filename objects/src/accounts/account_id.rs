@@ -13,7 +13,7 @@ use crate::{crypto::merkle::LeafIndex, utils::hex_to_bytes, ACCOUNT_TREE_DEPTH};
 // CONSTANTS
 // ================================================================================================
 
-// The higher two bits of the most significant nibble determines the account type
+// The higher two bits of the most significant nibble determines the account storage mode
 pub const ACCOUNT_STORAGE_MASK_SHIFT: u64 = 62;
 pub const ACCOUNT_STORAGE_MASK: u64 = 0b11 << ACCOUNT_STORAGE_MASK_SHIFT;
 
