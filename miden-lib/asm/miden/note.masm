@@ -148,50 +148,47 @@ end
 #! Computes hash of note inputs starting at the specified memory address.
 #!
 #! This procedure divides the hashing process into two parts: hashing pairs of words using 
-#! `absorb_double_words_from_memory` procedure and hashing the remaining values using the `hperm`
-#! instruction. 
+#! `hash_memory_even` procedure and hashing the remaining values using the `hperm` instruction.
 #!
-#! Inputs:  [ptr, num_elements]
+#! If the number if inputs is 0, procedure returns the empty word: [0, 0, 0, 0].
+#!
+#! Inputs:  [inputs_ptr, num_inputs]
 #! Outputs: [HASH]
 #! Cycles: 
 #! - If number of elements divides by 8: 56 cycles + 3 * words
 #! - Else: 189 cycles + 3 * words
 #!
-#! Panics if num_elements is equals 0 or greater than 128.
+#! Panics if num_inputs is greater than 128.
 export.compute_inputs_hash
     # check that number of inputs is less than 128
     dup.1 push.128 u32assert2 u32lte assert
 
     # move number of inputs to the top of the stack 
     swap
-    # => [num_elements, ptr]
-
-    # check that number of inputs greater than 0
-    dup eq.0 assertz
-    # => [num_elements, ptr]
+    # => [num_inputs, inputs_ptr]
 
     # get the number of double words
     u32divmod.8 swap
-    # => [num_elements/8, num_elements%8, ptr]
+    # => [num_inputs/8, num_inputs%8, inputs_ptr]
 
     # get the end_addr for hash_memory procedure (end address for pairs of words)
     mul.2 dup.2 add movup.2
-    # => [ptr, end_addr, num_elements%8]
+    # => [inputs_ptr, end_addr, num_inputs%8]
 
     # get the padding flag to add it to the capacity part
     dup.2 eq.0 not
-    # => [pad_flag, ptr, end_addr, num_elements%8]
+    # => [pad_flag, inputs_ptr, end_addr, num_inputs%8]
     
     # prepare hasher state for RPO permutation 
     push.0.0.0 padw padw 
-    # => [C, B, A, ptr, end_addr, num_elements%8]
+    # => [C, B, A, inputs_ptr, end_addr, num_inputs%8]
 
     # hash every pair of words
     exec.native::hash_memory_even
-    # => [C', B', A', ptr', end_addr, num_elements%8] where ptr' = end_addr
+    # => [C', B', A', inputs_ptr', end_addr, num_inputs%8] where inputs_ptr' = end_addr
 
     # hash remaining input values if there are any left
-    # if num_elements%8 is ZERO and there are no elements to hash
+    # if num_inputs%8 is ZERO and there are no elements to hash
     dup.14 eq.0
     if.true
         # clean the stack
@@ -201,11 +198,11 @@ export.compute_inputs_hash
     else
         # load the remaining double word
         mem_stream
-        # => [E, D, A', ptr'+2, end_addr, num_elements%8]
+        # => [E, D, A', inputs_ptr'+2, end_addr, num_inputs%8]
 
         # clean the stack
         movup.12 drop movup.12 drop
-        # => [E, D, A', num_elements%8]
+        # => [E, D, A', num_inputs%8]
 
         # get the number of elements we need to drop
         # notice that drop_counter could be any number from 1 to 7
