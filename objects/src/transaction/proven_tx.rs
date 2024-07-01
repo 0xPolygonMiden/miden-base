@@ -408,7 +408,7 @@ impl InputNoteCommitment {
     }
 
     /// Returns the header of the input committed to by this commitment.
-    /// 
+    ///
     /// Note headers are present only for notes whose presence in the change has not yet been
     /// authenticated.
     pub fn header(&self) -> Option<&NoteHeader> {
