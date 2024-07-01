@@ -402,12 +402,26 @@ pub struct InputNoteCommitment {
 }
 
 impl InputNoteCommitment {
+    /// Returns the nullifier of the input note committed to by this commitment.
     pub fn nullifier(&self) -> Nullifier {
         self.nullifier
     }
 
+    /// Returns the header of the input committed to by this commitment.
+    /// 
+    /// Note headers are present only for notes whose presence in the change has not yet been
+    /// authenticated.
     pub fn header(&self) -> Option<&NoteHeader> {
         self.header.as_ref()
+    }
+
+    /// Returns true if this commitment is for a note whose presence in the chain has been
+    /// authenticated.
+    ///
+    /// Authenticated notes are represented solely by their nullifiers and are missing the note
+    /// header.
+    pub fn is_authenticated(&self) -> bool {
+        self.header.is_none()
     }
 }
 
