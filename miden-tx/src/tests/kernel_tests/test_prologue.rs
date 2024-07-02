@@ -26,7 +26,7 @@ use miden_objects::{
     transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
-use vm_processor::{AdviceInputs, ONE};
+use vm_processor::{AdviceInputs, AdviceMap, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
@@ -38,7 +38,7 @@ use crate::{
 
 #[test]
 fn test_transaction_prologue() {
-    let mut tx_context = TransactionContextBuilder::with_standard_account(
+    let tx_context = TransactionContextBuilder::with_standard_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
@@ -78,23 +78,21 @@ fn test_transaction_prologue() {
         (tx_context.input_notes().get_note(1).note().id(), note_args[1]),
     ]);
 
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        Some(note_args_map),
-        tx_context.tx_args().advice_map().clone(),
-    );
+    let tx_args = TransactionArgs::new(Some(tx_script), Some(note_args_map), AdviceMap::default());
+    let process = tx_context.execute_with_custom_main(code, tx_args.clone()).unwrap();
 
-    tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_with_custom_main(code).unwrap();
-
-    global_input_memory_assertions(&process, &tx_context);
+    global_input_memory_assertions(&process, &tx_context, &tx_args);
     block_data_memory_assertions(&process, &tx_context);
     chain_mmr_memory_assertions(&process, &tx_context);
     account_data_memory_assertions(&process, &tx_context);
     consumed_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
-fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
+fn global_input_memory_assertions(
+    process: &Process<MockHost>,
+    inputs: &TransactionContext,
+    tx_args: &TransactionArgs,
+) {
     assert_eq!(
         read_root_mem_value(process, BLK_HASH_PTR),
         inputs.tx_inputs().block_header().hash().as_elements(),
@@ -127,7 +125,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
-        **inputs.tx_args().tx_script().as_ref().unwrap().hash(),
+        **tx_args.tx_script().as_ref().unwrap().hash(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
@@ -357,7 +355,7 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    tx_context.execute_with_custom_main(code).unwrap();
+    tx_context.execute_with_custom_main(code, TransactionArgs::default()).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -381,7 +379,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code);
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default());
     assert!(process.is_ok());
 }
 
@@ -409,7 +407,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code);
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default());
     assert!(process.is_err());
 }
 
@@ -434,7 +432,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code);
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default());
 
     assert!(process.is_ok())
 }
@@ -460,7 +458,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code);
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -491,7 +489,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .advice_inputs(adv_inputs)
         .build();
 
-    let process = tx_context.execute_with_custom_main(code);
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default());
     assert!(process.is_err());
 }
 
@@ -512,7 +510,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().version().into());
 }
@@ -534,7 +532,7 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let process = tx_context.execute_with_custom_main(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code, TransactionArgs::default()).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().timestamp().into());
 }

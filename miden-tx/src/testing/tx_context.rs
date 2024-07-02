@@ -44,7 +44,6 @@ use crate::{DataStore, DataStoreError, TransactionExecutor, TransactionExecutorE
 pub struct TransactionContext {
     mock_chain: MockChain,
     expected_output_notes: Vec<Note>,
-    tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     advice_inputs: AdviceInputs,
 }
@@ -57,11 +56,15 @@ impl TransactionContext {
     pub fn execute_with_custom_main(
         &self,
         main_code: &str,
+        mut tx_args: TransactionArgs,
     ) -> Result<Process<MockHost>, ExecutionError> {
         // Use the transaction kernel's assembler, so that `code` can call kernel procedures.
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
         let program = assembler.compile(main_code).unwrap();
-        let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
+
+        tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
+        let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), tx_args);
+
         let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
         advice_inputs.extend(self.advice_inputs.clone());
 
@@ -71,7 +74,10 @@ impl TransactionContext {
     }
 
     /// Run the transaction in the context.
-    pub fn execute_transaction(&self) -> Result<ExecutedTransaction, TransactionExecutorError> {
+    pub fn execute_transaction(
+        &self,
+        mut tx_args: TransactionArgs,
+    ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let mut executor = TransactionExecutor::<_, ()>::new(self.clone(), None);
 
         let account_id = self.account().id();
@@ -80,7 +86,8 @@ impl TransactionContext {
         let block_ref = self.tx_inputs.block_header().block_num();
         let note_ids: Vec<_> = self.tx_inputs.input_notes().iter().map(InputNote::id).collect();
 
-        executor.execute_transaction(account_id, block_ref, &note_ids, self.tx_args.clone())
+        tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args)
     }
 
     pub fn account(&self) -> &Account {
@@ -97,14 +104,6 @@ impl TransactionContext {
 
     pub fn input_notes(&self) -> InputNotes<InputNote> {
         InputNotes::new(self.mock_chain.available_notes().clone()).unwrap()
-    }
-
-    pub fn tx_args(&self) -> &TransactionArgs {
-        &self.tx_args
-    }
-
-    pub fn set_tx_args(&mut self, tx_args: TransactionArgs) {
-        self.tx_args = tx_args;
     }
 
     pub fn tx_inputs(&self) -> &TransactionInputs {
@@ -612,13 +611,9 @@ impl TransactionContextBuilder {
             &input_note_ids,
         );
 
-        let mut tx_args = TransactionArgs::default();
-        tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
-
         TransactionContext {
             mock_chain,
             expected_output_notes: self.expected_output_notes,
-            tx_args,
             tx_inputs,
             advice_inputs: self.advice_inputs.unwrap_or_default(),
         }

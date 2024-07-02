@@ -235,12 +235,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(
-            faucet_account.id(),
-            block_ref,
-            &note_ids,
-            tx_context.tx_args().clone(),
-        )
+        .execute_transaction(faucet_account.id(), block_ref, &note_ids, TransactionArgs::default())
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction

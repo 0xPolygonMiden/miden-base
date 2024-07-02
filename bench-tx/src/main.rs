@@ -87,7 +87,7 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
         .collect::<Vec<_>>();
 
     let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
+        .prepare_transaction(account_id, block_ref, &note_ids, TransactionArgs::default())
         .map_err(|e| e.to_string())?;
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();

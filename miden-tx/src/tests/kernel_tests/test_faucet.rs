@@ -13,6 +13,7 @@ use miden_objects::{
         prepare_word,
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
+    transaction::TransactionArgs,
 };
 use vm_processor::Felt;
 
@@ -65,7 +66,7 @@ fn test_mint_fungible_asset_succeeds() {
         expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE + FUNGIBLE_ASSET_AMOUNT
     );
 
-    tx_context.execute_with_custom_main(&code).unwrap();
+    tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 }
 
 #[test]
@@ -89,7 +90,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -115,7 +116,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
         ",
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -142,7 +143,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
         saturating_amount = FungibleAsset::MAX_AMOUNT - FUNGIBLE_FAUCET_INITIAL_BALANCE + 1
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -202,7 +203,7 @@ fn test_mint_non_fungible_asset_succeeds() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    tx_context.execute_with_custom_main(&code).unwrap();
+    tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 }
 
 #[test]
@@ -230,7 +231,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -260,7 +261,7 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -293,7 +294,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
         non_fungible_asset = prepare_word(&non_fungible_asset.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -346,7 +347,7 @@ fn test_burn_fungible_asset_succeeds() {
         expected_final_storage_amount = FUNGIBLE_FAUCET_INITIAL_BALANCE - FUNGIBLE_ASSET_AMOUNT
     );
 
-    tx_context.execute_with_custom_main(&code).unwrap();
+    tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 }
 
 #[test]
@@ -370,7 +371,7 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -397,7 +398,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
         ",
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
     assert!(process.is_err());
 }
 
@@ -424,7 +425,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
         saturating_amount = CONSUMED_ASSET_1_AMOUNT + 1
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -484,7 +485,7 @@ fn test_burn_non_fungible_asset_succeeds() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    tx_context.execute_with_custom_main(&code).unwrap();
+    tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 }
 
 #[test]
@@ -519,7 +520,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -555,7 +556,7 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -592,7 +593,7 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         non_fungible_asset = prepare_word(&non_fungible_asset_burnt.into())
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
 
     assert!(process.is_err());
 }
@@ -628,5 +629,5 @@ fn test_get_total_issuance_succeeds() {
         ",
     );
 
-    tx_context.execute_with_custom_main(&code).unwrap();
+    tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 }

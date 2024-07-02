@@ -5,7 +5,7 @@ use miden_lib::transaction::memory::{
 };
 use miden_objects::{
     accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
-    transaction::{OutputNote, OutputNotes},
+    transaction::{OutputNote, OutputNotes, TransactionArgs},
 };
 use vm_processor::ONE;
 
@@ -45,7 +45,7 @@ fn test_epilogue() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 
     let final_account = Account::mock(
         tx_context.account().id().into(),
@@ -109,7 +109,8 @@ fn test_compute_created_note_id() {
             "
         );
 
-        let process = tx_context.execute_with_custom_main(&code).unwrap();
+        let process =
+            tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
 
         assert_eq!(
             note.assets().commitment().as_elements(),
@@ -158,7 +159,7 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
     assert!(process.is_err(), "Violating asset preservation must result in a failure");
 }
 
@@ -192,7 +193,7 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
     assert!(process.is_err(), "Violating asset preservation must result in a failure");
 }
 
@@ -234,7 +235,7 @@ fn test_epilogue_increment_nonce_success() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
     assert!(process.is_ok(), "Calling incr_nonce should succeed");
 }
 
@@ -273,7 +274,7 @@ fn test_epilogue_increment_nonce_violation() {
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code);
+    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default());
     assert!(
         process.is_err(),
         "Not incrementing the nonce when the state changes must be an error",

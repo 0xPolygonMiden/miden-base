@@ -34,11 +34,11 @@ use miden_objects::{
 use miden_prover::ProvingOptions;
 use vm_processor::{
     utils::{Deserializable, Serializable},
-    Digest, MemAdviceProvider, ONE,
+    AdviceMap, Digest, MemAdviceProvider, ONE,
 };
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::testing::TransactionContextBuilder;
+use crate::{testing::TransactionContextBuilder, TransactionCompiler};
 
 mod kernel_tests;
 
@@ -55,7 +55,7 @@ fn transaction_executor_witness() {
     .with_mock_notes_preserved()
     .build();
 
-    let executed_transaction = tx_context.execute_transaction().unwrap();
+    let executed_transaction = tx_context.execute_transaction(TransactionArgs::default()).unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
@@ -277,8 +277,9 @@ fn executed_transaction_account_delta() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
+    let mut tx_args = TransactionArgs::new(Some(tx_script), None, AdviceMap::default());
+    let context_output_notes = tx_context.expected_output_notes().to_vec();
+    tx_args.extend_expected_output_notes(context_output_notes);
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -552,8 +553,9 @@ fn executed_transaction_output_notes() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let mut tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
+    let mut tx_args = TransactionArgs::new(Some(tx_script), None, AdviceMap::default());
+    let context_output_notes = tx_context.expected_output_notes().to_vec();
+    tx_args.extend_expected_output_notes(context_output_notes);
 
     tx_args.add_expected_output_note(&expected_output_note_2);
     tx_args.add_expected_output_note(&expected_output_note_3);
@@ -605,23 +607,8 @@ fn prove_witness_and_verify() {
     )
     .with_mock_notes_preserved()
     .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
 
-    let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-        .unwrap();
+    let executed_transaction = tx_context.execute_transaction(TransactionArgs::default()).unwrap();
     let executed_transaction_id = executed_transaction.id();
 
     let proof_options = ProvingOptions::default();
@@ -647,23 +634,10 @@ fn test_tx_script() {
     )
     .with_mock_notes_preserved()
     .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
-
-    let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
 
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
-    let tx_script_source = format!(
+    let tx_script_code = format!(
         "
         begin
             # push the tx script input key onto the stack
@@ -679,19 +653,17 @@ fn test_tx_script() {
         key = prepare_word(&tx_script_input_key),
         value = prepare_word(&tx_script_input_value)
     );
-    let tx_script_code = ProgramAst::parse(&tx_script_source).unwrap();
-    let tx_script = executor
+    let tx_script_ast = ProgramAst::parse(&tx_script_code).unwrap();
+    let tx_script = TransactionCompiler::new()
         .compile_tx_script(
-            tx_script_code,
+            tx_script_ast,
             vec![(tx_script_input_key, tx_script_input_value.into())],
             vec![],
         )
         .unwrap();
-    let tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
 
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
+    let executed_transaction = tx_context.execute_transaction(tx_args);
 
     assert!(
         executed_transaction.is_ok(),
