@@ -39,7 +39,7 @@ fn test_create_fungible_asset_succeeds() {
         "
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         process.get_stack_word(0),
@@ -80,7 +80,7 @@ fn test_create_non_fungible_asset_succeeds() {
         non_fungible_asset_data_hash = prepare_word(&Hasher::hash(&NON_FUNGIBLE_ASSET_DATA)),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(process.get_stack_word(0), Word::from(non_fungible_asset));
 }
@@ -109,6 +109,6 @@ fn test_validate_non_fungible_asset() {
         asset = prepare_word(&encoded)
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
     assert_eq!(process.get_stack_word(0), encoded);
 }

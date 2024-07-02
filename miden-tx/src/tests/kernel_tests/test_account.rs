@@ -40,7 +40,7 @@ pub fn test_set_code_is_not_immediate() {
         end
         ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
@@ -90,7 +90,7 @@ pub fn test_set_code_succeeds() {
         "
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
@@ -249,7 +249,7 @@ fn test_get_item() {
             item_value = prepare_word(&storage_item.slot.value)
         );
 
-        tx_context.execute_code(&code).unwrap();
+        tx_context.execute_with_custom_main(&code).unwrap();
     }
 }
 
@@ -298,7 +298,7 @@ fn test_set_item() {
         new_root = prepare_word(&account_smt.root()),
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_with_custom_main(&code).unwrap();
 }
 
 // Test different account storage types
@@ -333,7 +333,7 @@ fn test_get_storage_data_type() {
             item_index = storage_item.index,
         );
 
-        let process = tx_context.execute_code(&code).unwrap();
+        let process = tx_context.execute_with_custom_main(&code).unwrap();
 
         let storage_slot_data_type = match storage_item.slot.slot_type {
             StorageSlotType::Value { value_arity } => (value_arity, 0),
@@ -386,7 +386,7 @@ fn test_get_map_item() {
             item_index = storage_item.index,
             map_key = prepare_word(&key),
         );
-        let process = tx_context.execute_code(&code).unwrap();
+        let process = tx_context.execute_with_custom_main(&code).unwrap();
 
         assert_eq!(
             value,
@@ -450,7 +450,7 @@ fn test_set_map_item() {
         new_value = prepare_word(&new_value),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     let mut new_storage_map = AccountStorage::mock_map_2();
     new_storage_map.insert(new_key, new_value);
@@ -496,7 +496,7 @@ fn test_get_vault_commitment() {
         expected_vault_commitment = prepare_word(&account.vault().commitment()),
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_with_custom_main(&code).unwrap();
 }
 
 // PROCEDURE AUTHENTICATION TESTS
@@ -543,7 +543,7 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
-        let process = tx_context.execute_code(&code);
+        let process = tx_context.execute_with_custom_main(&code);
 
         match valid {
             true => assert!(process.is_ok(), "A valid procedure must successfully authenticate"),

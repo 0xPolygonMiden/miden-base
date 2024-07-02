@@ -56,7 +56,7 @@ fn test_create_note() {
         tag = tag,
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
@@ -114,7 +114,7 @@ fn test_create_note_with_invalid_tag() {
         tag = tag,
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_with_custom_main(&code);
 
     assert!(process.is_err(), "Transaction should have failed because the tag is invalid");
 }
@@ -264,7 +264,7 @@ fn test_get_output_notes_hash() {
         )),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
@@ -334,7 +334,7 @@ fn test_create_note_and_add_asset() {
         asset = prepare_word(&asset),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -413,7 +413,7 @@ fn test_create_note_and_add_multiple_assets() {
         nft = prepare_word(&non_fungible_asset_encoded),
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
@@ -481,7 +481,7 @@ fn test_create_note_and_add_same_nft_twice() {
         nft = prepare_word(&encoded),
     );
 
-    let process = tx_context.execute_code(&code);
+    let process = tx_context.execute_with_custom_main(&code);
 
     assert!(
         process.is_err(),
@@ -537,7 +537,7 @@ fn test_build_recipient_hash() {
         aux = aux,
     );
 
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_with_custom_main(&code).unwrap();
 
     assert_eq!(
         read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),

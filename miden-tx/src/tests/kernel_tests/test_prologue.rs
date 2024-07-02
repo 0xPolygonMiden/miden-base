@@ -85,7 +85,7 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     global_input_memory_assertions(&process, &tx_context);
     block_data_memory_assertions(&process, &tx_context);
@@ -357,7 +357,7 @@ pub fn test_prologue_create_account() {
     end
     ";
 
-    tx_context.execute_code(code).unwrap();
+    tx_context.execute_with_custom_main(code).unwrap();
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -381,7 +381,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
     assert!(process.is_ok());
 }
 
@@ -409,7 +409,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
     assert!(process.is_err());
 }
 
@@ -434,7 +434,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     end
     ";
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
 
     assert!(process.is_ok())
 }
@@ -460,7 +460,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
     end
     ";
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
 
     assert!(process.is_err());
 }
@@ -491,7 +491,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .advice_inputs(adv_inputs)
         .build();
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
     assert!(process.is_err());
 }
 
@@ -512,7 +512,7 @@ fn test_get_blk_version() {
     end
     ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().version().into());
 }
@@ -534,7 +534,7 @@ fn test_get_blk_timestamp() {
     end
     ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     assert_eq!(process.stack.get(0), tx_context.tx_inputs().block_header().timestamp().into());
 }

@@ -49,16 +49,24 @@ pub struct TransactionContext {
 }
 
 impl TransactionContext {
-    pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
+    /// Run a custom main code.
+    ///
+    /// Method intended to unit test the kernel. This allows the standard `main.masm` to be skipped,
+    /// and to unit test parts of the kernel.
+    pub fn execute_with_custom_main(
+        &self,
+        main_code: &str,
+    ) -> Result<Process<MockHost>, ExecutionError> {
+        // Use the transaction kernel's assembler, so that `code` can call kernel procedures.
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let program = assembler.compile(code).unwrap();
+        let program = assembler.compile(main_code).unwrap();
         let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
         let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
         advice_inputs.extend(self.advice_inputs.clone());
 
         CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)
-            .run(code)
+            .execute_program(tx.program())
     }
 
     pub fn account(&self) -> &Account {

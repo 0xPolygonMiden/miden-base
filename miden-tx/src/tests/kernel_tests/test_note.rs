@@ -39,7 +39,7 @@ fn test_get_sender_no_sender() {
         end
         ";
 
-    let process = tx_context.execute_code(code);
+    let process = tx_context.execute_with_custom_main(code);
 
     assert!(process.is_err());
 }
@@ -67,7 +67,7 @@ fn test_get_sender() {
         end
         ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     let sender = tx_context.input_notes().get_note(0).note().metadata().sender().into();
     assert_eq!(process.stack.get(0), sender);
@@ -123,7 +123,7 @@ fn test_get_vault_data() {
         note_1_num_assets = notes.get_note(1).note().assets().num_assets(),
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_with_custom_main(&code).unwrap();
 }
 #[test]
 fn test_get_assets() {
@@ -232,7 +232,7 @@ fn test_get_assets() {
         NOTE_1_ASSET_ASSERTIONS = construct_asset_assertions(notes.get_note(1).note()),
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_with_custom_main(&code).unwrap();
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn test_get_inputs() {
         NOTE_0_PTR = 100000000,
     );
 
-    tx_context.execute_code(&code).unwrap();
+    tx_context.execute_with_custom_main(&code).unwrap();
 }
 
 #[test]
@@ -328,7 +328,7 @@ fn test_note_setup() {
         end
         ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     note_setup_stack_assertions(&process, &tx_context);
     note_setup_memory_assertions(&process);
@@ -371,7 +371,7 @@ fn test_note_script_and_note_args() {
         TransactionArgs::new(None, Some(note_args_map), tx_context.tx_args().advice_map().clone());
 
     tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     assert_eq!(process.stack.get_word(0), note_args[0]);
 
@@ -421,7 +421,7 @@ fn test_get_note_serial_number() {
         end
         ";
 
-    let process = tx_context.execute_code(code).unwrap();
+    let process = tx_context.execute_with_custom_main(code).unwrap();
 
     let serial_number = tx_context.input_notes().get_note(0).note().serial_num();
     assert_eq!(process.stack.get_word(0), serial_number);

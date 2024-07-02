@@ -43,18 +43,17 @@ impl<H: Host> CodeExecutor<H> {
     /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
         let program = assembler.compile(code).unwrap();
-        self.execute_program(program)
+        self.execute_program(&program)
     }
 
-    pub fn execute_program(self, program: Program) -> Result<Process<H>, ExecutionError> {
+    pub fn execute_program(self, program: &Program) -> Result<Process<H>, ExecutionError> {
         let mut process = Process::new_debug(
             program.kernel().clone(),
             self.stack_inputs.unwrap_or_default(),
             self.host,
         );
-        process.execute(&program)?;
+        process.execute(program)?;
 
         Ok(process)
     }
