@@ -6,10 +6,9 @@ use vm_processor::DeserializationError;
 
 use crate::{
     accounts::AccountStub,
-    notes::{Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
+    notes::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
-
 // TRANSACTION OUTPUTS
 // ================================================================================================
 
@@ -204,6 +203,13 @@ impl OutputNote {
             OutputNote::Partial(note) => OutputNote::Header(note.into()),
             _ => self.clone(),
         }
+    }
+
+    /// Returns a commitment to the note and its metadata.
+    ///
+    /// > hash(NOTE_ID || NOTE_METADATA)
+    pub fn hash(&self) -> Digest {
+        compute_note_hash(self.id(), self.metadata())
     }
 }
 
