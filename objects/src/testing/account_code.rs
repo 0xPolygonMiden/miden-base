@@ -11,7 +11,7 @@ const MASTS: [&str; 11] = [
     "0x4ce781587b60e18c13251445da6a24cf758bbb83726019f941d0555ef65a8b1b",
     "0xff9b31930a10a0725f0e950f6f59c40e96799e67704103dc86ad04ce32526998",
     "0x88a3caaf8117785b056dddcebad8f283cdc3f05e6b518ee841c2e7515df38ee1",
-    "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872",
+    "0x686a897c14304aeee4b3047b7a217a3209d14f6530bd3bdf33fcd5c314c713e5",
     "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
     "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
@@ -108,9 +108,6 @@ impl AccountCode {
         # acct proc 6
         export.create_note
             exec.tx::create_note
-            # => [note_idx]
-
-            swapw dropw swap drop
         end
 
         # acct proc 7

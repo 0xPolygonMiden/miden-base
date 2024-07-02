@@ -12,7 +12,7 @@ use miden_objects::{
     },
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteId, NoteType},
+    notes::{Note, NoteId, NoteTag, NoteType},
     testing::{
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         block::{MockChain, MockChainBuilder},
@@ -270,15 +270,17 @@ impl TransactionContextBuilder {
     }
 
     /// Creates a new output [Note] for the transaction corresponding to this context.
-    fn add_output_note(
+    pub fn add_output_note(
         &mut self,
         inputs: impl IntoIterator<Item = Felt>,
         assets: impl IntoIterator<Item = Asset>,
+        tag: NoteTag,
     ) -> Note {
         let note = NoteBuilder::new(self.account.id(), &mut self.rng)
             .note_inputs(inputs)
             .expect("The inputs should be valid")
             .add_assets(assets)
+            .tag(tag)
             .build(&self.assembler)
             .expect("The note details should be valid");
 
@@ -451,11 +453,11 @@ impl TransactionContextBuilder {
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
-        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
-        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1], 0.into());
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2], 0.into());
 
         // expected by `output_notes_data_procedure`
-        let _output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+        let _output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3], 0.into());
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,
@@ -485,9 +487,9 @@ impl TransactionContextBuilder {
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
-        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
-        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
-        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1], 0.into());
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2], 0.into());
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3], 0.into());
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,
@@ -527,9 +529,9 @@ impl TransactionContextBuilder {
             &NON_FUNGIBLE_ASSET_DATA_2,
         );
 
-        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
-        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
-        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1], 0.into());
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2], 0.into());
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3], 0.into());
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,
@@ -568,9 +570,9 @@ impl TransactionContextBuilder {
         let fungible_asset_3: Asset =
             FungibleAsset::new(faucet_id_3, CONSUMED_ASSET_3_AMOUNT).unwrap().into();
 
-        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
-        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
-        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1], 0.into());
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2], 0.into());
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3], 0.into());
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,
@@ -612,9 +614,9 @@ impl TransactionContextBuilder {
             &NON_FUNGIBLE_ASSET_DATA_2,
         );
 
-        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1]);
-        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2]);
-        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3]);
+        let output_note0 = self.add_output_note([1u32.into()], [fungible_asset_1], 0.into());
+        let output_note1 = self.add_output_note([2u32.into()], [fungible_asset_2], 0.into());
+        let output_note2 = self.add_output_note([3u32.into()], [fungible_asset_3], 0.into());
 
         let input_note1 = self.input_note_with_two_output_notes(
             sender,

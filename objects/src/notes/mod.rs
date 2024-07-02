@@ -93,7 +93,6 @@ pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 pub struct Note {
     header: NoteHeader,
     details: NoteDetails,
-
     nullifier: Nullifier,
 }
 

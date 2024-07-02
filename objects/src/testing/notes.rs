@@ -74,8 +74,8 @@ impl NoteBuilder {
         self
     }
 
-    pub fn tag(mut self, tag: u32) -> Self {
-        self.tag = tag.into();
+    pub fn tag(mut self, tag: NoteTag) -> Self {
+        self.tag = tag;
         self
     }
 
