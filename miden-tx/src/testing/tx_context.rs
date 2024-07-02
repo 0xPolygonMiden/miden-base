@@ -32,7 +32,7 @@ use miden_objects::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, AdviceMap, ExecutionError, Felt, Process, Word};
-use winter_maybe_async::maybe_async;
+use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{executor::CodeExecutor, MockHost};
 use crate::{
@@ -99,6 +99,7 @@ impl TransactionContext {
     }
 
     /// Run the transaction in the context.
+    #[maybe_async]
     pub fn execute_transaction(
         &self,
         note_args: Option<BTreeMap<NoteId, Word>>,
@@ -108,7 +109,7 @@ impl TransactionContext {
         let mut executor = TransactionExecutor::<_, ()>::new(self.clone(), None);
 
         let account_id = self.account().id();
-        executor.load_account(account_id).unwrap();
+        maybe_await!(executor.load_account(account_id)).unwrap();
 
         let block_ref = self.tx_inputs.block_header().block_num();
         let note_ids: Vec<_> = self.tx_inputs.input_notes().iter().map(InputNote::id).collect();
@@ -124,7 +125,7 @@ impl TransactionContext {
 
         let mut tx_args = TransactionArgs::new(tx_script, note_args, advice_map);
         tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args)
+        maybe_await!(executor.execute_transaction(account_id, block_ref, &note_ids, tx_args))
     }
 
     pub fn account(&self) -> &Account {
