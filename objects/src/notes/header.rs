@@ -41,11 +41,24 @@ impl NoteHeader {
     ///
     /// > hash(NOTE_ID || NOTE_METADATA)
     ///
-    /// This value is used primarily for authenticating notes consumed when the are consumed
+    /// This value is used primarily for authenticating notes consumed when they are consumed
     /// in a transaction.
     pub fn hash(&self) -> Digest {
-        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+        compute_note_hash(self.id(), self.metadata())
     }
+}
+
+// UTILITIES
+// ================================================================================================
+
+/// Returns a commitment to the note and its metadata.
+///
+/// > hash(NOTE_ID || NOTE_METADATA)
+///
+/// This value is used primarily for authenticating notes consumed when they are consumed
+/// in a transaction.
+pub fn compute_note_hash(id: NoteId, metadata: &NoteMetadata) -> Digest {
+    Hasher::merge(&[id.inner(), Word::from(metadata).into()])
 }
 
 // CONVERSIONS FROM NOTE HEADER
