@@ -6,9 +6,9 @@ use miden_objects::{
     notes::Note,
     testing::{notes::AssetPreservationStatus, prepare_word},
     transaction::TransactionArgs,
-    WORD_SIZE,
+    Hasher, WORD_SIZE,
 };
-use vm_processor::{EMPTY_WORD, ONE};
+use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 
 use super::{Felt, Process, ZERO};
 use crate::{
@@ -428,4 +428,100 @@ fn test_get_note_serial_number() {
 
     let serial_number = tx_context.input_notes().get_note(0).note().serial_num();
     assert_eq!(process.stack.get_word(0), serial_number);
+}
+
+#[test]
+fn test_get_inputs_hash() {
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .build();
+
+    let code = "
+        use.miden::note
+        
+        begin
+            # put the values that will be hashed into the memory
+            push.1.2.3.4.1000 mem_storew dropw
+            push.5.6.7.8.1001 mem_storew dropw
+            push.9.10.11.12.1002 mem_storew dropw
+            push.13.14.15.16.1003 mem_storew dropw
+
+            # push the number of values and pointer to the inputs on the stack
+            push.5.1000
+            # execute the `compute_inputs_hash` procedure for 5 values
+            exec.note::compute_inputs_hash
+            # => [HASH_5]
+
+            push.8.1000
+            # execute the `compute_inputs_hash` procedure for 8 values
+            exec.note::compute_inputs_hash
+            # => [HASH_8, HASH_5]
+
+            push.15.1000
+            # execute the `compute_inputs_hash` procedure for 15 values
+            exec.note::compute_inputs_hash
+            # => [HASH_15, HASH_8, HASH_5]
+
+            push.0.1000
+            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an 
+            # empty word
+            exec.note::compute_inputs_hash
+            # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]
+        end
+    ";
+
+    let process = tx_context.execute_code(code).unwrap();
+
+    let mut expected_5 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+    ])
+    .to_vec();
+    expected_5.reverse();
+
+    let mut expected_8 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+        Felt::new(6),
+        Felt::new(7),
+        Felt::new(8),
+    ])
+    .to_vec();
+    expected_8.reverse();
+
+    let mut expected_15 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+        Felt::new(6),
+        Felt::new(7),
+        Felt::new(8),
+        Felt::new(9),
+        Felt::new(10),
+        Felt::new(11),
+        Felt::new(12),
+        Felt::new(13),
+        Felt::new(14),
+        Felt::new(15),
+    ])
+    .to_vec();
+    expected_15.reverse();
+
+    let mut expected_stack = vec![Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
+    expected_stack.extend_from_slice(&expected_15);
+    expected_stack.extend_from_slice(&expected_8);
+    expected_stack.extend_from_slice(&expected_5);
+
+    assert_eq!(process.get_stack_state()[0..16], expected_stack);
 }
