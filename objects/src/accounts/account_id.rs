@@ -40,6 +40,13 @@ pub enum AccountType {
     RegularAccountUpdatableCode = REGULAR_ACCOUNT_UPDATABLE_CODE,
 }
 
+/// Extracts the [AccountType] encoded in an u64.
+///
+/// The account id is encoded in the bits `[62,60]` of the u64, see [ACCOUNT_TYPE_MASK].
+///
+/// # Note
+///
+/// This function does not validate the u64, it is assumed the value is valid [Felt].
 pub const fn account_type_from_u64(value: u64) -> AccountType {
     debug_assert!(
         ACCOUNT_TYPE_MASK.count_ones() == 2,
@@ -313,6 +320,12 @@ impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
 // CONVERSIONS TO ACCOUNT ID
 // ================================================================================================
 
+/// Returns an [AccountId] instantiated with the provided field element.
+///
+/// # Errors
+/// Returns an error if:
+/// - If there are fewer than [AccountId::MIN_ACCOUNT_ONES] in the provided value.
+/// - If the provided value contains invalid account ID metadata (i.e., the first 4 bits).
 pub const fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError> {
     let int_value = value.as_int();
 
