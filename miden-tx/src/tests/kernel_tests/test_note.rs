@@ -6,7 +6,7 @@ use miden_objects::{
     notes::Note,
     testing::{notes::AssetPreservationStatus, prepare_word},
     transaction::TransactionArgs,
-    WORD_SIZE,
+    Hasher, WORD_SIZE,
 };
 use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 
@@ -443,43 +443,85 @@ fn test_get_inputs_hash() {
         use.miden::note
         
         begin
+            # put the values that will be hashed into the memory
             push.1.2.3.4.1000 mem_storew dropw
             push.5.6.7.8.1001 mem_storew dropw
             push.9.10.11.12.1002 mem_storew dropw
             push.13.14.15.16.1003 mem_storew dropw
 
+            # push the number of values and pointer to the inputs on the stack
             push.5.1000
+            # execute the `compute_inputs_hash` procedure for 5 values
             exec.note::compute_inputs_hash
+            # => [HASH_5]
 
             push.8.1000
+            # execute the `compute_inputs_hash` procedure for 8 values
             exec.note::compute_inputs_hash
+            # => [HASH_8, HASH_5]
 
             push.15.1000
+            # execute the `compute_inputs_hash` procedure for 15 values
             exec.note::compute_inputs_hash
+            # => [HASH_15, HASH_8, HASH_5]
 
             push.0.1000
+            # check that calling `compute_inputs_hash` procedure with 0 elements will result in an 
+            # empty word
             exec.note::compute_inputs_hash
+            # => [0, 0, 0, 0, HASH_15, HASH_8, HASH_5]
         end
     ";
 
     let process = tx_context.execute_code(code).unwrap();
-    let expected_stack = [
-        Felt::new(0),
-        Felt::new(0),
-        Felt::new(0),
-        Felt::new(0),
-        Felt::new(10300020282439016154),
-        Felt::new(3516596904277416676),
-        Felt::new(11018788508269249672),
-        Felt::new(7921509648524809116),
-        Felt::new(13608701685256682132),
-        Felt::new(16013969809933496273),
-        Felt::new(15720844923951376941),
-        Felt::new(15975159621759139720),
-        Felt::new(12095223039215569196),
-        Felt::new(16902760742589336416),
-        Felt::new(12194156716918087419),
-        Felt::new(2777745863384272413),
-    ];
+
+    let mut expected_5 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+    ])
+    .to_vec();
+    expected_5.reverse();
+
+    let mut expected_8 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+        Felt::new(6),
+        Felt::new(7),
+        Felt::new(8),
+    ])
+    .to_vec();
+    expected_8.reverse();
+
+    let mut expected_15 = Hasher::hash_elements(&[
+        Felt::new(1),
+        Felt::new(2),
+        Felt::new(3),
+        Felt::new(4),
+        Felt::new(5),
+        Felt::new(6),
+        Felt::new(7),
+        Felt::new(8),
+        Felt::new(9),
+        Felt::new(10),
+        Felt::new(11),
+        Felt::new(12),
+        Felt::new(13),
+        Felt::new(14),
+        Felt::new(15),
+    ])
+    .to_vec();
+    expected_15.reverse();
+
+    let mut expected_stack = vec![Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
+    expected_stack.extend_from_slice(&expected_15);
+    expected_stack.extend_from_slice(&expected_8);
+    expected_stack.extend_from_slice(&expected_5);
+
     assert_eq!(process.get_stack_state()[0..16], expected_stack);
 }
