@@ -29,77 +29,56 @@ pub fn read_root_mem_value<H: Host>(process: &Process<H>, addr: u32) -> Word {
     process.get_mem_value(ContextId::root(), addr).unwrap()
 }
 
+/// Given an slice of [Note]s, generates a procudere to initialize the VM's memory with the note's
+/// data.
 pub fn output_notes_data_procedure(notes: &[Note]) -> String {
-    let note_0_metadata = prepare_word(&notes[0].metadata().into());
-    let note_0_recipient = prepare_word(&notes[0].recipient().digest());
-    let note_0_assets = prepare_assets(notes[0].assets());
-    let note_0_num_assets = 1;
+    let mut code = String::new();
 
-    let note_1_metadata = prepare_word(&notes[1].metadata().into());
-    let note_1_recipient = prepare_word(&notes[1].recipient().digest());
-    let note_1_assets = prepare_assets(notes[1].assets());
-    let note_1_num_assets = 1;
-
-    let note_2_metadata = prepare_word(&notes[2].metadata().into());
-    let note_2_recipient = prepare_word(&notes[2].recipient().digest());
-    let note_2_assets = prepare_assets(notes[2].assets());
-    let note_2_num_assets = 1;
-
-    const NOTE_1_OFFSET: u32 = NOTE_MEM_SIZE;
-    const NOTE_2_OFFSET: u32 = NOTE_MEM_SIZE * 2;
-
-    format!(
+    code.push_str(
         "
         proc.create_mock_notes
             # remove padding from prologue
             dropw dropw dropw dropw
+        ",
+    );
 
-            # populate note 0
-            push.{note_0_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add mem_storew dropw
+    for (i, note) in (0u32..).zip(notes) {
+        let metadata = prepare_word(&note.metadata().into());
+        let recipient = prepare_word(&note.recipient().digest());
+        let assets = prepare_assets(note.assets());
+        let num_assets = note.assets().num_assets();
+        let note_offset = NOTE_MEM_SIZE * i;
 
-            push.{note_0_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
+        // TODO: loop over the assets to initialize the memory
+        assert_eq!(num_assets, 1, "Code currently only handles a single asset");
 
-            push.{note_0_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add mem_store
+        code.push_str(&format!(
+            "
+                # populate note {i}
+                push.{metadata}
+                push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_METADATA_OFFSET}.{note_offset} add add mem_storew dropw
 
-            push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add mem_storew dropw
+                push.{recipient}
+                push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET}.{note_offset} add add mem_storew dropw
 
-            # populate note 1
-            push.{note_1_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
+                push.{num_assets}
+                push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET}.{note_offset} add add mem_store
 
-            push.{note_1_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
+                push.{}
+                push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET}.{note_offset} add add mem_storew dropw
+            ",
+            assets[0],
+        ));
+    }
 
-            push.{note_1_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
-
-            push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
-
-            # populate note 2
-            push.{note_2_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
-
-            push.{note_2_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
-
-            push.{note_2_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
-
-            push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
-
+    code.push_str(&format!(
+        "
             # set num created notes
-            push.{}.{NUM_CREATED_NOTES_PTR} mem_store
+            push.{num_notes}.{NUM_CREATED_NOTES_PTR} mem_store
         end
         ",
-        note_0_assets[0],
-        note_1_assets[0],
-        note_2_assets[0],
-        notes.len()
-    )
+        num_notes = notes.len(),
+    ));
+
+    code
 }
