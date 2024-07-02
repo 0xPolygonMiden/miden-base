@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -10,7 +10,7 @@ use miden_objects::{
         },
         Account, AccountCode, AccountId,
     },
-    assembly::{Assembler, ModuleAst},
+    assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteId, NoteType},
     testing::{
@@ -31,11 +31,13 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
+use vm_processor::{AdviceInputs, AdviceMap, ExecutionError, Felt, Process, Word};
 use winter_maybe_async::maybe_async;
 
 use super::{executor::CodeExecutor, MockHost};
-use crate::{DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError};
+use crate::{
+    DataStore, DataStoreError, ScriptTarget, TransactionExecutor, TransactionExecutorError,
+};
 
 // TRANSACTION CONTEXT
 // ================================================================================================
@@ -46,6 +48,26 @@ pub struct TransactionContext {
     expected_output_notes: Vec<Note>,
     tx_inputs: TransactionInputs,
     advice_inputs: AdviceInputs,
+}
+
+/// Data required to compile the [miden_objects::transaction::TransactionScript] under the [TransactionContext].
+pub enum ScriptAndInputs {
+    Empty,
+    Some {
+        source: String,
+        inputs: Vec<(Word, Vec<Felt>)>,
+        targets: Vec<ScriptTarget>,
+    },
+}
+
+impl ScriptAndInputs {
+    pub fn new(source: String, inputs: Vec<(Word, Vec<Felt>)>, targets: Vec<ScriptTarget>) -> Self {
+        Self::Some { source, inputs, targets }
+    }
+
+    pub fn empty() -> Self {
+        Self::Empty
+    }
 }
 
 impl TransactionContext {
@@ -76,7 +98,9 @@ impl TransactionContext {
     /// Run the transaction in the context.
     pub fn execute_transaction(
         &self,
-        mut tx_args: TransactionArgs,
+        note_args: Option<BTreeMap<NoteId, Word>>,
+        advice_map: AdviceMap,
+        script_and_inputs: ScriptAndInputs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let mut executor = TransactionExecutor::<_, ()>::new(self.clone(), None);
 
@@ -86,6 +110,16 @@ impl TransactionContext {
         let block_ref = self.tx_inputs.block_header().block_num();
         let note_ids: Vec<_> = self.tx_inputs.input_notes().iter().map(InputNote::id).collect();
 
+        let tx_script = match script_and_inputs {
+            ScriptAndInputs::Some { source, inputs, targets } => {
+                let ast = ProgramAst::parse(&source)
+                    .map_err(TransactionExecutorError::ParsingTransactionScriptFailed)?;
+                Some(executor.compile_tx_script(ast, inputs, targets)?)
+            },
+            _ => None,
+        };
+
+        let mut tx_args = TransactionArgs::new(tx_script, note_args, advice_map);
         tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args)
     }

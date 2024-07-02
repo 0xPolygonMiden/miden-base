@@ -2,8 +2,9 @@ use alloc::string::String;
 use core::fmt::{self, Display};
 
 use miden_objects::{
-    assembly::AssemblyError, notes::NoteId, Felt, NoteError, ProvenTransactionError,
-    TransactionInputError, TransactionOutputError,
+    assembly::{AssemblyError, ParsingError},
+    notes::NoteId,
+    Felt, NoteError, ProvenTransactionError, TransactionInputError, TransactionOutputError,
 };
 use miden_verifier::VerificationError;
 
@@ -40,8 +41,8 @@ impl std::error::Error for TransactionCompilerError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionExecutorError {
     CompileNoteScriptFailed(TransactionCompilerError),
-    CompileTransactionScriptFailed(TransactionCompilerError),
     CompileTransactionFailed(TransactionCompilerError),
+    CompileTransactionScriptFailed(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchAccountCodeFailed(DataStoreError),
     FetchTransactionInputsFailed(DataStoreError),
@@ -55,6 +56,7 @@ pub enum TransactionExecutorError {
     },
     InvalidTransactionOutput(TransactionOutputError),
     LoadAccountFailed(TransactionCompilerError),
+    ParsingTransactionScriptFailed(ParsingError),
 }
 
 impl fmt::Display for TransactionExecutorError {

@@ -36,7 +36,7 @@ pub mod assembly {
     pub use assembly::{
         ast::{AstSerdeOptions, ModuleAst, ProgramAst},
         Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath,
-        MaslLibrary, Version,
+        MaslLibrary, ParsingError, Version,
     };
 }
 

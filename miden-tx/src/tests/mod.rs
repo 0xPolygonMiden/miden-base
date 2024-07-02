@@ -38,7 +38,7 @@ use vm_processor::{
 };
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::{testing::TransactionContextBuilder, TransactionCompiler};
+use crate::testing::{ScriptAndInputs, TransactionContextBuilder};
 
 mod kernel_tests;
 
@@ -55,7 +55,9 @@ fn transaction_executor_witness() {
     .with_mock_notes_preserved()
     .build();
 
-    let executed_transaction = tx_context.execute_transaction(TransactionArgs::default()).unwrap();
+    let executed_transaction = tx_context
+        .execute_transaction(None, AdviceMap::default(), ScriptAndInputs::empty())
+        .unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
@@ -608,7 +610,9 @@ fn prove_witness_and_verify() {
     .with_mock_notes_preserved()
     .build();
 
-    let executed_transaction = tx_context.execute_transaction(TransactionArgs::default()).unwrap();
+    let executed_transaction = tx_context
+        .execute_transaction(None, AdviceMap::default(), ScriptAndInputs::empty())
+        .unwrap();
     let executed_transaction_id = executed_transaction.id();
 
     let proof_options = ProvingOptions::default();
@@ -635,9 +639,9 @@ fn test_tx_script() {
     .with_mock_notes_preserved()
     .build();
 
-    let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
-    let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
-    let tx_script_code = format!(
+    let tx_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
+    let tx_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
+    let tx_source = format!(
         "
         begin
             # push the tx script input key onto the stack
@@ -650,20 +654,15 @@ fn test_tx_script() {
             push.{value} assert_eqw
         end
         ",
-        key = prepare_word(&tx_script_input_key),
-        value = prepare_word(&tx_script_input_value)
+        key = prepare_word(&tx_input_key),
+        value = prepare_word(&tx_input_value)
     );
-    let tx_script_ast = ProgramAst::parse(&tx_script_code).unwrap();
-    let tx_script = TransactionCompiler::new()
-        .compile_tx_script(
-            tx_script_ast,
-            vec![(tx_script_input_key, tx_script_input_value.into())],
-            vec![],
-        )
-        .unwrap();
 
-    let tx_args = TransactionArgs::with_tx_script(tx_script);
-    let executed_transaction = tx_context.execute_transaction(tx_args);
+    let executed_transaction = tx_context.execute_transaction(
+        None,
+        AdviceMap::default(),
+        ScriptAndInputs::new(tx_source, vec![(tx_input_key, tx_input_value.into())], vec![]),
+    );
 
     assert!(
         executed_transaction.is_ok(),
