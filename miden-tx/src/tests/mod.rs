@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -21,7 +21,8 @@ use miden_objects::{
         account_code::{
             ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
             ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
-            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            ACCOUNT_SEND_ASSET_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
+            ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
@@ -156,74 +157,45 @@ fn executed_transaction_account_delta() {
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
-        # ACCOUNT PROCEDURE WRAPPERS
-        # =========================================================================================
-        #TODO: Move this into an account library
-        proc.set_item
-            push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
-            # => [index, V', 0, 0, 0]
+        # asserts the stack is currently empty
+        # if note, there are issues with the stack management
+        proc.stack_empty
+            assertz assertz assertz assertz
+            assertz assertz assertz assertz
+            assertz assertz assertz assertz
+            assertz assertz assertz assertz
+        end
+
+        begin
+            # => [TX_SCRIPT_ROOT]
+            dropw
+
+            # Update account storage item
+            # -------------------------------------------------------------------------------------
+
+            push.0.0.0
+            push.{UPDATED_SLOT_VALUE}
+            push.{STORAGE_INDEX_0}
+            # => [idx, VALUE, 0, 0, 0]
 
             call.{ACCOUNT_SET_ITEM_MAST_ROOT}
             # => [R', V]
-        end
 
-        proc.set_map_item
-            #push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
-            # => [index, KEY, VALUE, 0, 0, 0]
-
-            call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
-            # => [R', V]
-        end
-
-        proc.set_code
-            call.{ACCOUNT_SET_CODE_MAST_ROOT}
-            # => [0, 0, 0, 0]
-
-            dropw
-            # => []
-        end
-
-        proc.incr_nonce
-            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
-            # => [0]
-
-            drop
-            # => []
-        end
-
-        # TRANSACTION SCRIPT
-        # =========================================================================================
-        begin
-            # Update account storage item
-            # -------------------------------------------------------------------------------------
-            # push a new value for the storage slot onto the stack
-            push.{UPDATED_SLOT_VALUE}
-            # => [13, 11, 9, 7]
-
-            # get the index of account storage slot
-            push.{STORAGE_INDEX_0}
-            # => [idx, 13, 11, 9, 7]
-
-            # update the storage value
-            exec.set_item dropw dropw
+            dropw dropw exec.stack_empty
             # => []
 
             # Update account storage map
             # -------------------------------------------------------------------------------------
-            # push a new VALUE for the storage map onto the stack
+
             push.{UPDATED_MAP_VALUE}
-            # => [18, 19, 20, 21]
-
-            # push a new KEY for the storage map onto the stack
             push.{UPDATED_MAP_KEY}
-            # => [14, 15, 16, 17, 18, 19, 20, 21]
-
-            # get the index of account storage slot
             push.{STORAGE_INDEX_2}
-            # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
+            # => [idx, KEY, VALUE]
 
-            # update the storage value
-            exec.set_map_item dropw dropw dropw
+            call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
+            # => [R', V]
+
+            dropw dropw exec.stack_empty
             # => []
 
             # Send some assets from the account vault
@@ -234,7 +206,10 @@ fn executed_transaction_account_delta() {
             push.{aux1}             # aux
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.{ACCOUNT_SEND_ASSET_MAST_ROOT}
+            # => [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, ...]
+
+            dropw dropw drop drop drop exec.stack_empty
             # => []
 
             # totally deplete fungible asset balance
@@ -243,7 +218,10 @@ fn executed_transaction_account_delta() {
             push.{aux2}             # aux
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.{ACCOUNT_SEND_ASSET_MAST_ROOT}
+            # => [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, ...]
+
+            dropw dropw drop drop drop exec.stack_empty
             # => []
 
             # send non-fungible asset
@@ -252,17 +230,24 @@ fn executed_transaction_account_delta() {
             push.{aux3}             # aux
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.{ACCOUNT_SEND_ASSET_MAST_ROOT}
+            # => [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, ...]
+
+            dropw dropw drop drop drop exec.stack_empty
             # => []
 
             # Update account code
             # -------------------------------------------------------------------------------------
-            push.{NEW_ACCOUNT_ROOT} exec.set_code dropw
+            push.{NEW_ACCOUNT_ROOT}
+            call.{ACCOUNT_SET_CODE_MAST_ROOT}
+            exec.stack_empty
             # => []
 
             # Update the account nonce
             # -------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
+            push.1
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            exec.stack_empty
             # => []
         end
         ",
@@ -487,6 +472,9 @@ fn executed_transaction_output_notes() {
         # TRANSACTION SCRIPT
         # =========================================================================================
         begin
+            # => [TX_SCRIPT_ROOT]
+            dropw
+
             # Send some assets from the account vault
             # -------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
@@ -644,6 +632,9 @@ fn test_tx_script() {
     let tx_source = format!(
         "
         begin
+            # => [TX_SCRIPT_ROOT]
+            dropw
+
             # push the tx script input key onto the stack
             push.{key}
 
@@ -662,6 +653,42 @@ fn test_tx_script() {
         None,
         AdviceMap::default(),
         ScriptAndInputs::new(tx_source, vec![(tx_input_key, tx_input_value.into())], vec![]),
+    );
+
+    assert!(
+        executed_transaction.is_ok(),
+        "Transaction execution failed {:?}",
+        executed_transaction,
+    );
+}
+
+// Checks the stack is empty when calling the transaction script.
+#[test]
+fn test_tx_script_stack_is_empty() {
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .with_mock_notes_preserved()
+    .build();
+
+    let tx_source = "
+        begin
+            # => [TX_SCRIPT_ROOT]
+            dropw
+
+            assertz assertz assertz assertz
+            assertz assertz assertz assertz
+            assertz assertz assertz assertz
+        end
+    ";
+
+    // [TransactionKernel::parse_output_stack] validated the final stack of the VM. If the
+    // [ExecutedTransaction] successfully parsed the program's final stack, then it is empty.
+    let executed_transaction = tx_context.execute_transaction(
+        None,
+        AdviceMap::default(),
+        ScriptAndInputs::new(tx_source.to_string(), vec![], vec![]),
     );
 
     assert!(

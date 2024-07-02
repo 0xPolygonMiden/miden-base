@@ -6,11 +6,11 @@ use crate::accounts::AccountCode;
 // account's procedures.
 const MASTS: [&str; 11] = [
     "0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167",
-    "0x549d264f00f1a6e90d47284e99eab6d0f93a3d41bb5324743607b6902978a809",
-    "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35",
-    "0xc25558f483c13aa5be77de4b0987de6a3fab303146fe2fd8ab68b6be8fdcfe76",
-    "0x5dc65ccf6d32880a8eb47fab75b65d926b701ed80220fe5e88152efffcd656ad",
-    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
+    "0x49c463b2b0888fc21973956b5bf93a62b09ad580169a392310e8b06fb16e7063",
+    "0x15cc8a22ff11a964556d2c0be7c34b8a6c8823aeae8b3fb85adf0debdbf8299c",
+    "0x4ce781587b60e18c13251445da6a24cf758bbb83726019f941d0555ef65a8b1b",
+    "0xff9b31930a10a0725f0e950f6f59c40e96799e67704103dc86ad04ce32526998",
+    "0x88a3caaf8117785b056dddcebad8f283cdc3f05e6b518ee841c2e7515df38ee1",
     "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872",
     "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
     "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
@@ -18,6 +18,7 @@ const MASTS: [&str; 11] = [
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
 
+pub const ACCOUNT_RECEIVE_ASSET_MAST_ROOT: &str = MASTS[0];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
@@ -67,45 +68,41 @@ impl AccountCode {
         use.miden::tx
         use.miden::contracts::wallets::basic->wallet
 
+        #######################################  IMPORTANT  #######################################
+        #                                                                                         #
+        #            Only use locally defined procedures below instead of re-exports              #
+        #                                see miden-vm/#1376                                       #
+        #                                                                                         #
+        ###########################################################################################
+
         # acct proc 0
-        export.wallet::receive_asset
+        export.receive_asset
+            exec.wallet::receive_asset
+        end
+
         # acct proc 1
-        export.wallet::send_asset
+        export.send_asset.1
+            exec.wallet::send_asset
+        end
 
         # acct proc 2
         export.incr_nonce
-            push.0 swap
-            # => [value, 0]
-
-            exec.account::incr_nonce
-            # => [0]
+            exec.wallet::incr_nonce
         end
 
         # acct proc 3
         export.set_item
             exec.account::set_item
-            # => [R', V, 0, 0, 0]
-
-            movup.8 drop movup.8 drop movup.8 drop
-            # => [R', V]
         end
 
         # acct proc 4
         export.set_map_item
             exec.account::set_map_item
-            # => [R', V, 0, 0, 0]
-
-            movup.8 drop movup.8 drop movup.8 drop
-            # => [R', V]
         end
 
         # acct proc 5
         export.set_code
-            padw swapw
-            # => [CODE_ROOT, 0, 0, 0, 0]
-
-            exec.account::set_code
-            # => [0, 0, 0, 0]
+            exec.wallet::set_code
         end
 
         # acct proc 6

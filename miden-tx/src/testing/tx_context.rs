@@ -51,6 +51,9 @@ pub struct TransactionContext {
 }
 
 /// Data required to compile the [miden_objects::transaction::TransactionScript] under the [TransactionContext].
+///
+/// This allows the account code to be loaded in the [Assembler] so that the transaction script can
+/// the account's procedures.
 pub enum ScriptAndInputs {
     Empty,
     Some {

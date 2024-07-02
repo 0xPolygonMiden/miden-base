@@ -86,7 +86,7 @@ end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index, V']
+#! Stack: [index, V', 0, 0, 0]
 #! Output: [R', V]
 #!
 #! - index is the index of the item to set.
@@ -94,9 +94,6 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_item
-    push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
-    # => [index, V', 0, 0, 0]
-
     syscall.set_account_item
     # => [R', V]
 end

@@ -320,7 +320,7 @@ mod tests {
     };
     use vm_processor::Digest;
 
-    use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use super::AccountDelta;
     use crate::{
         accounts::{
             delta::AccountStorageDeltaBuilder, Account, SlotItem, StorageMap, StorageMapDelta,
@@ -475,28 +475,6 @@ mod tests {
             .build()
             .unwrap();
         let account_delta = build_account_delta(vec![], vec![asset], final_nonce, storage_delta);
-
-        // apply delta
-        account.apply_delta(&account_delta).unwrap()
-    }
-
-    #[test]
-    #[should_panic]
-    fn empty_account_delta_with_incremented_nonce() {
-        // build account
-        let init_nonce = Felt::new(1);
-        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let slot_item = SlotItem::new_value(0, 0, word);
-        let mut account = build_account(vec![], init_nonce, vec![slot_item], None);
-
-        // build account delta
-        let final_nonce = Felt::new(2);
-        let account_delta = AccountDelta::new(
-            AccountStorageDelta::default(),
-            AccountVaultDelta::default(),
-            Some(final_nonce),
-        )
-        .unwrap();
 
         // apply delta
         account.apply_delta(&account_delta).unwrap()

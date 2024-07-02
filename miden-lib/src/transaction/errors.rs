@@ -98,7 +98,7 @@ impl fmt::Display for TransactionKernelError {
                 )
             },
             TransactionKernelError::UnknownAccountProcedure(proc_root) => {
-                write!(f, "account procedure with root {proc_root} is not in the advice provider")
+                write!(f, "Could not find account procedure with digest {proc_root} is in the advice provider, check the transactinon's account code")
             },
         }
     }

@@ -73,3 +73,27 @@ export.send_asset.1
     # prepare the stack for return - stack has 6 elements too many
     movupw.3 dropw swap drop swap drop
 end
+
+#! Increments the account nonce by the provided value.
+#!
+#! Stack: [value]
+#! Output: []
+#!
+#! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
+#!   procedure panics.
+export.incr_nonce
+    exec.account::incr_nonce
+    # => []
+end
+
+#! Sets the code of the account the transaction is being executed against. This procedure can only
+#! executed on regular accounts with updatable code. Otherwise, this procedure fails.
+#!
+#! Stack: [CODE_ROOT]
+#! Output: []
+#!
+#! - CODE_ROOT is the hash of the code to set.
+export.set_code
+    exec.account::set_code
+    # => []
+end

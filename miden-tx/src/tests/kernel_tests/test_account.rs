@@ -10,15 +10,19 @@ use miden_objects::{
         AccountId, AccountStorage, AccountType, StorageSlotType,
     },
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    testing::{prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{
+        account_code::{ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT},
+        prepare_word,
+        storage::STORAGE_LEAVES_2,
+    },
     transaction::TransactionArgs,
 };
-use vm_processor::{Felt, MemAdviceProvider};
+use vm_processor::{AdviceMap, Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
-    testing::{executor::CodeExecutor, TransactionContextBuilder},
-    tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
+    testing::{executor::CodeExecutor, ScriptAndInputs, TransactionContextBuilder},
+    tests::kernel_tests::read_root_mem_value,
 };
 
 // ACCOUNT CODE TESTS
@@ -65,37 +69,33 @@ pub fn test_set_code_succeeds() {
     .with_mock_notes_preserved()
     .build();
 
-    let output_notes_data_procedure =
-        output_notes_data_procedure(tx_context.expected_output_notes());
-
-    let code = format!(
+    let tx_script = format!(
         "
         use.miden::account
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::epilogue
 
-        {output_notes_data_procedure}
         begin
-            exec.prologue::prepare_transaction
-
             push.0.1.2.3
-            exec.account::set_code
-
-            exec.create_mock_notes
+            call.{ACCOUNT_SET_CODE_MAST_ROOT}
+            dropw
 
             push.1
-            exec.account::incr_nonce
-
-            exec.epilogue::finalize_transaction
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            drop
         end
         "
     );
 
-    let process = tx_context.execute_with_custom_main(&code, TransactionArgs::default()).unwrap();
+    let executed_transaction = tx_context
+        .execute_transaction(
+            None,
+            AdviceMap::default(),
+            ScriptAndInputs::new(tx_script, vec![], vec![]),
+        )
+        .unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
-        [ZERO, ONE, Felt::new(2), Felt::new(3)],
+        executed_transaction.final_account().code_root(),
+        RpoDigest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]),
         "the code root must change after the epilogue",
     );
 }

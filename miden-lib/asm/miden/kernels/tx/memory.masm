@@ -633,8 +633,12 @@ end
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
+    # load the data stored in the same word as the nonce
     padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
+    # => [DATA, acct_nonce]
+
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
+    # => []
 end
 
 #! Sets the code root of the account.

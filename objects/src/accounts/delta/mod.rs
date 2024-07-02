@@ -190,11 +190,13 @@ fn validate_nonce(
                 ))
             },
         }
-    } else if nonce.is_some() {
-        return Err(AccountDeltaError::InconsistentNonceUpdate(
-            "nonce updated for empty delta".to_string(),
-        ));
     }
+
+    // TODO: validate the nonce updates when the account code changes.
+    // 1. the nonce must be updated when the code changes
+    // 2. the nonce must not change if nothing changed
+    // 3. for now, since the code changes is not tracked, validation 2. can't be performed, since it
+    //    would prevent the execution of correct transaction scripts
 
     Ok(())
 }
@@ -222,7 +224,6 @@ mod tests {
         };
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_ok());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_err());
 
         // non-empty delta
         let storage_delta = AccountStorageDelta {
