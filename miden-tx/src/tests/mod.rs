@@ -54,28 +54,13 @@ fn transaction_executor_witness() {
     )
     .with_mock_notes_preserved()
     .build();
-    let mut executor = TransactionExecutor::<_, ()>::new(tx_context.clone(), None);
 
-    let account_id = tx_context.account().id();
-    executor.load_account(account_id).unwrap();
-
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
-
-    let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-        .unwrap();
+    let executed_transaction = tx_context.execute_transaction().unwrap();
     let tx_witness: TransactionWitness = executed_transaction.clone().into();
 
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let _authenticator = ();
     let mut host: TransactionHost<MemAdviceProvider, ()> =
         TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None);
     let result =
@@ -109,11 +94,11 @@ fn executed_transaction_account_delta() {
     let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
-    let new_acct_code_src = "\
-    export.account_proc_1
-        push.9.9.9.9
-        dropw
-    end
+    let new_acct_code_src = "
+        export.account_proc_1
+            push.9.9.9.9
+            dropw
+        end
     ";
     let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
     let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
@@ -164,7 +149,7 @@ fn executed_transaction_account_delta() {
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
     let tx_script = format!(
-        "\
+        "
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
@@ -277,7 +262,7 @@ fn executed_transaction_account_delta() {
             push.1 exec.incr_nonce drop
             # => []
         end
-    ",
+        ",
         NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
@@ -462,7 +447,7 @@ fn executed_transaction_output_notes() {
     let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
 
     let tx_script = format!(
-        "\
+        "
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
@@ -553,7 +538,7 @@ fn executed_transaction_output_notes() {
             push.1 exec.incr_nonce drop
             # => []
         end
-    ",
+        ",
         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
@@ -679,17 +664,17 @@ fn test_tx_script() {
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
     let tx_script_source = format!(
         "
-    begin
-        # push the tx script input key onto the stack
-        push.{key}
+        begin
+            # push the tx script input key onto the stack
+            push.{key}
 
-        # load the tx script input value from the map and read it onto the stack
-        adv.push_mapval adv_loadw
+            # load the tx script input value from the map and read it onto the stack
+            adv.push_mapval adv_loadw
 
-        # assert that the value is correct
-        push.{value} assert_eqw
-    end
-",
+            # assert that the value is correct
+            push.{value} assert_eqw
+        end
+        ",
         key = prepare_word(&tx_script_input_key),
         value = prepare_word(&tx_script_input_value)
     );

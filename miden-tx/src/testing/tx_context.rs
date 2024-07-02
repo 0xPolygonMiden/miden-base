@@ -25,7 +25,8 @@ use miden_objects::{
         storage::prepare_assets,
     },
     transaction::{
-        InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
+        ExecutedTransaction, InputNote, InputNotes, OutputNote, PreparedTransaction,
+        TransactionArgs, TransactionInputs,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -34,7 +35,7 @@ use vm_processor::{AdviceInputs, ExecutionError, Felt, Process, Word};
 use winter_maybe_async::maybe_async;
 
 use super::{executor::CodeExecutor, MockHost};
-use crate::{DataStore, DataStoreError};
+use crate::{DataStore, DataStoreError, TransactionExecutor, TransactionExecutorError};
 
 // TRANSACTION CONTEXT
 // ================================================================================================
@@ -67,6 +68,19 @@ impl TransactionContext {
         CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)
             .execute_program(tx.program())
+    }
+
+    /// Run the transaction in the context.
+    pub fn execute_transaction(&self) -> Result<ExecutedTransaction, TransactionExecutorError> {
+        let mut executor = TransactionExecutor::<_, ()>::new(self.clone(), None);
+
+        let account_id = self.account().id();
+        executor.load_account(account_id).unwrap();
+
+        let block_ref = self.tx_inputs.block_header().block_num();
+        let note_ids: Vec<_> = self.tx_inputs.input_notes().iter().map(InputNote::id).collect();
+
+        executor.execute_transaction(account_id, block_ref, &note_ids, self.tx_args.clone())
     }
 
     pub fn account(&self) -> &Account {
