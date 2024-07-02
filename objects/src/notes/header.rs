@@ -44,7 +44,7 @@ impl NoteHeader {
     /// This value is used primarily for authenticating notes consumed when they are consumed
     /// in a transaction.
     pub fn hash(&self) -> Digest {
-        note_hash(self.id(), self.metadata())
+        compute_note_hash(self.id(), self.metadata())
     }
 }
 
@@ -57,7 +57,7 @@ impl NoteHeader {
 ///
 /// This value is used primarily for authenticating notes consumed when they are consumed
 /// in a transaction.
-pub fn note_hash(id: NoteId, metadata: &NoteMetadata) -> Digest {
+pub fn compute_note_hash(id: NoteId, metadata: &NoteMetadata) -> Digest {
     Hasher::merge(&[id.inner(), Word::from(metadata).into()])
 }
 

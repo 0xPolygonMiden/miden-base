@@ -21,7 +21,7 @@ mod details;
 pub use details::NoteDetails;
 
 mod header;
-pub use header::{note_hash, NoteHeader};
+pub use header::{compute_note_hash, NoteHeader};
 
 mod inputs;
 pub use inputs::NoteInputs;
