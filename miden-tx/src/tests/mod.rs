@@ -45,6 +45,7 @@ mod kernel_tests;
 // TESTS
 // ================================================================================================
 
+/// [TransactionWitness] must produce the same result as its [miden_objects::transaction::PreparedTransaction].
 #[test]
 fn transaction_executor_witness() {
     let tx_context = TransactionContextBuilder::with_standard_account(
@@ -53,8 +54,7 @@ fn transaction_executor_witness() {
     )
     .with_mock_notes_preserved()
     .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
+    let mut executor = TransactionExecutor::<_, ()>::new(tx_context.clone(), None);
 
     let account_id = tx_context.account().id();
     executor.load_account(account_id).unwrap();
