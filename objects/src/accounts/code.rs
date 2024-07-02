@@ -92,6 +92,14 @@ impl AccountCode {
         }
     }
 
+    /// Compiles the source and returns a [AccountCode].
+    pub fn from_code(source: impl AsRef<str>) -> Result<Self, AccountError> {
+        let source = source.as_ref();
+        let new_acct_code_ast =
+            ModuleAst::parse(source).map_err(AccountError::AccountCodeParsingError)?;
+        AccountCode::new(new_acct_code_ast, &Assembler::default())
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

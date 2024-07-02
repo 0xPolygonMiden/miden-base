@@ -11,7 +11,7 @@ use miden_objects::{
         },
         AccountCode,
     },
-    assembly::{Assembler, ModuleAst, ProgramAst},
+    assembly::{Assembler, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteInputs, NoteMetadata,
@@ -94,14 +94,15 @@ fn executed_transaction_account_delta() {
     let account_id = tx_context.tx_inputs().account().id();
     executor.load_account(account_id).unwrap();
 
-    let new_acct_code_src = "
+    let new_acct_code = AccountCode::from_code(
+        "
         export.account_proc_1
             push.9.9.9.9
             dropw
         end
-    ";
-    let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
-    let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+        ",
+    )
+    .unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];

@@ -1,7 +1,7 @@
 use alloc::{string::String, vec::Vec};
 use core::fmt;
 
-use assembly::AssemblyError;
+use assembly::{AssemblyError, ParsingError};
 use vm_processor::DeserializationError;
 
 use super::{
@@ -19,6 +19,7 @@ use crate::{accounts::AccountType, notes::NoteType};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
+    AccountCodeParsingError(ParsingError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountIdInvalidFieldElement(String),
