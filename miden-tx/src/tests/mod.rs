@@ -154,8 +154,8 @@ fn executed_transaction_account_delta() {
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
-        ## ACCOUNT PROCEDURE WRAPPERS
-        ## ========================================================================================
+        # ACCOUNT PROCEDURE WRAPPERS
+        # =========================================================================================
         #TODO: Move this into an account library
         proc.set_item
             push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
@@ -189,11 +189,11 @@ fn executed_transaction_account_delta() {
             # => []
         end
 
-        ## TRANSACTION SCRIPT
-        ## ========================================================================================
+        # TRANSACTION SCRIPT
+        # =========================================================================================
         begin
-            ## Update account storage item
-            ## ------------------------------------------------------------------------------------
+            # Update account storage item
+            # -------------------------------------------------------------------------------------
             # push a new value for the storage slot onto the stack
             push.{UPDATED_SLOT_VALUE}
             # => [13, 11, 9, 7]
@@ -206,8 +206,8 @@ fn executed_transaction_account_delta() {
             exec.set_item dropw dropw
             # => []
 
-            ## Update account storage map
-            ## ------------------------------------------------------------------------------------
+            # Update account storage map
+            # -------------------------------------------------------------------------------------
             # push a new VALUE for the storage map onto the stack
             push.{UPDATED_MAP_VALUE}
             # => [18, 19, 20, 21]
@@ -224,8 +224,8 @@ fn executed_transaction_account_delta() {
             exec.set_map_item dropw dropw dropw
             # => []
 
-            ## Send some assets from the account vault
-            ## ------------------------------------------------------------------------------------
+            # Send some assets from the account vault
+            # -------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
             push.{NOTETYPE1}        # note_type
@@ -253,13 +253,13 @@ fn executed_transaction_account_delta() {
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
-            ## Update account code
-            ## ------------------------------------------------------------------------------------
+            # Update account code
+            # -------------------------------------------------------------------------------------
             push.{NEW_ACCOUNT_ROOT} exec.set_code dropw
             # => []
 
-            ## Update the account nonce
-            ## ------------------------------------------------------------------------------------
+            # Update the account nonce
+            # -------------------------------------------------------------------------------------
             push.1 exec.incr_nonce drop
             # => []
         end
@@ -452,8 +452,8 @@ fn executed_transaction_output_notes() {
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
-        ## ACCOUNT PROCEDURE WRAPPERS
-        ## ========================================================================================
+        # ACCOUNT PROCEDURE WRAPPERS
+        # =========================================================================================
         #TODO: Move this into an account library
         proc.create_note
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
@@ -481,11 +481,11 @@ fn executed_transaction_output_notes() {
             # => []
         end
 
-        ## TRANSACTION SCRIPT
-        ## ========================================================================================
+        # TRANSACTION SCRIPT
+        # =========================================================================================
         begin
-            ## Send some assets from the account vault
-            ## ------------------------------------------------------------------------------------
+            # Send some assets from the account vault
+            # -------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3                        # recipient
             push.{NOTETYPE1}                    # note_type
@@ -534,8 +534,8 @@ fn executed_transaction_output_notes() {
 
             drop
 
-            ## Update the account nonce
-            ## ------------------------------------------------------------------------------------
+            # Update the account nonce
+            # -------------------------------------------------------------------------------------
             push.1 exec.incr_nonce drop
             # => []
         end
