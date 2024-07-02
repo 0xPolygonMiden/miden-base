@@ -144,20 +144,17 @@ pub struct TransactionContextBuilder {
     advice_inputs: Option<AdviceInputs>,
     input_notes: Vec<Note>,
     expected_output_notes: Vec<Note>,
-    tx_args: TransactionArgs,
     rng: ChaCha20Rng,
 }
 
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
-        let tx_args = TransactionArgs::default();
         Self {
             assembler: TransactionKernel::assembler().with_debug_mode(true),
             account,
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            tx_args,
             advice_inputs: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
         }
@@ -173,7 +170,6 @@ impl TransactionContextBuilder {
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            tx_args: TransactionArgs::default(),
             advice_inputs: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
         }
@@ -189,7 +185,6 @@ impl TransactionContextBuilder {
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            tx_args: TransactionArgs::default(),
             advice_inputs: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
         }
@@ -206,7 +201,6 @@ impl TransactionContextBuilder {
             account_seed: None,
             input_notes: Vec::new(),
             expected_output_notes: Vec::new(),
-            tx_args: TransactionArgs::default(),
             advice_inputs: None,
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
         }
@@ -603,7 +597,7 @@ impl TransactionContextBuilder {
         self.input_notes(vec![input_note1, input_note2, input_note4])
     }
 
-    pub fn build(mut self) -> TransactionContext {
+    pub fn build(self) -> TransactionContext {
         let mut mock_chain = MockChainBuilder::new().notes(self.input_notes.clone()).build();
         mock_chain.seal_block();
         mock_chain.seal_block();
@@ -618,12 +612,13 @@ impl TransactionContextBuilder {
             &input_note_ids,
         );
 
-        self.tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
+        let mut tx_args = TransactionArgs::default();
+        tx_args.extend_expected_output_notes(self.expected_output_notes.clone());
 
         TransactionContext {
             mock_chain,
             expected_output_notes: self.expected_output_notes,
-            tx_args: self.tx_args,
+            tx_args,
             tx_inputs,
             advice_inputs: self.advice_inputs.unwrap_or_default(),
         }
