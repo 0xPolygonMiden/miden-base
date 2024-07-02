@@ -3,10 +3,7 @@ use alloc::{collections::BTreeMap, string::String};
 use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
 use miden_objects::{
     accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    notes::Note,
-    testing::{notes::AssetPreservationStatus, prepare_word},
-    transaction::TransactionArgs,
-    WORD_SIZE,
+    notes::Note, testing::prepare_word, transaction::TransactionArgs, WORD_SIZE,
 };
 use vm_processor::{EMPTY_WORD, ONE};
 
@@ -53,7 +50,7 @@ fn test_get_sender() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     // calling get_sender should return sender
@@ -82,7 +79,7 @@ fn test_get_vault_data() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.input_notes();
@@ -134,7 +131,7 @@ fn test_get_assets() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.input_notes();
@@ -244,7 +241,7 @@ fn test_get_inputs() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let notes = tx_context.mock_chain().available_notes();
@@ -318,7 +315,7 @@ fn test_note_setup() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
@@ -348,7 +345,7 @@ fn test_note_script_and_note_args() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
@@ -407,7 +404,7 @@ fn test_get_note_serial_number() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     // calling get_serial_number should return the serial number of the note
