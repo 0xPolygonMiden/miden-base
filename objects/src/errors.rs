@@ -40,24 +40,6 @@ pub enum AccountError {
     StubDataIncorrectLength(usize, usize),
 }
 
-impl AccountError {
-    pub fn account_id_invalid_field_element(msg: String) -> Self {
-        Self::AccountIdInvalidFieldElement(msg)
-    }
-
-    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
-        Self::AccountIdTooFewOnes(expected, actual)
-    }
-
-    pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
-        Self::SeedDigestTooFewTrailingZeros { expected, actual }
-    }
-
-    pub fn fungible_faucet_id_invalid_first_bit() -> Self {
-        Self::FungibleFaucetIdInvalidFirstBit
-    }
-}
-
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
@@ -109,52 +91,6 @@ pub enum AssetError {
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
     TokenSymbolError(String),
-}
-
-impl AssetError {
-    pub fn amount_too_big(value: u64) -> Self {
-        Self::AmountTooBig(value)
-    }
-
-    pub fn asset_amount_not_sufficient(available: u64, requested: u64) -> Self {
-        Self::AssetAmountNotSufficient(available, requested)
-    }
-
-    pub fn fungible_asset_invalid_tag(tag: u32) -> Self {
-        Self::FungibleAssetInvalidTag(tag)
-    }
-
-    pub fn fungible_asset_invalid_word(word: Word) -> Self {
-        Self::FungibleAssetInvalidWord(word)
-    }
-
-    pub fn inconsistent_faucet_ids(id1: AccountId, id2: AccountId) -> Self {
-        Self::InconsistentFaucetIds(id1, id2)
-    }
-
-    pub fn invalid_account_id(err: String) -> Self {
-        Self::InvalidAccountId(err)
-    }
-
-    pub fn invalid_field_element(msg: String) -> Self {
-        Self::InvalidFieldElement(msg)
-    }
-
-    pub fn non_fungible_asset_invalid_tag(tag: u32) -> Self {
-        Self::NonFungibleAssetInvalidTag(tag)
-    }
-
-    pub fn not_a_fungible_faucet_id(id: AccountId, account_type: AccountType) -> Self {
-        Self::NotAFungibleFaucetId(id, account_type)
-    }
-
-    pub fn not_a_non_fungible_faucet_id(id: AccountId) -> Self {
-        Self::NotANonFungibleFaucetId(id)
-    }
-
-    pub fn not_an_asset(value: Word) -> Self {
-        Self::NotAnAsset(value)
-    }
 }
 
 impl fmt::Display for AssetError {

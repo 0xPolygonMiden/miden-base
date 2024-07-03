@@ -24,7 +24,7 @@ use miden_objects::{
             ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        notes::{AssetPreservationStatus, DEFAULT_NOTE_CODE},
+        notes::DEFAULT_NOTE_CODE,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
@@ -52,7 +52,7 @@ fn transaction_executor_witness() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None);
@@ -102,7 +102,7 @@ fn executed_transaction_account_delta() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::PreservedWithAccountVaultDelta)
+    .with_mock_notes_preserved_with_account_vault_delta()
     .build();
 
     let mut executor: TransactionExecutor<_, ()> =
@@ -381,7 +381,7 @@ fn executed_transaction_output_notes() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::PreservedWithAccountVaultDelta)
+    .with_mock_notes_preserved_with_account_vault_delta()
     .build();
 
     let mut executor: TransactionExecutor<_, ()> =
@@ -618,7 +618,7 @@ fn prove_witness_and_verify() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None);
@@ -660,7 +660,7 @@ fn test_tx_script() {
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None);

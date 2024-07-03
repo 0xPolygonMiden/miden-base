@@ -10,7 +10,6 @@ use miden_objects::{
             CONSUMED_ASSET_1_AMOUNT, FUNGIBLE_ASSET_AMOUNT, FUNGIBLE_FAUCET_INITIAL_BALANCE,
             NON_FUNGIBLE_ASSET_DATA, NON_FUNGIBLE_ASSET_DATA_2,
         },
-        notes::AssetPreservationStatus,
         prepare_word,
         storage::FAUCET_STORAGE_DATA_SLOT,
     },
@@ -309,7 +308,7 @@ fn test_burn_fungible_asset_succeeds() {
         ONE,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = format!(

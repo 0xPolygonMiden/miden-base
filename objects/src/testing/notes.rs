@@ -57,15 +57,20 @@ impl NoteBuilder {
         }
     }
 
-    pub fn note_inputs(mut self, inputs: impl AsRef<[Felt]>) -> Result<Self, NoteError> {
-        let inputs = inputs.as_ref();
-        NoteInputs::new(inputs.to_vec())?;
-        self.inputs = inputs.to_vec();
+    /// Set the note's input to `inputs`.
+    ///
+    /// Note: This overwrite the inputs, the previous input values are discarded.
+    pub fn note_inputs(
+        mut self,
+        inputs: impl IntoIterator<Item = Felt>,
+    ) -> Result<Self, NoteError> {
+        let validate = NoteInputs::new(inputs.into_iter().collect())?;
+        self.inputs = validate.into();
         Ok(self)
     }
 
-    pub fn add_asset(mut self, asset: Asset) -> Self {
-        self.assets.push(asset);
+    pub fn add_assets(mut self, assets: impl IntoIterator<Item = Asset>) -> Self {
+        self.assets.extend(assets);
         self
     }
 
@@ -98,15 +103,4 @@ impl NoteBuilder {
         let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
         Ok(Note::new(vault, metadata, recipient))
     }
-}
-
-// CHAIN DATA UTILS
-// ============================================================================================
-
-pub enum AssetPreservationStatus {
-    TooFewInput,
-    Preserved,
-    PreservedWithAccountVaultDelta,
-    TooManyFungibleInput,
-    TooManyNonFungibleInput,
 }

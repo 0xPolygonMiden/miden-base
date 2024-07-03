@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{
@@ -21,7 +21,6 @@ use miden_objects::{
     assembly::ProgramAst,
     testing::{
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
-        notes::AssetPreservationStatus,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
@@ -29,7 +28,7 @@ use miden_objects::{
 };
 use vm_processor::{AdviceInputs, ONE};
 
-use super::{build_module_path, Felt, Process, Word, TX_KERNEL_DIR, ZERO};
+use super::{Felt, Process, Word, ZERO};
 use crate::{
     testing::{
         utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
@@ -37,38 +36,20 @@ use crate::{
     tests::kernel_tests::read_root_mem_value,
 };
 
-const PROLOGUE_FILE: &str = "prologue.masm";
-
-/// Loads epilogue file and returns the complete code formatted as
-/// "{prologue_code}{code}"`
-#[cfg(feature = "std")]
-fn insert_prologue(code: &str) -> String {
-    use std::fs::File;
-
-    let assembly_file = build_module_path(TX_KERNEL_DIR, PROLOGUE_FILE);
-    let mut module = String::new();
-    std::io::Read::read_to_string(&mut File::open(assembly_file).unwrap(), &mut module).unwrap();
-    let complete_code = format!("{module}{code}");
-
-    // This hack is going around issue #686 on miden-vm
-    complete_code.replace("export", "proc")
-}
-
-// TESTS
-// ================================================================================================
-
 #[test]
 fn test_transaction_prologue() {
     let mut tx_context = TransactionContextBuilder::with_standard_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
-    .with_mock_notes(AssetPreservationStatus::Preserved)
+    .with_mock_notes_preserved()
     .build();
 
     let code = "
+        use.miden::kernels::tx::prologue
+
         begin
-            exec.prepare_transaction
+            exec.prologue::prepare_transaction
         end
         ";
 
@@ -87,8 +68,6 @@ fn test_transaction_prologue() {
     )
     .unwrap();
 
-    let code = insert_prologue(code);
-
     let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
@@ -106,7 +85,7 @@ fn test_transaction_prologue() {
     );
 
     tx_context.set_tx_args(tx_args);
-    let process = tx_context.execute_code(&code).unwrap();
+    let process = tx_context.execute_code(code).unwrap();
 
     global_input_memory_assertions(&process, &tx_context);
     block_data_memory_assertions(&process, &tx_context);
