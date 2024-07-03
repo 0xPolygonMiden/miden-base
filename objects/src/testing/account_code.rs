@@ -86,8 +86,14 @@ impl AccountCode {
         end
 
         # acct proc 2
+        #
+        # NOTE: Procedure expose for testing purposes only. This procedure should not be part of the
+        # account's public API. An account must increment its nonce when its state change, but for a
+        # production account code implementation, the increment is expected to be done together with
+        # the transaction authencation. That is to say, the nonce is increment iff the transaction
+        # contains a valid signature.
         export.incr_nonce
-            exec.wallet::incr_nonce
+            exec.account::incr_nonce
         end
 
         # acct proc 3
@@ -102,7 +108,7 @@ impl AccountCode {
 
         # acct proc 5
         export.set_code
-            exec.wallet::set_code
+            exec.account::set_code
         end
 
         # acct proc 6
