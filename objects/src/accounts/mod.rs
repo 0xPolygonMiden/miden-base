@@ -425,13 +425,7 @@ mod tests {
             Some(maps),
         );
 
-        let final_account = build_account(
-            vec![asset_1],
-            final_nonce,
-            vec![Word::default(), word],
-            Some(storage_map),
-        );
-
+        // assert account is what it should be
         assert_eq!(account, final_account);
     }
 

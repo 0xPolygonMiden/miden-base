@@ -36,7 +36,6 @@ use vm_processor::{
     utils::{Deserializable, Serializable},
     Digest, MemAdviceProvider, ONE,
 };
-use winter_maybe_async::maybe_async;
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
 use crate::testing::TransactionContextBuilder;

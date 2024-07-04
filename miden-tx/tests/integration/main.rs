@@ -18,7 +18,6 @@ use miden_prover::ProvingOptions;
 use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
-use winter_maybe_async::maybe_async;
 
 // HELPER FUNCTIONS
 // ================================================================================================
