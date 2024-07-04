@@ -1,11 +1,18 @@
 # Changelog
 
-## 0.4.0 (TBD)
+## 0.4.0 (2024-07-03)
+
+### Features
+
+- [BREAKING] Introduce `OutputNote::Partial` variant (#698).
+- [BREAKING] Added support for input notes with delayed verification of inclusion proofs (#724, #732, #759, #770, #772).
+- Added new `NoteFile` object to represent serialized notes (#721).
+- Added transaction IDs to the `Block` struct (#734).
+- Added ability for users to set the aux field when creating a note (#752).
 
 ### Enhancements
 
 - Replaced `cargo-make` with just `make` for running tasks (#696).
-- [BREAKING] Introduce `OutputNote::Partial` variant (#698).
 - [BREAKING] Split `Account` struct constructor into `new()` and `from_parts()` (#699).
 - Generalized `build_recipient_hash` procedure to build recipient hash for custom notes (#706).
 - [BREAKING] Changed the encoding of inputs notes in the advice map for consumed notes (#707).
@@ -14,22 +21,19 @@
 - Removed the `mock` crate in favor of having mock code behind the `testing` flag in remaining crates (#711).
 - [BREAKING] Created `auth` module for `TransactionAuthenticator` and other related objects (#714).
 - Added validation for the output stack to make sure it was properly cleaned (#717).
-- Added new `NoteFile` object to represent serialized notes (#721).
 - Made `DataStore` conditionally async using `winter-maybe-async` (#725).
 - Changed note pointer from Memory `note_ptr` to `note_index` (#728).
 - [BREAKING] Changed rng to mutable reference in note creation functions (#733).
-- Added transaction IDs to the `Block` struct (#734).
 - [BREAKING] Replaced `ToNullifier` trait with `ToInputNoteCommitments`, which includes the `note_id` for delayed note authentication (#732).
 - Added `Option<NoteTag>`to `NoteFile` (#741).
 - Fixed documentation and added `make doc` CI job (#746).
 - Updated and improved [.pre-commit-config.yaml](.pre-commit-config.yaml) file (#748).
-- Added ability for users to set the aux field when creating a note (#752).
 - Created `get_serial_number` procedure to get the serial num of the currently processed note (#760).
-- [BREAKING] Added support for input notes with delayed verification of inclusion proofs (#724, #732, #759, #770, #772).
 - [BREAKING] Added support for conversion from `Nullifier` to `InputNoteCommitment`, commitment header return reference (#774).
-- Added `compute_inputs_hash` procedure for hash computation of the arbitrary number of note inouts (#750).
+- Added `compute_inputs_hash` procedure for hash computation of the arbitrary number of note inputs (#750).
 
 ## 0.3.1 (2024-06-12)
+
 * Replaced `cargo-make` with just `make` for running tasks (#696).
 * Made `DataStore` conditionally async using `winter-maybe-async` (#725)
 * Fixed `StorageMap`s implementation and included into apply_delta (#745)

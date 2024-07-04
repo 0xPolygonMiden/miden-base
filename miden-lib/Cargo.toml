@@ -26,9 +26,7 @@ miden-objects = { path = "../objects", version = "0.4", default-features = false
 miden-stdlib = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { path = "../objects", version = "0.4", default-features = false, features = [
-    "testing",
-] }
+miden-objects = { path = "../objects", version = "0.4", default-features = false, features = ["testing"] }
 vm-processor = { workspace = true, features = ["internals"] }
 
 [build-dependencies]
