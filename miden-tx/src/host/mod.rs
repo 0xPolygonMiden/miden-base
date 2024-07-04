@@ -1,13 +1,12 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::{MemoryAddress, ACCT_STORAGE_ROOT_PTR, CURRENT_CONSUMED_NOTE_PTR},
-    TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::CURRENT_CONSUMED_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
     assets::Asset,
-    notes::{NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType},
+    notes::NoteId,
     transaction::OutputNote,
     Digest, Hasher,
 };
@@ -25,13 +24,10 @@ use account_procs::AccountProcedureIndexMap;
 mod note_builder;
 use note_builder::OutputNoteBuilder;
 
-mod tx_authenticator;
-pub use tx_authenticator::{BasicAuthenticator, TransactionAuthenticator};
-
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::KERNEL_ERRORS;
+use crate::{auth::TransactionAuthenticator, KERNEL_ERRORS};
 
 // CONSTANTS
 // ================================================================================================
@@ -55,7 +51,7 @@ pub struct TransactionHost<A, T> {
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
     /// map.
-    output_notes: BTreeMap<MemoryAddress, OutputNoteBuilder>,
+    output_notes: BTreeMap<usize, OutputNoteBuilder>,
 
     /// Provides a way to get a signature for a message into a transaction
     authenticator: Option<Rc<T>>,
@@ -108,80 +104,58 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     // EVENT HANDLERS
     // --------------------------------------------------------------------------------------------
 
-    fn on_note_created<S: ProcessState>(
+    /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
+    /// `output_notes` field of this [TransactionHost].
+    ///
+    /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
+    fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
+        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
-        // Stack:
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
-        let aux = stack[0];
-        let note_type =
-            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
-        let sender =
-            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
-        let tag = NoteTag::try_from(stack[3])
-            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
-        let note_ptr: MemoryAddress =
-            stack[4].try_into().map_err(TransactionKernelError::MalformedNotePointer)?;
-        let recipient_digest = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
+        let note_idx: usize = stack[9].as_int() as usize;
 
-        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
-            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
+        assert_eq!(note_idx, self.output_notes.len(), "note index mismatch");
 
-        let note_builder = if let Some(data) =
-            self.adv_provider.get_mapped_values(&recipient_digest)
-        {
-            if data.len() != 12 {
-                return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
-            }
-            let inputs_hash = Digest::new([data[0], data[1], data[2], data[3]]);
-            let inputs_key = NoteInputs::commitment_to_key(inputs_hash);
-            let script_hash = Digest::new([data[4], data[5], data[6], data[7]]);
-            let serial_num = [data[8], data[9], data[10], data[11]];
-            let input_els = self.adv_provider.get_mapped_values(&inputs_key);
-            let script_data = self.adv_provider.get_mapped_values(&script_hash).unwrap_or(&[]);
+        let note_builder = OutputNoteBuilder::new(stack, &self.adv_provider)?;
 
-            let inputs = NoteInputs::new(input_els.map(|e| e.to_vec()).unwrap_or_default())
-                .map_err(TransactionKernelError::MalformedNoteInputs)?;
-
-            let script = NoteScript::try_from(script_data)
-                .map_err(|_| TransactionKernelError::MalformedNoteScript(script_data.to_vec()))?;
-            let recipient = NoteRecipient::new(serial_num, script, inputs);
-
-            OutputNoteBuilder::with_recipient(metadata, recipient)
-        } else {
-            OutputNoteBuilder::new(metadata, recipient_digest)?
-        };
-
-        self.output_notes.insert(note_ptr, note_builder);
+        self.output_notes.insert(note_idx, note_builder);
 
         Ok(())
     }
 
-    fn on_note_add_asset<S: ProcessState>(
+    /// Adds an asset at the top of the [OutputNoteBuilder] identified by the note pointer.
+    ///
+    /// Expected stack state: [ASSET, note_ptr, ...]
+    fn on_note_before_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        //# => [ASSET, note_ptr]
-        let note_ptr: MemoryAddress = process
-            .get_stack_item(4)
-            .try_into()
-            .map_err(TransactionKernelError::MalformedNotePointer)?;
+        let stack = process.get_stack_state();
+        //# => [ASSET, note_ptr, num_of_assets, note_idx]
+
+        let note_idx = stack[6].as_int();
+        assert!(note_idx < self.output_notes.len() as u64);
+        let node_idx = note_idx as usize;
+
         let asset = Asset::try_from(process.get_stack_word(0))
             .map_err(TransactionKernelError::MalformedAsset)?;
 
         let note_builder = self
             .output_notes
-            .get_mut(&note_ptr)
-            .ok_or_else(|| TransactionKernelError::MissingNote(format!("{:?}", &note_ptr)))?;
+            .get_mut(&node_idx)
+            .ok_or_else(|| TransactionKernelError::MissingNote(format!("{:?}", &note_idx)))?;
 
         note_builder.add_asset(asset)?;
 
         Ok(())
     }
 
+    /// Loads the index of the procedure root onto the advice stack.
+    ///
+    /// Expected stack state: [PROC_ROOT, ...]
     fn on_account_push_procedure_index<S: ProcessState>(
         &mut self,
         process: &S,
@@ -194,7 +168,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 
     /// Extracts the nonce increment from the process state and adds it to the nonce delta tracker.
-    pub fn on_account_increment_nonce<S: ProcessState>(
+    ///
+    /// Expected stack state: [nonce_delta, ...]
+    pub fn on_account_before_increment_nonce<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -208,14 +184,12 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts information from the process state about the storage slot being updated and
     /// records the latest value of this storage slot.
-    pub fn on_account_storage_set_item<S: ProcessState>(
+    ///
+    /// Expected stack state: [slot_index, NEW_SLOT_VALUE, CURRENT_SLOT_VALUE, ...]
+    pub fn on_account_storage_after_set_item<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
-        let storage_root = process
-            .get_mem_value(ContextId::root(), ACCT_STORAGE_ROOT_PTR)
-            .expect("no storage root");
-
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
         if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
@@ -230,16 +204,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             process.get_stack_item(1),
         ];
 
-        // try to get the current value for the slot from the advice provider
-        let current_slot_value = self
-            .adv_provider
-            .get_tree_node(storage_root, &STORAGE_TREE_DEPTH, &slot_index)
-            .map_err(|err| {
-                TransactionKernelError::MissingStorageSlotValue(
-                    slot_index.as_int() as u8,
-                    err.to_string(),
-                )
-            })?;
+        // get the current value for the slot
+        let current_slot_value = [
+            process.get_stack_item(8),
+            process.get_stack_item(7),
+            process.get_stack_item(6),
+            process.get_stack_item(5),
+        ];
 
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {
@@ -252,7 +223,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts information from the process state about the storage map being updated and
     /// records the latest values of this storage map.
-    pub fn on_account_storage_set_map_item<S: ProcessState>(
+    ///
+    /// Expected stack state: [slot_index, NEW_MAP_KEY, NEW_MAP_VALUE, ...]
+    pub fn on_account_storage_after_set_map_item<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -291,7 +264,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts the asset that is being added to the account's vault from the process state and
     /// updates the appropriate fungible or non-fungible asset map.
-    pub fn on_account_vault_add_asset<S: ProcessState>(
+    ///
+    /// Expected stack state: [ASSET, ...]
+    pub fn on_account_vault_after_add_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -306,7 +281,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Extracts the asset that is being removed from the account's vault from the process state
     /// and updates the appropriate fungible or non-fungible asset map.
-    pub fn on_account_vault_remove_asset<S: ProcessState>(
+    ///
+    /// Expected stack state: [ASSET, ...]
+    pub fn on_account_vault_after_remove_asset<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
@@ -429,20 +406,40 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         }
 
         match event {
-            TransactionEvent::AccountVaultAddAsset => self.on_account_vault_add_asset(process),
-            TransactionEvent::AccountVaultRemoveAsset => {
-                self.on_account_vault_remove_asset(process)
+            TransactionEvent::AccountVaultBeforeAddAsset => Ok(()),
+            TransactionEvent::AccountVaultAfterAddAsset => {
+                self.on_account_vault_after_add_asset(process)
             },
-            TransactionEvent::AccountStorageSetItem => self.on_account_storage_set_item(process),
-            TransactionEvent::AccountIncrementNonce => self.on_account_increment_nonce(process),
+
+            TransactionEvent::AccountVaultBeforeRemoveAsset => Ok(()),
+            TransactionEvent::AccountVaultAfterRemoveAsset => {
+                self.on_account_vault_after_remove_asset(process)
+            },
+
+            TransactionEvent::AccountStorageBeforeSetItem => Ok(()),
+            TransactionEvent::AccountStorageAfterSetItem => {
+                self.on_account_storage_after_set_item(process)
+            },
+
+            TransactionEvent::AccountStorageBeforeSetMapItem => Ok(()),
+            TransactionEvent::AccountStorageAfterSetMapItem => {
+                self.on_account_storage_after_set_map_item(process)
+            },
+
+            TransactionEvent::AccountBeforeIncrementNonce => {
+                self.on_account_before_increment_nonce(process)
+            },
+            TransactionEvent::AccountAfterIncrementNonce => Ok(()),
+
             TransactionEvent::AccountPushProcedureIndex => {
                 self.on_account_push_procedure_index(process)
             },
-            TransactionEvent::NoteCreated => self.on_note_created(process),
-            TransactionEvent::AccountStorageSetMapItem => {
-                self.on_account_storage_set_map_item(process)
-            },
-            TransactionEvent::NoteAddAsset => self.on_note_add_asset(process),
+
+            TransactionEvent::NoteBeforeCreated => Ok(()),
+            TransactionEvent::NoteAfterCreated => self.on_note_after_created(process),
+
+            TransactionEvent::NoteBeforeAddAsset => self.on_note_before_add_asset(process),
+            TransactionEvent::NoteAfterAddAsset => Ok(()),
         }
         .map_err(|err| ExecutionError::EventError(err.to_string()))?;
 

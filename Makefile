@@ -61,6 +61,12 @@ test-prove: ## Run `prove` tests (tests which use the Miden prover)
 .PHONY: test
 test: test-default test-prove ## Run all tests
 
+# --- checking ------------------------------------------------------------------------------------
+
+.PHONY: check
+check: ## Check all targets and features for errors without code generation
+	cargo check --all-targets $(ALL_FEATURES_BUT_ASYNC)
+
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
@@ -70,7 +76,7 @@ build: ## By default we should build in release mode
 
 .PHONY: build-no-std
 build-no-std: ## Build without the standard library
-	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx --exclude miden-mock
+	cargo build --no-default-features --target wasm32-unknown-unknown --workspace --exclude miden-bench-tx
 
 .PHONY: build-async
 build-async: ## Build with the `async` feature enabled (only libraries)

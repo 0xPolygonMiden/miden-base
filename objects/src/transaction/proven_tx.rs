@@ -2,9 +2,13 @@ use alloc::{string::ToString, vec::Vec};
 
 use miden_verifier::ExecutionProof;
 
-use super::{AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId};
+use super::{InputNote, ToInputNoteCommitments};
 use crate::{
     accounts::delta::AccountUpdateDetails,
+    notes::NoteHeader,
+    transaction::{
+        AccountId, Digest, InputNotes, Nullifier, OutputNote, OutputNotes, TransactionId,
+    },
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     ProvenTransactionError,
 };
@@ -22,8 +26,8 @@ pub struct ProvenTransaction {
     /// Account update data.
     account_update: TxAccountUpdate,
 
-    /// A list of nullifiers for all notes consumed by the transaction.
-    input_notes: InputNotes<Nullifier>,
+    /// Commited details of all notes consumed by the transaction.
+    input_notes: InputNotes<InputNoteCommitment>,
 
     /// Notes created by the transaction. For private notes, this will contain only note headers,
     /// while for public notes this will also contain full note details.
@@ -53,7 +57,7 @@ impl ProvenTransaction {
     }
 
     /// Returns a reference to the notes consumed by the transaction.
-    pub fn input_notes(&self) -> &InputNotes<Nullifier> {
+    pub fn input_notes(&self) -> &InputNotes<InputNoteCommitment> {
         &self.input_notes
     }
 
@@ -70,6 +74,18 @@ impl ProvenTransaction {
     /// Returns the block reference the transaction was executed against.
     pub fn block_ref(&self) -> Digest {
         self.block_ref
+    }
+
+    /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
+    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
+        self.input_notes.iter().filter_map(|note| note.header())
+    }
+
+    /// Returns an iterator over the nullifiers of all input notes in this transaction.
+    ///
+    /// This includes both authenticated and unauthenticated notes.
+    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+        self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
     // HELPER METHODS
@@ -135,7 +151,7 @@ impl Deserializable for ProvenTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let account_update = TxAccountUpdate::read_from(source)?;
 
-        let input_notes = InputNotes::<Nullifier>::read_from(source)?;
+        let input_notes = <InputNotes<InputNoteCommitment>>::read_from(source)?;
         let output_notes = OutputNotes::read_from(source)?;
 
         let block_ref = Digest::read_from(source)?;
@@ -181,8 +197,8 @@ pub struct ProvenTransactionBuilder {
     /// State changes to the account due to the transaction.
     account_update_details: AccountUpdateDetails,
 
-    /// List of [Nullifier]s of all consumed notes by the transaction.
-    input_notes: Vec<Nullifier>,
+    /// List of [InputNoteCommitment]s of all consumed notes by the transaction.
+    input_notes: Vec<InputNoteCommitment>,
 
     /// List of [OutputNote]s of all notes created by the transaction.
     output_notes: Vec<OutputNote>,
@@ -228,11 +244,12 @@ impl ProvenTransactionBuilder {
     }
 
     /// Add notes consumed by the transaction.
-    pub fn add_input_notes<T>(mut self, notes: T) -> Self
+    pub fn add_input_notes<I, T>(mut self, notes: I) -> Self
     where
-        T: IntoIterator<Item = Nullifier>,
+        I: IntoIterator<Item = T>,
+        T: Into<InputNoteCommitment>,
     {
-        self.input_notes.extend(notes);
+        self.input_notes.extend(notes.into_iter().map(|note| note.into()));
         self
     }
 
@@ -299,7 +316,7 @@ pub struct TxAccountUpdate {
     /// The hash of the account state after a transaction was executed.
     final_state_hash: Digest,
 
-    /// A set of changes which can be applied the the account's state prior to the transaction to
+    /// A set of changes which can be applied the account's state prior to the transaction to
     /// get the account state after the transaction. For private accounts this is set to
     /// [AccountUpdateDetails::Private].
     details: AccountUpdateDetails,
@@ -367,6 +384,100 @@ impl Deserializable for TxAccountUpdate {
             final_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
         })
+    }
+}
+
+// INPUT NOTE COMMITMENT
+// ================================================================================================
+
+/// The commitment to an input note.
+///
+/// For notes authenticated by the transaction kernel, the commitment consists only of the note's
+/// nullifier. For notes whose authentication is delayed to batch/block kernels, the commitment
+/// also includes full note header (i.e., note ID and metadata).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputNoteCommitment {
+    nullifier: Nullifier,
+    header: Option<NoteHeader>,
+}
+
+impl InputNoteCommitment {
+    /// Returns the nullifier of the input note committed to by this commitment.
+    pub fn nullifier(&self) -> Nullifier {
+        self.nullifier
+    }
+
+    /// Returns the header of the input committed to by this commitment.
+    ///
+    /// Note headers are present only for notes whose presence in the change has not yet been
+    /// authenticated.
+    pub fn header(&self) -> Option<&NoteHeader> {
+        self.header.as_ref()
+    }
+
+    /// Returns true if this commitment is for a note whose presence in the chain has been
+    /// authenticated.
+    ///
+    /// Authenticated notes are represented solely by their nullifiers and are missing the note
+    /// header.
+    pub fn is_authenticated(&self) -> bool {
+        self.header.is_none()
+    }
+}
+
+impl From<InputNote> for InputNoteCommitment {
+    fn from(note: InputNote) -> Self {
+        Self::from(&note)
+    }
+}
+
+impl From<&InputNote> for InputNoteCommitment {
+    fn from(note: &InputNote) -> Self {
+        match note {
+            InputNote::Authenticated { note, .. } => Self {
+                nullifier: note.nullifier(),
+                header: None,
+            },
+            InputNote::Unauthenticated { note } => Self {
+                nullifier: note.nullifier(),
+                header: Some(*note.header()),
+            },
+        }
+    }
+}
+
+impl From<Nullifier> for InputNoteCommitment {
+    fn from(nullifier: Nullifier) -> Self {
+        Self { nullifier, header: None }
+    }
+}
+
+impl ToInputNoteCommitments for InputNoteCommitment {
+    fn nullifier(&self) -> Nullifier {
+        self.nullifier
+    }
+
+    fn note_hash(&self) -> Option<Digest> {
+        self.header.map(|header| header.hash())
+    }
+}
+
+// SERIALIZATION
+// ------------------------------------------------------------------------------------------------
+
+impl Serializable for InputNoteCommitment {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.nullifier.write_into(target);
+        self.header.write_into(target);
+    }
+}
+
+impl Deserializable for InputNoteCommitment {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let nullifier = Nullifier::read_from(source)?;
+        let header = <Option<NoteHeader>>::read_from(source)?;
+
+        Ok(Self { nullifier, header })
     }
 }
 

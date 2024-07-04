@@ -17,7 +17,7 @@ use crate::utils::serde::{
 /// - `account_root` is a commitment to account database.
 /// - `nullifier_root` is a commitment to the nullifier database.
 /// - `note_root` is a commitment to all notes created in the current block.
-/// - `batch_root` is a commitment to a set of transaction batches executed as a part of this block.
+/// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the block.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch.
 ///   Current representation is sufficient to represent time up to year 2106.
@@ -33,7 +33,7 @@ pub struct BlockHeader {
     account_root: Digest,
     nullifier_root: Digest,
     note_root: Digest,
-    batch_root: Digest,
+    tx_hash: Digest,
     proof_hash: Digest,
     timestamp: u32,
     sub_hash: Digest,
@@ -51,7 +51,7 @@ impl BlockHeader {
         account_root: Digest,
         nullifier_root: Digest,
         note_root: Digest,
-        batch_root: Digest,
+        tx_hash: Digest,
         proof_hash: Digest,
         timestamp: u32,
     ) -> Self {
@@ -62,7 +62,7 @@ impl BlockHeader {
             chain_root,
             account_root,
             nullifier_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
             block_num,
@@ -81,7 +81,7 @@ impl BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
             sub_hash,
@@ -140,9 +140,13 @@ impl BlockHeader {
         self.note_root
     }
 
-    /// Returns the batch root.
-    pub fn batch_root(&self) -> Digest {
-        self.batch_root
+    /// Returns the commitment to all transactions in this block.
+    ///
+    /// The commitment is computed as sequential hash of (`transaction_id`, `account_id`) tuples. This
+    /// makes it possible for the verifier to link transaction IDs to the accounts which they were
+    /// executed against.
+    pub fn tx_hash(&self) -> Digest {
+        self.tx_hash
     }
 
     /// Returns the proof hash.
@@ -161,7 +165,7 @@ impl BlockHeader {
     /// Computes the sub hash of the block header.
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
-    /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `batch_root`,
+    /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `tx_hash`,
     /// `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
@@ -170,7 +174,7 @@ impl BlockHeader {
         chain_root: Digest,
         account_root: Digest,
         nullifier_root: Digest,
-        batch_root: Digest,
+        tx_hash: Digest,
         proof_hash: Digest,
         timestamp: u32,
         block_num: u32,
@@ -180,7 +184,7 @@ impl BlockHeader {
         elements.extend_from_slice(chain_root.as_elements());
         elements.extend_from_slice(account_root.as_elements());
         elements.extend_from_slice(nullifier_root.as_elements());
-        elements.extend_from_slice(batch_root.as_elements());
+        elements.extend_from_slice(tx_hash.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
         elements.resize(32, ZERO);
@@ -197,7 +201,7 @@ impl Serializable for BlockHeader {
         self.account_root.write_into(target);
         self.nullifier_root.write_into(target);
         self.note_root.write_into(target);
-        self.batch_root.write_into(target);
+        self.tx_hash.write_into(target);
         self.proof_hash.write_into(target);
         self.timestamp.write_into(target);
     }
@@ -212,7 +216,7 @@ impl Deserializable for BlockHeader {
         let account_root = source.read()?;
         let nullifier_root = source.read()?;
         let note_root = source.read()?;
-        let batch_root = source.read()?;
+        let tx_hash = source.read()?;
         let proof_hash = source.read()?;
         let timestamp = source.read()?;
 
@@ -224,66 +228,10 @@ impl Deserializable for BlockHeader {
             account_root,
             nullifier_root,
             note_root,
-            batch_root,
+            tx_hash,
             proof_hash,
             timestamp,
         ))
-    }
-}
-
-#[cfg(all(feature = "testing", not(target_family = "wasm")))]
-mod mock {
-    use alloc::vec::Vec;
-
-    use winter_rand_utils as rand;
-
-    use crate::{
-        accounts::Account, crypto::merkle::SimpleSmt, BlockHeader, Digest, Felt, ACCOUNT_TREE_DEPTH,
-    };
-
-    impl BlockHeader {
-        pub fn mock(
-            block_num: u32,
-            chain_root: Option<Digest>,
-            note_root: Option<Digest>,
-            accts: &[Account],
-        ) -> Self {
-            let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
-                accts
-                    .iter()
-                    .flat_map(|acct| {
-                        if acct.is_new() {
-                            None
-                        } else {
-                            let felt_id: Felt = acct.id().into();
-                            Some((felt_id.as_int(), *acct.hash()))
-                        }
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .expect("failed to create account db");
-
-            let prev_hash = rand::rand_array().into();
-            let chain_root = chain_root.unwrap_or(rand::rand_array().into());
-            let acct_root = acct_db.root();
-            let nullifier_root = rand::rand_array().into();
-            let note_root = note_root.unwrap_or(rand::rand_array().into());
-            let batch_root = rand::rand_array().into();
-            let proof_hash = rand::rand_array().into();
-
-            BlockHeader::new(
-                0,
-                prev_hash,
-                block_num,
-                chain_root,
-                acct_root,
-                nullifier_root,
-                note_root,
-                batch_root,
-                proof_hash,
-                rand::rand_value(),
-            )
-        }
     }
 }
 

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -5,22 +7,22 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountId, AccountStorage, SlotItem, StorageSlot,
+        Account, AccountId, AccountStorage, SlotItem,
     },
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteTag, NoteType},
+    testing::{account_code::DEFAULT_AUTH_SCRIPT, prepare_word},
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::{mock::account::DEFAULT_AUTH_SCRIPT, utils::prepare_word};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
-    get_note_with_fungible_asset_and_script, prove_and_verify_transaction, MockDataStore,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 #[test]
@@ -60,14 +62,21 @@ fn prove_receive_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(target_account.clone()), Some(vec![note]));
+    let tx_context = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note])
+        .build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
     executor.load_account(target_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
@@ -85,17 +94,12 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: 0,
-            slot: StorageSlot::new_value(target_pub_key),
-        }],
-        vec![],
-    )
-    .unwrap();
+    let account_storage =
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], BTreeMap::new())
+            .unwrap();
     let account_code = target_account.code().clone();
     // vault delta
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account.id(),
         AssetVault::new(&[fungible_asset_1.into()]).unwrap(),
         account_storage,
@@ -121,45 +125,49 @@ fn prove_send_asset_via_wallet() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(sender_account.clone()), Some(vec![]));
+    let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
     let mut executor =
-        TransactionExecutor::new(data_store.clone(), Some(sender_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
     executor.load_account(sender_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let note_type = NoteType::OffChain;
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
-    let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+    let var_name = &format!(
+        "
         use.miden::contracts::auth::basic->auth_tx
         use.miden::contracts::wallets::basic->wallet
 
         begin
             push.{recipient}
             push.{note_type}
+            push.{aux}
             push.{tag}
             push.{asset}
             call.wallet::send_asset
-            drop drop dropw dropw
+            dropw dropw dropw dropw
             call.auth_tx::auth_tx_rpo_falcon512
         end
         ",
-            recipient = prepare_word(&recipient),
-            note_type = note_type as u8,
-            tag = tag,
-            asset = prepare_word(&fungible_asset_1.into())
-        )
-        .as_str(),
-    )
-    .unwrap();
+        recipient = prepare_word(&recipient),
+        note_type = note_type as u8,
+        tag = tag,
+        asset = prepare_word(&fungible_asset_1.into())
+    );
+    let tx_script_code = ProgramAst::parse(var_name.as_str()).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
@@ -170,19 +178,14 @@ fn prove_send_asset_via_wallet() {
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
 
     // clones account info
-    let sender_account_storage = AccountStorage::new(
-        vec![SlotItem {
-            index: 0,
-            slot: StorageSlot::new_value(sender_pub_key),
-        }],
-        vec![],
-    )
-    .unwrap();
+    let sender_account_storage =
+        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], BTreeMap::new())
+            .unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta
-    let sender_account_after: Account = Account::new(
-        data_store.account.id(),
+    let sender_account_after: Account = Account::from_parts(
+        tx_context.account().id(),
         AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,

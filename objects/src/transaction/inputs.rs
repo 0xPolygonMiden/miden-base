@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
+use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
@@ -19,7 +19,7 @@ pub struct TransactionInputs {
     account_seed: Option<Word>,
     block_header: BlockHeader,
     block_chain: ChainMmr,
-    input_notes: InputNotes,
+    input_notes: InputNotes<InputNote>,
 }
 
 impl TransactionInputs {
@@ -36,13 +36,12 @@ impl TransactionInputs {
         account_seed: Option<Word>,
         block_header: BlockHeader,
         block_chain: ChainMmr,
-        input_notes: InputNotes,
+        input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
-        // make sure the provided seed is valid in the context of the provided account
+        // validate the seed
         validate_account_seed(&account, account_seed)?;
 
-        // make sure block_chain and block_header are consistent
-
+        // check the block_chain and block_header are consistent
         let block_num = block_header.block_num();
         if block_chain.chain_length() != block_header.block_num() as usize {
             return Err(TransactionInputError::InconsistentChainLength {
@@ -58,25 +57,25 @@ impl TransactionInputs {
             });
         }
 
-        // make sure that block_chain has authentication paths for all input notes; for input notes
-        // which were created in the current block we skip this check because their authentication
-        // paths are derived implicitly
+        // check the authentication paths of the input notes.
         for note in input_notes.iter() {
-            let note_block_num = note.origin().block_num;
+            if let InputNote::Authenticated { note, proof } = note {
+                let note_block_num = proof.origin().block_num;
 
-            let block_header = if note_block_num == block_num {
-                &block_header
-            } else {
-                match block_chain.get_block(note_block_num) {
-                    Some(block_header) => block_header,
-                    None => Err(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?,
+                let block_header = if note_block_num == block_num {
+                    &block_header
+                } else {
+                    block_chain
+                        .get_block(note_block_num)
+                        .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
+                };
+
+                if !is_in_block(note, proof, block_header) {
+                    return Err(TransactionInputError::InputNoteNotInBlock(
+                        note.id(),
+                        note_block_num,
+                    ));
                 }
-            };
-
-            // this check may have non-negligible performance impact as we need to verify inclusion
-            // proofs for all notes; TODO: consider enabling this via a feature flag
-            if !note.is_in_block(block_header) {
-                return Err(TransactionInputError::InputNoteNotInBlock(note.id(), note_block_num));
             }
         }
 
@@ -114,7 +113,7 @@ impl TransactionInputs {
     }
 
     /// Returns the notes to be consumed in the transaction.
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         &self.input_notes
     }
 
@@ -122,7 +121,9 @@ impl TransactionInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Consumes these transaction inputs and returns their underlying components.
-    pub fn into_parts(self) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes) {
+    pub fn into_parts(
+        self,
+    ) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes<InputNote>) {
         (
             self.account,
             self.account_seed,
@@ -133,65 +134,35 @@ impl TransactionInputs {
     }
 }
 
-// TO NULLIFIER TRAIT
+// TO INPUT NOTE COMMITMENT
 // ================================================================================================
 
-/// Defines how a note object can be reduced to a nullifier.
+/// Specifies the data used by the transaction kernel to commit to a note.
 ///
-/// This trait is implemented on both [InputNote] and [Nullifier] so that we can treat them
-/// generically as [InputNotes].
-pub trait ToNullifier:
-    Debug + Clone + PartialEq + Eq + Serializable + Deserializable + Sized
-{
+/// The commitment is composed of:
+///
+/// - nullifier, which prevents double spend and provides unlinkability.
+/// - an optional note hash, which allows for delayed note authentication.
+pub trait ToInputNoteCommitments {
     fn nullifier(&self) -> Nullifier;
-}
-
-impl ToNullifier for InputNote {
-    fn nullifier(&self) -> Nullifier {
-        self.note.nullifier()
-    }
-}
-
-impl ToNullifier for Nullifier {
-    fn nullifier(&self) -> Nullifier {
-        *self
-    }
-}
-
-impl From<InputNotes> for InputNotes<Nullifier> {
-    fn from(value: InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: build_input_notes_commitment(&value.notes),
-        }
-    }
-}
-
-impl From<&InputNotes> for InputNotes<Nullifier> {
-    fn from(value: &InputNotes) -> Self {
-        Self {
-            notes: value.notes.iter().map(|note| note.nullifier()).collect(),
-            commitment: build_input_notes_commitment(&value.notes),
-        }
-    }
+    fn note_hash(&self) -> Option<Digest>;
 }
 
 // INPUT NOTES
 // ================================================================================================
 
-/// Contains a list of input notes for a transaction. The list can be empty if the transaction does
-/// not consume any notes.
+/// Input notes for a transaction, empty if the transaction does not consume notes.
 ///
-/// For the purposes of this struct, anything that can be reduced to a [Nullifier] can be an input
-/// note. However, [ToNullifier] trait is currently implemented only for [InputNote] and [Nullifier],
-/// and so these are the only two allowed input note types.
+/// This structure is generic over `T`, so it can be used to create the input notes for transaction
+/// execution, which require the note's details to run the transaction kernel, and the input notes
+/// for proof verification, which require only the commitment data.
 #[derive(Debug, Clone)]
-pub struct InputNotes<T: ToNullifier = InputNote> {
+pub struct InputNotes<T> {
     notes: Vec<T>,
     commitment: Digest,
 }
 
-impl<T: ToNullifier> InputNotes<T> {
+impl<T: ToInputNoteCommitments> InputNotes<T> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns new [InputNotes] instantiated from the provided vector of notes.
@@ -215,7 +186,7 @@ impl<T: ToNullifier> InputNotes<T> {
             }
         }
 
-        let commitment = build_input_notes_commitment(&notes);
+        let commitment = build_input_note_commitment(&notes);
 
         Ok(Self { notes, commitment })
     }
@@ -223,7 +194,13 @@ impl<T: ToNullifier> InputNotes<T> {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a commitment to these input notes.
+    /// Returns a sequential hash of nullifiers for all notes.
+    ///
+    /// For non empty lists the commitment is defined as:
+    ///
+    /// > hash(nullifier_0 || noteid0_or_zero || nullifier_1 || noteid1_or_zero || .. || nullifier_n || noteidn_or_zero)
+    ///
+    /// Otherwise defined as ZERO for empty lists.
     pub fn commitment(&self) -> Digest {
         self.commitment
     }
@@ -260,7 +237,7 @@ impl<T: ToNullifier> InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> IntoIterator for InputNotes<T> {
+impl<T> IntoIterator for InputNotes<T> {
     type Item = T;
     type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
@@ -269,19 +246,28 @@ impl<T: ToNullifier> IntoIterator for InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> PartialEq for InputNotes<T> {
+impl<'a, T> IntoIterator for &'a InputNotes<T> {
+    type Item = &'a T;
+    type IntoIter = alloc::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> alloc::slice::Iter<'a, T> {
+        self.notes.iter()
+    }
+}
+
+impl<T: PartialEq> PartialEq for InputNotes<T> {
     fn eq(&self, other: &Self) -> bool {
         self.notes == other.notes
     }
 }
 
-impl<T: ToNullifier> Eq for InputNotes<T> {}
+impl<T: Eq> Eq for InputNotes<T> {}
 
-impl<T: ToNullifier> Default for InputNotes<T> {
+impl<T: ToInputNoteCommitments> Default for InputNotes<T> {
     fn default() -> Self {
         Self {
             notes: Vec::new(),
-            commitment: build_input_notes_commitment::<T>(&[]),
+            commitment: build_input_note_commitment::<T>(&[]),
         }
     }
 }
@@ -289,7 +275,7 @@ impl<T: ToNullifier> Default for InputNotes<T> {
 // SERIALIZATION
 // ------------------------------------------------------------------------------------------------
 
-impl<T: ToNullifier> Serializable for InputNotes<T> {
+impl<T: Serializable> Serializable for InputNotes<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // assert is OK here because we enforce max number of notes in the constructor
         assert!(self.notes.len() <= u16::MAX.into());
@@ -298,30 +284,31 @@ impl<T: ToNullifier> Serializable for InputNotes<T> {
     }
 }
 
-impl<T: ToNullifier> Deserializable for InputNotes<T> {
+impl<T: Deserializable + ToInputNoteCommitments> Deserializable for InputNotes<T> {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let num_notes = source.read_u16()?;
         let notes = source.read_many::<T>(num_notes.into())?;
-        Self::new(notes).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        Self::new(notes).map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
     }
 }
 
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-/// Returns the commitment to the input notes represented by the specified nullifiers.
-///
-/// For a non-empty list of notes, this is a sequential hash of all (nullifier, ZERO) pairs for
-/// the notes consumed in the transaction. For an empty list, [ZERO; 4] is returned.
-pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
+fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest {
+    // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
     if notes.is_empty() {
         return Digest::default();
     }
 
-    let mut elements: Vec<Felt> = Vec::new();
-    for note in notes {
-        elements.extend_from_slice(note.nullifier().as_elements());
-        elements.extend_from_slice(&Word::default());
+    let mut elements: Vec<Felt> = Vec::with_capacity(notes.len() * 2);
+    for commitment_data in notes {
+        let nullifier = commitment_data.nullifier();
+        let zero_or_note_hash =
+            &commitment_data.note_hash().map_or(Word::default(), |note_id| note_id.into());
+
+        elements.extend_from_slice(nullifier.as_elements());
+        elements.extend_from_slice(zero_or_note_hash);
     }
     Hasher::hash_elements(&elements)
 }
@@ -329,45 +316,92 @@ pub fn build_input_notes_commitment<T: ToNullifier>(notes: &[T]) -> Digest {
 // INPUT NOTE
 // ================================================================================================
 
+const AUTHENTICATED: u8 = 0;
+const UNAUTHENTICATED: u8 = 1;
+
 /// An input note for a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct InputNote {
-    note: Note,
-    proof: NoteInclusionProof,
+pub enum InputNote {
+    /// Input notes whose existences in the chain is verified by the transaction kernel.
+    Authenticated { note: Note, proof: NoteInclusionProof },
+
+    /// Input notes whose existence in the chain is not verified by the transaction kernel, but
+    /// instead is delegated to the rollup kernels.
+    Unauthenticated { note: Note },
 }
 
 impl InputNote {
-    /// Returns a new instance of an [InputNote] with the specified note and proof.
-    pub fn new(note: Note, proof: NoteInclusionProof) -> Self {
-        Self { note, proof }
+    // CONSTRUCTORS
+    // -------------------------------------------------------------------------------------------
+
+    /// Returns an authenticated [InputNote].
+    pub fn authenticated(note: Note, proof: NoteInclusionProof) -> Self {
+        Self::Authenticated { note, proof }
     }
+
+    /// Returns an unauthenticated [InputNote].
+    pub fn unauthenticated(note: Note) -> Self {
+        Self::Unauthenticated { note }
+    }
+
+    // ACCESSORS
+    // -------------------------------------------------------------------------------------------
 
     /// Returns the ID of the note.
     pub fn id(&self) -> NoteId {
-        self.note.id()
+        self.note().id()
     }
 
     /// Returns a reference to the underlying note.
     pub fn note(&self) -> &Note {
-        &self.note
+        match self {
+            Self::Authenticated { note, .. } => note,
+            Self::Unauthenticated { note } => note,
+        }
     }
 
     /// Returns a reference to the inclusion proof of the note.
-    pub fn proof(&self) -> &NoteInclusionProof {
-        &self.proof
+    pub fn proof(&self) -> Option<&NoteInclusionProof> {
+        match self {
+            Self::Authenticated { proof, .. } => Some(proof),
+            Self::Unauthenticated { .. } => None,
+        }
     }
 
     /// Returns a reference to the origin of the note.
-    pub fn origin(&self) -> &NoteOrigin {
-        self.proof.origin()
+    pub fn origin(&self) -> Option<&NoteOrigin> {
+        self.proof().map(|proof| proof.origin())
+    }
+}
+
+/// Returns true if this note belongs to the note tree of the specified block.
+fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
+    let note_index = proof.origin().node_index.value();
+    let note_hash = note.hash();
+    proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+}
+
+impl ToInputNoteCommitments for InputNote {
+    fn nullifier(&self) -> Nullifier {
+        self.note().nullifier()
     }
 
-    /// Returns true if this note belongs to the note tree of the specified block.
-    fn is_in_block(&self, block_header: &BlockHeader) -> bool {
-        let note_index = self.origin().node_index.value();
-        let note_hash = self.note.authentication_hash();
-        self.proof.note_path().verify(note_index, note_hash, &block_header.note_root())
+    fn note_hash(&self) -> Option<Digest> {
+        match self {
+            InputNote::Authenticated { .. } => None,
+            InputNote::Unauthenticated { note } => Some(note.hash()),
+        }
+    }
+}
+
+impl ToInputNoteCommitments for &InputNote {
+    fn nullifier(&self) -> Nullifier {
+        (*self).nullifier()
+    }
+
+    fn note_hash(&self) -> Option<Digest> {
+        (*self).note_hash()
     }
 }
 
@@ -376,17 +410,34 @@ impl InputNote {
 
 impl Serializable for InputNote {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.note.write_into(target);
-        self.proof.write_into(target);
+        match self {
+            Self::Authenticated { note, proof } => {
+                target.write(AUTHENTICATED);
+                target.write(note);
+                target.write(proof);
+            },
+            Self::Unauthenticated { note } => {
+                target.write(UNAUTHENTICATED);
+                target.write(note);
+            },
+        }
     }
 }
 
 impl Deserializable for InputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let note = Note::read_from(source)?;
-        let proof = NoteInclusionProof::read_from(source)?;
-
-        Ok(Self { note, proof })
+        match source.read_u8()? {
+            AUTHENTICATED => {
+                let note = Note::read_from(source)?;
+                let proof = NoteInclusionProof::read_from(source)?;
+                Ok(Self::Authenticated { note, proof })
+            },
+            UNAUTHENTICATED => {
+                let note = Note::read_from(source)?;
+                Ok(Self::Unauthenticated { note })
+            },
+            v => Err(DeserializationError::InvalidValue(format!("Invalid input note type: {v}"))),
+        }
     }
 }
 

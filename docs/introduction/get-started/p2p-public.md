@@ -54,7 +54,7 @@ To do this, we use two terminals with their own state (using their own `miden-cl
     To do this, from the first client run:
 
     ```shell
-    miden send --sender <basic-account-id-A> --target <basic-account-id-C> --faucet <faucet-account-id> 50 --note-type public
+    miden send --sender <basic-account-id-A> --target <basic-account-id-B> --asset 50::<faucet-account-id> --note-type public
     ```
 
     !!! note

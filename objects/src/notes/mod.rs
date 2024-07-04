@@ -20,14 +20,14 @@ pub use assets::NoteAssets;
 mod details;
 pub use details::NoteDetails;
 
+mod header;
+pub use header::{compute_note_hash, NoteHeader};
+
 mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
 pub use metadata::NoteMetadata;
-
-mod note_header;
-pub use note_header::NoteHeader;
 
 mod note_id;
 pub use note_id::NoteId;
@@ -44,11 +44,17 @@ pub use nullifier::Nullifier;
 mod origin;
 pub use origin::{NoteInclusionProof, NoteOrigin};
 
+mod partial;
+pub use partial::PartialNote;
+
 mod recipient;
 pub use recipient::NoteRecipient;
 
 mod script;
 pub use script::NoteScript;
+
+mod file;
+pub use file::NoteFile;
 
 // CONSTANTS
 // ================================================================================================
@@ -156,14 +162,14 @@ impl Note {
         self.nullifier
     }
 
-    /// Returns the note's authentication hash.
+    /// Returns a commitment to the note and its metadata.
     ///
-    /// This value is used authenticate the note's presence in the note tree, it is computed as:
+    /// > hash(NOTE_ID || NOTE_METADATA)
     ///
-    /// > hash(note_id, note_metadata)
-    ///
-    pub fn authentication_hash(&self) -> Digest {
-        Hasher::merge(&[self.id().inner(), Word::from(self.metadata()).into()])
+    /// This value is used primarily for authenticating notes consumed when the are consumed
+    /// in a transaction.
+    pub fn hash(&self) -> Digest {
+        self.header.hash()
     }
 }
 
@@ -202,6 +208,23 @@ impl From<&Note> for NoteDetails {
 impl From<Note> for NoteDetails {
     fn from(note: Note) -> Self {
         note.details
+    }
+}
+
+impl From<Note> for PartialNote {
+    fn from(note: Note) -> Self {
+        let (assets, recipient, ..) = note.details.into_parts();
+        PartialNote::new(*note.header.metadata(), recipient.digest(), assets)
+    }
+}
+
+impl From<&Note> for PartialNote {
+    fn from(note: &Note) -> Self {
+        PartialNote::new(
+            *note.header.metadata(),
+            note.details.recipient().digest(),
+            note.details.assets().clone(),
+        )
     }
 }
 

@@ -14,7 +14,7 @@ pub type StorageSlot = u8;
 // ------------------------------------------------------------------------------------------------
 
 /// The account storage slot at which faucet data is stored.
-/// Fungible faucet: The faucet data consists of [ZERO, ZERO, ZERO, total_issuance]
+/// Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 /// Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
 
@@ -54,8 +54,8 @@ pub const ACCT_ID_PTR: MemoryAddress = 101;
 /// The memory address at which the initial account hash is stored.
 pub const INIT_ACCT_HASH_PTR: MemoryAddress = 102;
 
-/// The memory address at which the global nullifier commitment is stored.
-pub const NULLIFIER_COM_PTR: MemoryAddress = 103;
+/// The memory address at which the input notes commitment is stored.
+pub const INPUT_NOTES_COMMITMENT_PTR: MemoryAddress = 103;
 
 /// The memory address at which the initial nonce is stored.
 pub const INIT_NONCE_PTR: MemoryAddress = 104;
@@ -81,8 +81,8 @@ pub const ACCT_DB_ROOT_PTR: MemoryAddress = 202;
 /// The memory address at which the nullifier db root is store
 pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 
-/// The memory address at which the batch root is stored
-pub const BATCH_ROOT_PTR: MemoryAddress = 204;
+/// The memory address at which the TX hash is stored
+pub const TX_HASH_PTR: MemoryAddress = 204;
 
 /// The memory address at which the proof hash is stored
 pub const PROOF_HASH_PTR: MemoryAddress = 205;
@@ -193,14 +193,15 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // Each nullifier occupies a single word. A data section for each note consists of exactly 512
 // words and is laid out like so:
 //
-// ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬────────┬───────┬─────┬───────┬─────────┬
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │  NUM   │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
-// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ INPUTS │ ASSETS │   0   │     │   n   │         │
-// ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼────────┼───────┼─────┼───────┼─────────┤
-//    0        1       2        3        4       5       6       7        8      9 + n
+// ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬───────┬─────┬───────┬─────────┬
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
+// ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
+//    0        1       2        3        4       5       6       7      8 + n
 //
-// Even though both NUM_NOTES and NUM_ASSETS take up a whole word, the actual values for these
-// variables are stored in the first element of the word.
+// - NUM_ASSETS is encoded [num_assets, 0, 0, 0].
+// - INPUTS_HASH is the key to look up note inputs in the advice map.
+// - ASSETS_HASH is the key to look up note assets in the advice map.
 
 /// The memory address at which the consumed note section begins.
 pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
@@ -219,9 +220,8 @@ pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
 pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
 pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
 pub const CONSUMED_NOTE_ARGS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_NUM_INPUTS_OFFSET: MemoryOffset = 7;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 8;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 9;
+pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
+pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------

@@ -94,6 +94,8 @@ impl Deserializable for AccountData {
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
     use miden_crypto::{
         dsa::rpo_falcon512::SecretKey,
         utils::{Deserializable, Serializable},
@@ -105,22 +107,21 @@ mod tests {
     use super::AccountData;
     use crate::{
         accounts::{
-            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-            code::testing::make_account_code, storage, Account, AccountId, AuthSecretKey, Felt,
-            Word,
+            account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN, storage,
+            Account, AccountCode, AccountId, AuthSecretKey, Felt, Word,
         },
         assets::AssetVault,
     };
 
     fn build_account_data() -> AccountData {
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let code = make_account_code();
+        let code = AccountCode::mock();
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();
-        let storage = AccountStorage::new(vec![], vec![]).unwrap();
+        let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
         let nonce = Felt::new(0);
-        let account = Account::new(id, vault, storage, code, nonce);
+        let account = Account::from_parts(id, vault, storage, code, nonce);
         let account_seed = Some(Word::default());
         let auth_secret_key = AuthSecretKey::RpoFalcon512(SecretKey::new());
 

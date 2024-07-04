@@ -6,7 +6,7 @@ use miden_objects::{
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
     utils::{group_slice_elements, serde::DeserializationError},
     vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word,
+    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
 
@@ -87,26 +87,24 @@ impl TransactionKernel {
     // STACK INPUTS / OUTPUTS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the input stack required to execute the transaction kernel.
+    /// Returns the stack with the public inputs required by the transaction kernel.
     ///
-    /// This includes the input notes commitment, the account hash, the account id, and the block
-    /// hash.
+    /// The initial stack is defined:
     ///
-    /// Stack: [BH, acct_id, IAH, NC]
+    /// > [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
     ///
     /// Where:
-    /// - BH is the latest known block hash at the time of transaction execution.
-    /// - acct_id is the account id of the account that the transaction is being executed against.
-    /// - IAH is the hash of account state immediately before the transaction is executed. For
-    ///   newly created accounts, initial state hash is provided as [ZERO; 4].
-    /// - NC is a commitment to the input notes. This is a sequential hash of all (nullifier, ZERO)
-    ///   tuples for the notes consumed by the transaction.
+    /// - BLOCK_HASH, reference block for the transaction execution.
+    /// - acct_id, the account that the transaction is being executed against.
+    /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
+    /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
     ) -> StackInputs {
+        // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
@@ -137,7 +135,14 @@ impl TransactionKernel {
     /// - CNC is the commitment to the notes created by the transaction.
     /// - FAH is the final account hash of the account that the transaction is being
     ///   executed against.
-    pub fn parse_output_stack(stack: &StackOutputs) -> (Digest, Digest) {
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Words 3 and 4 on the stack are not 0.
+    /// - Overflow addresses are not empty.
+    pub fn parse_output_stack(
+        stack: &StackOutputs,
+    ) -> Result<(Digest, Digest), TransactionOutputError> {
         let output_notes_hash = stack
             .get_stack_word(OUTPUT_NOTES_COMMITMENT_WORD_IDX * 4)
             .expect("first word missing")
@@ -147,7 +152,24 @@ impl TransactionKernel {
             .expect("second word missing")
             .into();
 
-        (final_account_hash, output_notes_hash)
+        // make sure that the stack has been properly cleaned
+        if stack.get_stack_word(8).expect("third word missing") != EMPTY_WORD {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Third word on output stack should consist only of ZEROs".into(),
+            ));
+        }
+        if stack.get_stack_word(12).expect("fourth word missing") != EMPTY_WORD {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Fourth word on output stack should consist only of ZEROs".into(),
+            ));
+        }
+        if stack.has_overflow() {
+            return Err(TransactionOutputError::OutputStackInvalid(
+                "Output stack should not have overflow addresses".into(),
+            ));
+        }
+
+        Ok((final_account_hash, output_notes_hash))
     }
 
     // TRANSACTION OUTPUT PARSER
@@ -171,7 +193,7 @@ impl TransactionKernel {
         adv_map: &AdviceMap,
         output_notes: Vec<OutputNote>,
     ) -> Result<TransactionOutputs, TransactionOutputError> {
-        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack);
+        let (final_acct_hash, output_notes_hash) = Self::parse_output_stack(stack)?;
 
         // parse final account state
         let final_account_data: &[Word] = group_slice_elements(

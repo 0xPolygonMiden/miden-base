@@ -2,6 +2,7 @@ use.std::collections::smt
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
+use.miden::kernels::tx::constants
 use.miden::kernels::tx::faucet
 use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
@@ -16,22 +17,21 @@ const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
 # Procedure can only be called from faucet accounts
 const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
 
+# Getting a map item on a non-map slot
+const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
+
 # EVENTS
 # =================================================================================================
 
-# Event emitted to signal that an asset is being added to the account vault.
-const.ACCOUNT_VAULT_ADD_ASSET_EVENT=131072
+# Event emitted before an asset is added to the account vault.
+const.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT=131072
+# Event emitted after an asset is added to the account vault.
+const.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT=131073
 
-# Event emitted to signal that an asset is being removed from the account vault.
-const.ACCOUNT_VAULT_REMOVE_ASSET_EVENT=131073
-
-# TYPES
-# =================================================================================================
-
-# Type of storage slot item in the account storage
-const.STORAGE_VALUE=0
-const.STORAGE_MAP=1
-const.STORAGE_ARRAY=2
+# Event emitted before an asset is removed from the account vault.
+const.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT=131074
+# Event emitted after an asset is removed from the account vault.
+const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 
 # AUTHENTICATION
 # =================================================================================================
@@ -188,8 +188,8 @@ export.set_account_item
     # => [R', V]
 end
 
-#! Returns VALUE located under specified KEY in map in specified account storage slot. 
-#! Panics if 
+#! Returns VALUE located under specified KEY in map in specified account storage slot.
+#! Panics if
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #!
@@ -204,15 +204,15 @@ export.get_account_map_item
     # => [slot_type, index, KEY, ...]
 
     # fails if slot_type is not 1 = map
-    push.STORAGE_MAP eq assert
+    exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
-    
+
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item swapw
     # => [KEY, ROOT ...]
 
     # fetch the VALUE located under KEY in the tree
-    exec.smt::get 
+    exec.smt::get
     # => [VALUE, ROOT, ...]
 
     # prepare the stack for return
@@ -220,8 +220,8 @@ export.get_account_map_item
     # => [VALUE, 0]
 end
 
-#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot. 
-#! Panics if 
+#! Inserts specified NEW_VALUE under specified KEY in map in specified account storage slot.
+#! Panics if
 #! - the index is out of bounds (>255).
 #! - the requested storage slot type is not map
 #! - the procedure is called from a non-account context
@@ -240,15 +240,7 @@ export.set_account_map_item.1
     exec.authenticate_account_origin
     # => [index, KEY, NEW_VALUE, ...]
 
-    # check if storage type is map
-    dup exec.account::get_storage_slot_type_info drop
-    # => [slot_type, index, KEY, NEW_VALUE, ...]
-
-    # fails if slot_type is not 1 = map
-    push.STORAGE_MAP eq assert
-    # => [index, KEY, NEW_VALUE, ...]
-
-    # stores index for later
+    # store index for later
     dup loc_store.0
     # => [index, KEY, NEW_VALUE, ...]
 
@@ -257,12 +249,8 @@ export.set_account_map_item.1
     # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
 
     # set the new map item
-    loc_load.0 exec.account::set_map_item swapw
-    # => [NEW_MAP_ROOT, OLD_MAP_VALUE, ...]
-
-    # set the root of the map in the respective account storage slot
-    loc_load.0 exec.account::set_item
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, ...]
+    loc_load.0 exec.account::set_map_item
+    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 
     # organize the stack for return (16 elements)
     movupw.2 dropw
@@ -346,6 +334,10 @@ export.account_vault_add_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT
+    # => [ASSET]
+
     # duplicate the ASSET to be able to emit an event after an asset is being added
     dupw
     # => [ASSET, ASSET]
@@ -359,7 +351,8 @@ export.account_vault_add_asset
     # => [ASSET', ASSET]
 
     # emit event to signal that an asset is being added to the account vault
-    swapw emit.ACCOUNT_VAULT_ADD_ASSET_EVENT dropw
+    swapw emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
+    # => [ASSET']
 end
 
 #! Remove the specified asset from the vault.
@@ -378,6 +371,10 @@ export.account_vault_remove_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
+    # => [ASSET]
+
     # fetch the vault root
     exec.memory::get_acct_vault_root_ptr movdn.4
     # => [ASSET, acct_vault_root_ptr]
@@ -386,10 +383,10 @@ export.account_vault_remove_asset
     exec.asset_vault::remove_asset
     # => [ASSET]
 
-    # TODO: we execute `push.1 drop` before `emit` as decorators are not supported without other
-    # instructions - see: https://github.com/0xPolygonMiden/miden-vm/issues/1122
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     # emit event to signal that an asset is being removed from the account vault
-    push.1 drop emit.ACCOUNT_VAULT_REMOVE_ASSET_EVENT
+    emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
+    # => [ASSET]
 end
 
 #! Returns the number of assets and vault hash of the note currently being processed. Panics if a
@@ -410,22 +407,19 @@ export.get_note_vault_info
     # => [VAULT_HASH, num_assets]
 end
 
-#! Returns the number of inputs and inputs hash for the note currently being processed. Panics if
-#! a note is not being processed.
+#! Returns the current note's inputs hash.
 #!
-#! Inputs: [0, 0, 0, 0, 0]
-#! Outputs: [NOTE_INPUTS_HASH, num_inputs]
+#! Inputs: [EMPTY_WORD]
+#! Outputs: [NOTE_INPUTS_HASH]
 #!
-#! - num_inputs is the number of inputs associated with the note.
-#! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
-export.get_note_inputs_info
-    # get the number of inputs and the inputs hash
-    exec.note::get_inputs_info
-    # => [NOTE_INPUTS_HASH, num_inputs, 0, 0, 0, 0, 0]
+#! Where:
+#! - NOTE_INPUTS_HASH, is the current note's inputs hash.
+export.get_note_inputs_hash
+    exec.note::get_note_inputs_hash
+    # => [NOTE_INPUTS_HASH, EMPTY_WORD]
 
-    # organize the stack for return
-    movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
-    # => [NOTE_INPUTS_HASH, num_inputs]
+    swapw dropw
+    # => [NOTE_INPUTS_HASH]
 end
 
 #! Returns the sender of the note currently being processed. Panics if a note is not being
@@ -434,16 +428,11 @@ end
 #! Inputs: [0]
 #! Outputs: [sender]
 #!
+#! Where:
 #! - sender is the sender of the note currently being processed.
 export.get_note_sender
-    # get the note sender
-    exec.note::get_sender
-    # => [sender, 0]
-
-    # organize the stack for return
-    swap drop
+    exec.note::get_sender swap drop
     # => [sender]
-
 end
 
 #! Returns the block number of the last known block at the time of transaction execution.
@@ -462,40 +451,40 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block.
 #!
-#! Inputs: [0, 0, 0, 0]
-#! Outputs: [H]
+#! Stack: [EMPTY_WORD]
+#! Output: [BLOCK_HASH]
 #!
-#! H is the last known block hash.
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
 export.get_block_hash
-    # get the block hash
-    exec.tx::get_block_hash
-    # => [H, 0, 0, 0, 0]
-
-    # organize the stack for return
-    swapw dropw
-    # => [H]
+    dropw exec.tx::get_block_hash
+    # => [BLOCK_HASH]
 end
 
-#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
-#! tuples over all input notes.
+#! Returns the input notes commitment.
+#!
+#! This is computed as a sequential hash of `(NULLIFIER, EMPTY_WORD_OR_NOTE_HASH)` over all input notes. The
+#! data `EMPTY_WORD_OR_NOTE_HASH` functions as a flag, if the value is set to zero, then the notes are
+#! authenticated by the transaction kernel. If the value is non-zero, then note authentication will
+#! be delayed to the batch/block kernel. The delayed authentication allows a transaction to consume a
+#! public note that is not yet included to a block.
 #!
 #! Inputs: [0, 0, 0, 0]
-#! Outputs: [COM]
+#! Outputs: [INPUT_NOTES_COMMITMENT]
 #!
-#! COM is the input notes hash.
-export.get_input_notes_hash
-    # get the input notes hash
-    exec.tx::get_input_notes_hash
+#! Where:
+#! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+export.get_input_notes_commitment
+    exec.tx::get_input_notes_commitment
     # => [COM, 0, 0, 0, 0]
 
-    # organize the stack for return
     swapw dropw
     # => [COM]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs: [0, 0, 0, 0]
@@ -512,55 +501,55 @@ export.get_output_notes_hash
     # => [COM]
 end
 
-#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
-#! Outputs: [note_ptr, 0, 0, 0, 0, 0]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Outputs: [note_idx, 0, 0, 0, 0, 0]
 #!
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary metadata to be included in the note.
 #! note_type is the note storage type
 #! RECIPIENT is the recipient of the note.
-#! note_ptr is the pointer to the memory address at which the note is stored.
+#! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [tag, note_type, RECIPIENT]
+    # => [tag, aux, note_type, RECIPIENT]
 
     exec.tx::create_note
-    # => [note_ptr]
+    # => [note_idx]
 
-    # prepare stack for return. Note: when create_note is called, the stack looks 
-    # like [tag, note_type, RECIPIENT, x, x, X], with 16 elements and X might be important data 
-    # for the user. Without padding the kernel returns [note_ptr, x, x, X, 0, ZERO] adding 0's. 
-    # To keep the data in position we insert 0's between ptr and the potentially important 
-    # first element x.
-    movupw.3 movup.15 movup.5
-    # => [note_ptr, 0, 0, 0, 0, 0]
+    # prepare stack for return. Note: when create_note is called, the stack looks
+    # like [tag, aux, note_type, RECIPIENT, x, X, X], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, EMPTY_WORD] adding 0's.
+    # To keep the data in position we move 0's to the left between note_idx and the potentially
+    # important first element x.
+    movupw.3 movup.15 movup.15 movup.6
+    # => [note_idx, 0, 0, 0, 0, 0, 0]
 end
 
-#! Adds an ASSET to the specified note and returns a pointer to the memory address
-#! at which the note is stored.
+#! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_ptr, ASSET]
-#! Outputs: [note_ptr, 0, 0, 0, 0]
+#! Inputs: [note_idx, ASSET]
+#! Outputs: [note_idx, 0, 0, 0, 0]
 #!
-#! - note_ptr is the pointer to the memory address at which the note is stored.
-#! - ASSET can be a fungible or non-fungible asset.
+#! note_idx is the index of the the note to which the asset is added.
+#! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [note_ptr, ASSET]
+    # => [note_idx, ASSET]
 
     exec.tx::add_asset_to_note
-    # => [note_ptr]
+    # => [note_idx]
 
-    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks 
-    # like [ptr, ASSET, X, X, x, x, x], with 16 elements and X might be important data 
-    # for the user. Without padding the kernel returns [ptr, X, X, x, x, x, ZERO] adding 0's. 
-    # To keep the data in position we insert 0's between ptr and the potentially important 
+    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
+    # like [idx, ASSET, X, X, x, x, x], with 16 elements and X might be important data
+    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, EMPTY_WORD] adding 0's.
+    # To keep the data in position we insert 0's between idx and the potentially important
     # first element x.
     movupw.3 movup.4
-    # => [note_ptr, 0, 0, 0, 0]
+    # => [note_idx, 0, 0, 0, 0]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.
@@ -652,4 +641,20 @@ export.get_fungible_faucet_total_issuance
     # drop the padding
     swap drop
     # => []
+end
+
+#! Returns the serial number of the note currently being processed.
+#! Panics if no note is not being processed.
+#!
+#! Inputs: []
+#! Outputs: [SERIAL_NUMBER]
+#!
+#! - SERIAL_NUMBER is the serial number of the note currently being processed.
+export.get_note_serial_number
+    exec.note::get_serial_number
+    # => [SERIAL_NUMBER]
+
+    # drop the padding
+    swapw dropw
+    # => [SERIAL_NUMBER]
 end

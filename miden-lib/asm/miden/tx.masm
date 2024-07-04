@@ -12,36 +12,33 @@ export.get_block_number
     # => [num]
 end
 
-#! Returns the block hash of the last known block at the time of transaction execution.
+#! Returns the block hash of the reference block.
 #!
-#! Inputs: []
-#! Outputs: [H]
+#! Stack: [EMPTY_WORD]
+#! Output: [BLOCK_HASH]
 #!
-#! H is the last known block hash.
+#! Where:
+#! - BLOCK_HASH, reference block for the transaction execution.
 export.get_block_hash
-    padw
-    # => [0, 0, 0, 0]
-
-    syscall.get_block_hash
-    # => [H]
+    padw syscall.get_block_hash
+    # => [BLOCK_HASH]
 end
 
-#! Returns the input notes hash. This is computed as a sequential hash of (nullifier, script_root)
-#! tuples over all input notes.
+#! Returns the input notes commitment hash.
 #!
-#! Inputs: []
-#! Outputs: [COM]
+#! See `transaction::api::get_input_notes_commitment` for details.
 #!
-#! COM is the input notes hash.
-export.get_input_notes_hash
-    padw
-    # => [0, 0, 0, 0]
-
-    syscall.get_input_notes_hash
-    # => [COM]
+#! Stack: []
+#! Outputs: [INPUT_NOTES_COMMITMENT]
+#!
+#! Where:
+#! - INPUT_NOTES_COMMITMENT is the input notes commitment hash.
+export.get_input_notes_commitment
+    padw syscall.get_input_notes_commitment
+    # => [INPUT_NOTES_COMMITMENT]
 end
 
-#! Returns the output notes hash. This is computed as a sequential hash of (note_hash, note_metadata)
+#! Returns the output notes hash. This is computed as a sequential hash of (note_id, note_metadata)
 #! tuples over all output notes.
 #!
 #! Inputs: [0, 0, 0, 0]
@@ -56,37 +53,53 @@ export.get_output_notes_hash
     # => [COM]
 end
 
-#! Creates a new note and returns a pointer to the memory address at which the note is stored.
+#! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, note_type, RECIPIENT]
-#! Outputs: [note_ptr]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Outputs: [note_idx]
 #!
 #! tag is the tag to be included in the note.
+#! aux is the auxiliary metadata to be included in the note.
 #! note_type is the storage type of the note
 #! RECIPIENT is the recipient of the note.
-#! note_ptr is the pointer to the memory address at which the note is stored.
+#! note_idx is the index of the crated note.
 export.create_note
     syscall.create_note
-    # => [note_ptr, ZERO, 0]
+    # => [note_idx, EMPTY_WORD, 0]
 
     # clear the padding from the kernel response
     movdn.4 dropw swap drop
-    # => [note_ptr]
+    # => [note_idx]
 end
 
-#! Adds an ASSET to the specified note and returns a pointer to the memory address
-#! at which the note is stored.
+#! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_ptr, ASSET]
-#! Outputs: [note_ptr]
+#! Inputs: [note_idx, ASSET]
+#! Outputs: [note_idx]
 #!
-#! note_ptr is the pointer to the memory address at which the note is stored.
+#! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     syscall.add_asset_to_note
-    # => [note_ptr, ZERO]
+    # => [note_idx, EMPTY_WORD]
 
     # clear the padding from the kernel response
     movdn.4 dropw
-    # => [note_ptr]
+    # => [note_idx]
+end
+
+#! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
+#!
+#! Inputs: [SERIAL_NUM, SCRIPT_HASH, INPUT_HASH]
+#! Outputs: [RECIPIENT]
+#!
+export.build_recipient_hash
+  padw hmerge
+  # => [SERIAL_NUM_HASH, SCRIPT_HASH, INPUT_HASH]
+
+  swapw hmerge
+  # => [MERGE_SCRIPT, INPUT_HASH]
+
+  swapw hmerge
+  # [RECIPIENT]
 end

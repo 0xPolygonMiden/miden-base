@@ -196,11 +196,11 @@ const ERR_PROLOGUE_ACCT_HASH_MISMATCH: u32 = 131095;
 const ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO: u32 = 131096;
 const ERR_PROLOGUE_ACCT_ID_MISMATCH: u32 = 131097;
 const ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH: u32 = 131098;
-const ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS: u32 = 131099;
+const ERR_NOTE_TOO_MANY_INPUTS: u32 = 131099;
 const ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS: u32 = 131100;
 const ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH: u32 = 131101;
 const ERR_PROLOGUE_TOO_MANY_INPUT_NOTES: u32 = 131102;
-const ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH: u32 = 131103;
+const ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH: u32 = 131103;
 const ERR_TX_OUTPUT_NOTES_OVERFLOW: u32 = 131104;
 const ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW: u32 = 131105;
 const ERR_FAUCET_ISSUANCE_OVERFLOW: u32 = 131106;
@@ -238,10 +238,14 @@ const ERR_ASSET_NOT_FUNGIBLE_ID: u32 = 131137;
 const ERR_ASSET_INVALID_AMOUNT: u32 = 131138;
 const ERR_ASSET_NOT_NON_FUNGIBLE_ID: u32 = 131139;
 const ERR_INVALID_NOTE_TYPE: u32 = 131140;
+const ERR_INVALID_NOTE_IDX: u32 = 131154;
 const ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE: u32 = 131141;
 const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
+const ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT: u32 = 131143;
+const ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 131144;
+const ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 131145;
 
-pub const KERNEL_ERRORS: [(u32, &str); 71] = [
+pub const KERNEL_ERRORS: [(u32, &str); 75] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -269,11 +273,11 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO, "Existing account must have a non-zero nonce"),
     (ERR_PROLOGUE_ACCT_ID_MISMATCH, "Provided account ids via global inputs and advice provider do not match"),
     (ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH, "Reference block MMR and note's authentication MMR must match"),
-    (ERR_PROLOGUE_NOTE_TOO_MANY_INPUTS, "Number of note inputs exceeded the maximum limit of 128"),
+    (ERR_NOTE_TOO_MANY_INPUTS, "Number of note inputs exceeded the maximum limit of 128"),
     (ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS, "Number of note assets exceeded the maximum limit of 256"),
     (ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH, "Provided info about assets of an input do not match its commitment"),
     (ERR_PROLOGUE_TOO_MANY_INPUT_NOTES, "Number of input notes exceeded the kernel's maximum limit of 1023"),
-    (ERR_PROLOGUE_INPUT_NOTES_NULLIFIER_COMMITMENT_MISMATCH, "Cannot compute matching nullifier commitment using the provided input note data"),
+    (ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH, "Commitment computed for input notes' from advice data doesn't match kernel inputs"),
     (ERR_TX_OUTPUT_NOTES_OVERFLOW, "Output notes exceeded the maximum limit of 4096"),
     (ERR_BASIC_FUNGIBLE_MAX_SUPPLY_OVERFLOW, "Distribute would cause the max supply to be exceeded"),
     (ERR_FAUCET_ISSUANCE_OVERFLOW, "Asset mint operation would cause an issuance overflow"),
@@ -311,6 +315,10 @@ pub const KERNEL_ERRORS: [(u32, &str); 71] = [
     (ERR_ASSET_INVALID_AMOUNT, "Can not build the asset because amount exceeds the maximum"),
     (ERR_ASSET_NOT_NON_FUNGIBLE_ID, "Can not build the non-fungible asset because provided id is not a non-fungible id"),
     (ERR_INVALID_NOTE_TYPE, "Invalid note type"),
+    (ERR_INVALID_NOTE_IDX, "Invalid note index"),
     (ERR_NOTE_INVALID_TAG_PREFIX_FOR_TYPE, "The note's tag failed the most significant validation"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag high bits must be set to 0"),
+    (ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT, "Setting a non-value item on a value slot"),
+    (ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Setting a map item on a non-map slot"),
+    (ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT, "Slot type is not a map"),
 ];

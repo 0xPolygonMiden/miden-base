@@ -1,5 +1,7 @@
 extern crate alloc;
 
+use std::collections::BTreeMap;
+
 use miden_lib::{
     accounts::faucets::create_basic_fungible_faucet,
     transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
@@ -8,22 +10,22 @@ use miden_lib::{
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, AccountStorageType, SlotItem, StorageSlot,
+        AccountStorage, AccountStorageType, SlotItem,
     },
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
+    testing::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
-use miden_tx::TransactionExecutor;
-use mock::utils::prepare_word;
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction, MockDataStore,
+    prove_and_verify_transaction,
 };
 
 // TESTS MINT FUNGIBLE ASSET
@@ -37,16 +39,22 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let aux = Felt::new(27);
     let note_type = NoteType::OffChain;
     let amount = Felt::new(100);
 
@@ -62,6 +70,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -73,6 +82,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             ",
             note_type = note_type as u8,
             recipient = prepare_word(&recipient),
+            aux = aux,
             tag = u32::from(tag),
         )
         .as_str(),
@@ -99,7 +109,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(created_note.id(), id);
     assert_eq!(
         created_note.metadata(),
-        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, ZERO).unwrap()
+        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, aux).unwrap()
     );
 }
 
@@ -111,15 +121,21 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     // CONSTRUCT AND EXECUTE TX (Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store = MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![]));
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
     let tag = Felt::new(4);
     let amount = Felt::new(250);
 
@@ -133,6 +149,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
                 push.{recipient}
                 push.{note_type}
+                push.{aux}
                 push.{tag}
                 push.{amount}
                 call.faucet::distribute
@@ -201,18 +218,29 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    let data_store =
-        MockDataStore::with_existing(Some(faucet_account.clone()), Some(vec![note.clone()]));
+    let tx_context = TransactionContextBuilder::new(faucet_account.clone())
+        .input_notes(vec![note.clone()])
+        .build();
 
-    let mut executor = TransactionExecutor::new(data_store.clone(), Some(falcon_auth.clone()));
+    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
     executor.load_account(faucet_account.id()).unwrap();
 
-    let block_ref = data_store.block_header.block_num();
-    let note_ids = data_store.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
-        .execute_transaction(faucet_account.id(), block_ref, &note_ids, data_store.tx_args.clone())
+        .execute_transaction(
+            faucet_account.id(),
+            block_ref,
+            &note_ids,
+            tx_context.tx_args().clone(),
+        )
         .unwrap();
 
     // Prove, serialize/deserialize and verify the transaction
@@ -269,7 +297,7 @@ fn faucet_contract_creation() {
     let exp_faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler();
+    let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let exp_faucet_account_code =
         AccountCode::new(exp_faucet_account_code_ast.clone(), &account_assembler).unwrap();
@@ -286,7 +314,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
     let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler();
+    let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let faucet_account_code =
         AccountCode::new(faucet_account_code_ast.clone(), &account_assembler).unwrap();
@@ -294,16 +322,10 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(
         vec![
-            SlotItem {
-                index: 0,
-                slot: StorageSlot::new_value(public_key),
-            },
-            SlotItem {
-                index: 1,
-                slot: StorageSlot::new_value(faucet_storage_slot_1),
-            },
+            SlotItem::new_value(0, 0, public_key),
+            SlotItem::new_value(1, 0, faucet_storage_slot_1),
         ],
-        vec![],
+        BTreeMap::new(),
     )
     .unwrap();
 
@@ -315,7 +337,7 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
             .unwrap();
     };
 
-    Account::new(
+    Account::from_parts(
         faucet_account_id,
         AssetVault::new(&[]).unwrap(),
         faucet_account_storage.clone(),

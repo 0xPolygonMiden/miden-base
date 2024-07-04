@@ -6,7 +6,7 @@ use vm_processor::AdviceMap;
 use super::{Digest, Felt, Word};
 use crate::{
     assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::{NoteDetails, NoteId, NoteInputs},
+    notes::{NoteDetails, NoteId},
     vm::CodeBlock,
     TransactionScriptError,
 };
@@ -21,7 +21,7 @@ use crate::{
 /// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
-/// - Advice map: Provides data needed by the runtime, like the details of a public note.
+/// - Advice map: Provides data needed by the runtime, like the details of a public output note.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
@@ -65,48 +65,6 @@ impl TransactionArgs {
         Self::new(None, Some(note_args), AdviceMap::default())
     }
 
-    // MODIFIERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Populates the advice inputs with the specified note details.
-    ///
-    /// The map is extended with the following keys:
-    ///
-    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
-    /// - script_hash |-> script.
-    pub fn add_expected_output_note<T: Deref<Target = NoteDetails>>(&mut self, note: &T) {
-        let recipient = note.recipient();
-        let inputs = note.inputs();
-        let script = note.script();
-        let script_encoded: Vec<Felt> = script.into();
-
-        let inputs_key = NoteInputs::commitment_to_key(inputs.commitment());
-
-        self.advice_map.insert(recipient.digest(), recipient.to_elements());
-        self.advice_map.insert(inputs_key, inputs.to_vec());
-        self.advice_map.insert(script.hash(), script_encoded);
-    }
-
-    /// Populates the advice inputs with the specified note details.
-    ///
-    /// The map is extended with the following keys:
-    ///
-    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
-    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
-    ///   adding ONE to its most significant element.
-    /// - script_hash |-> script
-    pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
-    where
-        L: IntoIterator<Item = T>,
-        T: Deref<Target = NoteDetails>,
-    {
-        for note in notes {
-            self.add_expected_output_note(&note);
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -123,6 +81,51 @@ impl TransactionArgs {
     /// Returns a reference to the args [AdviceMap].
     pub fn advice_map(&self) -> &AdviceMap {
         &self.advice_map
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Populates the advice inputs with the specified note details.
+    ///
+    /// The advice map is extended with the following keys:
+    ///
+    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
+    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
+    ///   adding ONE to its most significant element.
+    /// - script_hash |-> script.
+    pub fn add_expected_output_note<T: Deref<Target = NoteDetails>>(&mut self, note: &T) {
+        let recipient = note.recipient();
+        let inputs = note.inputs();
+        let script = note.script();
+        let script_encoded: Vec<Felt> = script.into();
+
+        self.advice_map.insert(recipient.digest(), recipient.to_elements());
+        self.advice_map.insert(inputs.commitment(), inputs.format_for_advice());
+        self.advice_map.insert(script.hash(), script_encoded);
+    }
+
+    /// Populates the advice inputs with the specified note details.
+    ///
+    /// The advice map is extended with the following keys:
+    ///
+    /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
+    /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
+    ///   adding ONE to its most significant element.
+    /// - script_hash |-> script
+    pub fn extend_expected_output_notes<T, L>(&mut self, notes: L)
+    where
+        L: IntoIterator<Item = T>,
+        T: Deref<Target = NoteDetails>,
+    {
+        for note in notes {
+            self.add_expected_output_note(&note);
+        }
+    }
+
+    /// Extends the internal advice map with the provided key-value pairs.
+    pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
+        self.advice_map.extend(iter)
     }
 }
 

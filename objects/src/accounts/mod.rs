@@ -60,11 +60,29 @@ pub struct Account {
 }
 
 impl Account {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Creates and returns a new account initialized with the specified ID, vault, storage, code,
-    /// and nonce.
+
+    /// Creates and returns a new [Account] instantiated with the specified code, storage, and
+    /// account seed.
+    ///
+    /// The returned account has an empty asset vault and the nonce which is initialized to ZERO.
+    ///
+    /// # Errors
+    /// Returns an error if deriving account ID from the specified seed fails.
     pub fn new(
+        seed: Word,
+        code: AccountCode,
+        storage: AccountStorage,
+    ) -> Result<Self, AccountError> {
+        let id = AccountId::new(seed, code.root(), storage.root())?;
+        let vault = AssetVault::default();
+        let nonce = ZERO;
+        Ok(Self { id, vault, storage, code, nonce })
+    }
+
+    /// Returns an [Account] instantiated with the provided components.
+    pub fn from_parts(
         id: AccountId,
         vault: AssetVault,
         storage: AccountStorage,
@@ -95,10 +113,11 @@ impl Account {
     /// proofs.
     ///
     /// For existing accounts, this is exactly the same as [Account::hash()], however, for new
-    /// accounts this value is set to [ZERO; 4]. This is because when a transaction is executed
-    /// against a new account, public input for the initial account state is set to [ZERO; 4] to
-    /// distinguish new accounts from existing accounts. The actual hash of the initial account
-    /// state (and the initial state itself), are provided to the VM via the advice provider.
+    /// accounts this value is set to [crate::EMPTY_WORD]. This is because when a transaction is
+    /// executed against a new account, public input for the initial account state is set to
+    /// [crate::EMPTY_WORD] to distinguish new accounts from existing accounts. The actual hash of
+    /// the initial account state (and the initial state itself), are provided to the VM via the
+    /// advice provider.
     pub fn init_hash(&self) -> Digest {
         if self.is_new() {
             Digest::default()
@@ -213,7 +232,7 @@ impl Account {
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    #[cfg(test)]
+    #[cfg(feature = "testing")]
     /// Returns a mutable reference to the vault of this account.
     pub fn vault_mut(&mut self) -> &mut AssetVault {
         &mut self.vault
@@ -243,7 +262,7 @@ impl Deserializable for Account {
         let code = AccountCode::read_from(source)?;
         let nonce = Felt::read_from(source)?;
 
-        Ok(Self::new(id, vault, storage, code, nonce))
+        Ok(Self::from_parts(id, vault, storage, code, nonce))
     }
 }
 
@@ -288,105 +307,25 @@ pub fn hash_account(
     Hasher::hash_elements(&elements)
 }
 
-// TESTING
-// ================================================================================================
-
-#[cfg(any(feature = "testing", test))]
-pub mod testing {
-    use alloc::vec::Vec;
-
-    use super::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        },
-        code::testing::make_account_code,
-        Account, AccountDelta, AccountId, AccountStorage, AccountStorageDelta, AccountVaultDelta,
-        Felt, SlotItem, StorageMap, StorageSlot, StorageSlotType, Word,
-    };
-    use crate::assets::{Asset, AssetVault, FungibleAsset};
-
-    // UTILITIES
-    // --------------------------------------------------------------------------------------------
-
-    pub fn build_account(
-        assets: Vec<Asset>,
-        nonce: Felt,
-        storage_items: Vec<Word>,
-        storage_map: Option<StorageMap>,
-    ) -> Account {
-        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let code = make_account_code();
-
-        // build account data
-        let vault = AssetVault::new(&assets).unwrap();
-
-        let slot_type = StorageSlotType::Value { value_arity: 0 };
-        let mut slot_items: Vec<SlotItem> = storage_items
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| SlotItem {
-                index: index as u8,
-                slot: StorageSlot { slot_type, value: item },
-            })
-            .collect();
-
-        let mut maps = Vec::new();
-        let slot_type_map = StorageSlotType::Map { value_arity: 0 };
-        if let Some(storage_map) = storage_map {
-            let map_item = SlotItem {
-                // slot index * 10 to avoid conflicts with value slots
-                // this should only stay until we merge next with the proper solution
-                index: 100_u8,
-                slot: StorageSlot {
-                    slot_type: slot_type_map,
-                    value: storage_map.root().into(),
-                },
-            };
-            slot_items.push(map_item);
-            maps.push(storage_map);
-        }
-
-        let storage = AccountStorage::new(slot_items, maps).unwrap();
-
-        Account::new(id, vault, storage, code, nonce)
-    }
-
-    pub fn build_account_delta(
-        added_assets: Vec<Asset>,
-        removed_assets: Vec<Asset>,
-        nonce: Felt,
-        storage_delta: AccountStorageDelta,
-    ) -> AccountDelta {
-        let vault_delta = AccountVaultDelta { added_assets, removed_assets };
-        AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
-    }
-
-    pub fn build_assets() -> (Asset, Asset) {
-        let faucet_id_0 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-        let asset_0: Asset = FungibleAsset::new(faucet_id_0, 123).unwrap().into();
-
-        let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2).unwrap();
-        let asset_1: Asset = FungibleAsset::new(faucet_id_1, 345).unwrap().into();
-
-        (asset_0, asset_1)
-    }
-}
-
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
     use miden_crypto::{
         utils::{Deserializable, Serializable},
         Felt, Word,
     };
+    use vm_processor::Digest;
 
-    use super::{testing::*, AccountDelta, AccountStorageDelta, AccountVaultDelta, Digest};
-    use crate::accounts::{
-        delta::{AccountStorageDeltaBuilder, StorageMapDelta},
-        Account, StorageMap,
+    use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
+    use crate::{
+        accounts::{
+            delta::AccountStorageDeltaBuilder, Account, SlotItem, StorageMap, StorageMapDelta,
+        },
+        testing::storage::{build_account, build_account_delta, build_assets},
     };
 
     #[test]
@@ -394,7 +333,8 @@ mod tests {
         let init_nonce = Felt::new(1);
         let (asset_0, _) = build_assets();
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let account = build_account(vec![asset_0], init_nonce, vec![word], None);
+        let slot_item = SlotItem::new_value(0, 0, word);
+        let account = build_account(vec![asset_0], init_nonce, vec![slot_item], None);
 
         let serialized = account.to_bytes();
         let deserialized = Account::read_from_bytes(&serialized).unwrap();
@@ -423,7 +363,11 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset_0, asset_1) = build_assets();
+
+        // Simple SlotItem
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
+        let slot_item = SlotItem::new_value(0, 0, word);
+
         // StorageMap with values
         let storage_map_leaves_2: [(Digest, Word); 2] = [
             (
@@ -436,8 +380,16 @@ mod tests {
             ),
         ];
         let mut storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
-        let mut account =
-            build_account(vec![asset_0], init_nonce, vec![word], Some(storage_map.clone()));
+        let mut maps = BTreeMap::new();
+        maps.insert(2u8, storage_map.clone());
+        let storage_map_root_as_slot_item = SlotItem::new_map(2u8, 0, storage_map.root().into());
+
+        let mut account = build_account(
+            vec![asset_0],
+            init_nonce,
+            vec![slot_item, storage_map_root_as_slot_item],
+            Some(maps.clone()),
+        );
 
         let new_map_entry = (
             Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
@@ -446,16 +398,14 @@ mod tests {
         let updated_map =
             StorageMapDelta::from(vec![], vec![(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
+        maps.insert(2u8, storage_map.clone());
 
         // build account delta
         let final_nonce = Felt::new(2);
         let storage_delta = AccountStorageDeltaBuilder::new()
             .add_cleared_items([0])
-            .add_updated_items([
-                (1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
-                (100_u8, storage_map.root().into()),
-            ])
-            .add_updated_maps([(100_u8, updated_map)])
+            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_maps([(2_u8, updated_map)])
             .build()
             .unwrap();
         let account_delta =
@@ -467,10 +417,15 @@ mod tests {
         let final_account = build_account(
             vec![asset_1],
             final_nonce,
-            vec![Word::default(), word],
-            Some(storage_map),
+            vec![
+                SlotItem::new_value(0, 0, Word::default()),
+                SlotItem::new_value(1, 0, word),
+                SlotItem::new_map(2, 0, storage_map.root().into()),
+            ],
+            Some(maps),
         );
 
+        // assert account is what it should be
         assert_eq!(account, final_account);
     }
 
@@ -480,7 +435,12 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()], None);
+        let mut account = build_account(
+            vec![asset],
+            init_nonce,
+            vec![SlotItem::new_value(0, 0, Word::default())],
+            None,
+        );
 
         // build account delta
         let storage_delta = AccountStorageDeltaBuilder::new()
@@ -500,7 +460,12 @@ mod tests {
         // build account
         let init_nonce = Felt::new(2);
         let (asset, _) = build_assets();
-        let mut account = build_account(vec![asset], init_nonce, vec![Word::default()], None);
+        let mut account = build_account(
+            vec![asset],
+            init_nonce,
+            vec![SlotItem::new_value(0, 0, Word::default())],
+            None,
+        );
 
         // build account delta
         let final_nonce = Felt::new(1);
@@ -521,7 +486,8 @@ mod tests {
         // build account
         let init_nonce = Felt::new(1);
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let mut account = build_account(vec![], init_nonce, vec![word], None);
+        let slot_item = SlotItem::new_value(0, 0, word);
+        let mut account = build_account(vec![], init_nonce, vec![slot_item], None);
 
         // build account delta
         let final_nonce = Felt::new(2);

@@ -1,13 +1,25 @@
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, Word,
+    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
+    Serializable, Word,
 };
-use crate::crypto::{
-    hash::rpo::RpoDigest,
-    merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
+use crate::{
+    accounts::StorageMapDelta,
+    crypto::{
+        hash::rpo::RpoDigest,
+        merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
+    },
+    EMPTY_WORD,
 };
 
 // ACCOUNT STORAGE MAP
 // ================================================================================================
+/// Empty storage map root.
+pub const EMPTY_STORAGE_MAP_ROOT: Word = [
+    Felt::new(15321474589252129342),
+    Felt::new(17373224439259377994),
+    Felt::new(15071539326562317628),
+    Felt::new(3312677166725950353),
+];
 
 /// Account storage map is a Sparse Merkle Tree of depth 64. It can be used to store more data as
 /// there is in plain usage of the storage slots. The root of the SMT consumes one account storage
@@ -25,10 +37,13 @@ impl StorageMap {
     /// Depth of the storage tree.
     pub const STORAGE_MAP_TREE_DEPTH: u8 = SMT_DEPTH;
 
+    /// The default value of empty leaves.
+    pub const EMPTY_VALUE: Word = Smt::EMPTY_VALUE;
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AccountStorageMap].
+    /// Returns a new [StorageMap].
     ///
     /// All leaves in the returned tree are set to [Self::EMPTY_VALUE].
     pub fn new() -> Self {
@@ -85,11 +100,29 @@ impl StorageMap {
         self.map.inner_nodes() // Delegate to Smt's inner_nodes method
     }
 
-    // STATE MUTATORS
+    // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
-
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
         self.map.insert(key, value) // Delegate to Smt's insert method
+    }
+
+    /// Applies the provided delta to this account storage.
+    ///
+    /// This method assumes that the delta has been validated by the calling method and so, no
+    /// additional validation of delta is performed.
+    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Result<Digest, AccountError> {
+        // apply the updated leaves to the storage map
+        for &(key, value) in delta.updated_leaves.iter() {
+            self.insert(key.into(), value);
+        }
+
+        // apply the cleared leaves to the storage map
+        // currently we cannot remove leaves from the storage map, so we just set them to empty
+        for &key in delta.cleared_leaves.iter() {
+            self.insert(key.into(), EMPTY_WORD);
+        }
+
+        Ok(self.root())
     }
 }
 
@@ -119,7 +152,7 @@ impl Deserializable for StorageMap {
 mod tests {
     use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-    use super::{Deserializable, Serializable, StorageMap, Word};
+    use super::{Deserializable, Serializable, StorageMap, Word, EMPTY_STORAGE_MAP_ROOT};
 
     #[test]
     fn account_storage_serialization() {
@@ -143,5 +176,11 @@ mod tests {
 
         let bytes = storage_map.to_bytes();
         assert_eq!(storage_map, StorageMap::read_from_bytes(&bytes).unwrap());
+    }
+
+    #[test]
+    fn test_empty_storage_map_constants() {
+        // If these values don't match, update the constants.
+        assert_eq!(*StorageMap::default().root(), EMPTY_STORAGE_MAP_ROOT);
     }
 }

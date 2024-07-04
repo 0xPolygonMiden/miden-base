@@ -1,23 +1,7 @@
-use std::path::PathBuf;
-
-use miden_objects::{vm::StackInputs, Felt, Hasher, Word, ONE, ZERO};
-use vm_processor::{ContextId, MemAdviceProvider, Process, ProcessState};
-
-use super::Library;
-
-mod test_account;
-mod test_asset;
-mod test_asset_vault;
-mod test_epilogue;
-mod test_faucet;
-mod test_note;
-mod test_prologue;
-mod test_tx;
-
+/// NOTE: Most kernel-related tests can be found under /miden-tx/kernel_tests
 // CONSTANTS
 // ================================================================================================
-
-const TX_KERNEL_DIR: &str = "miden/kernels/tx";
+use miden_objects::assembly::Library;
 
 // TESTS
 // ================================================================================================
@@ -35,11 +19,4 @@ fn test_compile() {
     });
 
     assert!(exists);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_module_path(dir: &str, file: &str) -> PathBuf {
-    [env!("CARGO_MANIFEST_DIR"), "asm", dir, file].iter().collect()
 }

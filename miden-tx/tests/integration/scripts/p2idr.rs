@@ -12,13 +12,13 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt,
 };
-use miden_tx::TransactionExecutor;
-use mock::mock::account::DEFAULT_AUTH_SCRIPT;
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
-use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator, MockDataStore};
+use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator};
 
 // P2IDR TESTS
 // ===============================================================================================
@@ -65,8 +65,9 @@ fn p2idr_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
+        Felt::new(0),
         reclaim_block_height_in_time,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -76,8 +77,9 @@ fn p2idr_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
+        Felt::new(0),
         reclaim_block_height_reclaimable,
-        RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
+        &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
     .unwrap();
 
@@ -89,17 +91,16 @@ fn p2idr_script() {
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_1 = MockDataStore::with_existing(
-        Some(target_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let tx_context_1 = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note_in_time.clone()])
+        .build();
     let mut executor_1 =
-        TransactionExecutor::new(data_store_1.clone(), Some(target_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context_1.clone(), Some(target_falcon_auth.clone()));
 
     executor_1.load_account(target_account_id).unwrap();
 
-    let block_ref_1 = data_store_1.block_header.block_num();
-    let note_ids = data_store_1.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_1 = tx_context_1.tx_inputs().block_header().block_num();
+    let note_ids = tx_context_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let tx_script_target =
@@ -112,7 +113,7 @@ fn p2idr_script() {
         .unwrap();
 
     // Assert that the target_account received the funds and the nonce increased by 1
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
@@ -123,19 +124,18 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Sender Account Execution Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store_2 = MockDataStore::with_existing(
-        Some(sender_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let tx_context_2 = TransactionContextBuilder::new(sender_account.clone())
+        .input_notes(vec![note_in_time.clone()])
+        .build();
     let mut executor_2 =
-        TransactionExecutor::new(data_store_2.clone(), Some(sender_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context_2.clone(), Some(sender_falcon_auth.clone()));
     executor_2.load_account(sender_account_id).unwrap();
     let tx_script_sender =
         executor_2.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
-    let block_ref_2 = data_store_2.block_header.block_num();
-    let note_ids_2 = data_store_2.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_2 = tx_context_2.tx_inputs().block_header().block_num();
+    let note_ids_2 = tx_context_2.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_2 = executor_2.execute_transaction(
@@ -151,18 +151,17 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Malicious Target Account Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store_3 = MockDataStore::with_existing(
-        Some(malicious_account.clone()),
-        Some(vec![note_in_time.clone()]),
-    );
+    let tx_context_3 = TransactionContextBuilder::new(malicious_account.clone())
+        .input_notes(vec![note_in_time.clone()])
+        .build();
     let mut executor_3 =
-        TransactionExecutor::new(data_store_3.clone(), Some(malicious_falcon_auth.clone()));
+        TransactionExecutor::new(tx_context_3.clone(), Some(malicious_falcon_auth.clone()));
     executor_3.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
-    let block_ref_3 = data_store_3.block_header.block_num();
-    let note_ids_3 = data_store_3.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_3 = tx_context_3.tx_inputs().block_header().block_num();
+    let note_ids_3 = tx_context_3.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_3 = executor_3.execute_transaction(
@@ -178,15 +177,14 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "reclaimable" - Execution Target Account Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_4 = MockDataStore::with_existing(
-        Some(target_account.clone()),
-        Some(vec![note_reclaimable.clone()]),
-    );
-    let mut executor_4 = TransactionExecutor::new(data_store_4.clone(), Some(target_falcon_auth));
+    let tx_context_4 = TransactionContextBuilder::new(target_account.clone())
+        .input_notes(vec![note_reclaimable.clone()])
+        .build();
+    let mut executor_4 = TransactionExecutor::new(tx_context_4.clone(), Some(target_falcon_auth));
     executor_4.load_account(target_account_id).unwrap();
 
-    let block_ref_4 = data_store_4.block_header.block_num();
-    let note_ids_4 = data_store_4.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_4 = tx_context_4.tx_inputs().block_header().block_num();
+    let note_ids_4 = tx_context_4.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_4 = executor_4
@@ -199,7 +197,7 @@ fn p2idr_script() {
     assert_eq!(executed_transaction_4.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta
-    let target_account_after: Account = Account::new(
+    let target_account_after: Account = Account::from_parts(
         target_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         target_account.storage().clone(),
@@ -210,16 +208,15 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Execution Sender Account Success)
     // --------------------------------------------------------------------------------------------
-    let data_store_5 = MockDataStore::with_existing(
-        Some(sender_account.clone()),
-        Some(vec![note_reclaimable.clone()]),
-    );
-    let mut executor_5 = TransactionExecutor::new(data_store_5.clone(), Some(sender_falcon_auth));
+    let tx_context_5 = TransactionContextBuilder::new(sender_account.clone())
+        .input_notes(vec![note_reclaimable.clone()])
+        .build();
+    let mut executor_5 = TransactionExecutor::new(tx_context_5.clone(), Some(sender_falcon_auth));
 
     executor_5.load_account(sender_account_id).unwrap();
 
-    let block_ref_5 = data_store_5.block_header.block_num();
-    let note_ids_5 = data_store_5.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_5 = tx_context_5.tx_inputs().block_header().block_num();
+    let note_ids_5 = tx_context_5.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_5 = executor_5
@@ -231,7 +228,7 @@ fn p2idr_script() {
     assert_eq!(executed_transaction_5.account_delta().nonce(), Some(Felt::new(2)));
 
     // Vault delta (Note: vault was empty before)
-    let sender_account_after: Account = Account::new(
+    let sender_account_after: Account = Account::from_parts(
         sender_account_id,
         AssetVault::new(&[fungible_asset]).unwrap(),
         sender_account.storage().clone(),
@@ -242,17 +239,18 @@ fn p2idr_script() {
 
     // CONSTRUCT AND EXECUTE TX (Case "too late" - Malicious Account Failure)
     // --------------------------------------------------------------------------------------------
-    let data_store_6 = MockDataStore::with_existing(
-        Some(malicious_account.clone()),
-        Some(vec![note_reclaimable.clone()]),
-    );
+
+    let tx_context_6 = TransactionContextBuilder::new(malicious_account.clone())
+        .input_notes(vec![note_reclaimable.clone()])
+        .build();
+
     let mut executor_6 =
-        TransactionExecutor::new(data_store_6.clone(), Some(malicious_falcon_auth));
+        TransactionExecutor::new(tx_context_6.clone(), Some(malicious_falcon_auth));
 
     executor_6.load_account(malicious_account_id).unwrap();
 
-    let block_ref_6 = data_store_6.block_header.block_num();
-    let note_ids_6 = data_store_6.notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let block_ref_6 = tx_context_6.tx_inputs().block_header().block_num();
+    let note_ids_6 = tx_context_6.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
     // Execute the transaction and get the witness
     let executed_transaction_6 = executor_6.execute_transaction(

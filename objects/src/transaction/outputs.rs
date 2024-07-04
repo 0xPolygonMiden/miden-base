@@ -6,10 +6,9 @@ use vm_processor::DeserializationError;
 
 use crate::{
     accounts::AccountStub,
-    notes::{Note, NoteAssets, NoteHeader, NoteId, NoteMetadata},
+    notes::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
-
 // TRANSACTION OUTPUTS
 // ================================================================================================
 
@@ -120,7 +119,7 @@ impl Deserializable for OutputNotes {
 /// Build a commitment to output notes.
 ///
 /// For a non-empty list of notes, this is a sequential hash of (note_id, metadata) tuples for the
-/// notes created in a transaction. For an empty list, [ZERO; 4] is returned.
+/// notes created in a transaction. For an empty list, [EMPTY_WORD] is returned.
 fn build_output_notes_commitment(notes: &[OutputNote]) -> Digest {
     if notes.is_empty() {
         return Digest::default();
@@ -138,16 +137,15 @@ fn build_output_notes_commitment(notes: &[OutputNote]) -> Digest {
 // OUTPUT NOTE
 // ================================================================================================
 
-// CONSTANTS
-// ------------------------------------------------------------------------------------------------
-
 const FULL: u8 = 0;
-const HEADER: u8 = 1;
+const PARTIAL: u8 = 1;
+const HEADER: u8 = 2;
 
 /// The types of note outputs supported by the transaction kernel.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputNote {
     Full(Note),
+    Partial(PartialNote),
     Header(NoteHeader),
 }
 
@@ -156,6 +154,7 @@ impl OutputNote {
     pub fn assets(&self) -> Option<&NoteAssets> {
         match self {
             OutputNote::Full(note) => Some(note.assets()),
+            OutputNote::Partial(note) => Some(note.assets()),
             OutputNote::Header(_) => None,
         }
     }
@@ -166,16 +165,18 @@ impl OutputNote {
     pub fn id(&self) -> NoteId {
         match self {
             OutputNote::Full(note) => note.id(),
+            OutputNote::Partial(note) => note.id(),
             OutputNote::Header(note) => note.id(),
         }
     }
 
     /// Value that represents under which condition a note can be consumed.
     ///
-    /// See [super::NoteRecipient] for more details.
+    /// See [crate::notes::NoteRecipient] for more details.
     pub fn recipient_digest(&self) -> Option<Digest> {
         match self {
             OutputNote::Full(note) => Some(note.recipient().digest()),
+            OutputNote::Partial(note) => Some(note.recipient_digest()),
             OutputNote::Header(_) => None,
         }
     }
@@ -184,18 +185,31 @@ impl OutputNote {
     pub fn metadata(&self) -> &NoteMetadata {
         match self {
             OutputNote::Full(note) => note.metadata(),
+            OutputNote::Partial(note) => note.metadata(),
             OutputNote::Header(note) => note.metadata(),
         }
     }
 
     /// Erase private note information.
+    ///
+    /// Specifically:
+    /// - Full private notes are converted into note headers.
+    /// - All partial notes are converted into note headers.
     pub fn shrink(&self) -> Self {
         match self {
             OutputNote::Full(note) if note.metadata().is_offchain() => {
                 OutputNote::Header(*note.header())
             },
+            OutputNote::Partial(note) => OutputNote::Header(note.into()),
             _ => self.clone(),
         }
+    }
+
+    /// Returns a commitment to the note and its metadata.
+    ///
+    /// > hash(NOTE_ID || NOTE_METADATA)
+    pub fn hash(&self) -> Digest {
+        compute_note_hash(self.id(), self.metadata())
     }
 }
 
@@ -212,6 +226,7 @@ impl From<&OutputNote> for NoteHeader {
     fn from(value: &OutputNote) -> Self {
         match value {
             OutputNote::Full(note) => note.into(),
+            OutputNote::Partial(note) => note.into(),
             OutputNote::Header(note) => *note,
         }
     }
@@ -227,6 +242,10 @@ impl Serializable for OutputNote {
                 target.write(FULL);
                 target.write(note);
             },
+            OutputNote::Partial(note) => {
+                target.write(PARTIAL);
+                target.write(note);
+            },
             OutputNote::Header(note) => {
                 target.write(HEADER);
                 target.write(note);
@@ -239,6 +258,7 @@ impl Deserializable for OutputNote {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
             FULL => Ok(OutputNote::Full(Note::read_from(source)?)),
+            PARTIAL => Ok(OutputNote::Partial(PartialNote::read_from(source)?)),
             HEADER => Ok(OutputNote::Header(NoteHeader::read_from(source)?)),
             v => Err(DeserializationError::InvalidValue(format!("Invalid note type: {v}"))),
         }

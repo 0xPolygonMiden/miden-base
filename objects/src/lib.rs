@@ -13,6 +13,9 @@ pub mod block;
 pub mod notes;
 pub mod transaction;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 mod constants;
 mod errors;
 

@@ -11,7 +11,7 @@ use crate::{
     accounts::{delta::AccountUpdateDetails, AccountId},
     errors::BlockError,
     notes::Nullifier,
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionId},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -122,6 +122,21 @@ impl Block {
         &self.created_nullifiers
     }
 
+    /// Returns an iterator over all transactions which affected accounts in the block with corresponding account IDs.
+    pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
+        self.updated_accounts.iter().flat_map(|update| {
+            update
+                .transactions
+                .iter()
+                .map(|transaction_id| (*transaction_id, update.account_id))
+        })
+    }
+
+    /// Computes a commitment to the transactions included in this block.
+    pub fn compute_tx_hash(&self) -> Digest {
+        compute_tx_hash(self.transactions())
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -176,6 +191,22 @@ impl Deserializable for Block {
     }
 }
 
+// TRANSACTION HASH COMPUTATION
+// ================================================================================================
+
+/// Computes a commitment to the provided list of transactions.
+pub fn compute_tx_hash(
+    updated_accounts: impl Iterator<Item = (TransactionId, AccountId)>,
+) -> Digest {
+    let mut elements = vec![];
+    for (transaction_id, account_id) in updated_accounts {
+        elements.extend_from_slice(&[account_id.into(), ZERO, ZERO, ZERO]);
+        elements.extend_from_slice(transaction_id.as_elements());
+    }
+
+    Hasher::hash_elements(&elements)
+}
+
 // BLOCK ACCOUNT UPDATE
 // ================================================================================================
 
@@ -193,6 +224,9 @@ pub struct BlockAccountUpdate {
     /// the last block) to get the new account state. For private accounts, this is set to
     /// [AccountUpdateDetails::Private].
     details: AccountUpdateDetails,
+
+    /// IDs of all transactions in the block that updated the account.
+    transactions: Vec<TransactionId>,
 }
 
 impl BlockAccountUpdate {
@@ -201,8 +235,14 @@ impl BlockAccountUpdate {
         account_id: AccountId,
         new_state_hash: Digest,
         details: AccountUpdateDetails,
+        transactions: Vec<TransactionId>,
     ) -> Self {
-        Self { account_id, new_state_hash, details }
+        Self {
+            account_id,
+            new_state_hash,
+            details,
+            transactions,
+        }
     }
 
     /// Returns the ID of the updated account.
@@ -223,6 +263,11 @@ impl BlockAccountUpdate {
         &self.details
     }
 
+    /// Returns the IDs of all transactions in the block that updated the account.
+    pub fn transactions(&self) -> &[TransactionId] {
+        &self.transactions
+    }
+
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         self.details.is_private()
@@ -234,6 +279,7 @@ impl Serializable for BlockAccountUpdate {
         self.account_id.write_into(target);
         self.new_state_hash.write_into(target);
         self.details.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -243,6 +289,7 @@ impl Deserializable for BlockAccountUpdate {
             account_id: AccountId::read_from(source)?,
             new_state_hash: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
+            transactions: Vec::<TransactionId>::read_from(source)?,
         })
     }
 }

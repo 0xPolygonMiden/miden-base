@@ -29,32 +29,15 @@ pub enum AccountError {
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InvalidAccountStorageType,
+    MapsUpdateToNonMapsSlot(u8, StorageSlotType),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
-    StorageSlotArrayNotSupportedYet(u8, StorageSlotType),
-    StorageMapToManyMaps { expected: usize, actual: usize },
-    StorageMapNotFound { index: u64 },
+    StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
+    StorageMapNotFound(u8),
+    StorageMapTooManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),
-}
-
-impl AccountError {
-    pub fn account_id_invalid_field_element(msg: String) -> Self {
-        Self::AccountIdInvalidFieldElement(msg)
-    }
-
-    pub fn account_id_too_few_ones(expected: u32, actual: u32) -> Self {
-        Self::AccountIdTooFewOnes(expected, actual)
-    }
-
-    pub fn seed_digest_too_few_trailing_zeros(expected: u32, actual: u32) -> Self {
-        Self::SeedDigestTooFewTrailingZeros { expected, actual }
-    }
-
-    pub fn fungible_faucet_id_invalid_first_bit() -> Self {
-        Self::FungibleFaucetIdInvalidFirstBit
-    }
 }
 
 impl fmt::Display for AccountError {
@@ -80,7 +63,6 @@ pub enum AccountDeltaError {
     TooManyRemovedAssets { actual: usize, max: usize },
     TooManyUpdatedStorageItems { actual: usize, max: usize },
     DuplicateStorageMapLeaf { key: RpoDigest },
-    StorageMapDeltaWithoutStorageItemChange(usize),
 }
 
 #[cfg(feature = "std")]
@@ -109,52 +91,6 @@ pub enum AssetError {
     NotANonFungibleFaucetId(AccountId),
     NotAnAsset(Word),
     TokenSymbolError(String),
-}
-
-impl AssetError {
-    pub fn amount_too_big(value: u64) -> Self {
-        Self::AmountTooBig(value)
-    }
-
-    pub fn asset_amount_not_sufficient(available: u64, requested: u64) -> Self {
-        Self::AssetAmountNotSufficient(available, requested)
-    }
-
-    pub fn fungible_asset_invalid_tag(tag: u32) -> Self {
-        Self::FungibleAssetInvalidTag(tag)
-    }
-
-    pub fn fungible_asset_invalid_word(word: Word) -> Self {
-        Self::FungibleAssetInvalidWord(word)
-    }
-
-    pub fn inconsistent_faucet_ids(id1: AccountId, id2: AccountId) -> Self {
-        Self::InconsistentFaucetIds(id1, id2)
-    }
-
-    pub fn invalid_account_id(err: String) -> Self {
-        Self::InvalidAccountId(err)
-    }
-
-    pub fn invalid_field_element(msg: String) -> Self {
-        Self::InvalidFieldElement(msg)
-    }
-
-    pub fn non_fungible_asset_invalid_tag(tag: u32) -> Self {
-        Self::NonFungibleAssetInvalidTag(tag)
-    }
-
-    pub fn not_a_fungible_faucet_id(id: AccountId, account_type: AccountType) -> Self {
-        Self::NotAFungibleFaucetId(id, account_type)
-    }
-
-    pub fn not_a_non_fungible_faucet_id(id: AccountId) -> Self {
-        Self::NotANonFungibleFaucetId(id)
-    }
-
-    pub fn not_an_asset(value: Word) -> Self {
-        Self::NotAnAsset(value)
-    }
 }
 
 impl fmt::Display for AssetError {
@@ -332,6 +268,7 @@ pub enum TransactionOutputError {
     OutputNoteDataNotFound,
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),
+    OutputStackInvalid(String),
     TooManyOutputNotes { max: usize, actual: usize },
 }
 

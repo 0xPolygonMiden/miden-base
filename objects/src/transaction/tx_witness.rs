@@ -1,5 +1,6 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNotes, Program, TransactionArgs, TransactionInputs,
+    Account, AdviceInputs, BlockHeader, InputNote, InputNotes, Program, TransactionArgs,
+    TransactionInputs,
 };
 
 // TRANSACTION WITNESS
@@ -61,7 +62,7 @@ impl TransactionWitness {
     }
 
     /// Returns the notes consumed in this transaction.
-    pub fn input_notes(&self) -> &InputNotes {
+    pub fn input_notes(&self) -> &InputNotes<InputNote> {
         self.tx_inputs.input_notes()
     }
 

@@ -1,4 +1,4 @@
-# Runs build related jobs.
+# Runs test related jobs.
 
 name: test
 
