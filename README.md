@@ -34,7 +34,7 @@ Polygon Miden is currently on release v0.4. This is an early version of the prot
 - **Local transactions**. Users can execute and prove transactions locally on their devices. The Miden Operator verifies the proofs and if the proofs are valid, updates the state of the rollup accordingly.
 - **Standard account**. Users can create accounts using a small number of standard account interfaces (e.g., basic wallet). In the future, the set of standard smart contracts will be expanded.
 - **Standard notes**. Can create notes using standardized note scripts such as Pay-to-ID (`P2ID`) and atomic swap (`SWAP`). In the future, the set of standardized notes will be expanded.
-- **Delegated note inclusion proofs**. By delegating note inclusion proofs, users can create chains of dependent notes which are would be included into a block as a single batch.
+- **Delegated note inclusion proofs**. By delegating note inclusion proofs, users can create chains of dependent notes which are included into a block as a single batch.
 
 ### Planned features
 
