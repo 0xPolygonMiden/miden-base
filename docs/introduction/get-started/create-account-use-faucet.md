@@ -153,13 +153,13 @@ Commited transactions: 0
 
       ![Viewing process info](../../img/get-started/processing-note.png)
 
-8. The note is `Processing`. This means that the note the consume transaction was sent but you haven't received confirmation of the consumption yet. You can update your view of the rollup by syncing again:
+8. The note is `Processing`. This means that the proof of the transaction was sent, but there is no network confirmation yet. You can update your view of the rollup by syncing again:
 
       ```shell
       miden sync
       ```
 
-9. After syncing, you should receive confirmation of the consumed note see something like this after listing the notes:
+9. After syncing, you should have received confirmation of the consumed note. You should see the note as `Consumed` after listing the notes:
 
       ```shell
       miden notes
