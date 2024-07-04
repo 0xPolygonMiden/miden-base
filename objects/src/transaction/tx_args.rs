@@ -21,7 +21,7 @@ use crate::{
 /// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
-/// - Advice map: Provides data needed by the runtime, like the details of a public note.
+/// - Advice map: Provides data needed by the runtime, like the details of a public output note.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
@@ -65,12 +65,30 @@ impl TransactionArgs {
         Self::new(None, Some(note_args), AdviceMap::default())
     }
 
-    // MODIFIERS
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the transaction script.
+    pub fn tx_script(&self) -> Option<&TransactionScript> {
+        self.tx_script.as_ref()
+    }
+
+    /// Returns a reference to a specific note argument.
+    pub fn get_note_args(&self, note_id: NoteId) -> Option<&Word> {
+        self.note_args.get(&note_id)
+    }
+
+    /// Returns a reference to the args [AdviceMap].
+    pub fn advice_map(&self) -> &AdviceMap {
+        &self.advice_map
+    }
+
+    // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The map is extended with the following keys:
+    /// The advice map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -89,7 +107,7 @@ impl TransactionArgs {
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The map is extended with the following keys:
+    /// The advice map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -105,22 +123,9 @@ impl TransactionArgs {
         }
     }
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a reference to the transaction script.
-    pub fn tx_script(&self) -> Option<&TransactionScript> {
-        self.tx_script.as_ref()
-    }
-
-    /// Returns a reference to a specific note argument.
-    pub fn get_note_args(&self, note_id: NoteId) -> Option<&Word> {
-        self.note_args.get(&note_id)
-    }
-
-    /// Returns a reference to the args [AdviceMap].
-    pub fn advice_map(&self) -> &AdviceMap {
-        &self.advice_map
+    /// Extends the internal advice map with the provided key-value pairs.
+    pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
+        self.advice_map.extend(iter)
     }
 }
 
