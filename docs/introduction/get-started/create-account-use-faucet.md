@@ -139,6 +139,7 @@ Commited transactions: 0
       ```shell
       miden consume-notes --account <Account-Id> <Note-Id>
       ```
+
 5. You should see a confirmation message like this:
 
       ![Transaction confirmation message](../../img/get-started/transaction-confirmation.png)
