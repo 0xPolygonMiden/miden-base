@@ -71,13 +71,13 @@ export.get_max_assets_per_note
     push.MAX_ASSETS_PER_NOTE
 end
 
-#! Returns the max allow number of consumed notes.
+#! Returns the max allow number of input notes.
 #!
 #! Stack: []
-#! Output: [max_num_consumed_notes]
+#! Output: [max_num_input_notes]
 #!
-#! - max_num_consumed_notes is the max number of consumed notes.
-export.get_max_num_consumed_notes
+#! - max_num_input_notes is the max number of input notes.
+export.get_max_num_input_notes
     push.MAX_INPUT_NOTES_PER_TX
 end
 
@@ -104,10 +104,10 @@ end
 #! Returns the max number of notes that can be created in a single transaction.
 #!
 #! Stack: []
-#! Output: [max_num_created_notes]
+#! Output: [max_num_output_notes]
 #!
-#! - max_num_created_notes is the max number of notes that can be created in a single transaction.
-export.get_max_num_created_notes
+#! - max_num_output_notes is the max number of notes that can be created in a single transaction.
+export.get_max_num_output_notes
     push.MAX_OUTPUT_NOTES_PER_TX
 end
 

@@ -9,7 +9,7 @@ use.miden::kernels::tx::note
 
 # Constants for different note types
 const.PUBLIC_NOTE=1     # 0b01
-const.OFFCHAIN_NOTE=2   # 0b10
+const.PRIVATE_NOTE=2   # 0b10
 const.ENCRYPTED_NOTE=3  # 0b11
 
 # ERRORS
@@ -108,21 +108,21 @@ export.memory::get_input_notes_commitment
 #! COM is the output notes hash.
 export.note::compute_output_notes_commitment->get_output_notes_hash
 
-#! Increments the number of created notes by one. Returns the index of the next note to be created.
+#! Increments the number of output notes by one. Returns the index of the next note to be created.
 #!
 #! Inputs: []
 #! Outputs: [note_idx]
-proc.increment_num_created_notes
-    # get the current number of created notes
-    exec.memory::get_num_created_notes
+proc.increment_num_output_notes
+    # get the current number of output notes
+    exec.memory::get_num_output_notes
     # => [note_idx]
 
     # assert that there is space for a new note
-    dup exec.constants::get_max_num_created_notes lt assert.err=ERR_TX_OUTPUT_NOTES_OVERFLOW
+    dup exec.constants::get_max_num_output_notes lt assert.err=ERR_TX_OUTPUT_NOTES_OVERFLOW
     # => [note_idx]
 
-    # increment the number of created notes
-    dup add.1 exec.memory::set_num_created_notes
+    # increment the number of output notes
+    dup add.1 exec.memory::set_num_output_notes
     # => [note_idx]
 end
 
@@ -133,7 +133,7 @@ end
 #! Inputs: [ASSET, note_ptr, num_of_assets, note_idx]
 #! Outputs: [note_ptr, note_idx]
 proc.add_non_fungible_asset_to_note
-    dup.4 exec.memory::get_created_note_asset_data_ptr
+    dup.4 exec.memory::get_output_note_asset_data_ptr
     # => [asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # compute the pointer at which we should stop iterating
@@ -171,7 +171,7 @@ proc.add_non_fungible_asset_to_note
     # => [note_ptr, num_of_assets, note_idx]
 
     # increase the number of assets in the note
-    swap add.1 dup.1 exec.memory::set_created_note_num_assets
+    swap add.1 dup.1 exec.memory::set_output_note_num_assets
     # => [note_ptr, note_idx]
 end
 
@@ -184,7 +184,7 @@ end
 #! Inputs: [ASSET, note_ptr, num_of_assets, note_idx]
 #! Outputs: [note_ptr]
 proc.add_fungible_asset_to_note
-    dup.4 exec.memory::get_created_note_asset_data_ptr
+    dup.4 exec.memory::get_output_note_asset_data_ptr
     # => [asset_ptr, ASSET, note_ptr, num_of_assets, note_idx]
 
     # compute the pointer at which we should stop iterating
@@ -247,7 +247,7 @@ proc.add_fungible_asset_to_note
     # => [note_ptr, num_of_assets, note_idx]
 
     # increase the number of assets in the note
-    swap add.1 dup.1 exec.memory::set_created_note_num_assets
+    swap add.1 dup.1 exec.memory::set_output_note_num_assets
     # => [note_ptr, note_idx]
 end
 
@@ -266,14 +266,14 @@ end
 #! - the note_type is not valid.
 #! - the note_tag is not an u32.
 #! - if note_tag starts with anything but 0b11 and note_type is not public.
-#! - the number of created notes exceeds the maximum limit of 4096.
+#! - the number of output notes exceeds the maximum limit of 4096.
 export.create_note
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     emit.NOTE_BEFORE_CREATED_EVENT
 
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
-    dup.2 push.OFFCHAIN_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
     # => [tag, aux, note_type, RECIPIENT]
 
     # copy data to validate the tag
@@ -288,11 +288,11 @@ export.create_note
     # => [tag, aux, note_type, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
-    exec.increment_num_created_notes dup movdn.8
+    exec.increment_num_output_notes dup movdn.8
     # => [note_idx, tag, aux, note_type, RECIPIENT, note_idx]
 
     # get a pointer to the memory address at which the note will be stored
-    exec.memory::get_created_note_ptr
+    exec.memory::get_output_note_ptr
     # => [note_ptr, tag, aux, note_type, RECIPIENT, note_idx]
 
     # populate the metadata
@@ -302,12 +302,12 @@ export.create_note
     # emit event to signal that a new note is created
     emit.NOTE_AFTER_CREATED_EVENT
 
-    # set the metadata for the created note
-    dup.4 exec.memory::set_created_note_metadata
+    # set the metadata for the output note
+    dup.4 exec.memory::set_output_note_metadata
     # => [note_ptr, RECIPIENT, note_idx]
 
-    # set the RECIPIENT for the created note
-    exec.memory::set_created_note_recipient
+    # set the RECIPIENT for the output note
+    exec.memory::set_output_note_recipient
     # => [note_idx]
 end
 
@@ -326,15 +326,15 @@ end
 #! - the total number of ASSETs exceeds the maximum of 256.
 export.add_asset_to_note
     # check if the note exists, it must be within [0, num_of_notes]
-    dup exec.memory::get_num_created_notes lte assert.err=ERR_INVALID_NOTE_IDX
+    dup exec.memory::get_num_output_notes lte assert.err=ERR_INVALID_NOTE_IDX
     # => [note_idx, ASSET]
 
     # get a pointer to the memory address of the note at which the asset will be stored
-    dup movdn.5 exec.memory::get_created_note_ptr
+    dup movdn.5 exec.memory::get_output_note_ptr
     # => [note_ptr, ASSET, note_idx]
 
     # get current num of assets
-    dup exec.memory::get_created_note_num_assets movdn.5
+    dup exec.memory::get_output_note_num_assets movdn.5
     # => [note_ptr, ASSET, num_of_assets, note_idx]
 
     # validate the ASSET

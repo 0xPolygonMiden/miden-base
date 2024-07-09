@@ -156,9 +156,9 @@ fn executed_transaction_account_delta() {
     let aux2 = Felt::new(28);
     let aux3 = Felt::new(29);
 
-    let note_type1 = NoteType::OffChain;
-    let note_type2 = NoteType::OffChain;
-    let note_type3 = NoteType::OffChain;
+    let note_type1 = NoteType::Private;
+    let note_type2 = NoteType::Private;
+    let note_type3 = NoteType::Private;
 
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
@@ -431,7 +431,7 @@ fn executed_transaction_output_notes() {
     let aux2 = Felt::new(28);
     let aux3 = Felt::new(29);
 
-    let note_type1 = NoteType::OffChain;
+    let note_type1 = NoteType::Private;
     let note_type2 = NoteType::Public;
     let note_type3 = NoteType::Public;
 
@@ -593,22 +593,22 @@ fn executed_transaction_output_notes() {
     // NOTE: the mock state already contains 3 output notes
     assert_eq!(output_notes.num_notes(), 6);
 
-    let created_note_id_3 = executed_transaction.output_notes().get_note(3).id();
+    let output_note_id_3 = executed_transaction.output_notes().get_note(3).id();
     let recipient_3 = Digest::from([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]);
     let note_assets_3 = NoteAssets::new(vec![combined_asset]).unwrap();
     let expected_note_id_3 = NoteId::new(recipient_3, note_assets_3.commitment());
-    assert_eq!(created_note_id_3, expected_note_id_3);
+    assert_eq!(output_note_id_3, expected_note_id_3);
 
     // assert that the expected output note 2 is present
-    let created_note = executed_transaction.output_notes().get_note(4);
+    let output_note = executed_transaction.output_notes().get_note(4);
     let note_id = expected_output_note_2.id();
     let note_metadata = expected_output_note_2.metadata();
-    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, *note_metadata));
+    assert_eq!(NoteHeader::from(output_note), NoteHeader::new(note_id, *note_metadata));
 
     // assert that the expected output note 3 is present and has no assets
-    let created_note_3 = executed_transaction.output_notes().get_note(5);
-    assert_eq!(expected_output_note_3.id(), created_note_3.id());
-    assert_eq!(expected_output_note_3.assets(), created_note_3.assets().unwrap());
+    let output_note_3 = executed_transaction.output_notes().get_note(5);
+    assert_eq!(expected_output_note_3.id(), output_note_3.id());
+    assert_eq!(expected_output_note_3.assets(), output_note_3.assets().unwrap());
 }
 
 #[test]

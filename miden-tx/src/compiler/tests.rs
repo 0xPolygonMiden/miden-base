@@ -135,10 +135,7 @@ fn test_compile_valid_note_script() {
     }
 }
 
-fn mock_consumed_notes(
-    tx_compiler: &mut TransactionCompiler,
-    target_account: AccountId,
-) -> Vec<Note> {
+fn mock_input_notes(tx_compiler: &mut TransactionCompiler, target_account: AccountId) -> Vec<Note> {
     // Note Assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let faucet_id_2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1).unwrap();
@@ -156,7 +153,7 @@ fn mock_consumed_notes(
         .compile_note_script(note_program_ast, vec![ScriptTarget::AccountId(target_account)])
         .unwrap();
 
-    // Consumed Notes
+    // Input Notes
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let vault =
         NoteAssets::new(vec![fungible_asset_1, fungible_asset_2, fungible_asset_3]).unwrap();
@@ -184,7 +181,7 @@ fn test_transaction_compilation_succeeds() {
     let account_code_ast = ModuleAst::parse(ACCOUNT_CODE_MASM).unwrap();
     let _account_code = tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
-    let notes = mock_consumed_notes(&mut tx_compiler, account_id);
+    let notes = mock_input_notes(&mut tx_compiler, account_id);
     let mock_inclusion_proof = NoteInclusionProof::new(
         Default::default(),
         Default::default(),

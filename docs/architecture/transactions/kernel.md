@@ -16,7 +16,7 @@ The kernel has a well-defined structure which does the following:
 1. The [prologue](#prologue) prepares the transaction for processing by parsing the transaction data and setting up the root context.
 2. Note processing executes the note processing loop which consumes each `InputNote` and invokes the note script of each note.
 3. Transaction script processing executes the optional transaction script.
-4. The [epilogue](#epilogue) finalizes the transaction by computing the created notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
+4. The [epilogue](#epilogue) finalizes the transaction by computing the output notes commitment, the final account hash, asserting asset invariant conditions, and asserting the nonce rules are upheld.
 
 <center>
 ![Transaction program](../../img/architecture/transaction/transaction-program.png)
@@ -76,11 +76,11 @@ As the account data is read from the advice provider, the account hash is comput
 
 Input note processing involves the kernel reading the data from each note and storing it at the appropriate memory addresses. All the data (note, account, and blockchain data) comes from the advice provider and global inputs. 
 
-Next to the total number of consumed notes, input note data consists of a serial number, the roots of the script, the inputs and asset vault, its metadata, and all its assets. 
+Next to the total number of input notes, input note data consists of a serial number, the roots of the script, the inputs and asset vault, its metadata, and all its assets. 
 
 As each note is consumed, its hash and nullifier are computed. 
 
-The transaction nullifier commitment is computed via a sequential hash of `(nullifier, ZERO)` pairs for all consumed notes. This step involves authentication such that the input note data provided via the advice provider is consistent with the chain history.
+The transaction nullifier commitment is computed via a sequential hash of `(nullifier, ZERO)` pairs for all input notes. This step involves authentication such that the input note data provided via the advice provider is consistent with the chain history.
 
 !!! info
     - Note data is required for computing the nullifier, e.g. the [note script](../notes.md#main-script) and the serial number. 
@@ -111,7 +111,7 @@ For every note, the [MAST root](https://0xpolygonmiden.github.io/miden-vm/design
         # => []
 
         # check if we have more notes to consume and should loop again
-        exec.note::increment_current_consumed_note_ptr
+        exec.note::increment_current_input_note_ptr
         loc_load.0
         neq
         # => [should_loop]
@@ -147,7 +147,7 @@ The epilogue finalizes the transaction. It does the following:
 
 1. Computes the final account hash.
 2. If the account has changed, it asserts that the final account nonce is greater than the initial account nonce.
-3. Computes the created notes commitment.
+3. Computes the output notes commitment.
 4. Asserts that the input and output vault roots are equal.
 
 There is an exception for special accounts, called faucets, which can mint or burn assets. In these cases, input and output vault roots are not equal.

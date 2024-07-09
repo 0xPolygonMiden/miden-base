@@ -142,7 +142,7 @@ fn prove_send_asset_via_wallet() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
-    let note_type = NoteType::OffChain;
+    let note_type = NoteType::Private;
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 

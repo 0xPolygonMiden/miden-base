@@ -146,7 +146,7 @@ impl NoteTag {
 
     /// Returns a new [NoteTag] instantiated for a custom local use case.
     ///
-    /// The local use_case tag is the only tag type that allows for [NoteType::OffChain] notes.
+    /// The local use_case tag is the only tag type that allows for [NoteType::Private] notes.
     ///
     /// The two high bits are set to the `b11`, the next 14 bits are set to the `use_case_id`, and
     /// the low 16 bits are set to `payload`.
@@ -350,8 +350,8 @@ mod tests {
                 "Network execution requires public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
-                Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::OffChain))
+                tag.validate(NoteType::Private),
+                Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::Private))
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -371,9 +371,9 @@ mod tests {
                 "Local execution supports public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
+                tag.validate(NoteType::Private),
                 Ok(tag),
-                "Local execution supports offchain notes"
+                "Local execution supports private notes"
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -394,9 +394,9 @@ mod tests {
                 "Local execution supports public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
+                tag.validate(NoteType::Private),
                 Ok(tag),
-                "Local execution supports offchain notes"
+                "Local execution supports private notes"
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -439,8 +439,8 @@ mod tests {
         let tag = tag.unwrap();
         assert_eq!(tag.validate(NoteType::Public), Ok(tag));
         assert_eq!(
-            tag.validate(NoteType::OffChain),
-            Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::OffChain))
+            tag.validate(NoteType::Private),
+            Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::Private))
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),
@@ -464,8 +464,8 @@ mod tests {
         let tag = tag.unwrap();
         assert_eq!(tag.validate(NoteType::Public), Ok(tag));
         assert_eq!(
-            tag.validate(NoteType::OffChain),
-            Err(NoteError::PublicUseCaseRequiresPublicNote(NoteType::OffChain))
+            tag.validate(NoteType::Private),
+            Err(NoteError::PublicUseCaseRequiresPublicNote(NoteType::Private))
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),
@@ -497,9 +497,9 @@ mod tests {
             "Local execution supports private notes"
         );
         assert_eq!(
-            tag.validate(NoteType::OffChain),
+            tag.validate(NoteType::Private),
             Ok(tag),
-            "Local execution supports offchain notes"
+            "Local execution supports private notes"
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),

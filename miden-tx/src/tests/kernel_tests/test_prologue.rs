@@ -5,14 +5,13 @@ use miden_lib::transaction::{
         MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
         ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
         BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR,
-        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_ARGS_OFFSET,
-        CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
-        CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
-        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
-        CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
-        INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
-        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
-        TX_SCRIPT_ROOT_PTR,
+        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR,
+        INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET,
+        INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_HASH_OFFSET,
+        INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET,
+        INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET, NOTE_ROOT_PTR,
+        NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
+        TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
@@ -31,7 +30,7 @@ use vm_processor::{AdviceInputs, ONE};
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     testing::{
-        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
@@ -91,7 +90,7 @@ fn test_transaction_prologue() {
     block_data_memory_assertions(&process, &tx_context);
     chain_mmr_memory_assertions(&process, &tx_context);
     account_data_memory_assertions(&process, &tx_context);
-    consumed_notes_memory_assertions(&process, &tx_context, &note_args);
+    input_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
 fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
@@ -260,70 +259,70 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
     }
 }
 
-fn consumed_notes_memory_assertions(
+fn input_notes_memory_assertions(
     process: &Process<MockHost>,
     inputs: &TransactionContext,
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(
-        read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET),
+        read_root_mem_value(process, INPUT_NOTE_SECTION_OFFSET),
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
-        "number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET"
+        "number of input notes should be stored at the INPUT_NOTES_OFFSET"
     );
 
     for (input_note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx),
+            read_root_mem_value(process, INPUT_NOTE_SECTION_OFFSET + 1 + note_idx),
             note.nullifier().as_elements(),
             "note nullifier should be computer and stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ID_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ID_OFFSET),
             note.id().as_elements(),
             "ID hash should be computed and stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_SERIAL_NUM_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_SERIAL_NUM_OFFSET),
             note.serial_num(),
             "note serial num should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
             note.script().hash().as_elements(),
             "note script hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_INPUTS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_HASH_OFFSET),
             note.inputs().commitment().as_elements(),
             "note input hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ASSETS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ASSETS_HASH_OFFSET),
             note.assets().commitment().as_elements(),
             "note asset hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_METADATA_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_METADATA_OFFSET),
             Word::from(note.metadata()),
             "note metadata should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ARGS_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ARGS_OFFSET),
             Word::from(note_args[note_idx as usize]),
             "note args should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_NUM_ASSETS_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_NUM_ASSETS_OFFSET),
             [Felt::from(note.assets().num_assets() as u32), ZERO, ZERO, ZERO],
             "number of assets should be stored at the correct offset"
         );
@@ -331,8 +330,9 @@ fn consumed_notes_memory_assertions(
         for (asset, asset_idx) in note.assets().iter().cloned().zip(0_u32..) {
             let word: Word = asset.into();
             assert_eq!(
-                read_note_element(process, note_idx, CONSUMED_NOTE_ASSETS_OFFSET + asset_idx),
-                word, "assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
+                read_note_element(process, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx),
+                word,
+                "assets should be stored at (INPUT_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
             );
         }
     }
@@ -543,5 +543,5 @@ fn test_get_blk_timestamp() {
 // ================================================================================================
 
 fn read_note_element(process: &Process<MockHost>, note_idx: u32, offset: MemoryOffset) -> Word {
-    read_root_mem_value(process, consumed_note_data_ptr(note_idx) + offset)
+    read_root_mem_value(process, input_note_data_ptr(note_idx) + offset)
 }

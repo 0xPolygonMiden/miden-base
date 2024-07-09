@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
+    NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
     accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
@@ -82,7 +82,7 @@ fn test_epilogue() {
 }
 
 #[test]
-fn test_compute_created_note_id() {
+fn test_compute_output_note_id() {
     let tx_context = TransactionContextBuilder::with_standard_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
@@ -115,14 +115,14 @@ fn test_compute_created_note_id() {
             note.assets().commitment().as_elements(),
             read_root_mem_value(
                 &process,
-                CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET
+                OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + OUTPUT_NOTE_ASSET_HASH_OFFSET
             ),
             "ASSET_HASH didn't match expected value",
         );
 
         assert_eq!(
             note.id().as_elements(),
-            &read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
+            &read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
             "NOTE_ID didn't match expected value",
         );
     }

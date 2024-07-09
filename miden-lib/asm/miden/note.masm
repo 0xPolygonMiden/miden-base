@@ -49,7 +49,7 @@ export.get_assets
     padw push.0
     # => [0, 0, 0, 0, 0, dest_ptr]
 
-    # get the current consumed note vault hash
+    # get the current input note vault hash
     syscall.get_note_vault_info
     # => [VAULT_HASH, num_assets, dest_ptr]
 

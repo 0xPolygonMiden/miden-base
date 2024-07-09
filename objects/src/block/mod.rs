@@ -45,7 +45,7 @@ pub struct Block {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    created_notes: Vec<NoteBatch>,
+    output_note_batches: Vec<NoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
@@ -60,13 +60,13 @@ impl Block {
     pub fn new(
         header: BlockHeader,
         updated_accounts: Vec<BlockAccountUpdate>,
-        created_notes: Vec<NoteBatch>,
+        output_note_batches: Vec<NoteBatch>,
         created_nullifiers: Vec<Nullifier>,
     ) -> Result<Self, BlockError> {
         let block = Self {
             header,
             updated_accounts,
-            created_notes,
+            output_note_batches,
             created_nullifiers,
         };
 
@@ -91,8 +91,8 @@ impl Block {
     }
 
     /// Returns a set of note batches containing all notes created in this block.
-    pub fn created_notes(&self) -> &[NoteBatch] {
-        &self.created_notes
+    pub fn output_note_batches(&self) -> &[NoteBatch] {
+        &self.output_note_batches
     }
 
     /// Returns an iterator over all notes created in this block.
@@ -100,7 +100,7 @@ impl Block {
     /// Each note is accompanied by a corresponding index specifying where the note is located
     /// in the blocks note tree.
     pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
-        self.created_notes.iter().enumerate().flat_map(|(batch_idx, notes)| {
+        self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
                 (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note)
             })
@@ -141,19 +141,19 @@ impl Block {
     // --------------------------------------------------------------------------------------------
 
     fn validate(&self) -> Result<(), BlockError> {
-        let batch_count = self.created_notes.len();
+        let batch_count = self.output_note_batches.len();
         if batch_count > MAX_BATCHES_PER_BLOCK {
             return Err(BlockError::TooManyTransactionBatches(batch_count));
         }
 
-        for batch in self.created_notes.iter() {
+        for batch in self.output_note_batches.iter() {
             if batch.len() > MAX_NOTES_PER_BATCH {
                 return Err(BlockError::TooManyNotesInBatch(batch.len()));
             }
         }
 
         let mut notes = BTreeSet::new();
-        for batch in self.created_notes.iter() {
+        for batch in self.output_note_batches.iter() {
             for note in batch.iter() {
                 if !notes.insert(note.id()) {
                     return Err(BlockError::DuplicateNoteFound(note.id()));
@@ -169,7 +169,7 @@ impl Serializable for Block {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.header.write_into(target);
         self.updated_accounts.write_into(target);
-        self.created_notes.write_into(target);
+        self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
     }
 }
@@ -179,7 +179,7 @@ impl Deserializable for Block {
         let block = Self {
             header: BlockHeader::read_from(source)?,
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
-            created_notes: <Vec<NoteBatch>>::read_from(source)?,
+            output_note_batches: <Vec<NoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
         };
 

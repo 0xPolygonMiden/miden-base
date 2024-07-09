@@ -23,28 +23,28 @@ const.ERR_EPILOGUE_ASSETS_DONT_ADD_UP=0x0002000A
 #! Output: [OUTPUT_NOTES_COMMITMENT, ...]
 proc.copy_output_notes_to_advice_map
     # get the number of notes created by the transaction
-    exec.memory::get_num_created_notes
+    exec.memory::get_num_output_notes
     # => [num_notes, OUTPUT_NOTES_COMMITMENT, ...]
 
-    # if there are created notes, add them to the advice map
+    # if there are output notes, add them to the advice map
     dup eq.0
     if.true
         # drop num_notes
         drop
     else
-        # compute the end boundary of the created notes section
-        exec.memory::get_created_note_ptr movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, created_notes_end_ptr, ...]
+        # compute the end boundary of the output notes section
+        exec.memory::get_output_note_ptr movdn.4
+        # => [OUTPUT_NOTES_COMMITMENT, output_notes_end_ptr, ...]
 
-        # compute the start boundary of the created notes section
-        exec.memory::get_created_note_data_offset movdn.4
-        # => [OUTPUT_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, ...]
+        # compute the start boundary of the output notes section
+        exec.memory::get_output_note_data_offset movdn.4
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # insert created data into the advice map
         adv.insert_mem
-        # => [OUTPUT_NOTES_COMMITMENT, created_note_ptr, created_notes_end_ptr, ...]
+        # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
-        # drop created note pointers
+        # drop output note pointers
         movup.4 drop movup.4 drop
     end
     # => [OUTPUT_NOTES_COMMITMENT, ...]
@@ -54,11 +54,11 @@ end
 # =================================================================================================
 
 #! Builds the output vault which is combination of the assets in the account vault at the end of
-#! the transaction and all the assets from the created notes.
+#! the transaction and all the assets from the output notes.
 #!
 #! The output vault is built as follows:
 #! - we first copy the account vault root to the output vault root.
-#! - we then loop over the created notes and insert the assets into the output vault.
+#! - we then loop over the output notes and insert the assets into the output vault.
 #!
 #! Stack: []
 #! Output: []
@@ -67,73 +67,73 @@ proc.build_output_vault
     exec.memory::get_acct_vault_root exec.memory::set_output_vault_root
     # => []
 
-    # get the number of created notes from memory
-    exec.memory::get_num_created_notes
-    # => [num_created_notes]
+    # get the number of output notes from memory
+    exec.memory::get_num_output_notes
+    # => [num_output_notes]
 
     # calculate the address at which we should stop looping
-    exec.memory::get_created_note_ptr
-    # => [created_notes_end_ptr]
+    exec.memory::get_output_note_ptr
+    # => [output_notes_end_ptr]
 
-    # compute pointer for the first created note
-    push.0 exec.memory::get_created_note_ptr
-    # => [created_note_ptr, created_notes_end_ptr]
+    # compute pointer for the first output note
+    push.0 exec.memory::get_output_note_ptr
+    # => [output_note_ptr, output_notes_end_ptr]
 
-    # check if the number of created notes is greater then 0. Conditional for the while loop.
+    # check if the number of output notes is greater then 0. Conditional for the while loop.
     dup.1 dup.1 neq
-    # => [should_loop, created_note_ptr, created_notes_end_ptr]
+    # => [should_loop, output_note_ptr, output_notes_end_ptr]
 
-    # loop over created notes and add assets to output vault
+    # loop over output notes and add assets to output vault
     while.true
-        # get the number of assets for the created note from memory
-        dup exec.memory::get_created_note_num_assets
-        # => [num_assets, note_data_ptr, created_notes_end_ptr]
+        # get the number of assets for the output note from memory
+        dup exec.memory::get_output_note_num_assets
+        # => [num_assets, note_data_ptr, output_notes_end_ptr]
 
-        # prepare stack for reading created note assets
-        exec.memory::get_output_vault_root_ptr dup.2 exec.memory::get_created_note_asset_data_ptr dup
-        # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr.
-        #     created_notes_end_ptr]
+        # prepare stack for reading output note assets
+        exec.memory::get_output_vault_root_ptr dup.2 exec.memory::get_output_note_asset_data_ptr dup
+        # => [assets_start_ptr, assets_start_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
+        #     output_notes_end_ptr]
 
-        # compute the end pointer for created note asset looping
+        # compute the end pointer for output note asset looping
         dup.3 add swap
         # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-        #     created_notes_end_ptr]
+        #     output_notes_end_ptr]
 
         # assess if we should loop
         dup.1 dup.1 neq
         # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
-        #     note_data_ptr, created_notes_end_ptr]
+        #     note_data_ptr, output_notes_end_ptr]
 
-        # loop over created note assets and insert them into the output vault
+        # loop over output note assets and insert them into the output vault
         while.true
             # duplicate output_vault_root_ptr
             dup.2
             # => [output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
-            #     num_assets, note_data_ptr, created_notes_end_ptr]
+            #     num_assets, note_data_ptr, output_notes_end_ptr]
 
-            # read the created note asset from memory
+            # read the output note asset from memory
             padw dup.5 mem_loadw
             # => [ASSET, output_vault_root_ptr, assets_start_ptr, assets_end_ptr, output_vault_root_ptr,
-            #     num_assets, note_data_ptr, created_notes_end_ptr]
+            #     num_assets, note_data_ptr, output_notes_end_ptr]
 
-            # insert created note asset into output vault
+            # insert output note asset into output vault
             exec.asset_vault::add_asset dropw
             # => [assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets, note_data_ptr,
-            #     created_notes_end_ptr]
+            #     output_notes_end_ptr]
 
             # increment assets_start_ptr and asses if we should loop again
             add.1 dup.1 dup.1 neq
             # => [should_loop, assets_start_ptr, assets_end_ptr, output_vault_root_ptr, num_assets,
-            #     note_data_ptr, created_notes_end_ptr]
+            #     note_data_ptr, output_notes_end_ptr]
         end
 
         # clean stack
         drop drop drop drop
-        # => [note_data_ptr, created_note_end_ptr]
+        # => [note_data_ptr, output_note_end_ptr]
 
-        # increment created note pointer and check if we should loop again
+        # increment output note pointer and check if we should loop again
         exec.constants::get_note_mem_size add dup.1 dup.1 neq
-        # => [should_loop, created_note_ptr, created_notes_end_ptr]
+        # => [should_loop, output_note_ptr, output_notes_end_ptr]
     end
 
     # clean stack
@@ -168,13 +168,13 @@ end
 #! - computes the final account hash
 #! - if the account has changed, assert that the final account nonce is greater than the initial
 #!   account nonce
-#! - computes the created notes commitment
+#! - computes the output notes commitment
 #! - asserts that the input and output vault roots are equal
 #!
 #! Stack: []
 #! Output: [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
-#! - OUTPUT_NOTES_COMMITMENT is the commitment of the created notes
+#! - OUTPUT_NOTES_COMMITMENT is the commitment of the output notes
 #! - FINAL_ACCOUNT_HASH is the final account hash
 export.finalize_transaction
     # update account code
@@ -232,7 +232,7 @@ export.finalize_transaction
     exec.build_output_vault
     # => [FINAL_ACCOUNT_HASH]
 
-    # compute created note hash
+    # compute output note hash
     exec.note::compute_output_notes_commitment
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 

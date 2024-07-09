@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::CURRENT_CONSUMED_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
     accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
@@ -351,7 +351,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// greater than `u32::MAX`).
     fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
         // get the word where note address is stored
-        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR);
+        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR);
         // get the note address in `Felt` from or return `None` if the address hasn't been accessed
         // previously.
         let note_address_felt = match note_address_word {

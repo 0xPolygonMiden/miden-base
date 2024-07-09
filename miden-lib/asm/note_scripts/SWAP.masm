@@ -4,7 +4,7 @@ use.miden::contracts::wallets::basic->wallet
 # CONSTANTS
 # =================================================================================================
 
-const.OFFCHAIN_NOTE=2
+const.PRIVATE_NOTE=2
 
 # ERRORS
 # =================================================================================================
@@ -68,7 +68,7 @@ begin
     drop drop drop movdn.4
     # => [ASSET, tag, RECIPIENT]
 
-    push.OFFCHAIN_NOTE movdn.5
+    push.PRIVATE_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
 
     # we add aux = 0 to the note assuming we don't need it for the second leg of the SWAP
