@@ -100,16 +100,15 @@ fn prove_swap_script() {
     // Check if only one `Note` has been created
     assert_eq!(executed_transaction.output_notes().num_notes(), 1);
 
-    // Check if the created `Note` is what we expect
+    // Check if the output `Note` is what we expect
     let recipient = payback_note.recipient().clone();
     let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionHint::Local).unwrap();
-    let note_metadata =
-        NoteMetadata::new(target_account_id, NoteType::OffChain, tag, ZERO).unwrap();
+    let note_metadata = NoteMetadata::new(target_account_id, NoteType::Private, tag, ZERO).unwrap();
     let assets = NoteAssets::new(vec![requested_asset]).unwrap();
     let note_id = NoteId::new(recipient.digest(), assets.commitment());
 
-    let created_note = executed_transaction.output_notes().get_note(0);
-    assert_eq!(NoteHeader::from(created_note), NoteHeader::new(note_id, note_metadata));
+    let output_note = executed_transaction.output_notes().get_note(0);
+    assert_eq!(NoteHeader::from(output_note), NoteHeader::new(note_id, note_metadata));
 
     // Prove, serialize/deserialize and verify the transaction
     assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());

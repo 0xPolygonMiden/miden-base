@@ -27,11 +27,11 @@ pub const SLOT_TYPES_COMMITMENT_STORAGE_SLOT: StorageSlot = 255;
 /// The memory address at which the transaction vault root is stored.
 pub const TX_VAULT_ROOT_PTR: MemoryAddress = 0;
 
-/// The memory address at which a pointer to the consumed note being executed is stored.
-pub const CURRENT_CONSUMED_NOTE_PTR: MemoryAddress = 1;
+/// The memory address at which a pointer to the input note being executed is stored.
+pub const CURRENT_INPUT_NOTE_PTR: MemoryAddress = 1;
 
-/// The memory address at which the number of created notes is stored.
-pub const NUM_CREATED_NOTES_PTR: MemoryAddress = 2;
+/// The memory address at which the number of output notes is stored.
+pub const NUM_OUTPUT_NOTES_PTR: MemoryAddress = 2;
 
 /// The memory address at which the input vault root is stored
 pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 3;
@@ -203,25 +203,25 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // - INPUTS_HASH is the key to look up note inputs in the advice map.
 // - ASSETS_HASH is the key to look up note assets in the advice map.
 
-/// The memory address at which the consumed note section begins.
-pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
+/// The memory address at which the input note section begins.
+pub const INPUT_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
 
-/// The memory address at which the consumed note data section begins.
-pub const CONSUMED_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
+/// The memory address at which the input note data section begins.
+pub const INPUT_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
 
-/// The memory address at which the number of consumed notes is stored.
-pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = CONSUMED_NOTE_SECTION_OFFSET;
+/// The memory address at which the number of input notes is stored.
+pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
 
-/// The offsets at which data of a consumed note is stored relative to the start of its data segment.
-pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
-pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
-pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
-pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
-pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
-pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_ARGS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
+/// The offsets at which data of a input note is stored relative to the start of its data segment.
+pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
+pub const INPUT_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
+pub const INPUT_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
+pub const INPUT_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
+pub const INPUT_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
+pub const INPUT_NOTE_METADATA_OFFSET: MemoryOffset = 5;
+pub const INPUT_NOTE_ARGS_OFFSET: MemoryOffset = 6;
+pub const INPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
+pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
@@ -244,16 +244,16 @@ pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
 // first element of the word.
 
-/// The memory address at which the created notes section begins.
-pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
+/// The memory address at which the output notes section begins.
+pub const OUTPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 
-/// The size of the core created note data segment.
-pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
+/// The size of the core output note data segment.
+pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 4;
 
-/// The offsets at which data of a created note is stored relative to the start of its data segment.
-pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
-pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
-pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
-pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
-pub const CREATED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
-pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 5;
+/// The offsets at which data of a output note is stored relative to the start of its data segment.
+pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
+pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 1;
+pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
+pub const OUTPUT_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
+pub const OUTPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
+pub const OUTPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 5;

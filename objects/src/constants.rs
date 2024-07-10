@@ -25,7 +25,7 @@ pub const MIN_PROOF_SECURITY_LEVEL: u32 = 96;
 // TRANSACTION BATCH
 // ================================================================================================
 
-/// The depth of the Sparse Merkle Tree used to store created notes in a single batch.
+/// The depth of the Sparse Merkle Tree used to store output notes in a single batch.
 ///
 /// A single note uses two leaves in the tree. The even leaf is used to store the note's id, the
 /// odd leaf is used to store the note's metadata.
@@ -47,7 +47,7 @@ pub const MAX_TRANSACTIONS_PER_BATCH: usize = MAX_NOTES_PER_BATCH / MAX_OUTPUT_N
 ///
 /// This value can be interpreted as:
 ///
-/// - The depth of a tree with the leaves set to a batch created note tree root.
+/// - The depth of a tree with the leaves set to a batch output note tree root.
 /// - The level at which the batches create note trees are merged, creating a new tree with this many
 ///   additional new levels.
 pub const BLOCK_OUTPUT_NOTES_BATCH_TREE_DEPTH: u8 = 8;

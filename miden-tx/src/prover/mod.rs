@@ -33,7 +33,7 @@ impl TransactionProver {
     /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
     /// # Errors
-    /// - If the consumed note data in the transaction witness is corrupt.
+    /// - If the input note data in the transaction witness is corrupt.
     /// - If the transaction program cannot be proven.
     /// - If the transaction result is corrupt.
     pub fn prove_transaction<T: Into<TransactionWitness>>(

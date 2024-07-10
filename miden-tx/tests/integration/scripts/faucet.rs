@@ -55,7 +55,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let aux = Felt::new(27);
-    let note_type = NoteType::OffChain;
+    let note_type = NoteType::Private;
     let amount = Felt::new(100);
 
     assert_eq!(tag.validate(note_type), Ok(tag));
@@ -101,15 +101,15 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let fungible_asset: Asset =
         FungibleAsset::new(faucet_account.id(), amount.into()).unwrap().into();
 
-    let created_note = executed_transaction.output_notes().get_note(0).clone();
+    let output_note = executed_transaction.output_notes().get_note(0).clone();
 
     let assets = NoteAssets::new(vec![fungible_asset]).unwrap();
     let id = NoteId::new(recipient.into(), assets.commitment());
 
-    assert_eq!(created_note.id(), id);
+    assert_eq!(output_note.id(), id);
     assert_eq!(
-        created_note.metadata(),
-        &NoteMetadata::new(faucet_account.id(), NoteType::OffChain, tag, aux).unwrap()
+        output_note.metadata(),
+        &NoteMetadata::new(faucet_account.id(), NoteType::Private, tag, aux).unwrap()
     );
 }
 
@@ -159,7 +159,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
             end
             ",
-            note_type = NoteType::OffChain as u8,
+            note_type = NoteType::Private as u8,
             recipient = prepare_word(&recipient),
         )
         .as_str(),

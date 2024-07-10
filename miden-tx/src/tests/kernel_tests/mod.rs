@@ -1,9 +1,8 @@
 use alloc::string::String;
 
 use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_NUM_ASSETS_OFFSET,
-    CREATED_NOTE_RECIPIENT_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
-    NUM_CREATED_NOTES_PTR,
+    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
+    OUTPUT_NOTE_NUM_ASSETS_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
     notes::Note,
@@ -56,45 +55,45 @@ pub fn output_notes_data_procedure(notes: &[Note]) -> String {
 
             # populate note 0
             push.{note_0_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{OUTPUT_NOTE_METADATA_OFFSET} add mem_storew dropw
 
             push.{note_0_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{OUTPUT_NOTE_RECIPIENT_OFFSET} add mem_storew dropw
 
             push.{note_0_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add mem_store
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{OUTPUT_NOTE_NUM_ASSETS_OFFSET} add mem_store
 
             push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{OUTPUT_NOTE_ASSETS_OFFSET} add mem_storew dropw
 
             # populate note 1
             push.{note_1_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{OUTPUT_NOTE_METADATA_OFFSET} add add mem_storew dropw
 
             push.{note_1_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{OUTPUT_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
             push.{note_1_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{OUTPUT_NOTE_NUM_ASSETS_OFFSET} add add mem_store
 
             push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_1_OFFSET}.{OUTPUT_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
             # populate note 2
             push.{note_2_metadata}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_METADATA_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{OUTPUT_NOTE_METADATA_OFFSET} add add mem_storew dropw
 
             push.{note_2_recipient}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{OUTPUT_NOTE_RECIPIENT_OFFSET} add add mem_storew dropw
 
             push.{note_2_num_assets}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_NUM_ASSETS_OFFSET} add add mem_store
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{OUTPUT_NOTE_NUM_ASSETS_OFFSET} add add mem_store
 
             push.{}
-            push.{CREATED_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{CREATED_NOTE_ASSETS_OFFSET} add add mem_storew dropw
+            push.{OUTPUT_NOTE_SECTION_OFFSET}.{NOTE_2_OFFSET}.{OUTPUT_NOTE_ASSETS_OFFSET} add add mem_storew dropw
 
-            # set num created notes
-            push.{}.{NUM_CREATED_NOTES_PTR} mem_store
+            # set num output notes
+            push.{}.{NUM_OUTPUT_NOTES_PTR} mem_store
         end
         ",
         note_0_assets[0],

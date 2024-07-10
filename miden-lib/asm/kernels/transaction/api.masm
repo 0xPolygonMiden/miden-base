@@ -389,22 +389,22 @@ export.account_vault_remove_asset
     # => [ASSET]
 end
 
-#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
-#! note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed. Panics
+#! if a note is not being processed.
 #!
 #! Inputs: [0, 0, 0, 0, 0]
-#! Outputs: [VAULT_HASH, num_assets]
+#! Outputs: [ASSETS_HASH, num_assets]
 #!
 #! - num_assets is the number of assets in the note currently being processed.
-#! - VAULT_HASH is the vault hash of the note currently being processed.
-export.get_note_vault_info
-    # get the vault info
-    exec.note::get_vault_info
-    # => [VAULT_HASH, num_assets, 0, 0, 0, 0, 0]
+#! - ASSETS_HASH is the assets hash of the note currently being processed.
+export.get_note_assets_info
+    # get the assets info
+    exec.note::get_assets_info
+    # => [ASSETS_HASH, num_assets, 0, 0, 0, 0, 0]
 
     # organize the stack for return
     movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
-    # => [VAULT_HASH, num_assets]
+    # => [ASSETS_HASH, num_assets]
 end
 
 #! Returns the current note's inputs hash.

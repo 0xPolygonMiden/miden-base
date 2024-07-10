@@ -113,14 +113,14 @@ end
 #! Where:
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, rollup tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with the nullifiers of consumed notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
 #! - timestamp, current timestamp.
-#! - NOTE_ROOT, epoch tree with created notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 proc.process_block_data
     exec.memory::get_block_data_ptr
     # => [block_data_ptr]
@@ -578,7 +578,7 @@ end
 #! - ASSETS_HASH, sequential hash of the padded note's assets.
 #! - NULLIFIER result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_HASH || ASSETS_HASH)`.
 proc.process_input_note_details
-    exec.memory::get_consumed_note_core_ptr
+    exec.memory::get_input_note_core_ptr
     # => [note_data_ptr]
 
     # read input note's data and compute its digest. See `Advice stack` above for details.
@@ -615,10 +615,10 @@ end
 #! - NOTE_ARGS, user arguments passed to the note.
 #! - NOTE_METADATA, note's metadata.
 proc.process_note_args_and_metadata
-    padw adv_loadw dup.4 exec.memory::set_consumed_note_args
+    padw adv_loadw dup.4 exec.memory::set_input_note_args
     # => [note_ptr]
 
-    padw adv_loadw movup.4 exec.memory::set_consumed_note_metadata
+    padw adv_loadw movup.4 exec.memory::set_input_note_metadata
     # => [NOTE_METADATA]
 end
 
@@ -645,7 +645,7 @@ proc.process_note_assets
     dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
     # => [assets_count, note_ptr]
 
-    dup dup.2 exec.memory::set_consumed_note_num_assets
+    dup dup.2 exec.memory::set_input_note_num_assets
     # => [assets_count, note_ptr]
 
     # round up the number of assets, to the its padded length
@@ -667,7 +667,7 @@ proc.process_note_assets
     push.0 movup.2
     # => [note_ptr, counter, rounded_num_assets]
 
-    dup exec.memory::get_consumed_note_assets_ptr
+    dup exec.memory::get_input_note_assets_ptr
     # => [assets_ptr, note_ptr, counter, rounded_num_assets]
 
     padw padw padw
@@ -700,7 +700,7 @@ proc.process_note_assets
     # => [note_ptr, ASSET_HASH_COMPUTED]
 
     # VERIFY: computed ASSET_HASH matches the provided hash
-    exec.memory::get_consumed_note_assets_hash
+    exec.memory::get_input_note_assets_hash
     assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
     # => []
 end
@@ -719,10 +719,10 @@ proc.add_input_note_assets_to_vault
     exec.memory::get_input_vault_root_ptr
     # => [input_vault_root_ptr, note_ptr]
 
-    dup.1 exec.memory::get_consumed_note_assets_ptr
+    dup.1 exec.memory::get_input_note_assets_ptr
     # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
 
-    dup movup.3 exec.memory::get_consumed_note_num_assets add swap
+    dup movup.3 exec.memory::get_input_note_num_assets add swap
     # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
 
     # add input note's assets to input vault
@@ -754,7 +754,7 @@ proc.add_input_note_assets_to_vault
     # => []
 end
 
-#! Computes the inpute note's id.
+#! Computes an input note's id.
 #!
 #! Stack: [note_ptr]
 #! Output: [NOTE_ID]
@@ -762,21 +762,21 @@ end
 #! Where:
 #! - note_ptr, memory location for the input note.
 #! - NOTE_ID, the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
-proc.compute_note_id
+proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
-    dup exec.memory::get_consumed_note_serial_num padw hmerge
+    dup exec.memory::get_input_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
     # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_HASH)
-    dup.4 exec.memory::get_consumed_note_script_root hmerge
+    dup.4 exec.memory::get_input_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
     # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_HASH)
-    dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
+    dup.4 exec.memory::get_input_note_inputs_hash hmerge
     # => [RECIPIENT, note_ptr]
 
     # compute NOTE_ID: hash(RECIPIENT || ASSET_HASH)
-    movup.4 exec.memory::get_consumed_note_assets_hash hmerge
+    movup.4 exec.memory::get_input_note_assets_hash hmerge
     # => [NOTE_ID]
 end
 
@@ -829,14 +829,14 @@ proc.process_input_note
     # note details
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.memory::get_consumed_note_ptr dup
+    dup exec.memory::get_input_note_ptr dup
     # => [note_ptr, note_ptr, idx, HASHER_CAPACITY]
 
     exec.process_input_note_details
     # => [NULLIFIER, note_ptr, idx, HASHER_CAPACITY]
 
     # save NULLIFIER to memory
-    movup.5 exec.memory::get_consumed_note_nullifier_ptr mem_storew
+    movup.5 exec.memory::get_input_note_nullifier_ptr mem_storew
     # => [NULLIFIER, note_ptr, HASHER_CAPACITY]
 
     # note metadata & args
@@ -861,11 +861,11 @@ proc.process_input_note
     # note id
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.compute_note_id
+    dup exec.compute_input_note_id
     # => [NOTE_ID, note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # save note id to memory
-    movup.4 exec.memory::set_consumed_note_id
+    movup.4 exec.memory::set_input_note_id
     # => [NOTE_ID, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note authentication
@@ -917,7 +917,7 @@ proc.process_input_notes_data
     # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
     dup
-    exec.constants::get_max_num_consumed_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
+    exec.constants::get_max_num_input_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     u32lte assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     # => [num_notes]
 
@@ -929,7 +929,7 @@ proc.process_input_notes_data
     # => [num_notes]
 
     # store the number of input notes into kernel memory
-    dup exec.memory::set_total_num_consumed_notes
+    dup exec.memory::set_num_input_notes
     # => [num_notes]
 
     # loop over input notes and read data
@@ -983,8 +983,8 @@ proc.process_input_notes_data
 
     # set the current input note ptr to the address of the first input note
     push.0
-    exec.memory::get_consumed_note_ptr
-    exec.memory::set_current_consumed_note_ptr
+    exec.memory::get_input_note_ptr
+    exec.memory::set_current_input_note_ptr
     # => [idx+1, num_notes]
 
     drop drop
@@ -1057,14 +1057,14 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with nullifiers of consumed notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
-#! - NOTE_ROOT, tree with created notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.

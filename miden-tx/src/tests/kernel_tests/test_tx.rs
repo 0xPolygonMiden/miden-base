@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
 use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
+    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
+    OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
     accounts::account_id::testing::{
@@ -59,19 +59,19 @@ fn test_create_note() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
-        "number of created notes must increment by 1",
+        "number of output notes must increment by 1",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET),
         recipient,
         "recipient must be stored at the correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET),
         [tag, Felt::from(account_id), NoteType::Public.into(), Felt::new(27)],
         "metadata must be stored at the correct memory location",
     );
@@ -79,7 +79,7 @@ fn test_create_note() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index of the created note"
+        "top item on the stack is the index of the output note"
     );
 }
 
@@ -131,8 +131,8 @@ fn test_create_note_too_many_notes() {
         use.miden::tx
 
         begin
-            exec.constants::get_max_num_created_notes
-            exec.memory::set_num_created_notes
+            exec.constants::get_max_num_output_notes
+            exec.memory::set_num_output_notes
 
             push.{recipient}
             push.{PUBLIC_NOTE}
@@ -267,14 +267,14 @@ fn test_get_output_notes_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [Felt::new(2), ZERO, ZERO, ZERO],
         "The test creates two notes",
     );
     assert_eq!(
         NoteMetadata::try_from(read_root_mem_value(
             &process,
-            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET
         ))
         .unwrap(),
         *output_note_1.metadata(),
@@ -283,7 +283,7 @@ fn test_get_output_notes_hash() {
     assert_eq!(
         NoteMetadata::try_from(read_root_mem_value(
             &process,
-            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
         ))
         .unwrap(),
         *output_note_2.metadata(),
@@ -337,7 +337,7 @@ fn test_create_note_and_add_asset() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
@@ -345,7 +345,7 @@ fn test_create_note_and_add_asset() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index to the created note"
+        "top item on the stack is the index to the output note"
     );
 }
 
@@ -416,19 +416,19 @@ fn test_create_note_and_add_multiple_assets() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET + 1),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 1),
         asset_2_and_3,
         "asset_2 and asset_3 must be stored at the same correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET + 2),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 2),
         Word::from(non_fungible_asset_encoded),
         "non_fungible_asset must be stored at the correct memory location",
     );
@@ -436,7 +436,7 @@ fn test_create_note_and_add_multiple_assets() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index to the created note"
+        "top item on the stack is the index to the output note"
     );
 }
 
@@ -540,15 +540,15 @@ fn test_build_recipient_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
-        "number of created notes must increment by 1",
+        "number of output notes must increment by 1",
     );
 
     let recipient_digest: Vec<Felt> = recipient.clone().digest().to_vec();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET),
         recipient_digest.as_slice(),
         "recipient hash not correct",
     );
