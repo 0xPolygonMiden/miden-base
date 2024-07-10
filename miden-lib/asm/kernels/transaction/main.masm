@@ -77,7 +77,7 @@ proc.main.1
     push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
-    exec.memory::get_total_num_input_notes
+    exec.memory::get_num_input_notes
     # => [num_input_notes]
 
     # compute the memory location after all input notes, i.e. the exit condition

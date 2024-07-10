@@ -71,7 +71,7 @@ export.get_max_assets_per_note
     push.MAX_ASSETS_PER_NOTE
 end
 
-#! Returns the max allow number of input notes.
+#! Returns the maximum number of notes that can be consumed in a single transaction.
 #!
 #! Stack: []
 #! Output: [max_num_input_notes]
@@ -101,7 +101,7 @@ export.get_note_tree_depth
     push.NOTE_TREE_DEPTH
 end
 
-#! Returns the max number of notes that can be created in a single transaction.
+#! Returns the maximum number of notes that can be created in a single transaction.
 #!
 #! Stack: []
 #! Output: [max_num_output_notes]

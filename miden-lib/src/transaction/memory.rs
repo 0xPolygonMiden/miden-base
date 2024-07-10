@@ -210,7 +210,7 @@ pub const INPUT_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
 pub const INPUT_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
 
 /// The memory address at which the number of input notes is stored.
-pub const INPUT_NOTE_NUM_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
+pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
 
 /// The offsets at which data of a input note is stored relative to the start of its data segment.
 pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;

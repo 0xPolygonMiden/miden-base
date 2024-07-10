@@ -130,7 +130,7 @@ const.INPUT_NOTE_SECTION_OFFSET=1048576
 const.INPUT_NOTE_DATA_SECTION_OFFSET=1064960
 
 # The memory address at which the number of input notes is stored.
-const.INPUT_NOTE_NUM_PTR=1048576
+const.NUM_INPUT_NOTES_PTR=1048576
 
 # The offsets at which data of a input note is stored relative to the start of its data segment
 const.INPUT_NOTE_ID_OFFSET=0
@@ -796,8 +796,8 @@ end
 #!
 #! Where:
 #! - num_input_notes is the total number of input notes in the transaction.
-export.get_total_num_input_notes
-    push.INPUT_NOTE_NUM_PTR mem_load
+export.get_num_input_notes
+    push.NUM_INPUT_NOTES_PTR mem_load
 end
 
 #! Sets the total number of input notes in the transaction.
@@ -807,8 +807,8 @@ end
 #!
 #! Where:
 #! - num_input_notes is the total number of input notes in the transaction.
-export.set_total_num_input_notes
-    push.INPUT_NOTE_NUM_PTR mem_store
+export.set_num_input_notes
+    push.NUM_INPUT_NOTES_PTR mem_store
 end
 
 #! Computes a pointer to the memory address at which the data associated with a input note with

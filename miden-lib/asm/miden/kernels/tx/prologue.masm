@@ -113,14 +113,14 @@ end
 #! Where:
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, rollup tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with the nullifiers of input notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
 #! - timestamp, current timestamp.
-#! - NOTE_ROOT, epoch tree with output notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 proc.process_block_data
     exec.memory::get_block_data_ptr
     # => [block_data_ptr]
@@ -754,7 +754,7 @@ proc.add_input_note_assets_to_vault
     # => []
 end
 
-#! Computes the inpute note's id.
+#! Computes an input note's id.
 #!
 #! Stack: [note_ptr]
 #! Output: [NOTE_ID]
@@ -762,7 +762,7 @@ end
 #! Where:
 #! - note_ptr, memory location for the input note.
 #! - NOTE_ID, the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
-proc.compute_note_id
+proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
     dup exec.memory::get_input_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
@@ -861,7 +861,7 @@ proc.process_input_note
     # note id
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.compute_note_id
+    dup exec.compute_input_note_id
     # => [NOTE_ID, note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # save note id to memory
@@ -929,7 +929,7 @@ proc.process_input_notes_data
     # => [num_notes]
 
     # store the number of input notes into kernel memory
-    dup exec.memory::set_total_num_input_notes
+    dup exec.memory::set_num_input_notes
     # => [num_notes]
 
     # loop over input notes and read data
@@ -1057,14 +1057,14 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with nullifiers of input notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
-#! - NOTE_ROOT, tree with output notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.

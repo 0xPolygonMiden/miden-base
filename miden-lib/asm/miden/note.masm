@@ -49,21 +49,21 @@ export.get_assets
     padw push.0
     # => [0, 0, 0, 0, 0, dest_ptr]
 
-    # get the current input note vault hash
-    syscall.get_note_vault_info
-    # => [VAULT_HASH, num_assets, dest_ptr]
+    # get the current input note assets info
+    syscall.get_note_assets_info
+    # => [ASSETS_HASH, num_assets, dest_ptr]
 
-    # load the vault data from the advice map to the advice stack
+    # load the asset data from the advice map to the advice stack
     adv.push_mapval
-    # => [VAULT_HASH, num_assets, dest_ptr]
+    # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate number of assets rounded up to an even number
     dup.4 dup is_odd add
-    # => [even_num_assets, VAULT_HASH, num_assets, dest_ptr]
+    # => [even_num_assets, ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate the start and end pointer for reading to memory
     dup.6 add dup.6
-    # => [start_ptr, end_ptr, VAULT_HASH, num_assets, dest_ptr]
+    # => [start_ptr, end_ptr, ASSETS_HASH, num_assets, dest_ptr]
 
     # write the data from the advice stack into memory
     exec.write_advice_data_to_memory

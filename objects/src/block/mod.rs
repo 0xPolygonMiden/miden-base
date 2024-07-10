@@ -44,11 +44,11 @@ pub struct Block {
     /// Account updates for the block.
     updated_accounts: Vec<BlockAccountUpdate>,
 
-    /// Note batches created in transactions in the block.
+    /// Note batches created by the transactions in this block.
     output_note_batches: Vec<NoteBatch>,
 
-    /// Nullifiers produced in transactions in the block.
-    created_nullifiers: Vec<Nullifier>,
+    /// Nullifiers produced by the transactions in this block.
+    nullifiers: Vec<Nullifier>,
     //
     // TODO: add zk proof
 }
@@ -61,13 +61,13 @@ impl Block {
         header: BlockHeader,
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<NoteBatch>,
-        created_nullifiers: Vec<Nullifier>,
+        nullifiers: Vec<Nullifier>,
     ) -> Result<Self, BlockError> {
         let block = Self {
             header,
             updated_accounts,
             output_note_batches,
-            created_nullifiers,
+            nullifiers,
         };
 
         block.validate()?;
@@ -98,7 +98,7 @@ impl Block {
     /// Returns an iterator over all notes created in this block.
     ///
     /// Each note is accompanied by a corresponding index specifying where the note is located
-    /// in the blocks note tree.
+    /// in the block's note tree.
     pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
         self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
@@ -118,11 +118,12 @@ impl Block {
     }
 
     /// Returns a set of nullifiers for all notes consumed in the block.
-    pub fn created_nullifiers(&self) -> &[Nullifier] {
-        &self.created_nullifiers
+    pub fn nullifiers(&self) -> &[Nullifier] {
+        &self.nullifiers
     }
 
-    /// Returns an iterator over all transactions which affected accounts in the block with corresponding account IDs.
+    /// Returns an iterator over all transactions which affected accounts in the block with
+    /// corresponding account IDs.
     pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
         self.updated_accounts.iter().flat_map(|update| {
             update
@@ -170,7 +171,7 @@ impl Serializable for Block {
         self.header.write_into(target);
         self.updated_accounts.write_into(target);
         self.output_note_batches.write_into(target);
-        self.created_nullifiers.write_into(target);
+        self.nullifiers.write_into(target);
     }
 }
 
@@ -180,7 +181,7 @@ impl Deserializable for Block {
             header: BlockHeader::read_from(source)?,
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<NoteBatch>>::read_from(source)?,
-            created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
+            nullifiers: <Vec<Nullifier>>::read_from(source)?,
         };
 
         block

@@ -54,11 +54,11 @@ end
 # =================================================================================================
 
 #! Builds the output vault which is combination of the assets in the account vault at the end of
-#! the transaction and all the assets from the output notes.
+#! the transaction and all the assets in the output notes.
 #!
 #! The output vault is built as follows:
 #! - we first copy the account vault root to the output vault root.
-#! - we then loop over the output notes and insert the assets into the output vault.
+#! - we then loop over the output notes and insert their assets into the output vault.
 #!
 #! Stack: []
 #! Output: []
@@ -232,7 +232,7 @@ export.finalize_transaction
     exec.build_output_vault
     # => [FINAL_ACCOUNT_HASH]
 
-    # compute output note hash
+    # compute output notes commitment
     exec.note::compute_output_notes_commitment
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 

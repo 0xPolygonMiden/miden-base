@@ -84,7 +84,7 @@ fn test_get_vault_data() {
 
     let notes = tx_context.input_notes();
 
-    // calling get_vault_info should return vault info
+    // calling get_assets_info should return assets info
     let code = format!(
         "
         use.miden::kernels::tx::prologue
@@ -96,10 +96,10 @@ fn test_get_vault_data() {
             # prepare note 0
             exec.note::prepare_note
 
-            # get the vault data
-            exec.note::get_vault_info
+            # get the assets info
+            exec.note::get_assets_info
 
-            # assert the vault data is correct
+            # assert the assets data is correct
             push.{note_0_asset_hash} assert_eqw
             push.{note_0_num_assets} assert_eq
 
@@ -109,10 +109,10 @@ fn test_get_vault_data() {
             # prepare note 1
             exec.note::prepare_note
 
-            # get the vault data
-            exec.note::get_vault_info
+            # get the assets data
+            exec.note::get_assets_info
 
-            # assert the vault data is correct
+            # assert the assets data is correct
             push.{note_1_asset_hash} assert_eqw
             push.{note_1_num_assets} assert_eq
         end
@@ -355,7 +355,7 @@ fn test_note_script_and_note_args() {
 
         begin
             exec.prologue::prepare_transaction
-            exec.memory::get_total_num_input_notes push.2 assert_eq
+            exec.memory::get_num_input_notes push.2 assert_eq
             exec.note::prepare_note dropw
             exec.note::increment_current_input_note_ptr drop
             exec.note::prepare_note dropw

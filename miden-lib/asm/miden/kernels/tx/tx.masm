@@ -9,7 +9,7 @@ use.miden::kernels::tx::note
 
 # Constants for different note types
 const.PUBLIC_NOTE=1     # 0b01
-const.PRIVATE_NOTE=2   # 0b10
+const.PRIVATE_NOTE=2    # 0b10
 const.ENCRYPTED_NOTE=3  # 0b11
 
 # ERRORS

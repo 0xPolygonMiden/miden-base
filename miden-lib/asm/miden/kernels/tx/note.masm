@@ -50,15 +50,15 @@ export.get_sender
     # => [sender]
 end
 
-#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
-#! note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed. Panics
+#! if a note is not being processed.
 #!
 #! Inputs: []
-#! Outputs: [VAULT_HASH, num_assets]
+#! Outputs: [ASSETS_HASH, num_assets]
 #!
 #! - num_assets is the number of assets in the note currently being processed.
-#! - VAULT_HASH is the vault hash of the note currently being processed.
-export.get_vault_info
+#! - ASSETS_HASH is the vault hash of the note currently being processed.
+export.get_assets_info
     # get the current input note pointer
     exec.memory::get_current_input_note_ptr
     # => [ptr]
@@ -72,9 +72,9 @@ export.get_vault_info
     dup exec.memory::get_input_note_num_assets
     # => [num_assets, ptr]
 
-    # get the vault hash from the note pointer
+    # get the assets hash from the note pointer
     swap exec.memory::get_input_note_assets_hash
-    # => [VAULT_HASH, num_assets]
+    # => [ASSETS_HASH, num_assets]
 end
 
 #! Returns the commitment to the note's inputs.
@@ -100,7 +100,7 @@ export.get_note_inputs_hash
     # => [NOTE_INPUTS_HASH]
 end
 
-#! Increment current input note pointer to the next note and returns the pointer value.
+#! Move the current input note pointer to the next note and returns the pointer value.
 #!
 #! Inputs: []
 #! Outputs: [current_input_note_ptr]
@@ -242,10 +242,10 @@ proc.compute_output_note_id
     # populate the last four elements of the hasher rate with the output note's asset hash
     dup.8 exec.compute_output_note_assets_hash
 
-    # compute output note hash and extract digest
+    # compute output note commitment and extract digest
     hperm exec.native::state_to_digest
 
-    # save output note hash to memory
+    # save the output notes commitment to memory
     movup.4 mem_storew
 end
 
