@@ -265,11 +265,11 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's details (serial number, script root, and its' input / assets hash).
+///     - The note's asset padded. Prefixed by its length and padded to an even word length.
+///     - The note's details (serial number, script root, and its' input hash).
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
-///     - The note's asset padded. Prefixed by its length and padded to an even word length.
 ///     - For autheticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
 ///         - The block number, sub hash, note root.
@@ -301,19 +301,18 @@ fn add_input_notes_to_advice_inputs(
 
         inputs.extend_map([(assets.commitment(), assets.to_padded_assets())]);
 
+        // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
+        note_data.push((assets.num_assets() as u32).into());
+        note_data.extend(assets.to_padded_assets());
+
         // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
         note_data.extend(recipient.serial_num());
         note_data.extend(*recipient.script().hash());
         note_data.extend(*recipient.inputs().commitment());
-        note_data.extend(*assets.commitment());
 
         // NOTE: keep in sync with the `prologue::process_note_args_and_metadata` kernel procedure
         note_data.extend(Word::from(*note_arg));
         note_data.extend(Word::from(note.metadata()));
-
-        // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
-        note_data.push((assets.num_assets() as u32).into());
-        note_data.extend(assets.to_padded_assets());
 
         // insert note authentication path nodes into the Merkle store
         match input_note {

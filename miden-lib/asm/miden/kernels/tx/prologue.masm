@@ -62,9 +62,6 @@ const.ERR_PROLOGUE_NOTE_MMR_DIGEST_MISMATCH=0x0002001A
 # Number of note assets exceeded the maximum limit of 256
 const.ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS=0x0002001C
 
-# Provided info about assets of an input do not match its commitment
-const.ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH=0x0002001D
-
 # Number of input notes exceeded the kernel's maximum limit of 1023
 const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
@@ -561,12 +558,11 @@ end
 
 #! Copies the input note's details from the advice stack to memory and computes its nullifier.
 #!
-#! Stack: [note_ptr]
+#! Stack: [note_ptr, ASSETS_HASH]
 #! Advice stack: [
 #!      SERIAL_NUMBER,
 #!      SCRIPT_ROOT,
 #!      INPUTS_HASH,
-#!      ASSETS_HASH,
 #! ]
 #! Output: [NULLIFIER]
 #!
@@ -579,16 +575,31 @@ end
 #! - NULLIFIER result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_HASH || ASSETS_HASH)`.
 proc.process_input_note_details
     exec.memory::get_input_note_core_ptr
-    # => [note_data_ptr]
+    # => [note_data_ptr, ASSETS_HASH]
 
     # read input note's data and compute its digest. See `Advice stack` above for details.
     padw padw padw
+    # compute hash from SERIAL_NUMBER and SCRIPT_ROOT
     adv_pipe hperm
-    adv_pipe hperm
-    exec.native::state_to_digest
-    # => [NULLIFIER, note_data_ptr + 4]
 
-    movup.4 drop
+    # load INPUTS_HASH to the stack 
+    dropw adv_loadw 
+    # => [INPUTS_HASH, C, note_data_ptr + 2, ASSETS_HASH]
+
+    # store INPUTS_HASH in the memory at the adress note_data_ptr + 2
+    dup.8 mem_storew
+    # => [INPUTS_HASH, C, note_data_ptr + 2, ASSETS_HASH]
+
+    # get the ASSETS_HASH and note data pointer to the top of the stack
+    movupw.2 movup.12 movdn.4
+    # => [note_data_ptr + 2, ASSETS_HASH, INPUTS_HASH, C]
+
+    # store ASSETS_HASH in the memory at the adress note_data_ptr + 3
+    add.1 mem_storew
+    # => [ASSETS_HASH, INPUTS_HASH, C]
+
+    hperm
+    exec.native::state_to_digest
     # => [NULLIFIER]
 end
 
@@ -629,7 +640,7 @@ end
 #!      assets_count,
 #!      ASSET_0, ..., ASSET_N,
 #! ]
-#! Output: []
+#! Output: [ASSET_HASH_COMPUTED]
 #!
 #! Where:
 #! - note_ptr, memory location for the input note.
@@ -696,13 +707,8 @@ proc.process_note_assets
     exec.native::state_to_digest
     # => [ASSET_HASH_COMPUTED, assets_ptr+n, note_ptr, counter+n, rounded_num_assets]
 
-    swapw drop movdn.2 drop drop
-    # => [note_ptr, ASSET_HASH_COMPUTED]
-
-    # VERIFY: computed ASSET_HASH matches the provided hash
-    exec.memory::get_input_note_assets_hash
-    assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
-    # => []
+    swapw dropw
+    # => [ASSET_HASH_COMPUTED]
 end
 
 #! Adds the assets of an input note to the input vault.
@@ -789,14 +795,13 @@ end
 #!
 #! Stack: [idx, HASHER_CAPACITY]
 #! Advice stack: [
+#!      assets_count,
+#!      ASSET_0, ..., ASSET_N,
 #!      SERIAL_NUMBER,
 #!      SCRIPT_ROOT,
 #!      INPUTS_HASH,
-#!      ASSETS_HASH,
 #!      ARGS,
 #!      NOTE_METADATA,
-#!      assets_count,
-#!      ASSET_0, ..., ASSET_N,
 #!      is_authenticated,
 #!      (
 #!          block_num,
@@ -809,14 +814,13 @@ end
 #! Where:
 #! - idx, the index of the input note.
 #! - HASHER_CAPACITY, state of the hasher capacity word, with the commitment to the previous notes.
+#! - assets_count, note's assets count.
+#! - ASSET_0, ..., ASSET_N, padded note's assets.
 #! - SERIAL_NUMBER, note's serial.
 #! - SCRIPT_ROOT, note's script root.
 #! - INPUTS_HASH, sequential hash of the padded note's inputs.
-#! - ASSETS_HASH, sequential hash of the padded note's assets.
 #! - NOTE_METADATA, note's metadata.
 #! - ARGS, user arguments passed to the note.
-#! - assets_count, note's assets count.
-#! - ASSET_0, ..., ASSET_N, padded note's assets.
 #! - is_authenticated, boolean indicating if the note contains an authentication proof.
 #!
 #! Optional values, required if `is_authenticated` is true:
@@ -826,11 +830,24 @@ end
 #! - NOTE_ROOT, the merkle root of the note's tree.
 #!
 proc.process_input_note
+    # get the note pointer
+    dup exec.memory::get_input_note_ptr
+    # => [note_ptr, idx, HASHER_CAPACITY]
+
+    # note assets
+    # ---------------------------------------------------------------------------------------------
+
+    dup exec.process_note_assets
+    # => [ASSET_HASH_COMPUTED, note_ptr, idx, HASHER_CAPACITY]
+
+    dup.4 exec.add_input_note_assets_to_vault
+    # => [ASSET_HASH_COMPUTED, note_ptr, idx, HASHER_CAPACITY]
+
     # note details
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.memory::get_input_note_ptr dup
-    # => [note_ptr, note_ptr, idx, HASHER_CAPACITY]
+    dup.4 
+    # => [note_ptr, ASSET_HASH_COMPUTED, note_ptr, idx, HASHER_CAPACITY]
 
     exec.process_input_note_details
     # => [NULLIFIER, note_ptr, idx, HASHER_CAPACITY]
@@ -849,13 +866,6 @@ proc.process_input_note
     # => [NOTE_METADATA, note_ptr, NULLIFIER, HASHER_CAPACITY]
 
     movup.4
-    # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
-
-    # note assets
-    # ---------------------------------------------------------------------------------------------
-
-    dup exec.process_note_assets
-    dup exec.add_input_note_assets_to_vault
     # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note id
