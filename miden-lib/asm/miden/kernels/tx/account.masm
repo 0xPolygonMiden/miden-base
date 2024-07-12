@@ -165,7 +165,7 @@ export.incr_nonce
     emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
-    exec.memory::set_acct_nonce dropw
+    exec.memory::set_acct_nonce
 
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT

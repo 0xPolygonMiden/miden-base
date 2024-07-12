@@ -635,13 +635,13 @@ end
 #! Sets the account nonce.
 #!
 #! Stack: [acct_nonce]
-#! Output: [ACCT_ID_AND_NONCE]
+#! Output: []
 #!
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
     padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
-    drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew
+    drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end
 
 #! Sets the code root of the account.
