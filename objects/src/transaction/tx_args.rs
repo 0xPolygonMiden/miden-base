@@ -1,7 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::ops::Deref;
 
-use vm_processor::AdviceInputs;
+use miden_crypto::merkle::InnerNodeInfo;
+use vm_processor::{AdviceInputs, AdviceMap};
 
 use super::{Digest, Felt, Word};
 use crate::{
@@ -21,7 +22,7 @@ use crate::{
 /// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
-/// - Advice Inputs: Provides data needed by the runtime, like the details of a public output note.
+/// - Advice inputs: Provides data needed by the runtime, like the details of a public output note.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
@@ -41,8 +42,9 @@ impl TransactionArgs {
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
-        mut advice_inputs: AdviceInputs,
+        advice_map: AdviceMap,
     ) -> Self {
+        let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
         // add transaction script inputs to the advice inputs' map
         if let Some(ref tx_script) = tx_script {
             advice_inputs
@@ -58,12 +60,12 @@ impl TransactionArgs {
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
     pub fn with_tx_script(tx_script: TransactionScript) -> Self {
-        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceInputs::default())
+        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default())
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
     pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
-        Self::new(None, Some(note_args), AdviceInputs::default())
+        Self::new(None, Some(note_args), AdviceMap::default())
     }
 
     // PUBLIC ACCESSORS
@@ -131,6 +133,11 @@ impl TransactionArgs {
     /// Extends the internal advice inputs' map with the provided key-value pairs.
     pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
         self.advice_inputs.extend_map(iter)
+    }
+
+    /// Extends the internal advice inputs' map with the provided key-value pairs.
+    pub fn extend_merkle_store<I: Iterator<Item = InnerNodeInfo>>(&mut self, iter: I) {
+        self.advice_inputs.extend_merkle_store(iter)
     }
 }
 

@@ -370,7 +370,7 @@ fn test_note_script_and_note_args() {
     let tx_args = TransactionArgs::new(
         None,
         Some(note_args_map),
-        tx_context.tx_args().advice_inputs().clone(),
+        tx_context.tx_args().advice_inputs().clone().map,
     );
 
     tx_context.set_tx_args(tx_args);
