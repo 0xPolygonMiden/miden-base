@@ -93,7 +93,7 @@ fn extend_advice_inputs(
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
-    advice_inputs.extend_map(tx_args.advice_map().clone());
+    advice_inputs.extend(tx_args.advice_inputs().clone());
 }
 
 // ADVICE STACK BUILDER

@@ -367,8 +367,11 @@ fn test_note_script_and_note_args() {
         (tx_context.input_notes().get_note(1).note().id(), note_args[0]),
     ]);
 
-    let tx_args =
-        TransactionArgs::new(None, Some(note_args_map), tx_context.tx_args().advice_map().clone());
+    let tx_args = TransactionArgs::new(
+        None,
+        Some(note_args_map),
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
 
     tx_context.set_tx_args(tx_args);
     let process = tx_context.execute_code(code).unwrap();

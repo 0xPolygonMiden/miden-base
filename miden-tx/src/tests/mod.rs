@@ -291,8 +291,11 @@ fn executed_transaction_account_delta() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -566,8 +569,11 @@ fn executed_transaction_output_notes() {
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let mut tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
+    let mut tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
 
     tx_args.add_expected_output_note(&expected_output_note_2);
     tx_args.add_expected_output_note(&expected_output_note_3);
@@ -701,8 +707,11 @@ fn test_tx_script() {
             vec![],
         )
         .unwrap();
-    let tx_args =
-        TransactionArgs::new(Some(tx_script), None, tx_context.tx_args().advice_map().clone());
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
 
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args);

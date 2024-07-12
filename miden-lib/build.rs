@@ -76,7 +76,7 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
 
                 for line in modified {
                     write.write_all(line.unwrap().as_bytes()).unwrap();
-                    write.write_all(&[b'\n']).unwrap();
+                    write.write_all(b"\n").unwrap();
                 }
                 write.flush().unwrap();
             }

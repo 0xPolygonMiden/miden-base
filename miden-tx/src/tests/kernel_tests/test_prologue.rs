@@ -80,7 +80,7 @@ fn test_transaction_prologue() {
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         Some(note_args_map),
-        tx_context.tx_args().advice_map().clone(),
+        tx_context.tx_args().advice_inputs().clone().map,
     );
 
     tx_context.set_tx_args(tx_args);
