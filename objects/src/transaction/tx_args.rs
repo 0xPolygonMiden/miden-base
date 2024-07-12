@@ -135,7 +135,7 @@ impl TransactionArgs {
         self.advice_inputs.extend_map(iter)
     }
 
-    /// Extends the internal advice inputs' map with the provided key-value pairs.
+    /// Extends the internal advice inputs' merkle store with the provided nodes.
     pub fn extend_merkle_store<I: Iterator<Item = InnerNodeInfo>>(&mut self, iter: I) {
         self.advice_inputs.extend_merkle_store(iter)
     }

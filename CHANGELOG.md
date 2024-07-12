@@ -2,7 +2,7 @@
 
 ## 0.5.0 (TBD)
 
-- Changed the `TransactionArgs` to use `AdviceInputs` (#793).
+- [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
 
 ## 0.4.0 (2024-07-03)
 
