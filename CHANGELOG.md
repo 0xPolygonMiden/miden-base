@@ -2,6 +2,9 @@
 
 ## 0.5.0 (TBD)
 
+- Renamed "consumed" and "created" notes into "input" and "output" respectively (#791).
+- [BREAKING] Renamed `NoteType::OffChain` into `NoteType::Private`.
+- [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
 - [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
 
 ## 0.4.0 (2024-07-03)
@@ -35,8 +38,6 @@
 - Created `get_serial_number` procedure to get the serial num of the currently processed note (#760).
 - [BREAKING] Added support for conversion from `Nullifier` to `InputNoteCommitment`, commitment header return reference (#774).
 - Added `compute_inputs_hash` procedure for hash computation of the arbitrary number of note inputs (#750).
-- Notion of "consumed" and "created" notes changed to "input" and "output" respectively (#791).
-- [BREAKING] "OffChain" variant of `NoteType` was renamed to "Private", public accessors of the `Block` struct were renamed to match the updated fields (#791). 
 
 ## 0.3.1 (2024-06-12)
 
