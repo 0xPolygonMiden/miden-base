@@ -165,7 +165,7 @@ export.incr_nonce
     emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
-    exec.memory::set_acct_nonce
+    exec.memory::set_acct_nonce dropw
 
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
@@ -313,7 +313,7 @@ export.set_code
     # => [CODE_ROOT]
 
     # set the code root
-    exec.memory::set_new_acct_code_root
+    exec.memory::set_new_acct_code_root dropw
     # => []
 end
 
@@ -370,7 +370,7 @@ proc.set_item_raw
     # => [OLD_VALUE, NEW_ROOT]
 
     # set the new storage root
-    swapw exec.memory::set_acct_storage_root
+    swapw exec.memory::set_acct_storage_root dropw
     # => [OLD_VALUE]
 end
 

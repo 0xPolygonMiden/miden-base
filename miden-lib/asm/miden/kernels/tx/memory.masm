@@ -227,12 +227,13 @@ end
 #! Sets the input vault root.
 #!
 #! Stack: [INPUT_VAULT_ROOT]
-#! Output: []
+#! Output: [INPUT_VAULT_ROOT]
 #!
 #! Where:
 #! - INPUT_VAULT_ROOT is the input vault root.
 export.set_input_vault_root
-    push.INPUT_VAULT_ROOT_PTR mem_storew dropw
+    push.INPUT_VAULT_ROOT_PTR 
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the output vault root is stored.
@@ -260,12 +261,13 @@ end
 #! Sets the output vault root.
 #!
 #! Stack: [OUTPUT_VAULT_ROOT]
-#! Output: []
+#! Output: [OUTPUT_VAULT_ROOT]
 #!
 #! Where:
 #! - OUTPUT_VAULT_ROOT is the output vault root.
 export.set_output_vault_root
-    push.OUTPUT_VAULT_ROOT_PTR mem_storew dropw
+    push.OUTPUT_VAULT_ROOT_PTR 
+    mem_storew
 end
 
 
@@ -275,12 +277,13 @@ end
 #! Saves the hash of the reference block to memory.
 #!
 #! Stack: [BLOCK_HASH]
-#! Output: []
+#! Output: [BLOCK_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 export.set_block_hash
-    push.BLK_HASH_PTR mem_storew dropw
+    push.BLK_HASH_PTR 
+    mem_storew
 end
 
 #! Returns the block hash of the reference block.
@@ -318,12 +321,13 @@ end
 #! Sets the initial account hash.
 #!
 #! Stack: [INIT_ACCT_HASH]
-#! Output: []
+#! Output: [INIT_ACCT_HASH]
 #!
 #! Where:
 #! - INIT_ACCT_HASH is the initial account hash.
 export.set_init_acct_hash
-    push.INIT_ACCT_HASH_PTR mem_storew dropw
+    push.INIT_ACCT_HASH_PTR 
+    mem_storew
 end
 
 #! Returns the initial account hash.
@@ -353,12 +357,13 @@ end
 #! Sets the input notes' commitment.
 #!
 #! Stack: [INPUT_NOTES_COMMITMENT]
-#! Output: []
+#! Output: [INPUT_NOTES_COMMITMENT]
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the notes' commitment.
 export.set_nullifier_commitment
-    push.INPUT_NOTES_COMMITMENT_PTR mem_storew dropw
+    push.INPUT_NOTES_COMMITMENT_PTR 
+    mem_storew
 end
 
 #! Returns the initial account nonce.
@@ -397,12 +402,13 @@ end
 #! Sets the transaction script root.
 #!
 #! Stack: [TX_SCRIPT_ROOT]
-#! Output: []
+#! Output: [TX_SCRIPT_ROOT]
 #!
 #! Where:
 #! - TX_SCRIPT_ROOT is the transaction script root.
 export.set_tx_script_root
-    push.TX_SCRIPT_ROOT_PTR mem_storew dropw
+    push.TX_SCRIPT_ROOT_PTR 
+    mem_storew
 end
 
 # BLOCK DATA
@@ -533,12 +539,13 @@ end
 #! Sets the note root of the last known block.
 #!
 #! Stack: [NOTE_ROOT]
-#! Output: []
+#! Output: [NOTE_ROOT]
 #!
 #! Where:
 #! - NOTE_ROOT is the note root of the last known block.
 export.set_note_root
-    push.NOTE_ROOT_PTR mem_storew dropw
+    push.NOTE_ROOT_PTR 
+    mem_storew
 end
 
 # CHAIN DATA
@@ -628,24 +635,25 @@ end
 #! Sets the account nonce.
 #!
 #! Stack: [acct_nonce]
-#! Output: []
+#! Output: [ACCT_ID_AND_NONCE]
 #!
 #! Where:
 #! - acct_nonce is the account nonce.
 export.set_acct_nonce
     padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
-    drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
+    drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew
 end
 
 #! Sets the code root of the account.
 #!
 #! Stack: [CODE_ROOT]
-#! Output: []
+#! Output: [CODE_ROOT]
 #!
 #! Where:
 #! - CODE_ROOT is the code root to be set.
 export.set_acct_code_root
-    push.ACCT_CODE_ROOT_PTR mem_storew dropw
+    push.ACCT_CODE_ROOT_PTR 
+    mem_storew
 end
 
 #! Returns the code root of the account.
@@ -662,12 +670,13 @@ end
 #! Stores the new account code root in memory.
 #!
 #! Stack: [CODE_ROOT]
-#! Output: []
+#! Output: [CODE_ROOT]
 #!
 #! Where:
 #! - CODE_ROOT is the new account code root.
 export.set_new_acct_code_root
-    push.ACCT_NEW_CODE_ROOT_PTR mem_storew dropw
+    push.ACCT_NEW_CODE_ROOT_PTR 
+    mem_storew
 end
 
 #! Returns the new account code root.
@@ -695,12 +704,13 @@ end
 #! Sets the account storage root.
 #!
 #! Stack: [STORAGE_ROOT]
-#! Output: []
+#! Output: [STORAGE_ROOT]
 #!
 #! Where:
 #! - STORAGE_ROOT is the account storage root.
 export.set_acct_storage_root
-    push.ACCT_STORAGE_ROOT_PTR mem_storew dropw
+    push.ACCT_STORAGE_ROOT_PTR 
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the account vault root is stored.
@@ -728,12 +738,13 @@ end
 #! Sets the account vault root.
 #!
 #! Stack: [ACCT_VAULT_ROOT]
-#! Output: []
+#! Output: [ACCT_VAULT_ROOT]
 #!
 #! Where:
 #! - ACCT_VAULT_ROOT is the account vault root to be set.
 export.set_acct_vault_root
-    push.ACCT_VAULT_ROOT_PTR mem_storew dropw
+    push.ACCT_VAULT_ROOT_PTR 
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the account storage slot type data begins.
@@ -946,14 +957,14 @@ end
 #! Sets the note args for a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr, NOTE_ARGS]
-#! Output: []
+#! Output: [NOTE_ARGS]
 #!
 #! Where:
 #! - note_ptr is the memory address at which the input note data begins.
 #! - NOTE_ARGS are optional note args of the input note.
 export.set_input_note_args
     push.INPUT_NOTE_ARGS_OFFSET add
-    mem_storew dropw
+    mem_storew
 end
 
 #! Returns the number of assets in the input note located at the specified memory address.
@@ -1085,25 +1096,27 @@ end
 #! Sets the output note's recipient
 #!
 #! Stack: [note_ptr, RECIPIENT]
-#! Output: []
+#! Output: [RECIPIENT]
 #!
 #! Where:
 #! - recipient is the recipient of the note
 #! - note_ptr is the memory address at which the output note data begins.
 export.set_output_note_recipient
-    push.OUTPUT_NOTE_RECIPIENT_OFFSET add mem_storew dropw
+    push.OUTPUT_NOTE_RECIPIENT_OFFSET add 
+    mem_storew
 end
 
 #! Sets the output note's metadata
 #!
 #! Stack: [note_ptr, METADATA]
-#! Output: []
+#! Output: [METADATA]
 #!
 #! Where:
 #! - METADATA is the note metadata
 #! - note_ptr is the memory address at which the output note data begins.
 export.set_output_note_metadata
-    push.OUTPUT_NOTE_METADATA_OFFSET add mem_storew dropw
+    push.OUTPUT_NOTE_METADATA_OFFSET add 
+    mem_storew
 end
 
 #! Returns the number of assets in the output note
@@ -1153,11 +1166,12 @@ end
 #! Sets the output note assets hash.
 #!
 #! Stack: [output_note_data_ptr, ASSET_HASH]
-#! Output: []
+#! Output: [ASSET_HASH]
 #!
 #! Where:
 #! - output_note_data_ptr is the memory address at which the output note data begins.
-#! - ASSET_HASH, sequential hash of the padded assets of a output note.
+#! - ASSET_HASH, sequential hash of the padded assets of an output note.
 export.set_output_note_assets_hash
-    push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add mem_storew
+    push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add 
+    mem_storew
 end
