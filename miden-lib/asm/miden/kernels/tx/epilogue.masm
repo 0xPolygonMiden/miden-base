@@ -64,7 +64,7 @@ end
 #! Output: []
 proc.build_output_vault
     # copy final account vault root to output account vault root
-    exec.memory::get_acct_vault_root exec.memory::set_output_vault_root
+    exec.memory::get_acct_vault_root exec.memory::set_output_vault_root dropw
     # => []
 
     # get the number of output notes from memory
@@ -157,7 +157,7 @@ proc.update_account_code
     # => [NEW_ACCT_CODE_ROOT]
 
     # set the account code root to the new account code root (may not have changed)
-    exec.memory::set_acct_code_root
+    exec.memory::set_acct_code_root dropw
     # => []
 end
 

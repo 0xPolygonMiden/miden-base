@@ -303,11 +303,11 @@ export.create_note
     emit.NOTE_AFTER_CREATED_EVENT
 
     # set the metadata for the output note
-    dup.4 exec.memory::set_output_note_metadata
+    dup.4 exec.memory::set_output_note_metadata dropw
     # => [note_ptr, RECIPIENT, note_idx]
 
     # set the RECIPIENT for the output note
-    exec.memory::set_output_note_recipient
+    exec.memory::set_output_note_recipient dropw
     # => [note_idx]
 end
 

@@ -85,10 +85,10 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 proc.process_global_inputs
-    exec.memory::set_block_hash
+    exec.memory::set_block_hash dropw
     exec.memory::set_global_acct_id
-    exec.memory::set_init_acct_hash
-    exec.memory::set_nullifier_commitment
+    exec.memory::set_init_acct_hash dropw
+    exec.memory::set_nullifier_commitment dropw
 end
 
 # BLOCK DATA
@@ -136,7 +136,7 @@ proc.process_block_data
 
     # store the note root in memory
     padw adv_loadw
-    dupw exec.memory::set_note_root
+    dupw exec.memory::set_note_root dropw
     # => [NOTE_ROOT, DIG, block_data_ptr']
 
     # merge the note root with the block data digest
@@ -440,7 +440,7 @@ proc.process_account_data
     # process conditional logic depending on whether the account is new or existing
     if.true
         # set the initial account hash
-        exec.memory::set_init_acct_hash
+        exec.memory::set_init_acct_hash dropw
         # => []
 
         # validate the new account
@@ -475,12 +475,12 @@ proc.process_account_data
     # set the new account code root to the initial account code root this is used for managing
     # code root updates
     exec.memory::get_acct_code_root
-    exec.memory::set_new_acct_code_root
+    exec.memory::set_new_acct_code_root dropw
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset
     # invariant checking
-    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root
+    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
     # => []
 end
 
@@ -615,7 +615,7 @@ end
 #! - NOTE_ARGS, user arguments passed to the note.
 #! - NOTE_METADATA, note's metadata.
 proc.process_note_args_and_metadata
-    padw adv_loadw dup.4 exec.memory::set_input_note_args
+    padw adv_loadw dup.4 exec.memory::set_input_note_args dropw
     # => [note_ptr]
 
     padw adv_loadw movup.4 exec.memory::set_input_note_metadata
@@ -1008,7 +1008,7 @@ proc.process_tx_script_root
     # => [TX_SCRIPT_ROOT]
 
     # store the transaction script root in memory
-    exec.memory::set_tx_script_root
+    exec.memory::set_tx_script_root dropw
     # => []
 end
 
