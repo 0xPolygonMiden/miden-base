@@ -481,7 +481,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn empty_account_delta_with_incremented_nonce() {
         // build account
         let init_nonce = Felt::new(1);
