@@ -378,6 +378,79 @@ fn executed_transaction_account_delta() {
 }
 
 #[test]
+fn test_empty_delta_nonce_update() {
+    let tx_context = TransactionContextBuilder::with_standard_account(
+        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
+        ONE,
+    )
+    .build();
+
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(tx_context.clone(), None);
+    let account_id = tx_context.tx_inputs().account().id();
+    executor.load_account(account_id).unwrap();
+
+    let tx_script = format!(
+        "\
+        use.miden::account
+        use.miden::contracts::wallets::basic->wallet
+
+        ## ACCOUNT PROCEDURE WRAPPERS
+        ## ========================================================================================
+        #TODO: Move this into an account library
+        proc.incr_nonce
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            # => [0]
+
+            drop
+            # => []
+        end
+
+        ## TRANSACTION SCRIPT
+        ## ========================================================================================
+        begin
+            ## Update the account nonce
+            ## ------------------------------------------------------------------------------------
+            push.1 exec.incr_nonce drop
+            # => []
+        end
+    "
+    );
+    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    // expected delta
+    // --------------------------------------------------------------------------------------------
+    // execute the transaction and get the witness
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+    // nonce delta
+    // --------------------------------------------------------------------------------------------
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+
+    // storage delta
+    // --------------------------------------------------------------------------------------------
+    // We expect one updated item and one updated map
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 0);
+
+    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 0);
+}
+
+#[test]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(
         ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
