@@ -1,5 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
-use std::collections::HashMap;
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
@@ -51,7 +50,7 @@ impl AccountStorageDelta {
                 .chain(other.cleared_items.into_iter().map(|slot| (slot, None)).chain(
                     other.updated_items.into_iter().map(|(slot, value)| (slot, Some(value))),
                 ))
-                .collect::<HashMap<_, _>>();
+                .collect::<BTreeMap<_, _>>();
 
         let cleared_items = items
             .iter()

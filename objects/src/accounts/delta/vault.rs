@@ -1,5 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
-use std::collections::BTreeMap;
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
