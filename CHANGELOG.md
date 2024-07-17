@@ -2,6 +2,7 @@
 
 ## 0.5.0 (TBD)
 
+- Added `CHANGELOG.md` warning message on CI (#799).
 - Renamed "consumed" and "created" notes into "input" and "output" respectively (#791).
 - [BREAKING] Renamed `NoteType::OffChain` into `NoteType::Private`.
 - [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
@@ -42,9 +43,9 @@
 
 ## 0.3.1 (2024-06-12)
 
-* Replaced `cargo-make` with just `make` for running tasks (#696).
-* Made `DataStore` conditionally async using `winter-maybe-async` (#725)
-* Fixed `StorageMap`s implementation and included into apply_delta (#745)
+- Replaced `cargo-make` with just `make` for running tasks (#696).
+- Made `DataStore` conditionally async using `winter-maybe-async` (#725)
+- Fixed `StorageMap`s implementation and included into apply_delta (#745)
 
 ## 0.3.0 (2024-05-14)
 
