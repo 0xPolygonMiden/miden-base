@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use alloc::{string::ToString, vec::Vec};
+use std::collections::HashMap;
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,

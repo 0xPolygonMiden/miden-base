@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use alloc::{string::ToString, vec::Vec};
+use std::collections::HashMap;
 
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
@@ -55,12 +54,8 @@ impl AccountVaultDelta {
             .chain(other.removed_assets.into_iter().map(|asset| (asset, false)))
             .collect::<HashMap<_, _>>();
 
-        let added = assets
-            .iter()
-            .filter_map(|(asset, was_added)| was_added.then_some(asset.clone()));
-        let removed = assets
-            .iter()
-            .filter_map(|(asset, was_added)| (!was_added).then_some(asset.clone()));
+        let added = assets.iter().filter_map(|(asset, was_added)| was_added.then_some(*asset));
+        let removed = assets.iter().filter_map(|(asset, was_added)| (!was_added).then_some(*asset));
 
         Self::from_iterators(added, removed)
     }
