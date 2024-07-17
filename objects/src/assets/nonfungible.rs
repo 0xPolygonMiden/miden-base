@@ -26,6 +26,14 @@ const FAUCET_ID_POS: usize = 1;
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NonFungibleAsset(Word);
 
+impl std::hash::Hash for NonFungibleAsset {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        for felt in self.0 {
+            felt.inner().hash(state)
+        }
+    }
+}
+
 impl NonFungibleAsset {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
