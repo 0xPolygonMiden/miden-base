@@ -59,8 +59,15 @@ impl AccountDelta {
 
     /// Merge another [AccountDelta] into this one.
     pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
-        // Incoming nonce takes precedence.
-        let nonce = other.nonce.or(self.nonce);
+        let nonce = match (self.nonce, other.nonce) {
+            (Some(old), Some(new)) if new.inner() <= old.inner() => {
+                return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
+                    "New nonce {new} is not larger than the old nonce {old}"
+                )))
+            },
+            // Incoming nonce takes precedence.
+            (old, new) => new.or(old),
+        };
         let storage = self.storage.merge(other.storage);
         let vault = self.vault.merge(other.vault);
         Self::new(storage, vault, nonce)
