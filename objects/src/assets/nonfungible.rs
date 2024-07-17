@@ -26,11 +26,25 @@ const FAUCET_ID_POS: usize = 1;
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NonFungibleAsset(Word);
 
-impl std::hash::Hash for NonFungibleAsset {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        for felt in self.0 {
-            felt.inner().hash(state)
+impl PartialOrd for NonFungibleAsset {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        /// This wrapper allows us to use iterators builtin partial ord implementation.
+        /// This is much safer than attempting to do this correctly.
+        #[derive(PartialEq, Eq)]
+        struct Helper<'a>(&'a Felt);
+        impl PartialOrd for Helper<'_> {
+            fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+                self.0.inner().partial_cmp(&other.0.inner())
+            }
         }
+
+        self.0.iter().map(Helper).partial_cmp(other.0.iter().map(Helper))
+    }
+}
+
+impl Ord for NonFungibleAsset {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.partial_cmp(other).expect("NonFungibleAsset should always be Orderable")
     }
 }
 

@@ -1,5 +1,5 @@
 use alloc::{string::ToString, vec::Vec};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
@@ -52,7 +52,7 @@ impl AccountVaultDelta {
             .chain(self.removed_assets.into_iter().map(|asset| (asset, true)))
             .chain(other.added_assets.into_iter().map(|asset| (asset, false)))
             .chain(other.removed_assets.into_iter().map(|asset| (asset, false)))
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let added = assets.iter().filter_map(|(asset, was_added)| was_added.then_some(*asset));
         let removed = assets.iter().filter_map(|(asset, was_added)| (!was_added).then_some(*asset));
