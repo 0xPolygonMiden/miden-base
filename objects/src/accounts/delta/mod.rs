@@ -57,6 +57,15 @@ impl AccountDelta {
         Ok(Self { storage, vault, nonce })
     }
 
+    /// Merge another [AccountDelta] into this one.
+    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
+        // Incoming nonce takes precedence.
+        let nonce = other.nonce.or(self.nonce);
+        let storage = self.storage.merge(other.storage);
+        let vault = self.vault.merge(other.vault);
+        Self::new(storage, vault, nonce)
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -102,6 +111,28 @@ impl AccountUpdateDetails {
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         matches!(self, Self::Private)
+    }
+
+    /// Merges the `other` update into this one.
+    ///
+    /// This account update is assumed to come before the other.
+    pub fn merge(self, other: AccountUpdateDetails) -> Result<Self, AccountDeltaError> {
+        let merged_update = match (self, other) {
+            (AccountUpdateDetails::Private, AccountUpdateDetails::Private) => {
+                AccountUpdateDetails::Private
+            },
+            (AccountUpdateDetails::New(mut account), AccountUpdateDetails::Delta(delta)) => {
+                account.apply_delta(&delta).unwrap();
+
+                AccountUpdateDetails::New(account)
+            },
+            (AccountUpdateDetails::Delta(initial), AccountUpdateDetails::Delta(new_delta)) => {
+                AccountUpdateDetails::Delta(initial.merge(new_delta)?)
+            },
+            _ => todo!("Illegal combination error"),
+        };
+
+        Ok(merged_update)
     }
 }
 

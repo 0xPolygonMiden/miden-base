@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use alloc::{string::ToString, vec::Vec};
 
 use super::{
@@ -37,6 +39,32 @@ impl AccountStorageDelta {
             cleared_items: Vec::from_iter(cleared_items),
             updated_items: Vec::from_iter(updated_items),
             updated_maps: Vec::from_iter(updated_maps),
+        }
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    pub fn merge(self, other: Self) -> Self {
+        let items =
+            self.cleared_items
+                .into_iter()
+                .map(|slot| (slot, None))
+                .chain(self.updated_items.into_iter().map(|(slot, value)| (slot, Some(value))))
+                .chain(other.cleared_items.into_iter().map(|slot| (slot, None)).chain(
+                    other.updated_items.into_iter().map(|(slot, value)| (slot, Some(value))),
+                ))
+                .collect::<HashMap<_, _>>();
+
+        let cleared_items = items
+            .iter()
+            .filter_map(|(slot, value)| value.is_none().then_some(*slot))
+            .collect();
+        let updated_items =
+            items.iter().filter_map(|(slot, value)| value.map(|v| (*slot, v))).collect();
+
+        Self {
+            cleared_items,
+            updated_items,
+            updated_maps: todo!(),
         }
     }
 

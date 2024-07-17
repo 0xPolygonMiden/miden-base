@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use alloc::{string::ToString, vec::Vec};
 
 use super::{
@@ -35,6 +37,32 @@ impl AccountVaultDelta {
             added_assets: Vec::from_iter(added_assets),
             removed_assets: Vec::from_iter(removed_assets),
         }
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    pub fn merge(self, other: Self) -> Self {
+        // Collec the assets into a hashmap where true indicates added, and false removed.
+        // This lets us simplify the addition/removal dance we would otherwise have to go through.
+        //
+        // Ordering matters. Since later items will overwrite earlier ones we need to begin
+        // with self, then other.
+        let assets = self
+            .added_assets
+            .into_iter()
+            .map(|asset| (asset, true))
+            .chain(self.removed_assets.into_iter().map(|asset| (asset, true)))
+            .chain(other.added_assets.into_iter().map(|asset| (asset, false)))
+            .chain(other.removed_assets.into_iter().map(|asset| (asset, false)))
+            .collect::<HashMap<_, _>>();
+
+        let added = assets
+            .iter()
+            .filter_map(|(asset, was_added)| was_added.then_some(asset.clone()));
+        let removed = assets
+            .iter()
+            .filter_map(|(asset, was_added)| (!was_added).then_some(asset.clone()));
+
+        Self::from_iterators(added, removed)
     }
 
     /// Checks whether this vault delta is valid.
