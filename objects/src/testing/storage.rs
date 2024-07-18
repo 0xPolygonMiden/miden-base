@@ -184,7 +184,7 @@ pub fn generate_account_seed(
             Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
                 Felt::ZERO,
-                AccountCode::mock_wallet(assembler),
+                assembler,
             ),
             AccountType::RegularAccountUpdatableCode,
         ),
@@ -192,7 +192,7 @@ pub fn generate_account_seed(
             Account::mock(
                 ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
                 Felt::ZERO,
-                AccountCode::mock_wallet(assembler),
+                assembler,
             ),
             AccountType::RegularAccountUpdatableCode,
         ),

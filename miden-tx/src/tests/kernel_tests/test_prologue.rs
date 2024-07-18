@@ -19,12 +19,15 @@ use miden_objects::{
     accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     assembly::ProgramAst,
     testing::{
+        account::AccountBuilder,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ONE};
 
 use super::{Felt, Process, Word, ZERO};
@@ -37,12 +40,9 @@ use crate::{
 
 #[test]
 fn test_transaction_prologue() {
-    let mut tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -341,13 +341,11 @@ fn input_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler().with_debug_mode(true),
-    );
-    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
-        .account_seed(account_seed)
-        .build();
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .build(&TransactionKernel::assembler())
+        .unwrap();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -468,10 +466,10 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler().with_debug_mode(true),
-    );
+    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .build(&TransactionKernel::assembler())
+        .unwrap();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -482,11 +480,11 @@ pub fn test_prologue_create_account_invalid_seed() {
     ";
 
     // override the seed with an invalid seed to ensure the kernel fails
-    let account_seed_key = [acct_id.into(), ZERO, ZERO, ZERO];
+    let account_seed_key = [acct.id().into(), ZERO, ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
+    let tx_context = TransactionContextBuilder::new(acct)
         .account_seed(account_seed)
         .advice_inputs(adv_inputs)
         .build();
@@ -497,11 +495,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -519,11 +513,7 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue

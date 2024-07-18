@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use core::any::Any;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -6,7 +7,7 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
         Account, AccountCode, AccountId,
     },
@@ -14,6 +15,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteId, NoteType},
     testing::{
+        account::AccountBuilder,
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         block::{MockChain, MockChainBuilder},
         constants::{
@@ -27,6 +29,7 @@ use miden_objects::{
     transaction::{
         InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
+    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -129,6 +132,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         let tx_args = TransactionArgs::default();
+
         Self {
             assembler: TransactionKernel::assembler().with_debug_mode(true),
             account,
@@ -141,9 +145,10 @@ impl TransactionContextBuilder {
         }
     }
 
-    pub fn with_standard_account(account_id: u64, nonce: Felt) -> Self {
+    pub fn with_standard_account(nonce: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = Account::mock(account_id, nonce, AccountCode::mock_wallet(&assembler));
+        let account =
+            Account::mock(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, nonce, &assembler);
 
         Self {
             assembler,

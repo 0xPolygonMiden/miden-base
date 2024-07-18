@@ -25,11 +25,7 @@ use crate::{
 
 #[test]
 pub fn test_set_code_is_not_immediate() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
         use.miden::kernels::tx::prologue
         use.miden::account
@@ -57,12 +53,9 @@ pub fn test_set_code_is_not_immediate() {
 
 #[test]
 pub fn test_set_code_succeeds() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -222,11 +215,7 @@ fn test_is_faucet_procedure() {
 #[test]
 fn test_get_item() {
     for storage_item in [AccountStorage::mock_item_0(), AccountStorage::mock_item_1()] {
-        let tx_context = TransactionContextBuilder::with_standard_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ONE,
-        )
-        .build();
+        let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
         let code = format!(
             "
@@ -255,11 +244,7 @@ fn test_get_item() {
 
 #[test]
 fn test_set_item() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     // copy the initial account slots (SMT)
     let mut account_smt = tx_context.account().storage().slots().clone();
@@ -309,11 +294,7 @@ fn test_get_storage_data_type() {
         AccountStorage::mock_item_1(),
         AccountStorage::mock_item_2(),
     ] {
-        let tx_context = TransactionContextBuilder::with_standard_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ONE,
-        )
-        .build();
+        let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
         let code = format!(
             "
@@ -361,11 +342,7 @@ fn test_get_storage_data_type() {
 
 #[test]
 fn test_get_map_item() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let storage_item = AccountStorage::mock_item_2();
     for (key, value) in STORAGE_LEAVES_2 {
@@ -418,11 +395,7 @@ fn test_set_map_item() {
         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
     );
 
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let storage_item = AccountStorage::mock_item_2();
 
@@ -472,11 +445,7 @@ fn test_set_map_item() {
 
 #[test]
 fn test_get_vault_commitment() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let account = tx_context.account();
     let code = format!(
@@ -504,11 +473,7 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let account = tx_context.tx_inputs().account();
 
     let proc0_index = LeafIndex::new(0).unwrap();
@@ -521,11 +486,7 @@ fn test_authenticate_procedure() {
     ];
 
     for (root, valid) in test_cases.into_iter() {
-        let tx_context = TransactionContextBuilder::with_standard_account(
-            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-            ONE,
-        )
-        .build();
+        let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
         let code = format!(
             "
