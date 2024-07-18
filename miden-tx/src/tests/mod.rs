@@ -373,7 +373,6 @@ fn executed_transaction_account_delta() {
 #[test]
 fn test_empty_delta_nonce_update() {
     let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         ONE,
     )
     .build();
