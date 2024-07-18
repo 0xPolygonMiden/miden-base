@@ -50,10 +50,11 @@ proc.authenticate_account_origin
 
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
-    # => [CALLER, ...]
+    # => [storage_offset, ...]
 
-    # drop the caller
-    dropw
+    # TODO: Use the storage_offset for storage access
+    # drop the storage_offset
+    drop
     # => [...]
 end
 
