@@ -51,7 +51,7 @@ impl AccountDelta {
         storage.validate()?;
         vault.validate()?;
 
-        // nonce must be updated if and only if either account storage or vault were updated
+        // nonce must be updated if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 
         Ok(Self { storage, vault, nonce })

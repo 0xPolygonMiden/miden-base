@@ -392,26 +392,13 @@ fn test_empty_delta_nonce_update() {
 
     let tx_script = format!(
         "\
-        use.miden::account
-        use.miden::contracts::wallets::basic->wallet
-
-        ## ACCOUNT PROCEDURE WRAPPERS
-        ## ========================================================================================
-        #TODO: Move this into an account library
-        proc.incr_nonce
-            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
-            # => [0]
-
-            drop
-            # => []
-        end
-
-        ## TRANSACTION SCRIPT
-        ## ========================================================================================
         begin
-            ## Update the account nonce
-            ## ------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
+            push.1 
+            
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            # => [0, 1]
+            
+            drop drop
             # => []
         end
     "
