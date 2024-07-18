@@ -374,7 +374,7 @@ proc.set_item_raw
     # => [OLD_VALUE]
 end
 
-#! Sets an item in the account storage. Panics if 
+#! Sets an item in the account storage. Panics if
 #! - the index is out of bounds
 #! - the slot type is not value
 #!
