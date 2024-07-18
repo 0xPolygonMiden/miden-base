@@ -21,10 +21,7 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, FieldElement,
 };
-use miden_tx::{
-    auth::BasicAuthenticator, testing::TransactionContextBuilder,
-    TransactionExecutor,
-};
+use miden_tx::{auth::BasicAuthenticator, testing::TransactionContextBuilder, TransactionExecutor};
 use rand::{rngs::StdRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
