@@ -41,7 +41,6 @@ impl AccountDelta {
     /// # Errors
     /// Returns an error if:
     /// - Storage or vault deltas are invalid.
-    /// - Storage and vault deltas are empty, and the nonce was updated.
     /// - Storage or vault deltas are not empty, but nonce was not updated.
     pub fn new(
         storage: AccountStorageDelta,
@@ -52,7 +51,7 @@ impl AccountDelta {
         storage.validate()?;
         vault.validate()?;
 
-        // nonce must be updated if and only if either account storage or vault were updated
+        // nonce must be updated if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 
         Ok(Self { storage, vault, nonce })
@@ -169,7 +168,6 @@ impl Deserializable for AccountUpdateDetails {
 /// # Errors
 /// Returns an error if:
 /// - Storage or vault were updated, but the nonce was either not updated or set to 0.
-/// - Storage and vault were not updated, but the nonce was updated.
 fn validate_nonce(
     nonce: Option<Felt>,
     storage: &AccountStorageDelta,
@@ -190,10 +188,6 @@ fn validate_nonce(
                 ))
             },
         }
-    } else if nonce.is_some() {
-        return Err(AccountDeltaError::InconsistentNonceUpdate(
-            "nonce updated for empty delta".to_string(),
-        ));
     }
 
     Ok(())
@@ -222,7 +216,7 @@ mod tests {
         };
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_ok());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_err());
+        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
 
         // non-empty delta
         let storage_delta = AccountStorageDelta {
