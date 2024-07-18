@@ -62,7 +62,7 @@ fn test_load_account() {
 
     let acct_procs = [hex_to_bytes(ACCT_PROC_1), hex_to_bytes(ACCT_PROC_2)];
     for proc in account_code.procedures() {
-        assert!(acct_procs.contains(&proc.as_bytes().to_vec()));
+        assert!(acct_procs.contains(&proc.0.as_bytes().to_vec()));
     }
 }
 

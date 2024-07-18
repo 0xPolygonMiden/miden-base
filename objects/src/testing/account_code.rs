@@ -5,19 +5,18 @@ use crate::accounts::AccountCode;
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 11] = [
-    "0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167",
-    "0x549d264f00f1a6e90d47284e99eab6d0f93a3d41bb5324743607b6902978a809",
-    "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35",
-    "0xc25558f483c13aa5be77de4b0987de6a3fab303146fe2fd8ab68b6be8fdcfe76",
-    "0x5dc65ccf6d32880a8eb47fab75b65d926b701ed80220fe5e88152efffcd656ad",
-    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872",
-    "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
-    "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
+    "0x1747ce2fd9859d91f9128267792452458aeb2372b7a0ac11d1c23228ee3883f5",
+    "0x285d3f7c8b8b321d6c0dfba85e874757fffdbfed81c8d1e5c097178c7fe7a76a",
+    "0xc26ef495aba40b700aa9bf769a869162a0cb280ed00000505c93607f2e8ce1de",
+    "0x7e5354a52197da3beea7233a0f00af12190e42a54c1323494df677701b2244e4",
+    "0xf44a0d4c10055f95ddf0b5c64b1e5cda3042dca0db5662f48b63b44d7f4a8da9",
+    "0xdcaf8886836d862152823c9244d093fac67be3efa4191e33cbb457530bde2bb6",
+    "0xa7eca721ddf0aa1634b077a9870080277097c0507dd64d6b3bd4ac3eed2e6220",
+    "0x931e5e68ac3f4677d010500010ce647b06e4705fa8d877c882197314f0faf76a",
+    "0x32188f6ab7c634ce236d10a05caa2ddccf73be006e3fc4b0450f30bd8e8abfa1",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
-
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
@@ -154,17 +153,17 @@ impl AccountCode {
         // Comparing all the values together, in case multiple of them change, a single test run will
         // detect it.
         let current = [
-            code.procedures()[0].to_hex(),
-            code.procedures()[1].to_hex(),
-            code.procedures()[2].to_hex(),
-            code.procedures()[3].to_hex(),
-            code.procedures()[4].to_hex(),
-            code.procedures()[5].to_hex(),
-            code.procedures()[6].to_hex(),
-            code.procedures()[7].to_hex(),
-            code.procedures()[8].to_hex(),
-            code.procedures()[9].to_hex(),
-            code.procedures()[10].to_hex(),
+            code.procedures()[0].0.to_hex(),
+            code.procedures()[1].0.to_hex(),
+            code.procedures()[2].0.to_hex(),
+            code.procedures()[3].0.to_hex(),
+            code.procedures()[4].0.to_hex(),
+            code.procedures()[5].0.to_hex(),
+            code.procedures()[6].0.to_hex(),
+            code.procedures()[7].0.to_hex(),
+            code.procedures()[8].0.to_hex(),
+            code.procedures()[9].0.to_hex(),
+            code.procedures()[10].0.to_hex(),
         ];
         assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
 

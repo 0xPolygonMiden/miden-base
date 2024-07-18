@@ -384,6 +384,46 @@ proc.validate_new_account
     # => []
 end
 
+proc.validate_account_procedures
+  # get code_root to query elements from AdviceMap
+  exec.memory::get_acct_code_root
+  # => [ACCT_CODE_ROOT]
+
+  # query elements from AdviceMap and get len
+  adv.push_mapval adv_push.1
+  # => [len, ACCT_CODE_ROOT]
+
+  # Should be done using a memory constant, loc at which piped elements will live
+  push.0 exec.memory::get_account_procedures_section_offset
+  # => [location, counter, len, ACCT_CODE_ROOT]
+
+  # start looping
+  padw padw padw push.1
+  # => [PAD, PAD, PAD, 1, location, counter, len, ACCT_CODE_ROOT]
+
+  while.true
+    # pipe elements from advice map and hash them
+    adv_pipe hperm
+    # => [HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
+
+    # check if we piped all procedure elements
+    movup.13 add.1 dup movdn.14 dup.15 neq
+    # => [should_loop, HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
+  end
+
+  # keep relevant hash
+  exec.native::state_to_digest
+  # => [HASH, location, counter, len, ACCT_CODE_ROOT]
+
+  # drop location, counter and len
+  movup.4 movup.5 movup.6 drop drop drop
+  # => [HASH, ACCT_CODE_ROOT]
+
+  # verify hashed values match root
+  assert_eqw
+  # => []
+end
+
 #! Saves the account data to memory and validates it.
 #!
 #! This procedure will:
@@ -476,6 +516,7 @@ proc.process_account_data
     # code root updates
     exec.memory::get_acct_code_root
     exec.memory::set_new_acct_code_root dropw
+    exec.validate_account_procedures
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset

@@ -11,8 +11,8 @@ use miden_objects::{
     Digest, Hasher,
 };
 use vm_processor::{
-    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Felt, Host, HostResponse, ProcessState,
+    AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
+    Host, HostResponse, ProcessState,
 };
 
 mod account_delta_tracker;

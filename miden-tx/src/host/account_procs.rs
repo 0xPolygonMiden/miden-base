@@ -1,7 +1,6 @@
 use miden_lib::transaction::TransactionKernelError;
-use miden_objects::accounts::AccountCode;
 
-use super::{AdviceProvider, BTreeMap, Digest, NodeIndex, ProcessState};
+use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
 
 // ACCOUNT PROCEDURE INDEX MAP
 // ================================================================================================
@@ -13,27 +12,17 @@ impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
     ///
-    /// This function assumes that the account procedure tree (or a part thereof) is loaded into the
-    /// Merkle store of the provided advice provider.
     pub fn new<A: AdviceProvider>(account_code_root: Digest, adv_provider: &A) -> Self {
-        // get the Merkle store with the procedure tree from the advice provider
-        let proc_store = adv_provider.get_store_subset([account_code_root].iter());
+        // get the account procedures from the advice_map
+        let procs = adv_provider.get_mapped_values(&account_code_root).unwrap();
 
-        // iterate over all possible procedure indexes
         let mut result = BTreeMap::new();
-        for i in 0..AccountCode::MAX_NUM_PROCEDURES {
-            let index = NodeIndex::new(AccountCode::PROCEDURE_TREE_DEPTH, i as u64)
-                .expect("procedure tree index is valid");
-            // if the node at the current index does not exist, skip it and try the next node;this
-            // situation is valid if not all account procedures are loaded into the advice provider
-            if let Ok(proc_root) = proc_store.get_node(account_code_root, index) {
-                // if we got an empty digest, this means we got to the end of the procedure list
-                if proc_root == Digest::default() {
-                    break;
-                }
-                result.insert(proc_root, i as u8);
-            }
+
+        for (proc_idx, proc_info) in procs[1..].chunks_exact(8).enumerate() {
+            let root: [Felt; 4] = proc_info[0..4].try_into().expect("Slice with incorrect len.");
+            result.insert(Digest::from(root), proc_idx.try_into().unwrap());
         }
+
         Self(result)
     }
 

@@ -120,6 +120,9 @@ const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
 # The memory address at which the account storage slot type data beings
 const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 
+# The memory address at which the account procedures section begins.
+const.ACCT_PROCEDURES_SECTION_OFFSET=700
+
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
@@ -642,6 +645,16 @@ end
 export.set_acct_nonce
     padw push.ACCT_ID_AND_NONCE_PTR mem_loadw
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
+end
+
+#! Returns the account procedures section offset.
+#!
+#! Stack: []
+#! Output: [section_offset]
+#!
+#! - section_offset is the new account procedures section offset start.
+export.get_account_procedures_section_offset
+    push.ACCT_PROCEDURES_SECTION_OFFSET
 end
 
 #! Sets the code root of the account.

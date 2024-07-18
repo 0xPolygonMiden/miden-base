@@ -469,33 +469,39 @@ export.set_map_item.3
     # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 end
 
-#! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
-#! procedure root is not part of the account code Merkle tree.
+#! Returns the procedure information
+#! procedure root is not part of the account code.
 #!
+#! Stack: [index, ...]
+#! Output: [PROC_ELEMENTS, storage_offset, ...]
+#!
+#! - PROC_ELEMENTS are field elements representing the procedure
+#! - storage_offset is the procedure storage offset
+export.get_procedure_info
+  # get procedure section ptr
+  push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add swap
+  # => [proc_ptr, offset_ptr]
+
+  # load procedure information from memory
+  padw movup.4 mem_loadw movup.4 mem_load movdn.4
+  # => [PROC_ELEMENTS, storage_offset]
+end
+
 #! Stack: [PROC_ROOT]
-#! Output: [PROC_ROOT]
-#!
-#! - PROC_ROOT is the hash of the procedure to authenticate.
-export.authenticate_procedure.1
-    # load the account code root onto the stack
-    exec.memory::get_acct_code_root swapw
-    # => [PROC_ROOT, CODE_ROOT]
+#! Output: [storage_offset]
+export.authenticate_procedure
+    # load the index of the procedure onto the advice stack and move it to the operand stack
+    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
+    # => [index, PROC_ROOT]
 
-    # load the index of the procedure root onto the advice stack, and move it to the operand stack
-    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
-    # => [PROC_ROOT, index, CODE_ROOT]
+    # get the procedure info (ROOT, storage_offset) of the account procedure stored at the
+    # index we got above
+    exec.get_procedure_info
+    # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
 
-    # push the depth of the code Merkle tree onto the stack
-    push.ACCOUNT_CODE_TREE_DEPTH movdn.4
-    # => [PROC_ROOT, depth, index, CODE_ROOT]
-
-    # verify the procedure exists in the account code Merkle tree
-    mtree_verify
-    # => [PROC_ROOT, depth, index, CODE_ROOT]
-
-    # drop accessory variables
-    movup.4 drop movup.4 drop swapw dropw
-    # => [PROC_ROOT]
+    # make sure stored proc root is the same as we got with the parameter
+    movup.4 movdn.8 assert_eqw.err=112
+    # => [storage_offset]
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.

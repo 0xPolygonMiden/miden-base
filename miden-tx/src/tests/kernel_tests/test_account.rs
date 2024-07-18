@@ -511,14 +511,12 @@ fn test_authenticate_procedure() {
     .build();
     let account = tx_context.tx_inputs().account();
 
-    let proc0_index = LeafIndex::new(0).unwrap();
-    let proc1_index = LeafIndex::new(1).unwrap();
+    let tc_0: [Felt; 4] = account.code().procedures()[0].0.as_elements().try_into().unwrap();
+    let tc_1: [Felt; 4] = account.code().procedures()[1].0.as_elements().try_into().unwrap();
+    let tc_2: [Felt; 4] = account.code().procedures()[2].0.as_elements().try_into().unwrap();
 
-    let test_cases = vec![
-        (account.code().procedure_tree().get_leaf(&proc0_index), true),
-        (account.code().procedure_tree().get_leaf(&proc1_index), true),
-        ([ONE, ZERO, ONE, ZERO], false),
-    ];
+    let test_cases =
+        vec![(tc_0, true), (tc_1, true), (tc_2, true), ([ONE, ZERO, ONE, ZERO], false)];
 
     for (root, valid) in test_cases.into_iter() {
         let tx_context = TransactionContextBuilder::with_standard_account(
