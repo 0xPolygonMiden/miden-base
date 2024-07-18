@@ -16,7 +16,6 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     assembly::ProgramAst,
     testing::{
         account::AccountBuilder,

@@ -21,7 +21,10 @@ use miden_objects::{
     transaction::TransactionArgs,
     Felt, FieldElement,
 };
-use miden_tx::{auth::BasicAuthenticator, testing::TransactionContextBuilder, TransactionExecutor};
+use miden_tx::{
+    auth::BasicAuthenticator, testing::TransactionContextBuilder,
+    TransactionExecutor,
+};
 use rand::{rngs::StdRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
@@ -31,18 +34,15 @@ use crate::{
     prove_and_verify_transaction,
 };
 
-fn create_account(
-    account_type: AccountType,
-    nonce: Felt,
-) -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
+fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
     let storage_item = SlotItem::new_value(0, 0, pub_key);
 
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_storage_item(storage_item)
-        .account_type(account_type)
-        .nonce(nonce)
+        .account_type(AccountType::RegularAccountUpdatableCode)
+        .nonce(Felt::ZERO)
         .build(&TransactionKernel::assembler())
         .unwrap();
 
@@ -271,9 +271,8 @@ fn p2id_script_multiple_assets() {
 
 /// Consumes an existing note with a new account
 #[test]
-fn test_consume_with_new_account() {
-    let (mut target_account, seed, falcon_auth) =
-        create_account(AccountType::RegularAccountUpdatableCode, Felt::ZERO);
+fn test_execute_prove_new_account() {
+    let (mut target_account, seed, falcon_auth) = create_new_account();
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();
 
@@ -317,10 +316,11 @@ fn test_consume_with_new_account() {
         .execute_transaction(target_account.id(), block_ref, &note_ids, tx_args_target)
         .unwrap();
 
-    // Vault delta
+    // Account delta
     target_account.apply_delta(executed_transaction.account_delta()).unwrap();
-
     assert!(!target_account.is_new());
+
+    prove_and_verify_transaction(executed_transaction).unwrap();
 }
 
 #[test]

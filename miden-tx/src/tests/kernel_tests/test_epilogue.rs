@@ -5,12 +5,9 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
-    testing::account::AccountBuilder,
+    accounts::Account,
     transaction::{OutputNote, OutputNotes},
 };
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use vm_processor::ONE;
 
 use super::{output_notes_data_procedure, ZERO};

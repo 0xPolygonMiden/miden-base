@@ -1,5 +1,4 @@
 use alloc::vec::Vec;
-use core::any::Any;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -9,13 +8,12 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
-        Account, AccountCode, AccountId,
+        Account, AccountId,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteId, NoteType},
     testing::{
-        account::AccountBuilder,
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         block::{MockChain, MockChainBuilder},
         constants::{
@@ -29,7 +27,6 @@ use miden_objects::{
     transaction::{
         InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
     },
-    FieldElement,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
