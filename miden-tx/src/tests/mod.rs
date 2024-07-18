@@ -372,10 +372,7 @@ fn executed_transaction_account_delta() {
 
 #[test]
 fn test_empty_delta_nonce_update() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None);
