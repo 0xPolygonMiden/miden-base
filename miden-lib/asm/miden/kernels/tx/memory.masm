@@ -117,10 +117,10 @@ const.ACCT_NEW_CODE_ROOT_PTR=404
 # The memory offset at which the account data section ends (exclusive)
 const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
 
-# The memory address at which the account storage slot type data beings
+# The memory address at which the account storage slot type data begins
 const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 
-# The memory address at which the account procedures section begins.
+# The memory address at which the account procedures section begins
 const.ACCT_PROCEDURES_SECTION_OFFSET=700
 
 # INPUT NOTES DATA
@@ -235,7 +235,7 @@ end
 #! Where:
 #! - INPUT_VAULT_ROOT is the input vault root.
 export.set_input_vault_root
-    push.INPUT_VAULT_ROOT_PTR 
+    push.INPUT_VAULT_ROOT_PTR
     mem_storew
 end
 
@@ -269,7 +269,7 @@ end
 #! Where:
 #! - OUTPUT_VAULT_ROOT is the output vault root.
 export.set_output_vault_root
-    push.OUTPUT_VAULT_ROOT_PTR 
+    push.OUTPUT_VAULT_ROOT_PTR
     mem_storew
 end
 
@@ -285,7 +285,7 @@ end
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 export.set_block_hash
-    push.BLK_HASH_PTR 
+    push.BLK_HASH_PTR
     mem_storew
 end
 
@@ -329,7 +329,7 @@ end
 #! Where:
 #! - INIT_ACCT_HASH is the initial account hash.
 export.set_init_acct_hash
-    push.INIT_ACCT_HASH_PTR 
+    push.INIT_ACCT_HASH_PTR
     mem_storew
 end
 
@@ -365,7 +365,7 @@ end
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the notes' commitment.
 export.set_nullifier_commitment
-    push.INPUT_NOTES_COMMITMENT_PTR 
+    push.INPUT_NOTES_COMMITMENT_PTR
     mem_storew
 end
 
@@ -410,7 +410,7 @@ end
 #! Where:
 #! - TX_SCRIPT_ROOT is the transaction script root.
 export.set_tx_script_root
-    push.TX_SCRIPT_ROOT_PTR 
+    push.TX_SCRIPT_ROOT_PTR
     mem_storew
 end
 
@@ -547,7 +547,7 @@ end
 #! Where:
 #! - NOTE_ROOT is the note root of the last known block.
 export.set_note_root
-    push.NOTE_ROOT_PTR 
+    push.NOTE_ROOT_PTR
     mem_storew
 end
 
@@ -652,7 +652,8 @@ end
 #! Stack: []
 #! Output: [section_offset]
 #!
-#! - section_offset is the new account procedures section offset start.
+#! Where:
+#! - section_offset is the account procedures section offset.
 export.get_account_procedures_section_offset
     push.ACCT_PROCEDURES_SECTION_OFFSET
 end
@@ -665,7 +666,7 @@ end
 #! Where:
 #! - CODE_ROOT is the code root to be set.
 export.set_acct_code_root
-    push.ACCT_CODE_ROOT_PTR 
+    push.ACCT_CODE_ROOT_PTR
     mem_storew
 end
 
@@ -688,7 +689,7 @@ end
 #! Where:
 #! - CODE_ROOT is the new account code root.
 export.set_new_acct_code_root
-    push.ACCT_NEW_CODE_ROOT_PTR 
+    push.ACCT_NEW_CODE_ROOT_PTR
     mem_storew
 end
 
@@ -722,7 +723,7 @@ end
 #! Where:
 #! - STORAGE_ROOT is the account storage root.
 export.set_acct_storage_root
-    push.ACCT_STORAGE_ROOT_PTR 
+    push.ACCT_STORAGE_ROOT_PTR
     mem_storew
 end
 
@@ -756,7 +757,7 @@ end
 #! Where:
 #! - ACCT_VAULT_ROOT is the account vault root to be set.
 export.set_acct_vault_root
-    push.ACCT_VAULT_ROOT_PTR 
+    push.ACCT_VAULT_ROOT_PTR
     mem_storew
 end
 
@@ -1115,7 +1116,7 @@ end
 #! - recipient is the recipient of the note
 #! - note_ptr is the memory address at which the output note data begins.
 export.set_output_note_recipient
-    push.OUTPUT_NOTE_RECIPIENT_OFFSET add 
+    push.OUTPUT_NOTE_RECIPIENT_OFFSET add
     mem_storew
 end
 
@@ -1128,7 +1129,7 @@ end
 #! - METADATA is the note metadata
 #! - note_ptr is the memory address at which the output note data begins.
 export.set_output_note_metadata
-    push.OUTPUT_NOTE_METADATA_OFFSET add 
+    push.OUTPUT_NOTE_METADATA_OFFSET add
     mem_storew
 end
 
@@ -1185,6 +1186,6 @@ end
 #! - output_note_data_ptr is the memory address at which the output note data begins.
 #! - ASSET_HASH, sequential hash of the padded assets of an output note.
 export.set_output_note_assets_hash
-    push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add 
+    push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_storew
 end

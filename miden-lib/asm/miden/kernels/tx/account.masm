@@ -470,13 +470,15 @@ export.set_map_item.3
 end
 
 #! Returns the procedure information
-#! procedure root is not part of the account code.
 #!
 #! Stack: [index, ...]
 #! Output: [PROC_ELEMENTS, storage_offset, ...]
 #!
-#! - PROC_ELEMENTS are field elements representing the procedure
+#! - PROC_ELEMENTS are field elements of the procedure
 #! - storage_offset is the procedure storage offset
+#!
+#! Panics if
+#! - procedure root is not part of the account code.
 export.get_procedure_info
   # get procedure section ptr
   push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add swap
@@ -487,20 +489,26 @@ export.get_procedure_info
   # => [PROC_ELEMENTS, storage_offset]
 end
 
+#! Verifies that the procedure root is part of the account code
+#!
 #! Stack: [PROC_ROOT]
 #! Output: [storage_offset]
+#!
+#! - PROC_ROOT is the hash of the procedure to authenticate.
+#!
+#! Panics if
+#! - procedure root is not part of the account code.
 export.authenticate_procedure
-    # load the index of the procedure onto the advice stack and move it to the operand stack
+    # load procedure index
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
-    # get the procedure info (ROOT, storage_offset) of the account procedure stored at the
-    # index we got above
+    # get procedure info (PROC_ELEMENTS, storage_offset) from memory stored at index
     exec.get_procedure_info
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
 
-    # make sure stored proc root is the same as we got with the parameter
-    movup.4 movdn.8 assert_eqw.err=112
+    # verify that PROC_ROOT exists in memory at index
+    movup.4 movdn.8 assert_eqw
     # => [storage_offset]
 end
 

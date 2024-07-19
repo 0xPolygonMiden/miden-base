@@ -384,29 +384,37 @@ proc.validate_new_account
     # => []
 end
 
+#! Validates that account procedures match account code root.
+#!
+#! This is achieved by reading account procedures from AdviceMap and sequentially hashing them
+#! before comparing the final hash to the account code root. This procedure also populates memory
+#! with these account procedures.
+#!
+#! Stack: []
+#! Output: []
 proc.validate_account_procedures
-  # get code_root to query elements from AdviceMap
+  # get account code root to query elements from AdviceMap
   exec.memory::get_acct_code_root
   # => [ACCT_CODE_ROOT]
 
-  # query elements from AdviceMap and get len
+  # query elements from AdviceMap and get num of procedures to pipe
   adv.push_mapval adv_push.1
   # => [len, ACCT_CODE_ROOT]
 
-  # Should be done using a memory constant, loc at which piped elements will live
+  # get counter and account procedures memory location
   push.0 exec.memory::get_account_procedures_section_offset
   # => [location, counter, len, ACCT_CODE_ROOT]
 
-  # start looping
+  # prepare stack for looping
   padw padw padw push.1
   # => [PAD, PAD, PAD, 1, location, counter, len, ACCT_CODE_ROOT]
 
   while.true
-    # pipe elements from advice map and hash them
+    # pipe elements from advice map to stack and memory and hash them
     adv_pipe hperm
     # => [HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
 
-    # check if we piped all procedure elements
+    # check if all account procedures have been piped
     movup.13 add.1 dup movdn.14 dup.15 neq
     # => [should_loop, HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
   end
@@ -415,11 +423,11 @@ proc.validate_account_procedures
   exec.native::state_to_digest
   # => [HASH, location, counter, len, ACCT_CODE_ROOT]
 
-  # drop location, counter and len
+  # drop memory location, counter and number of procedures
   movup.4 movup.5 movup.6 drop drop drop
   # => [HASH, ACCT_CODE_ROOT]
 
-  # verify hashed values match root
+  # verify hashed account procedures match account code root
   assert_eqw
   # => []
 end
@@ -513,7 +521,7 @@ proc.process_account_data
     # => []
 
     # set the new account code root to the initial account code root this is used for managing
-    # code root updates
+    # code root updates, validates and stores account procedures in memory.
     exec.memory::get_acct_code_root
     exec.memory::set_new_acct_code_root dropw
     exec.validate_account_procedures

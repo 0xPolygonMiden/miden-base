@@ -52,7 +52,7 @@ proc.authenticate_account_origin
     exec.account::authenticate_procedure
     # => [storage_offset, ...]
 
-    # TODO: Use the storage_offset for storage access
+    # TODO: use the storage_offset for storage access
     # drop the storage_offset
     drop
     # => [...]
