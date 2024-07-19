@@ -11,13 +11,13 @@ pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
-    ///
     pub fn new<A: AdviceProvider>(account_code_root: Digest, adv_provider: &A) -> Self {
         // get the account procedures from the advice_map
         let procs = adv_provider.get_mapped_values(&account_code_root).unwrap();
 
         let mut result = BTreeMap::new();
 
+        // we skip procs[0] because it's the `len` of procs
         for (proc_idx, proc_info) in procs[1..].chunks_exact(8).enumerate() {
             let root: [Felt; 4] = proc_info[0..4].try_into().expect("Slice with incorrect len.");
             result.insert(Digest::from(root), proc_idx.try_into().unwrap());

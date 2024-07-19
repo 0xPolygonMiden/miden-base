@@ -169,7 +169,7 @@ pub const ACCT_NEW_CODE_ROOT_OFFSET: MemoryOffset = 4;
 pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_ROOT_OFFSET;
 
-/// The memory address at which the account storage slot type data beings
+/// The memory address at which the account storage slot type data begins
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
 
 /// The memory address at which the account procedures section begins.

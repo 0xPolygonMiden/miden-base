@@ -54,6 +54,7 @@ impl AccountCode {
             .compile_module(&module, None, &mut AssemblyContext::for_module(false))
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
+        // TODO: Find way to input offset
         let procedures: Vec<(Digest, Felt)> = procedures
             .into_iter()
             .enumerate()

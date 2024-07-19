@@ -262,7 +262,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
         assert_eq!(
             read_root_mem_value(process, ACCT_PROCEDURES_SECTION_OFFSET + i as u32),
             Word::try_from(elements).unwrap(),
-            "The account procedures and offsets should be stored at ACCT_PROCEDURES_SECTION_OFFSET"
+            "The account procedures and storage offsets should be stored starting at ACCT_PROCEDURES_SECTION_OFFSET"
         );
     }
 }

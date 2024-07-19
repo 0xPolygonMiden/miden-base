@@ -195,12 +195,11 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// Inserts the following items into the Merkle store:
 /// - The Merkle nodes associated with the storage slots tree.
 /// - The Merkle nodes associated with the account vault tree.
-/// - The Merkle nodes associated with the account code procedures tree.
 /// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
 /// - The storage types commitment |-> storage slot types vector.
-/// - The account procedure root |-> procedure index, for each account procedure.
+/// - The account code root |-> procedures as elements and length.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.

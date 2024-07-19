@@ -516,7 +516,7 @@ fn test_authenticate_procedure() {
     let tc_2: [Felt; 4] = account.code().procedures()[2].0.as_elements().try_into().unwrap();
 
     let test_cases =
-        vec![(tc_0, true), (tc_1, true), (tc_2, true), ([ONE, ZERO, ONE, ZERO], false)];
+        vec![(tc_0, true), ([ONE, ZERO, ONE, ZERO], false), (tc_1, true), (tc_2, true)];
 
     for (root, valid) in test_cases.into_iter() {
         let tx_context = TransactionContextBuilder::with_standard_account(
