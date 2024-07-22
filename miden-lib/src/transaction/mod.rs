@@ -91,21 +91,35 @@ impl TransactionKernel {
     ///
     /// The initial stack is defined:
     ///
-    /// > [BLOCK_HASH, acct_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+    /// ```text
+    /// [
+    ///     BLOCK_HASH,
+    ///     acct_id,
+    ///     INITIAL_ACCOUNT_HASH,
+    ///     INPUT_NOTES_COMMITMENT,
+    ///     kernel_procs_len,
+    ///     KERNEL_HASH
+    /// ]
+    /// ```
     ///
     /// Where:
     /// - BLOCK_HASH, reference block for the transaction execution.
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+    /// - kernel_procs_len, number of the procedures in the used kernel.
+    /// - KERNEL_HASH, hash of the entire kernel.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
+        kernel: (usize, Digest),
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
-        let mut inputs: Vec<Felt> = Vec::with_capacity(13);
+        let mut inputs: Vec<Felt> = Vec::with_capacity(18);
+        inputs.extend(kernel.1);
+        inputs.push(Felt::from(kernel.0 as u16));
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(acct_id.into());
