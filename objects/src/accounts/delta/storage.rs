@@ -4,6 +4,7 @@ use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
     Serializable, Word,
 };
+use crate::Digest;
 
 // CONSTANTS
 // ================================================================================================
@@ -59,10 +60,18 @@ impl AccountStorageDelta {
         let updated_items =
             items.iter().filter_map(|(slot, value)| value.map(|v| (*slot, v))).collect();
 
+        let mut updated_maps = BTreeMap::<u8, StorageMapDelta>::new();
+        for (slot, update) in self.updated_maps.into_iter().chain(other.updated_maps.into_iter()) {
+            let entry = updated_maps.entry(slot).or_default();
+            *entry = entry.clone().merge(update);
+        }
+
+        let updated_maps = updated_maps.into_iter().collect();
+
         Self {
             cleared_items,
             updated_items,
-            updated_maps: todo!(),
+            updated_maps,
         }
     }
 
@@ -292,6 +301,30 @@ impl StorageMapDelta {
     /// Returns true if storage map delta contains no updates.
     pub fn is_empty(&self) -> bool {
         self.cleared_leaves.is_empty() && self.updated_leaves.is_empty()
+    }
+
+    /// Merge `other` into this delta, giving precedence to `other`.
+    pub fn merge(self, other: Self) -> Self {
+        // Aggregate the changes into a map such that `other` overwrites self.
+        let leaves = self.cleared_leaves.into_iter().map(|k| (k, None));
+        let leaves = leaves
+            .chain(self.updated_leaves.into_iter().map(|(k, v)| (k, Some(v))))
+            .chain(other.cleared_leaves.into_iter().map(|k| (k, None)))
+            .chain(other.updated_leaves.into_iter().map(|(k, v)| (k, Some(v))))
+            .map(|(k, v)| (Digest::from(k), v.map(Digest::from)))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut cleared = Vec::new();
+        let mut updated = Vec::new();
+
+        for (key, value) in leaves {
+            match value {
+                Some(value) => updated.push((key.into(), value.into())),
+                None => cleared.push(key.into()),
+            }
+        }
+
+        Self::from(cleared, updated)
     }
 }
 

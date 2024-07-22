@@ -60,7 +60,7 @@ impl AccountDelta {
     /// Merge another [AccountDelta] into this one.
     pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
         let nonce = match (self.nonce, other.nonce) {
-            (Some(old), Some(new)) if new.inner() <= old.inner() => {
+            (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
                     "New nonce {new} is not larger than the old nonce {old}"
                 )))
@@ -69,7 +69,7 @@ impl AccountDelta {
             (old, new) => new.or(old),
         };
         let storage = self.storage.merge(other.storage);
-        let vault = self.vault.merge(other.vault);
+        let vault = self.vault.merge(other.vault)?;
         Self::new(storage, vault, nonce)
     }
 
@@ -136,7 +136,9 @@ impl AccountUpdateDetails {
             (AccountUpdateDetails::Delta(initial), AccountUpdateDetails::Delta(new_delta)) => {
                 AccountUpdateDetails::Delta(initial.merge(new_delta)?)
             },
-            _ => todo!("Illegal combination error"),
+            (left, right) => {
+                return Err(AccountDeltaError::IncompatibleAccountUpdates(left, right))
+            },
         };
 
         Ok(merged_update)

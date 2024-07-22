@@ -5,6 +5,7 @@ use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
     ACCOUNT_ISFAUCET_MASK,
 };
+use crate::Digest;
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -28,23 +29,13 @@ pub struct NonFungibleAsset(Word);
 
 impl PartialOrd for NonFungibleAsset {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        /// This wrapper allows us to use iterators builtin partial ord implementation.
-        /// This is much safer than attempting to do this correctly.
-        #[derive(PartialEq, Eq)]
-        struct Helper<'a>(&'a Felt);
-        impl PartialOrd for Helper<'_> {
-            fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-                self.0.inner().partial_cmp(&other.0.inner())
-            }
-        }
-
-        self.0.iter().map(Helper).partial_cmp(other.0.iter().map(Helper))
+        Digest::from(self.0).partial_cmp(&Digest::from(other.0))
     }
 }
 
 impl Ord for NonFungibleAsset {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.partial_cmp(other).expect("NonFungibleAsset should always be Orderable")
+        Digest::from(self.0).cmp(&Digest::from(other.0))
     }
 }
 

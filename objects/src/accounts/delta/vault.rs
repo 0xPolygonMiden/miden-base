@@ -1,5 +1,10 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
+use crate::{
+    accounts::AccountId,
+    assets::{FungibleAsset, NonFungibleAsset},
+};
+
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable,
@@ -38,25 +43,85 @@ impl AccountVaultDelta {
     }
 
     /// Merges another delta into this one, overwriting any existing values.
-    pub fn merge(self, other: Self) -> Self {
-        // Collec the assets into a hashmap where true indicates added, and false removed.
-        // This lets us simplify the addition/removal dance we would otherwise have to go through.
+    ///
+    /// Inputs and the result are validated as part of the merge.
+    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
+        self.validate()?;
+        other.validate()?;
+
+        // Merge fungible and non-fungible assets separately. The former can be summed while the
+        // latter is more of a boolean affair.
         //
-        // Ordering matters. Since later items will overwrite earlier ones we need to begin
-        // with self, then other.
-        let assets = self
-            .added_assets
-            .into_iter()
-            .map(|asset| (asset, true))
-            .chain(self.removed_assets.into_iter().map(|asset| (asset, true)))
-            .chain(other.added_assets.into_iter().map(|asset| (asset, false)))
-            .chain(other.removed_assets.into_iter().map(|asset| (asset, false)))
-            .collect::<BTreeMap<_, _>>();
+        // Track fungible asset amounts - positive and negative. i64 is not lossy because fungible's are
+        // restricted to 2^63-1. Overflow is still possible but we check for that.
+        let mut fungibles = BTreeMap::<AccountId, i64>::new();
+        let mut non_fungibles = BTreeMap::<NonFungibleAsset, bool>::new();
 
-        let added = assets.iter().filter_map(|(asset, was_added)| was_added.then_some(*asset));
-        let removed = assets.iter().filter_map(|(asset, was_added)| (!was_added).then_some(*asset));
+        let added = self.added_assets.into_iter().chain(other.added_assets.into_iter());
+        let removed = self.removed_assets.into_iter().chain(other.removed_assets.into_iter());
 
-        Self::from_iterators(added, removed)
+        let assets = added.map(|asset| (asset, true)).chain(removed.map(|asset| (asset, false)));
+
+        for (asset, is_added) in assets {
+            match asset {
+                Asset::Fungible(fungible) => {
+                    // Static assertion that we always fit into i64.
+                    const _: () =
+                        assert!(FungibleAsset::MAX_AMOUNT <= (i64::MIN as i128).abs() as u64);
+                    const _: () = assert!(FungibleAsset::MAX_AMOUNT <= i64::MAX.abs() as u64);
+                    let amount = i64::try_from(fungible.amount()).unwrap();
+
+                    let entry = fungibles.entry(fungible.faucet_id()).or_default();
+                    *entry = if is_added {
+                        entry.checked_add(amount)
+                    } else {
+                        entry.checked_sub(amount)
+                    }
+                    .expect("");
+                },
+                Asset::NonFungible(non_fungible) => {
+                    let previous = non_fungibles.insert(non_fungible, is_added);
+                    // Asset cannot be added nor removed twice.
+                    if let Some(previous) = previous {
+                        if previous == is_added {
+                            return Err(AccountDeltaError::DuplicateVaultUpdate(asset));
+                        }
+                    }
+                },
+            }
+        }
+
+        let mut added = Vec::new();
+        let mut removed = Vec::new();
+
+        for (faucet_id, amount) in fungibles {
+            let is_positive = amount.is_positive();
+            let amount: u64 = amount.abs().try_into().expect("i64::abs() always fits in u64");
+            // We know that the faucet ID is valid since this comes from an existing asset, so the only
+            // possible error case is the amount overflowing.
+            let asset = FungibleAsset::new(faucet_id, amount)
+                .map_err(|_| AccountDeltaError::AmountTooBig(amount))?;
+
+            if is_positive {
+                added.push(Asset::Fungible(asset));
+            } else {
+                removed.push(Asset::Fungible(asset));
+            }
+        }
+
+        for (non_fungible, is_added) in non_fungibles {
+            let asset = Asset::NonFungible(non_fungible);
+            if is_added {
+                added.push(asset);
+            } else {
+                removed.push(asset);
+            }
+        }
+
+        let delta = Self::from_iterators(added, removed);
+        delta.validate()?;
+
+        Ok(delta)
     }
 
     /// Checks whether this vault delta is valid.
