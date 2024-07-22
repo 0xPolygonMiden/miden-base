@@ -75,7 +75,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.root(), storage.root())?;
+        let id = AccountId::new(seed, code.root().clone(), storage.root())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -105,7 +105,7 @@ impl Account {
             self.nonce,
             self.vault.commitment(),
             self.storage.root(),
-            self.code.root(),
+            self.code.root().clone(),
         )
     }
 

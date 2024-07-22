@@ -226,10 +226,11 @@ fn wallet_creation() {
     let expected_code_root =
         get_account_with_default_account_code(sender_account_id, pub_key.into(), None)
             .code()
-            .root();
+            .root()
+            .clone();
 
     assert!(wallet.is_regular_account());
-    assert_eq!(wallet.code().root(), expected_code_root);
+    assert_eq!(wallet.code().root().clone(), expected_code_root);
     let pub_key_word: Word = pub_key.into();
     assert_eq!(wallet.storage().get_item(0).as_elements(), pub_key_word);
 }

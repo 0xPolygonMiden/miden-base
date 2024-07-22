@@ -67,7 +67,7 @@ pub fn create_basic_wallet(
         init_seed,
         account_type,
         account_storage_type,
-        account_code.root(),
+        account_code.root().clone(),
         account_storage.root(),
     )?;
 

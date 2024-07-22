@@ -78,7 +78,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             .map_err(AccountBuilderError::AccountError)?;
         let code_root = code.root();
 
-        let account_id = AccountId::new(seed, code_root, self.storage_root)
+        let account_id = AccountId::new(seed, code_root.clone(), self.storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
         if account_id.account_type() != self.account_type {
@@ -110,11 +110,16 @@ pub fn account_id_build_details<T: Rng>(
     let init_seed: [u8; 32] = rng.gen();
     let code = str_to_account_code(code, assembler).map_err(AccountBuilderError::AccountError)?;
     let code_root = code.root();
-    let seed =
-        AccountId::get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
-            .map_err(AccountBuilderError::AccountError)?;
+    let seed = AccountId::get_account_seed(
+        init_seed,
+        account_type,
+        storage_type,
+        code_root.clone(),
+        storage_root,
+    )
+    .map_err(AccountBuilderError::AccountError)?;
 
-    Ok((seed, code_root))
+    Ok((seed, code_root.clone()))
 }
 
 pub fn str_to_account_code(

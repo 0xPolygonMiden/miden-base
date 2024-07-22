@@ -149,7 +149,7 @@ fn build_advice_stack(
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());
-    inputs.extend_stack(account.code().root());
+    inputs.extend_stack(account.code().root().clone());
 
     // push the number of input notes onto the stack
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
@@ -248,7 +248,7 @@ fn add_account_to_advice_inputs(
     let num_procs = code.as_elements().len() / 8;
     let mut procs = code.as_elements();
     procs.insert(0, Felt::from(num_procs as u32));
-    inputs.extend_map([(*code.procedure_commitment(), procs)]);
+    inputs.extend_map([(code.root().clone(), procs)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

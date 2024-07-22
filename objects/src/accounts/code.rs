@@ -100,8 +100,8 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to an account's public interface.
-    pub fn root(&self) -> Digest {
-        *self.procedure_commitment()
+    pub fn root(&self) -> &Digest {
+        &self.procedure_commitment
     }
 
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].
@@ -119,11 +119,6 @@ impl AccountCode {
         &self.procedures
     }
 
-    /// Returns a reference to a commitment to an account's public interface.
-    pub fn procedure_commitment(&self) -> &Digest {
-        &self.procedure_commitment
-    }
-
     /// Returns the number of public interface procedures defined for this account.
     pub fn num_procedures(&self) -> usize {
         self.procedures.len()
@@ -138,8 +133,8 @@ impl AccountCode {
     ///
     /// # Panics
     /// Panics if the provided index is out of bounds.
-    pub fn get_procedure_by_index(&self, index: usize) -> (Digest, Felt) {
-        self.procedures[index]
+    pub fn get_procedure_by_index(&self, index: usize) -> &(Digest, Felt) {
+        &self.procedures[index]
     }
 
     /// Returns the procedure index for the procedure with the specified root or None if such
@@ -250,6 +245,6 @@ mod tests {
 
         let procedure_commitment = build_procedure_commitment(code.procedures());
 
-        assert_eq!(&procedure_commitment, code.procedure_commitment())
+        assert_eq!(&procedure_commitment, code.root())
     }
 }

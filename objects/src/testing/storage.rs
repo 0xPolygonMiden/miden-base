@@ -202,12 +202,13 @@ pub fn generate_account_seed(
         init_seed,
         account_type,
         AccountStorageType::OnChain,
-        account.code().root(),
+        account.code().root().clone(),
         account.storage().root(),
     )
     .unwrap();
 
-    let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
+    let account_id =
+        AccountId::new(seed, account.code().root().clone(), account.storage().root()).unwrap();
 
     (account_id, seed)
 }
