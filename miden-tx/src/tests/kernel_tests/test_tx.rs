@@ -8,7 +8,6 @@ use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assets::Asset,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
@@ -24,11 +23,7 @@ use crate::{
 
 #[test]
 fn test_create_note() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -85,11 +80,7 @@ fn test_create_note() {
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
@@ -154,12 +145,9 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     // extract input note data
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
@@ -295,11 +283,7 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -351,11 +335,7 @@ fn test_create_note_and_add_asset() {
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -442,11 +422,7 @@ fn test_create_note_and_add_multiple_assets() {
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -491,12 +467,9 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
 
