@@ -29,7 +29,7 @@ pub struct NonFungibleAsset(Word);
 
 impl PartialOrd for NonFungibleAsset {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Digest::from(self.0).partial_cmp(&Digest::from(other.0))
+        Some(self.cmp(other))
     }
 }
 

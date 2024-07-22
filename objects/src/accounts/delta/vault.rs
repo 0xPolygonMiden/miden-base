@@ -1,13 +1,12 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
-use crate::{
-    accounts::AccountId,
-    assets::{FungibleAsset, NonFungibleAsset},
-};
-
 use super::{
     AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable,
+};
+use crate::{
+    accounts::AccountId,
+    assets::{FungibleAsset, NonFungibleAsset},
 };
 
 // ACCOUNT VAULT DELTA
@@ -57,18 +56,17 @@ impl AccountVaultDelta {
         let mut fungibles = BTreeMap::<AccountId, i64>::new();
         let mut non_fungibles = BTreeMap::<NonFungibleAsset, bool>::new();
 
-        let added = self.added_assets.into_iter().chain(other.added_assets.into_iter());
-        let removed = self.removed_assets.into_iter().chain(other.removed_assets.into_iter());
+        let added = self.added_assets.into_iter().chain(other.added_assets);
+        let removed = self.removed_assets.into_iter().chain(other.removed_assets);
 
         let assets = added.map(|asset| (asset, true)).chain(removed.map(|asset| (asset, false)));
 
         for (asset, is_added) in assets {
             match asset {
                 Asset::Fungible(fungible) => {
-                    // Static assertion that we always fit into i64.
-                    const _: () =
-                        assert!(FungibleAsset::MAX_AMOUNT <= (i64::MIN as i128).abs() as u64);
-                    const _: () = assert!(FungibleAsset::MAX_AMOUNT <= i64::MAX.abs() as u64);
+                    // Ensure overflow is not possible here.
+                    const _: () = assert!(FungibleAsset::MAX_AMOUNT <= i64::MIN.unsigned_abs());
+                    const _: () = assert!(FungibleAsset::MAX_AMOUNT <= i64::MAX.unsigned_abs());
                     let amount = i64::try_from(fungible.amount()).unwrap();
 
                     let entry = fungibles.entry(fungible.faucet_id()).or_default();
@@ -77,7 +75,11 @@ impl AccountVaultDelta {
                     } else {
                         entry.checked_sub(amount)
                     }
-                    .expect("");
+                    .ok_or_else(|| {
+                        AccountDeltaError::AmountTooBig(
+                            entry.unsigned_abs() + amount.unsigned_abs(),
+                        )
+                    })?;
                 },
                 Asset::NonFungible(non_fungible) => {
                     let previous = non_fungibles.insert(non_fungible, is_added);
