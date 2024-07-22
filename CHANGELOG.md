@@ -2,12 +2,12 @@
 
 ## 0.5.0 (TBD)
 
-- [BREAKING] Increase of nonce does not require changes in account state any more (#789).
 - Renamed "consumed" and "created" notes into "input" and "output" respectively (#791).
 - [BREAKING] Renamed `NoteType::OffChain` into `NoteType::Private`.
 - [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
 - [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
 - Setters in `memory` module don't drop the setting `Word` anymore (#795).
+- [BREAKING] Increase of nonce does not require changes in account state any more (#796).
 - Added `CHANGELOG.md` warning message on CI (#799).
 
 ## 0.4.0 (2024-07-03)
