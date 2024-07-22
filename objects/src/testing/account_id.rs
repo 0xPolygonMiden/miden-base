@@ -50,7 +50,10 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn build(&mut self, assembler: &Assembler) -> Result<AccountId, AccountBuilderError> {
+    pub fn build(
+        &mut self,
+        assembler: &Assembler,
+    ) -> Result<(AccountId, Word), AccountBuilderError> {
         let (seed, code_root) = account_id_build_details(
             &mut self.rng,
             &self.code,
@@ -60,8 +63,10 @@ impl<T: Rng> AccountIdBuilder<T> {
             assembler,
         )?;
 
-        AccountId::new(seed, code_root, self.storage_root)
-            .map_err(AccountBuilderError::AccountError)
+        let account_id = AccountId::new(seed, code_root, self.storage_root)
+            .map_err(AccountBuilderError::AccountError)?;
+
+        Ok((account_id, seed))
     }
 
     pub fn with_seed(

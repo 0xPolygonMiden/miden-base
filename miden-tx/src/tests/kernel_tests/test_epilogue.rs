@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::memory::{
-    NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+use miden_lib::transaction::{
+    memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
+    TransactionKernel,
 };
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
+    accounts::Account,
     transaction::{OutputNote, OutputNotes},
 };
 use vm_processor::ONE;
@@ -14,12 +15,9 @@ use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_m
 
 #[test]
 fn test_epilogue() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -50,7 +48,7 @@ fn test_epilogue() {
     let final_account = Account::mock(
         tx_context.account().id().into(),
         tx_context.account().nonce() + ONE,
-        tx_context.account().code().clone(),
+        &TransactionKernel::assembler(),
     );
 
     let output_notes = OutputNotes::new(
@@ -83,12 +81,9 @@ fn test_epilogue() {
 
 #[test]
 fn test_compute_output_note_id() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -130,12 +125,9 @@ fn test_compute_output_note_id() {
 
 #[test]
 fn test_epilogue_asset_preservation_violation_too_few_input() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_too_few_input()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_too_few_input()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -164,12 +156,9 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
 
 #[test]
 fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_too_many_fungible_input()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_too_many_fungible_input()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -198,12 +187,9 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
 
 #[test]
 fn test_epilogue_increment_nonce_success() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -240,12 +226,9 @@ fn test_epilogue_increment_nonce_success() {
 
 #[test]
 fn test_epilogue_increment_nonce_violation() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());

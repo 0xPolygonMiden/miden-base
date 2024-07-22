@@ -93,15 +93,17 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn build(mut self, assembler: &Assembler) -> Result<Account, AccountBuilderError> {
+    pub fn build(mut self, assembler: &Assembler) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.build(assembler)?;
+        let (account_id, seed) = self.account_id_builder.build(assembler)?;
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
-        Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
+
+        let account = Account::from_parts(account_id, vault, storage, account_code, self.nonce);
+        Ok((account, seed))
     }
 
     /// Build an account using the provided `seed`.
@@ -176,8 +178,8 @@ impl std::error::Error for AccountBuilderError {}
 // ================================================================================================
 
 impl Account {
-    /// Creates a mock account with a defined number of assets and storage
-    pub fn mock(account_id: u64, nonce: Felt, account_code: AccountCode) -> Self {
+    /// Creates a non-new mock account with a defined number of assets and storage
+    pub fn mock(account_id: u64, nonce: Felt, assembler: &Assembler) -> Self {
         let account_storage = AccountStorage::mock();
 
         let account_vault = if nonce == Felt::ZERO {
@@ -185,6 +187,8 @@ impl Account {
         } else {
             AssetVault::mock()
         };
+
+        let account_code = AccountCode::mock_wallet(assembler);
 
         let account_id = AccountId::try_from(account_id).unwrap();
         Account::from_parts(account_id, account_vault, account_storage, account_code, nonce)
