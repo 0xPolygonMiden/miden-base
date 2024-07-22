@@ -1,3 +1,4 @@
+use.miden::kernels::tx::memory
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -49,7 +50,8 @@ export.get_assets
     # => [0, 0, 0, 0, 0, dest_ptr]
 
     # get the current input note assets info
-    syscall.get_note_assets_info
+    exec.memory::get_note_assets_info_ptr
+    syscall.exec_kernel_proc
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # load the asset data from the advice map to the advice stack
@@ -83,7 +85,9 @@ end
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
 export.get_inputs
-    padw syscall.get_note_inputs_hash
+    padw 
+    exec.memory::get_note_inputs_hash_ptr
+    syscall.exec_kernel_proc
     # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
@@ -125,7 +129,8 @@ export.get_sender
     push.0
     # => [0]
 
-    syscall.get_note_sender
+    exec.memory::get_note_sender_ptr
+    syscall.exec_kernel_proc
     # => [sender]
 end
 
@@ -140,7 +145,8 @@ export.get_serial_number
     padw
     # => [0, 0, 0, 0]
 
-    syscall.get_note_serial_number
+    exec.memory::get_note_serial_number_ptr
+    syscall.exec_kernel_proc
     # => [SERIAL_NUMBER]
 end
 

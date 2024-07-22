@@ -19,9 +19,10 @@ use miden_objects::{
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
+    kernel_procs: Vec<Felt>,
     advice_inputs: &mut AdviceInputs,
 ) {
-    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), kernel_procs, advice_inputs);
 
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
@@ -38,6 +39,7 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
+///     [KERNEL_PROCS_HASHES],
 ///     PREVIOUS_BLOCK_HASH,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
@@ -57,8 +59,12 @@ pub(super) fn extend_advice_inputs(
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
+    kernel_procs: Vec<Felt>,
     inputs: &mut AdviceInputs,
 ) {
+    // push hashes of the kernel procedures to the advice stack
+    inputs.extend_stack(kernel_procs);
+
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
     let header = tx_inputs.block_header();

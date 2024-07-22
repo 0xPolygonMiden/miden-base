@@ -1,3 +1,5 @@
+use.miden::kernels::tx::memory
+
 #! Mint an asset from the faucet the transaction is being executed against.
 #!
 #! Panics:
@@ -14,7 +16,8 @@
 #!
 #! - ASSET is the asset that was minted.
 export.mint
-    syscall.mint_asset
+    exec.memory::mint_asset_ptr
+    syscall.exec_kernel_proc
     # => [ASSET]
 end
 
@@ -35,7 +38,8 @@ end
 #!
 #! - ASSET is the asset that was burned.
 export.burn
-    syscall.burn_asset
+    exec.memory::burn_asset_ptr
+    syscall.exec_kernel_proc
     # => [ASSET]
 end
 
@@ -55,6 +59,7 @@ export.get_total_issuance
     # => [0]
 
     # invoke the `get_fungible_faucet_total_issuance` kernel procedure
-    syscall.get_fungible_faucet_total_issuance
+    exec.memory::get_fungible_faucet_total_issuance_ptr
+    syscall.exec_kernel_proc
     # => [total_issuance]
 end

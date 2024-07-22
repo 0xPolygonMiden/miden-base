@@ -676,3 +676,22 @@ export.get_note_serial_number
     swapw dropw
     # => [SERIAL_NUMBER]
 end
+
+#! Executes a kernel procedure specified by its memory pointer
+#!
+#! Inputs: [procedure_ptr]
+#! Outputs: [*executed_procedure_output*]
+#!
+#! - procedure_ptr is a pointer to the memory where hash of the desired kernel procedure is stored.
+export.exec_kernel_proc
+    # prepare stack for procedure hash obtaining
+    padw movup.4
+    # => [procedure_ptr, 0, 0, 0, 0]
+
+    # load kernel procedure hash
+    mem_loadw
+    # => [KERNEL_PROCEDURE_HASH]
+
+    # execute loaded procedure
+    dynexec
+end

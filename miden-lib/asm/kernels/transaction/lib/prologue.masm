@@ -98,6 +98,38 @@ proc.process_global_inputs
     exec.memory::set_nullifier_commitment dropw
 end
 
+# KERNEL DATA
+# =================================================================================================
+
+#! Saves the hashes of the kernel procedures to memory and verifies that it matches the KERNEL_HASH
+#! public input.
+#! 
+#! Stack: [kernel_procs_len, KERNEL_HASH]
+#! Advice stack: [
+#!     [KERNEL_PROCS]
+#! ]
+#! Output: []
+#! 
+#! Where:
+#! - kernel_procs_len, number of kernel procedures.
+#! - KERNEL_HASH, hash of all kernel procedures.
+#! - [KERNEL_PROCS], array of hashes of the kernel procedures.
+proc.process_kernel_data
+    # get the pointer to the memory where hashes of the kernel procedures will be stored
+    exec.memory::get_kernel_procs_ptr swap
+    # => [kernel_procs_len, kernel_procs_ptr, KERNEL_HASH]
+
+    # store the kernel procedures to the memory
+    exec.mem::pipe_preimage_to_memory
+    # => [kernel_procs_ptr']
+
+    drop
+    # => []
+
+    # kernel hash
+    # 14953775620698834032, 17523231931899419664, 4825234885919677706, 11125827748116184971
+end
+
 # BLOCK DATA
 # =================================================================================================
 
@@ -1090,8 +1122,16 @@ end
 #!  - The account data is invalid.
 #!  - Any of the input notes do note exist in the note db.
 #!
-#! Operand stack: [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
+#! Operand stack: [
+#!     BLOCK_HASH, 
+#!     account_id, 
+#!     INITIAL_ACCOUNT_HASH, 
+#!     INPUT_NOTES_COMMITMENT, 
+#!     kernel_procs_len, 
+#!     KERNEL_HASH
+#!  ]
 #! Advice stack: [
+#!     [KERNEL_PROCS]
 #!     PREVIOUS_BLOCK_HASH,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
@@ -1119,6 +1159,9 @@ end
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+#! - kernel_procs_len, number of kernel procedures.
+#! - KERNEL_HASH, hash of all kernel procedures.
+#! - [KERNEL_PROCS], array of hashes of the kernel procedures.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
@@ -1141,6 +1184,7 @@ export.prepare_transaction
     exec.process_global_inputs
     # => []
 
+    exec.process_kernel_data
     exec.process_block_data
     exec.process_chain_data
     exec.process_account_data
