@@ -68,7 +68,7 @@ impl AccountDelta {
             // Incoming nonce takes precedence.
             (old, new) => new.or(old),
         };
-        let storage = self.storage.merge(other.storage);
+        let storage = self.storage.merge(other.storage)?;
         let vault = self.vault.merge(other.vault)?;
         Self::new(storage, vault, nonce)
     }
@@ -129,7 +129,12 @@ impl AccountUpdateDetails {
                 AccountUpdateDetails::Private
             },
             (AccountUpdateDetails::New(mut account), AccountUpdateDetails::Delta(delta)) => {
-                account.apply_delta(&delta).unwrap();
+                account.apply_delta(&delta).map_err(|_| {
+                    AccountDeltaError::IncompatibleAccountUpdates(
+                        AccountUpdateDetails::New(account.clone()),
+                        AccountUpdateDetails::Delta(delta),
+                    )
+                })?;
 
                 AccountUpdateDetails::New(account)
             },

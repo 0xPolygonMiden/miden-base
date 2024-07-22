@@ -42,7 +42,10 @@ impl AccountStorageDelta {
     }
 
     /// Merges another delta into this one, overwriting any existing values.
-    pub fn merge(self, other: Self) -> Self {
+    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
+        self.validate()?;
+        other.validate()?;
+
         let items =
             self.cleared_items
                 .into_iter()
@@ -68,11 +71,14 @@ impl AccountStorageDelta {
 
         let updated_maps = updated_maps.into_iter().collect();
 
-        Self {
+        let result = Self {
             cleared_items,
             updated_items,
             updated_maps,
-        }
+        };
+        result.validate()?;
+
+        Ok(result)
     }
 
     /// Checks whether this storage delta is valid.

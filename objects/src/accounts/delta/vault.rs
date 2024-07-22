@@ -83,10 +83,13 @@ impl AccountVaultDelta {
                 },
                 Asset::NonFungible(non_fungible) => {
                     let previous = non_fungibles.insert(non_fungible, is_added);
-                    // Asset cannot be added nor removed twice.
                     if let Some(previous) = previous {
                         if previous == is_added {
+                            // Asset cannot be added nor removed twice.
                             return Err(AccountDeltaError::DuplicateVaultUpdate(asset));
+                        } else {
+                            // Otherwise they cancel out.
+                            non_fungibles.remove(&non_fungible);
                         }
                     }
                 },
@@ -99,6 +102,11 @@ impl AccountVaultDelta {
         for (faucet_id, amount) in fungibles {
             let is_positive = amount.is_positive();
             let amount: u64 = amount.abs().try_into().expect("i64::abs() always fits in u64");
+
+            if amount == 0 {
+                continue;
+            }
+
             // We know that the faucet ID is valid since this comes from an existing asset, so the only
             // possible error case is the amount overflowing.
             let asset = FungibleAsset::new(faucet_id, amount)
@@ -329,5 +337,105 @@ mod tests {
         assert!(AccountVaultDelta::empty().is_empty());
         assert!(!AccountVaultDelta::from_iterators([asset], []).is_empty());
         assert!(!AccountVaultDelta::from_iterators([], [asset]).is_empty());
+    }
+
+    mod merge {
+        use alloc::vec::Vec;
+        use vm_core::Felt;
+
+        use super::*;
+
+        #[test]
+        fn merge_with_empty_is_no_op() {
+            let ffid1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+            let ffid2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+            let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+            let nffid2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
+
+            let asset1: Asset = FungibleAsset::new(ffid1, 10).unwrap().into();
+            let asset3: Asset = FungibleAsset::new(ffid2, 20).unwrap().into();
+
+            let asset4: Asset = NonFungibleAsset::new(
+                &NonFungibleAssetDetails::new(nffid1, vec![1, 2, 3]).unwrap(),
+            )
+            .unwrap()
+            .into();
+            let asset5: Asset = NonFungibleAsset::new(
+                &NonFungibleAssetDetails::new(nffid1, vec![4, 5, 6]).unwrap(),
+            )
+            .unwrap()
+            .into();
+            let asset6: Asset = NonFungibleAsset::new(
+                &NonFungibleAssetDetails::new(nffid2, vec![7, 8, 9]).unwrap(),
+            )
+            .unwrap()
+            .into();
+
+            // control case
+            let delta = AccountVaultDelta {
+                added_assets: vec![asset1, asset4, asset5],
+                removed_assets: vec![asset3, asset6],
+            };
+
+            let left_merge = delta.clone().merge(AccountVaultDelta::empty()).unwrap();
+            let right_merge = AccountVaultDelta::empty().merge(delta.clone()).unwrap();
+
+            assert_eq!(delta, left_merge);
+            assert_eq!(delta, right_merge);
+        }
+
+        #[test]
+        fn fungible_addition() {
+            let empty = AccountId::new_unchecked(Felt::new(10));
+            let positive = AccountId::new_unchecked(Felt::new(11));
+            let negative = AccountId::new_unchecked(Felt::new(12));
+            let nulled = AccountId::new_unchecked(Felt::new(13));
+
+            // let delta_0 = AccountVaultDelta {
+            //     added_assets: todo!(),
+            //     removed_assets: vec![FungibleAsset::new(negative, 100)],
+            // };
+        }
+
+        #[test]
+        fn non_fungible_aggregation() {
+            let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+            let asset: Asset = NonFungibleAsset::new(
+                &NonFungibleAssetDetails::new(nffid1, vec![1, 2, 3]).unwrap(),
+            )
+            .unwrap()
+            .into();
+
+            // The same non-fungible asset cannot be added nor removed twice.
+            let delta = AccountVaultDelta {
+                removed_assets: vec![asset],
+                ..Default::default()
+            };
+            let result = delta.clone().merge(delta);
+            assert!(result.is_err());
+
+            let delta = AccountVaultDelta {
+                added_assets: vec![asset],
+                ..Default::default()
+            };
+            let result = delta.clone().merge(delta);
+            assert!(result.is_err());
+
+            // Removed and added cancel each other.
+            let removed = AccountVaultDelta {
+                removed_assets: vec![asset],
+                ..Default::default()
+            };
+            let added = AccountVaultDelta {
+                added_assets: vec![asset],
+                ..Default::default()
+            };
+
+            let remove_then_add = removed.clone().merge(added.clone()).unwrap();
+            assert_eq!(remove_then_add, AccountVaultDelta::empty());
+
+            let add_then_remove = added.merge(removed).unwrap();
+            assert_eq!(add_then_remove, AccountVaultDelta::empty());
+        }
     }
 }
