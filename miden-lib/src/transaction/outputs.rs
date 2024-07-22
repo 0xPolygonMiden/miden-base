@@ -4,7 +4,7 @@ use miden_objects::{
 };
 
 use super::memory::{
-    ACCT_CODE_ROOT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
+    ACCT_CODE_COMMITMENT_OFFSET, ACCT_DATA_MEM_SIZE, ACCT_ID_AND_NONCE_OFFSET, ACCT_ID_IDX,
     ACCT_NONCE_IDX, ACCT_STORAGE_ROOT_OFFSET, ACCT_VAULT_ROOT_OFFSET,
 };
 
@@ -31,7 +31,7 @@ pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, Accoun
     let nonce = elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_NONCE_IDX];
     let vault_root = elements[ACCT_VAULT_ROOT_OFFSET as usize].into();
     let storage_root = elements[ACCT_STORAGE_ROOT_OFFSET as usize].into();
-    let code_root = elements[ACCT_CODE_ROOT_OFFSET as usize].into();
+    let code_root = elements[ACCT_CODE_COMMITMENT_OFFSET as usize].into();
 
     Ok(AccountStub::new(id, nonce, vault_root, storage_root, code_root))
 }

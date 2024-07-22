@@ -117,7 +117,7 @@ pub const CHAIN_MMR_PEAKS_PTR: MemoryAddress = 301;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
-/// The size of the memory segment allocated to core account data (excluding new code root)
+/// The size of the memory segment allocated to core account data (excluding new code commitment)
 pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 
 /// The memory address at which the account data section begins
@@ -154,20 +154,21 @@ pub const ACCT_STORAGE_ROOT_OFFSET: MemoryOffset = 2;
 pub const ACCT_STORAGE_ROOT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_STORAGE_ROOT_OFFSET;
 
-/// The offset at which the account code root is stored relative to the start of the account
+/// The offset at which the account code commitment is stored relative to the start of the account
 /// data segment.
-pub const ACCT_CODE_ROOT_OFFSET: MemoryOffset = 3;
+pub const ACCT_CODE_COMMITMENT_OFFSET: MemoryOffset = 3;
 
-/// The memory address at which the account code root is stored.
-pub const ACCT_CODE_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_CODE_ROOT_OFFSET;
+/// The memory address at which the account code commitment is stored.
+pub const ACCT_CODE_COMMITMENT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_CODE_COMMITMENT_OFFSET;
 
-/// The offset at which the accounts new code root is stored relative to the start of the account
+/// The offset at which the accounts new code commitment is stored relative to the start of the account
 /// data segment.
-pub const ACCT_NEW_CODE_ROOT_OFFSET: MemoryOffset = 4;
+pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
 
-/// The memory address at which the new account code root is stored
-pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
-    ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_ROOT_OFFSET;
+/// The memory address at which the new account code commitment is stored
+pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_COMMITMENT_OFFSET;
 
 /// The memory address at which the account storage slot type data begins
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;

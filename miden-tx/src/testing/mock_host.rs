@@ -28,7 +28,8 @@ impl MockHost {
     /// Returns a new [MockHost] instance with the provided [AdviceInputs].
     pub fn new(account: AccountStub, advice_inputs: AdviceInputs) -> Self {
         let adv_provider: MemAdviceProvider = advice_inputs.into();
-        let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map,

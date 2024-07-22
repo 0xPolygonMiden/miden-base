@@ -75,7 +75,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.root().clone(), storage.root())?;
+        let id = AccountId::new(seed, code.commitment().clone(), storage.root())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -97,7 +97,7 @@ impl Account {
 
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
     /// Computing the account hash requires 2 permutations of the hash function.
     pub fn hash(&self) -> Digest {
         hash_account(
@@ -105,7 +105,7 @@ impl Account {
             self.nonce,
             self.vault.commitment(),
             self.storage.root(),
-            self.code.root().clone(),
+            self.code.commitment().clone(),
         )
     }
 
@@ -287,23 +287,24 @@ impl<'de> serde::Deserialize<'de> for Account {
 // HELPERS
 // ================================================================================================
 
-/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code root.
+/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code
+/// commitment.
 ///
-/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
 /// Computing the account hash requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,
     vault_root: Digest,
     storage_root: Digest,
-    code_root: Digest,
+    code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
     elements[0] = id.into();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_root);
-    elements[12..].copy_from_slice(&*code_root);
+    elements[12..].copy_from_slice(&*code_commitment);
     Hasher::hash_elements(&elements)
 }
 

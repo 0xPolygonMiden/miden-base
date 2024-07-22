@@ -70,7 +70,8 @@ pub struct TransactionHost<A, T> {
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
-        let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
         let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
         Self {
             adv_provider,

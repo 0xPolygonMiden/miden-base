@@ -149,7 +149,7 @@ fn build_advice_stack(
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());
-    inputs.extend_stack(account.code().root().clone());
+    inputs.extend_stack(account.code().commitment().clone());
 
     // push the number of input notes onto the stack
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
@@ -199,7 +199,7 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 ///
 /// Inserts the following entries into the advice map:
 /// - The storage types commitment |-> storage slot types vector.
-/// - The account code root |-> procedures as elements and length.
+/// - The account code commitment |-> procedures as elements and length.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
@@ -248,7 +248,7 @@ fn add_account_to_advice_inputs(
     let num_procs = code.as_elements().len() / 8;
     let mut procs = code.as_elements();
     procs.insert(0, Felt::from(num_procs as u32));
-    inputs.extend_map([(code.root().clone(), procs)]);
+    inputs.extend_map([(code.commitment().clone(), procs)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

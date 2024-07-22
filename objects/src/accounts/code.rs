@@ -100,7 +100,7 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to an account's public interface.
-    pub fn root(&self) -> &Digest {
+    pub fn commitment(&self) -> &Digest {
         &self.procedure_commitment
     }
 
@@ -245,6 +245,6 @@ mod tests {
 
         let procedure_commitment = build_procedure_commitment(code.procedures());
 
-        assert_eq!(&procedure_commitment, code.root())
+        assert_eq!(&procedure_commitment, code.commitment())
     }
 }

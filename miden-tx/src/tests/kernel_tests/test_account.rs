@@ -1,4 +1,4 @@
-use miden_lib::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -39,13 +39,13 @@ pub fn test_set_code_is_not_immediate() {
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
-        tx_context.account().code().root().as_elements(),
+        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        tx_context.account().code().commitment().as_elements(),
         "the code root must not change immediatelly",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_NEW_CODE_ROOT_PTR),
+        read_root_mem_value(&process, ACCT_NEW_CODE_COMMITMENT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
         "the code root must be cached",
     );
@@ -86,7 +86,7 @@ pub fn test_set_code_succeeds() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
+        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
         "the code root must change after the epilogue",
     );

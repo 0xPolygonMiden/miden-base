@@ -11,7 +11,7 @@ use super::{hash_account, Account, AccountId, Digest, Felt};
 /// - nonce: the nonce of the account.
 /// - vault_root: a commitment to the account's vault ([super::AssetVault]).
 /// - storage_root: accounts storage root ([super::AccountStorage]).
-/// - code_root: a commitment to the account's code ([super::AccountCode]).
+/// - code_commitment: a commitment to the account's code ([super::AccountCode]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct AccountStub {
@@ -19,7 +19,7 @@ pub struct AccountStub {
     nonce: Felt,
     vault_root: Digest,
     storage_root: Digest,
-    code_root: Digest,
+    code_commitment: Digest,
 }
 
 impl AccountStub {
@@ -31,14 +31,14 @@ impl AccountStub {
         nonce: Felt,
         vault_root: Digest,
         storage_root: Digest,
-        code_root: Digest,
+        code_commitment: Digest,
     ) -> Self {
         Self {
             id,
             nonce,
             vault_root,
             storage_root,
-            code_root,
+            code_commitment,
         }
     }
 
@@ -46,10 +46,10 @@ impl AccountStub {
     // --------------------------------------------------------------------------------------------
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
     /// Computing the account hash requires 2 permutations of the hash function.
     pub fn hash(&self) -> Digest {
-        hash_account(self.id, self.nonce, self.vault_root, self.storage_root, self.code_root)
+        hash_account(self.id, self.nonce, self.vault_root, self.storage_root, self.code_commitment)
     }
 
     /// Returns the id of this account.
@@ -72,9 +72,9 @@ impl AccountStub {
         self.storage_root
     }
 
-    /// Returns the code root of this account.
-    pub fn code_root(&self) -> Digest {
-        self.code_root
+    /// Returns the code commitment of this account.
+    pub fn code_commitment(&self) -> Digest {
+        self.code_commitment
     }
 }
 
@@ -91,7 +91,7 @@ impl From<&Account> for AccountStub {
             nonce: account.nonce(),
             vault_root: account.vault().commitment(),
             storage_root: account.storage().root(),
-            code_root: account.code().root().clone(),
+            code_commitment: account.code().commitment().clone(),
         }
     }
 }
