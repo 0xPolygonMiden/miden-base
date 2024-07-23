@@ -126,7 +126,7 @@ impl AccountCode {
 
     /// Returns true if a procedure with the specified root is defined for this account.
     pub fn has_procedure(&self, root: Digest) -> bool {
-        self.procedures.iter().map(|(d, _)| *d).collect::<Vec<Digest>>().contains(&root)
+        self.procedures.iter().any(|(digest, _)| digest == &root)
     }
 
     /// Returns a procedure (digest, offset) pair for the procedure with the specified index.
