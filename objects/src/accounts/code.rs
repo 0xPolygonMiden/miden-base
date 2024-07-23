@@ -4,8 +4,8 @@ use assembly::ast::AstSerdeOptions;
 use vm_core::ZERO;
 
 use super::{
-    AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Digest, Felt, Hasher, ModuleAst, Serializable,
+    AccountError, AccountProcedure, Assembler, AssemblyContext, ByteReader, ByteWriter,
+    Deserializable, DeserializationError, Digest, Felt, Hasher, ModuleAst, Serializable,
 };
 
 // CONSTANTS
@@ -13,9 +13,6 @@ use super::{
 
 /// Default serialization options for account code AST.
 const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(false);
-
-/// The depth of the Merkle tree that is used to commit to the account's public interface.
-pub const PROCEDURE_TREE_DEPTH: u8 = 8;
 
 // ACCOUNT CODE
 // ================================================================================================
@@ -28,7 +25,7 @@ pub const PROCEDURE_TREE_DEPTH: u8 = 8;
 #[derive(Debug, Clone)]
 pub struct AccountCode {
     module: ModuleAst,
-    procedures: Vec<(Digest, Felt)>,
+    procedures: Vec<AccountProcedure>,
     procedure_commitment: Digest,
 }
 
@@ -55,10 +52,10 @@ impl AccountCode {
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
         // TODO: Find way to input offset
-        let procedures: Vec<(Digest, Felt)> = procedures
+        let procedures: Vec<AccountProcedure> = procedures
             .into_iter()
             .enumerate()
-            .map(|(i, proc)| (proc, Felt::new(i as u64)))
+            .map(|(i, proc)| AccountProcedure::new(proc, i as u16))
             .collect();
 
         // make sure the number of procedures is between 1 and 256 (both inclusive)
@@ -86,7 +83,7 @@ impl AccountCode {
     ///
     /// # Panics
     /// Panics if the number of procedures is smaller than 1 or greater than 256.
-    pub fn from_parts(module: ModuleAst, procedures: Vec<(Digest, Felt)>) -> Self {
+    pub fn from_parts(module: ModuleAst, procedures: Vec<AccountProcedure>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
         Self {
@@ -114,14 +111,14 @@ impl AccountCode {
         procedures_as_elements(self.procedures())
     }
 
-    /// Returns a reference to the account procedure digests.
-    pub fn procedures(&self) -> &[(Digest, Felt)] {
+    /// Returns a reference to the account procedures.
+    pub fn procedures(&self) -> &[AccountProcedure] {
         &self.procedures
     }
 
     /// Returns an iterator over the procedure roots of the [AccountCode].
     pub fn procedure_roots(&self) -> impl Iterator<Item = Digest> + '_ {
-        self.procedures().iter().map(|(digest, _)| *digest)
+        self.procedures().iter().map(|procedure| *procedure.mast_root())
     }
 
     /// Returns the number of public interface procedures defined for this account.
@@ -131,21 +128,24 @@ impl AccountCode {
 
     /// Returns true if a procedure with the specified root is defined for this account.
     pub fn has_procedure(&self, root: Digest) -> bool {
-        self.procedures.iter().any(|(digest, _)| digest == &root)
+        self.procedures.iter().any(|procedure| procedure.mast_root() == &root)
     }
 
     /// Returns a procedure (digest, offset) pair for the procedure with the specified index.
     ///
     /// # Panics
     /// Panics if the provided index is out of bounds.
-    pub fn get_procedure_by_index(&self, index: usize) -> &(Digest, Felt) {
+    pub fn get_procedure_by_index(&self, index: usize) -> &AccountProcedure {
         &self.procedures[index]
     }
 
     /// Returns the procedure index for the procedure with the specified root or None if such
     /// procedure is not defined for this account.
     pub fn get_procedure_index_by_root(&self, root: Digest) -> Option<usize> {
-        self.procedures.iter().map(|(d, _)| d).position(|r| r == &root)
+        self.procedures
+            .iter()
+            .map(|procedure| procedure.mast_root())
+            .position(|r| r == &root)
     }
 }
 
@@ -180,7 +180,7 @@ impl Deserializable for AccountCode {
         // debug info (this includes module imports and source locations) is not serialized with account code
         let module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
-        let procedures = source.read_many::<(Digest, Felt)>(num_procedures)?;
+        let procedures = source.read_many::<AccountProcedure>(num_procedures)?;
 
         Ok(Self::from_parts(module, procedures))
     }
@@ -189,28 +189,36 @@ impl Deserializable for AccountCode {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn procedures_as_elements(procedures: &[(Digest, Felt)]) -> Vec<Felt> {
+fn procedures_as_elements(procedures: &[AccountProcedure]) -> Vec<Felt> {
     let mut procedure_elements = Vec::with_capacity(procedures.len() * 2);
-    for (proc_digest, storage_offset) in procedures {
-        procedure_elements.extend_from_slice(proc_digest.as_elements());
-        procedure_elements.extend_from_slice(&[*storage_offset, ZERO, ZERO, ZERO])
+    for procedure in procedures {
+        procedure_elements.extend_from_slice(procedure.mast_root().as_elements());
+        procedure_elements.extend_from_slice(&[
+            Felt::from(procedure.storage_offset()),
+            ZERO,
+            ZERO,
+            ZERO,
+        ])
     }
     procedure_elements
 }
 
-fn build_procedure_commitment(procedures: &[(Digest, Felt)]) -> Digest {
+fn build_procedure_commitment(procedures: &[AccountProcedure]) -> Digest {
     let elements = procedures_as_elements(procedures);
     Hasher::hash_elements(&elements)
 }
 
-// TESTING
+// TESTS
 // ================================================================================================
 
-#[cfg(any(feature = "testing", test))]
-pub mod testing {
-    use super::{AccountCode, Assembler, ModuleAst};
+#[cfg(test)]
+mod tests {
+    use assembly::{ast::ModuleAst, Assembler};
 
-    pub const CODE: &str = "
+    use super::{AccountCode, Deserializable, Serializable};
+    use crate::accounts::code::build_procedure_commitment;
+
+    const CODE: &str = "
         export.foo
             push.1 push.2 mul
         end
@@ -220,21 +228,13 @@ pub mod testing {
         end
     ";
 
-    pub fn make_account_code() -> AccountCode {
+    fn make_account_code() -> AccountCode {
         let mut module = ModuleAst::parse(CODE).unwrap();
         // clears are needed since they're not serialized for account code
         module.clear_imports();
         module.clear_locations();
         AccountCode::new(module, &Assembler::default()).unwrap()
     }
-}
-// TESTS
-// ================================================================================================
-
-#[cfg(test)]
-mod tests {
-    use super::{testing::*, AccountCode, Deserializable, Serializable};
-    use crate::accounts::code::build_procedure_commitment;
 
     #[test]
     fn test_serde() {

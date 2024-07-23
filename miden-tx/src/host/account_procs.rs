@@ -1,5 +1,5 @@
 use alloc::string::ToString;
-use miden_lib::{transaction::TransactionKernelError, utils::collections::KvMap};
+use miden_lib::transaction::TransactionKernelError;
 use miden_objects::accounts::AccountProcedure;
 
 use crate::error::TransactionHostError;

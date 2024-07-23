@@ -28,6 +28,9 @@ const.ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT=0x00020047
 # Setting a map item on a non-map slot
 const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
 
+# Account procedure is not part of the account code
+const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x00020049
+
 # CONSTANTS
 # =================================================================================================
 
@@ -472,14 +475,18 @@ end
 #! Returns the procedure information
 #!
 #! Stack: [index, ...]
-#! Output: [PROC_ELEMENTS, storage_offset, ...]
+#! Output: [PROC_ROOT, storage_offset, ...]
 #!
-#! - PROC_ELEMENTS are field elements of the procedure
-#! - storage_offset is the procedure storage offset
+#! - PROC_ROOT is the hash of the procedure.
+#! - storage_offset is the procedure storage offset.
 #!
 #! Panics if
-#! - procedure root is not part of the account code.
+#! - index is out of bounds
 export.get_procedure_info
+  # check that index < number of procedures contained in the account code
+  dup exec.memory::get_num_account_procedures gt assert
+  # => [index]
+
   # get procedure section ptr
   push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add swap
   # => [proc_ptr, offset_ptr]
@@ -508,7 +515,7 @@ export.authenticate_procedure
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
 
     # verify that PROC_ROOT exists in memory at index
-    movup.4 movdn.8 assert_eqw
+    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
     # => [storage_offset]
 end
 
