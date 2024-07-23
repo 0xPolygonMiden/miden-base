@@ -339,103 +339,100 @@ mod tests {
         assert!(!AccountVaultDelta::from_iterators([], [asset]).is_empty());
     }
 
-    mod merge {
-        use alloc::vec::Vec;
-        use vm_core::Felt;
-
-        use super::*;
-
-        #[test]
-        fn merge_with_empty_is_no_op() {
-            let ffid1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
-            let ffid2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-            let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
-            let nffid2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-
-            let asset1: Asset = FungibleAsset::new(ffid1, 10).unwrap().into();
-            let asset3: Asset = FungibleAsset::new(ffid2, 20).unwrap().into();
-
-            let asset4: Asset = NonFungibleAsset::new(
-                &NonFungibleAssetDetails::new(nffid1, vec![1, 2, 3]).unwrap(),
-            )
-            .unwrap()
-            .into();
-            let asset5: Asset = NonFungibleAsset::new(
-                &NonFungibleAssetDetails::new(nffid1, vec![4, 5, 6]).unwrap(),
-            )
-            .unwrap()
-            .into();
-            let asset6: Asset = NonFungibleAsset::new(
-                &NonFungibleAssetDetails::new(nffid2, vec![7, 8, 9]).unwrap(),
-            )
-            .unwrap()
-            .into();
-
-            // control case
-            let delta = AccountVaultDelta {
-                added_assets: vec![asset1, asset4, asset5],
-                removed_assets: vec![asset3, asset6],
-            };
-
-            let left_merge = delta.clone().merge(AccountVaultDelta::empty()).unwrap();
-            let right_merge = AccountVaultDelta::empty().merge(delta.clone()).unwrap();
-
-            assert_eq!(delta, left_merge);
-            assert_eq!(delta, right_merge);
+    #[rstest::rstest]
+    #[case::pos_pos(50, 50, Some(100))]
+    #[case::neg_neg(-50, -50, Some(-100))]
+    #[case::empty_pos(0, 50, Some(50))]
+    #[case::empty_neg(0, -50, Some(-50))]
+    #[case::nullify_pos_neg(100, -100, Some(0))]
+    #[case::nullify_neg_pos(-100, 100, Some(0))]
+    #[case::overflow(FungibleAsset::MAX_AMOUNT as i64, FungibleAsset::MAX_AMOUNT as i64, None)]
+    #[case::underflow(-(FungibleAsset::MAX_AMOUNT as i64), -(FungibleAsset::MAX_AMOUNT as i64), None)]
+    #[test]
+    fn merge_fungible_aggregation(#[case] x: i64, #[case] y: i64, #[case] expected: Option<i64>) {
+        /// Creates an [AccountVaultDelta] with a single [FungibleAsset] delta. This delta will
+        /// be added if `amount > 0`, removed if `amount < 0` or entirely missing if `amount == 0`.
+        fn create_delta_with_fungible(account_id: AccountId, amount: i64) -> AccountVaultDelta {
+            let asset = FungibleAsset::new(account_id, amount.unsigned_abs()).unwrap().into();
+            match amount {
+                0 => AccountVaultDelta::empty(),
+                x if x.is_positive() => AccountVaultDelta {
+                    added_assets: vec![asset],
+                    ..Default::default()
+                },
+                _ => AccountVaultDelta {
+                    removed_assets: vec![asset],
+                    ..Default::default()
+                },
+            }
         }
 
-        #[test]
-        fn fungible_addition() {
-            let empty = AccountId::new_unchecked(Felt::new(10));
-            let positive = AccountId::new_unchecked(Felt::new(11));
-            let negative = AccountId::new_unchecked(Felt::new(12));
-            let nulled = AccountId::new_unchecked(Felt::new(13));
+        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
 
-            // let delta_0 = AccountVaultDelta {
-            //     added_assets: todo!(),
-            //     removed_assets: vec![FungibleAsset::new(negative, 100)],
-            // };
+        let delta_x = create_delta_with_fungible(account_id, x);
+        let delta_y = create_delta_with_fungible(account_id, y);
+
+        let result = delta_x.merge(delta_y);
+
+        // None is used to indicate an error is expected.
+        if let Some(expected) = expected {
+            let expected = create_delta_with_fungible(account_id, expected);
+            assert_eq!(result.unwrap(), expected);
+        } else {
+            assert!(result.is_err());
         }
+    }
 
-        #[test]
-        fn non_fungible_aggregation() {
-            let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+    #[rstest::rstest]
+    #[case::empty_removed(None, Some(false), Ok(Some(false)))]
+    #[case::empty_added(None, Some(true), Ok(Some(true)))]
+    #[case::add_remove(Some(true), Some(false), Ok(None))]
+    #[case::remove_add(Some(false), Some(true), Ok(None))]
+    #[case::double_add(Some(true), Some(true), Err(()))]
+    #[case::double_remove(Some(false), Some(false), Err(()))]
+    #[test]
+    fn merge_non_fungible_aggregation(
+        #[case] x: Option<bool>,
+        #[case] y: Option<bool>,
+        #[case] expected: Result<Option<bool>, ()>,
+    ) {
+        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta will
+        /// be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
+        fn create_delta_with_non_fungible(
+            account_id: AccountId,
+            added: Option<bool>,
+        ) -> AccountVaultDelta {
             let asset: Asset = NonFungibleAsset::new(
-                &NonFungibleAssetDetails::new(nffid1, vec![1, 2, 3]).unwrap(),
+                &NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap(),
             )
             .unwrap()
             .into();
 
-            // The same non-fungible asset cannot be added nor removed twice.
-            let delta = AccountVaultDelta {
-                removed_assets: vec![asset],
-                ..Default::default()
-            };
-            let result = delta.clone().merge(delta);
+            match added {
+                Some(true) => AccountVaultDelta {
+                    added_assets: vec![asset],
+                    ..Default::default()
+                },
+                Some(false) => AccountVaultDelta {
+                    removed_assets: vec![asset],
+                    ..Default::default()
+                },
+                None => AccountVaultDelta::empty(),
+            }
+        }
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+
+        let delta_x = create_delta_with_non_fungible(account_id, x);
+        let delta_y = create_delta_with_non_fungible(account_id, y);
+
+        let result = delta_x.merge(delta_y);
+
+        if let Ok(expected) = expected {
+            let expected = create_delta_with_non_fungible(account_id, expected);
+            assert_eq!(result.unwrap(), expected);
+        } else {
             assert!(result.is_err());
-
-            let delta = AccountVaultDelta {
-                added_assets: vec![asset],
-                ..Default::default()
-            };
-            let result = delta.clone().merge(delta);
-            assert!(result.is_err());
-
-            // Removed and added cancel each other.
-            let removed = AccountVaultDelta {
-                removed_assets: vec![asset],
-                ..Default::default()
-            };
-            let added = AccountVaultDelta {
-                added_assets: vec![asset],
-                ..Default::default()
-            };
-
-            let remove_then_add = removed.clone().merge(added.clone()).unwrap();
-            assert_eq!(remove_then_add, AccountVaultDelta::empty());
-
-            let add_then_remove = added.merge(removed).unwrap();
-            assert_eq!(add_then_remove, AccountVaultDelta::empty());
         }
     }
 }

@@ -354,8 +354,12 @@ impl Deserializable for StorageMapDelta {
 
 #[cfg(test)]
 mod tests {
+
     use super::{AccountStorageDelta, Deserializable, Serializable};
-    use crate::{accounts::StorageMapDelta, ONE, ZERO};
+    use crate::{
+        accounts::{delta::AccountStorageDeltaBuilder, StorageMapDelta},
+        ONE, ZERO,
+    };
 
     #[test]
     fn account_storage_delta_validation() {
@@ -496,5 +500,61 @@ mod tests {
         let serialized = storage_map_delta.to_bytes();
         let deserialized = StorageMapDelta::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage_map_delta);
+    }
+
+    #[rstest::rstest]
+    #[case::some_some(Some(1), Some(2), Some(2))]
+    #[case::none_some(None, Some(2), Some(2))]
+    #[case::some_none(Some(1), None, None)]
+    #[test]
+    fn merge_items(#[case] x: Option<u64>, #[case] y: Option<u64>, #[case] expected: Option<u64>) {
+        /// Creates a delta containing the item as an update if Some, else with the item cleared.
+        fn create_delta(item: Option<u64>) -> AccountStorageDelta {
+            const SLOT: u8 = 123;
+            let item = item.map(|x| (SLOT, [vm_core::Felt::new(x), ZERO, ZERO, ZERO]));
+
+            AccountStorageDeltaBuilder::new()
+                .add_cleared_items(item.is_none().then_some(SLOT))
+                .add_updated_items(item)
+                .build()
+                .unwrap()
+        }
+
+        let delta_x = create_delta(x);
+        let delta_y = create_delta(y);
+        let expected = create_delta(expected);
+
+        let result = delta_x.merge(delta_y).unwrap();
+
+        assert_eq!(result, expected);
+    }
+
+    #[rstest::rstest]
+    #[case::some_some(Some(1), Some(2), Some(2))]
+    #[case::none_some(None, Some(2), Some(2))]
+    #[case::some_none(Some(1), None, None)]
+    #[test]
+    fn merge_maps(#[case] x: Option<u64>, #[case] y: Option<u64>, #[case] expected: Option<u64>) {
+        fn create_delta(value: Option<u64>) -> StorageMapDelta {
+            let key = [vm_core::Felt::new(10), ZERO, ZERO, ZERO];
+            match value {
+                Some(value) => StorageMapDelta {
+                    updated_leaves: vec![(key, [vm_core::Felt::new(value), ZERO, ZERO, ZERO])],
+                    ..Default::default()
+                },
+                None => StorageMapDelta {
+                    cleared_leaves: vec![key],
+                    ..Default::default()
+                },
+            }
+        }
+
+        let delta_x = create_delta(x);
+        let delta_y = create_delta(y);
+        let expected = create_delta(expected);
+
+        let result = delta_x.merge(delta_y);
+
+        assert_eq!(result, expected);
     }
 }
