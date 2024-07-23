@@ -119,6 +119,11 @@ impl AccountCode {
         &self.procedures
     }
 
+    /// Returns an iterator over the procedure roots of the [AccountCode].
+    pub fn procedure_roots(&self) -> impl Iterator<Item = Digest> + '_ {
+        self.procedures().iter().map(|(digest, _)| *digest)
+    }
+
     /// Returns the number of public interface procedures defined for this account.
     pub fn num_procedures(&self) -> usize {
         self.procedures.len()

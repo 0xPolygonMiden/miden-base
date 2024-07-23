@@ -74,10 +74,8 @@ impl TransactionCompiler {
         let account_code = AccountCode::new(account_code, &self.assembler)
             .map_err(TransactionCompilerError::LoadAccountFailed)?;
 
-        self.account_procedures.insert(
-            account_id,
-            account_code.procedures().iter().map(|(p, _)| *p).collect::<Vec<Digest>>(),
-        );
+        self.account_procedures
+            .insert(account_id, account_code.procedure_roots().collect::<Vec<_>>());
 
         Ok(account_code)
     }
