@@ -1,4 +1,7 @@
+use alloc::string::ToString;
 use miden_lib::transaction::TransactionKernelError;
+
+use crate::error::TransactionHostError;
 
 use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
 
@@ -11,9 +14,16 @@ pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
-    pub fn new<A: AdviceProvider>(account_code_root: Digest, adv_provider: &A) -> Self {
+    pub fn new<A: AdviceProvider>(
+        account_code_root: Digest,
+        adv_provider: &A,
+    ) -> Result<Self, TransactionHostError> {
         // get the account procedures from the advice_map
-        let procs = adv_provider.get_mapped_values(&account_code_root).unwrap();
+        let procs = adv_provider.get_mapped_values(&account_code_root).ok_or_else(|| {
+            TransactionHostError::AccountProcedureIndexMapError(
+                "Failed to get mapped values from the AdviceProvider".to_string(),
+            )
+        })?;
 
         let mut result = BTreeMap::new();
 
@@ -23,7 +33,7 @@ impl AccountProcedureIndexMap {
             result.insert(Digest::from(root), proc_idx.try_into().unwrap());
         }
 
-        Self(result)
+        Ok(Self(result))
     }
 
     /// Returns index of the procedure whose root is currently at the top of the operand stack in

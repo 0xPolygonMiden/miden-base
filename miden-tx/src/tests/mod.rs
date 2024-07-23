@@ -73,7 +73,7 @@ fn transaction_executor_witness() {
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let _authenticator = ();
     let mut host: TransactionHost<MemAdviceProvider, ()> =
-        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None);
+        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None).unwrap();
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();

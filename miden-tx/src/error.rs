@@ -55,6 +55,7 @@ pub enum TransactionExecutorError {
     },
     InvalidTransactionOutput(TransactionOutputError),
     LoadAccountFailed(TransactionCompilerError),
+    TransactionHostCreationFailed(TransactionHostError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -75,6 +76,7 @@ pub enum TransactionProverError {
     InvalidAccountDelta(AccountError),
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
+    TransactionHostCreationFailed(TransactionHostError),
 }
 
 impl Display for TransactionProverError {
@@ -91,6 +93,9 @@ impl Display for TransactionProverError {
             },
             TransactionProverError::ProvenTransactionError(inner) => {
                 write!(f, "Building proven transaction error: {}", inner)
+            },
+            TransactionProverError::TransactionHostCreationFailed(inner) => {
+                write!(f, "Failed to create the transaction host: {}", inner)
             },
         }
     }
@@ -116,6 +121,23 @@ impl fmt::Display for TransactionVerifierError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionVerifierError {}
+
+// TRANSACTION HOST ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionHostError {
+    AccountProcedureIndexMapError(String),
+}
+
+impl fmt::Display for TransactionHostError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionHostError {}
 
 // DATA STORE ERROR
 // ================================================================================================
