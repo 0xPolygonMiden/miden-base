@@ -9,6 +9,7 @@
 - Setters in `memory` module don't drop the setting `Word` anymore (#795).
 - [BREAKING] Increase of nonce does not require changes in account state any more (#796).
 - Added `CHANGELOG.md` warning message on CI (#799).
+- Account deltas can now be merged (#797).
 
 ## 0.4.0 (2024-07-03)
 
