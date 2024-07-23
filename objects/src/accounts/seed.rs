@@ -23,7 +23,7 @@ pub fn get_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_type: AccountStorageType,
-    code_root: Digest,
+    code_commitment: Digest,
     storage_root: Digest,
 ) -> Result<Word, AccountError> {
     let thread_count = thread::available_parallelism().map_or(1, |v| v.get());
@@ -43,7 +43,7 @@ pub fn get_account_seed(
                 init_seed,
                 account_type,
                 storage_type,
-                code_root,
+                code_commitment,
                 storage_root,
             )
         });
@@ -73,7 +73,7 @@ pub fn get_account_seed_inner(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_type: AccountStorageType,
-    code_root: Digest,
+    code_commitment: Digest,
     storage_root: Digest,
 ) {
     let init_seed: Vec<[u8; 8]> =
@@ -84,7 +84,7 @@ pub fn get_account_seed_inner(
         Felt::new(u64::from_le_bytes(init_seed[2])),
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
-    let mut current_digest = compute_digest(current_seed, code_root, storage_root);
+    let mut current_digest = compute_digest(current_seed, code_commitment, storage_root);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_type);
@@ -116,7 +116,7 @@ pub fn get_account_seed_inner(
             }
         }
         current_seed = current_digest.into();
-        current_digest = compute_digest(current_seed, code_root, storage_root);
+        current_digest = compute_digest(current_seed, code_commitment, storage_root);
     }
 }
 
@@ -125,10 +125,10 @@ pub fn get_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_type: AccountStorageType,
-    code_root: Digest,
+    code_commitment: Digest,
     storage_root: Digest,
 ) -> Result<Word, AccountError> {
-    get_account_seed_single(init_seed, account_type, storage_type, code_root, storage_root)
+    get_account_seed_single(init_seed, account_type, storage_type, code_commitment, storage_root)
 }
 
 /// Finds and returns a seed suitable for creating an account ID for the specified account type
@@ -137,7 +137,7 @@ pub fn get_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_type: AccountStorageType,
-    code_root: Digest,
+    code_commitment: Digest,
     storage_root: Digest,
 ) -> Result<Word, AccountError> {
     let init_seed: Vec<[u8; 8]> =
@@ -148,7 +148,7 @@ pub fn get_account_seed_single(
         Felt::new(u64::from_le_bytes(init_seed[2])),
         Felt::new(u64::from_le_bytes(init_seed[3])),
     ];
-    let mut current_digest = compute_digest(current_seed, code_root, storage_root);
+    let mut current_digest = compute_digest(current_seed, code_commitment, storage_root);
 
     #[cfg(feature = "log")]
     let mut log = log::Log::start(current_digest, current_seed, account_type, storage_type);
@@ -172,7 +172,7 @@ pub fn get_account_seed_single(
             }
         }
         current_seed = current_digest.into();
-        current_digest = compute_digest(current_seed, code_root, storage_root);
+        current_digest = compute_digest(current_seed, code_commitment, storage_root);
     }
 }
 

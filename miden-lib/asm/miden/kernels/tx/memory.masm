@@ -108,11 +108,11 @@ const.ACCT_VAULT_ROOT_PTR=401
 # The memory address at which the account storage root is stored
 const.ACCT_STORAGE_ROOT_PTR=402
 
-# The memory address at which the account code root is stored
-const.ACCT_CODE_ROOT_PTR=403
+# The memory address at which the account code commitment is stored
+const.ACCT_CODE_COMMITMENT_PTR=403
 
-# The memory address at which the new account code root is stored
-const.ACCT_NEW_CODE_ROOT_PTR=404
+# The memory address at which the new account code commitment is stored
+const.ACCT_NEW_CODE_COMMITMENT_PTR=404
 
 # The memory offset at which the account data section ends (exclusive)
 const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
@@ -658,50 +658,50 @@ export.get_account_procedures_section_offset
     push.ACCT_PROCEDURES_SECTION_OFFSET
 end
 
-#! Sets the code root of the account.
+#! Sets the code commitment of the account.
 #!
-#! Stack: [CODE_ROOT]
-#! Output: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
+#! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_ROOT is the code root to be set.
-export.set_acct_code_root
-    push.ACCT_CODE_ROOT_PTR
+#! - CODE_COMMITMENT is the code commitment to be set.
+export.set_acct_code_commitment
+    push.ACCT_CODE_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the code root of the account.
+#! Returns the code commitment of the account.
 #!
 #! Stack: []
-#! Output: [CODE_ROOT]
+#! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_ROOT is the code root of the account.
-export.get_acct_code_root
-    padw push.ACCT_CODE_ROOT_PTR mem_loadw
+#! - CODE_COMMITMENT is the code commitment of the account.
+export.get_acct_code_commitment
+    padw push.ACCT_CODE_COMMITMENT_PTR mem_loadw
 end
 
-#! Stores the new account code root in memory.
+#! Stores the new account code commitment in memory.
 #!
-#! Stack: [CODE_ROOT]
-#! Output: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
+#! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_ROOT is the new account code root.
-export.set_new_acct_code_root
-    push.ACCT_NEW_CODE_ROOT_PTR
+#! - CODE_COMMITMENT is the new account code commitment.
+export.set_new_acct_code_commitment
+    push.ACCT_NEW_CODE_COMMITMENT_PTR
     mem_storew
 end
 
-#! Returns the new account code root.
+#! Returns the new account code commitment.
 #!
 #! Stack: []
-#! Output: [CODE_ROOT]
+#! Output: [CODE_COMMITMENT]
 #!
 #! Where:
-#! - CODE_ROOT is the new account code root.
-export.get_new_acct_code_root
-    padw push.ACCT_NEW_CODE_ROOT_PTR mem_loadw
+#! - CODE_COMMITMENT is the new account code commitment.
+export.get_new_acct_code_commitment
+    padw push.ACCT_NEW_CODE_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the account storage root.

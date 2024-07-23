@@ -21,7 +21,7 @@ pub const FINAL_ACCOUNT_HASH_WORD_IDX: usize = 1;
 // ================================================================================================
 
 /// Parses the stub account data returned by the VM into individual account component commitments.
-/// Returns a tuple of account ID, vault root, storage root, code root, and nonce.
+/// Returns a tuple of account ID, vault root, storage root, code commitment, and nonce.
 pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, AccountError> {
     if elements.len() != ACCT_DATA_MEM_SIZE {
         return Err(AccountError::StubDataIncorrectLength(elements.len(), ACCT_DATA_MEM_SIZE));
@@ -31,7 +31,7 @@ pub fn parse_final_account_stub(elements: &[Word]) -> Result<AccountStub, Accoun
     let nonce = elements[ACCT_ID_AND_NONCE_OFFSET as usize][ACCT_NONCE_IDX];
     let vault_root = elements[ACCT_VAULT_ROOT_OFFSET as usize].into();
     let storage_root = elements[ACCT_STORAGE_ROOT_OFFSET as usize].into();
-    let code_root = elements[ACCT_CODE_COMMITMENT_OFFSET as usize].into();
+    let code_commitment = elements[ACCT_CODE_COMMITMENT_OFFSET as usize].into();
 
-    Ok(AccountStub::new(id, nonce, vault_root, storage_root, code_root))
+    Ok(AccountStub::new(id, nonce, vault_root, storage_root, code_commitment))
 }

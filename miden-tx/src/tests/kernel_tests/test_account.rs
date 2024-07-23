@@ -41,13 +41,13 @@ pub fn test_set_code_is_not_immediate() {
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
         tx_context.account().code().commitment().as_elements(),
-        "the code root must not change immediatelly",
+        "the code commitment must not change immediatelly",
     );
 
     assert_eq!(
         read_root_mem_value(&process, ACCT_NEW_CODE_COMMITMENT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
-        "the code root must be cached",
+        "the code commitment must be cached",
     );
 }
 
@@ -88,7 +88,7 @@ pub fn test_set_code_succeeds() {
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
-        "the code root must change after the epilogue",
+        "the code commitment must change after the epilogue",
     );
 }
 

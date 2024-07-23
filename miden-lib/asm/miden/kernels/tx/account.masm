@@ -299,21 +299,21 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: []
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
     # get the account id
     exec.memory::get_acct_id
-    # => [acct_id, CODE_ROOT]
+    # => [acct_id, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
     exec.is_updatable_account assert.err=ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE
-    # => [CODE_ROOT]
+    # => [CODE_COMMITMENT]
 
-    # set the code root
-    exec.memory::set_new_acct_code_root dropw
+    # set the code commitment
+    exec.memory::set_new_acct_code_commitment dropw
     # => []
 end
 
@@ -515,7 +515,7 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. compute the hash of (SEED, CODE_ROOT, STORAGE_ROOT, 0, 0, 0, 0)
+#! 1. compute the hash of (SEED, CODE_commitment, STORAGE_ROOT, 0, 0, 0, 0)
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
@@ -528,11 +528,11 @@ export.validate_seed
         padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
-        # populate last four elements of the hasher rate with the code root
-        exec.memory::get_acct_code_root
-        # => [CODE_ROOT, SEED, 0, 0, 0, 0]
+        # populate last four elements of the hasher rate with the code commitment
+        exec.memory::get_acct_code_commitment
+        # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0]
 
-        # perform first permutation of seed and code_root (from advice stack) perm(seed, code_root)
+        # perform first permutation of seed and code_commitment (from advice stack) perm(seed, code_commitment)
         hperm
         # => [RATE, RATE, PERM]
 

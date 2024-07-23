@@ -15,11 +15,11 @@ impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
     pub fn new<A: AdviceProvider>(
-        account_code_root: Digest,
+        account_code_commitment: Digest,
         adv_provider: &A,
     ) -> Result<Self, TransactionHostError> {
         // get the account procedures from the advice_map
-        let procs = adv_provider.get_mapped_values(&account_code_root).ok_or_else(|| {
+        let procs = adv_provider.get_mapped_values(&account_code_commitment).ok_or_else(|| {
             TransactionHostError::AccountProcedureIndexMapError(
                 "Failed to get mapped values from the AdviceProvider".to_string(),
             )

@@ -384,50 +384,50 @@ proc.validate_new_account
     # => []
 end
 
-#! Validates that account procedures match account code root.
+#! Validates that account procedures match account code commitment.
 #!
 #! This is achieved by reading account procedures from AdviceMap and sequentially hashing them
-#! before comparing the final hash to the account code root. This procedure also populates memory
+#! before comparing the final hash to the account code commitment. This procedure also populates memory
 #! with these account procedures.
 #!
 #! Stack: []
 #! Output: []
 proc.validate_account_procedures
-  # get account code root to query elements from AdviceMap
-  exec.memory::get_acct_code_root
-  # => [ACCT_CODE_ROOT]
+  # get account code commitment to query elements from AdviceMap
+  exec.memory::get_acct_code_commitment
+  # => [ACCT_CODE_COMMITMENT]
 
   # query elements from AdviceMap and get num of procedures to pipe
   adv.push_mapval adv_push.1
-  # => [len, ACCT_CODE_ROOT]
+  # => [len, ACCT_CODE_COMMITMENT]
 
   # get counter and account procedures memory location
   push.0 exec.memory::get_account_procedures_section_offset
-  # => [location, counter, len, ACCT_CODE_ROOT]
+  # => [location, counter, len, ACCT_CODE_COMMITMENT]
 
   # prepare stack for looping
   padw padw padw push.1
-  # => [PAD, PAD, PAD, 1, location, counter, len, ACCT_CODE_ROOT]
+  # => [PAD, PAD, PAD, 1, location, counter, len, ACCT_CODE_COMMITMENT]
 
   while.true
     # pipe elements from advice map to stack and memory and hash them
     adv_pipe hperm
-    # => [HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
+    # => [HASH, HASH, HASH, location, counter, len, ACCT_CODE_COMMITMENT]
 
     # check if all account procedures have been piped
     movup.13 add.1 dup movdn.14 dup.15 neq
-    # => [should_loop, HASH, HASH, HASH, location, counter, len, ACCT_CODE_ROOT]
+    # => [should_loop, HASH, HASH, HASH, location, counter, len, ACCT_CODE_COMMITMENT]
   end
 
   # keep relevant hash
   exec.native::state_to_digest
-  # => [HASH, location, counter, len, ACCT_CODE_ROOT]
+  # => [HASH, location, counter, len, ACCT_CODE_COMMITMENT]
 
   # drop memory location, counter and number of procedures
   movup.4 movup.5 movup.6 drop drop drop
-  # => [HASH, ACCT_CODE_ROOT]
+  # => [HASH, ACCT_CODE_COMMITMENT]
 
-  # verify hashed account procedures match account code root
+  # verify hashed account procedures match account code commitment
   assert_eqw
   # => []
 end
@@ -444,7 +444,7 @@ end
 #!   and the account nonce is not zero
 #!
 #! Stack: []
-#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
+#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_COMMITMENT]
 #! Output: []
 #!
 #! Where:
@@ -452,7 +452,7 @@ end
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
     # Copy the account data from the advice stack to memory and hash it
     # ---------------------------------------------------------------------------------------------
@@ -520,10 +520,10 @@ proc.process_account_data
     exec.memory::set_init_nonce
     # => []
 
-    # set the new account code root to the initial account code root this is used for managing
-    # code root updates, validates and stores account procedures in memory.
-    exec.memory::get_acct_code_root
-    exec.memory::set_new_acct_code_root dropw
+    # set the new account code commitment to the initial account code commitment this is used for managing
+    # code commitment updates, validates and stores account procedures in memory.
+    exec.memory::get_acct_code_commitment
+    exec.memory::set_new_acct_code_commitment dropw
     exec.validate_account_procedures
     # => []
 
@@ -1089,7 +1089,7 @@ end
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_ROOT,
-#!     ACCOUNT_CODE_ROOT,
+#!     ACCOUNT_CODE_COMMITMENT,
 #!     number_of_input_notes,
 #!     TX_SCRIPT_ROOT,
 #! ]
@@ -1117,7 +1117,7 @@ end
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
 #! - MMR_PEAKS, is the MMR peak data, see process_chain_data

@@ -12,9 +12,9 @@ pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
-    pub fn new<A: AdviceProvider>(account_code_root: Digest, adv_provider: &A) -> Self {
+    pub fn new<A: AdviceProvider>(account_code_commitment: Digest, adv_provider: &A) -> Self {
         // get the account procedures from the advice_map
-        let procs = adv_provider.get_mapped_values(&account_code_root).unwrap();
+        let procs = adv_provider.get_mapped_values(&account_code_commitment).unwrap();
 
         let mut result = BTreeMap::new();
 

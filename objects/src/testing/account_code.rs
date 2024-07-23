@@ -101,7 +101,7 @@ impl AccountCode {
         # acct proc 5
         export.set_code
             padw swapw
-            # => [CODE_ROOT, 0, 0, 0, 0]
+            # => [CODE_COMMITMENT, 0, 0, 0, 0]
 
             exec.account::set_code
             # => [0, 0, 0, 0]

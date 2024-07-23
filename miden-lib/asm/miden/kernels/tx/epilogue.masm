@@ -144,20 +144,20 @@ end
 # ACCOUNT CODE UPDATE
 # =================================================================================================
 
-#! Updates the account code root if the account code has changed. `NEW_ACCT_CODE_ROOT` is set to
-#! the initial account code root in the prologue and as such this procedure will not result in a
-#! change to the account code root if the `account::set_code` procedure has not been invoked in
+#! Updates the account code commitment if the account code has changed. `NEW_ACCT_CODE_COMMITMENT` is set to
+#! the initial account code commitment in the prologue and as such this procedure will not result in a
+#! change to the account code commitment if the `account::set_code` procedure has not been invoked in
 #! this transaction.
 #!
 #! Stack: []
 #! Output: []
 proc.update_account_code
-    # check if the account code root has been updated
-    exec.memory::get_new_acct_code_root
-    # => [NEW_ACCT_CODE_ROOT]
+    # check if the account code commitment has been updated
+    exec.memory::get_new_acct_code_commitment
+    # => [NEW_ACCT_CODE_COMMITMENT]
 
-    # set the account code root to the new account code root (may not have changed)
-    exec.memory::set_acct_code_root dropw
+    # set the account code commitment to the new account code commitment (may not have changed)
+    exec.memory::set_acct_code_commitment dropw
     # => []
 end
 

@@ -116,7 +116,7 @@ fn extend_advice_inputs(
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
 ///     ACCOUNT_STORAGE_ROOT,
-///     ACCOUNT_CODE_ROOT,
+///     ACCOUNT_CODE_COMMITMENT,
 ///     number_of_input_notes,
 ///     TX_SCRIPT_ROOT,
 /// ]
