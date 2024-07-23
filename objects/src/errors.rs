@@ -21,6 +21,7 @@ pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeProcedureInvalidStorageOffset,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),

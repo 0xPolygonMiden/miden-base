@@ -1,5 +1,6 @@
 use alloc::string::ToString;
-use miden_lib::transaction::TransactionKernelError;
+use miden_lib::{transaction::TransactionKernelError, utils::collections::KvMap};
+use miden_objects::accounts::AccountProcedure;
 
 use crate::error::TransactionHostError;
 
@@ -27,10 +28,29 @@ impl AccountProcedureIndexMap {
 
         let mut result = BTreeMap::new();
 
-        // we skip procs[0] because it's the `len` of procs
+        // we skip procs[0] because it's the number of procedures
         for (proc_idx, proc_info) in procs[1..].chunks_exact(8).enumerate() {
-            let root: [Felt; 4] = proc_info[0..4].try_into().expect("Slice with incorrect len.");
-            result.insert(Digest::from(root), proc_idx.try_into().unwrap());
+            let proc_info_array: [Felt; 8] = proc_info.try_into().map_err(|_| {
+                TransactionHostError::AccountProcedureIndexMapError(
+                    "Invalid procedure info length".to_string(),
+                )
+            })?;
+
+            let procedure = AccountProcedure::try_from(proc_info_array).map_err(|e| {
+                TransactionHostError::AccountProcedureIndexMapError(format!(
+                    "Failed to create AccountProcedure: {:?}",
+                    e
+                ))
+            })?;
+
+            let proc_idx = u8::try_from(proc_idx).map_err(|_| {
+                TransactionHostError::AccountProcedureIndexMapError(format!(
+                    "Invalid procedure index: {}",
+                    proc_idx
+                ))
+            })?;
+
+            result.insert(*procedure.mast_root(), proc_idx);
         }
 
         Ok(Self(result))

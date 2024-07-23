@@ -17,6 +17,9 @@ pub use auth::AuthSecretKey;
 pub mod code;
 pub use code::AccountCode;
 
+mod procedure;
+pub use procedure::AccountProcedure;
+
 pub mod delta;
 pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta, StorageMapDelta};
 
