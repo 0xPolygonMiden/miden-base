@@ -66,7 +66,7 @@ pub enum AccountDeltaError {
     TooManyRemovedAssets { actual: usize, max: usize },
     TooManyUpdatedStorageItems { actual: usize, max: usize },
     DuplicateStorageMapLeaf { key: RpoDigest },
-    AmountTooBig(u64),
+    AssetAmountTooBig(u64),
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
 }
 

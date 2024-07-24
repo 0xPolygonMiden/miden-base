@@ -12,7 +12,7 @@ use super::{
 ///
 /// A fungible asset consists of a faucet ID of the faucet which issued the asset as well as the
 /// asset amount. Asset amount is guaranteed to be 2^63 - 1 or smaller.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct FungibleAsset {
     faucet_id: AccountId,

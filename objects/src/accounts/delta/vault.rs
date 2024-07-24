@@ -76,7 +76,7 @@ impl AccountVaultDelta {
                         entry.checked_sub(amount)
                     }
                     .ok_or_else(|| {
-                        AccountDeltaError::AmountTooBig(
+                        AccountDeltaError::AssetAmountTooBig(
                             entry.unsigned_abs() + amount.unsigned_abs(),
                         )
                     })?;
@@ -110,7 +110,7 @@ impl AccountVaultDelta {
             // We know that the faucet ID is valid since this comes from an existing asset, so the only
             // possible error case is the amount overflowing.
             let asset = FungibleAsset::new(faucet_id, amount)
-                .map_err(|_| AccountDeltaError::AmountTooBig(amount))?;
+                .map_err(|_| AccountDeltaError::AssetAmountTooBig(amount))?;
 
             if is_positive {
                 added.push(Asset::Fungible(asset));
