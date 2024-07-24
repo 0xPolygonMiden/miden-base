@@ -7,7 +7,8 @@
 - [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
 - [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
 - Setters in `memory` module don't drop the setting `Word` anymore (#795).
-- [BREAKING] Increase of nonce does not require changes in account state any more (#789).
+- [BREAKING] Increase of nonce does not require changes in account state any more (#796).
+- Added `CHANGELOG.md` warning message on CI (#799).
 
 ## 0.4.0 (2024-07-03)
 
@@ -43,9 +44,9 @@
 
 ## 0.3.1 (2024-06-12)
 
-* Replaced `cargo-make` with just `make` for running tasks (#696).
-* Made `DataStore` conditionally async using `winter-maybe-async` (#725)
-* Fixed `StorageMap`s implementation and included into apply_delta (#745)
+- Replaced `cargo-make` with just `make` for running tasks (#696).
+- Made `DataStore` conditionally async using `winter-maybe-async` (#725)
+- Fixed `StorageMap`s implementation and included into apply_delta (#745)
 
 ## 0.3.0 (2024-05-14)
 
