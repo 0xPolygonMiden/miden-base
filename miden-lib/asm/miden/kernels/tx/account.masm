@@ -491,12 +491,12 @@ export.get_procedure_info
   # => [index]
 
   # get procedure section ptr
-  push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add swap
+  push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
   # => [proc_ptr, offset_ptr]
 
   # load procedure information from memory
-  padw movup.4 mem_loadw movup.4 mem_load movdn.4
-  # => [PROC_ELEMENTS, storage_offset]
+  mem_load swap padw movup.4 mem_loadw
+  # => [PROC_ROOT, storage_offset]
 end
 
 #! Verifies that the procedure root is part of the account code
