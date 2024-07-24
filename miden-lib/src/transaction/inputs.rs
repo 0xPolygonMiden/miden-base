@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, AccountProcedure},
+    accounts::{Account, AccountProcedureInfo},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
@@ -149,7 +149,7 @@ fn build_advice_stack(
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());
-    inputs.extend_stack(account.code().commitment().clone());
+    inputs.extend_stack(account.code().commitment());
 
     // push the number of input notes onto the stack
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
@@ -245,10 +245,10 @@ fn add_account_to_advice_inputs(
     let code = account.code();
 
     // extend the advice_map with the account code data and number of procedures
-    let num_procs = code.as_elements().len() / AccountProcedure::NUM_ELEMENTS_PER_PROC;
+    let num_procs = code.as_elements().len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
     let mut procs = code.as_elements();
     procs.insert(0, Felt::from(num_procs as u32));
-    inputs.extend_map([(code.commitment().clone(), procs)]);
+    inputs.extend_map([(code.commitment(), procs)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

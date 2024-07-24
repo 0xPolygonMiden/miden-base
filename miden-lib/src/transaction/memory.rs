@@ -173,8 +173,11 @@ pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
 /// The memory address at which the account storage slot type data begins
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
 
+/// The memory address at which the number of procedures contained in the account code is stored
+pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 999;
+
 /// The memory address at which the account procedures section begins.
-pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 700;
+pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
 
 // NOTES DATA
 // ================================================================================================

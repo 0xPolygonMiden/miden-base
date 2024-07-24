@@ -78,7 +78,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             .map_err(AccountBuilderError::AccountError)?;
         let code_commitment = code.commitment();
 
-        let account_id = AccountId::new(seed, code_commitment.clone(), self.storage_root)
+        let account_id = AccountId::new(seed, code_commitment, self.storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
         if account_id.account_type() != self.account_type {
@@ -114,12 +114,12 @@ pub fn account_id_build_details<T: Rng>(
         init_seed,
         account_type,
         storage_type,
-        code_commitment.clone(),
+        code_commitment,
         storage_root,
     )
     .map_err(AccountBuilderError::AccountError)?;
 
-    Ok((seed, code_commitment.clone()))
+    Ok((seed, code_commitment))
 }
 
 pub fn str_to_account_code(

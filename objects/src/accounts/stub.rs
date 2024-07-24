@@ -91,7 +91,7 @@ impl From<&Account> for AccountStub {
             nonce: account.nonce(),
             vault_root: account.vault().commitment(),
             storage_root: account.storage().root(),
-            code_commitment: account.code().commitment().clone(),
+            code_commitment: account.code().commitment(),
         }
     }
 }

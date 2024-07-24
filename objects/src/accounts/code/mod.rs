@@ -1,12 +1,14 @@
 use alloc::vec::Vec;
 
 use assembly::ast::AstSerdeOptions;
-use vm_core::ZERO;
 
 use super::{
-    AccountError, AccountProcedure, Assembler, AssemblyContext, ByteReader, ByteWriter,
-    Deserializable, DeserializationError, Digest, Felt, Hasher, ModuleAst, Serializable,
+    AccountError, Assembler, AssemblyContext, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, ModuleAst, Serializable,
 };
+
+pub mod procedure;
+use procedure::AccountProcedureInfo;
 
 // CONSTANTS
 // ================================================================================================
@@ -25,8 +27,8 @@ const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(false);
 #[derive(Debug, Clone)]
 pub struct AccountCode {
     module: ModuleAst,
-    procedures: Vec<AccountProcedure>,
-    procedure_commitment: Digest,
+    procedures: Vec<AccountProcedureInfo>,
+    commitment: Digest,
 }
 
 impl AccountCode {
@@ -52,10 +54,10 @@ impl AccountCode {
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
         // TODO: Find way to input offset
-        let procedures: Vec<AccountProcedure> = procedures
+        let procedures: Vec<AccountProcedureInfo> = procedures
             .into_iter()
             .enumerate()
-            .map(|(i, proc)| AccountProcedure::new(proc, i as u16))
+            .map(|(i, proc)| AccountProcedureInfo::new(proc, i as u16))
             .collect();
 
         // make sure the number of procedures is between 1 and 256 (both inclusive)
@@ -69,7 +71,7 @@ impl AccountCode {
         }
 
         Ok(Self {
-            procedure_commitment: build_procedure_commitment(&procedures),
+            commitment: build_procedure_commitment(&procedures),
             procedures,
             module,
         })
@@ -83,11 +85,11 @@ impl AccountCode {
     ///
     /// # Panics
     /// Panics if the number of procedures is smaller than 1 or greater than 256.
-    pub fn from_parts(module: ModuleAst, procedures: Vec<AccountProcedure>) -> Self {
+    pub fn from_parts(module: ModuleAst, procedures: Vec<AccountProcedureInfo>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
         Self {
-            procedure_commitment: build_procedure_commitment(&procedures),
+            commitment: build_procedure_commitment(&procedures),
             procedures,
             module,
         }
@@ -97,8 +99,8 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a commitment to an account's public interface.
-    pub fn commitment(&self) -> &Digest {
-        &self.procedure_commitment
+    pub fn commitment(&self) -> Digest {
+        self.commitment
     }
 
     /// Returns a reference to the [ModuleAst] backing the [AccountCode].
@@ -112,7 +114,7 @@ impl AccountCode {
     }
 
     /// Returns a reference to the account procedures.
-    pub fn procedures(&self) -> &[AccountProcedure] {
+    pub fn procedures(&self) -> &[AccountProcedureInfo] {
         &self.procedures
     }
 
@@ -135,7 +137,7 @@ impl AccountCode {
     ///
     /// # Panics
     /// Panics if the provided index is out of bounds.
-    pub fn get_procedure_by_index(&self, index: usize) -> &AccountProcedure {
+    pub fn get_procedure_by_index(&self, index: usize) -> &AccountProcedureInfo {
         &self.procedures[index]
     }
 
@@ -180,7 +182,7 @@ impl Deserializable for AccountCode {
         // debug info (this includes module imports and source locations) is not serialized with account code
         let module = ModuleAst::read_from(source, MODULE_SERDE_OPTIONS)?;
         let num_procedures = (source.read_u8()? as usize) + 1;
-        let procedures = source.read_many::<AccountProcedure>(num_procedures)?;
+        let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
 
         Ok(Self::from_parts(module, procedures))
     }
@@ -189,21 +191,14 @@ impl Deserializable for AccountCode {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn procedures_as_elements(procedures: &[AccountProcedure]) -> Vec<Felt> {
-    let mut procedure_elements = Vec::with_capacity(procedures.len() * 2);
-    for procedure in procedures {
-        procedure_elements.extend_from_slice(procedure.mast_root().as_elements());
-        procedure_elements.extend_from_slice(&[
-            Felt::from(procedure.storage_offset()),
-            ZERO,
-            ZERO,
-            ZERO,
-        ])
-    }
-    procedure_elements
+fn procedures_as_elements(procedures: &[AccountProcedureInfo]) -> Vec<Felt> {
+    procedures
+        .iter()
+        .flat_map(|procedure| <[Felt; 8]>::from(procedure.clone()))
+        .collect()
 }
 
-fn build_procedure_commitment(procedures: &[AccountProcedure]) -> Digest {
+fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
     let elements = procedures_as_elements(procedures);
     Hasher::hash_elements(&elements)
 }
@@ -250,6 +245,6 @@ mod tests {
 
         let procedure_commitment = build_procedure_commitment(code.procedures());
 
-        assert_eq!(&procedure_commitment, code.commitment())
+        assert_eq!(procedure_commitment, code.commitment())
     }
 }

@@ -10,8 +10,8 @@ use miden_lib::transaction::{
         INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
         INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
         INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
-        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR,
-        PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR, PREV_BLOCK_HASH_PTR,
+        PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
@@ -256,6 +256,17 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
             "The account types data should be stored in (ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET + 64)"
         );
     }
+
+    assert_eq!(
+        read_root_mem_value(process, NUM_ACCT_PROCEDURES_PTR),
+        [
+            u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+        "The number of procedures should be stored at NUM_ACCT_PROCEDURES_PTR"
+    );
 
     for (i, elements) in inputs.account().code().as_elements().chunks(4).enumerate() {
         assert_eq!(

@@ -15,10 +15,7 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 pub mod code;
-pub use code::AccountCode;
-
-mod procedure;
-pub use procedure::AccountProcedure;
+pub use code::{procedure::AccountProcedureInfo, AccountCode};
 
 pub mod delta;
 pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta, StorageMapDelta};
@@ -78,7 +75,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment().clone(), storage.root())?;
+        let id = AccountId::new(seed, code.commitment(), storage.root())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -108,7 +105,7 @@ impl Account {
             self.nonce,
             self.vault.commitment(),
             self.storage.root(),
-            self.code.commitment().clone(),
+            self.code.commitment(),
         )
     }
 
