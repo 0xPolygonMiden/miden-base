@@ -1,9 +1,10 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 
 use super::{
     AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
     Serializable, Word,
 };
+use crate::Digest;
 
 // CONSTANTS
 // ================================================================================================
@@ -38,6 +39,46 @@ impl AccountStorageDelta {
             updated_items: Vec::from_iter(updated_items),
             updated_maps: Vec::from_iter(updated_maps),
         }
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
+        self.validate()?;
+        other.validate()?;
+
+        let items =
+            self.cleared_items
+                .into_iter()
+                .map(|slot| (slot, None))
+                .chain(self.updated_items.into_iter().map(|(slot, value)| (slot, Some(value))))
+                .chain(other.cleared_items.into_iter().map(|slot| (slot, None)).chain(
+                    other.updated_items.into_iter().map(|(slot, value)| (slot, Some(value))),
+                ))
+                .collect::<BTreeMap<_, _>>();
+
+        let cleared_items = items
+            .iter()
+            .filter_map(|(slot, value)| value.is_none().then_some(*slot))
+            .collect();
+        let updated_items =
+            items.iter().filter_map(|(slot, value)| value.map(|v| (*slot, v))).collect();
+
+        let mut updated_maps = BTreeMap::<u8, StorageMapDelta>::new();
+        for (slot, update) in self.updated_maps.into_iter().chain(other.updated_maps.into_iter()) {
+            let entry = updated_maps.entry(slot).or_default();
+            *entry = entry.clone().merge(update);
+        }
+
+        let updated_maps = updated_maps.into_iter().collect();
+
+        let result = Self {
+            cleared_items,
+            updated_items,
+            updated_maps,
+        };
+        result.validate()?;
+
+        Ok(result)
     }
 
     /// Checks whether this storage delta is valid.
@@ -267,6 +308,30 @@ impl StorageMapDelta {
     pub fn is_empty(&self) -> bool {
         self.cleared_leaves.is_empty() && self.updated_leaves.is_empty()
     }
+
+    /// Merge `other` into this delta, giving precedence to `other`.
+    pub fn merge(self, other: Self) -> Self {
+        // Aggregate the changes into a map such that `other` overwrites self.
+        let leaves = self.cleared_leaves.into_iter().map(|k| (k, None));
+        let leaves = leaves
+            .chain(self.updated_leaves.into_iter().map(|(k, v)| (k, Some(v))))
+            .chain(other.cleared_leaves.into_iter().map(|k| (k, None)))
+            .chain(other.updated_leaves.into_iter().map(|(k, v)| (k, Some(v))))
+            .map(|(k, v)| (Digest::from(k), v.map(Digest::from)))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut cleared = Vec::new();
+        let mut updated = Vec::new();
+
+        for (key, value) in leaves {
+            match value {
+                Some(value) => updated.push((key.into(), value.into())),
+                None => cleared.push(key.into()),
+            }
+        }
+
+        Self::from(cleared, updated)
+    }
 }
 
 impl Serializable for StorageMapDelta {
@@ -289,8 +354,12 @@ impl Deserializable for StorageMapDelta {
 
 #[cfg(test)]
 mod tests {
+
     use super::{AccountStorageDelta, Deserializable, Serializable};
-    use crate::{accounts::StorageMapDelta, ONE, ZERO};
+    use crate::{
+        accounts::{delta::AccountStorageDeltaBuilder, StorageMapDelta},
+        ONE, ZERO,
+    };
 
     #[test]
     fn account_storage_delta_validation() {
@@ -431,5 +500,61 @@ mod tests {
         let serialized = storage_map_delta.to_bytes();
         let deserialized = StorageMapDelta::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage_map_delta);
+    }
+
+    #[rstest::rstest]
+    #[case::some_some(Some(1), Some(2), Some(2))]
+    #[case::none_some(None, Some(2), Some(2))]
+    #[case::some_none(Some(1), None, None)]
+    #[test]
+    fn merge_items(#[case] x: Option<u64>, #[case] y: Option<u64>, #[case] expected: Option<u64>) {
+        /// Creates a delta containing the item as an update if Some, else with the item cleared.
+        fn create_delta(item: Option<u64>) -> AccountStorageDelta {
+            const SLOT: u8 = 123;
+            let item = item.map(|x| (SLOT, [vm_core::Felt::new(x), ZERO, ZERO, ZERO]));
+
+            AccountStorageDeltaBuilder::new()
+                .add_cleared_items(item.is_none().then_some(SLOT))
+                .add_updated_items(item)
+                .build()
+                .unwrap()
+        }
+
+        let delta_x = create_delta(x);
+        let delta_y = create_delta(y);
+        let expected = create_delta(expected);
+
+        let result = delta_x.merge(delta_y).unwrap();
+
+        assert_eq!(result, expected);
+    }
+
+    #[rstest::rstest]
+    #[case::some_some(Some(1), Some(2), Some(2))]
+    #[case::none_some(None, Some(2), Some(2))]
+    #[case::some_none(Some(1), None, None)]
+    #[test]
+    fn merge_maps(#[case] x: Option<u64>, #[case] y: Option<u64>, #[case] expected: Option<u64>) {
+        fn create_delta(value: Option<u64>) -> StorageMapDelta {
+            let key = [vm_core::Felt::new(10), ZERO, ZERO, ZERO];
+            match value {
+                Some(value) => StorageMapDelta {
+                    updated_leaves: vec![(key, [vm_core::Felt::new(value), ZERO, ZERO, ZERO])],
+                    ..Default::default()
+                },
+                None => StorageMapDelta {
+                    cleared_leaves: vec![key],
+                    ..Default::default()
+                },
+            }
+        }
+
+        let delta_x = create_delta(x);
+        let delta_y = create_delta(y);
+        let expected = create_delta(expected);
+
+        let result = delta_x.merge(delta_y);
+
+        assert_eq!(result, expected);
     }
 }
