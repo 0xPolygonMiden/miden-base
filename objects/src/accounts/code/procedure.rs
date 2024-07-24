@@ -1,5 +1,3 @@
-use std::println;
-
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     FieldElement,

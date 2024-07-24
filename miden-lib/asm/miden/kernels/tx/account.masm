@@ -29,7 +29,10 @@ const.ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT=0x00020047
 const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
 
 # Account procedure is not part of the account code
-const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x00020049
+const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002004A
+
+# Provided index is out of bounds
+const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
 
 # CONSTANTS
 # =================================================================================================
@@ -484,7 +487,7 @@ end
 #! - index is out of bounds
 export.get_procedure_info
   # check that index < number of procedures contained in the account code
-  dup exec.memory::get_num_account_procedures gt assert
+  dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
   # => [index]
 
   # get procedure section ptr

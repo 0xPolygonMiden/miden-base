@@ -71,6 +71,9 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
+# Computed account code hash does not match recorded account code hash
+const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
+
 # PUBLIC INPUTS
 # =================================================================================================
 
@@ -425,7 +428,7 @@ proc.validate_account_procedures
   # => [HASH, CODE_COMMITMENT]
 
   # verify hashed account procedures match account code commitment
-  assert_eqw
+  assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
   # => []
 end
 
