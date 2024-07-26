@@ -486,18 +486,26 @@ end
 #! Panics if
 #! - index is out of bounds
 export.get_procedure_info
-  # check that index < number of procedures contained in the account code
-  dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
-  # => [index]
-
-  # get procedure section ptr
-  push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
-  # => [proc_ptr, offset_ptr]
+  # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
+  # check if index == 255
+  dup push.255 neq
+  # => [is_255, index]
 
   # load procedure information from memory
-  mem_load swap padw movup.4 mem_loadw
-  # => [PROC_ROOT, storage_offset]
-end
+  if.true
+    # check that index < number of procedures contained in the account code
+    dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
+    # => [index]
+
+    # get procedure section ptr
+    push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
+    # => [proc_ptr, offset_ptr]
+
+    # load procedure information from memory
+    mem_load swap padw movup.4 mem_loadw
+    # => [PROC_ROOT, storage_offset]
+  end
+ end
 
 #! Verifies that the procedure root is part of the account code
 #!
@@ -515,11 +523,25 @@ export.authenticate_procedure
 
     # get procedure info (PROC_ELEMENTS, storage_offset) from memory stored at index
     exec.get_procedure_info
+    # In production:
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
+    # During testing:
+    # => [255, PROC_ROOT]
 
-    # verify that PROC_ROOT exists in memory at index
-    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
-    # => [storage_offset]
+    # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
+    # check if get_procedure_info returned 255
+    dup push.255 neq
+    # => [is_255, index, PROC_ROOT]
+
+    # verify that PROC_ROOT matches returned procedure information
+    if.true
+      # verify that PROC_ROOT exists in memory at index
+      movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+      # => [storage_offset]
+    else
+      # drop PROC_ROOT
+      movdn.4 dropw
+    end
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
