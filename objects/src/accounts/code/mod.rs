@@ -23,7 +23,10 @@ const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(false);
 ///
 /// Account's public interface consists of a set of account procedures, each procedure being a Miden
 /// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
-/// the entire account interface by building a sequential hash out of all procedure MAST roots.
+/// the entire account interface by building a sequential hash out of all procedure MAST roots and
+/// associated storage_offset's. Procedures are represented as a [Vec<AccountProcedureInfo>] each
+/// procedure containing a mast_root and a storage_offset enabling the correct indexing of that
+/// specific procedure.
 #[derive(Debug, Clone)]
 pub struct AccountCode {
     module: ModuleAst,
@@ -108,7 +111,9 @@ impl AccountCode {
         &self.module
     }
 
-    /// Returns a vector containing procedures as field elements.
+    /// Returns a vector containing the accounts procedures as [AccountProcedureInfo]'s
+    /// as field elements. This is done by iterating through each procedure turning them
+    /// into field elements and flattening them into a single [Vec<Felt>].
     pub fn as_elements(&self) -> Vec<Felt> {
         procedures_as_elements(self.procedures())
     }

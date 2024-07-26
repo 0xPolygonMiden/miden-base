@@ -10,6 +10,17 @@ pub type StorageSlot = u8;
 // PUBLIC CONSTANTS
 // ================================================================================================
 
+// | Section           | Start address |  End address |
+// | -------------     | :------------:| :-----------:|
+// | Bookkeeping       | 0             | 4            |
+// | Global inputs     | 100           | 105          |
+// | Block header      | 200           | 207          |
+// | Chain MMR         | 300           | 332?         |
+// | Account data      | 400           | 651?         |
+// | Account procedures| 999           | ?            |
+// | Input notes       | 1_048_576     | ?            |
+// | Output notes      | 4_194_304     | ?            |
+
 // RESERVED ACCOUNT STORAGE SLOTS
 // ------------------------------------------------------------------------------------------------
 
@@ -123,8 +134,8 @@ pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 /// The memory address at which the account data section begins
 pub const ACCT_DATA_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The offset at which the account id and nonce is stored relative to the start of the account
-/// data segment.
+/// The offset at which the account id and nonce is stored relative to the start of
+/// the account data segment.
 pub const ACCT_ID_AND_NONCE_OFFSET: MemoryOffset = 0;
 
 /// The index of the account id within the account id and nonce data.

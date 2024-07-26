@@ -144,10 +144,10 @@ end
 # ACCOUNT CODE UPDATE
 # =================================================================================================
 
-#! Updates the account code commitment if the account code has changed. `NEW_ACCT_CODE_COMMITMENT` is set to
-#! the initial account code commitment in the prologue and as such this procedure will not result in a
-#! change to the account code commitment if the `account::set_code` procedure has not been invoked in
-#! this transaction.
+#! Updates the account code commitment if the account code has changed. `NEW_ACCT_CODE_COMMITMENT`
+#! is set to the initial account code commitment in the prologue and as such this procedure will
+#! not result in a change to the account code commitment if the `account::set_code` procedure has
+#! not been invoked in this transaction.
 #!
 #! Stack: []
 #! Output: []
