@@ -9,6 +9,7 @@
 - Setters in `memory` module don't drop the setting `Word` anymore (#795).
 - [BREAKING] Increase of nonce does not require changes in account state any more (#796).
 - Added `CHANGELOG.md` warning message on CI (#799).
+- Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
 
 ## 0.4.0 (2024-07-03)
 
