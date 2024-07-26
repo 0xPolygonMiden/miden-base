@@ -1,6 +1,7 @@
-use.std::collections::smt
+use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::native
+use.std::collections::smt
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
@@ -401,31 +402,25 @@ proc.validate_account_procedures
   adv.push_mapval adv_push.1 dup exec.memory::set_num_account_procedures
   # => [num_procs, CODE_COMMITMENT]
 
-  # get counter and account procedures memory location
-  push.0 exec.memory::get_account_procedures_section_offset
-  # => [location, counter, len, CODE_COMMITMENT]
+  # setup acct_proc_offset and end_ptr for reading from advice stack
+  mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
+  # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  # prepare stack for looping
-  padw padw padw push.1
-  # => [PAD, PAD, PAD, 1, location, counter, len, CODE_COMMITMENT]
+  # pad stack before reading from advice stack
+  padw padw padw
+  # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  while.true
-    # pipe elements from advice map to stack and memory and hash them
-    adv_pipe hperm
-    # => [HASH, HASH, HASH, location, counter, len, CODE_COMMITMENT]
+  # read the data from advice stack to memory and hash
+  exec.mem::pipe_double_words_to_memory
+  # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
 
-    # check if all account procedures have been piped
-    movup.13 add.1 dup movdn.14 dup.15 neq
-    # => [should_loop, HASH, HASH, HASH, location, counter, len, CODE_COMMITMENT]
-  end
-
-  # keep relevant hash
+  # extract the digest
   exec.native::state_to_digest
-  # => [HASH, location, counter, len, CODE_COMMITMENT]
+  # => [DIGEST, end_ptr, CODE_COMMITMENT]
 
-  # drop memory location, counter and number of procedures
-  movup.4 movup.5 movup.6 drop drop drop
-  # => [HASH, CODE_COMMITMENT]
+  # drop end_ptr
+  movup.4 drop
+  # => [DIGEST, CODE_COMMITMENT]
 
   # verify hashed account procedures match account code commitment
   assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
