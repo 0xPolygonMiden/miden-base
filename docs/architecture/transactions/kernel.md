@@ -28,7 +28,7 @@ The transaction kernel program receives two types of inputs, public inputs via t
 
 The operand stack holds the global inputs which serve as a commitment to the data being provided via the advice provider.
 
-The advice provider holds data of the last known block, account and input note data. The details are layed out in the next paragraph.
+The advice provider holds data of the last known block, account and input note data. The details are laid out in the next paragraph.
 
 ## Prologue
 
