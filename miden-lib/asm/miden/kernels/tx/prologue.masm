@@ -388,11 +388,15 @@ proc.validate_new_account
     # => []
 end
 
-#! Validates that account procedures match account code commitment.
+#! Validates that account procedures match account code commitment and saves procedure information
+#! into memory.
 #!
-#! This is achieved by reading account procedures from AdviceMap and sequentially hashing them
-#! before comparing the final hash to the account code commitment. This procedure also populates memory
-#! with these account procedures.
+#! This is achieved by reading account procedure information from the advice map, saving it into
+#! memory, and sequentially hashing them before comparing the final hash to the account code
+#! commitment.
+#!
+#! Information for each saved procedure consists of the procedure's MAST root and the storage
+#! offset associated with this procedure.
 #!
 #! Stack: [CODE_COMMITMENT]
 #! Output: []
