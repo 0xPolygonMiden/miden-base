@@ -21,12 +21,21 @@ const MODULE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(false);
 
 /// A public interface of an account.
 ///
-/// Account's public interface consists of a set of account procedures, each procedure being a Miden
-/// VM program. Thus, MAST root of each procedure commits to the underlying program. We commit to
-/// the entire account interface by building a sequential hash out of all procedure MAST roots and
-/// associated storage_offset's. Procedures are represented as a `Vec<AccountProcedureInfo>` each
-/// procedure containing a mast_root and a storage_offset enabling the correct indexing of that
-/// specific procedure.
+/// Account's public interface consists of a set of account procedures, each procedure being a
+/// Miden VM program. Thus, MAST root of each procedure commits to the underlying program.
+///
+/// Each exported procedure is associated with a storage offset. This offset is applied to any
+/// accesses made from within the procedure to the associated account's storage. For example, if
+/// storage offset for a procedure is set ot 1, a call to the account::get_item(storage_slot=4)
+/// made from this procedure would actually access storage slot with index 5.
+///
+/// We commit to the entire account interface by building a sequential hash of all procedure MAST
+/// roots and associated storage_offset's. Specifically, each procedure contributes exactly 8 field
+/// elements to the sequence of elements to be hashed. These elements are defined as follows:
+///
+/// ```text
+/// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+/// ```
 #[derive(Debug, Clone)]
 pub struct AccountCode {
     module: ModuleAst,
@@ -49,7 +58,7 @@ impl AccountCode {
     /// Returns an error if:
     /// - Compilation of the provided module fails.
     /// - The number of procedures exported from the provided module is smaller than 1 or greater
-    ///   than 256.
+    ///   than 65535.
     pub fn new(module: ModuleAst, assembler: &Assembler) -> Result<Self, AccountError> {
         // compile the module and make sure the number of exported procedures is within the limit
         let procedures = assembler
@@ -80,14 +89,14 @@ impl AccountCode {
         })
     }
 
-    /// Returns a new definition of an account's interface instantiated from the provided
-    /// module and list of procedure digests.
+    /// Returns a new definition of an account's interface instantiated from the provided module
+    /// and list of [AccountProcedureInfo]s.
     ///
-    /// **Note**: this function assumes that the list of provided procedure digests results from
-    /// the compilation of the provided module, but this is not checked.
+    /// **Note**: this function assumes that the list of provided procedures results from the
+    /// compilation of the provided module, but this is not checked.
     ///
     /// # Panics
-    /// Panics if the number of procedures is smaller than 1 or greater than 256.
+    /// Panics if the number of procedures is smaller than 1 or greater than 65535.
     pub fn from_parts(module: ModuleAst, procedures: Vec<AccountProcedureInfo>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
@@ -106,16 +115,9 @@ impl AccountCode {
         self.commitment
     }
 
-    /// Returns a reference to the [ModuleAst] backing the [AccountCode].
+    /// Returns a reference to the [ModuleAst] backing this [AccountCode].
     pub fn module(&self) -> &ModuleAst {
         &self.module
-    }
-
-    /// Returns a vector containing the accounts procedures as [AccountProcedureInfo]'s
-    /// as field elements. This is done by iterating through each procedure turning them
-    /// into field elements and flattening them into a single `Vec<Felt>`.
-    pub fn as_elements(&self) -> Vec<Felt> {
-        procedures_as_elements(self.procedures())
     }
 
     /// Returns a reference to the account procedures.
@@ -123,22 +125,22 @@ impl AccountCode {
         &self.procedures
     }
 
-    /// Returns an iterator over the procedure roots of the [AccountCode].
+    /// Returns an iterator over the procedure MAST roots of this [AccountCode].
     pub fn procedure_roots(&self) -> impl Iterator<Item = Digest> + '_ {
         self.procedures().iter().map(|procedure| *procedure.mast_root())
     }
 
-    /// Returns the number of public interface procedures defined for this account.
+    /// Returns the number of public interface procedures defined in this [AccountCode].
     pub fn num_procedures(&self) -> usize {
         self.procedures.len()
     }
 
-    /// Returns true if a procedure with the specified root is defined for this account.
-    pub fn has_procedure(&self, root: Digest) -> bool {
-        self.procedures.iter().any(|procedure| procedure.mast_root() == &root)
+    /// Returns true if a procedure with the specified MAST root is defined in this [AccountCode].
+    pub fn has_procedure(&self, mast_root: Digest) -> bool {
+        self.procedures.iter().any(|procedure| procedure.mast_root() == &mast_root)
     }
 
-    /// Returns a procedure (digest, offset) pair for the procedure with the specified index.
+    /// Returns information about the procedure at the specified index.
     ///
     /// # Panics
     /// Panics if the provided index is out of bounds.
@@ -146,13 +148,24 @@ impl AccountCode {
         &self.procedures[index]
     }
 
-    /// Returns the procedure index for the procedure with the specified root or None if such
-    /// procedure is not defined for this account.
+    /// Returns the procedure index for the procedure with the specified MAST root or None if such
+    /// procedure is not defined in this [AccountCode].
     pub fn get_procedure_index_by_root(&self, root: Digest) -> Option<usize> {
         self.procedures
             .iter()
             .map(|procedure| procedure.mast_root())
             .position(|r| r == &root)
+    }
+
+    /// Converts procedure information in this [AccountCode] into a vector of field elements.
+    ///
+    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// ```text
+    /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
+    /// ```
+    /// And then concatenating the resulting elements into a single vector.
+    pub fn as_elements(&self) -> Vec<Felt> {
+        procedures_as_elements(self.procedures())
     }
 }
 
