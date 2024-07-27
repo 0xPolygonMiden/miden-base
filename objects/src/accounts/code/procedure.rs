@@ -7,6 +7,15 @@ use vm_processor::DeserializationError;
 use super::{Digest, Felt};
 use crate::AccountError;
 
+// ACCOUNT PROCEDURE INFO
+// ================================================================================================
+
+/// Information about a procedure exposed in a public account interface.
+///
+/// The info included the MAST root of the procedure and the storage offset applied to all account
+/// storage-related accesses made by this procedure. For example, if storage offset is set ot 1, a
+/// call to the account::get_item(storage_slot=4) made from this procedure would actually access
+/// storage slot with index 5.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AccountProcedureInfo {
     mast_root: Digest,
@@ -14,20 +23,20 @@ pub struct AccountProcedureInfo {
 }
 
 impl AccountProcedureInfo {
-    /// The number of field elements needed to represent an [AccountProcedureInfo]
+    /// The number of field elements needed to represent an [AccountProcedureInfo] in kernel memory.
     pub const NUM_ELEMENTS_PER_PROC: usize = 8;
 
-    /// Returns a new instance of an [AccountProcedureInfo]
+    /// Returns a new instance of an [AccountProcedureInfo].
     pub fn new(mast_root: Digest, storage_offset: u16) -> Self {
         Self { mast_root, storage_offset }
     }
 
-    /// Returns a reference to the procedure's mast_root
+    /// Returns a reference to the procedure's mast_root.
     pub fn mast_root(&self) -> &Digest {
         &self.mast_root
     }
 
-    /// Returns a reference to the procedure's storage_offset
+    /// Returns a reference to the procedure's storage_offset.
     pub fn storage_offset(&self) -> u16 {
         self.storage_offset
     }
@@ -61,7 +70,7 @@ impl TryFrom<[Felt; 8]> for AccountProcedureInfo {
 
         // Check if the last three elements are zero
         if value[5..].iter().any(|&x| x != Felt::ZERO) {
-            return Err(AccountError::AccountCodeProcedureInvalidTailValues);
+            return Err(AccountError::AccountCodeProcedureInvalidPadding);
         }
 
         Ok(Self { mast_root, storage_offset })
