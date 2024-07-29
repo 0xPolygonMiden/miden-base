@@ -6,7 +6,7 @@ use alloc::{
 use core::fmt::Display;
 
 use assembly::Assembler;
-use miden_crypto::merkle::MerkleError;
+use miden_crypto::{dsa::rpo_falcon512::SecretKey, merkle::MerkleError};
 use rand::Rng;
 use vm_core::FieldElement;
 
@@ -149,6 +149,18 @@ impl<T: Rng> AccountBuilder<T> {
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
+    }
+
+    pub fn build_with_auth(
+        self,
+        assembler: &Assembler,
+    ) -> Result<(Account, Word, SecretKey), AccountBuilderError> {
+        let sec_key = SecretKey::new();
+        let pub_key: Word = sec_key.public_key().into();
+
+        let storage_item = SlotItem::new_value(0, 0, pub_key);
+        let (account, seed) = self.add_storage_item(storage_item).build(assembler)?;
+        Ok((account, seed, sec_key))
     }
 }
 

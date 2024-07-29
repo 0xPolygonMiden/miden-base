@@ -11,10 +11,7 @@ use super::{
     notes::NoteId,
     Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
-use crate::{
-    accounts::{delta::AccountUpdateDetails, AccountType},
-    notes::NoteType,
-};
+use crate::{accounts::AccountType, notes::NoteType};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -66,8 +63,6 @@ pub enum AccountDeltaError {
     TooManyRemovedAssets { actual: usize, max: usize },
     TooManyUpdatedStorageItems { actual: usize, max: usize },
     DuplicateStorageMapLeaf { key: RpoDigest },
-    AssetAmountTooBig(u64),
-    IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
 }
 
 #[cfg(feature = "std")]

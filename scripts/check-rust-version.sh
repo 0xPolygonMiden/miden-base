@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# Get rust-toolchain.toml file channel
-TOOLCHAIN_VERSION=$(grep 'channel' rust-toolchain.toml | sed -E 's/.*"(.*)".*/\1/')
+# Check rust-toolchain file
+TOOLCHAIN_VERSION=$(cat rust-toolchain)
 
-# Get workspace Cargo.toml file rust-version
-CARGO_VERSION=$(grep 'rust-version' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
-
-# Check version match
+# Check workspace Cargo.toml file
+CARGO_VERSION=$(cat Cargo.toml | grep "rust-version" | cut -d '"' -f 2)
 if [ "$CARGO_VERSION" != "$TOOLCHAIN_VERSION" ]; then
     echo "Mismatch in Cargo.toml: Expected $TOOLCHAIN_VERSION, found $CARGO_VERSION"
     exit 1

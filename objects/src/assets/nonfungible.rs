@@ -5,7 +5,6 @@ use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
     ACCOUNT_ISFAUCET_MASK,
 };
-use crate::Digest;
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -26,18 +25,6 @@ const FAUCET_ID_POS: usize = 1;
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NonFungibleAsset(Word);
-
-impl PartialOrd for NonFungibleAsset {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for NonFungibleAsset {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        Digest::from(self.0).cmp(&Digest::from(other.0))
-    }
-}
 
 impl NonFungibleAsset {
     // CONSTRUCTORS

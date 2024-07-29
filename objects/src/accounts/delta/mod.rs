@@ -57,22 +57,6 @@ impl AccountDelta {
         Ok(Self { storage, vault, nonce })
     }
 
-    /// Merge another [AccountDelta] into this one.
-    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
-        let nonce = match (self.nonce, other.nonce) {
-            (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
-                return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
-                    "New nonce {new} is not larger than the old nonce {old}"
-                )))
-            },
-            // Incoming nonce takes precedence.
-            (old, new) => new.or(old),
-        };
-        let storage = self.storage.merge(other.storage)?;
-        let vault = self.vault.merge(other.vault)?;
-        Self::new(storage, vault, nonce)
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -118,35 +102,6 @@ impl AccountUpdateDetails {
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         matches!(self, Self::Private)
-    }
-
-    /// Merges the `other` update into this one.
-    ///
-    /// This account update is assumed to come before the other.
-    pub fn merge(self, other: AccountUpdateDetails) -> Result<Self, AccountDeltaError> {
-        let merged_update = match (self, other) {
-            (AccountUpdateDetails::Private, AccountUpdateDetails::Private) => {
-                AccountUpdateDetails::Private
-            },
-            (AccountUpdateDetails::New(mut account), AccountUpdateDetails::Delta(delta)) => {
-                account.apply_delta(&delta).map_err(|_| {
-                    AccountDeltaError::IncompatibleAccountUpdates(
-                        AccountUpdateDetails::New(account.clone()),
-                        AccountUpdateDetails::Delta(delta),
-                    )
-                })?;
-
-                AccountUpdateDetails::New(account)
-            },
-            (AccountUpdateDetails::Delta(initial), AccountUpdateDetails::Delta(new_delta)) => {
-                AccountUpdateDetails::Delta(initial.merge(new_delta)?)
-            },
-            (left, right) => {
-                return Err(AccountDeltaError::IncompatibleAccountUpdates(left, right))
-            },
-        };
-
-        Ok(merged_update)
     }
 }
 
