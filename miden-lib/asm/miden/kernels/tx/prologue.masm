@@ -75,6 +75,9 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 # Computed account code hash does not match recorded account code hash
 const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
 
+# Number of account procedures exceeded the maximum limit of 65535
+const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+
 # PUBLIC INPUTS
 # =================================================================================================
 
@@ -403,7 +406,12 @@ end
 proc.validate_account_procedures
   # move procedure data from the advice map to the advice stack and then push the number of
   # procedures onto the operand stack before storing it in memory
-  adv.push_mapval adv_push.1 dup exec.memory::set_num_account_procedures
+  adv.push_mapval adv_push.1
+  # => [num_procs, CODE_COMMITMENT]
+
+  # assert that account does not exceed allowed maximum number of procedures
+  # and store number of procedures in memory
+  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES dup exec.memory::set_num_account_procedures
   # => [num_procs, CODE_COMMITMENT]
 
   # setup acct_proc_offset and end_ptr for reading from advice stack
