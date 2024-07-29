@@ -1,17 +1,8 @@
 use miden_lib::{notes::create_swap_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, Account, AccountId},
-    assembly::ProgramAst,
-    assets::{Asset, AssetVault, NonFungibleAsset, NonFungibleAssetDetails},
-    crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType},
-    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
-    transaction::TransactionScript,
-    Felt, ZERO,
+    accounts::{account_id::testing::ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, Account, AccountId}, assembly::ProgramAst, assets::{Asset, AssetVault, NonFungibleAsset, NonFungibleAssetDetails}, crypto::rand::RpoRandomCoin, notes::{NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType}, testing::account_code::DEFAULT_AUTH_SCRIPT, transaction::TransactionScript, Felt, ZERO
 };
 use miden_tx::testing::mock_chain::{Auth, MockChain};
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 
 use crate::prove_and_verify_transaction;
 
@@ -31,10 +22,8 @@ fn prove_swap_script() {
     .into();
 
     // Create sender and target account
-    let rng = ChaCha20Rng::from_entropy();
-    let sender_builder = AccountBuilder::new(rng).nonce(Felt::new(1)).add_asset(offered_asset);
-    let sender_account = chain.add_from_account_builder(Auth::RpoAuth, sender_builder);
-    let target_account = chain.add_existing_wallet(Auth::RpoAuth);
+    let sender_account = chain.add_new_wallet(Auth::RpoAuth, vec![offered_asset]);
+    let target_account = chain.add_existing_wallet(Auth::RpoAuth, vec![requested_asset]);
 
     // Create the note containing the SWAP script
     let (note, payback_note) = create_swap_note(
@@ -55,8 +44,7 @@ fn prove_swap_script() {
     let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
     let (tx_script, _) = TransactionScript::new(tx_script_code, vec![], assembler).unwrap();
     let executed_transaction = chain
-        .build_tx_context(sender_account.id())
-        .input_notes(vec![note])
+        .build_tx_context(target_account.id())
         .tx_script(tx_script)
         .build()
         .execute()

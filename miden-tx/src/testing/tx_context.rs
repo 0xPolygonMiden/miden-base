@@ -76,10 +76,11 @@ impl TransactionContext {
 
         let account_id = self.account().id();
         let block_num = mock_data_store.tx_inputs.block_header().block_num();
-        let tx_executor =
+        let mut tx_executor =
             TransactionExecutor::new(mock_data_store, self.authenticator.map(Rc::new));
         let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
+        tx_executor.load_account(account_id)?;
         tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args)
     }
 
@@ -149,6 +150,7 @@ pub struct TransactionContextBuilder {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
     rng: ChaCha20Rng,
+    mock_chain: Option<MockChain>,
 }
 
 impl TransactionContextBuilder {
@@ -165,6 +167,7 @@ impl TransactionContextBuilder {
             authenticator: None,
             advice_inputs: Default::default(),
             note_args: BTreeMap::new(),
+            mock_chain: None,
         }
     }
 
@@ -185,6 +188,7 @@ impl TransactionContextBuilder {
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
             note_args: BTreeMap::new(),
+            mock_chain: None,
         }
     }
 
@@ -204,6 +208,7 @@ impl TransactionContextBuilder {
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
             note_args: BTreeMap::new(),
+            mock_chain: None,
         }
     }
 
@@ -224,11 +229,12 @@ impl TransactionContextBuilder {
             rng: ChaCha20Rng::from_seed([0_u8; 32]),
             tx_script: None,
             note_args: BTreeMap::new(),
+            mock_chain: None,
         }
     }
 
-    pub fn account_seed(mut self, account_seed: Word) -> Self {
-        self.account_seed = Some(account_seed);
+    pub fn account_seed(mut self, account_seed: Option<Word>) -> Self {
+        self.account_seed = account_seed;
         self
     }
 
@@ -629,9 +635,11 @@ impl TransactionContextBuilder {
     }
 
     pub fn build(self) -> TransactionContext {
-        let mut mock_chain = MockChainBuilder::new().notes(self.input_notes.clone()).build();
-        mock_chain.seal_block(None);
-        mock_chain.seal_block(None);
+        let mut mock_chain = if let Some(mock_chain) = self.mock_chain {
+            mock_chain
+        } else {
+            MockChainBuilder::new().notes(self.input_notes.clone()).build()
+        };
         mock_chain.seal_block(None);
 
         let mut tx_args = TransactionArgs::new(
@@ -659,6 +667,11 @@ impl TransactionContextBuilder {
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
         }
+    }
+
+    pub fn mock_chain(mut self, mock_chain: MockChain) -> TransactionContextBuilder {
+        self.mock_chain = Some(mock_chain);
+        self
     }
 }
 

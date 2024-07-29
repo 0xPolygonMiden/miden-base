@@ -96,9 +96,10 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build(mut self, assembler: &Assembler) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
-        self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.code(&self.code).storage_root(storage.root());
+
         let (account_id, seed) = self.account_id_builder.build(assembler)?;
+
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
 

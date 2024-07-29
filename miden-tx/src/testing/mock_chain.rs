@@ -267,13 +267,17 @@ impl MockChain {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
 
-    pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy()).nonce(Felt::ZERO);
+    pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .nonce(Felt::ZERO)
+            .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
-    pub fn add_existing_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy()).nonce(Felt::ONE);
+    pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
+        let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .nonce(Felt::ONE)
+            .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
     }
 
@@ -335,10 +339,12 @@ impl MockChain {
             Auth::RpoAuth => {
                 let (acc, seed, auth) =
                     account_builder.build_with_auth(&TransactionKernel::assembler()).unwrap();
+
                 let authenticator = BasicAuthenticator::<StdRng>::new(&[(
                     auth.public_key().into(),
                     AuthSecretKey::RpoFalcon512(auth),
                 )]);
+
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
@@ -372,6 +378,8 @@ impl MockChain {
 
         TransactionContextBuilder::new(mock_account.account().clone())
             .authenticator(mock_account.authenticator().clone())
+            .account_seed(mock_account.seed().cloned())
+            .mock_chain(self.clone())
     }
 
     pub fn get_transaction_inputs(
