@@ -31,7 +31,7 @@ use miden_objects::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, AdviceMap, ExecutionError, Felt, Process, Word};
-use winter_maybe_async::maybe_async;
+use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{
     executor::CodeExecutor,
@@ -71,6 +71,7 @@ impl TransactionContext {
     }
 
     /// Executes the transaction through a [TransactionExecutor]
+    #[maybe_async]
     pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let mock_data_store = MockDataStore::new(self.tx_inputs.clone());
 
@@ -80,8 +81,8 @@ impl TransactionContext {
             TransactionExecutor::new(mock_data_store, self.authenticator.map(Rc::new));
         let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
-        tx_executor.load_account(account_id)?;
-        tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args)
+        maybe_await!(tx_executor.load_account(account_id))?;
+        maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
     }
 
     pub fn account(&self) -> &Account {
@@ -685,8 +686,8 @@ impl MockDataStore {
     }
 }
 
-#[maybe_async]
 impl DataStore for MockDataStore {
+    #[maybe_async]
     fn get_transaction_inputs(
         &self,
         account_id: AccountId,
@@ -700,6 +701,7 @@ impl DataStore for MockDataStore {
         Ok(self.tx_inputs.clone())
     }
 
+    #[maybe_async]
     fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
         assert_eq!(account_id, self.tx_inputs.account().id());
         Ok(self.tx_inputs.account().code().module().clone())
