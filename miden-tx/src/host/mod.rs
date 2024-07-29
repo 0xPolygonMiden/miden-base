@@ -18,7 +18,7 @@ use vm_processor::{
 mod account_delta_tracker;
 use account_delta_tracker::AccountDeltaTracker;
 
-mod account_procs;
+pub mod account_procs;
 use account_procs::AccountProcedureIndexMap;
 
 mod note_builder;

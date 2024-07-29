@@ -10,7 +10,7 @@ use vm_processor::{
     ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
 };
 
-use super::account_procs::AccountProcedureIndexMap;
+use crate::host::account_procs::AccountProcedureIndexMap;
 
 // MOCK HOST
 // ================================================================================================
@@ -32,7 +32,7 @@ impl MockHost {
             AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
         Self {
             adv_provider,
-            acct_procedure_index_map: proc_index_map,
+            acct_procedure_index_map: proc_index_map.unwrap(),
         }
     }
 

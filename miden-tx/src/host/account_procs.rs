@@ -20,44 +20,51 @@ impl AccountProcedureIndexMap {
         adv_provider: &A,
     ) -> Result<Self, TransactionHostError> {
         // get the account procedures from the advice_map
-        let procs = adv_provider.get_mapped_values(&account_code_commitment).ok_or_else(|| {
-            TransactionHostError::AccountProcedureIndexMapError(
-                "Failed to read account procedure data from the advice provider".to_string(),
-            )
-        })?;
+        let proc_data =
+            adv_provider.get_mapped_values(&account_code_commitment).ok_or_else(|| {
+                TransactionHostError::AccountProcedureIndexMapError(
+                    "Failed to read account procedure data from the advice provider".to_string(),
+                )
+            })?;
 
         let mut result = BTreeMap::new();
 
         // sanity checks
 
         // check that there are procedures in the account code
-        if procs.is_empty() {
+        if proc_data.is_empty() {
             return Err(TransactionHostError::AccountProcedureIndexMapError(
                 "The account code does not contain any procedures.".to_string(),
             ));
         }
 
         // check that the account code does not contain too many procedures
-        if procs.len() > AccountCode::MAX_NUM_PROCEDURES {
+        if proc_data[0].as_int() > AccountCode::MAX_NUM_PROCEDURES as u64 {
             return Err(TransactionHostError::AccountProcedureIndexMapError(
                 "The account code contains too many procedures.".to_string(),
             ));
         }
 
         // check that the stored number of procedures matches the length of the procedures array
-        if procs[0].as_int() * 8 != procs.len() as u64 - 1 {
+        if proc_data[0].as_int() * AccountProcedureInfo::NUM_ELEMENTS_PER_PROC as u64
+            != proc_data.len() as u64 - 1
+        {
             return Err(TransactionHostError::AccountProcedureIndexMapError(
                 "Invalid number of procedures.".to_string(),
             ));
         }
 
-        // we skip procs[0] because it's the number of procedures
-        for (proc_idx, proc_info) in procs[1..].chunks_exact(8).enumerate() {
-            let proc_info_array: [Felt; 8] = proc_info.try_into().map_err(|_| {
-                TransactionHostError::AccountProcedureIndexMapError(
-                    "Invalid procedure info length.".to_string(),
-                )
-            })?;
+        // we skip proc_data[0] because it's the number of procedures
+        for (proc_idx, proc_info) in proc_data[1..]
+            .chunks_exact(AccountProcedureInfo::NUM_ELEMENTS_PER_PROC)
+            .enumerate()
+        {
+            let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
+                proc_info.try_into().map_err(|_| {
+                    TransactionHostError::AccountProcedureIndexMapError(
+                        "Invalid procedure info length.".to_string(),
+                    )
+                })?;
 
             let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
                 TransactionHostError::AccountProcedureIndexMapError(format!(
@@ -90,6 +97,13 @@ impl AccountProcedureIndexMap {
         process: &S,
     ) -> Result<u16, TransactionKernelError> {
         let proc_root = process.get_stack_word(0).into();
+
+        // mock account method for testing from root context
+        // TODO: figure out if we can get rid of this
+        if proc_root == Digest::default() {
+            return Ok(255);
+        }
+
         self.0
             .get(&proc_root)
             .cloned()
