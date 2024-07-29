@@ -21,4 +21,3 @@ jobs:
           NO_CHANGELOG_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'no changelog') }}
         run: ./scripts/check-changelog.sh "${{ inputs.changelog }}"
         shell: bash
-	
