@@ -31,21 +31,6 @@ use crate::{
     prove_and_verify_transaction,
 };
 
-fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
-    let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
-
-    let storage_item = SlotItem::new_value(0, 0, pub_key);
-
-    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_item(storage_item)
-        .account_type(AccountType::RegularAccountUpdatableCode)
-        .nonce(Felt::ZERO)
-        .build(&TransactionKernel::assembler())
-        .unwrap();
-
-    (account, seed, falcon_auth)
-}
-
 // P2ID TESTS
 // ===============================================================================================
 // We test the Pay to ID script. So we create a note that can only be consumed by the target
@@ -331,4 +316,22 @@ fn test_note_script_to_from_felt() {
     let decoded: NoteScript = encoded.try_into().unwrap();
 
     assert_eq!(note_script, decoded);
+}
+
+// HELPER FUNCTIONS
+// ===============================================================================================
+
+fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
+    let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
+
+    let storage_item = SlotItem::new_value(0, 0, pub_key);
+
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .add_storage_item(storage_item)
+        .account_type(AccountType::RegularAccountUpdatableCode)
+        .nonce(Felt::ZERO)
+        .build(&TransactionKernel::assembler())
+        .unwrap();
+
+    (account, seed, falcon_auth)
 }
