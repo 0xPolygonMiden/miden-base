@@ -39,11 +39,6 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
-    println!(
-        "faucet account is new {}, nonce {}",
-        faucet_account.is_new(),
-        faucet_account.nonce()
-    );
     let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
     let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
