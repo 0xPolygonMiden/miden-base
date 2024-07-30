@@ -27,7 +27,7 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{auth::TransactionAuthenticator, KERNEL_ERRORS};
+use crate::{auth::TransactionAuthenticator, ERROR_MESSAGES};
 
 // CONSTANTS
 // ================================================================================================
@@ -71,7 +71,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
         let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
-        let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
+        let kernel_assertion_errors = BTreeMap::from(ERROR_MESSAGES);
         Self {
             adv_provider,
             account_delta: AccountDeltaTracker::new(&account),
