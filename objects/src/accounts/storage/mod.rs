@@ -18,140 +18,145 @@ pub use map::StorageMap;
 /// Depth of the storage tree.
 pub const STORAGE_TREE_DEPTH: u8 = 8;
 
-// TYPE ALIASES
-// ================================================================================================
-
-/// Represents a single storage slot item.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct SlotItem {
-    /// The index this item will occupy in the [AccountStorage] tree.
-    pub index: u8,
-
-    /// The type and value of the item.
-    pub slot: StorageSlot,
-}
-
-impl SlotItem {
-    /// Returns a new [SlotItem] with the [StorageSlotType::Value] type.
-    pub fn new_value(index: u8, arity: u8, value: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Value { value_arity: arity },
-                value,
-            },
-        }
-    }
-
-    /// Returns a new [SlotItem] with the [StorageSlotType::Map] type.
-    pub fn new_map(index: u8, arity: u8, root: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Map { value_arity: arity },
-                value: root,
-            },
-        }
-    }
-
-    /// Returns a new [SlotItem] with the [StorageSlotType::Array] type.
-    ///
-    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
-    pub fn new_array(index: u8, arity: u8, log_n: u8, root: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Array { depth: log_n, value_arity: arity },
-                value: root,
-            },
-        }
-    }
-}
-
-/// Represents a single storage slot entry.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct StorageSlot {
-    /// The type of the value
-    pub slot_type: StorageSlotType,
-
-    /// The value itself.
-    ///
-    /// The value can be a raw value or a commitment to the underlying data structure.
-    pub value: Word,
-}
-
-impl StorageSlot {
-    /// Returns a new [StorageSlot] with the provided value.
-    ///
-    /// The value arity for the slot is set to 0.
-    pub fn new_value(value: Word) -> Self {
-        Self {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value,
-        }
-    }
-
-    /// Returns a new [StorageSlot] with a map defined by the provided root.
-    ///
-    /// The value arity for the slot is set to 0.
-    pub fn new_map(root: Word) -> Self {
-        Self {
-            slot_type: StorageSlotType::Map { value_arity: 0 },
-            value: root,
-        }
-    }
-
-    /// Returns a new [StorageSlot] with an array defined by the provided root and the number of
-    /// elements.
-    ///
-    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
-    pub fn new_array(root: Word, log_n: u8) -> Self {
-        Self {
-            slot_type: StorageSlotType::Array { depth: log_n, value_arity: 0 },
-            value: root,
-        }
-    }
-}
+// // TYPE ALIASES
+// // ================================================================================================
+//
+// /// Represents a single storage slot item.
+// #[derive(Debug, Clone)]
+// #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+// pub struct SlotItem {
+//     /// The index this item will occupy in the [AccountStorage] tree.
+//     pub index: u8,
+//
+//     /// The type and value of the item.
+//     pub slot: StorageSlot,
+// }
+//
+// impl SlotItem {
+//     /// Returns a new [SlotItem] with the [StorageSlotType::Value] type.
+//     pub fn new_value(index: u8, arity: u8, value: Word) -> Self {
+//         Self {
+//             index,
+//             slot: StorageSlot {
+//                 slot_type: StorageSlotType::Value { value_arity: arity },
+//                 value,
+//             },
+//         }
+//     }
+//
+//     /// Returns a new [SlotItem] with the [StorageSlotType::Map] type.
+//     pub fn new_map(index: u8, arity: u8, root: Word) -> Self {
+//         Self {
+//             index,
+//             slot: StorageSlot {
+//                 slot_type: StorageSlotType::Map { value_arity: arity },
+//                 value: root,
+//             },
+//         }
+//     }
+//
+//     /// Returns a new [SlotItem] with the [StorageSlotType::Array] type.
+//     ///
+//     /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
+//     pub fn new_array(index: u8, arity: u8, log_n: u8, root: Word) -> Self {
+//         Self {
+//             index,
+//             slot: StorageSlot {
+//                 slot_type: StorageSlotType::Array { depth: log_n, value_arity: arity },
+//                 value: root,
+//             },
+//         }
+//     }
+// }
+//
+// /// Represents a single storage slot entry.
+// #[derive(Debug, Clone)]
+// #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+// pub struct StorageSlot {
+//     /// The type of the value
+//     pub slot_type: StorageSlotType,
+//
+//     /// The value itself.
+//     ///
+//     /// The value can be a raw value or a commitment to the underlying data structure.
+//     pub value: Word,
+// }
+//
+// impl StorageSlot {
+//     /// Returns a new [StorageSlot] with the provided value.
+//     ///
+//     /// The value arity for the slot is set to 0.
+//     pub fn new_value(value: Word) -> Self {
+//         Self {
+//             slot_type: StorageSlotType::Value { value_arity: 0 },
+//             value,
+//         }
+//     }
+//
+//     /// Returns a new [StorageSlot] with a map defined by the provided root.
+//     ///
+//     /// The value arity for the slot is set to 0.
+//     pub fn new_map(root: Word) -> Self {
+//         Self {
+//             slot_type: StorageSlotType::Map { value_arity: 0 },
+//             value: root,
+//         }
+//     }
+//
+//     /// Returns a new [StorageSlot] with an array defined by the provided root and the number of
+//     /// elements.
+//     ///
+//     /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
+//     pub fn new_array(root: Word, log_n: u8) -> Self {
+//         Self {
+//             slot_type: StorageSlotType::Array { depth: log_n, value_arity: 0 },
+//             value: root,
+//         }
+//     }
+// }
 
 // ACCOUNT STORAGE
 // ================================================================================================
 
-/// Account storage consists of 256 index-addressable storage slots.
-///
-/// Each slot has a type which defines the size and the structure of the slot. Currently, the
-/// following types are supported:
-/// - Scalar: a sequence of up to 256 words.
-/// - Array: a sparse array of up to 2^n values where n > 1 and n <= 64 and each value contains up
-///   to 256 words.
-/// - Map: a key-value map where keys are words and values contain up to 256 words.
-///
-/// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
-/// and contains information about slot types of all other slots.
-///
-/// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
-/// they can hold more data as there is in plain usage of the storage slots. The root of the SMT
-/// consumes one storage slot.
+// /// Account storage consists of 256 index-addressable storage slots.
+// ///
+// /// Each slot has a type which defines the size and the structure of the slot. Currently, the
+// /// following types are supported:
+// /// - Scalar: a sequence of up to 256 words.
+// /// - Array: a sparse array of up to 2^n values where n > 1 and n <= 64 and each value contains up
+// ///   to 256 words.
+// /// - Map: a key-value map where keys are words and values contain up to 256 words.
+// ///
+// /// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
+// /// and contains information about slot types of all other slots.
+// ///
+// /// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
+// /// they can hold more data as there is in plain usage of the storage slots. The root of the SMT
+// /// consumes one storage slot.
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub struct AccountStorage {
+//     slots: SimpleSmt<STORAGE_TREE_DEPTH>,
+//     layout: Vec<StorageSlotType>,
+//     maps: BTreeMap<u8, StorageMap>,
+// }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
-    slots: SimpleSmt<STORAGE_TREE_DEPTH>,
-    layout: Vec<StorageSlotType>,
-    maps: BTreeMap<u8, StorageMap>,
+    slots: Vec<StorageSlot>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StorageSlot {
+    Value(Word),
+    Map(StorageMap),
 }
 
 impl AccountStorage {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
 
-    /// Depth of the storage tree.
-    pub const STORAGE_TREE_DEPTH: u8 = STORAGE_TREE_DEPTH;
-
     /// Total number of storage slots.
     pub const NUM_STORAGE_SLOTS: usize = 256;
-
-    /// The storage slot at which the layout commitment is stored.
-    pub const SLOT_LAYOUT_COMMITMENT_INDEX: u8 = 255;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
