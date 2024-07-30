@@ -4,7 +4,7 @@ comments: true
 
 The Miden transaction executor is the component that executes transactions. 
 
-Transaction execution consists of the following steps and results in a `ExecutedTransaction` object:
+Transaction execution consists of the following steps and results in an `ExecutedTransaction` object:
 
 1. Fetch the data required to execute a transaction from the data store.
 2. Compile the transaction into an executable [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) program using the transaction compiler.
