@@ -410,8 +410,11 @@ proc.validate_account_procedures
   # => [num_procs, CODE_COMMITMENT]
 
   # assert that account does not exceed allowed maximum number of procedures
-  # and store number of procedures in memory
-  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES dup exec.memory::set_num_account_procedures
+  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+  # => [num_procs, CODE_COMMITMENT]
+
+  # store number of procedures in memory
+  dup exec.memory::set_num_account_procedures
   # => [num_procs, CODE_COMMITMENT]
 
   # setup acct_proc_offset and end_ptr for reading from advice stack
