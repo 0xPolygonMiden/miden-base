@@ -326,15 +326,15 @@ fn add_input_notes_to_advice_inputs(
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.origin().node_index.value(), note.hash())
+                        .inner_nodes(proof.location().node_index.value(), note.hash())
                         .unwrap(),
                 );
-                note_data.push(proof.origin().block_num.into());
+                note_data.push(proof.location().block_num.into());
                 note_data.extend(*proof.sub_hash());
                 note_data.extend(*proof.note_root());
                 note_data.push(
                     proof
-                        .origin()
+                        .location()
                         .node_index
                         .value()
                         .try_into()

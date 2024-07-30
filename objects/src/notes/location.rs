@@ -6,10 +6,10 @@ use super::{
 };
 use crate::crypto::merkle::{MerklePath, NodeIndex};
 
-/// Contains information about the origin of a note.
+/// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct NoteOrigin {
+pub struct NoteLocation {
     /// The block number the note was created in.
     pub block_num: u32,
 
@@ -21,8 +21,8 @@ pub struct NoteOrigin {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInclusionProof {
-    /// Details about the note's origin.
-    origin: NoteOrigin,
+    /// Details about the note's location.
+    location: NoteLocation,
 
     /// The sub hash of the block the note was created in.
     sub_hash: Digest,
@@ -44,9 +44,9 @@ impl NoteInclusionProof {
         note_path: MerklePath,
     ) -> Result<Self, NoteError> {
         let node_index = NodeIndex::new(NOTE_TREE_DEPTH, index)
-            .map_err(|e| NoteError::invalid_origin_index(e.to_string()))?;
+            .map_err(|e| NoteError::invalid_location_index(e.to_string()))?;
         Ok(Self {
-            origin: NoteOrigin { block_num, node_index },
+            location: NoteLocation { block_num, node_index },
             sub_hash,
             note_root,
             note_path,
@@ -66,9 +66,9 @@ impl NoteInclusionProof {
         self.note_root
     }
 
-    /// Returns the origin of the note.
-    pub fn origin(&self) -> &NoteOrigin {
-        &self.origin
+    /// Returns the location of the note.
+    pub fn location(&self) -> &NoteLocation {
+        &self.location
     }
 
     /// Returns the Merkle path to the note in the note Merkle tree of the block the note was
@@ -81,14 +81,14 @@ impl NoteInclusionProof {
 // SERIALIZATION
 // ================================================================================================
 
-impl Serializable for NoteOrigin {
+impl Serializable for NoteLocation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u32(self.block_num);
         self.node_index.write_into(target);
     }
 }
 
-impl Deserializable for NoteOrigin {
+impl Deserializable for NoteLocation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block_num = source.read_u32()?;
         let node_index = NodeIndex::read_from(source)?;
@@ -99,7 +99,7 @@ impl Deserializable for NoteOrigin {
 
 impl Serializable for NoteInclusionProof {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.origin.write_into(target);
+        self.location.write_into(target);
         self.sub_hash.write_into(target);
         self.note_root.write_into(target);
         self.note_path.write_into(target);
@@ -108,11 +108,11 @@ impl Serializable for NoteInclusionProof {
 
 impl Deserializable for NoteInclusionProof {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let origin = NoteOrigin::read_from(source)?;
+        let location = NoteLocation::read_from(source)?;
         let sub_hash = Digest::read_from(source)?;
         let note_root = Digest::read_from(source)?;
         let note_path = MerklePath::read_from(source)?;
 
-        Ok(Self { origin, sub_hash, note_root, note_path })
+        Ok(Self { location, sub_hash, note_root, note_path })
     }
 }
