@@ -24,7 +24,7 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, SlotItem, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{AccountStorage, StorageMap, StorageSlot, StorageSlotType};
 
 mod stub;
 pub use stub::AccountStub;

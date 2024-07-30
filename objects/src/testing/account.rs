@@ -22,7 +22,7 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
         StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
