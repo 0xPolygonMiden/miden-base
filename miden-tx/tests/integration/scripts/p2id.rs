@@ -270,7 +270,7 @@ fn test_execute_prove_new_account() {
     .unwrap();
 
     let tx_context = TransactionContextBuilder::new(target_account.clone())
-        .account_seed(seed)
+        .account_seed(Some(seed))
         .input_notes(vec![note.clone()])
         .build();
 

@@ -178,12 +178,12 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     pub fn execute_transaction(
         &self,
         account_id: AccountId,
-        block_ref: u32,
+        block_num: u32,
         notes: &[NoteId],
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let transaction =
-            maybe_await!(self.prepare_transaction(account_id, block_ref, notes, tx_args))?;
+            maybe_await!(self.prepare_transaction(account_id, block_num, notes, tx_args))?;
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();

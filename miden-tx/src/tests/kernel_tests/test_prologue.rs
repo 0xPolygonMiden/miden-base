@@ -344,7 +344,7 @@ pub fn test_prologue_create_account() {
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
         .build(&TransactionKernel::assembler())
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -367,7 +367,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
@@ -395,7 +395,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         Felt::ZERO,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
-    .account_seed(account_seed)
+    .account_seed(Some(account_seed))
     .build();
 
     let code = "
@@ -420,7 +420,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
@@ -446,7 +446,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
@@ -484,7 +484,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(account_seed)
+        .account_seed(Some(account_seed))
         .advice_inputs(adv_inputs)
         .build();
 

@@ -6,7 +6,7 @@ use alloc::{
 use core::fmt::Display;
 
 use assembly::Assembler;
-use miden_crypto::merkle::MerkleError;
+use miden_crypto::{dsa::rpo_falcon512::SecretKey, merkle::MerkleError};
 use rand::Rng;
 use vm_core::FieldElement;
 
@@ -96,9 +96,10 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build(mut self, assembler: &Assembler) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
-        self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.code(&self.code).storage_root(storage.root());
+
         let (account_id, seed) = self.account_id_builder.build(assembler)?;
+
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
 
@@ -149,6 +150,18 @@ impl<T: Rng> AccountBuilder<T> {
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
+    }
+
+    pub fn build_with_auth(
+        self,
+        assembler: &Assembler,
+    ) -> Result<(Account, Word, SecretKey), AccountBuilderError> {
+        let sec_key = SecretKey::new();
+        let pub_key: Word = sec_key.public_key().into();
+
+        let storage_item = SlotItem::new_value(0, 0, pub_key);
+        let (account, seed) = self.add_storage_item(storage_item).build(assembler)?;
+        Ok((account, seed, sec_key))
     }
 }
 
