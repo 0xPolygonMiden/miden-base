@@ -1,12 +1,7 @@
-use core::usize;
-
 use alloc::string::ToString;
 
 use miden_lib::transaction::TransactionKernelError;
-use miden_objects::{
-    accounts::{AccountCode, AccountProcedureInfo},
-    StarkField,
-};
+use miden_objects::accounts::{AccountCode, AccountProcedureInfo};
 
 use super::{AdviceProvider, BTreeMap, Digest, Felt, ProcessState};
 use crate::error::TransactionHostError;
