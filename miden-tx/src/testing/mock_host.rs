@@ -10,7 +10,7 @@ use vm_processor::{
     ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
 };
 
-use crate::host::account_procs::AccountProcedureIndexMap;
+use crate::host::AccountProcedureIndexMap;
 
 // MOCK HOST
 // ================================================================================================

@@ -27,6 +27,8 @@ impl AccountProcedureIndexMap {
                 )
             })?;
 
+        let num_procs = proc_data[0].as_int() as usize;
+
         let mut result = BTreeMap::new();
 
         // sanity checks
@@ -39,16 +41,14 @@ impl AccountProcedureIndexMap {
         }
 
         // check that the account code does not contain too many procedures
-        if proc_data[0].as_int() > AccountCode::MAX_NUM_PROCEDURES as u64 {
+        if num_procs > AccountCode::MAX_NUM_PROCEDURES {
             return Err(TransactionHostError::AccountProcedureIndexMapError(
                 "The account code contains too many procedures.".to_string(),
             ));
         }
 
         // check that the stored number of procedures matches the length of the procedures array
-        if proc_data[0].as_int() * AccountProcedureInfo::NUM_ELEMENTS_PER_PROC as u64
-            != proc_data.len() as u64 - 1
-        {
+        if num_procs * AccountProcedureInfo::NUM_ELEMENTS_PER_PROC != proc_data.len() - 1 {
             return Err(TransactionHostError::AccountProcedureIndexMapError(
                 "Invalid number of procedures.".to_string(),
             ));
@@ -60,25 +60,16 @@ impl AccountProcedureIndexMap {
             .enumerate()
         {
             let proc_info_array: [Felt; AccountProcedureInfo::NUM_ELEMENTS_PER_PROC] =
-                proc_info.try_into().map_err(|_| {
-                    TransactionHostError::AccountProcedureIndexMapError(
-                        "Invalid procedure info length.".to_string(),
-                    )
-                })?;
+                proc_info.try_into().expect("Failed conversion into procedure info array.");
 
             let procedure = AccountProcedureInfo::try_from(proc_info_array).map_err(|e| {
                 TransactionHostError::AccountProcedureIndexMapError(format!(
-                    "Failed to create AccountProcedure: {:?}",
+                    "Failed to create AccountProcedureInfo: {:?}",
                     e
                 ))
             })?;
 
-            let proc_idx = u16::try_from(proc_idx).map_err(|_| {
-                TransactionHostError::AccountProcedureIndexMapError(format!(
-                    "Invalid procedure index: {}",
-                    proc_idx
-                ))
-            })?;
+            let proc_idx = u16::try_from(proc_idx).expect("Invalid procedure index.");
 
             result.insert(*procedure.mast_root(), proc_idx);
         }
