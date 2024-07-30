@@ -641,7 +641,9 @@ impl TransactionContextBuilder {
         } else {
             MockChainBuilder::new().notes(self.input_notes.clone()).build()
         };
-        mock_chain.seal_block(None);
+        for _ in 0..4 {
+            mock_chain.seal_block(None);
+        }
 
         let mut tx_args = TransactionArgs::new(
             self.tx_script,
