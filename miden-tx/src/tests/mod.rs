@@ -427,6 +427,141 @@ fn test_empty_delta_nonce_update() {
 }
 
 #[test]
+fn test_send_note_proc() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .build();
+
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let account_id = tx_context.tx_inputs().account().id();
+    executor.load_account(account_id).unwrap();
+
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+
+    let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
+
+    let tag = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionHint::Local,
+    )
+    .unwrap();
+
+    let aux = Felt::new(27);
+
+    let note_type = NoteType::Private;
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
+    let tx_script = format!(
+        "\
+        use.miden::account
+        use.miden::contracts::wallets::basic->wallet
+        use.miden::tx
+
+        ## ACCOUNT PROCEDURE WRAPPERS
+        ## ========================================================================================
+        proc.incr_nonce
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            # => [0]
+
+            drop
+            # => []
+        end
+
+        ## TRANSACTION SCRIPT
+        ## ========================================================================================
+        begin
+            dropw
+            # store assets to the memory 
+            push.{REMOVED_ASSET_1} mem_storew.1000 dropw # asset 1
+            push.{REMOVED_ASSET_2} mem_storew.1001 dropw # asset 2
+            push.{REMOVED_ASSET_3} mem_storew.1002 dropw # asset 3
+
+            push.1000.0      # assets pointer and number of assets  
+            push.0.1.2.3     # recipient
+            push.{NOTETYPE}  # note_type
+            push.{aux}       # aux
+            push.{tag}       # tag
+
+            call.wallet::send_note 
+            dropw dropw dropw dropw
+
+            ## Update the account nonce
+            ## ------------------------------------------------------------------------------------
+            push.1 exec.incr_nonce drop
+            # => []
+        end
+    ",
+        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
+        NOTETYPE = note_type as u8,
+    );
+    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    // expected delta
+    // --------------------------------------------------------------------------------------------
+    // execute the transaction and get the witness
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+    // nonce delta
+    // --------------------------------------------------------------------------------------------
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+
+    // storage delta
+    // --------------------------------------------------------------------------------------------
+    // We expect one updated item and one updated map
+    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 0);
+
+    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 0);
+
+    // vault delta
+    // --------------------------------------------------------------------------------------------
+    // assert that removed assets are tracked
+    assert!(executed_transaction
+        .account_delta()
+        .vault()
+        .removed_assets
+        .iter()
+        .all(|x| removed_assets.contains(x)));
+    assert_eq!(
+        removed_assets.len(),
+        executed_transaction.account_delta().vault().removed_assets.len()
+    );
+}
+
+#[test]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
