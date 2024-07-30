@@ -73,7 +73,7 @@ fn transaction_executor_witness() {
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
     let _authenticator = ();
     let mut host: TransactionHost<MemAdviceProvider, ()> =
-        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None);
+        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None).unwrap();
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -262,7 +262,7 @@ fn executed_transaction_account_delta() {
 
             ## Update account code
             ## ------------------------------------------------------------------------------------
-            push.{NEW_ACCOUNT_ROOT} exec.set_code dropw
+            push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw
             # => []
 
             ## Update the account nonce
@@ -271,7 +271,7 @@ fn executed_transaction_account_delta() {
             # => []
         end
     ",
-        NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
+        NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
         UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
@@ -382,11 +382,11 @@ fn test_empty_delta_nonce_update() {
     let tx_script = format!(
         "\
         begin
-            push.1 
-            
+            push.1
+
             call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
             # => [0, 1]
-            
+
             drop drop
             # => []
         end

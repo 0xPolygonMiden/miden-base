@@ -1,6 +1,7 @@
-use.std::collections::smt
+use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::native
+use.std::collections::smt
 
 use.miden::kernels::tx::account
 use.miden::kernels::tx::asset_vault
@@ -70,6 +71,12 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
+
+# Computed account code hash does not match recorded account code hash
+const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
+
+# Number of account procedures exceeded the maximum limit of 65535
+const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -384,6 +391,57 @@ proc.validate_new_account
     # => []
 end
 
+#! Validates that account procedures match account code commitment and saves procedure information
+#! into memory.
+#!
+#! This is achieved by reading account procedure information from the advice map, saving it into
+#! memory, and sequentially hashing them before comparing the final hash to the account code
+#! commitment.
+#!
+#! Information for each saved procedure consists of the procedure's MAST root and the storage
+#! offset associated with this procedure.
+#!
+#! Stack: [CODE_COMMITMENT]
+#! Output: []
+proc.validate_account_procedures
+  # move procedure data from the advice map to the advice stack and then push the number of
+  # procedures onto the operand stack before storing it in memory
+  adv.push_mapval adv_push.1
+  # => [num_procs, CODE_COMMITMENT]
+
+  # assert that account does not exceed allowed maximum number of procedures
+  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+  # => [num_procs, CODE_COMMITMENT]
+
+  # store number of procedures in memory
+  dup exec.memory::set_num_account_procedures
+  # => [num_procs, CODE_COMMITMENT]
+
+  # setup acct_proc_offset and end_ptr for reading from advice stack
+  mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
+  # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+
+  # pad stack before reading from advice stack
+  padw padw padw
+  # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+
+  # read the data from advice stack to memory and hash
+  exec.mem::pipe_double_words_to_memory
+  # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
+
+  # extract the digest
+  exec.native::state_to_digest
+  # => [DIGEST, end_ptr, CODE_COMMITMENT]
+
+  # drop end_ptr
+  movup.4 drop
+  # => [DIGEST, CODE_COMMITMENT]
+
+  # verify hashed account procedures match account code commitment
+  assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
+  # => []
+end
+
 #! Saves the account data to memory and validates it.
 #!
 #! This procedure will:
@@ -396,7 +454,7 @@ end
 #!   and the account nonce is not zero
 #!
 #! Stack: []
-#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
+#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_COMMITMENT]
 #! Output: []
 #!
 #! Where:
@@ -404,7 +462,7 @@ end
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
     # Copy the account data from the advice stack to memory and hash it
     # ---------------------------------------------------------------------------------------------
@@ -472,10 +530,13 @@ proc.process_account_data
     exec.memory::set_init_nonce
     # => []
 
-    # set the new account code root to the initial account code root this is used for managing
-    # code root updates
-    exec.memory::get_acct_code_root
-    exec.memory::set_new_acct_code_root dropw
+    # set the new account code commitment to the initial account code root this is used for managing
+    # code commitment updates
+    exec.memory::get_acct_code_commitment
+    exec.memory::set_new_acct_code_commitment
+
+    # validates and stores account procedures in memory.
+    exec.validate_account_procedures
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset
@@ -1040,7 +1101,7 @@ end
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_ROOT,
-#!     ACCOUNT_CODE_ROOT,
+#!     ACCOUNT_CODE_COMMITMENT,
 #!     number_of_input_notes,
 #!     TX_SCRIPT_ROOT,
 #! ]
@@ -1068,7 +1129,7 @@ end
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
 #! - MMR_PEAKS, is the MMR peak data, see process_chain_data

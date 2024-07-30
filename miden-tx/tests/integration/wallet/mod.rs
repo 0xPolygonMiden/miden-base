@@ -223,13 +223,13 @@ fn wallet_creation() {
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let expected_code_root =
+    let expected_code_commitment =
         get_account_with_default_account_code(sender_account_id, pub_key.into(), None)
             .code()
-            .root();
+            .commitment();
 
     assert!(wallet.is_regular_account());
-    assert_eq!(wallet.code().root(), expected_code_root);
+    assert_eq!(wallet.code().commitment(), expected_code_commitment);
     let pub_key_word: Word = pub_key.into();
     assert_eq!(wallet.storage().get_item(0).as_elements(), pub_key_word);
 }

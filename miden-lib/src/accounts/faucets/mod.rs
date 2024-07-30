@@ -79,7 +79,7 @@ pub fn create_basic_fungible_faucet(
         init_seed,
         AccountType::FungibleFaucet,
         account_storage_type,
-        account_code.root(),
+        account_code.commitment(),
         account_storage.root(),
     )?;
 

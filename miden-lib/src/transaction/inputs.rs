@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::Account,
+    accounts::{Account, AccountProcedureInfo},
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
@@ -116,7 +116,7 @@ fn extend_advice_inputs(
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
 ///     ACCOUNT_STORAGE_ROOT,
-///     ACCOUNT_CODE_ROOT,
+///     ACCOUNT_CODE_COMMITMENT,
 ///     number_of_input_notes,
 ///     TX_SCRIPT_ROOT,
 /// ]
@@ -149,7 +149,7 @@ fn build_advice_stack(
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
     inputs.extend_stack(account.storage().root());
-    inputs.extend_stack(account.code().root());
+    inputs.extend_stack(account.code().commitment());
 
     // push the number of input notes onto the stack
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
@@ -195,12 +195,11 @@ fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
 /// Inserts the following items into the Merkle store:
 /// - The Merkle nodes associated with the storage slots tree.
 /// - The Merkle nodes associated with the account vault tree.
-/// - The Merkle nodes associated with the account code procedures tree.
 /// - If present, the Merkle nodes associated with the account storage maps.
 ///
 /// Inserts the following entries into the advice map:
 /// - The storage types commitment |-> storage slot types vector.
-/// - The account procedure root |-> procedure index, for each account procedure.
+/// - The account code commitment |-> procedures as elements and length.
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id, 0, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
@@ -245,8 +244,11 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
-    // extend the merkle store with account code tree
-    inputs.extend_merkle_store(code.procedure_tree().inner_nodes());
+    // extend the advice_map with the account code data and number of procedures
+    let num_procs = code.as_elements().len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
+    let mut procs = code.as_elements();
+    procs.insert(0, Felt::from(num_procs as u32));
+    inputs.extend_map([(code.commitment(), procs)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

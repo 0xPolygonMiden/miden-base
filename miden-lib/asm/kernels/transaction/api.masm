@@ -50,10 +50,11 @@ proc.authenticate_account_origin
 
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
-    # => [CALLER, ...]
+    # => [storage_offset, ...]
 
-    # drop the caller
-    dropw
+    # TODO: use the storage_offset for storage access
+    # drop the storage_offset
+    drop
     # => [...]
 end
 
@@ -260,18 +261,18 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [CODE_ROOT]
+    # => [CODE_COMMITMENT]
 
     # arrange stack
     padw swapw
-    # => [CODE_ROOT, 0, 0, 0, 0]
+    # => [CODE_COMMITMENT, 0, 0, 0, 0]
 
     # set the account code
     exec.account::set_code
