@@ -27,8 +27,6 @@ impl AccountProcedureIndexMap {
                 )
             })?;
 
-        let num_procs = proc_data[0].as_int() as usize;
-
         let mut result = BTreeMap::new();
 
         // sanity checks
@@ -39,6 +37,8 @@ impl AccountProcedureIndexMap {
                 "The account code does not contain any procedures.".to_string(),
             ));
         }
+
+        let num_procs = proc_data[0].as_int() as usize;
 
         // check that the account code does not contain too many procedures
         if num_procs > AccountCode::MAX_NUM_PROCEDURES {
