@@ -489,7 +489,7 @@ fn test_get_inputs_hash() {
     .to_vec();
     expected_15.reverse();
 
-    let mut expected_stack = vec![Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
+    let mut expected_stack = vec![ZERO, ZERO, ZERO, ZERO];
     expected_stack.extend_from_slice(&expected_15);
     expected_stack.extend_from_slice(&expected_8);
     expected_stack.extend_from_slice(&expected_5);

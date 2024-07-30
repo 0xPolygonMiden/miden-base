@@ -4,9 +4,10 @@ use crate::accounts::AccountCode;
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 11] = [
+const MASTS: [&str; 12] = [
     "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
     "0x52fd1b2cdbffd91778bc4c31ff939a03c8921461a628bdd91fe3e0a1d3be2b50",
+    "0xa2c23e054de8066c5b0e4ba382ab0882f26632d23abd5a0f9fafe2bee4442d94",
     "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
     "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
     "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
@@ -18,15 +19,15 @@ const MASTS: [&str; 11] = [
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
-pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
-pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
-pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
-pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[8];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
+pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[3];
+pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[4];
+pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[5];
+pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[6];
+pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[8];
+pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[9];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[10];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[11];
 
 pub const CODE: &str = "
     export.foo
@@ -70,6 +71,8 @@ impl AccountCode {
         export.wallet::receive_asset
         # acct proc 1
         export.wallet::send_asset
+        # acct proc 2
+        export.wallet::send_note
 
         # acct proc 2
         export.incr_nonce
@@ -164,8 +167,9 @@ impl AccountCode {
             code.procedures()[8].mast_root().to_hex(),
             code.procedures()[9].mast_root().to_hex(),
             code.procedures()[10].mast_root().to_hex(),
+            code.procedures()[11].mast_root().to_hex(),
         ];
-        assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
+        assert!(current == MASTS, "const MASTS: [&str; 12] = {:?};", current);
 
         code
     }
