@@ -2,8 +2,8 @@ use alloc::vec::Vec;
 use vm_core::{EMPTY_WORD, ONE, ZERO};
 
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
-    Hasher, Serializable, Word,
+    AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
 
 mod slot;
@@ -35,9 +35,6 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// Total number of storage slots.
     pub const NUM_STORAGE_SLOTS: usize = 256;
 
@@ -85,44 +82,13 @@ impl AccountStorage {
     ///
     /// This method assumes that the delta has been validated by the calling method and so, no
     /// additional validation of delta is performed.
-    ///
-    /// Returns an error if:
-    /// - The delta implies an update to a reserved account slot.
-    /// - The updates violate storage layout constraints.
-    /// - The updated value has an arity different from 0.
-    // pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-    //     // --- update storage maps --------------------------------------------
-    //
-    //     for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-    //         let storage_map =
-    //             self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
-    //
-    //         let new_root = storage_map.apply_delta(map_delta)?;
-    //
-    //         let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
-    //         self.slots.insert(index, new_root.into());
-    //     }
-    //
-    //     // --- update storage slots -------------------------------------------
-    //
-    //     for &slot_idx in delta.cleared_items.iter() {
-    //         self.set_item(slot_idx, Word::default())?;
-    //     }
-    //
-    //     for &(slot_idx, slot_value) in delta.updated_items.iter() {
-    //         self.set_item(slot_idx, slot_value)?;
-    //     }
-    //
-    //     Ok(())
-    // }
+    pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) {
+        for (idx, storage_slot) in delta.items() {
+            self.set_item(*idx, storage_slot.clone())
+        }
+    }
 
     /// Updates the value of the storage slot at the specified index.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The index specifies a reserved storage slot.
-    /// - The update tries to set a slot of type array.
-    /// - The update has a value arity different from 0.
     pub fn set_item(&mut self, index: u8, storage_slot: StorageSlot) {
         self.slots[index as usize] = storage_slot;
     }
@@ -131,7 +97,7 @@ impl AccountStorage {
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-/// Convers given slots into field elements
+/// Converts given slots into field elements
 fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
     slots
         .iter()
