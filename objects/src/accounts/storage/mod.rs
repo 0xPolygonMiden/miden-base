@@ -90,6 +90,10 @@ impl AccountStorage {
 
     /// Updates the value of the storage slot at the specified index.
     pub fn set_item(&mut self, index: u8, storage_slot: StorageSlot) {
+        // make sure index is in bound
+        // TODO: Make it a Resul<> and throw an error if index is out of bounds
+        let _num_storage_slots = self.slots.len();
+
         self.slots[index as usize] = storage_slot;
     }
 }
