@@ -59,6 +59,7 @@ impl std::error::Error for AccountError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
+    UpdateIndexOutOfBounds(usize),
     DuplicateStorageItemUpdate(usize),
     DuplicateVaultUpdate(Asset),
     InconsistentNonceUpdate(String),

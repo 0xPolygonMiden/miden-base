@@ -10,7 +10,7 @@ mod builder;
 pub use builder::AccountStorageDeltaBuilder;
 
 mod storage;
-pub use storage::{AccountStorageDelta, StorageMapDelta};
+pub use storage::AccountStorageDelta;
 
 mod vault;
 pub use vault::AccountVaultDelta;
@@ -244,16 +244,12 @@ fn validate_nonce(
 #[cfg(test)]
 mod tests {
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::{ONE, ZERO};
+    use crate::{accounts::StorageSlot, ONE, ZERO};
 
     #[test]
     fn account_delta_nonce_validation() {
         // empty delta
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![],
-            updated_items: vec![],
-            updated_maps: vec![],
-        };
+        let storage_delta = AccountStorageDelta { items: vec![] };
 
         let vault_delta = AccountVaultDelta {
             added_assets: vec![],
@@ -265,9 +261,7 @@ mod tests {
 
         // non-empty delta
         let storage_delta = AccountStorageDelta {
-            cleared_items: vec![1],
-            updated_items: vec![],
-            updated_maps: vec![],
+            items: vec![(0, StorageSlot::Value([ONE, ZERO, ONE, ZERO]))],
         };
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());

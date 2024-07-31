@@ -1,13 +1,13 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 use vm_core::{EMPTY_WORD, ONE, ZERO};
 
 use super::{
-    AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Digest, Felt, Hasher, Serializable, Word,
+    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
+    Hasher, Serializable, Word,
 };
 
 mod slot;
-use slot::StorageSlot;
+pub use slot::StorageSlot;
 
 mod map;
 pub use map::StorageMap;
@@ -60,6 +60,11 @@ impl AccountStorage {
         self.commitment
     }
 
+    /// Returns a reference to the slots of this storage.
+    pub fn slots(&self) -> &[StorageSlot] {
+        &self.slots
+    }
+
     /// Returns an item from the storage at the specified index.
     ///
     /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
@@ -85,31 +90,31 @@ impl AccountStorage {
     /// - The delta implies an update to a reserved account slot.
     /// - The updates violate storage layout constraints.
     /// - The updated value has an arity different from 0.
-    pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-        // --- update storage maps --------------------------------------------
-
-        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-            let storage_map =
-                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
-
-            let new_root = storage_map.apply_delta(map_delta)?;
-
-            let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
-            self.slots.insert(index, new_root.into());
-        }
-
-        // --- update storage slots -------------------------------------------
-
-        for &slot_idx in delta.cleared_items.iter() {
-            self.set_item(slot_idx, Word::default())?;
-        }
-
-        for &(slot_idx, slot_value) in delta.updated_items.iter() {
-            self.set_item(slot_idx, slot_value)?;
-        }
-
-        Ok(())
-    }
+    // pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
+    //     // --- update storage maps --------------------------------------------
+    //
+    //     for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+    //         let storage_map =
+    //             self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+    //
+    //         let new_root = storage_map.apply_delta(map_delta)?;
+    //
+    //         let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
+    //         self.slots.insert(index, new_root.into());
+    //     }
+    //
+    //     // --- update storage slots -------------------------------------------
+    //
+    //     for &slot_idx in delta.cleared_items.iter() {
+    //         self.set_item(slot_idx, Word::default())?;
+    //     }
+    //
+    //     for &(slot_idx, slot_value) in delta.updated_items.iter() {
+    //         self.set_item(slot_idx, slot_value)?;
+    //     }
+    //
+    //     Ok(())
+    // }
 
     /// Updates the value of the storage slot at the specified index.
     ///
@@ -171,14 +176,16 @@ fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
 
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(self.slots.clone());
-        target.write(self.commitment);
+        target.write_u8((self.slots.len() - 1) as u8);
+        target.write_many(self.slots());
     }
 }
 
 impl Deserializable for AccountStorage {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let slots = source.read();
+        let num_slots = (source.read_u8()? as usize) + 1;
+        let slots = source.read_many::<StorageSlot>(num_slots)?;
+        Ok(Self::new(&slots))
     }
 }
 
@@ -191,53 +198,21 @@ mod tests {
 
     use miden_crypto::hash::rpo::RpoDigest;
 
-    use super::{AccountStorage, Deserializable, Felt, Serializable, SlotItem, StorageMap, Word};
-    use crate::{ONE, ZERO};
+    use super::{AccountStorage, Deserializable, Felt, Serializable, StorageMap, Word};
+    use crate::{accounts::storage::slot::StorageSlot, ONE, ZERO};
 
     #[test]
     fn account_storage_serialization() {
         // empty storage
-        let storage = AccountStorage::new(Vec::new(), BTreeMap::new()).unwrap();
+        let storage = AccountStorage::new(&[]);
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
 
-        // storage with values for default types
-        let storage = AccountStorage::new(
-            vec![
-                SlotItem::new_value(0, 0, [ONE, ONE, ONE, ONE]),
-                SlotItem::new_value(2, 0, [ONE, ONE, ONE, ZERO]),
-            ],
-            BTreeMap::new(),
-        )
-        .unwrap();
-        let bytes = storage.to_bytes();
-        assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
-
-        // storage with values for complex types
-        let storage_map_leaves_2: [(RpoDigest, Word); 2] = [
-            (
-                RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
-                [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
-            ),
-            (
-                RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
-                [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
-            ),
-        ];
-        let storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
-        let mut maps = BTreeMap::new();
-        maps.insert(2, storage_map.clone());
-        let storage = AccountStorage::new(
-            vec![
-                SlotItem::new_value(0, 1, [ONE, ONE, ONE, ONE]),
-                SlotItem::new_value(1, 0, [ONE, ONE, ONE, ZERO]),
-                SlotItem::new_map(2, 0, storage_map.root().into()),
-                SlotItem::new_array(3, 3, 4, [ONE, ZERO, ZERO, ZERO]),
-            ],
-            maps,
-        )
-        .unwrap();
-
+        // storage with values
+        let slot_0 = StorageSlot::Value([ONE, ONE, ONE, ONE]);
+        let slot_1 = StorageSlot::Map(());
+        let slots = [slot_0, slot_1];
+        let storage = AccountStorage::new(&slots);
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
     }

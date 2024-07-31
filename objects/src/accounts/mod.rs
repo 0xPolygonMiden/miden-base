@@ -24,7 +24,7 @@ mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
 
 mod storage;
-pub use storage::{AccountStorage, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{AccountStorage, StorageMap, StorageSlot};
 
 mod stub;
 pub use stub::AccountStub;
@@ -75,7 +75,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.commitment(), storage.root())?;
+        let id = AccountId::new(seed, code.commitment(), storage.commitment())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -104,7 +104,7 @@ impl Account {
             self.id,
             self.nonce,
             self.vault.commitment(),
-            self.storage.root(),
+            self.storage.commitment(),
             self.code.commitment(),
         )
     }
