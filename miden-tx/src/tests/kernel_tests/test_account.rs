@@ -1,4 +1,4 @@
-use miden_lib::transaction::memory::{ACCT_CODE_ROOT_PTR, ACCT_NEW_CODE_ROOT_PTR};
+use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -39,15 +39,15 @@ pub fn test_set_code_is_not_immediate() {
     let process = tx_context.execute_code(code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
-        tx_context.account().code().root().as_elements(),
-        "the code root must not change immediately",
+        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
+        tx_context.account().code().commitment().as_elements(),
+        "the code commitment must not change immediately",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_NEW_CODE_ROOT_PTR),
+        read_root_mem_value(&process, ACCT_NEW_CODE_COMMITMENT_PTR),
         [ONE, Felt::new(2), Felt::new(3), Felt::new(4)],
-        "the code root must be cached",
+        "the code commitment must be cached",
     );
 }
 
@@ -86,9 +86,9 @@ pub fn test_set_code_succeeds() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, ACCT_CODE_ROOT_PTR),
+        read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
         [ZERO, ONE, Felt::new(2), Felt::new(3)],
-        "the code root must change after the epilogue",
+        "the code commitment must change after the epilogue",
     );
 }
 
@@ -476,14 +476,15 @@ fn test_authenticate_procedure() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let account = tx_context.tx_inputs().account();
 
-    let proc0_index = LeafIndex::new(0).unwrap();
-    let proc1_index = LeafIndex::new(1).unwrap();
+    let tc_0: [Felt; 4] =
+        account.code().procedures()[0].mast_root().as_elements().try_into().unwrap();
+    let tc_1: [Felt; 4] =
+        account.code().procedures()[1].mast_root().as_elements().try_into().unwrap();
+    let tc_2: [Felt; 4] =
+        account.code().procedures()[2].mast_root().as_elements().try_into().unwrap();
 
-    let test_cases = vec![
-        (account.code().procedure_tree().get_leaf(&proc0_index), true),
-        (account.code().procedure_tree().get_leaf(&proc1_index), true),
-        ([ONE, ZERO, ONE, ZERO], false),
-    ];
+    let test_cases =
+        vec![(tc_0, true), ([ONE, ZERO, ONE, ZERO], false), (tc_1, true), (tc_2, true)];
 
     for (root, valid) in test_cases.into_iter() {
         let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
