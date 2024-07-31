@@ -41,7 +41,7 @@ pub fn test_set_code_is_not_immediate() {
     assert_eq!(
         read_root_mem_value(&process, ACCT_CODE_COMMITMENT_PTR),
         tx_context.account().code().commitment().as_elements(),
-        "the code commitment must not change immediatelly",
+        "the code commitment must not change immediately",
     );
 
     assert_eq!(
@@ -373,17 +373,17 @@ fn test_get_map_item() {
         assert_eq!(
             Word::default(),
             process.get_stack_word(1),
-            "The the rest of the stack must be cleared",
+            "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
             process.get_stack_word(2),
-            "The the rest of the stack must be cleared",
+            "The rest of the stack must be cleared",
         );
         assert_eq!(
             Word::default(),
             process.get_stack_word(3),
-            "The the rest of the stack must be cleared",
+            "The rest of the stack must be cleared",
         );
     }
 }

@@ -413,7 +413,6 @@ mod tests {
                 SlotItem::new_value(1, 0, word),
                 SlotItem::new_map(2, 0, storage_map.root().into()),
             ],
-            Some(maps),
         );
 
         // assert account is what it should be
@@ -430,7 +429,6 @@ mod tests {
             vec![asset],
             init_nonce,
             vec![SlotItem::new_value(0, 0, Word::default())],
-            None,
         );
 
         // build account delta
@@ -455,7 +453,6 @@ mod tests {
             vec![asset],
             init_nonce,
             vec![SlotItem::new_value(0, 0, Word::default())],
-            None,
         );
 
         // build account delta
@@ -477,7 +474,7 @@ mod tests {
         let init_nonce = Felt::new(1);
         let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
         let slot_item = SlotItem::new_value(0, 0, word);
-        let mut account = build_account(vec![], init_nonce, vec![slot_item], None);
+        let mut account = build_account(vec![], init_nonce, vec![slot_item]);
 
         // build account delta
         let final_nonce = Felt::new(2);
