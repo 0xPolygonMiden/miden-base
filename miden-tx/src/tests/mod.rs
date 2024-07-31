@@ -28,7 +28,7 @@ use miden_objects::{
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
-    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
+    Felt, Hasher, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
 use vm_processor::{
@@ -456,6 +456,13 @@ fn test_send_note_proc() {
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
 
     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
+    let removed_assets_felt = removed_assets
+        .iter()
+        .flat_map(<&Asset as Into<Word>>::into)
+        .collect::<Vec<Felt>>();
+
+    let sequential_assets_hash = Hasher::hash_elements(&removed_assets_felt).into();
+    let advice_map = vec![(sequential_assets_hash, removed_assets_felt)];
 
     let tag = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -488,16 +495,16 @@ fn test_send_note_proc() {
         ## ========================================================================================
         begin
             dropw
-            # store assets to the memory 
-            push.{REMOVED_ASSET_1} mem_storew.1000 dropw # asset 1
-            push.{REMOVED_ASSET_2} mem_storew.1001 dropw # asset 2
-            push.{REMOVED_ASSET_3} mem_storew.1002 dropw # asset 3
+            # get the assets from the advice map to the advice stack 
+            push.{ASSETS_HASH}
+            adv.push_mapvaln
+            dropw
 
-            push.1000.0      # assets pointer and number of assets  
             push.0.1.2.3     # recipient
-            push.{NOTETYPE}  # note_type
+            push.{note_type}  # note_type
             push.{aux}       # aux
             push.{tag}       # tag
+            # => [tag, aux, note_type, RECIPIENT, ...]
 
             call.wallet::send_note 
             dropw dropw dropw dropw
@@ -508,13 +515,11 @@ fn test_send_note_proc() {
             # => []
         end
     ",
-        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
-        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
-        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-        NOTETYPE = note_type as u8,
+        ASSETS_HASH = prepare_word(&sequential_assets_hash),
+        note_type = note_type as u8,
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_code, advice_map, vec![]).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,

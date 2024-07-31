@@ -78,19 +78,16 @@ end
 #! specified recipient. The key difference with the `send_asset` procedure is that `send_node` 
 #! allows to create notes without assets whatsoever.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT, num_assets, assets_ptr, ...]
-#! Outputs: [note_idx, EMPTY_WORD, EMPTY_WORD, ...]
+#! Inputs stack: [tag, aux, note_type, RECIPIENT, ...]
+#! Advice stack: [num_assets_felt, [ASSETS]]
+#! Outputs: [note_idx, 0, 0, EMPTY_WORD, ...]
 #!
-#! - num_assets is the number of assets to be added to the note.
-#! - assets_ptr is the memory pointer to the array of assets which are going to be added to the 
-#!   note.
+#! - num_assets_felt is the number of Felts which constitute the assets to be added to the note.
 #! - tag is the tag to be included in the note.
 #! - aux is the auxiliary data to be included in the note.
 #! - note_type is the note's storage type
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-#! - note_idx is the index of the output note.
-#!   This cannot directly be accessed from another context.
 #!
 #! Panics:
 #! - The fungible asset is not found in the vault.
@@ -109,60 +106,62 @@ export.send_note
     # is because the VM stack has a minimum size of 16 elements, trying to push
     # elements after the call to `create_note` would increase the stack in
     # addition to the minimum 16 elements.
-    push.0.0.0 movdn.12 movdn.12 movdn.12 padw movdnw.3
-    # => [tag, aux, note_type, RECIPIENT, num_assets, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+    push.0 movdn.11 padw movdnw.3 padw movdnw.3
+    # => [tag, aux, note_type, RECIPIENT, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     exec.tx::create_note
     swap drop # TODO: remove this line after bug in the api.masm `create_note` procedure will be 
               # fixed
-    # => [note_idx, num_assets, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+    # => [note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
+
+    # get the number of assets 
+    # we need to divide the num_assets_felt by 4 to get the number of assets 
+    adv_push.1 div.4
+    # => [num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     # Iterate over the assets and add them to the note
     #
     # The loop variable is changed with an add instead of sub because the former
     # uses one fewer cycle. So here the counter is negated. (1 cycles)
-    # => [-num_assets, note_idx, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
-    swap neg
+    # => [-num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
+    neg
 
     # Pad the stack (4 cycles)
     padw
-    # => [EMPTY_WORD, -num_assets, note_idx, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+    # => [EMPTY_WORD, -num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     # check loop condition (3 cycles)
     dup.4 neq.0
-    # => [b, EMPTY_WORD, -num_assets, note_idx, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+    # => [b, EMPTY_WORD, -num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     # while num_assets != 0
     while.true
-        # perform read (2 cycles)
-        dup.6 
-        
-        mem_loadw
-        # => [ASSET, -num_assets, note_idx, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+        adv_loadw
+        # => [ASSET, -num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
         # remove the loaded asset
         exec.account::remove_asset
-        # => [ASSET, -num_assets, note_idx, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+        # => [ASSET, -num_assets, note_idx, 0, EMPTY_WORD, EMPTY_WORD...]
 
         # add current asset to the node
         movup.5 exec.tx::add_asset_to_note
-        # => [note_idx, -num_assets, assets_ptr, 0, 0, 0, EMPTY_WORD, ...]
+        # => [note_idx, -num_assets, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
         # update counters
-        swap add.1 movup.2 add.1 movdn.2
-        # => [-num_assets+1, note_idx, assets_ptr+1, 0, 0, 0, EMPTY_WORD, ...]
+        swap add.1
+        # => [-num_assets+1, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
         
         # Pad the stack (4 cycles)
         padw
-        # => [EMPTY_WORD, -num_assets+1, note_idx, assets_ptr+1, 0, 0, 0, EMPTY_WORD, ...]
+        # => [EMPTY_WORD, -num_assets+1, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
         # check loop condition (3 cycles)
         dup.4 neq.0
-        # => [b, EMPTY_WORD, -num_assets+1, note_idx, assets_ptr+1, 0, 0, 0, EMPTY_WORD, ...]
+        # => [b, EMPTY_WORD, -num_assets+1, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
     end
+    # => [EMPTY_WORD, -num_assets+1, note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     # clean the stack
-    # note: use `num_assets` as a 0 here
-    dropw drop movup.2 drop swap
-    # => [note_idx, EMPTY_WORD, EMPTY_WORD, ...]
+    dropw swap movdn.4 dropw
+    # => [note_idx, 0, 0, EMPTY_WORD, ...]
 end
