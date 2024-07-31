@@ -1,8 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
-    Word, ZERO,
+    Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, ZERO,
 };
 use crate::{assets::Asset, AccountDeltaError};
 
@@ -249,7 +248,7 @@ mod tests {
     #[test]
     fn account_delta_nonce_validation() {
         // empty delta
-        let storage_delta = AccountStorageDelta { items: vec![] };
+        let storage_delta = AccountStorageDelta::new(&[]);
 
         let vault_delta = AccountVaultDelta {
             added_assets: vec![],
@@ -260,9 +259,8 @@ mod tests {
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
 
         // non-empty delta
-        let storage_delta = AccountStorageDelta {
-            items: vec![(0, StorageSlot::Value([ONE, ZERO, ONE, ZERO]))],
-        };
+        let storage_delta =
+            AccountStorageDelta::new(&[(0, StorageSlot::Value([ONE, ZERO, ONE, ZERO]))]);
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());
