@@ -96,6 +96,7 @@ impl BlockNoteIndex {
         (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64
     }
 
+    /// Returns an index of the leaf containing the note.
     fn leaf_index(&self) -> u64 {
         self.to_absolute_index() * 2
     }

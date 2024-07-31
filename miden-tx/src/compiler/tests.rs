@@ -182,14 +182,7 @@ fn test_transaction_compilation_succeeds() {
     let _account_code = tx_compiler.load_account(account_id, account_code_ast).unwrap();
 
     let notes = mock_input_notes(&mut tx_compiler, account_id);
-    let mock_inclusion_proof = NoteInclusionProof::new(
-        Default::default(),
-        Default::default(),
-        Default::default(),
-        0,
-        Default::default(),
-    )
-    .unwrap();
+    let mock_inclusion_proof = NoteInclusionProof::new(0, 0, Default::default()).unwrap();
     let notes = notes
         .into_iter()
         .map(|note| InputNote::authenticated(note, mock_inclusion_proof.clone()))

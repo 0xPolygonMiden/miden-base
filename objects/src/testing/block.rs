@@ -200,9 +200,9 @@ impl MockChain {
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
             block_headers_map.insert(
-                input_note.location().unwrap().block_num,
+                input_note.location().unwrap().block_num(),
                 self.blocks
-                    .get(input_note.location().unwrap().block_num as usize)
+                    .get(input_note.location().unwrap().block_num() as usize)
                     .unwrap()
                     .header(),
             );
@@ -291,8 +291,6 @@ impl MockChain {
                         let note_path = notes_tree.get_note_path(block_note_index).unwrap();
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block.header().sub_hash(),
-                            block.header().note_root(),
                             block_note_index.to_absolute_index(),
                             note_path,
                         )
