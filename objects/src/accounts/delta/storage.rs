@@ -9,7 +9,7 @@ use crate::Digest;
 // CONSTANTS
 // ================================================================================================
 
-const MAX_MUTABLE_STORAGE_SLOT_IDX: u8 = 254;
+const MAX_MUTABLE_STORAGE_SLOT_IDX: u8 = 255;
 
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
@@ -22,22 +22,19 @@ const MAX_MUTABLE_STORAGE_SLOT_IDX: u8 = 254;
 pub struct AccountStorageDelta {
     pub cleared_items: Vec<u8>,
     pub updated_items: Vec<(u8, Word)>,
-    pub updated_maps: Vec<(u8, StorageMapDelta)>,
 }
 
 impl AccountStorageDelta {
     /// Creates an [AccountStorageDelta] from the given iterators.
     #[cfg(test)]
-    fn from_iters<A, B, C>(cleared_items: A, updated_items: B, updated_maps: C) -> Self
+    fn from_iters<A, B>(cleared_items: A, updated_items: B) -> Self
     where
         A: IntoIterator<Item = u8>,
         B: IntoIterator<Item = (u8, Word)>,
-        C: IntoIterator<Item = (u8, StorageMapDelta)>,
     {
         Self {
             cleared_items: Vec::from_iter(cleared_items),
             updated_items: Vec::from_iter(updated_items),
-            updated_maps: Vec::from_iter(updated_maps),
         }
     }
 
@@ -63,19 +60,8 @@ impl AccountStorageDelta {
         let updated_items =
             items.iter().filter_map(|(slot, value)| value.map(|v| (*slot, v))).collect();
 
-        let mut updated_maps = BTreeMap::<u8, StorageMapDelta>::new();
-        for (slot, update) in self.updated_maps.into_iter().chain(other.updated_maps.into_iter()) {
-            let entry = updated_maps.entry(slot).or_default();
-            *entry = entry.clone().merge(update);
-        }
+        let result = Self { cleared_items, updated_items };
 
-        let updated_maps = updated_maps.into_iter().collect();
-
-        let result = Self {
-            cleared_items,
-            updated_items,
-            updated_maps,
-        };
         result.validate()?;
 
         Ok(result)
@@ -131,24 +117,12 @@ impl AccountStorageDelta {
             }
         }
 
-        // make sure storage map deltas are valid
-        for (index, storage_map_delta) in self.updated_maps.iter() {
-            if index > &MAX_MUTABLE_STORAGE_SLOT_IDX {
-                return Err(AccountDeltaError::ImmutableStorageSlot(*index as usize));
-            }
-            if !storage_map_delta.is_empty() {
-                storage_map_delta.validate()?;
-            }
-        }
-
         Ok(())
     }
 
     /// Returns true if storage delta contains no updates.
     pub fn is_empty(&self) -> bool {
-        self.cleared_items.is_empty()
-            && self.updated_items.is_empty()
-            && self.updated_maps.is_empty()
+        self.cleared_items.is_empty() && self.updated_items.is_empty()
     }
 }
 
@@ -161,10 +135,6 @@ impl Serializable for AccountStorageDelta {
         assert!(self.updated_items.len() <= u8::MAX as usize, "too many updated storage items");
         target.write_u8(self.updated_items.len() as u8);
         target.write_many(self.updated_items.iter());
-
-        assert!(self.updated_maps.len() <= u8::MAX as usize, "too many updated storage maps");
-        target.write_u8(self.updated_maps.len() as u8);
-        target.write_many(self.updated_maps.iter());
     }
 }
 
@@ -224,20 +194,7 @@ impl Deserializable for AccountStorageDelta {
             updated_items.push((idx, value));
         }
 
-        // deserialize and validate storage map deltas
-        let num_updated_maps = source.read_u8()? as usize;
-        let mut updated_maps = Vec::with_capacity(num_updated_maps);
-        for _ in 0..num_updated_maps {
-            let idx = source.read_u8()?;
-            let value = StorageMapDelta::read_from(source)?;
-            updated_maps.push((idx, value));
-        }
-
-        Ok(Self {
-            cleared_items,
-            updated_items,
-            updated_maps,
-        })
+        Ok(Self { cleared_items, updated_items })
     }
 }
 
@@ -366,7 +323,6 @@ mod tests {
         let delta = AccountStorageDelta::from_iters(
             [1, 2, 3],
             [(4, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
-            [],
         );
         assert!(delta.validate().is_ok());
 
@@ -374,14 +330,14 @@ mod tests {
         assert_eq!(AccountStorageDelta::read_from_bytes(&bytes), Ok(delta));
 
         // invalid index in cleared items
-        let delta = AccountStorageDelta::from_iters([1, 2, 255], [], []);
+        let delta = AccountStorageDelta::from_iters([1, 2, 255], []);
         assert!(delta.validate().is_err());
 
         let bytes = delta.to_bytes();
         assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
 
         // duplicate in cleared items
-        let delta = AccountStorageDelta::from_iters([1, 2, 1], [], []);
+        let delta = AccountStorageDelta::from_iters([1, 2, 1], []);
         assert!(delta.validate().is_err());
 
         let bytes = delta.to_bytes();
@@ -391,7 +347,6 @@ mod tests {
         let delta = AccountStorageDelta::from_iters(
             [],
             [(4, [ONE, ONE, ONE, ONE]), (255, [ONE, ONE, ONE, ZERO])],
-            [],
         );
         assert!(delta.validate().is_err());
 
@@ -406,7 +361,6 @@ mod tests {
                 (5, [ONE, ONE, ONE, ZERO]),
                 (4, [ONE, ONE, ZERO, ZERO]),
             ],
-            [],
         );
         assert!(delta.validate().is_err());
 
@@ -417,7 +371,6 @@ mod tests {
         let delta = AccountStorageDelta::from_iters(
             [1, 2, 3],
             [(2, [ONE, ONE, ONE, ONE]), (5, [ONE, ONE, ONE, ZERO])],
-            [],
         );
         assert!(delta.validate().is_err());
 
@@ -430,14 +383,13 @@ mod tests {
         let storage_delta = AccountStorageDelta::default();
         assert!(storage_delta.is_empty());
 
-        let storage_delta = AccountStorageDelta::from_iters([1], [], []);
+        let storage_delta = AccountStorageDelta::from_iters([1], []);
         assert!(!storage_delta.is_empty());
 
-        let storage_delta = AccountStorageDelta::from_iters([], [(2, [ONE, ONE, ONE, ONE])], []);
+        let storage_delta = AccountStorageDelta::from_iters([], [(2, [ONE, ONE, ONE, ONE])]);
         assert!(!storage_delta.is_empty());
 
         let storage_delta = AccountStorageDelta::from_iters(
-            [],
             [],
             [(
                 3,
@@ -457,18 +409,17 @@ mod tests {
         let deserialized = AccountStorageDelta::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage_delta);
 
-        let storage_delta = AccountStorageDelta::from_iters([1], [], []);
+        let storage_delta = AccountStorageDelta::from_iters([1], []);
         let serialized = storage_delta.to_bytes();
         let deserialized = AccountStorageDelta::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage_delta);
 
-        let storage_delta = AccountStorageDelta::from_iters([], [(2, [ONE, ONE, ONE, ONE])], []);
+        let storage_delta = AccountStorageDelta::from_iters([], [(2, [ONE, ONE, ONE, ONE])]);
         let serialized = storage_delta.to_bytes();
         let deserialized = AccountStorageDelta::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage_delta);
 
         let storage_delta = AccountStorageDelta::from_iters(
-            [],
             [],
             [(
                 3,

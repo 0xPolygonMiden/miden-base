@@ -85,31 +85,31 @@ impl AccountStorage {
     /// - The delta implies an update to a reserved account slot.
     /// - The updates violate storage layout constraints.
     /// - The updated value has an arity different from 0.
-    // pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-    //     // --- update storage maps --------------------------------------------
-    //
-    //     for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
-    //         let storage_map =
-    //             self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
-    //
-    //         let new_root = storage_map.apply_delta(map_delta)?;
-    //
-    //         let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
-    //         self.slots.insert(index, new_root.into());
-    //     }
-    //
-    //     // --- update storage slots -------------------------------------------
-    //
-    //     for &slot_idx in delta.cleared_items.iter() {
-    //         self.set_item(slot_idx, Word::default())?;
-    //     }
-    //
-    //     for &(slot_idx, slot_value) in delta.updated_items.iter() {
-    //         self.set_item(slot_idx, slot_value)?;
-    //     }
-    //
-    //     Ok(())
-    // }
+    pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
+        // --- update storage maps --------------------------------------------
+
+        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+            let storage_map =
+                self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+
+            let new_root = storage_map.apply_delta(map_delta)?;
+
+            let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
+            self.slots.insert(index, new_root.into());
+        }
+
+        // --- update storage slots -------------------------------------------
+
+        for &slot_idx in delta.cleared_items.iter() {
+            self.set_item(slot_idx, Word::default())?;
+        }
+
+        for &(slot_idx, slot_value) in delta.updated_items.iter() {
+            self.set_item(slot_idx, slot_value)?;
+        }
+
+        Ok(())
+    }
 
     /// Updates the value of the storage slot at the specified index.
     ///
