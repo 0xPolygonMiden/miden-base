@@ -209,6 +209,7 @@ impl Deserializable for AccountCode {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Converts given procedures into field elements
 fn procedures_as_elements(procedures: &[AccountProcedureInfo]) -> Vec<Felt> {
     procedures
         .iter()
@@ -216,6 +217,7 @@ fn procedures_as_elements(procedures: &[AccountProcedureInfo]) -> Vec<Felt> {
         .collect()
 }
 
+/// Computes the commitment to the given procedures
 fn build_procedure_commitment(procedures: &[AccountProcedureInfo]) -> Digest {
     let elements = procedures_as_elements(procedures);
     Hasher::hash_elements(&elements)
