@@ -1,14 +1,10 @@
 use super::{
-    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt,
-    Serializable, Word,
+    AccountError, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
+    Word,
 };
-use crate::{
-    accounts::StorageMapDelta,
-    crypto::{
-        hash::rpo::RpoDigest,
-        merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
-    },
-    EMPTY_WORD,
+use crate::crypto::{
+    hash::rpo::RpoDigest,
+    merkle::{InnerNodeInfo, LeafIndex, Smt, SmtLeaf, SmtProof, SMT_DEPTH},
 };
 
 // ACCOUNT STORAGE MAP
@@ -104,25 +100,6 @@ impl StorageMap {
     // --------------------------------------------------------------------------------------------
     pub fn insert(&mut self, key: RpoDigest, value: Word) -> Word {
         self.map.insert(key, value) // Delegate to Smt's insert method
-    }
-
-    /// Applies the provided delta to this account storage.
-    ///
-    /// This method assumes that the delta has been validated by the calling method and so, no
-    /// additional validation of delta is performed.
-    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Result<Digest, AccountError> {
-        // apply the updated leaves to the storage map
-        for &(key, value) in delta.updated_leaves.iter() {
-            self.insert(key.into(), value);
-        }
-
-        // apply the cleared leaves to the storage map
-        // currently we cannot remove leaves from the storage map, so we just set them to empty
-        for &key in delta.cleared_leaves.iter() {
-            self.insert(key.into(), EMPTY_WORD);
-        }
-
-        Ok(self.root())
     }
 }
 

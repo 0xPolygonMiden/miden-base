@@ -5,7 +5,7 @@ use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
-    accounts::{AccountId, StorageSlotType},
+    accounts::AccountId,
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
     notes::NoteId,
@@ -34,12 +34,10 @@ pub enum AccountError {
     FungibleFaucetInvalidMetadata(String),
     HexParseError(String),
     InvalidAccountStorageType,
-    MapsUpdateToNonMapsSlot(u8, StorageSlotType),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotInvalidValueArity { slot: u8, expected: u8, actual: u8 },
     StorageSlotIsReserved(u8),
-    StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
     StorageMapNotFound(u8),
     StorageMapTooManyMaps { expected: usize, actual: usize },
     StubDataIncorrectLength(usize, usize),

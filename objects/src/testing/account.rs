@@ -1,5 +1,4 @@
 use alloc::{
-    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -63,12 +62,12 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_storage_item(mut self, item: SlotItem) -> Self {
+    pub fn add_storage_item(mut self, item: StorageSlot) -> Self {
         self.storage_builder.add_item(item);
         self
     }
 
-    pub fn add_storage_items<I: IntoIterator<Item = SlotItem>>(mut self, items: I) -> Self {
+    pub fn add_storage_items<I: IntoIterator<Item = StorageSlot>>(mut self, items: I) -> Self {
         self.storage_builder.add_items(items);
         self
     }
@@ -97,7 +96,7 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let (account_id, seed) = self.account_id_builder.build(assembler)?;
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
@@ -115,7 +114,7 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed, assembler)?;
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
@@ -128,23 +127,12 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn with_seed_and_storage(
         mut self,
         seed: Word,
-        mut storage: AccountStorage,
+        storage: AccountStorage,
         assembler: &Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
-        let inner_storage = self.storage_builder.build();
-
-        for (key, value) in inner_storage.slots().leaves() {
-            // Explicitly cast to `u64` to silence "type annotations needed" error.
-            // Using `as u64` makes the intended type clear and avoids type inference issues.
-            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX as u64 {
-                // don't copy the reserved key
-                storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
-            }
-        }
-
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed, assembler)?;
         let account_code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
@@ -200,14 +188,12 @@ impl Account {
         initial_balance: Felt,
         assembler: &Assembler,
     ) -> Self {
-        let account_storage = AccountStorage::new(
-            vec![SlotItem {
-                index: FAUCET_STORAGE_DATA_SLOT,
-                slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-            }],
-            BTreeMap::new(),
-        )
-        .unwrap();
+        let mut slots = Vec::new();
+        slots.insert(
+            FAUCET_STORAGE_DATA_SLOT.into(),
+            StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance]),
+        );
+        let account_storage = AccountStorage::new(&slots);
         let account_id = AccountId::try_from(account_id).unwrap();
         let account_code = AccountCode::mock_wallet(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
@@ -231,17 +217,9 @@ impl Account {
         };
         // construct nft tree
         let nft_storage_map = StorageMap::with_entries(entries).unwrap();
-        let mut maps = BTreeMap::new();
-        maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
-
-        let account_storage = AccountStorage::new(
-            vec![SlotItem {
-                index: FAUCET_STORAGE_DATA_SLOT,
-                slot: StorageSlot::new_map(*nft_storage_map.root()),
-            }],
-            maps,
-        )
-        .unwrap();
+        let mut slots = Vec::new();
+        slots.insert(FAUCET_STORAGE_DATA_SLOT.into(), StorageSlot::Map(nft_storage_map));
+        let account_storage = AccountStorage::new(&slots);
         let account_id = AccountId::try_from(account_id).unwrap();
         let account_code = AccountCode::mock_wallet(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)

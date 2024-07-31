@@ -160,12 +160,11 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{collections::BTreeMap, vec::Vec};
-
-    use miden_crypto::hash::rpo::RpoDigest;
-
-    use super::{AccountStorage, Deserializable, Felt, Serializable, StorageMap, Word};
-    use crate::{accounts::storage::slot::StorageSlot, ONE, ZERO};
+    use super::{AccountStorage, Deserializable, Serializable};
+    use crate::{
+        accounts::{storage::slot::StorageSlot, StorageMap},
+        ONE,
+    };
 
     #[test]
     fn account_storage_serialization() {
@@ -176,7 +175,7 @@ mod tests {
 
         // storage with values
         let slot_0 = StorageSlot::Value([ONE, ONE, ONE, ONE]);
-        let slot_1 = StorageSlot::Map(());
+        let slot_1 = StorageSlot::Map(StorageMap::default());
         let slots = [slot_0, slot_1];
         let storage = AccountStorage::new(&slots);
         let bytes = storage.to_bytes();

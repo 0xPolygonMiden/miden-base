@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 
 use assembly::Assembler;
 use vm_core::{Felt, FieldElement, Word, ZERO};
@@ -14,8 +14,8 @@ use crate::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
         get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-        AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap, StorageSlot,
+        AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, StorageMap,
+        StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
@@ -23,36 +23,28 @@ use crate::{
 
 #[derive(Default, Debug, Clone)]
 pub struct AccountStorageBuilder {
-    items: Vec<SlotItem>,
-    maps: BTreeMap<u8, StorageMap>,
+    items: Vec<StorageSlot>,
 }
 
 /// Builder for an `AccountStorage`, the builder can be configured and used multiple times.
 impl AccountStorageBuilder {
     pub fn new() -> Self {
-        Self { items: vec![], maps: BTreeMap::new() }
+        Self { items: vec![] }
     }
 
-    pub fn add_item(&mut self, item: SlotItem) -> &mut Self {
+    pub fn add_item(&mut self, item: StorageSlot) -> &mut Self {
         self.items.push(item);
         self
     }
 
-    pub fn add_items<I: IntoIterator<Item = SlotItem>>(&mut self, items: I) -> &mut Self {
+    pub fn add_items<I: IntoIterator<Item = StorageSlot>>(&mut self, items: I) -> &mut Self {
         for item in items.into_iter() {
             self.add_item(item);
         }
         self
     }
-
-    #[allow(dead_code)]
-    pub fn add_map(&mut self, index: u8, map: StorageMap) -> &mut Self {
-        self.maps.insert(index, map);
-        self
-    }
-
     pub fn build(&self) -> AccountStorage {
-        AccountStorage::new(self.items.clone(), self.maps.clone()).unwrap()
+        AccountStorage::new(&self.items)
     }
 }
 
@@ -85,41 +77,26 @@ impl AccountStorage {
     /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
     /// Map with [STORAGE_LEAVES_2]
     pub fn mock() -> Self {
-        let mut maps = BTreeMap::new();
-        maps.insert(STORAGE_INDEX_2, Self::mock_map_2());
-        AccountStorage::new(
-            vec![Self::mock_item_0(), Self::mock_item_1(), Self::mock_item_2()],
-            maps,
-        )
-        .unwrap()
+        AccountStorage::new(&vec![Self::mock_slot_0(), Self::mock_slot_1(), Self::mock_slot_2()])
     }
 
     /// Creates Slot with [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
-    pub fn mock_item_0() -> SlotItem {
-        SlotItem {
-            index: STORAGE_INDEX_0,
-            slot: StorageSlot::new_value(STORAGE_VALUE_0),
-        }
+    pub fn mock_slot_0() -> StorageSlot {
+        StorageSlot::Value(STORAGE_VALUE_0)
     }
 
     /// Creates Slot with [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
-    pub fn mock_item_1() -> SlotItem {
-        SlotItem {
-            index: STORAGE_INDEX_1,
-            slot: StorageSlot::new_value(STORAGE_VALUE_1),
-        }
+    pub fn mock_slot_1() -> StorageSlot {
+        StorageSlot::Value(STORAGE_VALUE_1)
     }
 
     /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
-    pub fn mock_item_2() -> SlotItem {
-        SlotItem {
-            index: STORAGE_INDEX_2,
-            slot: StorageSlot::new_map(Word::from(Self::mock_map_2().root())),
-        }
+    pub fn mock_slot_2() -> StorageSlot {
+        StorageSlot::Value(Word::from(Self::mock_slot_map_2().root()))
     }
 
     /// Creates map with [STORAGE_LEAVES_2]
-    pub fn mock_map_2() -> StorageMap {
+    pub fn mock_slot_map_2() -> StorageMap {
         StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
     }
 }
@@ -203,12 +180,12 @@ pub fn generate_account_seed(
         account_type,
         AccountStorageType::OnChain,
         account.code().commitment(),
-        account.storage().root(),
+        account.storage().commitment(),
     )
     .unwrap();
 
     let account_id =
-        AccountId::new(seed, account.code().commitment(), account.storage().root()).unwrap();
+        AccountId::new(seed, account.code().commitment(), account.storage().commitment()).unwrap();
 
     (account_id, seed)
 }
@@ -216,20 +193,11 @@ pub fn generate_account_seed(
 // UTILITIES
 // --------------------------------------------------------------------------------------------
 
-pub fn build_account(
-    assets: Vec<Asset>,
-    nonce: Felt,
-    slot_items: Vec<SlotItem>,
-    maps: Option<BTreeMap<u8, StorageMap>>,
-) -> Account {
+pub fn build_account(assets: Vec<Asset>, nonce: Felt, slots: Vec<StorageSlot>) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
     let code = AccountCode::mock();
-
     let vault = AssetVault::new(&assets).unwrap();
-    // Use the provided maps or create an empty BTreeMap if None is provided
-    let maps = maps.unwrap_or_default();
-
-    let storage = AccountStorage::new(slot_items, maps).unwrap();
+    let storage = AccountStorage::new(&slots);
 
     Account::from_parts(id, vault, storage, code, nonce)
 }

@@ -9,6 +9,9 @@ use crate::{
     AccountDeltaError,
 };
 
+mod map;
+pub use map::StorageMapDelta;
+
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
 
@@ -130,7 +133,7 @@ mod tests {
         ONE, ZERO,
     };
 
-    use crate::accounts::StorageSlot;
+    use crate::accounts::{StorageMap, StorageSlot};
 
     use super::AccountStorageDelta;
 
@@ -138,11 +141,11 @@ mod tests {
         // build items
         let item_0 = (0, StorageSlot::Value([ONE, ZERO, ONE, ZERO]));
         let item_1 = (1, StorageSlot::Value([ZERO, ONE, ZERO, ONE]));
-        let item_2 = (2, StorageSlot::Map(()));
+        let item_2 = (2, StorageSlot::Map(StorageMap::default()));
         let items = vec![item_0, item_1, item_2];
 
         // build delta
-        AccountStorageDelta::new(&items)
+        AccountStorageDelta::new(&items).unwrap()
     }
 
     #[test]
