@@ -320,10 +320,15 @@ fn add_input_notes_to_advice_inputs(
         // insert note authentication path nodes into the Merkle store
         match input_note {
             InputNote::Authenticated { note, proof } => {
-                let note_block_header = tx_inputs
-                    .block_chain()
-                    .get_block(proof.location().block_num())
-                    .unwrap_or(tx_inputs.block_header());
+                let block_num = proof.location().block_num();
+                let note_block_header = if block_num == tx_inputs.block_header().block_num() {
+                    tx_inputs.block_header()
+                } else {
+                    tx_inputs
+                        .block_chain()
+                        .get_block(block_num)
+                        .expect("block not found in chain MMR")
+                };
 
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
                 // Push the `is_authenticated` flag

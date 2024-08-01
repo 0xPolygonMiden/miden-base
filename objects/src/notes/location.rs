@@ -4,7 +4,7 @@ use core::num::TryFromIntError;
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
-use crate::crypto::merkle::MerklePath;
+use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH};
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,10 +18,12 @@ pub struct NoteLocation {
 }
 
 impl NoteLocation {
+    /// Returns the block number the note was created in.
     pub fn block_num(&self) -> u32 {
         self.block_num
     }
 
+    /// Returns the index of the note in the note Merkle tree of the block the note was created in.
     pub fn node_index(&self) -> u64 {
         self.node_index_in_block as u64
     }
@@ -41,15 +43,18 @@ pub struct NoteInclusionProof {
 impl NoteInclusionProof {
     /// Returns a new [NoteInclusionProof].
     pub fn new(block_num: u32, index: u64, note_path: MerklePath) -> Result<Self, NoteError> {
-        Ok(Self {
-            location: NoteLocation {
-                block_num,
-                node_index_in_block: index.try_into().map_err(|err: TryFromIntError| {
-                    NoteError::InvalidLocationIndex(err.to_string())
-                })?,
-            },
-            note_path,
-        })
+        const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_NOTES_PER_BATCH - 1;
+        let node_index_in_block = index
+            .try_into()
+            .map_err(|err: TryFromIntError| NoteError::InvalidLocationIndex(err.to_string()))?;
+        if node_index_in_block as usize > HIGHEST_INDEX {
+            return Err(NoteError::InvalidLocationIndex(format!(
+                "Node index ({index}) is out of bounds (0..={HIGHEST_INDEX})."
+            )));
+        }
+        let location = NoteLocation { block_num, node_index_in_block };
+
+        Ok(Self { location, note_path })
     }
 
     // ACCESSORS
