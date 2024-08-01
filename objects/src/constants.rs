@@ -38,9 +38,6 @@ pub const BATCH_OUTPUT_NOTES_TREE_DEPTH: u8 = 13;
 pub const MAX_OUTPUT_NOTES_PER_BATCH: usize =
     2_usize.pow((BATCH_OUTPUT_NOTES_TREE_DEPTH - 1) as u32);
 
-/// The maximum number of transaction in a single batch.
-pub const MAX_TRANSACTIONS_PER_BATCH: usize = MAX_OUTPUT_NOTES_PER_BATCH / MAX_OUTPUT_NOTES_PER_TX;
-
 // BLOCK
 // ================================================================================================
 
