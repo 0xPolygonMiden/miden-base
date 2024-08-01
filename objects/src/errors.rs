@@ -9,7 +9,7 @@ use super::{
     assets::{Asset, FungibleAsset, NonFungibleAsset},
     crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
     notes::NoteId,
-    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH,
 };
 use crate::{
     accounts::{delta::AccountUpdateDetails, AccountType},
@@ -361,7 +361,7 @@ impl fmt::Display for BlockError {
                 write!(f, "Duplicate note {id} found in the block")
             },
             BlockError::TooManyNotesInBatch(actual) => {
-                write!(f, "Too many notes in a batch. Max: {MAX_NOTES_PER_BATCH}, actual: {actual}")
+                write!(f, "Too many notes in a batch. Max: {MAX_OUTPUT_NOTES_PER_BATCH}, actual: {actual}")
             },
             BlockError::TooManyTransactionBatches(actual) => {
                 write!(

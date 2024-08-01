@@ -1,10 +1,7 @@
-use alloc::string::ToString;
-use core::num::TryFromIntError;
-
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, NoteError, Serializable,
 };
-use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH};
+use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH};
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,14 +39,15 @@ pub struct NoteInclusionProof {
 
 impl NoteInclusionProof {
     /// Returns a new [NoteInclusionProof].
-    pub fn new(block_num: u32, index: u64, note_path: MerklePath) -> Result<Self, NoteError> {
-        const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_NOTES_PER_BATCH - 1;
-        let node_index_in_block = index
-            .try_into()
-            .map_err(|err: TryFromIntError| NoteError::InvalidLocationIndex(err.to_string()))?;
+    pub fn new(
+        block_num: u32,
+        node_index_in_block: u32,
+        note_path: MerklePath,
+    ) -> Result<Self, NoteError> {
+        const HIGHEST_INDEX: usize = MAX_BATCHES_PER_BLOCK * MAX_OUTPUT_NOTES_PER_BATCH - 1;
         if node_index_in_block as usize > HIGHEST_INDEX {
             return Err(NoteError::InvalidLocationIndex(format!(
-                "Node index ({index}) is out of bounds (0..={HIGHEST_INDEX})."
+                "Node index ({node_index_in_block}) is out of bounds (0..={HIGHEST_INDEX})."
             )));
         }
         let location = NoteLocation { block_num, node_index_in_block };
