@@ -455,115 +455,114 @@ fn test_send_note_proc() {
     let removed_asset_3 =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
 
-    let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
-    let removed_assets_felt = removed_assets
-        .iter()
-        .flat_map(<&Asset as Into<Word>>::into)
-        .collect::<Vec<Felt>>();
-
-    let sequential_assets_hash = Hasher::hash_elements(&removed_assets_felt).into();
-    let advice_map = vec![(sequential_assets_hash, removed_assets_felt)];
-
     let tag = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
         NoteExecutionHint::Local,
     )
     .unwrap();
-
     let aux = Felt::new(27);
-
     let note_type = NoteType::Private;
 
     assert_eq!(tag.validate(note_type), Ok(tag));
-    let tx_script = format!(
-        "\
-        use.miden::account
-        use.miden::contracts::wallets::basic->wallet
-        use.miden::tx
 
-        ## ACCOUNT PROCEDURE WRAPPERS
-        ## ========================================================================================
-        proc.incr_nonce
-            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
-            # => [0]
+    let assets_matrix = vec![
+        vec![],
+        vec![removed_asset_1],
+        vec![removed_asset_1, removed_asset_2],
+        vec![removed_asset_1, removed_asset_2, removed_asset_3],
+    ];
+    for removed_assets in assets_matrix {
+        let removed_assets_felt = removed_assets
+            .iter()
+            .flat_map(<&Asset as Into<Word>>::into)
+            .collect::<Vec<Felt>>();
 
-            drop
-            # => []
-        end
+        let sequential_assets_hash = Hasher::hash_elements(&removed_assets_felt).into();
+        let advice_map = vec![(sequential_assets_hash, removed_assets_felt)];
 
-        ## TRANSACTION SCRIPT
-        ## ========================================================================================
-        begin
-            dropw
-            # get the assets from the advice map to the advice stack 
-            push.{ASSETS_HASH}
-            adv.push_mapvaln
-            dropw
+        let tx_script = format!(
+            "\
+            use.miden::account
+            use.miden::contracts::wallets::basic->wallet
+            use.miden::tx
+    
+            ## ACCOUNT PROCEDURE WRAPPERS
+            ## ========================================================================================
+            proc.incr_nonce
+                call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+                # => [0]
+    
+                drop
+                # => []
+            end
+    
+            ## TRANSACTION SCRIPT
+            ## ========================================================================================
+            begin
+                dropw
+                # get the assets from the advice map to the advice stack 
+                push.{ASSETS_HASH}
+                adv.push_mapvaln
+    
+                push.0.1.2.3     # recipient
+                push.{note_type}  # note_type
+                push.{aux}       # aux
+                push.{tag}       # tag
+                # => [tag, aux, note_type, RECIPIENT, ASSETS_HASH, ...]
+    
+                call.wallet::send_note 
+                dropw dropw dropw dropw
+    
+                ## Update the account nonce
+                ## ------------------------------------------------------------------------------------
+                push.1 exec.incr_nonce drop
+                # => []
+            end
+        ",
+            ASSETS_HASH = prepare_word(&sequential_assets_hash),
+            note_type = note_type as u8,
+        );
 
-            push.0.1.2.3     # recipient
-            push.{note_type}  # note_type
-            push.{aux}       # aux
-            push.{tag}       # tag
-            # => [tag, aux, note_type, RECIPIENT, ...]
+        let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+        let tx_script = executor.compile_tx_script(tx_script_code, advice_map, vec![]).unwrap();
+        let tx_args = TransactionArgs::new(
+            Some(tx_script),
+            None,
+            tx_context.tx_args().advice_inputs().clone().map,
+        );
 
-            call.wallet::send_note 
-            dropw dropw dropw dropw
+        let block_ref = tx_context.tx_inputs().block_header().block_num();
+        let note_ids = tx_context
+            .tx_inputs()
+            .input_notes()
+            .iter()
+            .map(|note| note.id())
+            .collect::<Vec<_>>();
 
-            ## Update the account nonce
-            ## ------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
-            # => []
-        end
-    ",
-        ASSETS_HASH = prepare_word(&sequential_assets_hash),
-        note_type = note_type as u8,
-    );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, advice_map, vec![]).unwrap();
-    let tx_args = TransactionArgs::new(
-        Some(tx_script),
-        None,
-        tx_context.tx_args().advice_inputs().clone().map,
-    );
+        // expected delta
+        // --------------------------------------------------------------------------------------------
+        // execute the transaction and get the witness
+        let executed_transaction =
+            executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
+        // nonce delta
+        // --------------------------------------------------------------------------------------------
+        assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
-    // expected delta
-    // --------------------------------------------------------------------------------------------
-    // execute the transaction and get the witness
-    let executed_transaction =
-        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
-
-    // nonce delta
-    // --------------------------------------------------------------------------------------------
-    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
-
-    // storage delta
-    // --------------------------------------------------------------------------------------------
-    // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 0);
-
-    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 0);
-
-    // vault delta
-    // --------------------------------------------------------------------------------------------
-    // assert that removed assets are tracked
-    assert!(executed_transaction
-        .account_delta()
-        .vault()
-        .removed_assets
-        .iter()
-        .all(|x| removed_assets.contains(x)));
-    assert_eq!(
-        removed_assets.len(),
-        executed_transaction.account_delta().vault().removed_assets.len()
-    );
+        // vault delta
+        // --------------------------------------------------------------------------------------------
+        // assert that removed assets are tracked
+        assert!(executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets
+            .iter()
+            .all(|x| removed_assets.contains(x)));
+        assert_eq!(
+            removed_assets.len(),
+            executed_transaction.account_delta().vault().removed_assets.len()
+        );
+    }
 }
 
 #[test]
