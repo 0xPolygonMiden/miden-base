@@ -500,17 +500,19 @@ fn test_send_note_proc() {
             ## ========================================================================================
             begin
                 dropw
-                # get the assets from the advice map to the advice stack 
-                push.{ASSETS_HASH}
-                adv.push_mapvaln
-    
+                
+                # prepare the values for note creation
                 push.0.1.2.3     # recipient
                 push.{note_type}  # note_type
                 push.{aux}       # aux
                 push.{tag}       # tag
-                # => [tag, aux, note_type, RECIPIENT, ASSETS_HASH, ...]
-    
-                call.wallet::send_note 
+                # => [tag, aux, note_type, RECIPIENT, ...]
+                
+                call.wallet::cteate_note
+                # => [note_idx, 0, 0, EMPTY_WORD]
+
+                push.{ASSETS_HASH}
+                call.wallet::move_asset_into_note 
                 dropw dropw dropw dropw
     
                 ## Update the account nonce

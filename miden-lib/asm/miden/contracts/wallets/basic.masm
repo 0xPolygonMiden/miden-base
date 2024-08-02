@@ -74,12 +74,9 @@ export.send_asset.1
     movupw.3 dropw swap drop swap drop
 end
 
-#! Creates a note which sends the specified amount of assets out of the current account to the 
-#! specified recipient. The key difference with the `send_asset` procedure is that `send_note` 
-#! allows to create notes without assets whatsoever.
+#! Creates a note without assets.
 #!
-#! Inputs stack: [tag, aux, note_type, RECIPIENT, ASSETS_HASH, ...]
-#! Advice stack: [num_assets_felt, [ASSETS]]
+#! Inputs stack: [tag, aux, note_type, RECIPIENT, ...]
 #! Outputs: [note_idx, 0, 0, EMPTY_WORD, ...]
 #!
 #! - tag is the tag to be included in the note.
@@ -87,79 +84,91 @@ end
 #! - note_type is the note's storage type
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
+export.cteate_note
+    # This procedure is written to be executed with `call`. It means that has to be padded to the 
+    # length of 16 to preserve the stack state after the call. 
+    push.0 movdn.7 padw movdnw.2 padw movdnw.3
+    # => [tag, aux, note_type, RECIPIENT, 0, EMPTY_WORD, EMPTY_WORD, ...]
+
+    exec.tx::create_note
+    swap drop # TODO: remove this line after bug in the api.masm `create_note` procedure will be 
+              # fixed
+    # => [note_idx, 0, 0, 0, EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, ...]
+
+    # prepare the stack for return - stack has 9 elements too many
+    movdn.9 dropw dropw drop
+    # => [note_idx, 0, 0, EMPTY_WORD, ...]
+end
+
+#! Add the specified amount of assets to the created note to move them out of the current account to
+#! the specified recipient.
+#!
+#! Inputs stack: [ASSETS_HASH, note_idx, ...]
+#! Advice map: {(ASSETS_HASH, [ASSETS])}
+#! Outputs: [note_idx, EMPTY_WORD, ...]
+#!
 #! - ASSETS_HASH is the sequential hash of the assets which are going to be added to the note.
-#! - num_assets_felt is the number of Felts which constitute the assets to be added to the note.
 #! - [ASSETS] is an array of the assets which are going to be added to the note.
 #!
 #! Panics:
 #! - The fungible asset is not found in the vault.
 #! - The amount of the fungible asset in the vault is less than the amount to be removed.
 #! - The non-fungible asset is not found in the vault.
-export.send_note
-    ### Create the note #######################################################
-    
-    # This procedure is written to be executed with `exec` or `call`. When this
-    # procedure is `call`ed the stack has to be carefully manipulated to avoid
-    # inserting unwanted elements between the user data. The convention is to
-    # ensure the input&output data have the same length. This code pads the
-    # stack so the output stack will be the same length as the input.
-    #
-    # The padding must be added before calling `create_note`, not after. This
-    # is because the VM stack has a minimum size of 16 elements, trying to push
-    # elements after the call to `create_note` would increase the stack in
-    # addition to the minimum 16 elements.
-    push.0 movdn.11 padw movdnw.3
-    # => [tag, aux, note_type, RECIPIENT, ASSETS_HASH, 0, EMPTY_WORD, ...]
-
-    exec.tx::create_note
-    swap drop # TODO: remove this line after bug in the api.masm `create_note` procedure will be 
-              # fixed
-    # => [note_idx, ASSETS_HASH, 0, EMPTY_WORD, ...]
-
+export.move_asset_into_note
     # check whether ASSETS_HASH is an EMPTY_WORD ([0, 0, 0, 0]). In that case there are no assets 
     # need to be added to the note
-    movdn.9 eqw
-    # => [flag, ASSETS_HASH, EMPTY_WORD, 0, note_idx, ...]
+    padw eqw
+    # => [b, EMPTY_WORD, ASSETS_HASH, note_idx, ...]
 
     # if there are no assets to add
     if.true
-        drop drop drop movup.6
-        # => [note_idx, 0, 0, EMPTY_WORD, ...]
+        drop swapw dropw movup.4
+        # => [note_idx, EMPTY_WORD, ...]
     else 
+        # remove redundant word
+        dropw
+        # => [ASSETS_HASH, note_idx, ...]
+
+        # move the assets from the advice map to the advice stack
+        adv.push_mapvaln
+        # => [ASSETS_HASH, note_idx, ...]
+
         # get the note index to the top of the stack
-        movup.9
+        movup.4
+        # => [note_idx, ASSETS_HASH, ...]
 
         # get the number of assets 
-        # we need to divide the num_assets_felt by 4 to get the number of assets 
+        # we need to divide the number stored in the advice stack by 4 since this number shows the 
+        # number of felts, not words
         adv_push.1 div.4
-        # => [num_assets, note_idx, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [num_assets, note_idx, ASSETS_HASH, ...]
 
         # check if there is an odd number of assets
         dup is_odd
-        # => [is_odd, num_assets, note_idx, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [is_odd, num_assets, note_idx, ASSETS_HASH, ...]
 
         # copy is_odd, it defines if last asset word requires padding
         dup movdn.3
-        # => [is_odd, num_assets, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [is_odd, num_assets, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # get the even number of assets
         sub
-        # => [num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # `num_assets_even` will be used as a loop vaiable, so negate it to use add instead of sub 
         # because the former uses one fewer cycle.
         neg
-        # [-num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # [-num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # Prepare the capacity word. For rescue prime optimized the first element is
         # set to `1` when padding is used and `0` otherwse, this is determined by the
         # `needs_padding` flag.
         dup.2 push.0.0.0
-        # => [CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # set initial hasher state
         padw padw
-        # => [B, A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [B, A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
         ### Iterate over the assets #######################################################
         #
@@ -167,71 +176,77 @@ export.send_note
 
         # check loop condition
         dup.12 neq.0
-        # => [b, B, A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [b, B, A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # while num_assets_even != 0
         while.true
             # load the assets from advice stack and remove them from the account 
             adv_loadw exec.account::remove_asset
             swapw adv_loadw exec.account::remove_asset
-            # => [ASSET_B, ASSET_A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [ASSET_B, ASSET_A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
-            # add current asset to the note
-            dup.13 movdn.8
-            dupw dup.12
-            exec.tx::add_asset_to_note drop
+            # add ASSET_B to the note
+            movup.13 movdn.8
+            dupw movup.12
+            exec.tx::add_asset_to_note
+            # => [note_idx, ASSET_B, ASSET_A, CAPACITY, -num_assets_even, needs_padding, ASSETS_HASH, ...]
+            
+            # add ASSET_A to the note
+            movdn.8
             swapw dupw movup.12
-            exec.tx::add_asset_to_note drop
-            swapw
-            # => [ASSET_B, ASSET_A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            exec.tx::add_asset_to_note
+            # => [note_idx, ASSET_A, ASSET_B, CAPACITY, -num_assets_even, needs_padding, ASSETS_HASH, ...]
+
+            movdn.13 swapw
+            # => [ASSET_B, ASSET_A, CAPACITY, -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
             # perform hash iteration
             hperm
-            # => [HASH_B, HASH_A, CAPACITY', -num_assets_even, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [HASH_B, HASH_A, CAPACITY', -num_assets_even, note_idx, needs_padding, ASSETS_HASH, ...]
 
             # update counters
             movup.12 add.2 movdn.12
-            # => [HASH_B, HASH_A, CAPACITY', -num_assets_even+2, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [HASH_B, HASH_A, CAPACITY', -num_assets_even+2, note_idx, needs_padding, ASSETS_HASH, ...]
 
             # check loop condition
             dup.12 neq.0
-            # => [b, HASH_B, HASH_A, CAPACITY', -num_assets_even+2, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [b, HASH_B, HASH_A, CAPACITY', -num_assets_even+2, note_idx, needs_padding, ASSETS_HASH, ...]
         end
-        # => [HASH_B, HASH_A, CAPACITY', 0, note_idx, needs_padding, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [HASH_B, HASH_A, CAPACITY', 0, note_idx, needs_padding, ASSETS_HASH, ...]
 
         # if there is still one asset left and we need to perform last permutation iteration
         movup.14
         if.true
-            # Rescue Prime Optimized uses overwrite mode, drop `HASH_B`. (4 cycles)
+            # Rescue Prime Optimized uses overwrite mode, drop `HASH_B`.
             dropw
-            # => [HASH_A, CAPACITY', 0, note_idx, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [HASH_A, CAPACITY', 0, note_idx, ASSETS_HASH, ...]
 
             # load the last asset and remove it from the account
             adv_loadw exec.account::remove_asset
-            # => [HASH_A', CAPACITY', 0, note_idx, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [HASH_A', CAPACITY', 0, note_idx, ASSETS_HASH, ...]
 
             # add last asset to the note
             dupw movup.13 
-            exec.tx::add_asset_to_note movdn.8
-            # => [HASH_A', CAPACITY', note_idx, 0, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            exec.tx::add_asset_to_note movdn.9
+            # => [HASH_A', CAPACITY', 0, note_idx, ASSETS_HASH, ...]
 
             # Push padding word (4 cycles)
             push.1.0.0.0
-            # => [PADDING, HASH_A', CAPACITY', note_idx, 0, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [PADDING, HASH_A', CAPACITY', 0, note_idx, ASSETS_HASH, ...]
 
             # Run RPO permutation (1 cycles)
             hperm
-            # => [HASH_B, HASH_A'', CAPACITY'', note_idx, 0, ASSETS_HASH, 0, EMPTY_WORD, ...]
+            # => [HASH_B, HASH_A'', CAPACITY'', 0, note_idx, ASSETS_HASH, ...]
         end
 
         # The RPO result is the middle word (HASH_A''), discard the unused portion of the rate and the 
         # capacity.
         dropw swapw dropw
-        # => [ACC_HASH, note_idx, 0, ASSETS_HASH, 0, EMPTY_WORD, ...]
+        # => [ACC_HASH, 0, note_idx, ASSETS_HASH, ...]
 
         # check the correctness of the resulting accumulative hash
         repeat.4 movup.9 end
-        assert_eqw
+        assert_eqw swap
         # => [note_idx, 0, 0, EMPTY_WORD, ...]
     end
 end
