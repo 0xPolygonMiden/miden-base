@@ -35,8 +35,7 @@ pub const BATCH_OUTPUT_NOTES_TREE_DEPTH: u8 = 13;
 ///
 /// Because the tree used in a batch has fixed depth, and each note takes two leaves, the maximum
 /// number of notes is the number of leaves in the tree.
-pub const MAX_OUTPUT_NOTES_PER_BATCH: usize =
-    2_usize.pow((BATCH_OUTPUT_NOTES_TREE_DEPTH - 1) as u32);
+pub const MAX_NOTES_PER_BATCH: usize = 2_usize.pow((BATCH_OUTPUT_NOTES_TREE_DEPTH - 1) as u32);
 
 // BLOCK
 // ================================================================================================
@@ -58,7 +57,7 @@ pub const BLOCK_OUTPUT_NOTES_TREE_DEPTH: u8 =
 pub const MAX_BATCHES_PER_BLOCK: usize = 2_usize.pow(BLOCK_OUTPUT_NOTES_BATCH_TREE_DEPTH as u32);
 
 /// Maximum number of output notes that can be created in a single block.
-pub const MAX_OUTPUT_NOTES_PER_BLOCK: usize = MAX_OUTPUT_NOTES_PER_BATCH * MAX_BATCHES_PER_BLOCK;
+pub const MAX_OUTPUT_NOTES_PER_BLOCK: usize = MAX_NOTES_PER_BATCH * MAX_BATCHES_PER_BLOCK;
 
 /// The block height of the genesis block
 pub const GENESIS_BLOCK: u32 = 0;

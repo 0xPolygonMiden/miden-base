@@ -8,7 +8,7 @@ use miden_crypto::{
 use crate::{
     notes::NoteMetadata,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_OUTPUT_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
+    BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>] for notes tree.
@@ -94,7 +94,7 @@ impl BlockNoteIndex {
     /// Returns an index to the node which the parent of both the note and note metadata.
     pub fn to_absolute_index(&self) -> u32 {
         const _: () = assert!(MAX_OUTPUT_NOTES_PER_BLOCK <= u32::MAX as usize);
-        (self.batch_idx() * MAX_OUTPUT_NOTES_PER_BATCH + self.note_idx_in_batch()) as u32
+        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u32
     }
 
     /// Returns an index of the leaf containing the note.

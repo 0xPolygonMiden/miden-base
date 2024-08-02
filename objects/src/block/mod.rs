@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 
-use super::{Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, ZERO};
+use super::{Digest, Felt, Hasher, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH, ZERO};
 
 mod header;
 pub use header::BlockHeader;
@@ -148,7 +148,7 @@ impl Block {
         }
 
         for batch in self.output_note_batches.iter() {
-            if batch.len() > MAX_OUTPUT_NOTES_PER_BATCH {
+            if batch.len() > MAX_NOTES_PER_BATCH {
                 return Err(BlockError::TooManyNotesInBatch(batch.len()));
             }
         }
