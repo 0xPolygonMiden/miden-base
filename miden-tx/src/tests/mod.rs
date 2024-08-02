@@ -13,7 +13,7 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteInputs, NoteMetadata,
+        Note, NoteAssets, NoteExecutionMode, NoteHeader, NoteId, NoteInputs, NoteMetadata,
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
@@ -139,7 +139,7 @@ fn executed_transaction_account_delta() {
 
     let tag1 = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        NoteExecutionHint::Local,
+        NoteExecutionMode::Local,
     )
     .unwrap();
     let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
@@ -471,11 +471,11 @@ fn executed_transaction_output_notes() {
 
     let tag1 = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        NoteExecutionHint::Local,
+        NoteExecutionMode::Local,
     )
     .unwrap();
-    let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
-    let tag3 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionMode::Local).unwrap();
+    let tag3 = NoteTag::for_public_use_case(0, 0, NoteExecutionMode::Local).unwrap();
     let aux1 = Felt::new(27);
     let aux2 = Felt::new(28);
     let aux3 = Felt::new(29);

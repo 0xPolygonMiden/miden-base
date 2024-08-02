@@ -144,6 +144,8 @@ pub enum NoteError {
     InvalidAssetData(AssetError),
     InvalidNoteSender(AccountError),
     InvalidNoteTagUseCase(u16),
+    InvalidNoteExecutionHintTag(u8),
+    InvalidNoteExecutionHintPayload(u8, u32),
     InvalidNoteType(NoteType),
     InvalidNoteTypeValue(u64),
     InvalidLocationIndex(String),

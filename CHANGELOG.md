@@ -11,6 +11,7 @@
 - Added `CHANGELOG.md` warning message on CI (#799).
 - Account deltas can now be merged (#797).
 - Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
+- Added `NoteExecutionHint` to `NoteMetadata` (#812).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
 
 ## 0.4.0 (2024-07-03)

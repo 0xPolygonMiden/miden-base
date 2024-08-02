@@ -5,7 +5,7 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
+        Note, NoteAssets, NoteDetails, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient,
         NoteTag, NoteType,
     },
     Felt, NoteError, Word,
@@ -40,7 +40,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = NoteInputs::new(vec![target.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
     let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
@@ -74,7 +74,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let note_script = build_note_script(bytes)?;
 
     let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
     let vault = NoteAssets::new(assets)?;
@@ -108,7 +108,7 @@ pub fn create_swap_note<R: FeltRng>(
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
+    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
 
     let inputs = NoteInputs::new(vec![
         payback_recipient_word[0],
@@ -169,7 +169,7 @@ fn build_swap_tag(
 
     let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
 
-    let execution = NoteExecutionHint::Local;
+    let execution = NoteExecutionMode::Local;
     match note_type {
         NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
         _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),

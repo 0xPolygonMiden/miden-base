@@ -29,11 +29,14 @@ pub use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
+mod note_execution_hint;
+pub use note_execution_hint::NoteExecutionHint;
+
 mod note_id;
 pub use note_id::NoteId;
 
 mod note_tag;
-pub use note_tag::{NoteExecutionHint, NoteTag};
+pub use note_tag::{NoteExecutionMode, NoteTag};
 
 mod note_type;
 pub use note_type::NoteType;
