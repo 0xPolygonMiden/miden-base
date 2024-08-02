@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::{Account, AccountProcedureInfo},
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, PreparedTransaction, TransactionArgs,
+        ChainMmr, ExecutedTransaction, InputNote, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
@@ -92,7 +92,7 @@ fn extend_advice_inputs(
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs.input_notes(), tx_args, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
     advice_inputs.extend(tx_args.advice_inputs().clone());
 }
 
@@ -267,29 +267,29 @@ fn add_account_to_advice_inputs(
 /// The advice provider is populated with:
 ///
 /// - For each note:
-///     - The note's details (serial number, script root, and its' input / assets hash).
+///     - The note's details (serial number, script root, and its input / assets hash).
 ///     - The note's private arguments.
 ///     - The note's public metadata.
 ///     - The note's public inputs data. Prefixed by its length and padded to an even word length.
 ///     - The note's asset padded. Prefixed by its length and padded to an even word length.
-///     - For autheticated notes (determined by the `is_authenticated` flag):
+///     - For authenticated notes (determined by the `is_authenticated` flag):
 ///         - The note's authentication path against its block's note tree.
 ///         - The block number, sub hash, note root.
 ///         - The note's position in the note tree
 ///
 /// The data above is processed by `prologue::process_input_notes_data`.
 fn add_input_notes_to_advice_inputs(
-    notes: &InputNotes<InputNote>,
+    tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     inputs: &mut AdviceInputs,
 ) {
     // if there are no input notes, nothing is added to the advice inputs
-    if notes.is_empty() {
+    if tx_inputs.input_notes().is_empty() {
         return;
     }
 
     let mut note_data = Vec::new();
-    for input_note in notes.iter() {
+    for input_note in tx_inputs.input_notes().iter() {
         let note = input_note.note();
         let assets = note.assets();
         let recipient = note.recipient();
@@ -320,6 +320,16 @@ fn add_input_notes_to_advice_inputs(
         // insert note authentication path nodes into the Merkle store
         match input_note {
             InputNote::Authenticated { note, proof } => {
+                let block_num = proof.location().block_num();
+                let note_block_header = if block_num == tx_inputs.block_header().block_num() {
+                    tx_inputs.block_header()
+                } else {
+                    tx_inputs
+                        .block_chain()
+                        .get_block(block_num)
+                        .expect("block not found in chain MMR")
+                };
+
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
                 // Push the `is_authenticated` flag
                 note_data.push(Felt::ONE);
@@ -328,17 +338,16 @@ fn add_input_notes_to_advice_inputs(
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.origin().node_index.value(), note.hash())
+                        .inner_nodes(proof.location().node_index_in_block(), note.hash())
                         .unwrap(),
                 );
-                note_data.push(proof.origin().block_num.into());
-                note_data.extend(*proof.sub_hash());
-                note_data.extend(*proof.note_root());
+                note_data.push(proof.location().block_num().into());
+                note_data.extend(note_block_header.sub_hash());
+                note_data.extend(note_block_header.note_root());
                 note_data.push(
                     proof
-                        .origin()
-                        .node_index
-                        .value()
+                        .location()
+                        .node_index_in_block()
                         .try_into()
                         .expect("value is greater than or equal to the field modulus"),
                 );
@@ -352,5 +361,5 @@ fn add_input_notes_to_advice_inputs(
     }
 
     // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
-    inputs.extend_map([(notes.commitment(), note_data)]);
+    inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
 }

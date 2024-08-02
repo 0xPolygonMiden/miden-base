@@ -146,7 +146,7 @@ pub enum NoteError {
     InvalidNoteTagUseCase(u16),
     InvalidNoteType(NoteType),
     InvalidNoteTypeValue(u64),
-    InvalidOriginIndex(String),
+    InvalidLocationIndex(String),
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
@@ -166,8 +166,8 @@ impl NoteError {
         Self::DuplicateNonFungibleAsset(asset)
     }
 
-    pub fn invalid_origin_index(msg: String) -> Self {
-        Self::InvalidOriginIndex(msg)
+    pub fn invalid_location_index(msg: String) -> Self {
+        Self::InvalidLocationIndex(msg)
     }
 
     pub fn too_many_assets(num_assets: usize) -> Self {

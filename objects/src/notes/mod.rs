@@ -41,8 +41,8 @@ pub use note_type::NoteType;
 mod nullifier;
 pub use nullifier::Nullifier;
 
-mod origin;
-pub use origin::{NoteInclusionProof, NoteOrigin};
+mod location;
+pub use location::{NoteInclusionProof, NoteLocation};
 
 mod partial;
 pub use partial::PartialNote;

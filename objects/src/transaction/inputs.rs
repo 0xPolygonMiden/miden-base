@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
 use crate::{
     accounts::{Account, AccountId},
-    notes::{Note, NoteId, NoteInclusionProof, NoteOrigin, Nullifier},
+    notes::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     TransactionInputError, MAX_INPUT_NOTES_PER_TX,
 };
@@ -60,7 +60,7 @@ impl TransactionInputs {
         // check the authentication paths of the input notes.
         for note in input_notes.iter() {
             if let InputNote::Authenticated { note, proof } = note {
-                let note_block_num = proof.origin().block_num;
+                let note_block_num = proof.location().block_num();
 
                 let block_header = if note_block_num == block_num {
                     &block_header
@@ -369,15 +369,15 @@ impl InputNote {
         }
     }
 
-    /// Returns a reference to the origin of the note.
-    pub fn origin(&self) -> Option<&NoteOrigin> {
-        self.proof().map(|proof| proof.origin())
+    /// Returns a reference to the location of the note.
+    pub fn location(&self) -> Option<&NoteLocation> {
+        self.proof().map(|proof| proof.location())
     }
 }
 
 /// Returns true if this note belongs to the note tree of the specified block.
 fn is_in_block(note: &Note, proof: &NoteInclusionProof, block_header: &BlockHeader) -> bool {
-    let note_index = proof.origin().node_index.value();
+    let note_index = proof.location().node_index_in_block();
     let note_hash = note.hash();
     proof.note_path().verify(note_index, note_hash, &block_header.note_root())
 }
