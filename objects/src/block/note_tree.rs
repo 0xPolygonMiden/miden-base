@@ -8,17 +8,17 @@ use miden_crypto::{
 use crate::{
     notes::NoteMetadata,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_OUTPUT_NOTES_PER_BLOCK,
+    BLOCK_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_NOTES_PER_BLOCK,
 };
 
-/// Wrapper over [SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>] for notes tree.
+/// Wrapper over [SimpleSmt<BLOCK_NOTES_TREE_DEPTH>] for notes tree.
 ///
 /// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
 /// ID's leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
 /// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct BlockNoteTree(SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>);
+pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTES_TREE_DEPTH>);
 
 impl BlockNoteTree {
     /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided entries.
@@ -93,13 +93,13 @@ impl BlockNoteIndex {
 
     /// Returns an index to the node which the parent of both the note and note metadata.
     pub fn to_absolute_index(&self) -> u32 {
-        const _: () = assert!(MAX_OUTPUT_NOTES_PER_BLOCK <= u32::MAX as usize);
+        const _: () = assert!(MAX_NOTES_PER_BLOCK <= u32::MAX as usize);
         (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u32
     }
 
     /// Returns an index of the leaf containing the note.
     fn leaf_index(&self) -> u32 {
-        const _: () = assert!(MAX_OUTPUT_NOTES_PER_BLOCK * 2 <= u32::MAX as usize);
+        const _: () = assert!(MAX_NOTES_PER_BLOCK * 2 <= u32::MAX as usize);
         self.to_absolute_index() * 2
     }
 }
