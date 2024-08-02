@@ -20,7 +20,7 @@ const PUBLIC_USECASE: u32 = 0x80000000;
 /// [super::Note]'s execution mode hints.
 ///
 /// The execution hints are _not_ enforced, therefore function only as hints. For example, if a
-/// note's tag is created with the [NoteExecutionHint::Network], further validation is necessary to
+/// note's tag is created with the [NoteExecutionMode::Network], further validation is necessary to
 /// check the account_id is known, that the account's state is on-chain, and the account is
 /// controlled by the network.
 ///
