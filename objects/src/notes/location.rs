@@ -24,8 +24,8 @@ impl NoteLocation {
     ///
     /// # Note
     ///
-    /// The height of the Merkle tree is `BLOCK_OUTPUT_NOTES_TREE_DEPTH`. Thus, the maximum index
-    /// is `2 ^ BLOCK_OUTPUT_NOTES_TREE_DEPTH - 1`.
+    /// The height of the Merkle tree is [BLOCK_NOTES_TREE_DEPTH]. Thus, the maximum index
+    /// is `2 ^ BLOCK_NOTES_TREE_DEPTH - 1`.
     pub fn node_index_in_block(&self) -> u32 {
         self.node_index_in_block
     }
