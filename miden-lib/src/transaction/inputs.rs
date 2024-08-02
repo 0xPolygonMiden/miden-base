@@ -338,7 +338,7 @@ fn add_input_notes_to_advice_inputs(
                 inputs.extend_merkle_store(
                     proof
                         .note_path()
-                        .inner_nodes(proof.location().node_index(), note.hash())
+                        .inner_nodes(proof.location().node_index_in_block(), note.hash())
                         .unwrap(),
                 );
                 note_data.push(proof.location().block_num().into());
@@ -347,7 +347,7 @@ fn add_input_notes_to_advice_inputs(
                 note_data.push(
                     proof
                         .location()
-                        .node_index()
+                        .node_index_in_block()
                         .try_into()
                         .expect("value is greater than or equal to the field modulus"),
                 );
