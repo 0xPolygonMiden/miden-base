@@ -31,8 +31,11 @@ const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
 # Account procedure is not part of the account code
 const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002004A
 
-# Provided index is out of bounds
+# Provided procedure index is out of bounds
 const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
+
+# Provided storage slot index is out of bounds
+const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 
 # CONSTANTS
 # =================================================================================================
@@ -72,11 +75,15 @@ const.FAUCET_STORAGE_DATA_SLOT=254
 # The account storage slot at which the slot types commitment is stored.
 const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
 
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=255
+
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
 
 # The maximum number of account interface procedures.
 const.MAX_NUM_PROCEDURES=65535
+
 
 # EVENTS
 # =================================================================================================
@@ -134,6 +141,16 @@ end
 #! - max_slot_type is the maximum value a slot type can take (An array of depth 64).
 export.get_max_slot_type
     push.MAX_SLOT_TYPE
+end
+
+#! Returns the maximum storage slot index (255).
+#!
+#! Stack: []
+#! Output: [max_storage_slot_index]
+#!
+#! - max_storage_slot_index is the maximum storage slot index.
+export.get_max_storage_slot_index
+    push.MAX_STORAGE_SLOT_INDEX
 end
 
 #! Returns the maximum number of account interface procedures.
@@ -348,6 +365,26 @@ export.get_storage_slot_type_info
     exec.memory::get_acct_storage_slot_type_data u32split
 end
 
+#! Offsets provided storage slot index for storage access
+#!
+#! Panics:
+#!   - slot index is out of bounds
+#!   - computed index is out of bounds
+#!
+#! Stack: [storage_offset, slot_index]
+#! Output: [offset_slot_index]
+export.offset_storage_index
+    # verify that slot_index is in bounds
+    dup.1 exec.get_max_storage_slot_index lt assert.err=111
+    # assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [storage_offset, slot_index]
+
+    # verify that the computed offset_slot_index is in bounds
+    add dup exec.get_max_storage_slot_index lt assert.err=112
+    # assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [offset_slot_index]
+end
+
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
 #! Stack: [index]
@@ -500,9 +537,9 @@ end
 #! - index is out of bounds
 export.get_procedure_info
   # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-  # check if index == 255
-  dup push.255 neq
-  # => [is_255, index]
+  # check if index == 0
+  dup push.0 neq
+  # => [is_0, index]
 
   # load procedure information from memory
   if.true
@@ -539,12 +576,12 @@ export.authenticate_procedure
     # In production:
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
     # During testing:
-    # => [255, PROC_ROOT]
+    # => [0, PROC_ROOT]
 
     # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-    # check if get_procedure_info returned 255
-    dup push.255 neq
-    # => [is_255, index, PROC_ROOT]
+    # check if get_procedure_info returned 0
+    dup push.0 neq
+    # => [is_0, index, PROC_ROOT]
 
     # verify that PROC_ROOT matches returned procedure information
     if.true

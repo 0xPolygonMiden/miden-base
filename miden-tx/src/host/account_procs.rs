@@ -92,7 +92,7 @@ impl AccountProcedureIndexMap {
         // mock account method for testing from root context
         // TODO: figure out if we can get rid of this
         if proc_root == Digest::default() {
-            return Ok(255);
+            return Ok(0);
         }
 
         self.0
