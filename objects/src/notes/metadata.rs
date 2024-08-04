@@ -31,7 +31,7 @@ pub struct NoteMetadata {
     /// An arbitrary user-defined value.
     aux: Felt,
 
-    /// Expresses when a note is ready to be consumed.
+    /// Specifies when a note is ready to be consumed.
     execution_hint: NoteExecutionHint,
 }
 

@@ -3,13 +3,21 @@
 
 use crate::NoteError;
 
+// CONSTANTS
+// ================================================================================================
+
+const NONE_TAG: u8 = 0;
+const ALWAYS_TAG: u8 = 1;
+const AFTER_BLOCK_TAG: u8 = 2;
+const ON_BLOCK_SLOT_TAG: u8 = 3;
+
 /// Describes the conditions under which a note is ready to be consumed.
-/// These conditions are meant to be encoded in the note script.
+/// These conditions are meant to be encoded in the note script as well.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum NoteExecutionHint {
-    /// Unspecified note execution hint. Implies we don't know under which conditions the note is
-    /// consumable.
+    /// Unspecified note execution hint. Implies it is not knorn under which conditions the note
+    /// is consumable.
     None,
     /// The note's script can be executed at any time.
     Always,
@@ -18,12 +26,12 @@ pub enum NoteExecutionHint {
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
     /// The slot is defined as follows:
-    /// - First we define the length of the epoch in powers of 2. For example, epoch_len = 10 is an epoch
-    ///   of 1024 blocks.
+    /// - First we define the length of the epoch in powers of 2. For example, epoch_len = 10 is
+    ///   an epoch of 1024 blocks.
     /// - Then we define the length of a slot within the epoch also using powers of 2. For example,
     ///   slot_len = 7 is a slot of 128 blocks.
-    /// - Lastly, the offset specifies the index of the slot within the epoch - i.e., 0 is the first slot,
-    ///   1 is the second slot etc.
+    /// - Lastly, the offset specifies the index of the slot within the epoch - i.e., 0 is the
+    ///   first slot, 1 is the second slot etc.
     ///
     /// For example: { epoch_len: 10, slot_len: 7, slot_offset: 1 } means that the note can
     /// be executed in any second 128 block slot of a 1024 block epoch. These would be blocks 128..255,
@@ -36,6 +44,9 @@ pub enum NoteExecutionHint {
 }
 
 impl NoteExecutionHint {
+    // CONSTRUCTORS
+    // ------------------------------------------------------------------------------------------------
+
     /// Creates a [NoteExecutionHint::None] variant
     pub fn none() -> Self {
         NoteExecutionHint::None
@@ -58,20 +69,20 @@ impl NoteExecutionHint {
 
     pub fn from_parts(tag: u8, payload: u32) -> Result<NoteExecutionHint, NoteError> {
         match tag {
-            0 => {
+            NONE_TAG => {
                 if payload != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
                 Ok(NoteExecutionHint::None)
             },
-            1 => {
+            ALWAYS_TAG => {
                 if payload != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
                 Ok(NoteExecutionHint::Always)
             },
-            2 => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
-            3 => {
+            AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
+            ON_BLOCK_SLOT_TAG => {
                 let remainder = (payload >> 24 & 0xFF) as u8;
                 if remainder != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
@@ -119,13 +130,13 @@ impl NoteExecutionHint {
 
     pub fn into_parts(&self) -> (u8, u32) {
         match self {
-            NoteExecutionHint::None => (0, 0),
-            NoteExecutionHint::Always => (1, 0),
-            NoteExecutionHint::AfterBlock { block_num } => (2, *block_num),
+            NoteExecutionHint::None => (NONE_TAG, 0),
+            NoteExecutionHint::Always => (ALWAYS_TAG, 0),
+            NoteExecutionHint::AfterBlock { block_num } => (AFTER_BLOCK_TAG, *block_num),
             NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset } => {
                 let payload: u32 =
                     ((*epoch_len as u32) << 16) | ((*slot_len as u32) << 8) | (*slot_offset as u32);
-                (3, payload)
+                (ON_BLOCK_SLOT_TAG, payload)
             },
         }
     }
@@ -178,11 +189,11 @@ mod tests {
 
     #[test]
     fn test_parts_validity() {
-        NoteExecutionHint::from_parts(0, 1).unwrap_err();
-        NoteExecutionHint::from_parts(1, 12).unwrap_err();
+        NoteExecutionHint::from_parts(NONE_TAG, 1).unwrap_err();
+        NoteExecutionHint::from_parts(ALWAYS_TAG, 12).unwrap_err();
         // 4th byte should be blank for tag 3 (OnBlockSlot)
-        NoteExecutionHint::from_parts(3, 1 << 24).unwrap_err();
-        NoteExecutionHint::from_parts(3, 0).unwrap();
+        NoteExecutionHint::from_parts(ON_BLOCK_SLOT_TAG, 1 << 24).unwrap_err();
+        NoteExecutionHint::from_parts(ON_BLOCK_SLOT_TAG, 0).unwrap();
 
         NoteExecutionHint::from_parts(10, 1).unwrap_err();
     }
