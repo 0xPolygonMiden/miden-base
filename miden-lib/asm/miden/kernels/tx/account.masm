@@ -375,13 +375,11 @@ end
 #! Output: [offset_slot_index]
 export.offset_storage_index
     # verify that slot_index is in bounds
-    dup.1 exec.get_max_storage_slot_index lt assert.err=111
-    # assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    dup.1 exec.get_max_storage_slot_index lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [storage_offset, slot_index]
 
     # verify that the computed offset_slot_index is in bounds
-    add dup exec.get_max_storage_slot_index lt assert.err=112
-    # assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    add dup exec.get_max_storage_slot_index lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
