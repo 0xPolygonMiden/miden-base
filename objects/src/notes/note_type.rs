@@ -6,6 +6,7 @@ use crate::{
 // CONSTANTS
 // ================================================================================================
 
+// NOTE: `NoteType` variants should be able to be represented by 4 bits.
 // Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
 const PUBLIC: u8 = 0b0001;
 const PRIVATE: u8 = 0b0010;
@@ -16,7 +17,7 @@ const ENCRYPTED: u8 = 0b0011;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[repr(u8)]
+#[repr(u8)] 
 pub enum NoteType {
     /// Notes with this type have only their hash published to the network.
     Private = PRIVATE,
