@@ -6,9 +6,9 @@ use miden_objects::{
         account_id::testing::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
-        Account, AccountCode, AccountId,
+        Account, AccountId,
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
@@ -129,6 +129,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         let tx_args = TransactionArgs::default();
+
         Self {
             assembler: TransactionKernel::assembler().with_debug_mode(true),
             account,
@@ -141,9 +142,10 @@ impl TransactionContextBuilder {
         }
     }
 
-    pub fn with_standard_account(account_id: u64, nonce: Felt) -> Self {
+    pub fn with_standard_account(nonce: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = Account::mock(account_id, nonce, AccountCode::mock_wallet(&assembler));
+        let account =
+            Account::mock(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, nonce, &assembler);
 
         Self {
             assembler,

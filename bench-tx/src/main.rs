@@ -66,12 +66,9 @@ fn main() -> Result<(), String> {
 
 /// Runs the default transaction with empty transaction script and two default notes.
 pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
     let mut executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None).with_tracing();
 
@@ -93,7 +90,8 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
     let mut host: TransactionHost<_, ()> =
-        TransactionHost::new(transaction.account().into(), advice_recorder, None);
+        TransactionHost::new(transaction.account().into(), advice_recorder, None)
+            .map_err(|e| format!("Failed to create transaction host: {}", e))?;
 
     vm_processor::execute(
         transaction.program(),
@@ -177,7 +175,8 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
     )]);
     let authenticator = Some(Rc::new(authenticator));
     let mut host =
-        TransactionHost::new(transaction.account().into(), advice_recorder, authenticator);
+        TransactionHost::new(transaction.account().into(), advice_recorder, authenticator)
+            .map_err(|e| format!("Failed to create transaction host: {}", e))?;
 
     vm_processor::execute(
         transaction.program(),

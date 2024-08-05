@@ -50,14 +50,14 @@ const.EPILOGUE_END=131081
 #! advice provider.
 #!
 #! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
-#! Output:  [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output:  [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - CREATED_NOTES_COMMITMENT, commitment to the notes created by the transaction.
+#! - OUTPUT_NOTES_COMMITMENT, commitment to the notes created by the transaction.
 #! - FINAL_ACCOUNT_HASH, account's hash after execution the transaction.
 proc.main.1
     # Prologue
@@ -77,12 +77,12 @@ proc.main.1
     push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
-    exec.memory::get_total_num_consumed_notes
-    # => [num_consumed_notes]
+    exec.memory::get_num_input_notes
+    # => [num_input_notes]
 
     # compute the memory location after all input notes, i.e. the exit condition
-    dup exec.memory::get_consumed_note_ptr loc_store.0
-    # => [num_consumed_notes]
+    dup exec.memory::get_input_note_ptr loc_store.0
+    # => [num_input_notes]
 
     eq.0 not
     # => [should_loop]
@@ -103,8 +103,8 @@ proc.main.1
         dropw dropw dropw dropw
         # => []
 
-        exec.note::increment_current_consumed_note_ptr
-        # => [current_consumed_note_ptr]
+        exec.note::increment_current_input_note_ptr
+        # => [current_input_note_ptr]
 
         # loop condition, exit when the memory ptr is after all input notes
         loc_load.0 neq
@@ -158,11 +158,11 @@ proc.main.1
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
     push.0 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end
 
 begin

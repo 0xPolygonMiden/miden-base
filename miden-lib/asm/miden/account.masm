@@ -143,10 +143,10 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: []
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
     syscall.set_account_code
     # => [0, 0, 0, 0]

@@ -1,7 +1,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::ops::Deref;
 
-use vm_processor::AdviceMap;
+use miden_crypto::merkle::InnerNodeInfo;
+use vm_processor::{AdviceInputs, AdviceMap};
 
 use super::{Digest, Felt, Word};
 use crate::{
@@ -21,12 +22,12 @@ use crate::{
 /// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
-/// - Advice map: Provides data needed by the runtime, like the details of a public output note.
+/// - Advice inputs: Provides data needed by the runtime, like the details of a public output note.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
-    advice_map: AdviceMap,
+    advice_inputs: AdviceInputs,
 }
 
 impl TransactionArgs {
@@ -37,21 +38,23 @@ impl TransactionArgs {
     /// arguments.
     ///
     /// If tx_script is provided, this also adds all mappings from the transaction script inputs
-    /// to the advice map.
+    /// to the advice inputs' map.
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
-        mut advice_map: AdviceMap,
+        advice_map: AdviceMap,
     ) -> Self {
-        // add transaction script inputs to the advice map
+        let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
+        // add transaction script inputs to the advice inputs' map
         if let Some(ref tx_script) = tx_script {
-            advice_map.extend(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())))
+            advice_inputs
+                .extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())))
         }
 
         Self {
             tx_script,
             note_args: note_args.unwrap_or_default(),
-            advice_map,
+            advice_inputs,
         }
     }
 
@@ -78,9 +81,9 @@ impl TransactionArgs {
         self.note_args.get(&note_id)
     }
 
-    /// Returns a reference to the args [AdviceMap].
-    pub fn advice_map(&self) -> &AdviceMap {
-        &self.advice_map
+    /// Returns a reference to the args [AdviceInputs].
+    pub fn advice_inputs(&self) -> &AdviceInputs {
+        &self.advice_inputs
     }
 
     // STATE MUTATORS
@@ -88,7 +91,7 @@ impl TransactionArgs {
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The advice map is extended with the following keys:
+    /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -100,14 +103,18 @@ impl TransactionArgs {
         let script = note.script();
         let script_encoded: Vec<Felt> = script.into();
 
-        self.advice_map.insert(recipient.digest(), recipient.to_elements());
-        self.advice_map.insert(inputs.commitment(), inputs.format_for_advice());
-        self.advice_map.insert(script.hash(), script_encoded);
+        let new_elements = [
+            (recipient.digest(), recipient.to_elements()),
+            (inputs.commitment(), inputs.format_for_advice()),
+            (script.hash(), script_encoded),
+        ];
+
+        self.advice_inputs.extend_map(new_elements);
     }
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The advice map is extended with the following keys:
+    /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -123,9 +130,14 @@ impl TransactionArgs {
         }
     }
 
-    /// Extends the internal advice map with the provided key-value pairs.
+    /// Extends the internal advice inputs' map with the provided key-value pairs.
     pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
-        self.advice_map.extend(iter)
+        self.advice_inputs.extend_map(iter)
+    }
+
+    /// Extends the internal advice inputs' merkle store with the provided nodes.
+    pub fn extend_merkle_store<I: Iterator<Item = InnerNodeInfo>>(&mut self, iter: I) {
+        self.advice_inputs.extend_merkle_store(iter)
     }
 }
 
@@ -141,7 +153,7 @@ impl TransactionArgs {
 /// - [code](TransactionScript::code): the transaction script source code.
 /// - [hash](TransactionScript::hash): the hash of the compiled transaction script.
 /// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
-///   advice map such that the transaction script can access them.
+///   advice inputs' map such that the transaction script can access them.
 #[derive(Clone, Debug)]
 pub struct TransactionScript {
     code: ProgramAst,

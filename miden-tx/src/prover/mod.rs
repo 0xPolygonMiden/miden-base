@@ -33,7 +33,7 @@ impl TransactionProver {
     /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
     /// # Errors
-    /// - If the consumed note data in the transaction witness is corrupt.
+    /// - If the input note data in the transaction witness is corrupt.
     /// - If the transaction program cannot be proven.
     /// - If the transaction result is corrupt.
     pub fn prove_transaction<T: Into<TransactionWitness>>(
@@ -50,7 +50,8 @@ impl TransactionProver {
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
         let mut host: TransactionHost<_, ()> =
-            TransactionHost::new(tx_witness.account().into(), advice_provider, None);
+            TransactionHost::new(tx_witness.account().into(), advice_provider, None)
+                .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;

@@ -13,7 +13,7 @@ const.PUBLIC_KEY_SLOT=0
 #! Output: []
 #!
 export.auth_tx_rpo_falcon512
-    # Get commitments to created notes
+    # Get commitments to output notes
     exec.tx::get_output_notes_hash
     # => [OUTPUT_NOTES_HASH, ...]
 

@@ -50,8 +50,11 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn build(&mut self, assembler: &Assembler) -> Result<AccountId, AccountBuilderError> {
-        let (seed, code_root) = account_id_build_details(
+    pub fn build(
+        &mut self,
+        assembler: &Assembler,
+    ) -> Result<(AccountId, Word), AccountBuilderError> {
+        let (seed, code_commitment) = account_id_build_details(
             &mut self.rng,
             &self.code,
             self.account_type,
@@ -60,8 +63,10 @@ impl<T: Rng> AccountIdBuilder<T> {
             assembler,
         )?;
 
-        AccountId::new(seed, code_root, self.storage_root)
-            .map_err(AccountBuilderError::AccountError)
+        let account_id = AccountId::new(seed, code_commitment, self.storage_root)
+            .map_err(AccountBuilderError::AccountError)?;
+
+        Ok((account_id, seed))
     }
 
     pub fn with_seed(
@@ -71,9 +76,9 @@ impl<T: Rng> AccountIdBuilder<T> {
     ) -> Result<AccountId, AccountBuilderError> {
         let code = str_to_account_code(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
-        let code_root = code.root();
+        let code_commitment = code.commitment();
 
-        let account_id = AccountId::new(seed, code_root, self.storage_root)
+        let account_id = AccountId::new(seed, code_commitment, self.storage_root)
             .map_err(AccountBuilderError::AccountError)?;
 
         if account_id.account_type() != self.account_type {
@@ -91,7 +96,7 @@ impl<T: Rng> AccountIdBuilder<T> {
 // UTILS
 // ================================================================================================
 
-/// Returns the account's seed and code root.
+/// Returns the account's seed and code commitment.
 ///
 /// This compiles `code` and performs the proof-of-work to find a valid seed.
 pub fn account_id_build_details<T: Rng>(
@@ -104,12 +109,17 @@ pub fn account_id_build_details<T: Rng>(
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
     let code = str_to_account_code(code, assembler).map_err(AccountBuilderError::AccountError)?;
-    let code_root = code.root();
-    let seed =
-        AccountId::get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
-            .map_err(AccountBuilderError::AccountError)?;
+    let code_commitment = code.commitment();
+    let seed = AccountId::get_account_seed(
+        init_seed,
+        account_type,
+        storage_type,
+        code_commitment,
+        storage_root,
+    )
+    .map_err(AccountBuilderError::AccountError)?;
 
-    Ok((seed, code_root))
+    Ok((seed, code_commitment))
 }
 
 pub fn str_to_account_code(

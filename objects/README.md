@@ -22,7 +22,7 @@ Structures used to define fungible and non-fungible assets. Accounts own assets 
 
 ### Block
 
-Structures used to define a block. These objects contains authentication structures, merkle trees, used to represent the state of the rollup at a given point in time.
+Structures used to define a block. These objects contain authentication structures, merkle trees, used to represent the state of the rollup at a given point in time.
 
 ### Notes
 

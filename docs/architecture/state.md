@@ -85,9 +85,9 @@ Nullifiers are stored in a sparse Merkle tree, which maps [note nullifiers](note
 ![Architecture core concepts](../img/architecture/state/nullifier-db.png){ width="80%" }
 </center>
 
-To prove that a note has not been consumed previously, the operator needs to provide a Merkle path to its node, and then show that the value in that node is `0`. In our case nullifiers are $32$ bytes each, and thus, the height of the Sparse Merkle Tree need to be $256$.
+To prove that a note has not been consumed previously, the operator needs to provide a Merkle path to its node, and then show that the value in that node is `0`. In our case nullifiers are $32$ bytes each, and thus, the height of the Sparse Merkle Tree needs to be $256$.
 
-To add new nullifiers to the database, operators needs to maintain the entire nullifier set. Otherwise, they would not be able to compute the new root of the tree.
+To add new nullifiers to the database, operators need to maintain the entire nullifier set. Otherwise, they would not be able to compute the new root of the tree.
 
 !!! note
     Nullifiers as constructed in Miden break linkability of privately stored notes and the information about the note's consumption. To know the [note's nullifier](notes.md#note-nullifier-to-ensure-private-consumption) one must know the note's data.

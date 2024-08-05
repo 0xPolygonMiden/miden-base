@@ -11,7 +11,10 @@ use super::{
     notes::NoteId,
     Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
-use crate::{accounts::AccountType, notes::NoteType};
+use crate::{
+    accounts::{delta::AccountUpdateDetails, AccountType},
+    notes::NoteType,
+};
 
 // ACCOUNT ERROR
 // ================================================================================================
@@ -21,6 +24,8 @@ pub enum AccountError {
     AccountCodeAssemblerError(AssemblyError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeProcedureInvalidStorageOffset,
+    AccountCodeProcedureInvalidPadding,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
@@ -63,6 +68,8 @@ pub enum AccountDeltaError {
     TooManyRemovedAssets { actual: usize, max: usize },
     TooManyUpdatedStorageItems { actual: usize, max: usize },
     DuplicateStorageMapLeaf { key: RpoDigest },
+    AssetAmountTooBig(u64),
+    IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
 }
 
 #[cfg(feature = "std")]
@@ -137,9 +144,11 @@ pub enum NoteError {
     InvalidAssetData(AssetError),
     InvalidNoteSender(AccountError),
     InvalidNoteTagUseCase(u16),
+    InvalidNoteExecutionHintTag(u8),
+    InvalidNoteExecutionHintPayload(u8, u32),
     InvalidNoteType(NoteType),
     InvalidNoteTypeValue(u64),
-    InvalidOriginIndex(String),
+    InvalidLocationIndex(String),
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
@@ -159,8 +168,8 @@ impl NoteError {
         Self::DuplicateNonFungibleAsset(asset)
     }
 
-    pub fn invalid_origin_index(msg: String) -> Self {
-        Self::InvalidOriginIndex(msg)
+    pub fn invalid_location_index(msg: String) -> Self {
+        Self::InvalidLocationIndex(msg)
     }
 
     pub fn too_many_assets(num_assets: usize) -> Self {

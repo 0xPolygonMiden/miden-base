@@ -4,7 +4,7 @@ comments: true
 
 The Miden transaction executor is the component that executes transactions. 
 
-Transaction execution consists of the following steps and results in a `ExecutedTransaction` object:
+Transaction execution consists of the following steps and results in an `ExecutedTransaction` object:
 
 1. Fetch the data required to execute a transaction from the data store.
 2. Compile the transaction into an executable [MASM](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) program using the transaction compiler.
@@ -23,7 +23,7 @@ The data store defines the interface that transaction objects use to fetch the d
 
 - `Account` data which includes the [AccountID](../accounts.md#account-id) and the [AccountCode](../accounts.md#code) that is executed during the transaction.
 - A `BlockHeader` which contains metadata about the block, commitments to the current state of the chain, and the hash of the proof that attests to the integrity of the chain.
-- A `ChainMmr` which authenticates consumed notes during transaction execution. Authentication is achieved by providing an inclusion-proof for the transaction's consumed notes against the `ChainMmr`-root associated with the latest block known at the time of transaction execution.
+- A `ChainMmr` which authenticates input notes during transaction execution. Authentication is achieved by providing an inclusion proof for the transaction's input notes against the `ChainMmr`-root associated with the latest block known at the time of transaction execution.
 - `InputNotes` consumed by the transaction that include the corresponding note data, e.g. the [note script](../notes.md#the-note-script) and serial number.
 
 !!! note

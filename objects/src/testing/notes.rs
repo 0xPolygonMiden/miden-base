@@ -11,8 +11,7 @@ use crate::{
     assembly::ProgramAst,
     assets::Asset,
     notes::{
-        Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     Felt, NoteError, Word, ZERO,
 };
@@ -31,7 +30,6 @@ pub struct NoteBuilder {
     serial_num: Word,
     tag: NoteTag,
     code: String,
-    proof: Option<NoteInclusionProof>,
     aux: Felt,
 }
 
@@ -52,7 +50,6 @@ impl NoteBuilder {
             serial_num,
             tag: 0.into(),
             code: DEFAULT_NOTE_CODE.to_string(),
-            proof: None,
             aux: ZERO,
         }
     }
@@ -81,11 +78,6 @@ impl NoteBuilder {
 
     pub fn code<S: AsRef<str>>(mut self, code: S) -> Self {
         self.code = code.as_ref().to_string();
-        self
-    }
-
-    pub fn proof(mut self, proof: NoteInclusionProof) -> Self {
-        self.proof = Some(proof);
         self
     }
 

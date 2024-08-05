@@ -50,10 +50,11 @@ proc.authenticate_account_origin
 
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
-    # => [CALLER, ...]
+    # => [storage_offset, ...]
 
-    # drop the caller
-    dropw
+    # TODO: use the storage_offset for storage access
+    # drop the storage_offset
+    drop
     # => [...]
 end
 
@@ -260,18 +261,18 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [CODE_ROOT]
+    # => [CODE_COMMITMENT]
 
     # arrange stack
     padw swapw
-    # => [CODE_ROOT, 0, 0, 0, 0]
+    # => [CODE_COMMITMENT, 0, 0, 0, 0]
 
     # set the account code
     exec.account::set_code
@@ -389,22 +390,22 @@ export.account_vault_remove_asset
     # => [ASSET]
 end
 
-#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
-#! note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed. Panics
+#! if a note is not being processed.
 #!
 #! Inputs: [0, 0, 0, 0, 0]
-#! Outputs: [VAULT_HASH, num_assets]
+#! Outputs: [ASSETS_HASH, num_assets]
 #!
 #! - num_assets is the number of assets in the note currently being processed.
-#! - VAULT_HASH is the vault hash of the note currently being processed.
-export.get_note_vault_info
-    # get the vault info
-    exec.note::get_vault_info
-    # => [VAULT_HASH, num_assets, 0, 0, 0, 0, 0]
+#! - ASSETS_HASH is the assets hash of the note currently being processed.
+export.get_note_assets_info
+    # get the assets info
+    exec.note::get_assets_info
+    # => [ASSETS_HASH, num_assets, 0, 0, 0, 0, 0]
 
     # organize the stack for return
     movup.5 drop movup.5 drop movup.5 drop movup.5 drop movup.5 drop
-    # => [VAULT_HASH, num_assets]
+    # => [ASSETS_HASH, num_assets]
 end
 
 #! Returns the current note's inputs hash.

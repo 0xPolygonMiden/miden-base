@@ -5,19 +5,18 @@ use crate::accounts::AccountCode;
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 11] = [
-    "0xbb58a032a1c1989079dcc73c279d69dcdf41dd7ee923d99dc3f86011663ec167",
-    "0x549d264f00f1a6e90d47284e99eab6d0f93a3d41bb5324743607b6902978a809",
-    "0x704ed1af80a3dae74cd4aabeb4c217924813c42334c2695a74e2702af80a4a35",
-    "0xc25558f483c13aa5be77de4b0987de6a3fab303146fe2fd8ab68b6be8fdcfe76",
-    "0x5dc65ccf6d32880a8eb47fab75b65d926b701ed80220fe5e88152efffcd656ad",
-    "0x73c14f65d2bab6f52eafc4397e104b3ab22a470f6b5cbc86d4aa4d3978c8b7d4",
-    "0x55036198d82d2af653935226c644427162f12e2a2c6b3baf007c9c6f47462872",
-    "0xf484a84dad7f82e8eb1d5190b43243d02d9508437ff97522e14ebf9899758faa",
-    "0xf17acfc7d1eff3ecadd7a17b6d91ff01af638aa9439d6c8603c55648328702ae",
+    "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
+    "0x52fd1b2cdbffd91778bc4c31ff939a03c8921461a628bdd91fe3e0a1d3be2b50",
+    "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
+    "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
+    "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
+    "0x24e0a1587d4d1ddff74313518f5187f6042ffbe8f2ddc97d367a5c3da4b17d82",
+    "0x967eedbfee4d8719a253f9e032d25e95890229719404a36d65097e3ad6bd3677",
+    "0xf5b4e6d17ccde492c051e55bd6a5756974ce203c225ad5af0fc80322c6e5a6b5",
+    "0xcd34115714cdcda24f1d6968cbfb67b8b51c1751a2e25e9d6b4e18c35323e5ba",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
-
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
@@ -102,7 +101,7 @@ impl AccountCode {
         # acct proc 5
         export.set_code
             padw swapw
-            # => [CODE_ROOT, 0, 0, 0, 0]
+            # => [CODE_COMMITMENT, 0, 0, 0, 0]
 
             exec.account::set_code
             # => [0, 0, 0, 0]
@@ -154,17 +153,17 @@ impl AccountCode {
         // Comparing all the values together, in case multiple of them change, a single test run will
         // detect it.
         let current = [
-            code.procedures()[0].to_hex(),
-            code.procedures()[1].to_hex(),
-            code.procedures()[2].to_hex(),
-            code.procedures()[3].to_hex(),
-            code.procedures()[4].to_hex(),
-            code.procedures()[5].to_hex(),
-            code.procedures()[6].to_hex(),
-            code.procedures()[7].to_hex(),
-            code.procedures()[8].to_hex(),
-            code.procedures()[9].to_hex(),
-            code.procedures()[10].to_hex(),
+            code.procedures()[0].mast_root().to_hex(),
+            code.procedures()[1].mast_root().to_hex(),
+            code.procedures()[2].mast_root().to_hex(),
+            code.procedures()[3].mast_root().to_hex(),
+            code.procedures()[4].mast_root().to_hex(),
+            code.procedures()[5].mast_root().to_hex(),
+            code.procedures()[6].mast_root().to_hex(),
+            code.procedures()[7].mast_root().to_hex(),
+            code.procedures()[8].mast_root().to_hex(),
+            code.procedures()[9].mast_root().to_hex(),
+            code.procedures()[10].mast_root().to_hex(),
         ];
         assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
 

@@ -5,10 +5,10 @@ use.miden::kernels::utils
 # CONSTANTS
 # =================================================================================================
 
-const.CREATED_NOTES_OFFSET=10000
+const.OUTPUT_NOTES_OFFSET=10000
 
-# The memory address at the number of created notes is stored.
-const.NUM_CREATED_NOTES_PTR=2
+# The memory address at which the number of output notes is stored.
+const.NUM_OUTPUT_NOTES_PTR=2
 
 # TEST UTILS
 # =================================================================================================
@@ -68,7 +68,7 @@ proc.create_mock_notes
     push.100.0.0.12033618204333965332
     push.10000.2048.7 add add mem_storew dropw
 
-    # set num created notes
+    # set num output notes
     push.3.2 mem_store
 end
 

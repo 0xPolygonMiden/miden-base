@@ -191,7 +191,8 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             transaction.account().into(),
             advice_recorder,
             self.authenticator.clone(),
-        );
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
         let result = vm_processor::execute(
             transaction.program(),

@@ -1,14 +1,13 @@
 use alloc::vec::Vec;
 
 use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSETS_OFFSET, CREATED_NOTE_METADATA_OFFSET, CREATED_NOTE_RECIPIENT_OFFSET,
-    CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE, NUM_CREATED_NOTES_PTR,
+    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
+    OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
 };
 use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assets::Asset,
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
@@ -24,11 +23,7 @@ use crate::{
 
 #[test]
 fn test_create_note() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let account_id = tx_context.account().id();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
@@ -59,19 +54,19 @@ fn test_create_note() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
-        "number of created notes must increment by 1",
+        "number of output notes must increment by 1",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET),
         recipient,
         "recipient must be stored at the correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET),
         [tag, Felt::from(account_id), NoteType::Public.into(), Felt::new(27)],
         "metadata must be stored at the correct memory location",
     );
@@ -79,17 +74,13 @@ fn test_create_note() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index of the created note"
+        "top item on the stack is the index of the output note"
     );
 }
 
 #[test]
 fn test_create_note_with_invalid_tag() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new((NoteType::Public as u64) << 62);
@@ -131,8 +122,8 @@ fn test_create_note_too_many_notes() {
         use.miden::tx
 
         begin
-            exec.constants::get_max_num_created_notes
-            exec.memory::set_num_created_notes
+            exec.constants::get_max_num_output_notes
+            exec.memory::set_num_output_notes
 
             push.{recipient}
             push.{PUBLIC_NOTE}
@@ -154,12 +145,9 @@ fn test_create_note_too_many_notes() {
 
 #[test]
 fn test_get_output_notes_hash() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     // extract input note data
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
@@ -267,14 +255,14 @@ fn test_get_output_notes_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [Felt::new(2), ZERO, ZERO, ZERO],
         "The test creates two notes",
     );
     assert_eq!(
         NoteMetadata::try_from(read_root_mem_value(
             &process,
-            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET
         ))
         .unwrap(),
         *output_note_1.metadata(),
@@ -283,7 +271,7 @@ fn test_get_output_notes_hash() {
     assert_eq!(
         NoteMetadata::try_from(read_root_mem_value(
             &process,
-            CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
+            OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET + NOTE_MEM_SIZE
         ))
         .unwrap(),
         *output_note_2.metadata(),
@@ -295,11 +283,7 @@ fn test_get_output_notes_hash() {
 
 #[test]
 fn test_create_note_and_add_asset() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -337,7 +321,7 @@ fn test_create_note_and_add_asset() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
@@ -345,17 +329,13 @@ fn test_create_note_and_add_asset() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index to the created note"
+        "top item on the stack is the index to the output note"
     );
 }
 
 #[test]
 fn test_create_note_and_add_multiple_assets() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -416,19 +396,19 @@ fn test_create_note_and_add_multiple_assets() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET),
         asset,
         "asset must be stored at the correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET + 1),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 1),
         asset_2_and_3,
         "asset_2 and asset_3 must be stored at the same correct memory location",
     );
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_ASSETS_OFFSET + 2),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_ASSETS_OFFSET + 2),
         Word::from(non_fungible_asset_encoded),
         "non_fungible_asset must be stored at the correct memory location",
     );
@@ -436,17 +416,13 @@ fn test_create_note_and_add_multiple_assets() {
     assert_eq!(
         process.stack.get(0),
         ZERO,
-        "top item on the stack is the index to the created note"
+        "top item on the stack is the index to the output note"
     );
 }
 
 #[test]
 fn test_create_note_and_add_same_nft_twice() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
@@ -491,12 +467,9 @@ fn test_create_note_and_add_same_nft_twice() {
 
 #[test]
 fn test_build_recipient_hash() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let input_note_1 = tx_context.tx_inputs().input_notes().get_note(0).note();
 
@@ -540,15 +513,15 @@ fn test_build_recipient_hash() {
     let process = tx_context.execute_code(&code).unwrap();
 
     assert_eq!(
-        read_root_mem_value(&process, NUM_CREATED_NOTES_PTR),
+        read_root_mem_value(&process, NUM_OUTPUT_NOTES_PTR),
         [ONE, ZERO, ZERO, ZERO],
-        "number of created notes must increment by 1",
+        "number of output notes must increment by 1",
     );
 
     let recipient_digest: Vec<Felt> = recipient.clone().digest().to_vec();
 
     assert_eq!(
-        read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + CREATED_NOTE_RECIPIENT_OFFSET),
+        read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_RECIPIENT_OFFSET),
         recipient_digest.as_slice(),
         "recipient hash not correct",
     );

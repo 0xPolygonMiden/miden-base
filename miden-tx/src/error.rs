@@ -55,6 +55,7 @@ pub enum TransactionExecutorError {
     },
     InvalidTransactionOutput(TransactionOutputError),
     LoadAccountFailed(TransactionCompilerError),
+    TransactionHostCreationFailed(TransactionHostError),
 }
 
 impl fmt::Display for TransactionExecutorError {
@@ -75,6 +76,7 @@ pub enum TransactionProverError {
     InvalidAccountDelta(AccountError),
     InvalidTransactionOutput(TransactionOutputError),
     ProvenTransactionError(ProvenTransactionError),
+    TransactionHostCreationFailed(TransactionHostError),
 }
 
 impl Display for TransactionProverError {
@@ -91,6 +93,9 @@ impl Display for TransactionProverError {
             },
             TransactionProverError::ProvenTransactionError(inner) => {
                 write!(f, "Building proven transaction error: {}", inner)
+            },
+            TransactionProverError::TransactionHostCreationFailed(inner) => {
+                write!(f, "Failed to create the transaction host: {}", inner)
             },
         }
     }
@@ -116,6 +121,23 @@ impl fmt::Display for TransactionVerifierError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for TransactionVerifierError {}
+
+// TRANSACTION HOST ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionHostError {
+    AccountProcedureIndexMapError(String),
+}
+
+impl fmt::Display for TransactionHostError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionHostError {}
 
 // DATA STORE ERROR
 // ================================================================================================
@@ -244,8 +266,12 @@ const ERR_NOTE_TAG_MUST_BE_U32: u32 = 131142;
 const ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT: u32 = 131143;
 const ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 131144;
 const ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 131145;
+const ERR_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 131146;
+const ERR_PROC_INDEX_OUT_OF_BOUNDS: u32 = 131147;
+const ERR_ACCT_CODE_HASH_MISMATCH: u32 = 131148;
+const ERR_ACCT_TOO_MANY_PROCEDURES: u32 = 131149;
 
-pub const KERNEL_ERRORS: [(u32, &str); 75] = [
+pub const KERNEL_ERRORS: [(u32, &str); 79] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -321,4 +347,8 @@ pub const KERNEL_ERRORS: [(u32, &str); 75] = [
     (ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT, "Setting a non-value item on a value slot"),
     (ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Setting a map item on a non-map slot"),
     (ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT, "Slot type is not a map"),
+    (ERR_PROC_NOT_PART_OF_ACCOUNT_CODE, "Provided procedure is not part of account code"),
+    (ERR_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds"),
+    (ERR_ACCT_CODE_HASH_MISMATCH, "Provided account hash does not match stored account hash"),
+    (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 65535")
 ];
