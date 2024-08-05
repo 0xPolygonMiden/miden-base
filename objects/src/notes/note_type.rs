@@ -17,7 +17,7 @@ const ENCRYPTED: u8 = 0b0011;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[repr(u8)] 
+#[repr(u8)]
 pub enum NoteType {
     /// Notes with this type have only their hash published to the network.
     Private = PRIVATE,

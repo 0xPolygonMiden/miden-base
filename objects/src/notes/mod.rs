@@ -32,9 +32,6 @@ pub use metadata::{merge_type_and_hint, unmerge_type_and_hint, NoteMetadata};
 mod note_execution_hint;
 pub use note_execution_hint::NoteExecutionHint;
 
-mod note_execution_hint;
-pub use note_execution_hint::NoteExecutionHint;
-
 mod note_id;
 pub use note_id::NoteId;
 

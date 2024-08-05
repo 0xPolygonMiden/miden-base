@@ -14,7 +14,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteExecutionHint, NoteScript, NoteType},
+    notes::{NoteScript, NoteType},
     testing::{
         account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT, notes::DEFAULT_NOTE_CODE,
     },
@@ -57,7 +57,6 @@ fn prove_p2id_script() {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
-        NoteExecutionHint::Always,
         Felt::new(0),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -170,7 +169,6 @@ fn p2id_script_multiple_assets() {
         target_account_id,
         vec![fungible_asset_1, fungible_asset_2],
         NoteType::Public,
-        NoteExecutionHint::None,
         Felt::new(0),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -266,7 +264,6 @@ fn test_execute_prove_new_account() {
         target_account.id(),
         vec![fungible_asset_1],
         NoteType::Public,
-        NoteExecutionHint::after_block(50),
         Felt::new(0),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )

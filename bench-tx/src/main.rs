@@ -12,7 +12,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
-    notes::{NoteExecutionHint, NoteType},
+    notes::{NoteType},
     transaction::TransactionArgs,
     Felt,
 };
@@ -130,7 +130,6 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         target_account_id,
         vec![fungible_asset],
         NoteType::Public,
-        NoteExecutionHint::always(),
         Felt::new(0),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )

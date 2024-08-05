@@ -56,7 +56,6 @@ fn prove_swap_script() {
         offered_asset,
         requested_asset,
         NoteType::Public,
-        NoteExecutionHint::Always,
         Felt::new(27),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )

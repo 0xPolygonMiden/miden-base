@@ -504,12 +504,13 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT]
 #! Outputs: [note_idx, 0, 0, 0, 0, 0]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
-#! note_type is the note storage type
+#! note_type is the note storage type.
+#! execution_hint is the note execution hint tag and payload.
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
