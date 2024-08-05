@@ -13,6 +13,7 @@
 - Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
 - Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
+- Made `miden_lib::notes::build_swap_tag()` function public (#817).
 
 ## 0.4.0 (2024-07-03)
 
