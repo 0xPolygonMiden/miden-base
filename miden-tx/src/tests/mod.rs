@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -28,7 +28,7 @@ use miden_objects::{
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
-    Felt, Hasher, Word, MIN_PROOF_SECURITY_LEVEL,
+    Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
 use vm_processor::{
@@ -239,6 +239,11 @@ fn executed_transaction_account_delta() {
             push.{aux1}             # aux
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            # pad the stack before calling `send_asset`
+            push.0 movdn.11 padw movdnw.3
+
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -248,6 +253,11 @@ fn executed_transaction_account_delta() {
             push.{aux2}             # aux
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            # pad the stack before calling `send_asset`
+            push.0 movdn.11 padw movdnw.3
+
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -257,6 +267,11 @@ fn executed_transaction_account_delta() {
             push.{aux3}             # aux
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            # pad the stack before calling `send_asset`
+            push.0 movdn.11 padw movdnw.3
+            
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -457,7 +472,7 @@ fn test_send_note_proc() {
 
     let tag = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        NoteExecutionHint::Local,
+        NoteExecutionMode::Local,
     )
     .unwrap();
     let aux = Felt::new(27);
@@ -471,14 +486,21 @@ fn test_send_note_proc() {
         vec![removed_asset_1, removed_asset_2],
         vec![removed_asset_1, removed_asset_2, removed_asset_3],
     ];
-    for removed_assets in assets_matrix {
-        let removed_assets_felt = removed_assets
-            .iter()
-            .flat_map(<&Asset as Into<Word>>::into)
-            .collect::<Vec<Felt>>();
 
-        let sequential_assets_hash = Hasher::hash_elements(&removed_assets_felt).into();
-        let advice_map = vec![(sequential_assets_hash, removed_assets_felt)];
+    for removed_assets in assets_matrix {
+        let mut assets_to_remove = "".to_string();
+        for asset in removed_assets.iter() {
+            assets_to_remove.push_str(&format!(
+                "\n
+            # prepare the stack for the next call
+            movdn.4 dropw            
+            push.{ASSET}
+            # => [ASSET, note_idx, GARBAGE(11)]
+            call.wallet::move_asset_into_note
+            # => [note_idx, GARBAGE(15)]\n",
+                ASSET = prepare_word(&asset.into())
+            ))
+        }
 
         let tx_script = format!(
             "\
@@ -502,17 +524,21 @@ fn test_send_note_proc() {
                 dropw
                 
                 # prepare the values for note creation
-                push.0.1.2.3     # recipient
+                push.1.2.3.4      # recipient
                 push.{note_type}  # note_type
-                push.{aux}       # aux
-                push.{tag}       # tag
+                push.{aux}        # aux
+                push.{tag}        # tag
                 # => [tag, aux, note_type, RECIPIENT, ...]
-                
-                call.wallet::cteate_note
-                # => [note_idx, 0, 0, EMPTY_WORD]
 
-                push.{ASSETS_HASH}
-                call.wallet::move_asset_into_note 
+                # pad the stack with zeros before calling the `cteate_note`.
+                push.0 movdn.7 padw padw movdnw.3 movdnw.3
+                # => [tag, aux, note_type, RECIPIENT, PAD(9) ...]
+
+                call.wallet::cteate_note
+                # => [note_idx, GARBAGE(15)]
+
+                {assets_to_remove}
+                
                 dropw dropw dropw dropw
     
                 ## Update the account nonce
@@ -521,12 +547,11 @@ fn test_send_note_proc() {
                 # => []
             end
         ",
-            ASSETS_HASH = prepare_word(&sequential_assets_hash),
             note_type = note_type as u8,
         );
 
         let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-        let tx_script = executor.compile_tx_script(tx_script_code, advice_map, vec![]).unwrap();
+        let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
         let tx_args = TransactionArgs::new(
             Some(tx_script),
             None,
