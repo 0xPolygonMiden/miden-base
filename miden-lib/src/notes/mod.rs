@@ -5,8 +5,8 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },
     Felt, NoteError, Word,
 };
@@ -33,6 +33,7 @@ pub fn create_p2id_note<R: FeltRng>(
     target: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
+    note_execution_hint: NoteExecutionHint,
     aux: Felt,
     rng: &mut R,
 ) -> Result<Note, NoteError> {
@@ -43,7 +44,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, note_execution_hint, aux)?;
     let vault = NoteAssets::new(assets)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
@@ -66,6 +67,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     target: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
+    note_execution_hint: NoteExecutionHint,
     aux: Felt,
     recall_height: u32,
     rng: &mut R,
@@ -78,7 +80,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let serial_num = rng.draw_word();
 
     let vault = NoteAssets::new(assets)?;
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, note_execution_hint, aux)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
 }
@@ -97,6 +99,7 @@ pub fn create_swap_note<R: FeltRng>(
     offered_asset: Asset,
     requested_asset: Asset,
     note_type: NoteType,
+    note_execution_hint: NoteExecutionHint,
     aux: Felt,
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
@@ -127,7 +130,7 @@ pub fn create_swap_note<R: FeltRng>(
     let serial_num = rng.draw_word();
 
     // build the outgoing note
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, note_execution_hint, aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     let note = Note::new(assets, metadata, recipient);

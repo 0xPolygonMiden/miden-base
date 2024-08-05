@@ -10,7 +10,10 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteAssets, NoteExecutionMode, NoteHeader, NoteId, NoteMetadata, NoteTag, NoteType},
+    notes::{
+        NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteMetadata,
+        NoteTag, NoteType,
+    },
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt, ZERO,
@@ -53,6 +56,7 @@ fn prove_swap_script() {
         offered_asset,
         requested_asset,
         NoteType::Public,
+        NoteExecutionHint::Always,
         Felt::new(27),
         &mut RpoRandomCoin::new([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
     )
@@ -103,7 +107,9 @@ fn prove_swap_script() {
     // Check if the output `Note` is what we expect
     let recipient = payback_note.recipient().clone();
     let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionMode::Local).unwrap();
-    let note_metadata = NoteMetadata::new(target_account_id, NoteType::Private, tag, ZERO).unwrap();
+    let note_metadata =
+        NoteMetadata::new(target_account_id, NoteType::Private, tag, NoteExecutionHint::None, ZERO)
+            .unwrap();
     let assets = NoteAssets::new(vec![requested_asset]).unwrap();
     let note_id = NoteId::new(recipient.digest(), assets.commitment());
 

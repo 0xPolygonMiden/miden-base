@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use miden_objects::{
     assets::Asset,
     notes::{
-        Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
-        PartialNote,
+        unmerge_type_and_hint, Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient,
+        NoteScript, NoteTag, PartialNote,
     },
 };
 
@@ -48,13 +48,13 @@ impl OutputNoteBuilder {
     ) -> Result<Self, TransactionKernelError> {
         // read note metadata info from the stack and build the metadata object
         let aux = stack[0];
-        let note_type =
-            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let (note_type, note_execution_hint) = unmerge_type_and_hint(stack[1].into())
+            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
         let sender =
             AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
         let tag = NoteTag::try_from(stack[3])
             .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
-        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
+        let metadata = NoteMetadata::new(sender, note_type, tag, note_execution_hint, aux)
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
         // read recipient digest from the stack and try to build note recipient object if there is

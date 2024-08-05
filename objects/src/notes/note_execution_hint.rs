@@ -187,7 +187,7 @@ mod tests {
         assert!(on_block_slot.can_be_consumed(1152).unwrap()); // Block 1152 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(1279).unwrap()); // Block 1279 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(2176).unwrap()); // Block 2176 is in the slot 2176..2303
-        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 1279 is in the slot 2176..2303
+        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 2175 is not in the slot 2176..2303
     }
 
     #[test]

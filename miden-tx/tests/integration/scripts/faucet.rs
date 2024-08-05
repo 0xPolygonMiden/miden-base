@@ -15,7 +15,7 @@ use miden_objects::{
     assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteAssets, NoteId, NoteMetadata, NoteTag, NoteType},
+    notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ZERO,
@@ -109,7 +109,14 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(output_note.id(), id);
     assert_eq!(
         output_note.metadata(),
-        &NoteMetadata::new(faucet_account.id(), NoteType::Private, tag, aux).unwrap()
+        &NoteMetadata::new(
+            faucet_account.id(),
+            NoteType::Private,
+            tag,
+            NoteExecutionHint::Always,
+            aux
+        )
+        .unwrap()
     );
 }
 

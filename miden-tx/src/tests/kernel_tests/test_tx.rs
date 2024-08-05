@@ -10,7 +10,9 @@ use miden_objects::{
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     assets::Asset,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
+    notes::{
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
+    },
     testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
@@ -163,6 +165,7 @@ fn test_get_output_notes_hash() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_1,
+        NoteExecutionHint::Always,
         ZERO,
     )
     .unwrap();
@@ -178,6 +181,7 @@ fn test_get_output_notes_hash() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_2,
+        NoteExecutionHint::after_block(1),
         ZERO,
     )
     .unwrap();

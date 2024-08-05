@@ -7,9 +7,9 @@ use crate::{
 // ================================================================================================
 
 // Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
-const PUBLIC: u8 = 0b01;
-const PRIVATE: u8 = 0b10;
-const ENCRYPTED: u8 = 0b11;
+const PUBLIC: u8 = 0b0001;
+const PRIVATE: u8 = 0b0010;
+const ENCRYPTED: u8 = 0b0011;
 
 // NOTE TYPE
 // ================================================================================================
