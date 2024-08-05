@@ -55,8 +55,8 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
-#! Outputs: [note_idx]
+#! Inputs: [tag, aux, note_type, RECIPIENT, PAD(9)]
+#! Outputs: [note_idx, PAD(15)]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
@@ -65,11 +65,7 @@ end
 #! note_idx is the index of the crated note.
 export.create_note
     syscall.create_note
-    # => [note_idx, EMPTY_WORD, 0]
-
-    # clear the padding from the kernel response
-    movdn.4 dropw swap drop
-    # => [note_idx]
+    # => [note_idx, PAD(15)]
 end
 
 #! Adds the ASSET to the note specified by the index.
