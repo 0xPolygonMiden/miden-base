@@ -1,8 +1,8 @@
 use alloc::string::ToString;
 
 use super::{
-    AccountId, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, NoteError,
-    NoteTag, NoteType, Serializable, Word,
+    note_execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Felt, NoteError, NoteTag, NoteType, Serializable, Word,
 };
 
 // NOTE METADATA
@@ -30,6 +30,9 @@ pub struct NoteMetadata {
 
     /// An arbitrary user-defined value.
     aux: Felt,
+
+    /// Specifies when a note is ready to be consumed.
+    execution_hint: NoteExecutionHint,
 }
 
 impl NoteMetadata {
@@ -44,7 +47,13 @@ impl NoteMetadata {
         aux: Felt,
     ) -> Result<Self, NoteError> {
         let tag = tag.validate(note_type)?;
-        Ok(Self { sender, note_type, tag, aux })
+        Ok(Self {
+            sender,
+            note_type,
+            tag,
+            aux,
+            execution_hint: NoteExecutionHint::None,
+        })
     }
 
     /// Returns the account which created the note.
@@ -60,6 +69,11 @@ impl NoteMetadata {
     /// Returns the tag associated with the note.
     pub fn tag(&self) -> NoteTag {
         self.tag
+    }
+
+    /// Returns the execution hint associated with the note.
+    pub fn execution_hint(&self) -> NoteExecutionHint {
+        self.execution_hint
     }
 
     /// Returns the note's aux field.
