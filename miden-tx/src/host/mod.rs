@@ -190,7 +190,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Extracts information from the process state about the storage slot being updated and
     /// records the latest value of this storage slot.
     ///
-    /// Expected stack state: [slot_index, NEW_SLOT_VALUE, CURRENT_SLOT_VALUE, ...]
+    /// Expected stack state: [slot_index, NEW_SLOT_VALUE, OLD_SLOT_VALUE, ...]
     pub fn on_account_storage_after_set_item<S: ProcessState>(
         &mut self,
         process: &S,
