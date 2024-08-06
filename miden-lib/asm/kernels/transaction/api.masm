@@ -8,18 +8,6 @@ use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 use.miden::kernels::tx::tx
 
-# ERRORS
-# =================================================================================================
-
-# For faucets the slot FAUCET_STORAGE_DATA_SLOT is reserved and can not be used with set_account_item
-const.ERR_FAUCET_RESERVED_DATA_SLOT=0x00020000
-
-# Procedure can only be called from faucet accounts
-const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
-
-# Getting a map item on a non-map slot
-const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
-
 # EVENTS
 # =================================================================================================
 
@@ -32,6 +20,21 @@ const.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT=131073
 const.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT=131074
 # Event emitted after an asset is removed from the account vault.
 const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
+
+# Event emitted before an account storage item is updated.
+const.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT=131076
+# Event emitted after an account storage item is updated.
+const.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT=131077
+
+# Event emitted before an account storage map item is updated.
+const.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT=131078
+# Event emitted after an account storage map item is updated.
+const.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT=131079
+
+# Event emitted before an account nonce is incremented.
+const.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT=131080
+# Event emitted after an account nonce is incremented.
+const.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT=131081
 
 # AUTHENTICATION
 # =================================================================================================
@@ -137,8 +140,16 @@ export.incr_account_nonce
     push.0 swap
     # => [value, 0]
 
+    # emit event to signal that account nonce is being incremented
+    emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
+
     # increment the account nonce
     exec.account::incr_nonce
+    # => [0]
+
+    # emit event to signal that account nonce has been incremented
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
     # => [0]
 end
 
@@ -161,32 +172,36 @@ end
 
 #! Sets an item in the account storage. Panics if the index is out of bounds.
 #!
-#! Stack: [index, V', 0, 0, 0]
-#! Output: [R', V]
+#! Stack: [index, NEW_VALUE]
+#! Output: [OLD_VALUE]
 #!
 #! - index is the index of the item to set.
-#! - V' is the value to set.
-#! - V is the previous value of the item.
-#! - R' is the new storage root.
-export.set_account_item
-    # if the transaction is being executed against a faucet account then assert
-    # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
-    dup exec.account::get_faucet_storage_data_slot eq
-    exec.account::get_id exec.account::is_faucet
-    and assertz.err=ERR_FAUCET_RESERVED_DATA_SLOT
-    # => [index, V', 0, 0, 0]
-
+#! - NEW_VALUE is the value to set.
+#! - OLD_VALUE is the previous value of the item.
+export.set_account_item.2
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [index, V', 0, 0, 0]
+    # => [index, NEW_VALUE]
+
+    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
+    # => [index, NEW_VALUE]
+
+    # store index and NEW_VALUE for later to emit event. Note: loc_store pops the Felt value
+    loc_store.0 loc_storew.1 loc_load.0
+    # => [index, NEW_VALUE]
 
     # set the account storage item
     exec.account::set_item
-    # => [R', V, 0, 0, 0]
+    # => [OLD_VALUE]
+
+    # emit event to signal that an account storage item is being updated
+    padw loc_loadw.1 loc_load.0 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
+    # => [OLD_VALUE]
 
     # organize the stack for return
-    movup.8 drop movup.8 drop movup.8 drop
-    # => [R', V]
+    movup.4 drop movup.4 drop movup.4 drop
+    # => [OLD_VALUE]
 end
 
 #! Returns VALUE located under specified KEY in map in specified account storage slot.
@@ -200,21 +215,9 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_account_map_item
-    # check if storage type is map
-    dup exec.account::get_storage_slot_type_info drop
-    # => [slot_type, index, KEY, ...]
-
-    # fails if slot_type is not 1 = map
-    exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
-    # => [index, KEY, ...]
-
-    # fetch the account storage item, which is ROOT of the map
-    exec.account::get_item swapw
-    # => [KEY, ROOT ...]
-
-    # fetch the VALUE located under KEY in the tree
-    exec.smt::get
-    # => [VALUE, ROOT, ...]
+    # set the account storage item
+    exec.account::get_map_item
+    # => [VALUE, ROOT]
 
     # prepare the stack for return
     swapw dropw
@@ -236,26 +239,38 @@ end
 #! - KEY is the key of the new item.
 #! - OLD_MAP_ROOT is the root of the old map before insertion
 #! - NEW_MAP_ROOT is the root of the new map after insertion.
-export.set_account_map_item.1
+export.set_account_map_item.3
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [index, KEY, NEW_VALUE, ...]
 
-    # store index for later
-    dup loc_store.0
+    # store index (pos 0), KEY (pos 1), NEW_VALUE (pos 2) for later to emit event
+    dup loc_store.0 movdn.8 loc_storew.1 swapw loc_storew.2 swapw movup.8
     # => [index, KEY, NEW_VALUE, ...]
 
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item movdnw.2
     # => [KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
 
+    # emit event before the map item is set
+    loc_load.0 emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
+    # => [index, KEY, NEW_VALUE, OLD_MAP_ROOT, ...]
+
     # set the new map item
-    loc_load.0 exec.account::set_map_item
+    exec.account::set_map_item
+    # => [OLD_MAP_ROOT, OLD_VALUE, ...]
+
+    # load all data to emit event after the map item is set
+    padw loc_loadw.2 padw loc_loadw.1 loc_load.0
+    # => [index, KEY, NEW_VALUE, OLD_MAP_ROOT, OLD_VALUE, ...]
+
+    # emit event to signal that an account storage map item is being updated
+    emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop dropw dropw
     # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 
     # organize the stack for return (16 elements)
     movupw.2 dropw
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0, ...]
+    # => [OLD_MAP_ROOT, OLD_VALUE, 0, ...]
 end
 
 #! Sets the code of the account the transaction is being executed against. This procedure can only
@@ -631,10 +646,6 @@ end
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
 export.get_fungible_faucet_total_issuance
-    # assert that we are executing a transaction against a fungible faucet (access checks)
-    exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCT_MUST_BE_A_FAUCET
-    # => [0]
-
     # get the total issuance
     exec.faucet::get_total_issuance
     # => [total_issuance]

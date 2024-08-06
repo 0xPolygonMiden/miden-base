@@ -8,6 +8,9 @@ use.miden::kernels::tx::memory
 # ERRORS
 # =================================================================================================
 
+# Procedure can only be called from faucet accounts
+const.ERR_ACCT_MUST_BE_A_FAUCET=0x00020001
+
 # Asset mint operation would cause an issuance overflow
 const.ERR_FAUCET_ISSUANCE_OVERFLOW=0x00020022
 
@@ -60,7 +63,8 @@ export.mint_fungible_asset
     # => [amount, TOTAL_ISSUANCE, ASSET]
 
     # update the total issuance
-    add exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    # note: storage slot is known here, so set_item_raw can be used
+    add exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # add the asset to the input vault for asset preservation checks
@@ -97,7 +101,8 @@ proc.burn_fungible_asset
     # => [amount, TOTAL_ISSUANCE, ASSET]
 
     # compute new total issuance
-    sub exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    # note: storage slot is known here, so set_item_raw can be used
+    sub exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # remove the asset from the input vault
@@ -113,6 +118,10 @@ end
 #! - total_issuance is the total issuance of the fungible faucet the transaction is being executed
 #!   against.
 export.get_total_issuance
+    # assert that we are executing a transaction against a fungible faucet (access checks)
+    exec.account::get_id exec.account::is_fungible_faucet assert.err=ERR_ACCT_MUST_BE_A_FAUCET
+    # => [0]
+
     # fetch the TOTAL_ISSUANCE from storage
     exec.account::get_faucet_storage_data_slot exec.account::get_item
     # => [TOTAL_ISSUANCE]
@@ -162,7 +171,8 @@ proc.mint_non_fungible_asset
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
-    exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    # note: storage slot is known here, so set_item_raw can be used
+    exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # add the non-fungible asset to the input vault for asset preservation checks
@@ -211,7 +221,8 @@ proc.burn_non_fungible_asset
     # => [SMT_ROOT', ASSET]
 
     # update the root of the SMT containing the non-fungible assets
-    exec.account::get_faucet_storage_data_slot exec.account::set_item dropw
+    # note: storage slot is known here, so set_item_raw can be used
+    exec.account::get_faucet_storage_data_slot exec.account::set_item_raw dropw
     # => [ASSET]
 
     # remove the non-fungible asset from the input vault for asset preservation checks
