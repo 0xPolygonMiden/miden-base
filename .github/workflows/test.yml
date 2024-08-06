@@ -27,6 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - uses: taiki-e/install-action@nextest 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Perform tests
         run: |
           rustup update --no-self-update ${{matrix.toolchain}} 
