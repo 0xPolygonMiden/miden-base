@@ -77,7 +77,7 @@ Save the account ID for a future step.
 2. You should see something like this:
 
       ```sh
-      Succesfully imported note 0x0ff340133840d35e95e0dc2e62c88ed75ab2e383dc6673ce0341bd486fed8cb6
+      Successfully imported note 0x0ff340133840d35e95e0dc2e62c88ed75ab2e383dc6673ce0341bd486fed8cb6
       ```
 
 3. Now that the note has been successfully imported, you can view the note's information using the following command: 
