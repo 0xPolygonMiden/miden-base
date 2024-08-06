@@ -23,6 +23,9 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Build using `async` feature
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
@@ -37,6 +40,9 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Build for no-std
         run: |
           rustup update --no-self-update ${{ matrix.toolchain }}
