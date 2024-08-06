@@ -25,11 +25,13 @@ const.ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x00020049
 
 # Event emitted before an asset is added to the account vault.
 const.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT=131072
+
 # Event emitted after an asset is added to the account vault.
 const.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT=131073
 
 # Event emitted before an asset is removed from the account vault.
 const.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT=131074
+
 # Event emitted after an asset is removed from the account vault.
 const.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT=131075
 
@@ -51,11 +53,6 @@ proc.authenticate_account_origin
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
     # => [storage_offset, ...]
-
-    # TODO: use the storage_offset for storage access
-    # drop the storage_offset
-    drop
-    # => [...]
 end
 
 # KERNEL PROCEDURES
@@ -130,7 +127,7 @@ end
 #!   procedure panics.
 export.incr_account_nonce
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [value]
 
     # arrange stack
@@ -150,6 +147,14 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_account_item
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [storage_offset, index, 0, 0, 0]
+
+    # apply offset to storage slot index
+    exec.account::offset_storage_index
+    # => [offset_index, 0, 0, 0]
+
     # fetch the account storage item
     exec.account::get_item
     # => [VALUE, 0, 0, 0]
@@ -178,7 +183,11 @@ export.set_account_item
 
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [index, V', 0, 0, 0]
+    # => [storage_offset, index, V', 0, 0, 0]
+
+    # apply offset to storage slot index
+    exec.account::offset_storage_index
+    # => [offset_index, V', 0, 0, 0]
 
     # set the account storage item
     exec.account::set_item
@@ -207,6 +216,14 @@ export.get_account_map_item
     # fails if slot_type is not 1 = map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
+
+    # authenticate that the procedure invocation originates from the account context
+    exec.authenticate_account_origin
+    # => [storage_offset, index, KEY, ...]
+
+    # apply offset to storage slot index
+    exec.account::offset_storage_index
+    # => [offset_index, KEY, ...]
 
     # fetch the account storage item, which is ROOT of the map
     exec.account::get_item swapw
@@ -239,7 +256,11 @@ end
 export.set_account_map_item.1
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [index, KEY, NEW_VALUE, ...]
+    # => [storage_offset, index, KEY, NEW_VALUE, ...]
+
+    # apply offset to storage slot index
+    exec.account::offset_storage_index
+    # => [offset_index, KEY, NEW_VALUE, ...]
 
     # store index for later
     dup loc_store.0
@@ -267,7 +288,7 @@ end
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [CODE_COMMITMENT]
 
     # arrange stack
@@ -332,7 +353,7 @@ end
 #!     after ASSET was added to it.
 export.account_vault_add_asset
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [ASSET]
 
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
@@ -369,7 +390,7 @@ end
 #! - ASSET is the asset to remove from the vault.
 export.account_vault_remove_asset
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [ASSET]
 
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
@@ -514,7 +535,7 @@ end
 #! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [tag, aux, note_type, RECIPIENT]
 
     exec.tx::create_note
@@ -538,7 +559,7 @@ end
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [note_idx, ASSET]
 
     exec.tx::add_asset_to_note
@@ -586,7 +607,7 @@ end
 #! - ASSET is the asset that was minted.
 export.mint_asset
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [ASSET]
 
     # mint the asset
@@ -612,7 +633,7 @@ end
 #! - ASSET is the asset that was burned.
 export.burn_asset
     # authenticate that the procedure invocation originates from the account context
-    exec.authenticate_account_origin
+    exec.authenticate_account_origin drop
     # => [ASSET]
 
     # burn the asset

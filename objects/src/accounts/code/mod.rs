@@ -66,11 +66,8 @@ impl AccountCode {
             .map_err(AccountError::AccountCodeAssemblerError)?;
 
         // TODO: Find way to input offset
-        let procedures: Vec<AccountProcedureInfo> = procedures
-            .into_iter()
-            .enumerate()
-            .map(|(i, proc)| AccountProcedureInfo::new(proc, i as u16))
-            .collect();
+        let procedures: Vec<AccountProcedureInfo> =
+            procedures.into_iter().map(|proc| AccountProcedureInfo::new(proc, 0)).collect();
 
         // make sure the number of procedures is between 1 and 256 (both inclusive)
         if procedures.is_empty() {
