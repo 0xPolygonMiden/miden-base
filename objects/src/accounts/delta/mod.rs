@@ -1,8 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
-    Word, ZERO,
+    Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable, ZERO,
 };
 use crate::{assets::Asset, AccountDeltaError};
 
@@ -244,16 +243,12 @@ fn validate_nonce(
 #[cfg(test)]
 mod tests {
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
-    use crate::{ONE, ZERO};
+    use crate::{accounts::StorageSlot, ONE, ZERO};
 
     #[test]
     fn account_delta_nonce_validation() {
         // empty delta
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![],
-            updated_items: vec![],
-            updated_maps: vec![],
-        };
+        let storage_delta = AccountStorageDelta::new(&[]).unwrap();
 
         let vault_delta = AccountVaultDelta {
             added_assets: vec![],
@@ -264,11 +259,8 @@ mod tests {
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
 
         // non-empty delta
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![1],
-            updated_items: vec![],
-            updated_maps: vec![],
-        };
+        let storage_delta =
+            AccountStorageDelta::new(&[(0, StorageSlot::Value([ONE, ZERO, ONE, ZERO]))]).unwrap();
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());
