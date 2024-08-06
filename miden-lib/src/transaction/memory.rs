@@ -196,6 +196,7 @@ pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 
+#[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
 // Inputs note section contains data of all notes consumed by a transaction. The section starts at
@@ -212,9 +213,8 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // words and is laid out like so:
 //
 // ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬───────┬─────┬───────┬─────────┬
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │
-// PADDING │ │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n
-// │         │
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
+// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
 // ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
 //    0        1       2        3        4       5       6       7      8 + n
 //
