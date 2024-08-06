@@ -16,11 +16,12 @@ use crate::{
 pub struct BatchNoteTree(SimpleSmt<BATCH_NOTES_TREE_DEPTH>);
 
 impl BatchNoteTree {
-    /// Wrapper around [`SimpleSmt::with_contiguous_leaves`] which populates notes at contiguous indices
-    /// starting at index 0.
+    /// Wrapper around [`SimpleSmt::with_contiguous_leaves`] which populates notes at contiguous
+    /// indices starting at index 0.
     ///
     /// # Errors
-    /// Returns an error if the number of entries exceeds the maximum tree capacity, that is 2^{depth}.
+    /// Returns an error if the number of entries exceeds the maximum tree capacity, that is
+    /// 2^{depth}.
     pub fn with_contiguous_leaves<'a>(
         entries: impl IntoIterator<Item = (NoteId, &'a NoteMetadata)>,
     ) -> Result<Self, MerkleError> {

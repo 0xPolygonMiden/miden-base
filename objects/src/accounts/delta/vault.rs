@@ -51,8 +51,8 @@ impl AccountVaultDelta {
         // Merge fungible and non-fungible assets separately. The former can be summed while the
         // latter is more of a boolean affair.
         //
-        // Track fungible asset amounts - positive and negative. i64 is not lossy because fungible's are
-        // restricted to 2^63-1. Overflow is still possible but we check for that.
+        // Track fungible asset amounts - positive and negative. i64 is not lossy because fungible's
+        // are restricted to 2^63-1. Overflow is still possible but we check for that.
         let mut fungibles = BTreeMap::<AccountId, i64>::new();
         let mut non_fungibles = BTreeMap::<NonFungibleAsset, bool>::new();
 
@@ -107,8 +107,8 @@ impl AccountVaultDelta {
                 continue;
             }
 
-            // We know that the faucet ID is valid since this comes from an existing asset, so the only
-            // possible error case is the amount overflowing.
+            // We know that the faucet ID is valid since this comes from an existing asset, so the
+            // only possible error case is the amount overflowing.
             let asset = FungibleAsset::new(faucet_id, amount)
                 .map_err(|_| AccountDeltaError::AssetAmountTooBig(amount))?;
 
@@ -396,8 +396,8 @@ mod tests {
         #[case] y: Option<bool>,
         #[case] expected: Result<Option<bool>, ()>,
     ) {
-        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta will
-        /// be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
+        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta
+        /// will be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
         fn create_delta_with_non_fungible(
             account_id: AccountId,
             added: Option<bool>,

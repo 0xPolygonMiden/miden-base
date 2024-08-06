@@ -14,7 +14,8 @@ use super::{TransactionHost, TransactionProverError};
 /// Transaction prover is a stateless component which is responsible for proving transactions.
 ///
 /// Transaction prover exposes the `prove_transaction` method which takes a [TransactionWitness],
-/// or anything that can be converted into a [TransactionWitness], and returns a [ProvenTransaction].
+/// or anything that can be converted into a [TransactionWitness], and returns a
+/// [ProvenTransaction].
 pub struct TransactionProver {
     proof_options: ProvingOptions,
 }
