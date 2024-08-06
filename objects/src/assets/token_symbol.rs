@@ -47,8 +47,8 @@ impl TryFrom<Felt> for TokenSymbol {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-// Utils to encode and decode the token symbol as a Felt. Token Symbols can consists of up to 6 characters
-// , e.g., A = 0, ...
+// Utils to encode and decode the token symbol as a Felt. Token Symbols can consists of up to 6
+// characters , e.g., A = 0, ...
 fn encode_symbol_to_felt(s: &str) -> Result<Felt, AssetError> {
     if s.is_empty() || s.len() > TokenSymbol::MAX_SYMBOL_LENGTH {
         return Err(AssetError::TokenSymbolError(

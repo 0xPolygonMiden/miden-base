@@ -660,7 +660,8 @@ fn executed_transaction_output_notes() {
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
 
-    // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public without assets.
+    // In this test we create 3 notes. Note 1 is private, Note 2 is public and Note 3 is public
+    // without assets.
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);

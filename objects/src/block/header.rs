@@ -17,10 +17,11 @@ use crate::utils::serde::{
 /// - `account_root` is a commitment to account database.
 /// - `nullifier_root` is a commitment to the nullifier database.
 /// - `note_root` is a commitment to all notes created in the current block.
-/// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the block.
+/// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the
+///   block.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
-/// - `timestamp` is the time when the block was created, in seconds since UNIX epoch.
-///   Current representation is sufficient to represent time up to year 2106.
+/// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
+///   representation is sufficient to represent time up to year 2106.
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
 /// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -68,9 +69,10 @@ impl BlockHeader {
             block_num,
         );
 
-        // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the final
-        // hash. This is done to make the note_root easily accessible without having to unhash the
-        // entire header. Having the note_root easily accessible is useful when authenticating notes.
+        // The sub hash is merged with the note_root - hash(sub_hash, note_root) to produce the
+        // final hash. This is done to make the note_root easily accessible without having
+        // to unhash the entire header. Having the note_root easily accessible is useful
+        // when authenticating notes.
         let hash = Hasher::merge(&[sub_hash, note_root]);
 
         Self {
@@ -142,9 +144,9 @@ impl BlockHeader {
 
     /// Returns the commitment to all transactions in this block.
     ///
-    /// The commitment is computed as sequential hash of (`transaction_id`, `account_id`) tuples. This
-    /// makes it possible for the verifier to link transaction IDs to the accounts which they were
-    /// executed against.
+    /// The commitment is computed as sequential hash of (`transaction_id`, `account_id`) tuples.
+    /// This makes it possible for the verifier to link transaction IDs to the accounts which
+    /// they were executed against.
     pub fn tx_hash(&self) -> Digest {
         self.tx_hash
     }

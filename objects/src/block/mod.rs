@@ -24,10 +24,10 @@ pub type NoteBatch = Vec<OutputNote>;
 ///
 /// A block contains information resulting from executing a set of transactions against the chain
 /// state defined by the previous block. It consists of 3 main components:
-/// - A set of change descriptors for all accounts updated in this block. For private accounts,
-///   the block contains only the new account state hashes; for public accounts, the block also
-///   contains a set of state deltas which can be applied to the previous account state to get the
-///   new account state.
+/// - A set of change descriptors for all accounts updated in this block. For private accounts, the
+///   block contains only the new account state hashes; for public accounts, the block also contains
+///   a set of state deltas which can be applied to the previous account state to get the new
+///   account state.
 /// - A set of new notes created in this block. For private notes, the block contains only note IDs
 ///   and note metadata; for public notes, full note details are recorded.
 /// - A set of new nullifiers created for all notes that were consumed in the block.

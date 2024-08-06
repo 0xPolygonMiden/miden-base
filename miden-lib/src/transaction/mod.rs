@@ -133,8 +133,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// # Errors
     /// Returns an error if:
@@ -183,8 +183,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// The actual data describing the new account state and output notes is expected to be located
     /// in the provided advice map under keys CNC and FAH.

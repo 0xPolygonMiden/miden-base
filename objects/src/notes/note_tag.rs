@@ -54,9 +54,9 @@ pub enum NoteExecutionMode {
 /// - [NoteExecutionMode] is set to [NoteExecutionMode::Network] to hint a [super::Note] should be
 ///   consumed by the network. These notes will be further validated and if possible consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
-///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning of
-///   the rest of the tag is not specified by the protocol and can be used by applications built on
-///   top of the rollup.
+///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning
+///   of the rest of the tag is not specified by the protocol and can be used by applications built
+///   on top of the rollup.
 ///
 /// The note type is the only value enforced by the protocol. The rationale is that any note
 /// intended to be consumed by the network must be public to have all the details available. The
@@ -86,7 +86,6 @@ impl NoteTag {
     ///
     /// This will return an error if the account_id is not for an on-chain account and the execution
     /// hint is set to [NoteExecutionMode::Network].
-    ///
     pub fn from_account_id(
         account_id: AccountId,
         execution: NoteExecutionMode,

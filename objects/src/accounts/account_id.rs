@@ -105,7 +105,8 @@ pub enum AccountStorageType {
 pub struct AccountId(Felt);
 
 impl AccountId {
-    /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
+    /// Specifies a minimum number of trailing zeros required in the last element of the seed
+    /// digest.
     ///
     /// Note: The account id includes 4 bits of metadata, these bits determine the account type
     /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
@@ -140,8 +141,7 @@ impl AccountId {
     /// Returns an error if the resulting account ID does not comply with account ID rules:
     /// - the metadata embedded in the ID (i.e., the first 4 bits) is valid.
     /// - the ID has at least `5` ones.
-    /// - the last element of the seed digest has at least `23` trailing zeros for regular
-    ///   accounts.
+    /// - the last element of the seed digest has at least `23` trailing zeros for regular accounts.
     /// - the last element of the seed digest has at least `31` trailing zeros for faucet accounts.
     pub fn new(
         seed: Word,
@@ -234,8 +234,8 @@ impl AccountId {
         hex_to_bytes(hex_value)
             .map_err(|err| AccountError::HexParseError(err.to_string()))
             .and_then(|mut bytes: [u8; 8]| {
-                // `bytes` ends up being parsed as felt, and the input to that is assumed to be little-endian
-                // so we need to reverse the order
+                // `bytes` ends up being parsed as felt, and the input to that is assumed to be
+                // little-endian so we need to reverse the order
                 bytes.reverse();
                 bytes.try_into()
             })

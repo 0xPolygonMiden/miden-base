@@ -21,7 +21,8 @@ use crate::{
 pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTES_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided entries.
+    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
+    /// entries.
     ///
     /// Entry format: (note_index, note_id, note_metadata).
     ///

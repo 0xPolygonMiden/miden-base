@@ -16,13 +16,13 @@ use super::{AuthScheme, TransactionKernel};
 // BASIC WALLET
 // ================================================================================================
 
-/// Creates a new account with basic wallet interface, the specified authentication scheme and the account storage type.
-/// Basic wallets can be specified to have either mutable or immutable code.
+/// Creates a new account with basic wallet interface, the specified authentication scheme and the
+/// account storage type. Basic wallets can be specified to have either mutable or immutable code.
 ///
 /// The basic wallet interface exposes two procedures:
 /// - `receive_asset`, which can be used to add an asset to the account.
 /// - `send_asset`, which can be used to remove an asset from the account and put into a note
-///    addressed to the specified recipient.
+///   addressed to the specified recipient.
 ///
 /// Both methods require authentication. The authentication procedure is defined by the specified
 /// authentication scheme. Public key information for the scheme is stored in the account storage
