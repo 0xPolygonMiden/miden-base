@@ -141,9 +141,9 @@ impl AccountStorageDeltaTracker {
 /// the transaction is being executed against.
 ///
 /// The delta tracker is composed of two maps:
-/// - Fungible asset map: tracks changes to the vault's fungible assets, where the key is the
-///   faucet ID of the asset, and the value is the amount of the asset being added or removed from
-///   the vault (positive value for added assets, negative value for removed assets).
+/// - Fungible asset map: tracks changes to the vault's fungible assets, where the key is the faucet
+///   ID of the asset, and the value is the amount of the asset being added or removed from the
+///   vault (positive value for added assets, negative value for removed assets).
 /// - Non-fungible asset map: tracks changes to the vault's non-fungible assets, where the key is
 ///   the non-fungible asset, and the value is either 1 or -1 depending on whether the asset is
 ///   being added or removed from the vault.

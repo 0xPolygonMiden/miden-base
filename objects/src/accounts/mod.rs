@@ -97,8 +97,9 @@ impl Account {
 
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
-    /// Computing the account hash requires 2 permutations of the hash function.
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root,
+    /// code_commitment). Computing the account hash requires 2 permutations of the hash
+    /// function.
     pub fn hash(&self) -> Digest {
         hash_account(
             self.id,

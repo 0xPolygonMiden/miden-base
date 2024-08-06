@@ -173,8 +173,8 @@ pub const ACCT_CODE_COMMITMENT_OFFSET: MemoryOffset = 3;
 pub const ACCT_CODE_COMMITMENT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_CODE_COMMITMENT_OFFSET;
 
-/// The offset at which the accounts new code commitment is stored relative to the start of the account
-/// data segment.
+/// The offset at which the accounts new code commitment is stored relative to the start of the
+/// account data segment.
 pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
 
 /// The memory address at which the new account code commitment is stored
@@ -212,8 +212,9 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // words and is laid out like so:
 //
 // ┌──────┬────────┬────────┬────────┬────────┬──────┬───────┬────────┬───────┬─────┬───────┬─────────┬
-// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │ PADDING │
-// │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n   │         │
+// │ NOTE │ SERIAL │ SCRIPT │ INPUTS │ ASSETS │ META │ NOTE  │   NUM  │ ASSET │ ... │ ASSET │
+// PADDING │ │  ID  │  NUM   │  ROOT  │  HASH  │  HASH  │ DATA │ ARGS  │ ASSETS │   0   │     │   n
+// │         │
 // ├──────┼────────┼────────┼────────┼────────┼──────┼───────┼────────┼───────┼─────┼───────┼─────────┤
 //    0        1       2        3        4       5       6       7      8 + n
 //

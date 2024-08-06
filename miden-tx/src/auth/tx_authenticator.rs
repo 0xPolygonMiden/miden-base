@@ -26,10 +26,10 @@ pub trait TransactionAuthenticator {
     ///
     /// - `pub_key`: The public key used for signature generation.
     /// - `message`: The message to sign, usually a commitment to the transaction data.
-    /// - `account_delta`: An informational parameter describing the changes made to
-    ///   the account up to the point of calling `get_signature()`. This allows the
-    ///   authenticator to review any alterations to the account prior to signing.
-    ///   It should not be directly used in the signature computation.
+    /// - `account_delta`: An informational parameter describing the changes made to the account up
+    ///   to the point of calling `get_signature()`. This allows the authenticator to review any
+    ///   alterations to the account prior to signing. It should not be directly used in the
+    ///   signature computation.
     fn get_signature(
         &self,
         pub_key: Word,

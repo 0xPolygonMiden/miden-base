@@ -27,7 +27,8 @@ pub use data_store::DataStore;
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a program using the [TransactionCompiler](crate::TransactionCompiler).
+/// - Compile the transaction into a program using the
+///   [TransactionCompiler](crate::TransactionCompiler).
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The transaction executor is generic over the [DataStore] which allows it to be used with
@@ -47,7 +48,8 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and [TransactionAuthenticator].
+    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and
+    /// [TransactionAuthenticator].
     pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
         Self {
             data_store,
