@@ -2,6 +2,11 @@
 
 name: test
 
+# Limits workflow concurrency to only the latest commit in the PR.
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, next]
