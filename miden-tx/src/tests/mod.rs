@@ -1,5 +1,4 @@
 use alloc::vec::Vec;
-use std::{dbg};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -536,7 +535,7 @@ fn executed_transaction_output_notes() {
         proc.create_note
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
-            swapw dropw swapw dropw swapw dropw drop
+            swapw dropw swapw dropw swapw dropw
             # => [note_idx]
         end
 
@@ -667,7 +666,6 @@ fn executed_transaction_output_notes() {
     // NOTE: the mock state already contains 3 output notes
     assert_eq!(output_notes.num_notes(), 6);
 
-    dbg!(executed_transaction.output_notes().get_note(3));
     let output_note_id_3 = executed_transaction.output_notes().get_note(3).id();
     let recipient_3 = Digest::from([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]);
     let note_assets_3 = NoteAssets::new(vec![combined_asset]).unwrap();
