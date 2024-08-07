@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use std::{dbg};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -13,9 +14,8 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteExecutionHint,
-        NoteExecutionMode, NoteHeader, NoteId, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
         account_code::{
@@ -236,6 +236,7 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_1} # note_execution_hint
             push.{NOTETYPE1}        # note_type
             push.{aux1}             # aux
             push.{tag1}             # tag
@@ -245,6 +246,7 @@ fn executed_transaction_account_delta() {
 
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_2} # note_execution_hint
             push.{NOTETYPE2}        # note_type
             push.{aux2}             # aux
             push.{tag2}             # tag
@@ -254,6 +256,7 @@ fn executed_transaction_account_delta() {
 
             # send non-fungible asset
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_3} # note_execution_hint
             push.{NOTETYPE3}        # note_type
             push.{aux3}             # aux
             push.{tag3}             # tag
@@ -282,6 +285,9 @@ fn executed_transaction_account_delta() {
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
@@ -530,7 +536,7 @@ fn executed_transaction_output_notes() {
         proc.create_note
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
-            swapw dropw swapw dropw swapw dropw
+            swapw dropw swapw dropw swapw dropw drop
             # => [note_idx]
         end
 
@@ -661,6 +667,7 @@ fn executed_transaction_output_notes() {
     // NOTE: the mock state already contains 3 output notes
     assert_eq!(output_notes.num_notes(), 6);
 
+    dbg!(executed_transaction.output_notes().get_note(3));
     let output_note_id_3 = executed_transaction.output_notes().get_note(3).id();
     let recipient_3 = Digest::from([Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]);
     let note_assets_3 = NoteAssets::new(vec![combined_asset]).unwrap();

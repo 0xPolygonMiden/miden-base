@@ -1,5 +1,4 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
-use std::{dbg};
 
 use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
@@ -122,7 +121,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
         let note_idx: usize = stack[9].as_int() as usize;
-        dbg!(&stack);
+        //dbg!(&stack);
 
         assert_eq!(note_idx, self.output_notes.len(), "note index mismatch");
 

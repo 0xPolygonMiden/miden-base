@@ -522,12 +522,12 @@ export.create_note
     # => [note_idx]
 
     # prepare stack for return. Note: when create_note is called, the stack looks
-    # like [tag, aux, note_type, execution_hint, RECIPIENT, X, X], with 16 elements and X might 
+    # like [tag, aux, note_type, execution_hint, RECIPIENT, X, X], with 16 elements and X might
     # be important data for the user. Without padding the kernel returns 
     # [note_idx, X, X, 0, 0, 0, EMPTY_WORD] adding 0's.
     # To keep the data in position we move 0's to the left between note_idx and the potentially
     # important first element x.
-    movupw.3 movup.15 movup.15 movup.7
+    movupw.3 movup.15 movup.15 movup.15 movup.7
     # => [note_idx, 0, 0, 0, 0, 0, 0, 0]
 end
 

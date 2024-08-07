@@ -53,7 +53,7 @@ impl NoteMetadata {
             note_type,
             tag,
             aux,
-            execution_hint: NoteExecutionHint::None,
+            execution_hint,
         })
     }
 

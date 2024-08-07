@@ -106,9 +106,14 @@ fn prove_swap_script() {
     // Check if the output `Note` is what we expect
     let recipient = payback_note.recipient().clone();
     let tag = NoteTag::from_account_id(sender_account_id, NoteExecutionMode::Local).unwrap();
-    let note_metadata =
-        NoteMetadata::new(target_account_id, NoteType::Private, tag, NoteExecutionHint::None, ZERO)
-            .unwrap();
+    let note_metadata = NoteMetadata::new(
+        target_account_id,
+        NoteType::Private,
+        tag,
+        NoteExecutionHint::Always,
+        ZERO,
+    )
+    .unwrap();
     let assets = NoteAssets::new(vec![requested_asset]).unwrap();
     let note_id = NoteId::new(recipient.digest(), assets.commitment());
 
