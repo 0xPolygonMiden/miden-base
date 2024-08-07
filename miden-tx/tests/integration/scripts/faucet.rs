@@ -78,7 +78,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
                 call.faucet::distribute
 
                 call.auth_tx::auth_tx_rpo_falcon512
-                dropw dropw
+                dropw dropw drop
 
             end
             ",

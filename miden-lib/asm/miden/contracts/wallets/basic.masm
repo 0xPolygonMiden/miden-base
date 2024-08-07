@@ -47,7 +47,7 @@ export.send_asset.1
 
     # Store the ASSET for later
     loc_storew.0 dropw
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, ...]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, EMPTY_WORD, EMPTY_WORD, 0,...]
 
     # This procedure is written to be executed with `exec` or `call`. When this
     # procedure is `call`ed the stack has to be carefully manipulated to avoid
@@ -59,7 +59,7 @@ export.send_asset.1
     # is because the VM stack has a minimum size of 16 elements, trying to push
     # elements after the call to `create_note` would increase the stack in
     # addition to the minimum 16 elements.
-    push.0 movdn.8 padw movdnw.2 padw movdnw.2
+    padw movdnw.2 padw movdnw.2
     # => [tag, aux, note_type, execution_hint, RECIPIENT, EMPTY_WORD, EMPTY_WORD, ...]
 
     exec.tx::create_note

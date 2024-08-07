@@ -6,7 +6,7 @@ use crate::accounts::AccountCode;
 // account's procedures.
 const MASTS: [&str; 11] = [
     "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
-    "0xb5763d81cffe30d8e04bfa414075b4cccaec7c669bda4937d4fa621d1b092895",
+    "0xe3ae04995b883f07c3173704905f1851e2bd3c2ae5930bce8071f3a088f5cbef",
     "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
     "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
     "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
