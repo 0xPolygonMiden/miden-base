@@ -7,7 +7,7 @@ use miden_objects::{
         TransactionInputs, TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
-    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
+    Digest, Felt, FieldElement, Hasher, Word, EMPTY_WORD, ZERO,
 };
 
 use super::TransactionKernel;
@@ -24,15 +24,27 @@ pub trait ToTransactionKernelInputs {
 impl ToTransactionKernelInputs for PreparedTransaction {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
+        let kernel = self.program().kernel();
+        // we need to get &[Felt] from &[Digest]
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+            .cloned()
+            .collect::<Vec<Felt>>();
+        let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
+            (kernel.proc_hashes().len(), kernel_hash),
         );
 
         let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_args(),
+            kernel_procs_as_felts,
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -41,15 +53,27 @@ impl ToTransactionKernelInputs for PreparedTransaction {
 impl ToTransactionKernelInputs for ExecutedTransaction {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.initial_account();
+        let kernel = self.program().kernel();
+        // we need to get &[Felt] from &[Digest]
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+            .cloned()
+            .collect::<Vec<Felt>>();
+        let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
+            (kernel.proc_hashes().len(), kernel_hash),
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_args(),
+            kernel_procs_as_felts,
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -58,16 +82,27 @@ impl ToTransactionKernelInputs for ExecutedTransaction {
 impl ToTransactionKernelInputs for TransactionWitness {
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
         let account = self.account();
-
+        let kernel = self.program().kernel();
+        // we need to get &[Felt] from &[Digest]
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+            .cloned()
+            .collect::<Vec<Felt>>();
+        let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
             self.input_notes().commitment(),
             self.block_header().hash(),
+            (kernel.proc_hashes().len(), kernel_hash),
         );
 
         let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
+        extend_advice_inputs(
+            self.tx_inputs(),
+            self.tx_args(),
+            kernel_procs_as_felts,
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -85,9 +120,10 @@ impl ToTransactionKernelInputs for TransactionWitness {
 fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
+    kernel_procs: Vec<Felt>,
     advice_inputs: &mut AdviceInputs,
 ) {
-    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), kernel_procs, advice_inputs);
 
     // build the advice map and Merkle store for relevant components
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
@@ -104,6 +140,7 @@ fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
+///     [KERNEL_PROCS_HASHES],
 ///     PREVIOUS_BLOCK_HASH,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
@@ -123,8 +160,12 @@ fn extend_advice_inputs(
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
+    kernel_procs: Vec<Felt>,
     inputs: &mut AdviceInputs,
 ) {
+    // push hashes of the kernel procedures to the advice stack
+    inputs.extend_stack(kernel_procs);
+
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
     let header = tx_inputs.block_header();

@@ -1,5 +1,7 @@
+use alloc::vec::Vec;
+
 use miden_lib::transaction::TransactionKernel;
-use miden_objects::{transaction::ProvenTransaction, vm::ProgramInfo};
+use miden_objects::{transaction::ProvenTransaction, vm::ProgramInfo, Digest, Felt, Hasher};
 use miden_verifier::verify;
 
 use super::TransactionVerifierError;
@@ -31,12 +33,21 @@ impl TransactionVerifier {
     /// - Transaction verification fails.
     /// - The security level of the verified proof is insufficient.
     pub fn verify(&self, transaction: ProvenTransaction) -> Result<(), TransactionVerifierError> {
+        // compute the kernel hash
+        let kernel = self.tx_program_info.kernel();
+        // we need to get &[Felt] from &[Digest]
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+            .cloned()
+            .collect::<Vec<Felt>>();
+        let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
+
         // build stack inputs and outputs
         let stack_inputs = TransactionKernel::build_input_stack(
             transaction.account_id(),
             transaction.account_update().init_state_hash(),
             transaction.input_notes().commitment(),
             transaction.block_ref(),
+            (kernel.proc_hashes().len(), kernel_hash)
         );
         let stack_outputs = TransactionKernel::build_output_stack(
             transaction.account_update().final_state_hash(),
