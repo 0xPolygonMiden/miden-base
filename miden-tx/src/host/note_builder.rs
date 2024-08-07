@@ -50,6 +50,7 @@ impl OutputNoteBuilder {
         let aux = stack[0];
         let (note_type, note_execution_hint) = unmerge_type_and_hint(stack[1].into())
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
+
         let sender =
             AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
         let tag = NoteTag::try_from(stack[3])

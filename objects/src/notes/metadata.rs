@@ -157,10 +157,10 @@ pub fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecuti
     let type_nibble = note_type as u64 & 0xF;
     let (tag_nibble, payload_u32) = note_execution_hint.into_parts();
 
-    let tag_section = ((tag_nibble as u64)) & 0xF;
+    let tag_section = (tag_nibble as u64) & 0xF;
     let payload_section = payload_u32 as u64;
 
-    (type_nibble << 36) | (tag_section << 32)  | payload_section
+    (type_nibble << 36) | (tag_section << 32) | payload_section
 }
 
 pub fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {

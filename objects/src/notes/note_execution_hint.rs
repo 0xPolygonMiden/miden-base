@@ -1,6 +1,8 @@
 // NOTE EXECUTION HINT
 // ================================================================================================
 
+use vm_core::Felt;
+
 use crate::NoteError;
 
 // CONSTANTS
@@ -139,6 +141,13 @@ impl NoteExecutionHint {
                 (ON_BLOCK_SLOT_TAG, payload)
             },
         }
+    }
+}
+
+impl From<NoteExecutionHint> for Felt {
+    fn from(value: NoteExecutionHint) -> Self {
+        let (tag, payload) = value.into_parts();
+        Felt::new((tag as u64) << 32 | (payload as u64))
     }
 }
 

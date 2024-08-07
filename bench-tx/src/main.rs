@@ -12,7 +12,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
-    notes::{NoteType},
+    notes::NoteType,
     transaction::TransactionArgs,
     Felt,
 };

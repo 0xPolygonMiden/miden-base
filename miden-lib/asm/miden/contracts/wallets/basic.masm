@@ -24,8 +24,8 @@ end
 #! Creates a note which sends the specified asset out of the current account
 #! to the specified recipient.
 #!
-#! Inputs: [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, ...]
-#! Outputs: [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, ...]
+#! Inputs: [ASSET, tag, aux, note_type, execution_hint, execution_hint, RECIPIENT, ...]
+#! Outputs: [note_idx, EMPTY_WORD, EMPTY_WORD, 0, 0, 0, ...]
 #!
 #! - ASSET is the non-fungible asset of interest.
 #! - tag is the tag to be included in the note.
@@ -43,7 +43,7 @@ end
 #! - The non-fungible asset is not found in the vault.
 export.send_asset.1
     exec.account::remove_asset
-    # => [ASSET, tag, aux, note_type, RECIPIENT, ...]
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT, ...]
 
     # Store the ASSET for later
     loc_storew.0 dropw
@@ -60,7 +60,7 @@ export.send_asset.1
     # elements after the call to `create_note` would increase the stack in
     # addition to the minimum 16 elements.
     push.0 movdn.8 padw movdnw.2 padw movdnw.2
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, 0, EMPTY_WORD, EMPTY_WORD, ...]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, EMPTY_WORD, EMPTY_WORD, ...]
 
     exec.tx::create_note
     # => [note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
@@ -72,5 +72,5 @@ export.send_asset.1
     # => [note_idx, 0, EMPTY_WORD, EMPTY_WORD, ...]
 
     # prepare the stack for return - stack has 7 elements too many
-    movupw.3 dropw swap drop swap drop
+    movupw.3 dropw swap drop swap drop drop
 end

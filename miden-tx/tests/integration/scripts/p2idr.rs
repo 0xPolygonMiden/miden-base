@@ -11,7 +11,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteType},
+    notes::NoteType,
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt,

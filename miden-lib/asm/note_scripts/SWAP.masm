@@ -5,6 +5,7 @@ use.miden::contracts::wallets::basic->wallet
 # =================================================================================================
 
 const.PRIVATE_NOTE=2
+const.ALWAYS_EXECUTION_HINT_TAG=4294967296
 
 # ERRORS
 # =================================================================================================
@@ -70,6 +71,9 @@ begin
 
     push.PRIVATE_NOTE movdn.5
     # => [ASSET, tag, note_type, RECIPIENT]
+
+    push.ALWAYS_EXECUTION_HINT_TAG movdn.6
+    # => [ASSET, tag, note_type, execution_hint, RECIPIENT]
 
     # we add aux = 0 to the note assuming we don't need it for the second leg of the SWAP
     push.0 movdn.5

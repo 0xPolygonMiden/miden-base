@@ -12,6 +12,9 @@ const.PUBLIC_NOTE=1     # 0b01
 const.PRIVATE_NOTE=2    # 0b10
 const.ENCRYPTED_NOTE=3  # 0b11
 
+# Two raised to the power of 36 (2^36)
+const.TWO_POW_36=68719476736
+
 # ERRORS
 # =================================================================================================
 
@@ -253,12 +256,13 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT]
 #! Outputs: [note_idx]
 #!
 #! - tag is the tag to be included in the note.
 #! - aux is the auxiliary metadata to be included in the note.
 #! - note_type is the type of the note.
+#! - execution_hint is the execution hint of the note.
 #! - RECIPIENT defines spend conditions for the note.
 #! - note_idx is the index of the crated note.
 #!
@@ -274,30 +278,35 @@ export.create_note
     # validate the note type
     # NOTE: encrypted notes are currently unsupported
     dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
-    # => [tag, aux, note_type, RECIPIENT]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT]
 
     # copy data to validate the tag
     dup.2 push.PUBLIC_NOTE dup.1 dup.3
-    # => [tag, note_type, public_note, note_type, tag, aux, note_type, RECIPIENT]
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint, RECIPIENT]
 
     u32assert.err=ERR_NOTE_TAG_MUST_BE_U32
-    # => [tag, note_type, public_note, note_type, tag, aux, note_type, RECIPIENT]
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint, RECIPIENT]
 
     # enforce the note type depending on the tag's bits
     u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
-    # => [tag, aux, note_type, RECIPIENT]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
-    exec.increment_num_output_notes dup movdn.8
-    # => [note_idx, tag, aux, note_type, RECIPIENT, note_idx]
+    exec.increment_num_output_notes dup movdn.9
+    # => [note_idx, tag, aux, note_type, execution_hint, RECIPIENT, note_idx]
 
     # get a pointer to the memory address at which the note will be stored
     exec.memory::get_output_note_ptr
-    # => [note_ptr, tag, aux, note_type, RECIPIENT, note_idx]
+    # => [note_ptr, tag, aux, note_type, execution_hint, RECIPIENT, note_idx]
 
     # populate the metadata
-    swap exec.account::get_id movup.4 movup.4
-    # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+    swap exec.account::get_id movup.5 movup.5 movup.5
+    # => [aux, note_type, execution_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+
+    # encode note_type and execution_hint into a single element
+    movdn.2 push.TWO_POW_36 mul add swap
+    #movdn.2 drop drop push.333
+    # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
     # emit event to signal that a new note is created
     emit.NOTE_AFTER_CREATED_EVENT
