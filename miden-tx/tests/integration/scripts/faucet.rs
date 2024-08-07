@@ -55,6 +55,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
     let aux = Felt::new(27);
+    let note_execution_hint = NoteExecutionHint::on_block_slot(5, 6, 7);
     let note_type = NoteType::Private;
     let amount = Felt::new(100);
 
@@ -69,6 +70,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             begin
 
                 push.{recipient}
+                push.{note_execution_hint}
                 push.{note_type}
                 push.{aux}
                 push.{tag}
@@ -84,6 +86,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
             recipient = prepare_word(&recipient),
             aux = aux,
             tag = u32::from(tag),
+            note_execution_hint = Felt::from(note_execution_hint)
         )
         .as_str(),
     )
@@ -109,14 +112,8 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     assert_eq!(output_note.id(), id);
     assert_eq!(
         output_note.metadata(),
-        &NoteMetadata::new(
-            faucet_account.id(),
-            NoteType::Private,
-            tag,
-            NoteExecutionHint::Always,
-            aux
-        )
-        .unwrap()
+        &NoteMetadata::new(faucet_account.id(), NoteType::Private, tag, note_execution_hint, aux)
+            .unwrap()
     );
 }
 

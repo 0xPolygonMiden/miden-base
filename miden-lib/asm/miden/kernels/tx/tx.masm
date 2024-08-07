@@ -305,7 +305,6 @@ export.create_note
 
     # encode note_type and execution_hint into a single element
     movdn.2 push.TWO_POW_36 mul add swap
-    # movdn.2 drop drop push.333
     # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
     # emit event to signal that a new note is created
