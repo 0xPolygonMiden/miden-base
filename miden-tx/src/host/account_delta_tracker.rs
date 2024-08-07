@@ -3,12 +3,11 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use miden_objects::{
     accounts::{
         AccountDelta, AccountId, AccountStorageDelta, AccountStub, AccountVaultDelta,
-        StorageMapDelta,
+        NonFungibleDeltaAction, StorageMapDelta,
     },
-    assets::{Asset, FungibleAsset, NonFungibleAsset},
-    Digest, Felt, Word, EMPTY_WORD, ZERO,
+    assets::Asset,
+    Digest, Felt, Word, ZERO,
 };
-
 // ACCOUNT DELTA TRACKER
 // ================================================================================================
 
@@ -89,38 +88,20 @@ impl AccountStorageDeltaTracker {
     /// Consumes `self` and returns the [AccountStorageDelta] that represents the changes to
     /// the account's storage.
     pub fn into_delta(self) -> AccountStorageDelta {
-        let mut cleared_items = Vec::new();
-        let mut updated_items = Vec::new();
-        let mut updated_maps: Vec<(u8, StorageMapDelta)> = Vec::new();
+        let updated_maps = self
+            .maps_updates
+            .into_iter()
+            .map(|(idx, map_deltas)| {
+                (
+                    idx,
+                    StorageMapDelta::new(
+                        map_deltas.into_iter().map(|(key, value)| (key.into(), value)).collect(),
+                    ),
+                )
+            })
+            .collect();
 
-        for (idx, value) in self.slot_updates {
-            if value == EMPTY_WORD {
-                cleared_items.push(idx);
-            } else {
-                updated_items.push((idx, value));
-            }
-        }
-
-        for (idx, map_deltas) in self.maps_updates {
-            let mut updated_leafs = Vec::new();
-            let mut cleared_leafs = Vec::new();
-
-            for map_delta in map_deltas {
-                if map_delta.1 == EMPTY_WORD {
-                    cleared_leafs.push(map_delta.0);
-                } else {
-                    updated_leafs.push(map_delta);
-                }
-            }
-            let storage_map_delta = StorageMapDelta::from(cleared_leafs, updated_leafs);
-            updated_maps.push((idx, storage_map_delta));
-        }
-
-        AccountStorageDelta {
-            cleared_items,
-            updated_items,
-            updated_maps,
-        }
+        AccountStorageDelta::new(self.slot_updates, updated_maps)
     }
 
     /// Tracks a slot change
@@ -194,48 +175,28 @@ impl AccountVaultDeltaTracker {
     /// Consumes `self` and returns the [AccountVaultDelta] that represents the changes to the
     /// account's vault.
     pub fn into_delta(self) -> AccountVaultDelta {
-        let mut added_assets = Vec::new();
-        let mut removed_assets = Vec::new();
+        let fungible = self
+            .fungible_assets
+            .into_iter()
+            .map(|(account_id, diff)| (account_id, diff.try_into().expect("overflow")))
+            .collect();
 
-        // process fungible assets
-        for (faucet_id, amount) in self.fungible_assets {
-            if amount > 0 {
-                added_assets.push(Asset::Fungible(
-                    FungibleAsset::new(
-                        AccountId::new_unchecked(faucet_id.into()),
-                        amount.unsigned_abs() as u64,
-                    )
-                    .expect("fungible asset is well formed"),
-                ));
-            } else {
-                removed_assets.push(Asset::Fungible(
-                    FungibleAsset::new(
-                        AccountId::new_unchecked(faucet_id.into()),
-                        amount.unsigned_abs() as u64,
-                    )
-                    .expect("fungible asset is well formed"),
-                ));
-            }
-        }
+        let non_fungible = self
+            .non_fungible_assets
+            .into_iter()
+            .map(|(digest, amount)| {
+                (
+                    digest,
+                    match amount {
+                        1 => NonFungibleDeltaAction::Add,
+                        -1 => NonFungibleDeltaAction::Remove,
+                        _ => unreachable!("non-fungible asset amount must be 1 or -1"),
+                    },
+                )
+            })
+            .collect();
 
-        // process non-fungible assets
-        for (non_fungible_asset, amount) in self.non_fungible_assets {
-            match amount {
-                1 => {
-                    added_assets.push(Asset::NonFungible(unsafe {
-                        NonFungibleAsset::new_unchecked(*non_fungible_asset)
-                    }));
-                },
-                -1 => {
-                    removed_assets.push(Asset::NonFungible(unsafe {
-                        NonFungibleAsset::new_unchecked(*non_fungible_asset)
-                    }));
-                },
-                _ => unreachable!("non-fungible asset amount must be 1 or -1"),
-            }
-        }
-
-        AccountVaultDelta { added_assets, removed_assets }
+        AccountVaultDelta::new(fungible, non_fungible)
     }
 }
 
@@ -247,7 +208,7 @@ impl AccountVaultDeltaTracker {
 fn update_asset_delta<K, V>(delta_map: &mut BTreeMap<K, V>, key: K, amount: V)
 where
     V: core::ops::Neg,
-    V: core::cmp::PartialEq<<V as core::ops::Neg>::Output>,
+    V: PartialEq<<V as core::ops::Neg>::Output>,
     V: core::ops::AddAssign,
     V: Copy,
     K: Ord,

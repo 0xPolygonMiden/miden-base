@@ -240,7 +240,7 @@ pub fn build_account_delta(
     nonce: Felt,
     storage_delta: AccountStorageDelta,
 ) -> AccountDelta {
-    let vault_delta = AccountVaultDelta { added_assets, removed_assets };
+    let vault_delta = AccountVaultDelta::from_iters(added_assets, removed_assets);
     AccountDelta::new(storage_delta, vault_delta, Some(nonce)).unwrap()
 }
 

@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -311,24 +311,24 @@ fn executed_transaction_account_delta() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 1);
     assert_eq!(
-        executed_transaction.account_delta().storage().updated_items[0].0,
-        STORAGE_INDEX_0
-    );
-    assert_eq!(
-        executed_transaction.account_delta().storage().updated_items[0].1,
-        updated_slot_value
+        executed_transaction.account_delta().storage().slots().get(&STORAGE_INDEX_0),
+        Some(&updated_slot_value)
     );
 
-    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().maps().len(), 1);
     assert_eq!(
-        executed_transaction.account_delta().storage().updated_maps[0].0,
-        STORAGE_INDEX_2
-    );
-    assert_eq!(
-        executed_transaction.account_delta().storage().updated_maps[0].1.updated_leaves[0],
-        (updated_map_key, updated_map_value)
+        executed_transaction
+            .account_delta()
+            .storage()
+            .maps()
+            .get(&STORAGE_INDEX_2)
+            .unwrap()
+            .leaves(),
+        &Some((updated_map_key.into(), updated_map_value))
+            .into_iter()
+            .collect::<BTreeMap<Digest, _>>()
     );
 
     // vault delta
@@ -349,24 +349,22 @@ fn executed_transaction_account_delta() {
     assert!(executed_transaction
         .account_delta()
         .vault()
-        .added_assets
-        .iter()
-        .all(|x| added_assets.contains(x)));
+        .added_assets()
+        .all(|x| added_assets.contains(&x)));
     assert_eq!(
         added_assets.len(),
-        executed_transaction.account_delta().vault().added_assets.len()
+        executed_transaction.account_delta().vault().added_assets().count()
     );
 
     // assert that removed assets are tracked
     assert!(executed_transaction
         .account_delta()
         .vault()
-        .removed_assets
-        .iter()
-        .all(|x| removed_assets.contains(x)));
+        .removed_assets()
+        .all(|x| removed_assets.contains(&x)));
     assert_eq!(
         removed_assets.len(),
-        executed_transaction.account_delta().vault().removed_assets.len()
+        executed_transaction.account_delta().vault().removed_assets().count()
     );
 }
 
@@ -421,9 +419,9 @@ fn test_empty_delta_nonce_update() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 0);
 
-    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().maps().len(), 0);
 }
 
 #[test]
