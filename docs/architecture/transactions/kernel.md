@@ -80,6 +80,7 @@ Next to the total number of input notes, input note data consists of a serial nu
 
 As each note is consumed, its hash and nullifier are computed. 
 
+
 The transaction nullifier commitment is computed via a sequential hash of `(nullifier, ZERO)` pairs for all input notes. This step involves authentication such that the input note data provided via the advice provider is consistent with the chain history.
 
 !!! info

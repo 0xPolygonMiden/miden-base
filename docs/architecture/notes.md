@@ -251,7 +251,7 @@ hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
 
 This concept restricts note consumption to those users who know the pre-image data of `RECIPIENT` - which might be a bigger set than a single account.
 
-During the [transaction prologue](transactions/kernel.md) the users needs to provide all the data to compute the note hash. That means, one can create notes that can only be consumed if the `serial_num` and other data is known. This information can be passed on off-chain by the sender to the consumer. This is only useful with private notes.For public notes, all note data is known, and anyone can compute the `RECIPIENT`.
+During the [transaction prologue](transactions/kernel.md) the users needs to provide all the data to compute the note hash. That means, one can create notes that can only be consumed if the `serial_num` and other data are known. This information can be passed on off-chain by the sender to the consumer. This is only useful with private notes.For public notes, all note data is known, and anyone can compute the `RECIPIENT`.
 
 You can see in the standard [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm) how `RECIPIENT` is used. Here, using a single hash, is sufficient to ensure that the swapped asset and its note can only be consumed by the defined target.
 
