@@ -41,7 +41,6 @@ impl AccountDelta {
     /// # Errors
     /// Returns an error if:
     /// - Storage or vault deltas are invalid.
-    /// - Storage and vault deltas are empty, and the nonce was updated.
     /// - Storage or vault deltas are not empty, but nonce was not updated.
     pub fn new(
         storage: AccountStorageDelta,
@@ -52,10 +51,26 @@ impl AccountDelta {
         storage.validate()?;
         vault.validate()?;
 
-        // nonce must be updated if and only if either account storage or vault were updated
+        // nonce must be updated if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 
         Ok(Self { storage, vault, nonce })
+    }
+
+    /// Merge another [AccountDelta] into this one.
+    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
+        let nonce = match (self.nonce, other.nonce) {
+            (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
+                return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
+                    "New nonce {new} is not larger than the old nonce {old}"
+                )))
+            },
+            // Incoming nonce takes precedence.
+            (old, new) => new.or(old),
+        };
+        let storage = self.storage.merge(other.storage)?;
+        let vault = self.vault.merge(other.vault)?;
+        Self::new(storage, vault, nonce)
     }
 
     // PUBLIC ACCESSORS
@@ -103,6 +118,35 @@ impl AccountUpdateDetails {
     /// Returns `true` if the account update details are for private account.
     pub fn is_private(&self) -> bool {
         matches!(self, Self::Private)
+    }
+
+    /// Merges the `other` update into this one.
+    ///
+    /// This account update is assumed to come before the other.
+    pub fn merge(self, other: AccountUpdateDetails) -> Result<Self, AccountDeltaError> {
+        let merged_update = match (self, other) {
+            (AccountUpdateDetails::Private, AccountUpdateDetails::Private) => {
+                AccountUpdateDetails::Private
+            },
+            (AccountUpdateDetails::New(mut account), AccountUpdateDetails::Delta(delta)) => {
+                account.apply_delta(&delta).map_err(|_| {
+                    AccountDeltaError::IncompatibleAccountUpdates(
+                        AccountUpdateDetails::New(account.clone()),
+                        AccountUpdateDetails::Delta(delta),
+                    )
+                })?;
+
+                AccountUpdateDetails::New(account)
+            },
+            (AccountUpdateDetails::Delta(initial), AccountUpdateDetails::Delta(new_delta)) => {
+                AccountUpdateDetails::Delta(initial.merge(new_delta)?)
+            },
+            (left, right) => {
+                return Err(AccountDeltaError::IncompatibleAccountUpdates(left, right))
+            },
+        };
+
+        Ok(merged_update)
     }
 }
 
@@ -169,7 +213,6 @@ impl Deserializable for AccountUpdateDetails {
 /// # Errors
 /// Returns an error if:
 /// - Storage or vault were updated, but the nonce was either not updated or set to 0.
-/// - Storage and vault were not updated, but the nonce was updated.
 fn validate_nonce(
     nonce: Option<Felt>,
     storage: &AccountStorageDelta,
@@ -190,10 +233,6 @@ fn validate_nonce(
                 ))
             },
         }
-    } else if nonce.is_some() {
-        return Err(AccountDeltaError::InconsistentNonceUpdate(
-            "nonce updated for empty delta".to_string(),
-        ));
     }
 
     Ok(())
@@ -222,7 +261,7 @@ mod tests {
         };
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_ok());
-        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_err());
+        assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
 
         // non-empty delta
         let storage_delta = AccountStorageDelta {

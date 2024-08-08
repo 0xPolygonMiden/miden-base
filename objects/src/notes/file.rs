@@ -179,14 +179,7 @@ mod tests {
     #[test]
     fn serialize_with_proof() {
         let note = create_example_note();
-        let mock_inclusion_proof = NoteInclusionProof::new(
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            0,
-            Default::default(),
-        )
-        .unwrap();
+        let mock_inclusion_proof = NoteInclusionProof::new(0, 0, Default::default()).unwrap();
         let file = NoteFile::NoteWithProof(note.clone(), mock_inclusion_proof.clone());
         let mut buffer = Vec::new();
         file.write_into(&mut buffer);

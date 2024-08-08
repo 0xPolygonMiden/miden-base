@@ -29,7 +29,7 @@ pub struct PendingObjects {
     updated_accounts: Vec<BlockAccountUpdate>,
 
     /// Note batches created in transactions in the block.
-    created_notes: Vec<NoteBatch>,
+    output_note_batches: Vec<NoteBatch>,
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
@@ -42,7 +42,7 @@ impl PendingObjects {
     pub fn new() -> PendingObjects {
         PendingObjects {
             updated_accounts: vec![],
-            created_notes: vec![],
+            output_note_batches: vec![],
             created_nullifiers: vec![],
             transaction_ids: vec![],
         }
@@ -54,11 +54,16 @@ impl PendingObjects {
     /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
     /// a note (i.e., vault, inputs, script, and serial number).
     pub fn build_notes_tree(&self) -> BlockNoteTree {
-        let entries = self.created_notes.iter().enumerate().flat_map(|(batch_index, batch)| {
-            batch.iter().enumerate().map(move |(note_index, note)| {
-                (BlockNoteIndex::new(batch_index, note_index), note.id().into(), *note.metadata())
-            })
-        });
+        let entries =
+            self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
+                batch.iter().enumerate().map(move |(note_index, note)| {
+                    (
+                        BlockNoteIndex::new(batch_index, note_index),
+                        note.id().into(),
+                        *note.metadata(),
+                    )
+                })
+            });
 
         BlockNoteTree::with_entries(entries).unwrap()
     }
@@ -156,13 +161,13 @@ impl MockChain {
 
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        self.pending_objects.created_notes.push(output_notes);
+        self.pending_objects.output_note_batches.push(output_notes);
     }
 
     /// Add a public [Note] to the pending objects.
     /// A block has to be created to finalize the new entity.
     pub fn add_note(&mut self, note: Note) {
-        self.pending_objects.created_notes.push(vec![OutputNote::Full(note)]);
+        self.pending_objects.output_note_batches.push(vec![OutputNote::Full(note)]);
     }
 
     /// Mark a [Note] as consumed by inserting its nullifier into the block.
@@ -195,9 +200,9 @@ impl MockChain {
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
             block_headers_map.insert(
-                input_note.origin().unwrap().block_num,
+                input_note.location().unwrap().block_num(),
                 self.blocks
-                    .get(input_note.origin().unwrap().block_num as usize)
+                    .get(input_note.location().unwrap().block_num() as usize)
                     .unwrap()
                     .header(),
             );
@@ -271,12 +276,13 @@ impl MockChain {
         let block = Block::new(
             header,
             self.pending_objects.updated_accounts.clone(),
-            self.pending_objects.created_notes.clone(),
+            self.pending_objects.output_note_batches.clone(),
             self.pending_objects.created_nullifiers.clone(),
         )
         .unwrap();
 
-        for (batch_index, note_batch) in self.pending_objects.created_notes.iter().enumerate() {
+        for (batch_index, note_batch) in self.pending_objects.output_note_batches.iter().enumerate()
+        {
             for (note_index, note) in note_batch.iter().enumerate() {
                 // All note details should be OutputNote::Full at this point
                 match note {
@@ -285,8 +291,6 @@ impl MockChain {
                         let note_path = notes_tree.get_note_path(block_note_index).unwrap();
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block.header().sub_hash(),
-                            block.header().note_root(),
                             block_note_index.to_absolute_index(),
                             note_path,
                         )

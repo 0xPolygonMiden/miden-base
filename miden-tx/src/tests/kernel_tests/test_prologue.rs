@@ -2,48 +2,46 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{
-        MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
-        ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
-        BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR,
-        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, CONSUMED_NOTE_ARGS_OFFSET,
-        CONSUMED_NOTE_ASSETS_HASH_OFFSET, CONSUMED_NOTE_ASSETS_OFFSET, CONSUMED_NOTE_ID_OFFSET,
-        CONSUMED_NOTE_INPUTS_HASH_OFFSET, CONSUMED_NOTE_METADATA_OFFSET,
-        CONSUMED_NOTE_NUM_ASSETS_OFFSET, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET,
-        CONSUMED_NOTE_SECTION_OFFSET, CONSUMED_NOTE_SERIAL_NUM_OFFSET, INIT_ACCT_HASH_PTR,
-        INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR,
-        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
-        TX_SCRIPT_ROOT_PTR,
+        MemoryOffset, ACCT_CODE_COMMITMENT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR,
+        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_ROOT_PTR,
+        ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+        BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+        INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+        INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+        INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
+        INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
+        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR, PREV_BLOCK_HASH_PTR,
+        PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
 use miden_objects::{
-    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     assembly::ProgramAst,
     testing::{
+        account::AccountBuilder,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
         storage::{generate_account_seed, AccountSeedType},
     },
     transaction::{TransactionArgs, TransactionScript},
     Digest, FieldElement,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
     testing::{
-        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
 
 #[test]
 fn test_transaction_prologue() {
-    let mut tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let code = "
         use.miden::kernels::tx::prologue
@@ -81,7 +79,7 @@ fn test_transaction_prologue() {
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         Some(note_args_map),
-        tx_context.tx_args().advice_map().clone(),
+        tx_context.tx_args().advice_inputs().clone().map,
     );
 
     tx_context.set_tx_args(tx_args);
@@ -91,7 +89,7 @@ fn test_transaction_prologue() {
     block_data_memory_assertions(&process, &tx_context);
     chain_mmr_memory_assertions(&process, &tx_context);
     account_data_memory_assertions(&process, &tx_context);
-    consumed_notes_memory_assertions(&process, &tx_context, &note_args);
+    input_notes_memory_assertions(&process, &tx_context, &note_args);
 }
 
 fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &TransactionContext) {
@@ -240,8 +238,8 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_CODE_ROOT_PTR),
-        inputs.account().code().root().as_elements(),
+        read_root_mem_value(process, ACCT_CODE_COMMITMENT_PTR),
+        inputs.account().code().commitment().as_elements(),
         "account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)"
     );
 
@@ -258,72 +256,91 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
             "The account types data should be stored in (ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET + 64)"
         );
     }
+
+    assert_eq!(
+        read_root_mem_value(process, NUM_ACCT_PROCEDURES_PTR),
+        [
+            u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+        "The number of procedures should be stored at NUM_ACCT_PROCEDURES_PTR"
+    );
+
+    for (i, elements) in inputs.account().code().as_elements().chunks(4).enumerate() {
+        assert_eq!(
+            read_root_mem_value(process, ACCT_PROCEDURES_SECTION_OFFSET + i as u32),
+            Word::try_from(elements).unwrap(),
+            "The account procedures and storage offsets should be stored starting at ACCT_PROCEDURES_SECTION_OFFSET"
+        );
+    }
 }
 
-fn consumed_notes_memory_assertions(
+fn input_notes_memory_assertions(
     process: &Process<MockHost>,
     inputs: &TransactionContext,
     note_args: &[[Felt; 4]],
 ) {
     assert_eq!(
-        read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET),
+        read_root_mem_value(process, INPUT_NOTE_SECTION_OFFSET),
         [Felt::new(inputs.input_notes().num_notes() as u64), ZERO, ZERO, ZERO],
-        "number of consumed notes should be stored at the CONSUMED_NOTES_OFFSET"
+        "number of input notes should be stored at the INPUT_NOTES_OFFSET"
     );
 
     for (input_note, note_idx) in inputs.input_notes().iter().zip(0_u32..) {
         let note = input_note.note();
 
         assert_eq!(
-            read_root_mem_value(process, CONSUMED_NOTE_SECTION_OFFSET + 1 + note_idx),
+            read_root_mem_value(process, INPUT_NOTE_SECTION_OFFSET + 1 + note_idx),
             note.nullifier().as_elements(),
             "note nullifier should be computer and stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ID_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ID_OFFSET),
             note.id().as_elements(),
             "ID hash should be computed and stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_SERIAL_NUM_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_SERIAL_NUM_OFFSET),
             note.serial_num(),
             "note serial num should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_SCRIPT_ROOT_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_SCRIPT_ROOT_OFFSET),
             note.script().hash().as_elements(),
             "note script hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_INPUTS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_INPUTS_HASH_OFFSET),
             note.inputs().commitment().as_elements(),
             "note input hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ASSETS_HASH_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ASSETS_HASH_OFFSET),
             note.assets().commitment().as_elements(),
             "note asset hash should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_METADATA_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_METADATA_OFFSET),
             Word::from(note.metadata()),
             "note metadata should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_ARGS_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_ARGS_OFFSET),
             Word::from(note_args[note_idx as usize]),
             "note args should be stored at the correct offset"
         );
 
         assert_eq!(
-            read_note_element(process, note_idx, CONSUMED_NOTE_NUM_ASSETS_OFFSET),
+            read_note_element(process, note_idx, INPUT_NOTE_NUM_ASSETS_OFFSET),
             [Felt::from(note.assets().num_assets() as u32), ZERO, ZERO, ZERO],
             "number of assets should be stored at the correct offset"
         );
@@ -331,8 +348,9 @@ fn consumed_notes_memory_assertions(
         for (asset, asset_idx) in note.assets().iter().cloned().zip(0_u32..) {
             let word: Word = asset.into();
             assert_eq!(
-                read_note_element(process, note_idx, CONSUMED_NOTE_ASSETS_OFFSET + asset_idx),
-                word, "assets should be stored at (CONSUMED_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
+                read_note_element(process, note_idx, INPUT_NOTE_ASSETS_OFFSET + asset_idx),
+                word,
+                "assets should be stored at (INPUT_NOTES_OFFSET + (note_index + 1) * 1024 + 7..)"
             );
         }
     }
@@ -341,13 +359,11 @@ fn consumed_notes_memory_assertions(
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler().with_debug_mode(true),
-    );
-    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
-        .account_seed(account_seed)
-        .build();
+    let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .build(&TransactionKernel::assembler())
+        .unwrap();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -468,10 +484,10 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
-    let (acct_id, account_seed) = generate_account_seed(
-        AccountSeedType::RegularAccountUpdatableCodeOnChain,
-        &TransactionKernel::assembler().with_debug_mode(true),
-    );
+    let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
+        .build(&TransactionKernel::assembler())
+        .unwrap();
 
     let code = "
     use.miden::kernels::tx::prologue
@@ -482,11 +498,11 @@ pub fn test_prologue_create_account_invalid_seed() {
     ";
 
     // override the seed with an invalid seed to ensure the kernel fails
-    let account_seed_key = [acct_id.into(), ZERO, ZERO, ZERO];
+    let account_seed_key = [acct.id().into(), ZERO, ZERO, ZERO];
     let adv_inputs =
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
-    let tx_context = TransactionContextBuilder::with_standard_account(acct_id.into(), ZERO)
+    let tx_context = TransactionContextBuilder::new(acct)
         .account_seed(account_seed)
         .advice_inputs(adv_inputs)
         .build();
@@ -497,11 +513,7 @@ pub fn test_prologue_create_account_invalid_seed() {
 
 #[test]
 fn test_get_blk_version() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -519,11 +531,7 @@ fn test_get_blk_version() {
 
 #[test]
 fn test_get_blk_timestamp() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
     use.miden::kernels::tx::memory
     use.miden::kernels::tx::prologue
@@ -543,5 +551,5 @@ fn test_get_blk_timestamp() {
 // ================================================================================================
 
 fn read_note_element(process: &Process<MockHost>, note_idx: u32, offset: MemoryOffset) -> Word {
-    read_root_mem_value(process, consumed_note_data_ptr(note_idx) + offset)
+    read_root_mem_value(process, input_note_data_ptr(note_idx) + offset)
 }

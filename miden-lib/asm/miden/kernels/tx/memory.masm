@@ -13,11 +13,11 @@ const.ERR_NOTE_TOO_MANY_ASSETS=0x0002002A
 # The memory address at which the transaction vault root is stored
 const.TX_VAULT_ROOT_PTR=0
 
-# The memory address at which a pointer to the consumed note being executed is stored.
-const.CURRENT_CONSUMED_NOTE_PTR=1
+# The memory address at which a pointer to the input note being executed is stored.
+const.CURRENT_INPUT_NOTE_PTR=1
 
-# The memory address at which the number of created notes is stored.
-const.NUM_CREATED_NOTES_PTR=2
+# The memory address at which the number of output notes is stored.
+const.NUM_OUTPUT_NOTES_PTR=2
 
 # The memory address at which the input vault root is stored
 const.INPUT_VAULT_ROOT_PTR=3
@@ -108,55 +108,61 @@ const.ACCT_VAULT_ROOT_PTR=401
 # The memory address at which the account storage root is stored
 const.ACCT_STORAGE_ROOT_PTR=402
 
-# The memory address at which the account code root is stored
-const.ACCT_CODE_ROOT_PTR=403
+# The memory address at which the account code commitment is stored
+const.ACCT_CODE_COMMITMENT_PTR=403
 
-# The memory address at which the new account code root is stored
-const.ACCT_NEW_CODE_ROOT_PTR=404
+# The memory address at which the new account code commitment is stored
+const.ACCT_NEW_CODE_COMMITMENT_PTR=404
 
 # The memory offset at which the account data section ends (exclusive)
 const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
 
-# The memory address at which the account storage slot type data beings
+# The memory address at which the account storage slot type data begins
 const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 
-# CONSUMED NOTES DATA
+# The memory address at which the number of procedures contained in the account code is stored
+const.NUM_ACCT_PROCEDURES_PTR=999
+
+# The memory address at which the account procedures section begins
+const.ACCT_PROCEDURES_SECTION_OFFSET=1000
+
+# INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
 
-# The memory address at which the consumed note section begins.
-const.CONSUMED_NOTE_SECTION_OFFSET=1048576
+# The memory address at which the input note section begins.
+const.INPUT_NOTE_SECTION_OFFSET=1048576
 
-# The memory address at which the consumed note data section begins.
-const.CONSUMED_NOTE_DATA_SECTION_OFFSET=1064960
+# The memory address at which the input note data section begins.
+const.INPUT_NOTE_DATA_SECTION_OFFSET=1064960
 
-# The memory address at which the number of consumed notes is stored.
-const.CONSUMED_NOTE_NUM_PTR=1048576
+# The memory address at which the number of input notes is stored.
+const.NUM_INPUT_NOTES_PTR=1048576
 
-# The offsets at which data of a consumed note is stored relative to the start of its data segment
-const.CONSUMED_NOTE_ID_OFFSET=0
-const.CONSUMED_NOTE_CORE_DATA_OFFSET=1
-const.CONSUMED_NOTE_SERIAL_NUM_OFFSET=1
-const.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET=2
-const.CONSUMED_NOTE_INPUTS_HASH_OFFSET=3
-const.CONSUMED_NOTE_ASSETS_HASH_OFFSET=4
-const.CONSUMED_NOTE_METADATA_OFFSET=5
-const.CONSUMED_NOTE_ARGS_OFFSET=6
-const.CONSUMED_NOTE_NUM_ASSETS_OFFSET=7
-const.CONSUMED_NOTE_ASSETS_OFFSET=8
+# The offsets at which data of a input note is stored relative to the start of its data segment
+const.INPUT_NOTE_ID_OFFSET=0
+const.INPUT_NOTE_CORE_DATA_OFFSET=1
+const.INPUT_NOTE_SERIAL_NUM_OFFSET=1
+const.INPUT_NOTE_SCRIPT_ROOT_OFFSET=2
+const.INPUT_NOTE_INPUTS_HASH_OFFSET=3
+const.INPUT_NOTE_ASSETS_HASH_OFFSET=4
+const.INPUT_NOTE_METADATA_OFFSET=5
+const.INPUT_NOTE_ARGS_OFFSET=6
+const.INPUT_NOTE_NUM_ASSETS_OFFSET=7
+const.INPUT_NOTE_ASSETS_OFFSET=8
 
-# CREATED NOTES
+# OUTPUT NOTES
 # -------------------------------------------------------------------------------------------------
 
-# The memory address at which the created notes section begins.
-const.CREATED_NOTE_SECTION_OFFSET=4194304
+# The memory address at which the output notes section begins.
+const.OUTPUT_NOTE_SECTION_OFFSET=4194304
 
-# The offsets at which data of a created note is stored relative to the start of its data segment.
-const.CREATED_NOTE_ID_OFFSET=0
-const.CREATED_NOTE_METADATA_OFFSET=1
-const.CREATED_NOTE_RECIPIENT_OFFSET=2
-const.CREATED_NOTE_ASSETS_HASH_OFFSET=3
-const.CREATED_NOTE_NUM_ASSETS_OFFSET=4
-const.CREATED_NOTE_ASSETS_OFFSET=5
+# The offsets at which data of a output note is stored relative to the start of its data segment.
+const.OUTPUT_NOTE_ID_OFFSET=0
+const.OUTPUT_NOTE_METADATA_OFFSET=1
+const.OUTPUT_NOTE_RECIPIENT_OFFSET=2
+const.OUTPUT_NOTE_ASSETS_HASH_OFFSET=3
+const.OUTPUT_NOTE_NUM_ASSETS_OFFSET=4
+const.OUTPUT_NOTE_ASSETS_OFFSET=5
 
 # MEMORY PROCEDURES
 # =================================================================================================
@@ -164,42 +170,42 @@ const.CREATED_NOTE_ASSETS_OFFSET=5
 # BOOK KEEPING
 # -------------------------------------------------------------------------------------------------
 
-#! Returns the number of created notes.
+#! Returns the number of output notes.
 #!
 #! Stack: []
-#! Output: [num_created_notes]
-export.get_num_created_notes
-    push.NUM_CREATED_NOTES_PTR mem_load
+#! Output: [num_output_notes]
+export.get_num_output_notes
+    push.NUM_OUTPUT_NOTES_PTR mem_load
 end
 
-#! Sets the number of created notes.
+#! Sets the number of output notes.
 #!
-#! Stack: [num_created_notes]
+#! Stack: [num_output_notes]
 #! Output: []
-export.set_num_created_notes
-    push.NUM_CREATED_NOTES_PTR mem_store
+export.set_num_output_notes
+    push.NUM_OUTPUT_NOTES_PTR mem_store
 end
 
-#! Returns a pointer to the consumed note being executed.
+#! Returns a pointer to the input note being executed.
 #!
 #! Stack: []
 #! Output: [note_ptr]
 #!
 #! Where:
-#! - note_ptr, the memory address of the data segment for the current consumed note.
-export.get_current_consumed_note_ptr
-    push.CURRENT_CONSUMED_NOTE_PTR mem_load
+#! - note_ptr, the memory address of the data segment for the current input note.
+export.get_current_input_note_ptr
+    push.CURRENT_INPUT_NOTE_PTR mem_load
 end
 
-#! Sets the current consumed note pointer to the consumed note being executed.
+#! Sets the current input note pointer to the input note being executed.
 #!
 #! Stack: [note_ptr]
 #! Output: []
 #!
 #! Where:
-#! - note_ptr, the new memory address of the data segment for the consumed note.
-export.set_current_consumed_note_ptr
-    push.CURRENT_CONSUMED_NOTE_PTR mem_store
+#! - note_ptr, the new memory address of the data segment for the input note.
+export.set_current_input_note_ptr
+    push.CURRENT_INPUT_NOTE_PTR mem_store
 end
 
 #! Returns a pointer to the memory address at which the input vault root is stored
@@ -227,12 +233,13 @@ end
 #! Sets the input vault root.
 #!
 #! Stack: [INPUT_VAULT_ROOT]
-#! Output: []
+#! Output: [INPUT_VAULT_ROOT]
 #!
 #! Where:
 #! - INPUT_VAULT_ROOT is the input vault root.
 export.set_input_vault_root
-    push.INPUT_VAULT_ROOT_PTR mem_storew dropw
+    push.INPUT_VAULT_ROOT_PTR
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the output vault root is stored.
@@ -260,12 +267,13 @@ end
 #! Sets the output vault root.
 #!
 #! Stack: [OUTPUT_VAULT_ROOT]
-#! Output: []
+#! Output: [OUTPUT_VAULT_ROOT]
 #!
 #! Where:
 #! - OUTPUT_VAULT_ROOT is the output vault root.
 export.set_output_vault_root
-    push.OUTPUT_VAULT_ROOT_PTR mem_storew dropw
+    push.OUTPUT_VAULT_ROOT_PTR
+    mem_storew
 end
 
 
@@ -275,12 +283,13 @@ end
 #! Saves the hash of the reference block to memory.
 #!
 #! Stack: [BLOCK_HASH]
-#! Output: []
+#! Output: [BLOCK_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 export.set_block_hash
-    push.BLK_HASH_PTR mem_storew dropw
+    push.BLK_HASH_PTR
+    mem_storew
 end
 
 #! Returns the block hash of the reference block.
@@ -318,12 +327,13 @@ end
 #! Sets the initial account hash.
 #!
 #! Stack: [INIT_ACCT_HASH]
-#! Output: []
+#! Output: [INIT_ACCT_HASH]
 #!
 #! Where:
 #! - INIT_ACCT_HASH is the initial account hash.
 export.set_init_acct_hash
-    push.INIT_ACCT_HASH_PTR mem_storew dropw
+    push.INIT_ACCT_HASH_PTR
+    mem_storew
 end
 
 #! Returns the initial account hash.
@@ -353,12 +363,13 @@ end
 #! Sets the input notes' commitment.
 #!
 #! Stack: [INPUT_NOTES_COMMITMENT]
-#! Output: []
+#! Output: [INPUT_NOTES_COMMITMENT]
 #!
 #! Where:
 #! - INPUT_NOTES_COMMITMENT is the notes' commitment.
 export.set_nullifier_commitment
-    push.INPUT_NOTES_COMMITMENT_PTR mem_storew dropw
+    push.INPUT_NOTES_COMMITMENT_PTR
+    mem_storew
 end
 
 #! Returns the initial account nonce.
@@ -397,12 +408,13 @@ end
 #! Sets the transaction script root.
 #!
 #! Stack: [TX_SCRIPT_ROOT]
-#! Output: []
+#! Output: [TX_SCRIPT_ROOT]
 #!
 #! Where:
 #! - TX_SCRIPT_ROOT is the transaction script root.
 export.set_tx_script_root
-    push.TX_SCRIPT_ROOT_PTR mem_storew dropw
+    push.TX_SCRIPT_ROOT_PTR
+    mem_storew
 end
 
 # BLOCK DATA
@@ -533,12 +545,13 @@ end
 #! Sets the note root of the last known block.
 #!
 #! Stack: [NOTE_ROOT]
-#! Output: []
+#! Output: [NOTE_ROOT]
 #!
 #! Where:
 #! - NOTE_ROOT is the note root of the last known block.
 export.set_note_root
-    push.NOTE_ROOT_PTR mem_storew dropw
+    push.NOTE_ROOT_PTR
+    mem_storew
 end
 
 # CHAIN DATA
@@ -637,48 +650,83 @@ export.set_acct_nonce
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end
 
-#! Sets the code root of the account.
+#! Sets the number of procedures contained in the account code.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [num_procedures]
 #! Output: []
 #!
 #! Where:
-#! - CODE_ROOT is the code root to be set.
-export.set_acct_code_root
-    push.ACCT_CODE_ROOT_PTR mem_storew dropw
+#! - num_procedures is the number of procedures contained in the account code.
+export.set_num_account_procedures
+    push.NUM_ACCT_PROCEDURES_PTR mem_store
 end
 
-#! Returns the code root of the account.
+#! Returns the number of procedures contained in the account code.
 #!
 #! Stack: []
-#! Output: [CODE_ROOT]
+#! Output: [num_procedures]
 #!
 #! Where:
-#! - CODE_ROOT is the code root of the account.
-export.get_acct_code_root
-    padw push.ACCT_CODE_ROOT_PTR mem_loadw
+#! - num_procedures is the number of procedures contained in the account code.
+export.get_num_account_procedures
+    push.NUM_ACCT_PROCEDURES_PTR mem_load
 end
 
-#! Stores the new account code root in memory.
-#!
-#! Stack: [CODE_ROOT]
-#! Output: []
-#!
-#! Where:
-#! - CODE_ROOT is the new account code root.
-export.set_new_acct_code_root
-    push.ACCT_NEW_CODE_ROOT_PTR mem_storew dropw
-end
-
-#! Returns the new account code root.
+#! Returns the account procedures section offset.
 #!
 #! Stack: []
-#! Output: [CODE_ROOT]
+#! Output: [section_offset]
 #!
 #! Where:
-#! - CODE_ROOT is the new account code root.
-export.get_new_acct_code_root
-    padw push.ACCT_NEW_CODE_ROOT_PTR mem_loadw
+#! - section_offset is the account procedures section offset.
+export.get_account_procedures_section_offset
+    push.ACCT_PROCEDURES_SECTION_OFFSET
+end
+
+#! Sets the code commitment of the account.
+#!
+#! Stack: [CODE_COMMITMENT]
+#! Output: [CODE_COMMITMENT]
+#!
+#! Where:
+#! - CODE_COMMITMENT is the code commitment to be set.
+export.set_acct_code_commitment
+    push.ACCT_CODE_COMMITMENT_PTR
+    mem_storew
+end
+
+#! Returns the code commitment of the account.
+#!
+#! Stack: []
+#! Output: [CODE_COMMITMENT]
+#!
+#! Where:
+#! - CODE_COMMITMENT is the code commitment of the account.
+export.get_acct_code_commitment
+    padw push.ACCT_CODE_COMMITMENT_PTR mem_loadw
+end
+
+#! Stores the new account code commitment in memory.
+#!
+#! Stack: [CODE_COMMITMENT]
+#! Output: [CODE_COMMITMENT]
+#!
+#! Where:
+#! - CODE_COMMITMENT is the new account code commitment.
+export.set_new_acct_code_commitment
+    push.ACCT_NEW_CODE_COMMITMENT_PTR
+    mem_storew
+end
+
+#! Returns the new account code commitment.
+#!
+#! Stack: []
+#! Output: [CODE_COMMITMENT]
+#!
+#! Where:
+#! - CODE_COMMITMENT is the new account code commitment.
+export.get_new_acct_code_commitment
+    padw push.ACCT_NEW_CODE_COMMITMENT_PTR mem_loadw
 end
 
 #! Returns the account storage root.
@@ -695,12 +743,13 @@ end
 #! Sets the account storage root.
 #!
 #! Stack: [STORAGE_ROOT]
-#! Output: []
+#! Output: [STORAGE_ROOT]
 #!
 #! Where:
 #! - STORAGE_ROOT is the account storage root.
 export.set_acct_storage_root
-    push.ACCT_STORAGE_ROOT_PTR mem_storew dropw
+    push.ACCT_STORAGE_ROOT_PTR
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the account vault root is stored.
@@ -728,12 +777,13 @@ end
 #! Sets the account vault root.
 #!
 #! Stack: [ACCT_VAULT_ROOT]
-#! Output: []
+#! Output: [ACCT_VAULT_ROOT]
 #!
 #! Where:
 #! - ACCT_VAULT_ROOT is the account vault root to be set.
 export.set_acct_vault_root
-    push.ACCT_VAULT_ROOT_PTR mem_storew dropw
+    push.ACCT_VAULT_ROOT_PTR
+    mem_storew
 end
 
 #! Returns a pointer to the memory address at which the account storage slot type data begins.
@@ -786,53 +836,53 @@ export.get_acct_storage_slot_type_data
     # => [slot_type_info]
 end
 
-# CONSUMED NOTES
+# INPUT NOTES
 # -------------------------------------------------------------------------------------------------
 
-#! Gets the total number of consumed notes in the transaction.
+#! Gets the total number of input notes in the transaction.
 #!
 #! Stack: []
-#! Output: [num_consumed_notes]
+#! Output: [num_input_notes]
 #!
 #! Where:
-#! - num_consumed_notes is the total number of consumed notes in the transaction.
-export.get_total_num_consumed_notes
-    push.CONSUMED_NOTE_NUM_PTR mem_load
+#! - num_input_notes is the total number of input notes in the transaction.
+export.get_num_input_notes
+    push.NUM_INPUT_NOTES_PTR mem_load
 end
 
-#! Sets the total number of consumed notes in the transaction.
+#! Sets the total number of input notes in the transaction.
 #!
-#! Stack: [num_consumed_notes]
+#! Stack: [num_input_notes]
 #! Output: []
 #!
 #! Where:
-#! - num_consumed_notes is the total number of consumed notes in the transaction.
-export.set_total_num_consumed_notes
-    push.CONSUMED_NOTE_NUM_PTR mem_store
+#! - num_input_notes is the total number of input notes in the transaction.
+export.set_num_input_notes
+    push.NUM_INPUT_NOTES_PTR mem_store
 end
 
-#! Computes a pointer to the memory address at which the data associated with a consumed note with
+#! Computes a pointer to the memory address at which the data associated with a input note with
 #! index `idx` is stored.
 #!
 #! Stack: [idx]
 #! Output: [note_ptr]
 #!
 #! Where:
-#! - idx, the index of the consumed note.
-#! - note_ptr, the memory address of the data segment for the consumed note with idx.
-export.get_consumed_note_ptr
-    exec.constants::get_note_mem_size mul push.CONSUMED_NOTE_DATA_SECTION_OFFSET add
+#! - idx, the index of the input note.
+#! - note_ptr, the memory address of the data segment for the input note with `idx`.
+export.get_input_note_ptr
+    exec.constants::get_note_mem_size mul push.INPUT_NOTE_DATA_SECTION_OFFSET add
 end
 
-#! Set the note id of the consumed note.
+#! Set the note id of the input note.
 #!
 #! Stack: [note_ptr, NOTE_ID]
 #! Output: [NOTE_ID]
 #!
 #! Where:
-#! - note_ptr, the consumed note's the memory address.
+#! - note_ptr, the input note's the memory address.
 #! - NOTE_ID, the note's id.
-export.set_consumed_note_id
+export.set_input_note_id
     mem_storew
 end
 
@@ -843,89 +893,89 @@ end
 #! Output: [nullifier_ptr]
 #!
 #! Where:
-#! - idx, the index of the consumed note.
+#! - idx, the index of the input note.
 #! - nullifier_ptr, the memory address of the nullifier for note idx.
-export.get_consumed_note_nullifier_ptr
-    push.CONSUMED_NOTE_SECTION_OFFSET.1 add add
+export.get_input_note_nullifier_ptr
+    push.INPUT_NOTE_SECTION_OFFSET.1 add add
 end
 
-#! Returns the nullifier of a consumed note with `idx`.
+#! Returns the nullifier of a input note with `idx`.
 #!
 #! Stack: [idx]
 #! Output: [nullifier]
 #!
 #! Where:
-#! - idx, the index of the consumed note.
-#! - nullifier, the nullifier of the consumed note.
-export.get_consumed_note_nullifier
-    padw movup.4 push.CONSUMED_NOTE_SECTION_OFFSET.1 add add mem_loadw
+#! - idx, the index of the input note.
+#! - nullifier, the nullifier of the input note.
+export.get_input_note_nullifier
+    padw movup.4 push.INPUT_NOTE_SECTION_OFFSET.1 add add mem_loadw
 end
 
-#! Returns a pointer to the start of the consumed note core data segment for the note located at
+#! Returns a pointer to the start of the input note core data segment for the note located at
 #! the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [note_data_ptr]
 #!
 #! Where:
-#! - note_ptr, the memory address at which the consumed note data begins.
-#! - note_data_ptr, the memory address at which the consumed note core data begins.
-export.get_consumed_note_core_ptr
-    push.CONSUMED_NOTE_CORE_DATA_OFFSET add
+#! - note_ptr, the memory address at which the input note data begins.
+#! - note_data_ptr, the memory address at which the input note core data begins.
+export.get_input_note_core_ptr
+    push.INPUT_NOTE_CORE_DATA_OFFSET add
 end
 
-#! Returns the script root of a consumed note located at the specified memory address.
+#! Returns the script root of a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [SCRIPT_HASH]
 #!
 #! Where:
-#! - note_ptr, the memory address at which the consumed note data begins.
-#! - SCRIPT_HASH, the script root of the consumed note.
-export.get_consumed_note_script_root
+#! - note_ptr, the memory address at which the input note data begins.
+#! - SCRIPT_HASH, the script root of the input note.
+export.get_input_note_script_root
     padw
-    movup.4 push.CONSUMED_NOTE_SCRIPT_ROOT_OFFSET add
+    movup.4 push.INPUT_NOTE_SCRIPT_ROOT_OFFSET add
     mem_loadw
 end
 
-#! Returns the inputs hash of a consumed note located at the specified memory address.
+#! Returns the inputs hash of a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [INPUTS_HASH]
 #!
 #! Where:
-#! - note_ptr, the memory address at which the consumed note data begins.
-#! - INPUTS_HASH, the inputs hash of the consumed note.
-export.get_consumed_note_inputs_hash
+#! - note_ptr, the memory address at which the input note data begins.
+#! - INPUTS_HASH, the inputs hash of the input note.
+export.get_input_note_inputs_hash
     padw
-    movup.4 push.CONSUMED_NOTE_INPUTS_HASH_OFFSET add
+    movup.4 push.INPUT_NOTE_INPUTS_HASH_OFFSET add
     mem_loadw
 end
 
-#! Returns the metadata of a consumed note located at the specified memory address.
+#! Returns the metadata of a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [METADATA]
 #!
 #! Where:
-#! - note_ptr, the memory address at which the consumed note data begins.
-#! - METADATA, the metadata of the consumed note.
-export.get_consumed_note_metadata
+#! - note_ptr, the memory address at which the input note data begins.
+#! - METADATA, the metadata of the input note.
+export.get_input_note_metadata
     padw
-    movup.4 push.CONSUMED_NOTE_METADATA_OFFSET add
+    movup.4 push.INPUT_NOTE_METADATA_OFFSET add
     mem_loadw
 end
 
-#! Sets the metadata for a consumed note located at the specified memory address.
+#! Sets the metadata for a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr, NOTE_METADATA]
 #! Output: [NOTE_METADATA]
 #!
 #! Where:
-#! - note_ptr, the memory address at which the consumed note data begins.
-#! - NOTE_METADATA, the metadata of the consumed note.
-export.set_consumed_note_metadata
-    push.CONSUMED_NOTE_METADATA_OFFSET add
+#! - note_ptr, the memory address at which the input note data begins.
+#! - NOTE_METADATA, the metadata of the input note.
+export.set_input_note_metadata
+    push.INPUT_NOTE_METADATA_OFFSET add
     mem_storew
 end
 
@@ -937,103 +987,103 @@ end
 #! Where:
 #! - note_ptr, the start memory address of the note.
 #! - NOTE_ARGS, the note's args.
-export.get_consumed_note_args
+export.get_input_note_args
     padw
-    movup.4 push.CONSUMED_NOTE_ARGS_OFFSET add
+    movup.4 push.INPUT_NOTE_ARGS_OFFSET add
     mem_loadw
 end
 
-#! Sets the note args for a consumed note located at the specified memory address.
+#! Sets the note args for a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr, NOTE_ARGS]
-#! Output: []
+#! Output: [NOTE_ARGS]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - NOTE_ARGS are optional note args of the consumed note.
-export.set_consumed_note_args
-    push.CONSUMED_NOTE_ARGS_OFFSET add
-    mem_storew dropw
+#! - note_ptr is the memory address at which the input note data begins.
+#! - NOTE_ARGS are optional note args of the input note.
+export.set_input_note_args
+    push.INPUT_NOTE_ARGS_OFFSET add
+    mem_storew
 end
 
-#! Returns the number of assets in the consumed note located at the specified memory address.
+#! Returns the number of assets in the input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [num_assets]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - num_assets is the number of assets in the consumed note.
-export.get_consumed_note_num_assets
-    push.CONSUMED_NOTE_NUM_ASSETS_OFFSET add
+#! - note_ptr is the memory address at which the input note data begins.
+#! - num_assets is the number of assets in the input note.
+export.get_input_note_num_assets
+    push.INPUT_NOTE_NUM_ASSETS_OFFSET add
     mem_load
 end
 
-#! Sets the number of assets for a consumed note located at the specified memory address.
+#! Sets the number of assets for a input note located at the specified memory address.
 #!
 #! Stack: [note_ptr, num_assets]
 #! Output: []
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - num_assets is the number of assets in the consumed note.
-export.set_consumed_note_num_assets
-    push.CONSUMED_NOTE_NUM_ASSETS_OFFSET add
+#! - note_ptr is the memory address at which the input note data begins.
+#! - num_assets is the number of assets in the input note.
+export.set_input_note_num_assets
+    push.INPUT_NOTE_NUM_ASSETS_OFFSET add
     mem_store
 end
 
-#! Returns a pointer to the start of the assets segment for the consumed note located at
+#! Returns a pointer to the start of the assets segment for the input note located at
 #! the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [assets_ptr]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - assets_ptr is the memory address at which the assets segment for the consumed note begins.
-export.get_consumed_note_assets_ptr
-    push.CONSUMED_NOTE_ASSETS_OFFSET add
+#! - note_ptr is the memory address at which the input note data begins.
+#! - assets_ptr is the memory address at which the assets segment for the input note begins.
+export.get_input_note_assets_ptr
+    push.INPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Returns the assets hash for the consumed note located at the specified memory address.
+#! Returns the assets hash for the input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [ASSET_HASH]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - ASSET_HASH, sequential hash of the padded assets of a consumed note.
-export.get_consumed_note_assets_hash
+#! - note_ptr is the memory address at which the input note data begins.
+#! - ASSET_HASH, sequential hash of the padded assets of a input note.
+export.get_input_note_assets_hash
     padw
-    movup.4 push.CONSUMED_NOTE_ASSETS_HASH_OFFSET add
+    movup.4 push.INPUT_NOTE_ASSETS_HASH_OFFSET add
     mem_loadw
 end
 
-#! Returns the serial number for the consumed note located at the specified memory address.
+#! Returns the serial number for the input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [SERIAL_NUMBER]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
+#! - note_ptr is the memory address at which the input note data begins.
 #! - SERIAL_NUMBER, the input note's serial number.
-export.get_consumed_note_serial_num
+export.get_input_note_serial_num
     padw
-    movup.4 push.CONSUMED_NOTE_SERIAL_NUM_OFFSET add
+    movup.4 push.INPUT_NOTE_SERIAL_NUM_OFFSET add
     mem_loadw
 end
 
-#! Returns the sender for the consumed note located at the specified memory address.
+#! Returns the sender for the input note located at the specified memory address.
 #!
 #! Stack: [note_ptr]
 #! Output: [sender]
 #!
 #! Where:
-#! - note_ptr is the memory address at which the consumed note data begins.
-#! - sender is the sender for the consumed note.
-export.get_consumed_note_sender
+#! - note_ptr is the memory address at which the input note data begins.
+#! - sender is the sender for the input note.
+export.get_input_note_sender
     padw
-    movup.4 push.CONSUMED_NOTE_METADATA_OFFSET add
+    movup.4 push.INPUT_NOTE_METADATA_OFFSET add
     mem_loadw
     # => [0, 0, sender, tag]
 
@@ -1041,84 +1091,86 @@ export.get_consumed_note_sender
     # => [sender]
 end
 
-# CREATED NOTES
+# OUTPUT NOTES
 # -------------------------------------------------------------------------------------------------
 
-#! Returns the offset of the created note data segment.
+#! Returns the offset of the output note data segment.
 #!
 #! Stack: []
 #! Output: [offset]
 #!
 #! Where:
-#! - offset is the offset of the created note data segment.
-export.get_created_note_data_offset
-    push.CREATED_NOTE_SECTION_OFFSET
+#! - offset is the offset of the output note data segment.
+export.get_output_note_data_offset
+    push.OUTPUT_NOTE_SECTION_OFFSET
 end
 
-#! Computes a pointer to the memory address at which the data associated with a created note with
-#! index i is stored.
+#! Computes a pointer to the memory address at which the data associated with a output note with
+#! index `i` is stored.
 #!
 #! Stack: [i]
 #! Output: [ptr]
 #!
 #! Where:
-#! - i is the index of the created note.
-#! - ptr is the memory address of the data segment for created note i.
-export.get_created_note_ptr
-    exec.constants::get_note_mem_size mul push.CREATED_NOTE_SECTION_OFFSET add
+#! - i is the index of the output note.
+#! - ptr is the memory address of the data segment for output note i.
+export.get_output_note_ptr
+    exec.constants::get_note_mem_size mul push.OUTPUT_NOTE_SECTION_OFFSET add
 end
 
-#! Returns the created note recipient
+#! Returns the output note recipient
 #!
-#! Stack: [created_note_data_ptr]
+#! Stack: [output_note_data_ptr]
 #! Output: [R]
 #!
 #! Where:
-#! - created_note_data_ptr is the memory address at which the created note data begins.
-#! - R is the recipient of the created note.
-export.get_created_note_recipient
+#! - output_note_data_ptr is the memory address at which the output note data begins.
+#! - R is the recipient of the output note.
+export.get_output_note_recipient
     padw
-    movup.4 push.CREATED_NOTE_RECIPIENT_OFFSET add
+    movup.4 push.OUTPUT_NOTE_RECIPIENT_OFFSET add
     mem_loadw
 end
 
-#! Sets the created note's recipient
+#! Sets the output note's recipient
 #!
 #! Stack: [note_ptr, RECIPIENT]
-#! Output: []
+#! Output: [RECIPIENT]
 #!
 #! Where:
 #! - recipient is the recipient of the note
-#! - note_ptr is the memory address at which the created note data begins.
-export.set_created_note_recipient
-    push.CREATED_NOTE_RECIPIENT_OFFSET add mem_storew dropw
+#! - note_ptr is the memory address at which the output note data begins.
+export.set_output_note_recipient
+    push.OUTPUT_NOTE_RECIPIENT_OFFSET add
+    mem_storew
 end
 
-#! Sets the created note's metadata
+#! Sets the output note's metadata
 #!
 #! Stack: [note_ptr, METADATA]
-#! Output: []
+#! Output: [METADATA]
 #!
 #! Where:
 #! - METADATA is the note metadata
-#! - note_ptr is the memory address at which the created note data begins.
-export.set_created_note_metadata
-    push.CREATED_NOTE_METADATA_OFFSET add mem_storew dropw
+#! - note_ptr is the memory address at which the output note data begins.
+export.set_output_note_metadata
+    push.OUTPUT_NOTE_METADATA_OFFSET add
+    mem_storew
 end
 
-#! Returns the number of assets in the created note
+#! Returns the number of assets in the output note
 #!
 #! Stack: [note_ptr]
 #! Output: [num_assets]
 #!
 #! Where:
-#! - note_ptr is a pointer to the memory address at which the created note is stored.
-#! - num_assets is the number of assets in the created note.
-export.get_created_note_num_assets
-    push.CREATED_NOTE_NUM_ASSETS_OFFSET add mem_load
+#! - note_ptr is a pointer to the memory address at which the output note is stored.
+#! - num_assets is the number of assets in the output note.
+export.get_output_note_num_assets
+    push.OUTPUT_NOTE_NUM_ASSETS_OFFSET add mem_load
 end
 
-#! Sets the number of assets in the created note
+#! Sets the number of assets in the output note
 #!
 #! Stack: [note_ptr, num_assets]
 #! Output: []
@@ -1126,10 +1178,10 @@ end
 #! Panics: if the number of assets exceeds the maximum allowed number of assets per note.
 #!
 #! Where:
-#! - note_ptr is the memory address at which the created note data begins.
-#! - num_assets is the number of assets in the created note.
-export.set_created_note_num_assets
-    push.CREATED_NOTE_NUM_ASSETS_OFFSET add
+#! - note_ptr is the memory address at which the output note data begins.
+#! - num_assets is the number of assets in the output note.
+export.set_output_note_num_assets
+    push.OUTPUT_NOTE_NUM_ASSETS_OFFSET add
     # => [note_ptr + offset, num_assets]
 
     # check note number of assets limit
@@ -1138,26 +1190,27 @@ export.set_created_note_num_assets
     mem_store
 end
 
-#! Returns a pointer to the created note asset data
+#! Returns a pointer to the output note asset data
 #!
-#! Stack: [created_note_data_ptr]
+#! Stack: [output_note_data_ptr]
 #! Output: [asset_data_ptr]
 #!
 #! Where:
-#! - created_note_data_ptr is the memory address at which the created note data begins.
-#! - asset_data_ptr is the memory address at which the created note asset data begins.
-export.get_created_note_asset_data_ptr
-    push.CREATED_NOTE_ASSETS_OFFSET add
+#! - output_note_data_ptr is the memory address at which the output note data begins.
+#! - asset_data_ptr is the memory address at which the output note asset data begins.
+export.get_output_note_asset_data_ptr
+    push.OUTPUT_NOTE_ASSETS_OFFSET add
 end
 
-#! Sets the created note assets hash.
+#! Sets the output note assets hash.
 #!
-#! Stack: [created_note_data_ptr, ASSET_HASH]
-#! Output: []
+#! Stack: [output_note_data_ptr, ASSET_HASH]
+#! Output: [ASSET_HASH]
 #!
 #! Where:
-#! - created_note_data_ptr is the memory address at which the created note data begins.
-#! - ASSET_HASH, sequential hash of the padded assets of a created note.
-export.set_created_note_assets_hash
-    push.CREATED_NOTE_ASSETS_HASH_OFFSET add mem_storew
+#! - output_note_data_ptr is the memory address at which the output note data begins.
+#! - ASSET_HASH, sequential hash of the padded assets of an output note.
+export.set_output_note_assets_hash
+    push.OUTPUT_NOTE_ASSETS_HASH_OFFSET add
+    mem_storew
 end

@@ -107,7 +107,7 @@ impl OutputNoteBuilder {
             let recipient = NoteRecipient::new(serial_num, script, inputs);
 
             Some(recipient)
-        } else if metadata.is_offchain() {
+        } else if metadata.is_private() {
             None
         } else {
             // if there are no recipient details and the note is not private, return an error

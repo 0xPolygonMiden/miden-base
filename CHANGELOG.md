@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0 (TBD)
+
+- Renamed "consumed" and "created" notes into "input" and "output" respectively (#791).
+- [BREAKING] Renamed `NoteType::OffChain` into `NoteType::Private`.
+- [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
+- [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
+- Setters in `memory` module don't drop the setting `Word` anymore (#795).
+- [BREAKING] Increase of nonce does not require changes in account state any more (#796).
+- Added `CHANGELOG.md` warning message on CI (#799).
+- Account deltas can now be merged (#797).
+- Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
+- Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812).
+- [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
+- Made `miden_lib::notes::build_swap_tag()` function public (#817).
+
 ## 0.4.0 (2024-07-03)
 
 ### Features
@@ -34,9 +49,9 @@
 
 ## 0.3.1 (2024-06-12)
 
-* Replaced `cargo-make` with just `make` for running tasks (#696).
-* Made `DataStore` conditionally async using `winter-maybe-async` (#725)
-* Fixed `StorageMap`s implementation and included into apply_delta (#745)
+- Replaced `cargo-make` with just `make` for running tasks (#696).
+- Made `DataStore` conditionally async using `winter-maybe-async` (#725)
+- Fixed `StorageMap`s implementation and included into apply_delta (#745)
 
 ## 0.3.0 (2024-05-14)
 

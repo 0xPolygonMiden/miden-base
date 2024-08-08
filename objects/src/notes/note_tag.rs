@@ -20,7 +20,7 @@ const PUBLIC_USECASE: u32 = 0x80000000;
 /// [super::Note]'s execution mode hints.
 ///
 /// The execution hints are _not_ enforced, therefore function only as hints. For example, if a
-/// note's tag is created with the [NoteExecutionHint::Network], further validation is necessary to
+/// note's tag is created with the [NoteExecutionMode::Network], further validation is necessary to
 /// check the account_id is known, that the account's state is on-chain, and the account is
 /// controlled by the network.
 ///
@@ -29,7 +29,7 @@ const PUBLIC_USECASE: u32 = 0x80000000;
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum NoteExecutionHint {
+pub enum NoteExecutionMode {
     Network = NETWORK_EXECUTION,
     Local = LOCAL_EXECUTION,
 }
@@ -51,7 +51,7 @@ pub enum NoteExecutionHint {
 ///
 /// Where:
 ///
-/// - [NoteExecutionHint] is set to [NoteExecutionHint::Network] to hint a [super::Note] should be
+/// - [NoteExecutionMode] is set to [NoteExecutionMode::Network] to hint a [super::Note] should be
 ///   consumed by the network. These notes will be further validated and if possible consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
 ///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning of
@@ -70,7 +70,7 @@ impl NoteTag {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [NoteTag] instantiated from the specified account ID and execution hint.
+    /// Returns a new [NoteTag] instantiated from the specified account ID and execution mode.
     ///
     /// The tag is constructed as follows:
     ///
@@ -85,20 +85,20 @@ impl NoteTag {
     /// # Errors
     ///
     /// This will return an error if the account_id is not for an on-chain account and the execution
-    /// hint is set to [NoteExecutionHint::Network].
+    /// hint is set to [NoteExecutionMode::Network].
     ///
     pub fn from_account_id(
         account_id: AccountId,
-        execution: NoteExecutionHint,
+        execution: NoteExecutionMode,
     ) -> Result<Self, NoteError> {
         match execution {
-            NoteExecutionHint::Local => {
+            NoteExecutionMode::Local => {
                 let id: u64 = account_id.into();
                 // select 14 most significant bits of the account ID and shift them right by 2 bits
                 let high_bits = (id >> 34) as u32 & 0xFFFF0000;
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
-            NoteExecutionHint::Network => {
+            NoteExecutionMode::Network => {
                 if !account_id.is_on_chain() {
                     Err(NoteError::NetworkExecutionRequiresOnChainAccount)
                 } else {
@@ -127,15 +127,15 @@ impl NoteTag {
     pub fn for_public_use_case(
         use_case_id: u16,
         payload: u16,
-        execution: NoteExecutionHint,
+        execution: NoteExecutionMode,
     ) -> Result<Self, NoteError> {
         if (use_case_id >> 14) != 0 {
             return Err(NoteError::InvalidNoteTagUseCase(use_case_id));
         }
 
         let execution_bits = match execution {
-            NoteExecutionHint::Local => PUBLIC_USECASE, // high bits set to `0b10`
-            NoteExecutionHint::Network => 0x40000000,   // high bits set to `0b01`
+            NoteExecutionMode::Local => PUBLIC_USECASE, // high bits set to `0b10`
+            NoteExecutionMode::Network => 0x40000000,   // high bits set to `0b01`
         };
 
         let use_case_bits = (use_case_id as u32) << 16;
@@ -146,7 +146,7 @@ impl NoteTag {
 
     /// Returns a new [NoteTag] instantiated for a custom local use case.
     ///
-    /// The local use_case tag is the only tag type that allows for [NoteType::OffChain] notes.
+    /// The local use_case tag is the only tag type that allows for [NoteType::Private] notes.
     ///
     /// The two high bits are set to the `b11`, the next 14 bits are set to the `use_case_id`, and
     /// the low 16 bits are set to `payload`.
@@ -182,13 +182,13 @@ impl NoteTag {
     /// If the most significant bit of the tag is 0 or the 3 most significant bits are equal to
     /// 0b101, the note is intended for local execution; otherwise, the note is intended for
     /// network execution.
-    pub fn execution_hint(&self) -> NoteExecutionHint {
+    pub fn execution_hint(&self) -> NoteExecutionMode {
         let first_bit = self.0 >> 31;
 
         if first_bit == (LOCAL_EXECUTION as u32) {
-            NoteExecutionHint::Local
+            NoteExecutionMode::Local
         } else {
-            NoteExecutionHint::Network
+            NoteExecutionMode::Network
         }
     }
 
@@ -203,7 +203,7 @@ impl NoteTag {
     /// Returns an error if this tag is not consistent with the specified note type, and self
     /// otherwise.
     pub fn validate(&self, note_type: NoteType) -> Result<Self, NoteError> {
-        if self.execution_hint() == NoteExecutionHint::Network && note_type != NoteType::Public {
+        if self.execution_hint() == NoteExecutionMode::Network && note_type != NoteType::Public {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
         }
 
@@ -289,7 +289,7 @@ impl Deserializable for NoteTag {
 
 #[cfg(test)]
 mod tests {
-    use super::{NoteExecutionHint, NoteTag};
+    use super::{NoteExecutionMode, NoteTag};
     use crate::{
         accounts::{
             account_id::testing::{
@@ -333,16 +333,16 @@ mod tests {
 
         for off_chain in off_chain_accounts {
             assert!(
-                NoteTag::from_account_id(off_chain, NoteExecutionHint::Network).is_err(),
+                NoteTag::from_account_id(off_chain, NoteExecutionMode::Network).is_err(),
                 "Tag generation must fail if network execution and off-chain account id are mixed"
             );
         }
 
         for on_chain in on_chain_accounts {
-            let tag = NoteTag::from_account_id(on_chain, NoteExecutionHint::Network)
+            let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Network)
                 .expect("Tag generation must work with network exeuction and on-chain accounts");
             assert!(tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionHint::Network);
+            assert_eq!(tag.execution_hint(), NoteExecutionMode::Network);
 
             assert_eq!(
                 tag.validate(NoteType::Public),
@@ -350,8 +350,8 @@ mod tests {
                 "Network execution requires public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
-                Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::OffChain))
+                tag.validate(NoteType::Private),
+                Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::Private))
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -360,10 +360,10 @@ mod tests {
         }
 
         for off_chain in off_chain_accounts {
-            let tag = NoteTag::from_account_id(off_chain, NoteExecutionHint::Local)
+            let tag = NoteTag::from_account_id(off_chain, NoteExecutionMode::Local)
                 .expect("Tag generation must work with network execution and off-chain account id");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionHint::Local);
+            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
 
             assert_eq!(
                 tag.validate(NoteType::Public),
@@ -371,9 +371,9 @@ mod tests {
                 "Local execution supports public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
+                tag.validate(NoteType::Private),
                 Ok(tag),
-                "Local execution supports offchain notes"
+                "Local execution supports private notes"
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -383,10 +383,10 @@ mod tests {
         }
 
         for on_chain in on_chain_accounts {
-            let tag = NoteTag::from_account_id(on_chain, NoteExecutionHint::Local)
+            let tag = NoteTag::from_account_id(on_chain, NoteExecutionMode::Local)
                 .expect("Tag generation must work with network exeuction and on-chain accounts");
             assert!(!tag.is_single_target());
-            assert_eq!(tag.execution_hint(), NoteExecutionHint::Local);
+            assert_eq!(tag.execution_hint(), NoteExecutionMode::Local);
 
             assert_eq!(
                 tag.validate(NoteType::Public),
@@ -394,9 +394,9 @@ mod tests {
                 "Local execution supports public notes"
             );
             assert_eq!(
-                tag.validate(NoteType::OffChain),
+                tag.validate(NoteType::Private),
                 Ok(tag),
-                "Local execution supports offchain notes"
+                "Local execution supports private notes"
             );
             assert_eq!(
                 tag.validate(NoteType::Encrypted),
@@ -414,17 +414,17 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
 
         assert_eq!(
-            NoteTag::from_account_id(on_chain, NoteExecutionHint::Network),
+            NoteTag::from_account_id(on_chain, NoteExecutionMode::Network),
             Ok(NoteTag(0b00000000_00000000_00000000_00000000))
         );
-        assert!(NoteTag::from_account_id(off_chain, NoteExecutionHint::Network).is_err());
+        assert!(NoteTag::from_account_id(off_chain, NoteExecutionMode::Network).is_err());
 
         assert_eq!(
-            NoteTag::from_account_id(off_chain, NoteExecutionHint::Local),
+            NoteTag::from_account_id(off_chain, NoteExecutionMode::Local),
             Ok(NoteTag(0b11100100_00000000_00000000_00000000))
         );
         assert_eq!(
-            NoteTag::from_account_id(on_chain, NoteExecutionHint::Local),
+            NoteTag::from_account_id(on_chain, NoteExecutionMode::Local),
             Ok(NoteTag(0b11000000_00000000_00000000_00000000))
         );
     }
@@ -433,56 +433,56 @@ mod tests {
     fn test_for_public_use_case() {
         // NETWORK
         // ----------------------------------------------------------------------------------------
-        let tag = NoteTag::for_public_use_case(0b0, 0b0, NoteExecutionHint::Network);
+        let tag = NoteTag::for_public_use_case(0b0, 0b0, NoteExecutionMode::Network);
         assert_eq!(tag, Ok(NoteTag(0b01000000_00000000_00000000_00000000)));
 
         let tag = tag.unwrap();
         assert_eq!(tag.validate(NoteType::Public), Ok(tag));
         assert_eq!(
-            tag.validate(NoteType::OffChain),
-            Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::OffChain))
+            tag.validate(NoteType::Private),
+            Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::Private))
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),
             Err(NoteError::NetworkExecutionRequiresPublicNote(NoteType::Encrypted))
         );
 
-        let tag = NoteTag::for_public_use_case(0b1, 0b0, NoteExecutionHint::Network);
+        let tag = NoteTag::for_public_use_case(0b1, 0b0, NoteExecutionMode::Network);
         assert_eq!(tag, Ok(NoteTag(0b01000000_00000001_00000000_00000000)));
 
-        let tag = NoteTag::for_public_use_case(0b0, 0b1, NoteExecutionHint::Network);
+        let tag = NoteTag::for_public_use_case(0b0, 0b1, NoteExecutionMode::Network);
         assert_eq!(tag, Ok(NoteTag(0b01000000_00000000_00000000_00000001)));
 
-        let tag = NoteTag::for_public_use_case(1 << 13, 0b0, NoteExecutionHint::Network);
+        let tag = NoteTag::for_public_use_case(1 << 13, 0b0, NoteExecutionMode::Network);
         assert_eq!(tag, Ok(NoteTag(0b01100000_00000000_00000000_00000000)));
 
         // LOCAL
         // ----------------------------------------------------------------------------------------
-        let tag = NoteTag::for_public_use_case(0b0, 0b0, NoteExecutionHint::Local);
+        let tag = NoteTag::for_public_use_case(0b0, 0b0, NoteExecutionMode::Local);
         assert_eq!(tag, Ok(NoteTag(0b10000000_00000000_00000000_00000000)));
 
         let tag = tag.unwrap();
         assert_eq!(tag.validate(NoteType::Public), Ok(tag));
         assert_eq!(
-            tag.validate(NoteType::OffChain),
-            Err(NoteError::PublicUseCaseRequiresPublicNote(NoteType::OffChain))
+            tag.validate(NoteType::Private),
+            Err(NoteError::PublicUseCaseRequiresPublicNote(NoteType::Private))
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),
             Err(NoteError::PublicUseCaseRequiresPublicNote(NoteType::Encrypted))
         );
 
-        let tag = NoteTag::for_public_use_case(0b0, 0b1, NoteExecutionHint::Local);
+        let tag = NoteTag::for_public_use_case(0b0, 0b1, NoteExecutionMode::Local);
         assert_eq!(tag, Ok(NoteTag(0b10000000_00000000_00000000_00000001)));
 
-        let tag = NoteTag::for_public_use_case(0b1, 0b0, NoteExecutionHint::Local);
+        let tag = NoteTag::for_public_use_case(0b1, 0b0, NoteExecutionMode::Local);
         assert_eq!(tag, Ok(NoteTag(0b10000000_00000001_00000000_00000000)));
 
-        let tag = NoteTag::for_public_use_case(1 << 13, 0b0, NoteExecutionHint::Local);
+        let tag = NoteTag::for_public_use_case(1 << 13, 0b0, NoteExecutionMode::Local);
         assert_eq!(tag, Ok(NoteTag(0b10100000_00000000_00000000_00000000)));
 
-        assert!(NoteTag::for_public_use_case(1 << 15, 0b0, NoteExecutionHint::Local).is_err());
-        assert!(NoteTag::for_public_use_case(1 << 14, 0b0, NoteExecutionHint::Local).is_err());
+        assert!(NoteTag::for_public_use_case(1 << 15, 0b0, NoteExecutionMode::Local).is_err());
+        assert!(NoteTag::for_public_use_case(1 << 14, 0b0, NoteExecutionMode::Local).is_err());
     }
 
     #[test]
@@ -497,9 +497,9 @@ mod tests {
             "Local execution supports private notes"
         );
         assert_eq!(
-            tag.validate(NoteType::OffChain),
+            tag.validate(NoteType::Private),
             Ok(tag),
-            "Local execution supports offchain notes"
+            "Local execution supports private notes"
         );
         assert_eq!(
             tag.validate(NoteType::Encrypted),
