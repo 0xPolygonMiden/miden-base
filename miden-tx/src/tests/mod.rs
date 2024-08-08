@@ -241,9 +241,6 @@ fn executed_transaction_account_delta() {
             push.{REMOVED_ASSET_1}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
 
-            # pad the stack before calling `send_asset`
-            push.0 movdn.11 padw movdnw.3
-
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -255,9 +252,6 @@ fn executed_transaction_account_delta() {
             push.{REMOVED_ASSET_2}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
 
-            # pad the stack before calling `send_asset`
-            push.0 movdn.11 padw movdnw.3
-
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -268,9 +262,6 @@ fn executed_transaction_account_delta() {
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
-
-            # pad the stack before calling `send_asset`
-            push.0 movdn.11 padw movdnw.3
             
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
@@ -480,6 +471,7 @@ fn test_send_note_proc() {
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
+    // prepare the asset vector to be removed for each test variant
     let assets_matrix = vec![
         vec![],
         vec![removed_asset_1],
@@ -488,16 +480,22 @@ fn test_send_note_proc() {
     ];
 
     for removed_assets in assets_matrix {
+        // Prepare the string containing the procedures required for adding assets to the note.
+        // Depending on the number of the assets to remove, the resulting string will be extended
+        // with the corresponding number of procedure "blocks"
         let mut assets_to_remove = "".to_string();
         for asset in removed_assets.iter() {
             assets_to_remove.push_str(&format!(
                 "\n
             # prepare the stack for the next call
-            movdn.4 dropw            
+            dropw
+
+            # push the asset to be removed            
             push.{ASSET}
             # => [ASSET, note_idx, GARBAGE(11)]
-            call.wallet::move_asset_into_note
-            # => [note_idx, GARBAGE(15)]\n",
+
+            call.wallet::move_asset_to_note
+            # => [ASSET, note_idx, GARBAGE(11)]\n",
                 ASSET = prepare_word(&asset.into())
             ))
         }
@@ -536,6 +534,9 @@ fn test_send_note_proc() {
 
                 call.wallet::cteate_note
                 # => [note_idx, GARBAGE(15)]
+
+                movdn.4
+                # => [GARBAGE(4), note_idx, GARBAGE(11)]
 
                 {assets_to_remove}
                 
@@ -693,7 +694,9 @@ fn executed_transaction_output_notes() {
 
         proc.add_asset_to_note
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            swapw dropw
+            # => [ASSET, note_idx]
+
+            dropw
             # => [note_idx]
         end
 
@@ -725,14 +728,14 @@ fn executed_transaction_output_notes() {
 
             push.{REMOVED_ASSET_1}              # asset
             exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            # => [ASSET, note_ptr]
+            exec.add_asset_to_note
             # => [note_idx]
-
 
             push.{REMOVED_ASSET_2}              # asset_2
             exec.remove_asset
             # => [ASSET, note_ptr]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # send non-fungible asset
@@ -745,13 +748,13 @@ fn executed_transaction_output_notes() {
 
             push.{REMOVED_ASSET_3}              # asset_3
             exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            exec.add_asset_to_note
             # => [note_idx]
 
             push.{REMOVED_ASSET_4}              # asset_4
             exec.remove_asset
             # => [ASSET, note_idx]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # create a public note without assets
@@ -759,13 +762,12 @@ fn executed_transaction_output_notes() {
             push.{NOTETYPE3}                    # note_type
             push.{aux3}                         # aux
             push.{tag3}                         # tag
-            exec.create_note
-
-            drop
+            exec.create_note drop
+            # => []
 
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
+            push.1 exec.incr_nonce
             # => []
         end
     ",

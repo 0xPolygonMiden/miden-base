@@ -70,18 +70,21 @@ end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_idx, ASSET]
-#! Outputs: [note_idx]
+#! Inputs:  [ASSET, note_idx]
+#! Outputs: [ASSET, note_idx]
 #!
 #! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
+    dupw movup.8
+    # => [note_idx, ASSET, ASSET]
+
     syscall.add_asset_to_note
-    # => [note_idx, EMPTY_WORD]
+    # => [note_idx, EMPTY_WORD, ASSET]
 
     # clear the padding from the kernel response
-    movdn.4 dropw
-    # => [note_idx]
+    movdn.8 dropw
+    # => [ASSET, note_idx]
 end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash

@@ -211,11 +211,11 @@ fn test_get_output_notes_hash() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset_1} movup.4
+            push.{asset_1}
             exec.tx::add_asset_to_note
-
-
-            drop
+            # => [ASSET, note_idx]
+            
+            dropw drop
             # => []
 
             # create output note 2
@@ -226,10 +226,11 @@ fn test_get_output_notes_hash() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset_2} movup.4
+            push.{asset_2} 
             exec.tx::add_asset_to_note
+            # => [ASSET, note_idx]
 
-            drop
+            dropw drop
             # => []
 
             # compute the output notes hash
@@ -307,9 +308,12 @@ fn test_create_note_and_add_asset() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset} movup.4
+            push.{asset}
             exec.tx::add_asset_to_note
+            # => [ASSET, note_idx]
 
+            dropw
+            # => [note_idx]
         end
         ",
         recipient = prepare_word(&recipient),
@@ -367,20 +371,20 @@ fn test_create_note_and_add_multiple_assets() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{asset_2} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset_2}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{asset_3} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset_3}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{nft} movup.4
-            exec.tx::add_asset_to_note
+            push.{nft}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
         end
         ",

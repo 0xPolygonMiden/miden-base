@@ -82,7 +82,7 @@ export.distribute.1
     # => [note_idx, EMPTY_WORD, EMPTY_WORD, ...]
 
     # load the ASSET and add it to the note
-    padw loc_loadw.0 movup.4 exec.tx::add_asset_to_note
+    padw loc_loadw.0 exec.tx::add_asset_to_note dropw
     # => [note_idx, ASSET, EMPTY_WORD, ...]
 end
 
