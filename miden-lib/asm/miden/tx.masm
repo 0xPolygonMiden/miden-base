@@ -70,20 +70,17 @@ end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [ASSET, note_idx]
-#! Outputs: [ASSET, note_idx]
+#! This procedure is expected to be invoked using a `call` instruction. It makes no guarantees about
+#! the contents of the `PAD` elements shown below. It is the caller's responsibility to make sure
+#! these elements do not contain any meaningful data.
+#!
+#! Inputs:  [ASSET, note_idx, PAD(11)]
+#! Outputs: [ASSET, note_idx, PAD(11)]
 #!
 #! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
-    dupw movup.8
-    # => [note_idx, ASSET, ASSET]
-
-    syscall.add_asset_to_note
-    # => [note_idx, EMPTY_WORD, ASSET]
-
-    # clear the padding from the kernel response
-    movdn.8 dropw
+    movup.4 syscall.add_asset_to_note movdn.4
     # => [ASSET, note_idx]
 end
 

@@ -33,7 +33,7 @@ const.METADATA_SLOT=1
 export.basic::auth_tx_rpo_falcon512
 
 #! Distributes freshly minted fungible assets to the provided recipient.
-#! Inputs: [amount, tag, aux, note_type, RECIPIENT]
+#! Inputs:  [amount, tag, aux, note_type, RECIPIENT]
 #! Outputs: [note_idx, 0, 0, 0, 0, 0, 0, 0, ...]
 #!
 #! - amount is the amount to be minted and sent.
@@ -82,7 +82,7 @@ export.distribute.1
     # => [note_idx, EMPTY_WORD, EMPTY_WORD, ...]
 
     # load the ASSET and add it to the note
-    padw loc_loadw.0 exec.tx::add_asset_to_note dropw
+    movdn.4 loc_loadw.0 exec.tx::add_asset_to_note movup.4
     # => [note_idx, ASSET, EMPTY_WORD, ...]
 end
 
