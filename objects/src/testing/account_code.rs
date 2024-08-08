@@ -5,16 +5,16 @@ use crate::accounts::AccountCode;
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 13] = [
-    "0x7240409966504de1c61ab057af78d1c35b5db2ad65fda8b7051b4beef257181f",
-    "0xed069041df44f94af7ecc4ad3d0fd615343e2a6cd8fd38e9355ad98b1b7cdae3",
+    "0x48752d42a7d72e35e970d80acd1eedec97235bb7d764dd0afb68a04f46f19b8d",
+    "0x2d04f0114cfb9c44954d8a3582bd6b8c7d24d0669ed4b0257f3b6ebd39da00f9",
     "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
-    "0x606cc241e75be6245a178319169d150a5502b12e55a8001c68627b4751b05532",
+    "0x8bd5a68c1cd054ec055c09cf58fb9440908eb2d4e7ed2157eb7c87b6401b6651",
     "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
     "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
     "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
     "0x24e0a1587d4d1ddff74313518f5187f6042ffbe8f2ddc97d367a5c3da4b17d82",
     "0x3d398ee00c42c35af0af9d14b7912d96360e43940e3927e42d1fcebb14c7142b",
-    "0xf5b4e6d17ccde492c051e55bd6a5756974ce203c225ad5af0fc80322c6e5a6b5",
+    "0xf23b0a855deb75595952381a68847dc65d8adc772931eeecad9d80ceb95adbdd",
     "0xcd34115714cdcda24f1d6968cbfb67b8b51c1751a2e25e9d6b4e18c35323e5ba",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
@@ -75,7 +75,7 @@ impl AccountCode {
         # acct proc 2
         export.wallet::cteate_note
         # acct proc 3
-        export.wallet::move_asset_into_note
+        export.wallet::move_asset_to_note
 
         # acct proc 4
         export.incr_nonce
@@ -124,9 +124,7 @@ impl AccountCode {
         # acct proc 9
         export.add_asset_to_note
             exec.tx::add_asset_to_note
-            # => [note_idx]
-
-            swap drop swap drop swap drop
+            # => [ASSET, note_idx]
         end
 
         # acct proc 10
