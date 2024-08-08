@@ -64,7 +64,7 @@ end
 #! `move_asset_to_note` procedure.
 #! 
 #! This procedure is expected to be invoked using a `call` instruction. It makes no guarantees about
-#! the contents of the `PAD` elements shown below. It is the callers responsibility to make sure
+#! the contents of the `PAD` elements shown below. It is the caller's responsibility to make sure
 #! these elements do not contain any meaningful data.
 #!
 #! Inputs:  [tag, aux, note_type, RECIPIENT, PAD(9)]
@@ -80,11 +80,11 @@ export.cteate_note
     # => [note_idx, PAD(15) ...]
 end
 
-#! Add the specified amount of assets to the created note to move them out of the current account to
-#! the specified recipient.
+#! Removes the specified asset from the account and adds it to the output note with the specified
+#! index.
 #!
 #! This procedure is expected to be invoked using a `call` instruction. It makes no guarantees about
-#! the contents of the `PAD` elements shown below. It is the callers responsibility to make sure
+#! the contents of the `PAD` elements shown below. It is the caller's responsibility to make sure
 #! these elements do not contain any meaningful data.
 #!
 #! Inputs:  [ASSET, note_idx, PAD(11)]
