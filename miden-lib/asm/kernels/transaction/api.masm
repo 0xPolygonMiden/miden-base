@@ -8,6 +8,13 @@ use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 use.miden::kernels::tx::tx
 
+# NOTE
+# =================================================================================================
+# Procedures in this module are expected to be invoked using a `call` instruction. It makes no    #
+# guarantees about the contents of the `PAD` elements shown in the inputs and outputs. It is the  #
+# caller's responsibility to make sure these elements do not contain any meaningful data.         #
+# =================================================================================================
+
 # ERRORS
 # =================================================================================================
 
@@ -504,7 +511,7 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT, PAD(9)]
+#! Inputs:  [tag, aux, note_type, RECIPIENT, PAD(9)]
 #! Outputs: [note_idx, PAD(15)]
 #!
 #! tag is the tag to be included in the note.
@@ -522,10 +529,6 @@ export.create_note
 end
 
 #! Adds the ASSET to the note specified by the index.
-#!
-#! This procedure is expected to be invoked using a `call` instruction. It makes no guarantees about
-#! the contents of the `PAD` elements shown below. It is the caller's responsibility to make sure
-#! these elements do not contain any meaningful data.
 #!
 #! Inputs:  [note_idx, ASSET, PAD(11)]
 #! Outputs: [note_idx, ASSET, PAD(11)]
