@@ -12,6 +12,7 @@ pub enum NoteFile {
     NoteId(NoteId),
     /// The note has not yet been recorded on chain.
     ///
+    /// A block number that works as a lower bound when checking for the note's inclusion.
     /// An optional tag is included for note tracking.
     NoteDetails {
         details: NoteDetails,
