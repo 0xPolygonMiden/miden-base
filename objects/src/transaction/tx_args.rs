@@ -1,8 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::ops::Deref;
 
+use assembly::ast::AstSerdeOptions;
 use miden_crypto::merkle::InnerNodeInfo;
-use vm_processor::{AdviceInputs, AdviceMap};
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_processor::{AdviceInputs, AdviceMap, DeserializationError};
 
 use super::{Digest, Felt, Word};
 use crate::{
@@ -154,7 +156,7 @@ impl TransactionArgs {
 /// - [hash](TransactionScript::hash): the hash of the compiled transaction script.
 /// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
 ///   advice inputs' map such that the transaction script can access them.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionScript {
     code: ProgramAst,
     hash: Digest,
@@ -220,5 +222,28 @@ impl TransactionScript {
     /// Returns a reference to the inputs.
     pub fn inputs(&self) -> &BTreeMap<Digest, Vec<Felt>> {
         &self.inputs
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for TransactionScript {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.code.write_into(target, AstSerdeOptions { serialize_imports: true });
+        self.code.write_source_locations(target);
+        self.hash.write_into(target);
+        self.inputs.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionScript {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mut code = ProgramAst::read_from(source)?;
+        code.load_source_locations(source)?;
+        let hash = Digest::read_from(source)?;
+        let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
+
+        Ok(Self { code, hash, inputs })
     }
 }
