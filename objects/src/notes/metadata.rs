@@ -153,7 +153,7 @@ impl Deserializable for NoteMetadata {
 /// - Bits 39 to 38 (2 bits): NoteType
 /// - Bits 37 to 32 (6 bits): NoteExecutionHint tag
 /// - Bits 31 to 0 (32 bits): NoteExecutionHint payload
-pub fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHint) -> u64 {
+fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHint) -> u64 {
     let type_nibble = note_type as u64 & 0b11;
     let (tag_nibble, payload_u32) = note_execution_hint.into_parts();
 
@@ -163,7 +163,7 @@ pub fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecuti
     (type_nibble << 38) | (tag_section << 32) | payload_section
 }
 
-pub fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
+fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
     let high_nibble = ((value >> 38) & 0b11) as u8;
     let tag_byte = ((value >> 32) & 0b111111) as u8;
     let payload_u32 = (value & 0xFFFFFFFF) as u32;

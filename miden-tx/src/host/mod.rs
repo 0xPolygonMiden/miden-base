@@ -4,7 +4,7 @@ use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
+    accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
     transaction::OutputNote,

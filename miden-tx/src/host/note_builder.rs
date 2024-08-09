@@ -1,16 +1,11 @@
 use alloc::vec::Vec;
-use std::{dbg, println};
 
 use miden_objects::{
     assets::Asset,
-    notes::{
-        unmerge_type_and_hint, Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient,
-        NoteScript, NoteTag, PartialNote,
-    },
+    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
 };
-use vm_processor::Word;
 
-use super::{AccountId, AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
+use super::{AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
 
 // OUTPUT NOTE BUILDER
 // ================================================================================================

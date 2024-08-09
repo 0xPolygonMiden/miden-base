@@ -27,7 +27,7 @@ mod inputs;
 pub use inputs::NoteInputs;
 
 mod metadata;
-pub use metadata::{merge_type_and_hint, unmerge_type_and_hint, NoteMetadata};
+pub use metadata::NoteMetadata;
 
 mod execution_hint;
 pub use execution_hint::NoteExecutionHint;

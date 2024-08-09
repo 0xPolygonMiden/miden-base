@@ -1,5 +1,4 @@
 use alloc::vec::Vec;
-use std::println;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
