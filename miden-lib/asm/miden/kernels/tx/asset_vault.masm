@@ -323,7 +323,7 @@ export.remove_asset
     exec.asset::is_fungible_asset
     # => [is_fungible_asset, ASSET, vault_root_ptr]
 
-    # add the asset to the asset vault
+    # remove the asset from the asset vault
     if.true
         exec.remove_fungible_asset
         # => [ASSET]
