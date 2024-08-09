@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::String, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -483,7 +483,7 @@ fn test_send_note_proc() {
         // Prepare the string containing the procedures required for adding assets to the note.
         // Depending on the number of the assets to remove, the resulting string will be extended
         // with the corresponding number of procedure "blocks"
-        let mut assets_to_remove = "".to_string();
+        let mut assets_to_remove = String::new();
         for asset in removed_assets.iter() {
             assets_to_remove.push_str(&format!(
                 "\n
@@ -519,8 +519,6 @@ fn test_send_note_proc() {
             ## TRANSACTION SCRIPT
             ## ========================================================================================
             begin
-                dropw
-                
                 # prepare the values for note creation
                 push.1.2.3.4      # recipient
                 push.{note_type}  # note_type
@@ -684,16 +682,31 @@ fn executed_transaction_output_notes() {
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
-        #TODO: Move this into an account library
         proc.create_note
-            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # pad the stack before the call to prevent accidental modification of the deeper stack 
+            # elements 
+            push.0 movdn.7 padw padw movdnw.3 movdnw.3
+            # => [tag, aux, note_type, RECIPIENT, PAD(9)]
 
-            swapw dropw swapw dropw swapw dropw
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # => [note_idx, PAD(15)]
+
+            # remove excess PADs from the stack 
+            movdnw.3 dropw dropw dropw movdn.3 drop drop drop
             # => [note_idx]
         end
 
         proc.add_asset_to_note
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+            # elements 
+            push.0.0.0 padw padw movupw.3 movup.15
+            # => [ASSET, note_idx, PAD(11)]
+
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
+            # => [ASSET, note_idx, PAD(11)]
+
+            # remove excess PADs from the stack 
+            movdn.15 movdnw.3 dropw dropw drop drop drop
             # => [ASSET, note_idx]
 
             dropw
