@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -239,6 +239,8 @@ fn executed_transaction_account_delta() {
             push.{aux1}             # aux
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -248,6 +250,8 @@ fn executed_transaction_account_delta() {
             push.{aux2}             # aux
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -257,6 +261,8 @@ fn executed_transaction_account_delta() {
             push.{aux3}             # aux
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+            
             call.wallet::send_asset dropw dropw dropw dropw
             # => []
 
@@ -427,6 +433,165 @@ fn test_empty_delta_nonce_update() {
 }
 
 #[test]
+fn test_send_note_proc() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .build();
+
+    let mut executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let account_id = tx_context.tx_inputs().account().id();
+    executor.load_account(account_id).unwrap();
+
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+
+    let tag = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionMode::Local,
+    )
+    .unwrap();
+    let aux = Felt::new(27);
+    let note_type = NoteType::Private;
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
+
+    // prepare the asset vector to be removed for each test variant
+    let assets_matrix = vec![
+        vec![],
+        vec![removed_asset_1],
+        vec![removed_asset_1, removed_asset_2],
+        vec![removed_asset_1, removed_asset_2, removed_asset_3],
+    ];
+
+    for removed_assets in assets_matrix {
+        // Prepare the string containing the procedures required for adding assets to the note.
+        // Depending on the number of the assets to remove, the resulting string will be extended
+        // with the corresponding number of procedure "blocks"
+        let mut assets_to_remove = String::new();
+        for asset in removed_assets.iter() {
+            assets_to_remove.push_str(&format!(
+                "\n
+            # prepare the stack for the next call
+            dropw
+
+            # push the asset to be removed            
+            push.{ASSET}
+            # => [ASSET, note_idx, GARBAGE(11)]
+
+            call.wallet::move_asset_to_note
+            # => [ASSET, note_idx, GARBAGE(11)]\n",
+                ASSET = prepare_word(&asset.into())
+            ))
+        }
+
+        let tx_script = format!(
+            "\
+            use.miden::account
+            use.miden::contracts::wallets::basic->wallet
+            use.miden::tx
+    
+            ## ACCOUNT PROCEDURE WRAPPERS
+            ## ========================================================================================
+            proc.incr_nonce
+                call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+                # => [0]
+    
+                drop
+                # => []
+            end
+    
+            ## TRANSACTION SCRIPT
+            ## ========================================================================================
+            begin
+                # prepare the values for note creation
+                push.1.2.3.4      # recipient
+                push.{note_type}  # note_type
+                push.{aux}        # aux
+                push.{tag}        # tag
+                # => [tag, aux, note_type, RECIPIENT, ...]
+
+                # pad the stack with zeros before calling the `cteate_note`.
+                push.0 movdn.7 padw padw swapdw
+                # => [tag, aux, note_type, RECIPIENT, PAD(9) ...]
+
+                call.wallet::cteate_note
+                # => [note_idx, GARBAGE(15)]
+
+                movdn.4
+                # => [GARBAGE(4), note_idx, GARBAGE(11)]
+
+                {assets_to_remove}
+                
+                dropw dropw dropw dropw
+    
+                ## Update the account nonce
+                ## ------------------------------------------------------------------------------------
+                push.1 exec.incr_nonce drop
+                # => []
+            end
+        ",
+            note_type = note_type as u8,
+        );
+
+        let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
+        let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+        let tx_args = TransactionArgs::new(
+            Some(tx_script),
+            None,
+            tx_context.tx_args().advice_inputs().clone().map,
+        );
+
+        let block_ref = tx_context.tx_inputs().block_header().block_num();
+        let note_ids = tx_context
+            .tx_inputs()
+            .input_notes()
+            .iter()
+            .map(|note| note.id())
+            .collect::<Vec<_>>();
+
+        // expected delta
+        // --------------------------------------------------------------------------------------------
+        // execute the transaction and get the witness
+        let executed_transaction =
+            executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+        // nonce delta
+        // --------------------------------------------------------------------------------------------
+        assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+
+        // vault delta
+        // --------------------------------------------------------------------------------------------
+        // assert that removed assets are tracked
+        assert!(executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets
+            .iter()
+            .all(|x| removed_assets.contains(x)));
+        assert_eq!(
+            removed_assets.len(),
+            executed_transaction.account_delta().vault().removed_assets.len()
+        );
+    }
+}
+
+#[test]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
@@ -517,17 +682,34 @@ fn executed_transaction_output_notes() {
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
-        #TODO: Move this into an account library
         proc.create_note
-            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # pad the stack before the call to prevent accidental modification of the deeper stack 
+            # elements 
+            push.0 movdn.7 padw padw swapdw
+            # => [tag, aux, note_type, RECIPIENT, PAD(9)]
 
-            swapw dropw swapw dropw swapw dropw
+            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # => [note_idx, PAD(15)]
+
+            # remove excess PADs from the stack 
+            swapdw dropw dropw movdn.7 dropw drop drop drop
             # => [note_idx]
         end
 
         proc.add_asset_to_note
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+            # elements 
+            push.0.0.0 padw padw swapdw movup.7 swapw
+            # => [ASSET, note_idx, PAD(11)]
+
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            swapw dropw
+            # => [ASSET, note_idx, PAD(11)]
+
+            # remove excess PADs from the stack 
+            swapdw dropw dropw swapw movdn.7 drop drop drop
+            # => [ASSET, note_idx]
+
+            dropw
             # => [note_idx]
         end
 
@@ -559,14 +741,14 @@ fn executed_transaction_output_notes() {
 
             push.{REMOVED_ASSET_1}              # asset
             exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            # => [ASSET, note_ptr]
+            exec.add_asset_to_note
             # => [note_idx]
-
 
             push.{REMOVED_ASSET_2}              # asset_2
             exec.remove_asset
             # => [ASSET, note_ptr]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # send non-fungible asset
@@ -579,13 +761,13 @@ fn executed_transaction_output_notes() {
 
             push.{REMOVED_ASSET_3}              # asset_3
             exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            exec.add_asset_to_note
             # => [note_idx]
 
             push.{REMOVED_ASSET_4}              # asset_4
             exec.remove_asset
             # => [ASSET, note_idx]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # create a public note without assets
@@ -593,13 +775,12 @@ fn executed_transaction_output_notes() {
             push.{NOTETYPE3}                    # note_type
             push.{aux3}                         # aux
             push.{tag3}                         # tag
-            exec.create_note
-
-            drop
+            exec.create_note drop
+            # => []
 
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
+            push.1 exec.incr_nonce
             # => []
         end
     ",

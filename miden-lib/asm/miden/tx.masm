@@ -55,8 +55,8 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
-#! Outputs: [note_idx]
+#! Inputs:  [tag, aux, note_type, RECIPIENT, ...]
+#! Outputs: [note_idx, ...]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
@@ -64,28 +64,38 @@ end
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
-    syscall.create_note
-    # => [note_idx, EMPTY_WORD, 0]
+    # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+    # elements 
+    push.0 movdn.7 padw padw swapdw
+    # => [tag, aux, note_type, RECIPIENT, PAD(9)]
 
-    # clear the padding from the kernel response
-    movdn.4 dropw swap drop
+    syscall.create_note
+    # => [note_idx, PAD(15)]
+
+    # remove excess PADs from the stack 
+    swapdw dropw dropw movdn.7 dropw drop drop drop
     # => [note_idx]
 end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_idx, ASSET]
-#! Outputs: [note_idx]
+#! Inputs:  [ASSET, note_idx, ...]
+#! Outputs: [ASSET, note_idx, ...]
 #!
 #! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
-    syscall.add_asset_to_note
-    # => [note_idx, EMPTY_WORD]
+    # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+    # elements 
+    push.0.0.0 padw padw swapdw movup.7 swapw movup.4
+    # => [note_idx, ASSET, PAD(11)]
 
-    # clear the padding from the kernel response
-    movdn.4 dropw
-    # => [note_idx]
+    syscall.add_asset_to_note 
+    # => [note_idx, ASSET, PAD(11)]
+
+    # remove excess PADs from the stack 
+    swapdw dropw dropw swapw movdn.7 drop drop drop movdn.4
+    # => [ASSET, note_idx]
 end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash
