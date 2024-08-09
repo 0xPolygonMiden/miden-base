@@ -527,7 +527,7 @@ fn test_send_note_proc() {
                 # => [tag, aux, note_type, RECIPIENT, ...]
 
                 # pad the stack with zeros before calling the `cteate_note`.
-                push.0 movdn.7 padw padw movdnw.3 movdnw.3
+                push.0 movdn.7 padw padw swapdw
                 # => [tag, aux, note_type, RECIPIENT, PAD(9) ...]
 
                 call.wallet::cteate_note
@@ -685,28 +685,28 @@ fn executed_transaction_output_notes() {
         proc.create_note
             # pad the stack before the call to prevent accidental modification of the deeper stack 
             # elements 
-            push.0 movdn.7 padw padw movdnw.3 movdnw.3
+            push.0 movdn.7 padw padw swapdw
             # => [tag, aux, note_type, RECIPIENT, PAD(9)]
 
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
             # => [note_idx, PAD(15)]
 
             # remove excess PADs from the stack 
-            movdnw.3 dropw dropw dropw movdn.3 drop drop drop
+            swapdw dropw dropw movdn.7 dropw drop drop drop
             # => [note_idx]
         end
 
         proc.add_asset_to_note
             # pad the stack before the syscall to prevent accidental modification of the deeper stack 
             # elements 
-            push.0.0.0 padw padw movupw.3 movup.15
+            push.0.0.0 padw padw swapdw movup.7 swapw
             # => [ASSET, note_idx, PAD(11)]
 
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             # => [ASSET, note_idx, PAD(11)]
 
             # remove excess PADs from the stack 
-            movdn.15 movdnw.3 dropw dropw drop drop drop
+            swapdw dropw dropw swapw movdn.7 drop drop drop
             # => [ASSET, note_idx]
 
             dropw

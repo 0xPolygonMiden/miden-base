@@ -10,7 +10,7 @@ use.miden::kernels::tx::tx
 
 # NOTE
 # =================================================================================================
-# Procedures in this module are expected to be invoked using a `call` instruction. It makes no    #
+# Procedures in this module are expected to be invoked using a `syscall` instruction. It makes no #
 # guarantees about the contents of the `PAD` elements shown in the inputs and outputs. It is the  #
 # caller's responsibility to make sure these elements do not contain any meaningful data.         #
 # =================================================================================================
