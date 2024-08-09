@@ -14,6 +14,7 @@
 - Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
 - Made `miden_lib::notes::build_swap_tag()` function public (#817).
+- [BREAKING] Changed the `NoteFile::NoteDetails` type to struct and added a `after_block_num` field (#823).
 
 ## 0.4.0 (2024-07-03)
 
