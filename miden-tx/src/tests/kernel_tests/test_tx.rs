@@ -69,19 +69,24 @@ fn test_create_note() {
         "recipient must be stored at the correct memory location",
     );
 
-    let note_metadata: Word = NoteMetadata::new(
+    let expected_note_metadata: Word = NoteMetadata::new(
         account_id,
         NoteType::Public,
         tag.try_into().unwrap(),
         NoteExecutionHint::after_block(23),
-        Felt::new(0),
+        Felt::new(27),
     )
     .unwrap()
     .into();
 
     assert_eq!(
         read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET),
-        [note_metadata[0], note_metadata[1], note_metadata[2], note_metadata[3]],
+        [
+            expected_note_metadata[0],
+            expected_note_metadata[1],
+            expected_note_metadata[2],
+            expected_note_metadata[3]
+        ],
         "metadata must be stored at the correct memory location",
     );
 

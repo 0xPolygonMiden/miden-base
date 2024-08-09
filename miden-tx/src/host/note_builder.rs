@@ -44,7 +44,7 @@ impl OutputNoteBuilder {
         adv_provider: &A,
     ) -> Result<Self, TransactionKernelError> {
         // read note metadata info from the stack and build the metadata object
-        let metadata_word = [stack[0], stack[1], stack[2], stack[3]];
+        let metadata_word = [stack[3], stack[2], stack[1], stack[0]];
         let metadata: NoteMetadata = metadata_word
             .try_into()
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;

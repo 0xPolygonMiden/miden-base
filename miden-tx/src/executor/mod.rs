@@ -1,5 +1,4 @@
 use alloc::{rc::Rc, vec::Vec};
-use std::println;
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -265,11 +264,9 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
 
     let (mut advice_witness, _, map, _store) = advice_recorder.finalize();
 
-    println!("pasa? execu");
     let tx_outputs =
         TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
             .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
-    println!("paso execu");
 
     let final_account = &tx_outputs.account;
 

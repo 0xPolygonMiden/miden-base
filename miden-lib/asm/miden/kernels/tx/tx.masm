@@ -277,14 +277,15 @@ proc.build_note_metadata
     # => [tag, aux, note_type, execution_hint]
 
     # populate the metadata
-    swap exec.account::get_id movup.4 movup.4 
-    # => [note_type, execution_hint, sender_acct_id, aux, tag]
+    # swap movup.4 movup.4 
+    movup.3 movup.3 push.TWO_POW_38 mul add movup.2
+    # => [aux, encoded_type_and_ex_hint, tag]
 
     # encode note_type and execution_hint into a single element
-    push.TWO_POW_38 mul add 
-    # => [encoded_type_and_ex_hint, sender_acct_id, aux, tag]
+    exec.account::get_id
+    # => [sender_acct_id, aux, encoded_type_and_ex_hint, tag]
 
-    movup.2
+    movdn.2
     # => [NOTE_METADATA]
 end
 

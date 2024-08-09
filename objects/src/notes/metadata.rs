@@ -97,10 +97,10 @@ impl From<NoteMetadata> for Word {
 impl From<&NoteMetadata> for Word {
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();
-        elements[0] = metadata.aux;
-        elements[1] = Felt::new(merge_type_and_hint(metadata.note_type, metadata.execution_hint));
-        elements[2] = metadata.sender.into();
-        elements[3] = metadata.tag.inner().into();
+        elements[0] = metadata.tag.inner().into();
+        elements[1] = metadata.sender.into();
+        elements[2] = Felt::new(merge_type_and_hint(metadata.note_type, metadata.execution_hint));
+        elements[3] = metadata.aux;
         elements
     }
 }
@@ -109,13 +109,13 @@ impl TryFrom<Word> for NoteMetadata {
     type Error = NoteError;
 
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
-        let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[1].into())?;
-        let sender = elements[2].try_into().map_err(NoteError::InvalidNoteSender)?;
-        let tag: u64 = elements[3].into();
+        let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
+        let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[2].into())?;
+        let tag: u64 = elements[0].into();
         let tag: u32 =
             tag.try_into().map_err(|_| NoteError::InconsistentNoteTag(note_type, tag))?;
 
-        Self::new(sender, note_type, tag.into(), note_execution_hint, elements[0])
+        Self::new(sender, note_type, tag.into(), note_execution_hint, elements[3])
     }
 }
 
