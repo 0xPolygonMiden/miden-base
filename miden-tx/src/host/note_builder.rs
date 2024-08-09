@@ -26,7 +26,7 @@ impl OutputNoteBuilder {
     ///
     /// The stack is expected to be in the following state:
     ///
-    ///   [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
+    ///   [NOTE_METADATA, RECIPIENT]
     ///
     /// Detailed note info such as assets and recipient (when available) are retrieved from the
     /// advice provider.

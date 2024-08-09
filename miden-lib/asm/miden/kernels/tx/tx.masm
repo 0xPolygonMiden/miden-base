@@ -276,12 +276,11 @@ proc.build_note_metadata
     u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
     # => [tag, aux, note_type, execution_hint]
 
-    # populate the metadata
-    # swap movup.4 movup.4 
+    # encode note_type and execution_hint into a single element
     movup.3 movup.3 push.TWO_POW_38 mul add movup.2
     # => [aux, encoded_type_and_ex_hint, tag]
 
-    # encode note_type and execution_hint into a single element
+    # add sender account ID to metadata
     exec.account::get_id
     # => [sender_acct_id, aux, encoded_type_and_ex_hint, tag]
 

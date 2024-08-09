@@ -112,13 +112,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
     /// `output_notes` field of this [TransactionHost].
     ///
-    /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
+    /// Expected stack state: `[NOTE_METADATA, RECIPIENT, ...]`
     fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-        // # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+        // # => [NOTE_METADATA]
 
         let note_idx: usize = stack[9].as_int() as usize;
 
