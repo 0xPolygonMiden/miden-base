@@ -10,10 +10,14 @@ use super::{Note, NoteDetails, NoteId, NoteInclusionProof, NoteTag};
 pub enum NoteFile {
     /// The note's details aren't known.
     NoteId(NoteId),
-    /// The note has not yet been recorded on chain.
+    /// The note may or may not have already been recorded on chain.
     ///
-    /// A block number that works as a lower bound when checking for the note's inclusion.
-    /// An optional tag is included for note tracking.
+    /// The `after_block_num` specifies the block after which the note is expected to appear on
+    /// chain. Though this should be treated as a hint (i.e., there is no guarantee that the note
+    /// will appear on chain or that it will in fact appear after the specified block).
+    ///
+    /// An optional tag specifies the tag associated with the note, though this also should be
+    /// treated as a hint.
     NoteDetails {
         details: NoteDetails,
         after_block_num: u32,
