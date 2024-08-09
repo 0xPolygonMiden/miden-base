@@ -275,7 +275,7 @@ impl AccountStorage {
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // --- update storage maps --------------------------------------------
 
-        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+        for (&slot_idx, map_delta) in delta.maps().iter() {
             let storage_map =
                 self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
 
@@ -287,11 +287,7 @@ impl AccountStorage {
 
         // --- update storage slots -------------------------------------------
 
-        for &slot_idx in delta.cleared_items.iter() {
-            self.set_item(slot_idx, Word::default())?;
-        }
-
-        for &(slot_idx, slot_value) in delta.updated_items.iter() {
+        for (&slot_idx, &slot_value) in delta.slots().iter() {
             self.set_item(slot_idx, slot_value)?;
         }
 

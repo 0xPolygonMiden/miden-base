@@ -7,7 +7,7 @@ use vm_processor::DeserializationError;
 use super::{
     accounts::{AccountId, StorageSlotType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
+    crypto::merkle::MerkleError,
     notes::NoteId,
     Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
@@ -60,15 +60,22 @@ impl std::error::Error for AccountError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
     DuplicateStorageItemUpdate(usize),
-    DuplicateVaultUpdate(Asset),
+    DuplicateNonFungibleVaultUpdate(Digest),
     InconsistentNonceUpdate(String),
     ImmutableStorageSlot(usize),
-    TooManyAddedAsset { actual: usize, max: usize },
-    TooManyClearedStorageItems { actual: usize, max: usize },
-    TooManyRemovedAssets { actual: usize, max: usize },
-    TooManyUpdatedStorageItems { actual: usize, max: usize },
-    DuplicateStorageMapLeaf { key: RpoDigest },
-    AssetAmountTooBig(u64),
+    TooManyFungibleAssets {
+        actual: usize,
+        max: usize,
+    },
+    TooManyNonFungibleAssets {
+        actual: usize,
+        max: usize,
+    },
+    FungibleAssetDeltaOverflow {
+        faucet_id: AccountId,
+        this: i64,
+        other: i64,
+    },
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
 }
 
@@ -118,6 +125,7 @@ pub enum AssetVaultError {
     DuplicateAsset(MerkleError),
     DuplicateNonFungibleAsset(NonFungibleAsset),
     FungibleAssetNotFound(FungibleAsset),
+    FungibleAssetValidationError(AssetError),
     NotANonFungibleAsset(Asset),
     NotAFungibleFaucetId(AccountId),
     NonFungibleAssetNotFound(NonFungibleAsset),

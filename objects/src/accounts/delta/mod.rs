@@ -4,16 +4,13 @@ use super::{
     Account, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Serializable,
     Word, ZERO,
 };
-use crate::{assets::Asset, AccountDeltaError};
-
-mod builder;
-pub use builder::AccountStorageDeltaBuilder;
+use crate::AccountDeltaError;
 
 mod storage;
-pub use storage::{AccountStorageDelta, StorageMapDelta};
+pub use storage::{AccountStorageDelta, AccountStorageDeltaBuilder, StorageMapDelta};
 
 mod vault;
-pub use vault::AccountVaultDelta;
+pub use vault::{AccountVaultDelta, NonFungibleDeltaAction};
 
 // ACCOUNT DELTA
 // ================================================================================================
@@ -58,19 +55,18 @@ impl AccountDelta {
     }
 
     /// Merge another [AccountDelta] into this one.
-    pub fn merge(self, other: Self) -> Result<Self, AccountDeltaError> {
-        let nonce = match (self.nonce, other.nonce) {
+    pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
+        match (&mut self.nonce, other.nonce) {
             (Some(old), Some(new)) if new.as_int() <= old.as_int() => {
                 return Err(AccountDeltaError::InconsistentNonceUpdate(format!(
                     "New nonce {new} is not larger than the old nonce {old}"
                 )))
             },
             // Incoming nonce takes precedence.
-            (old, new) => new.or(old),
+            (old, new) => *old = new.or(*old),
         };
-        let storage = self.storage.merge(other.storage)?;
-        let vault = self.vault.merge(other.vault)?;
-        Self::new(storage, vault, nonce)
+        self.storage.merge(other.storage)?;
+        self.vault.merge(other.vault)
     }
 
     // PUBLIC ACCESSORS
@@ -138,8 +134,9 @@ impl AccountUpdateDetails {
 
                 AccountUpdateDetails::New(account)
             },
-            (AccountUpdateDetails::Delta(initial), AccountUpdateDetails::Delta(new_delta)) => {
-                AccountUpdateDetails::Delta(initial.merge(new_delta)?)
+            (AccountUpdateDetails::Delta(mut delta), AccountUpdateDetails::Delta(new_delta)) => {
+                delta.merge(new_delta)?;
+                AccountUpdateDetails::Delta(delta)
             },
             (left, right) => {
                 return Err(AccountDeltaError::IncompatibleAccountUpdates(left, right))
@@ -249,26 +246,14 @@ mod tests {
     #[test]
     fn account_delta_nonce_validation() {
         // empty delta
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![],
-            updated_items: vec![],
-            updated_maps: vec![],
-        };
-
-        let vault_delta = AccountVaultDelta {
-            added_assets: vec![],
-            removed_assets: vec![],
-        };
+        let storage_delta = AccountStorageDelta::default();
+        let vault_delta = AccountVaultDelta::default();
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_ok());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ONE)).is_ok());
 
         // non-empty delta
-        let storage_delta = AccountStorageDelta {
-            cleared_items: vec![1],
-            updated_items: vec![],
-            updated_maps: vec![],
-        };
+        let storage_delta = AccountStorageDelta::from_iters([1], [], []);
 
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), None).is_err());
         assert!(AccountDelta::new(storage_delta.clone(), vault_delta.clone(), Some(ZERO)).is_err());

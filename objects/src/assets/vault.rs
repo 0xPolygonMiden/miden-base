@@ -4,8 +4,11 @@ use super::{
     AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     FungibleAsset, NonFungibleAsset, Serializable, ZERO,
 };
-use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
-
+use crate::{
+    accounts::{AccountVaultDelta, NonFungibleDeltaAction},
+    crypto::merkle::Smt,
+    AssetVaultError, Digest,
+};
 // ASSET VAULT
 // ================================================================================================
 
@@ -88,6 +91,48 @@ impl AssetVault {
 
     // PUBLIC MODIFIERS
     // --------------------------------------------------------------------------------------------
+
+    pub fn apply_delta(&mut self, delta: &AccountVaultDelta) -> Result<(), AssetVaultError> {
+        for (&faucet_id, &delta) in delta.fungible() {
+            let asset = FungibleAsset::new(faucet_id, delta.unsigned_abs())
+                .map_err(AssetVaultError::FungibleAssetValidationError)?;
+            if delta >= 0 {
+                self.add_fungible_asset(asset)?;
+            } else {
+                self.remove_fungible_asset(asset)?;
+            }
+        }
+
+        for (&asset, &action) in delta.non_fungible() {
+            // # SAFETY: the asset must be a valid word representation of a non-fungible asset
+            let asset = unsafe { NonFungibleAsset::new_unchecked(asset.into()) };
+            match action {
+                NonFungibleDeltaAction::Add => {
+                    self.add_non_fungible_asset(asset)?;
+                },
+                NonFungibleDeltaAction::Remove => {
+                    self.remove_non_fungible_asset(asset)?;
+                },
+            }
+        }
+
+        Ok(())
+    }
+
+    // fn apply_fungible_asset_delta(&mut self, faucet_id: AccountId, delta: i64) -> Result<(), AssetVaultError> {
+    //     let vault_key = FungibleAsset::to_vault_key(faucet_id).into();
+    //
+    //     // fetch current asset value from the tree and add amount delta to it.
+    //     let new_amount: u64 =
+    //         match self.asset_tree.get_value(&vault_key) {
+    //             current if current == Smt::EMPTY_VALUE => delta.try_into().map_err(|_| AssetVaultError::AddFungibleAssetBalanceError(0.into()))?,
+    //             current => {
+    //                 let current = FungibleAsset::new_unchecked(current);
+    //                 current.add(asset).map_err(AssetVaultError::AddFungibleAssetBalanceError)?
+    //             },
+    //         };
+    //     self.asset_tree.insert(new.vault_key().into(), new.into());
+    // }
 
     // ADD ASSET
     // --------------------------------------------------------------------------------------------
