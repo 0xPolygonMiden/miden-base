@@ -1,4 +1,5 @@
 use alloc::{string::ToString, vec::Vec};
+use std::println;
 
 use miden_objects::{
     accounts::AccountId,

@@ -191,7 +191,7 @@ fn test_get_output_notes_hash() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_2,
-        NoteExecutionHint::after_block(1),
+        NoteExecutionHint::after_block(123),
         ZERO,
     )
     .unwrap();
@@ -250,7 +250,7 @@ fn test_get_output_notes_hash() {
 
             # compute the output notes hash
             exec.tx::get_output_notes_hash
-            # => [COMM]
+            # => [COM]
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,

@@ -12,8 +12,8 @@ const.PUBLIC_NOTE=1     # 0b01
 const.PRIVATE_NOTE=2    # 0b10
 const.ENCRYPTED_NOTE=3  # 0b11
 
-# Two raised to the power of 36 (2^36)
-const.TWO_POW_36=68719476736
+# Two raised to the power of 38 (2^38), used for shifting the note type value
+const.TWO_POW_38=274877906944
 
 # ERRORS
 # =================================================================================================
@@ -254,6 +254,40 @@ proc.add_fungible_asset_to_note
     # => [note_ptr, note_idx]
 end
 
+#! Builds the stack into the NOTE_METADATA word, encoding the note type and execution hint
+#! into a single element.
+#!
+#! Inputs:  [tag, aux, note_type, execution_hint]
+#! Outputs: [NOTE_METADATA]
+proc.build_note_metadata
+    # validate the note type
+    # NOTE: encrypted notes are currently unsupported
+    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
+    # => [tag, aux, note_type, execution_hint]
+
+    # copy data to validate the tag
+    dup.2 push.PUBLIC_NOTE dup.1 dup.3
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint]
+
+    u32assert.err=ERR_NOTE_TAG_MUST_BE_U32
+    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint]
+
+    # enforce the note type depending on the tag' bits
+    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
+    # => [tag, aux, note_type, execution_hint]
+
+    # populate the metadata
+    swap exec.account::get_id movup.4 movup.4 
+    # => [note_type, execution_hint, sender_acct_id, aux, tag]
+
+    # encode note_type and execution_hint into a single element
+    push.TWO_POW_38 mul add 
+    # => [encoded_type_and_ex_hint, sender_acct_id, aux, tag]
+
+    movup.2
+    # => [NOTE_METADATA]
+end
+
 #! Creates a new note and returns the index of the note.
 #!
 #! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT]
@@ -275,37 +309,19 @@ export.create_note
     push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     emit.NOTE_BEFORE_CREATED_EVENT
 
-    # validate the note type
-    # NOTE: encrypted notes are currently unsupported
-    dup.2 push.PRIVATE_NOTE eq dup.3 push.PUBLIC_NOTE eq or assert.err=ERR_INVALID_NOTE_TYPE
-    # => [tag, aux, note_type, execution_hint, RECIPIENT]
-
-    # copy data to validate the tag
-    dup.2 push.PUBLIC_NOTE dup.1 dup.3
-    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint, RECIPIENT]
-
-    u32assert.err=ERR_NOTE_TAG_MUST_BE_U32
-    # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint, RECIPIENT]
-
-    # enforce the note type depending on the tag's bits
-    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop assert_eq.err=ERR_NOTE_INVALID_TYPE_FOR_TAG
-    # => [tag, aux, note_type, execution_hint, RECIPIENT]
+    exec.build_note_metadata
+    # => [NOTE_METADATA, RECIPIENT]
 
     # get the index for the next note to be created and increment counter
     exec.increment_num_output_notes dup movdn.9
-    # => [note_idx, tag, aux, note_type, execution_hint, RECIPIENT, note_idx]
+    # => [note_idx, NOTE_METADATA, RECIPIENT, note_idx]
 
     # get a pointer to the memory address at which the note will be stored
     exec.memory::get_output_note_ptr
-    # => [note_ptr, tag, aux, note_type, execution_hint, RECIPIENT, note_idx]
+    # => [note_ptr, NOTE_METADATA, RECIPIENT, note_idx]
 
-    # populate the metadata
-    swap exec.account::get_id movup.5 movup.5 movup.5
-    # => [aux, note_type, execution_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
-
-    # encode note_type and execution_hint into a single element
-    movdn.2 push.TWO_POW_36 mul add swap
-    # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+    movdn.4
+    # => [NOTE_METADATA, note_ptr, RECIPIENT, note_idx]
 
     # emit event to signal that a new note is created
     emit.NOTE_AFTER_CREATED_EVENT

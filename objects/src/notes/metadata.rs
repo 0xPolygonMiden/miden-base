@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    note_execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
+    execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Felt, NoteError, NoteTag, NoteType, Serializable, Word,
 };
 
@@ -97,10 +97,10 @@ impl From<NoteMetadata> for Word {
 impl From<&NoteMetadata> for Word {
     fn from(metadata: &NoteMetadata) -> Self {
         let mut elements = Word::default();
-        elements[0] = metadata.tag.inner().into();
-        elements[1] = metadata.sender.into();
-        elements[2] = Felt::new(merge_type_and_hint(metadata.note_type, metadata.execution_hint));
-        elements[3] = metadata.aux;
+        elements[0] = metadata.aux;
+        elements[1] = Felt::new(merge_type_and_hint(metadata.note_type, metadata.execution_hint));
+        elements[2] = metadata.sender.into();
+        elements[3] = metadata.tag.inner().into();
         elements
     }
 }
@@ -109,13 +109,13 @@ impl TryFrom<Word> for NoteMetadata {
     type Error = NoteError;
 
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
-        let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
-        let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[2].into())?;
-        let tag: u64 = elements[0].into();
+        let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[1].into())?;
+        let sender = elements[2].try_into().map_err(NoteError::InvalidNoteSender)?;
+        let tag: u64 = elements[3].into();
         let tag: u32 =
             tag.try_into().map_err(|_| NoteError::InconsistentNoteTag(note_type, tag))?;
 
-        Self::new(sender, note_type, tag.into(), note_execution_hint, elements[3])
+        Self::new(sender, note_type, tag.into(), note_execution_hint, elements[0])
     }
 }
 
@@ -150,22 +150,22 @@ impl Deserializable for NoteMetadata {
 /// Encodes `note_type` and `note_execution_hint` into a [u64] such that the resulting number has
 /// the following structure (from most significant bit to the least significant bit):
 ///
-/// - Bits 39 to 36 (4 bits): NoteType
-/// - Bits 35 to 32 (4 bits): NoteExecutionHint tag
+/// - Bits 39 to 38 (2 bits): NoteType
+/// - Bits 37 to 32 (6 bits): NoteExecutionHint tag
 /// - Bits 31 to 0 (32 bits): NoteExecutionHint payload
 pub fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHint) -> u64 {
-    let type_nibble = note_type as u64 & 0xF;
+    let type_nibble = note_type as u64 & 0b11;
     let (tag_nibble, payload_u32) = note_execution_hint.into_parts();
 
-    let tag_section = (tag_nibble as u64) & 0xF;
+    let tag_section = (tag_nibble as u64) & 0b111111;
     let payload_section = payload_u32 as u64;
 
-    (type_nibble << 36) | (tag_section << 32) | payload_section
+    (type_nibble << 38) | (tag_section << 32) | payload_section
 }
 
 pub fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
-    let high_nibble = ((value >> 36) & 0xF) as u8;
-    let tag_byte = ((value >> 32) & 0xF) as u8;
+    let high_nibble = ((value >> 38) & 0b11) as u8;
+    let tag_byte = ((value >> 32) & 0b111111) as u8;
     let payload_u32 = (value & 0xFFFFFFFF) as u32;
 
     let note_type = NoteType::try_from(high_nibble)?;

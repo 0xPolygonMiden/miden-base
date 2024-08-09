@@ -6,18 +6,17 @@ use crate::accounts::AccountCode;
 // account's procedures.
 const MASTS: [&str; 11] = [
     "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
-    "0xe3ae04995b883f07c3173704905f1851e2bd3c2ae5930bce8071f3a088f5cbef",
+    "0xcd6a4cf65d0c725ce04f32c149a0835c806971031d671e02446e69fe908e6eee",
     "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
     "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
     "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
     "0x24e0a1587d4d1ddff74313518f5187f6042ffbe8f2ddc97d367a5c3da4b17d82",
-    "0x1bfd646c31e67fdd2e71cdb51906f023cbcd3c4230b3ca4ebefbc2a6c891f016",
+    "0xab8749ff15cfe9880f005e328df00b19d48f7bb7f77aaaf68ed3c243a432c4f6",
     "0xf5b4e6d17ccde492c051e55bd6a5756974ce203c225ad5af0fc80322c6e5a6b5",
     "0xcd34115714cdcda24f1d6968cbfb67b8b51c1751a2e25e9d6b4e18c35323e5ba",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
-pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
 pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
 pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
 pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];

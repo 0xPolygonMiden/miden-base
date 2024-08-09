@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeSet, string::ToString, vec::Vec};
 use core::fmt::Debug;
+use std::println;
 
 use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;

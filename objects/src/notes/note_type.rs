@@ -6,11 +6,10 @@ use crate::{
 // CONSTANTS
 // ================================================================================================
 
-// NOTE: `NoteType` variants should be able to be represented by 4 bits.
 // Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
-const PUBLIC: u8 = 0b0001;
-const PRIVATE: u8 = 0b0010;
-const ENCRYPTED: u8 = 0b0011;
+const PUBLIC: u8 = 0b01;
+const PRIVATE: u8 = 0b10;
+const ENCRYPTED: u8 = 0b11;
 
 // NOTE TYPE
 // ================================================================================================

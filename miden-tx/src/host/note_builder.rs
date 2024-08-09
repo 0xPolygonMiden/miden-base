@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use std::{dbg, println};
 
 use miden_objects::{
     assets::Asset,
@@ -7,6 +8,7 @@ use miden_objects::{
         NoteScript, NoteTag, PartialNote,
     },
 };
+use vm_processor::Word;
 
 use super::{AccountId, AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
 
@@ -47,15 +49,9 @@ impl OutputNoteBuilder {
         adv_provider: &A,
     ) -> Result<Self, TransactionKernelError> {
         // read note metadata info from the stack and build the metadata object
-        let aux = stack[0];
-        let (note_type, note_execution_hint) = unmerge_type_and_hint(stack[1].into())
-            .map_err(TransactionKernelError::MalformedNoteMetadata)?;
-
-        let sender =
-            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
-        let tag = NoteTag::try_from(stack[3])
-            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
-        let metadata = NoteMetadata::new(sender, note_type, tag, note_execution_hint, aux)
+        let metadata_word = [stack[0], stack[1], stack[2], stack[3]];
+        let metadata: NoteMetadata = metadata_word
+            .try_into()
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
         // read recipient digest from the stack and try to build note recipient object if there is
@@ -114,7 +110,6 @@ impl OutputNoteBuilder {
             // if there are no recipient details and the note is not private, return an error
             return Err(TransactionKernelError::MissingNoteDetails(metadata, recipient_digest));
         };
-
         Ok(Self {
             metadata,
             recipient_digest,

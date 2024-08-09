@@ -13,8 +13,11 @@ const ALWAYS_TAG: u8 = 1;
 const AFTER_BLOCK_TAG: u8 = 2;
 const ON_BLOCK_SLOT_TAG: u8 = 3;
 
-/// Describes the conditions under which a note is ready to be consumed.
+/// Specifies the conditions under which a note is ready to be consumed.
 /// These conditions are meant to be encoded in the note script as well.
+///
+/// This struct can be represented as the combination of a tag, and a payload.
+/// The tag specifies the variant of the hint, and the payload encodes the hint data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum NoteExecutionHint {
