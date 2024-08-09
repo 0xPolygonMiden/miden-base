@@ -13,6 +13,11 @@
 - Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
 - [BREAKING] Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812, #816).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
+- Made `miden_lib::notes::build_swap_tag()` function public (#817).
+- [BREAKING] Changed the `NoteFile::NoteDetails` type to struct and added a `after_block_num` field (#823).
+- Implemented `cteate_note` and `move_asset_into_note` basic wallet procedures (#808).
+- [BREAKING] Interface of the `miden::tx::add_asset_to_note` procedure was changed (#808).
+- Added serialization and equality comparison for `TransactionScript` (#824).
 
 ## 0.4.0 (2024-07-03)
 

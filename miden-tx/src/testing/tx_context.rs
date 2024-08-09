@@ -268,7 +268,7 @@ impl TransactionContextBuilder {
                 push.{tag}
                 call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
-                push.{asset} movup.4
+                push.{asset}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
             end
@@ -310,7 +310,7 @@ impl TransactionContextBuilder {
                 push.{tag0}
                 call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
-                push.{asset0} movup.4
+                push.{asset0}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
 
@@ -323,7 +323,7 @@ impl TransactionContextBuilder {
                 push.{tag1}
                 call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
 
-                push.{asset1} movup.4
+                push.{asset1}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
             end

@@ -151,7 +151,7 @@ pub fn create_swap_note<R: FeltRng>(
 /// together as offered_asset_tag + requested_asset tag.
 ///
 /// Network execution hint for the returned tag is set to `Local`.
-fn build_swap_tag(
+pub fn build_swap_tag(
     note_type: NoteType,
     offered_asset: &Asset,
     requested_asset: &Asset,

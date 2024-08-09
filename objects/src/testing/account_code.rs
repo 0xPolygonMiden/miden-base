@@ -4,28 +4,32 @@ use crate::accounts::AccountCode;
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
-const MASTS: [&str; 11] = [
+const MASTS: [&str; 13] = [
+    "0xfdbbfe639d69012b47e946fd23a975d064ec19bc0f7bd45b5f65b47b059e7b01",
+    "0x996a35ee99d675fec9dbbe8156f53357b1d42b3105ab4dc24172d779d818c1c8",
     "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
-    "0x63372dac3179d801d4d2bcbf0889fa8cae944f426fab3c9bc090291cb67a7bc7",
+    "0x8ae4511f7e9841364e1a62b6594ef02e25d4404b50e18921eaaa36c765382572",
     "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
     "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
     "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
     "0x24e0a1587d4d1ddff74313518f5187f6042ffbe8f2ddc97d367a5c3da4b17d82",
-    "0xa3c33817dbe886b0924996732dd8e98d5597ce1efe3f5771f9e0f6a599fe5e10",
-    "0xf5b4e6d17ccde492c051e55bd6a5756974ce203c225ad5af0fc80322c6e5a6b5",
+    "0xfdbbfe639d69012b47e946fd23a975d064ec19bc0f7bd45b5f65b47b059e7b01",
+    "0x8f66a752fed49ee97ef9281ec7e3d5d1ffad7b229aac7a96f91f5e50fd391607",
     "0xcd34115714cdcda24f1d6968cbfb67b8b51c1751a2e25e9d6b4e18c35323e5ba",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
 ];
-pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[2];
-pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[3];
-pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[4];
-pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[5];
-pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[6];
-pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[7];
-pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[8];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[9];
-pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[10];
+
+pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
+pub const ACCOUNT_INCR_NONCE_MAST_ROOT: &str = MASTS[4];
+pub const ACCOUNT_SET_ITEM_MAST_ROOT: &str = MASTS[5];
+pub const ACCOUNT_SET_MAP_ITEM_MAST_ROOT: &str = MASTS[6];
+pub const ACCOUNT_SET_CODE_MAST_ROOT: &str = MASTS[7];
+pub const ACCOUNT_CREATE_NOTE_MAST_ROOT: &str = MASTS[8];
+pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[9];
+pub const ACCOUNT_REMOVE_ASSET_MAST_ROOT: &str = MASTS[10];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_1_MAST_ROOT: &str = MASTS[11];
+pub const ACCOUNT_ACCOUNT_PROCEDURE_2_MAST_ROOT: &str = MASTS[12];
 
 pub const CODE: &str = "
     export.foo
@@ -69,8 +73,12 @@ impl AccountCode {
         export.wallet::receive_asset
         # acct proc 1
         export.wallet::send_asset
-
         # acct proc 2
+        export.wallet::cteate_note
+        # acct proc 3
+        export.wallet::move_asset_to_note
+
+        # acct proc 4
         export.incr_nonce
             push.0 swap
             # => [value, 0]
@@ -79,7 +87,7 @@ impl AccountCode {
             # => [0]
         end
 
-        # acct proc 3
+        # acct proc 5
         export.set_item
             exec.account::set_item
             # => [R', V, 0, 0, 0]
@@ -88,7 +96,7 @@ impl AccountCode {
             # => [R', V]
         end
 
-        # acct proc 4
+        # acct proc 6
         export.set_map_item
             exec.account::set_map_item
             # => [R', V, 0, 0, 0]
@@ -97,7 +105,7 @@ impl AccountCode {
             # => [R', V]
         end
 
-        # acct proc 5
+        # acct proc 7
         export.set_code
             padw swapw
             # => [CODE_COMMITMENT, 0, 0, 0, 0]
@@ -106,35 +114,31 @@ impl AccountCode {
             # => [0, 0, 0, 0]
         end
 
-        # acct proc 6
+        # acct proc 8
         export.create_note
             exec.tx::create_note
             # => [note_idx]
-
-            swapw dropw swap drop
         end
 
-        # acct proc 7
+        # acct proc 9
         export.add_asset_to_note
             exec.tx::add_asset_to_note
-            # => [note_idx]
-
-            swap drop swap drop swap drop
+            # => [ASSET, note_idx]
         end
 
-        # acct proc 8
+        # acct proc 10
         export.remove_asset
             exec.account::remove_asset
             # => [ASSET]
         end
 
-        # acct proc 9
+        # acct proc 11
         export.account_procedure_1
             push.1.2
             add
         end
 
-        # acct proc 10
+        # acct proc 12
         export.account_procedure_2
             push.2.1
             sub
@@ -163,8 +167,10 @@ impl AccountCode {
             code.procedures()[8].mast_root().to_hex(),
             code.procedures()[9].mast_root().to_hex(),
             code.procedures()[10].mast_root().to_hex(),
+            code.procedures()[11].mast_root().to_hex(),
+            code.procedures()[12].mast_root().to_hex(),
         ];
-        assert!(current == MASTS, "const MASTS: [&str; 11] = {:?};", current);
+        assert!(current == MASTS, "const MASTS: [&str; 13] = {:?};", current);
 
         code
     }
