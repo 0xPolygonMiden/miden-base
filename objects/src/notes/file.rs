@@ -13,14 +13,18 @@ pub enum NoteFile {
     /// The note has not yet been recorded on chain.
     ///
     /// An optional tag is included for note tracking.
-    NoteDetails(NoteDetails, Option<NoteTag>),
+    NoteDetails {
+        details: NoteDetails,
+        after_block_num: u32,
+        tag: Option<NoteTag>,
+    },
     /// The note has been recorded on chain.
     NoteWithProof(Note, NoteInclusionProof),
 }
 
 impl From<NoteDetails> for NoteFile {
     fn from(details: NoteDetails) -> Self {
-        NoteFile::NoteDetails(details, None)
+        NoteFile::NoteDetails { details, after_block_num: 0, tag: None }
     }
 }
 
@@ -41,9 +45,10 @@ impl Serializable for NoteFile {
                 target.write_u8(0);
                 note_id.write_into(target);
             },
-            NoteFile::NoteDetails(details, tag) => {
+            NoteFile::NoteDetails { details, after_block_num, tag } => {
                 target.write_u8(1);
                 details.write_into(target);
+                after_block_num.write_into(target);
                 tag.write_into(target);
             },
             NoteFile::NoteWithProof(note, proof) => {
@@ -67,8 +72,9 @@ impl Deserializable for NoteFile {
             0 => Ok(NoteFile::NoteId(NoteId::read_from(source)?)),
             1 => {
                 let details = NoteDetails::read_from(source)?;
+                let after_block_num = u32::read_from(source)?;
                 let tag = Option::<NoteTag>::read_from(source)?;
-                Ok(NoteFile::NoteDetails(details, tag))
+                Ok(NoteFile::NoteDetails { details, after_block_num, tag })
             },
             2 => {
                 let note = Note::read_from(source)?;
@@ -161,15 +167,20 @@ mod tests {
     #[test]
     fn serialize_details() {
         let note = create_example_note();
-        let file = NoteFile::NoteDetails(note.details.clone(), Some(NoteTag::from(123)));
+        let file = NoteFile::NoteDetails {
+            details: note.details.clone(),
+            after_block_num: 456,
+            tag: Some(NoteTag::from(123)),
+        };
         let mut buffer = Vec::new();
         file.write_into(&mut buffer);
 
         let file_copy = NoteFile::read_from_bytes(&buffer).unwrap();
 
         match file_copy {
-            NoteFile::NoteDetails(details, tag) => {
+            NoteFile::NoteDetails { details, after_block_num, tag } => {
                 assert_eq!(details, note.details);
+                assert_eq!(after_block_num, 456);
                 assert_eq!(tag, Some(NoteTag::from(123)));
             },
             _ => panic!("Invalid note file variant"),
