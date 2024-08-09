@@ -151,22 +151,22 @@ impl Deserializable for NoteMetadata {
 /// the following structure (from most significant bit to the least significant bit):
 ///
 /// - Bits 39 to 38 (2 bits): NoteType
-/// - Bits 37 to 32 (6 bits): NoteExecutionHint tag
-/// - Bits 31 to 0 (32 bits): NoteExecutionHint payload
+/// - Bits 37 to 6 (32 bits): NoteExecutionHint payload
+/// - Bits 5 to 0 (6 bits): NoteExecutionHint tag
 fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHint) -> u64 {
     let type_nibble = note_type as u64 & 0b11;
     let (tag_nibble, payload_u32) = note_execution_hint.into_parts();
 
-    let tag_section = (tag_nibble as u64) & 0b111111;
     let payload_section = payload_u32 as u64;
+    let tag_section = (tag_nibble as u64) & 0b111111;
 
-    (type_nibble << 38) | (tag_section << 32) | payload_section
+    (type_nibble << 38) | (payload_section << 6) | tag_section
 }
 
 fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
     let high_nibble = ((value >> 38) & 0b11) as u8;
-    let tag_byte = ((value >> 32) & 0b111111) as u8;
-    let payload_u32 = (value & 0xFFFFFFFF) as u32;
+    let tag_byte = (value & 0b111111) as u8;
+    let payload_u32 = (value >> 6 & 0xFFFFFFFF) as u32;
 
     let note_type = NoteType::try_from(high_nibble)?;
     let note_execution_hint = NoteExecutionHint::from_parts(tag_byte, payload_u32)?;
@@ -179,6 +179,7 @@ fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), No
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -204,6 +205,15 @@ mod tests {
         let (extracted_note_type, extracted_note_execution_hint) =
             unmerge_type_and_hint(merged_value).unwrap();
 
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint, extracted_note_execution_hint);
+
+        let note_type = NoteType::Private;
+        let note_execution_hint = NoteExecutionHint::None;
+
+        let merged_value = merge_type_and_hint(note_type, note_execution_hint);
+        let (extracted_note_type, extracted_note_execution_hint) =
+            unmerge_type_and_hint(merged_value).unwrap();
         assert_eq!(note_type, extracted_note_type);
         assert_eq!(note_execution_hint, extracted_note_execution_hint);
     }

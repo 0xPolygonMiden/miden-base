@@ -120,6 +120,7 @@ pub fn create_swap_note<R: FeltRng>(
         requested_asset_word[2],
         requested_asset_word[3],
         payback_tag.inner().into(),
+        NoteExecutionHint::always().into(),
     ])?;
 
     // build the tag for the SWAP use case

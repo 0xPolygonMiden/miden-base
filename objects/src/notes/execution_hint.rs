@@ -147,10 +147,16 @@ impl NoteExecutionHint {
     }
 }
 
+/// As a Felt, the ExecutionHint is encoded as:
+///
+/// - 6 least significant bits: Hint identifier (tag).
+/// - Bits 6 to 38: Hint payload.
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
 impl From<NoteExecutionHint> for Felt {
     fn from(value: NoteExecutionHint) -> Self {
         let (tag, payload) = value.into_parts();
-        Felt::new((tag as u64) << 32 | (payload as u64))
+        Felt::new(((payload as u64) << 6) | (tag as u64))
     }
 }
 
