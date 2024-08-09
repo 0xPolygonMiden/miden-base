@@ -13,8 +13,8 @@ use miden_objects::{
     assembly::{Assembler, ModuleAst, ProgramAst},
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteExecutionMode, NoteHeader, NoteId, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
         account_code::{
@@ -71,7 +71,7 @@ fn transaction_executor_witness() {
     // use the witness to execute the transaction again
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let _authenticator = ();
+
     let mut host: TransactionHost<MemAdviceProvider, ()> =
         TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None).unwrap();
     let result =
@@ -235,6 +235,7 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_1} # note_execution_hint
             push.{NOTETYPE1}        # note_type
             push.{aux1}             # aux
             push.{tag1}             # tag
@@ -244,6 +245,7 @@ fn executed_transaction_account_delta() {
 
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_2} # note_execution_hint
             push.{NOTETYPE2}        # note_type
             push.{aux2}             # aux
             push.{tag2}             # tag
@@ -253,6 +255,7 @@ fn executed_transaction_account_delta() {
 
             # send non-fungible asset
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_3} # note_execution_hint
             push.{NOTETYPE3}        # note_type
             push.{aux3}             # aux
             push.{tag3}             # tag
@@ -281,6 +284,9 @@ fn executed_transaction_account_delta() {
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
@@ -495,7 +501,8 @@ fn executed_transaction_output_notes() {
     let note_program_ast_2 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
-    let metadata_2 = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
+    let metadata_2 =
+        NoteMetadata::new(account_id, note_type2, tag2, NoteExecutionHint::none(), aux2).unwrap();
     let vault_2 = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
     let recipient_2 = NoteRecipient::new(serial_num_2, note_script_2, inputs_2);
     let expected_output_note_2 = Note::new(vault_2, metadata_2, recipient_2);
@@ -505,7 +512,14 @@ fn executed_transaction_output_notes() {
     let note_program_ast_3 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
     let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
-    let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();
+    let metadata_3 = NoteMetadata::new(
+        account_id,
+        note_type3,
+        tag3,
+        NoteExecutionHint::on_block_slot(1, 2, 3),
+        aux3,
+    )
+    .unwrap();
     let vault_3 = NoteAssets::new(vec![]).unwrap();
     let recipient_3 = NoteRecipient::new(serial_num_3, note_script_3, inputs_3);
     let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
@@ -551,6 +565,7 @@ fn executed_transaction_output_notes() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3                        # recipient
+            push.{EXECUTION_HINT_1}             # note execution hint
             push.{NOTETYPE1}                    # note_type
             push.{aux1}                         # aux
             push.{tag1}                         # tag
@@ -571,6 +586,7 @@ fn executed_transaction_output_notes() {
 
             # send non-fungible asset
             push.{RECIPIENT2}                   # recipient
+            push.{EXECUTION_HINT_2}             # note execution hint
             push.{NOTETYPE2}                    # note_type
             push.{aux2}                         # aux
             push.{tag2}                         # tag
@@ -590,6 +606,7 @@ fn executed_transaction_output_notes() {
 
             # create a public note without assets
             push.{RECIPIENT3}                   # recipient
+            push.{EXECUTION_HINT_3}             # note execution hint
             push.{NOTETYPE3}                    # note_type
             push.{aux3}                         # aux
             push.{tag3}                         # tag
@@ -612,7 +629,11 @@ fn executed_transaction_output_notes() {
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(11, 22, 33)),
     );
+
     let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
     let mut tx_args = TransactionArgs::new(

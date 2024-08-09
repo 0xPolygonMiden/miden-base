@@ -4,7 +4,7 @@ use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
+    accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
     transaction::OutputNote,
@@ -118,7 +118,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+        // # => [aux, encoded_type_and_ex_hint, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
 
         let note_idx: usize = stack[9].as_int() as usize;
 

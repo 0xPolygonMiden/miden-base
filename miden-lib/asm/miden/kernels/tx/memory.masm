@@ -1085,9 +1085,9 @@ export.get_input_note_sender
     padw
     movup.4 push.INPUT_NOTE_METADATA_OFFSET add
     mem_loadw
-    # => [0, 0, sender, tag]
+    # => [tag, sender, encoded_type_and_ex_hint, aux]
 
-    drop drop swap drop
+    drop movdn.2 drop drop
     # => [sender]
 end
 

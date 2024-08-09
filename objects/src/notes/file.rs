@@ -124,8 +124,14 @@ mod tests {
         let recipient = NoteRecipient::new(serial_num, script, note_inputs);
 
         let asset = Asset::Fungible(FungibleAsset::new(faucet, 100).unwrap());
-        let metadata =
-            NoteMetadata::new(faucet, NoteType::Public, NoteTag::from(123), Felt::new(0)).unwrap();
+        let metadata = NoteMetadata::new(
+            faucet,
+            NoteType::Public,
+            NoteTag::from(123),
+            crate::notes::NoteExecutionHint::None,
+            Felt::new(0),
+        )
+        .unwrap();
 
         Note::new(NoteAssets::new(vec![asset]).unwrap(), metadata, recipient)
     }
