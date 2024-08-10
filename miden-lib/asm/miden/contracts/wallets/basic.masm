@@ -77,7 +77,7 @@ end
 #! - execution_hint is the note's execution hint
 #! - RECIPIENT is the recipient of the note, i.e.,
 #!   hash(hash(hash(serial_num, [0; 4]), script_hash), input_hash)
-export.cteate_note
+export.create_note
     exec.tx::create_note
     # => [note_idx, PAD(15) ...]
 end

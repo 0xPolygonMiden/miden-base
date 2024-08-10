@@ -18,9 +18,9 @@ use miden_objects::{
     },
     testing::{
         account_code::{
-            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
-            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
-            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_INCR_NONCE_MAST_ROOT,
+            ACCOUNT_REMOVE_ASSET_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
+            ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
@@ -533,11 +533,11 @@ fn test_send_note_proc() {
                 push.{tag}        # tag
                 # => [tag, aux, note_type, RECIPIENT, ...]
 
-                # pad the stack with zeros before calling the `cteate_note`.
+                # pad the stack with zeros before calling the `create_note`.
                 padw padw swapdw
                 # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8) ...]
 
-                call.wallet::cteate_note
+                call.wallet::create_note
                 # => [note_idx, GARBAGE(15)]
 
                 movdn.4
@@ -703,7 +703,7 @@ fn executed_transaction_output_notes() {
             padw padw swapdw
             # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
 
-            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            call.wallet::create_note
             # => [note_idx, PAD(15)]
 
             # remove excess PADs from the stack 
@@ -729,8 +729,8 @@ fn executed_transaction_output_notes() {
         end
 
         proc.remove_asset
-        call.{ACCOUNT_REMOVE_ASSET_MAST_ROOT}
-        # => [note_ptr]
+            call.{ACCOUNT_REMOVE_ASSET_MAST_ROOT}
+            # => [note_ptr]
         end
 
         proc.incr_nonce
