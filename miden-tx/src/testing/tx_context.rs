@@ -14,7 +14,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
-        account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
+        account_code::ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
         block::{MockChain, MockChainBuilder},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
@@ -258,6 +258,8 @@ impl TransactionContextBuilder {
     ) -> Note {
         let code = format!(
             "
+            use.miden::contracts::wallets::basic->wallet
+
             begin
                 # NOTE
                 # ---------------------------------------------------------------------------------
@@ -266,7 +268,7 @@ impl TransactionContextBuilder {
                 push.{PUBLIC_NOTE}
                 push.{aux}
                 push.{tag}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
                 push.{asset}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
@@ -300,6 +302,8 @@ impl TransactionContextBuilder {
     ) -> Note {
         let code = format!(
             "
+            use.miden::contracts::wallets::basic->wallet
+
             begin
                 # NOTE 0
                 # ---------------------------------------------------------------------------------
@@ -308,7 +312,7 @@ impl TransactionContextBuilder {
                 push.{PUBLIC_NOTE}
                 push.{aux0}
                 push.{tag0}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
                 push.{asset0}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
@@ -321,7 +325,7 @@ impl TransactionContextBuilder {
                 push.{PUBLIC_NOTE}
                 push.{aux1}
                 push.{tag1}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
                 push.{asset1}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
