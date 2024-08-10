@@ -527,14 +527,15 @@ fn test_send_note_proc() {
             begin
                 # prepare the values for note creation
                 push.1.2.3.4      # recipient
+                push.1            # note_execution_hint (NoteExecutionHint::Always)
                 push.{note_type}  # note_type
                 push.{aux}        # aux
                 push.{tag}        # tag
                 # => [tag, aux, note_type, RECIPIENT, ...]
 
                 # pad the stack with zeros before calling the `cteate_note`.
-                push.0 movdn.7 padw padw swapdw
-                # => [tag, aux, note_type, RECIPIENT, PAD(9) ...]
+                padw padw swapdw
+                # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8) ...]
 
                 call.wallet::cteate_note
                 # => [note_idx, GARBAGE(15)]
