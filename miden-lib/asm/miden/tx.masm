@@ -55,19 +55,20 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs:  [tag, aux, note_type, RECIPIENT, ...]
+#! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT, ...]
 #! Outputs: [note_idx, ...]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
 #! note_type is the storage type of the note
+#! execution_hint is the note's execution hint
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
     # pad the stack before the syscall to prevent accidental modification of the deeper stack 
     # elements 
-    push.0 movdn.7 padw padw swapdw
-    # => [tag, aux, note_type, RECIPIENT, PAD(9)]
+    padw padw swapdw
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
 
     syscall.create_note
     # => [note_idx, PAD(15)]

@@ -12,7 +12,7 @@ use miden_objects::{
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteId, NoteType},
+    notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
         account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
         block::{MockChain, MockChainBuilder},
@@ -262,6 +262,7 @@ impl TransactionContextBuilder {
                 # NOTE
                 # ---------------------------------------------------------------------------------
                 push.{recipient}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux}
                 push.{tag}
@@ -277,6 +278,7 @@ impl TransactionContextBuilder {
             aux = output.metadata().aux(),
             tag = output.metadata().tag(),
             asset = prepare_assets(output.assets())[0],
+            execution_hint_always = Felt::from(NoteExecutionHint::always())
         );
 
         NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
@@ -302,6 +304,7 @@ impl TransactionContextBuilder {
                 # NOTE 0
                 # ---------------------------------------------------------------------------------
                 push.{recipient0}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux0}
                 push.{tag0}
@@ -314,6 +317,7 @@ impl TransactionContextBuilder {
                 # NOTE 1
                 # ---------------------------------------------------------------------------------
                 push.{recipient1}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux1}
                 push.{tag1}
@@ -333,6 +337,7 @@ impl TransactionContextBuilder {
             aux1 = output1.metadata().aux(),
             tag1 = output1.metadata().tag(),
             asset1 = prepare_assets(output1.assets())[0],
+            execution_hint_always = Felt::from(NoteExecutionHint::always())
         );
 
         NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))

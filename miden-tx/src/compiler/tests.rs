@@ -8,7 +8,8 @@ use miden_objects::{
     },
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteInclusionProof, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteInclusionProof, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteType,
     },
     transaction::{InputNote, InputNotes},
     Felt, Word, ZERO,
@@ -157,7 +158,9 @@ fn mock_input_notes(tx_compiler: &mut TransactionCompiler, target_account: Accou
     const SERIAL_NUM_1: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let vault =
         NoteAssets::new(vec![fungible_asset_1, fungible_asset_2, fungible_asset_3]).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
+    let metadata =
+        NoteMetadata::new(sender, NoteType::Public, 0.into(), NoteExecutionHint::always(), ZERO)
+            .unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(1)]).unwrap();
     let recipient = NoteRecipient::new(SERIAL_NUM_1, note_script.clone(), inputs);
     let note_1 = Note::new(vault, metadata, recipient);
@@ -165,7 +168,9 @@ fn mock_input_notes(tx_compiler: &mut TransactionCompiler, target_account: Accou
     const SERIAL_NUM_2: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
     let vault =
         NoteAssets::new(vec![fungible_asset_1, fungible_asset_2, fungible_asset_3]).unwrap();
-    let metadata = NoteMetadata::new(sender, NoteType::Public, 0.into(), ZERO).unwrap();
+    let metadata =
+        NoteMetadata::new(sender, NoteType::Public, 0.into(), NoteExecutionHint::always(), ZERO)
+            .unwrap();
     let inputs = NoteInputs::new(vec![Felt::new(2)]).unwrap();
     let recipient = NoteRecipient::new(SERIAL_NUM_2, note_script, inputs);
     let note_2 = Note::new(vault, metadata, recipient);

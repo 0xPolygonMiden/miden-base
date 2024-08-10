@@ -5,8 +5,8 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionMode, NoteInputs, NoteMetadata, NoteRecipient,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteTag, NoteType,
     },
     Felt, NoteError, Word,
 };
@@ -43,7 +43,7 @@ pub fn create_p2id_note<R: FeltRng>(
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let vault = NoteAssets::new(assets)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
@@ -78,7 +78,7 @@ pub fn create_p2idr_note<R: FeltRng>(
     let serial_num = rng.draw_word();
 
     let vault = NoteAssets::new(assets)?;
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
 }
@@ -120,6 +120,7 @@ pub fn create_swap_note<R: FeltRng>(
         requested_asset_word[2],
         requested_asset_word[3],
         payback_tag.inner().into(),
+        NoteExecutionHint::always().into(),
     ])?;
 
     // build the tag for the SWAP use case
@@ -127,7 +128,7 @@ pub fn create_swap_note<R: FeltRng>(
     let serial_num = rng.draw_word();
 
     // build the outgoing note
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     let note = Note::new(assets, metadata, recipient);

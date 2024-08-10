@@ -1,7 +1,7 @@
 use alloc::string::ToString;
 
 use super::{
-    note_execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
+    execution_hint::NoteExecutionHint, AccountId, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Felt, NoteError, NoteTag, NoteType, Serializable, Word,
 };
 
@@ -44,6 +44,7 @@ impl NoteMetadata {
         sender: AccountId,
         note_type: NoteType,
         tag: NoteTag,
+        execution_hint: NoteExecutionHint,
         aux: Felt,
     ) -> Result<Self, NoteError> {
         let tag = tag.validate(note_type)?;
@@ -52,7 +53,7 @@ impl NoteMetadata {
             note_type,
             tag,
             aux,
-            execution_hint: NoteExecutionHint::None,
+            execution_hint,
         })
     }
 
@@ -98,7 +99,7 @@ impl From<&NoteMetadata> for Word {
         let mut elements = Word::default();
         elements[0] = metadata.tag.inner().into();
         elements[1] = metadata.sender.into();
-        elements[2] = metadata.note_type.into();
+        elements[2] = Felt::new(merge_type_and_hint(metadata.note_type, metadata.execution_hint));
         elements[3] = metadata.aux;
         elements
     }
@@ -109,11 +110,12 @@ impl TryFrom<Word> for NoteMetadata {
 
     fn try_from(elements: Word) -> Result<Self, Self::Error> {
         let sender = elements[1].try_into().map_err(NoteError::InvalidNoteSender)?;
-        let note_type = elements[2].try_into()?;
+        let (note_type, note_execution_hint) = unmerge_type_and_hint(elements[2].into())?;
         let tag: u64 = elements[0].into();
         let tag: u32 =
             tag.try_into().map_err(|_| NoteError::InconsistentNoteTag(note_type, tag))?;
-        Self::new(sender, note_type, tag.into(), elements[3])
+
+        Self::new(sender, note_type, tag.into(), note_execution_hint, elements[3])
     }
 }
 
@@ -123,7 +125,7 @@ impl TryFrom<Word> for NoteMetadata {
 impl Serializable for NoteMetadata {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.sender.write_into(target);
-        self.note_type.write_into(target);
+        target.write_u64(merge_type_and_hint(self.note_type, self.execution_hint));
         self.tag.write_into(target);
         self.aux.write_into(target);
     }
@@ -132,11 +134,87 @@ impl Serializable for NoteMetadata {
 impl Deserializable for NoteMetadata {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let sender = AccountId::read_from(source)?;
-        let note_type = NoteType::read_from(source)?;
+        let (note_type, note_execution_hint) = unmerge_type_and_hint(source.read_u64()?)
+            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
         let tag = NoteTag::read_from(source)?;
         let aux = Felt::read_from(source)?;
 
-        Self::new(sender, note_type, tag, aux)
+        Self::new(sender, note_type, tag, note_execution_hint, aux)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Encodes `note_type` and `note_execution_hint` into a [u64] such that the resulting number has
+/// the following structure (from most significant bit to the least significant bit):
+///
+/// - Bits 39 to 38 (2 bits): NoteType
+/// - Bits 37 to 6 (32 bits): NoteExecutionHint payload
+/// - Bits 5 to 0 (6 bits): NoteExecutionHint tag
+fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHint) -> u64 {
+    let type_nibble = note_type as u64 & 0b11;
+    let (tag_nibble, payload_u32) = note_execution_hint.into_parts();
+
+    let payload_section = payload_u32 as u64;
+    let tag_section = (tag_nibble as u64) & 0b111111;
+
+    (type_nibble << 38) | (payload_section << 6) | tag_section
+}
+
+fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
+    let high_nibble = ((value >> 38) & 0b11) as u8;
+    let tag_byte = (value & 0b111111) as u8;
+    let payload_u32 = (value >> 6 & 0xFFFFFFFF) as u32;
+
+    let note_type = NoteType::try_from(high_nibble)?;
+    let note_execution_hint = NoteExecutionHint::from_parts(tag_byte, payload_u32)?;
+
+    Ok((note_type, note_execution_hint))
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_merge_and_unmerge() {
+        let note_type = NoteType::Public;
+        let note_execution_hint = NoteExecutionHint::OnBlockSlot {
+            epoch_len: 10,
+            slot_len: 11,
+            slot_offset: 12,
+        };
+
+        let merged_value = merge_type_and_hint(note_type, note_execution_hint);
+        let (extracted_note_type, extracted_note_execution_hint) =
+            unmerge_type_and_hint(merged_value).unwrap();
+
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint, extracted_note_execution_hint);
+
+        let note_type = NoteType::Private;
+        let note_execution_hint = NoteExecutionHint::Always;
+
+        let merged_value = merge_type_and_hint(note_type, note_execution_hint);
+        let (extracted_note_type, extracted_note_execution_hint) =
+            unmerge_type_and_hint(merged_value).unwrap();
+
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint, extracted_note_execution_hint);
+
+        let note_type = NoteType::Private;
+        let note_execution_hint = NoteExecutionHint::None;
+
+        let merged_value = merge_type_and_hint(note_type, note_execution_hint);
+        let (extracted_note_type, extracted_note_execution_hint) =
+            unmerge_type_and_hint(merged_value).unwrap();
+        assert_eq!(note_type, extracted_note_type);
+        assert_eq!(note_execution_hint, extracted_note_execution_hint);
     }
 }

@@ -29,8 +29,8 @@ pub use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
-mod note_execution_hint;
-pub use note_execution_hint::NoteExecutionHint;
+mod execution_hint;
+pub use execution_hint::NoteExecutionHint;
 
 mod note_id;
 pub use note_id::NoteId;
