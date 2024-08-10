@@ -697,10 +697,10 @@ fn executed_transaction_output_notes() {
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
         proc.create_note
-            # pad the stack before the call to prevent accidental modification of the deeper stack 
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
             # elements 
-            push.0 movdn.7 padw padw swapdw
-            # => [tag, aux, note_type, RECIPIENT, PAD(9)]
+            padw padw swapdw
+            # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
 
             call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
             # => [note_idx, PAD(15)]
@@ -755,7 +755,7 @@ fn executed_transaction_output_notes() {
             # => [note_idx]
 
             push.{REMOVED_ASSET_1}              # asset
-            exec.remove_asset
+            exec.remove_asset 
             # => [ASSET, note_ptr]
             exec.add_asset_to_note
             # => [note_idx]

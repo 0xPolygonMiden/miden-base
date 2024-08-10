@@ -68,7 +68,7 @@ export.create_note
     # pad the stack before the syscall to prevent accidental modification of the deeper stack 
     # elements 
     padw padw swapdw
-    # => [tag, aux, note_type, RECIPIENT, PAD(8)]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
 
     syscall.create_note
     # => [note_idx, PAD(15)]
