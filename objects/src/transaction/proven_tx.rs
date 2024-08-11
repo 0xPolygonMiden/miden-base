@@ -26,7 +26,7 @@ pub struct ProvenTransaction {
     /// Account update data.
     account_update: TxAccountUpdate,
 
-    /// Commited details of all notes consumed by the transaction.
+    /// Committed details of all notes consumed by the transaction.
     input_notes: InputNotes<InputNoteCommitment>,
 
     /// Notes created by the transaction. For private notes, this will contain only note headers,

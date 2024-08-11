@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
 use miden_crypto::merkle::{Mmr, PartialMmr, SimpleSmt, Smt};
-use vm_core::{utils::Serializable, Felt, Word, ZERO};
+use vm_core::{utils::Serializable, Felt, Word, WORD_SIZE, ZERO};
 use vm_processor::Digest;
 #[cfg(not(target_family = "wasm"))]
 use winter_rand_utils as rand;
@@ -377,12 +377,12 @@ impl BlockHeader {
 
         #[cfg(not(target_family = "wasm"))]
         let (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp) = {
-            let prev_hash = rand::rand_array().into();
-            let chain_root = chain_root.unwrap_or(rand::rand_array().into());
-            let nullifier_root = rand::rand_array().into();
-            let note_root = note_root.unwrap_or(rand::rand_array().into());
-            let tx_hash = rand::rand_array().into();
-            let proof_hash = rand::rand_array().into();
+            let prev_hash = rand::rand_array::<Felt, WORD_SIZE>().into();
+            let chain_root = chain_root.unwrap_or(rand::rand_array::<Felt, WORD_SIZE>().into());
+            let nullifier_root = rand::rand_array::<Felt, WORD_SIZE>().into();
+            let note_root = note_root.unwrap_or(rand::rand_array::<Felt, WORD_SIZE>().into());
+            let tx_hash = rand::rand_array::<Felt, WORD_SIZE>().into();
+            let proof_hash = rand::rand_array::<Felt, WORD_SIZE>().into();
             let timestamp = rand::rand_value();
 
             (prev_hash, chain_root, nullifier_root, note_root, tx_hash, proof_hash, timestamp)

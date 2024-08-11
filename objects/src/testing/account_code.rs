@@ -1,22 +1,22 @@
-use assembly::{ast::ModuleAst, Assembler};
+use assembly::Assembler;
 
 use crate::accounts::AccountCode;
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
 const MASTS: [&str; 12] = [
-    "0x2558089a129e273cb80886d9845bf6b844fa0a552b9007807d5e3f95f07cfca6",
-    "0x996a35ee99d675fec9dbbe8156f53357b1d42b3105ab4dc24172d779d818c1c8",
-    "0xe3c24a1109379344874ac5dec91a6311e5563d0194ded29b44ed71535e78b34a",
-    "0xa80cb37095c072ba24cd476e3f0211246b2b5f3506f4b0e67612edcc1d3247d1",
-    "0x28c514e509fc044a2ea6cddbab0abf2b5fa589d5c91978ae9c935ab40e6ec402",
-    "0xa61cdf8c75943d293ffcfca73ea07a6639dad1820d64586a2a292bb9f80a4296",
-    "0x6877f03ef52e490f7c9e41b297fb79bb78075ff28c6e018aaa1ee30f73e7ea4b",
-    "0x24e0a1587d4d1ddff74313518f5187f6042ffbe8f2ddc97d367a5c3da4b17d82",
-    "0x8f66a752fed49ee97ef9281ec7e3d5d1ffad7b229aac7a96f91f5e50fd391607",
-    "0xcd34115714cdcda24f1d6968cbfb67b8b51c1751a2e25e9d6b4e18c35323e5ba",
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
+    "0x8fe219b459e7cf3ced88a5666b3396f31cb97d4729d30b8c20aa9667099846c5",
+    "0xe203ef16c929e5a9253b51d3e71dd182fb3b4b707a5ba5c89bd3e92e587c10b2",
+    "0x92ed8069f0df10267fa4f8c6893c76072264f7b5bf9a6ae2c5dc772cb42f2ad3",
+    "0x7d243d87a57897742a551d98fc166d2cc35ab955ea33c2065db278bf2e6fb91c",
+    "0xe370ca786b01d2b64b97fa2b5300bc54adc1df2d6c8c4945067d3a8fce1f3be2",
+    "0xb6303c8fefc51895d988a5a30272ce97bd2699453f81b2fb8042e0dd55b0bfca",
+    "0x0dbb810e899800e1023ea8921463837484b10dcb4ca1657092245a93c9a08953",
+    "0xc23a46da36a2290941ea32e5ae432a22f501699eb09f6ad0b91bf6c70eaa5e9b",
+    "0x806c992fc7f366314a8723e94d74999d2a663b8291c7d15efd83ddf2b00e8c7d",
+    "0x7cbd0632fba52b8e4003d5cc73376fb5807f2ad5072425563a74f5cf02a56250",
 ];
 
 pub const ACCOUNT_SEND_ASSET_MAST_ROOT: &str = MASTS[1];
@@ -43,38 +43,32 @@ pub const CODE: &str = "
 // ================================================================================================
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::contracts::wallets::basic->basic_wallet
-    use.miden::contracts::auth::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::send_asset
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
-    use.miden::contracts::auth::basic->auth_tx
-
     begin
-        call.auth_tx::auth_tx_rpo_falcon512
+        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
     end
 ";
 
 impl AccountCode {
     /// Creates a mock [AccountCode] that exposes wallet interface
-    pub fn mock_wallet(assembler: &Assembler) -> AccountCode {
+    pub fn mock_wallet(assembler: Assembler) -> AccountCode {
         let account_code = "\
         use.miden::account
         use.miden::tx
-        use.miden::contracts::wallets::basic->wallet
 
         # acct proc 0
-        export.wallet::receive_asset
+        export.::miden::contracts::wallets::basic::receive_asset
         # acct proc 1
-        export.wallet::send_asset
+        export.::miden::contracts::wallets::basic::send_asset
         # acct proc 2
-        export.wallet::create_note
+        export.::miden::contracts::wallets::basic::create_note
         # acct proc 3
-        export.wallet::move_asset_to_note
+        export.::miden::contracts::wallets::basic::move_asset_to_note
 
         # acct proc 4
         export.incr_nonce
@@ -136,8 +130,8 @@ impl AccountCode {
             sub
         end
         ";
-        let account_module_ast = ModuleAst::parse(account_code).unwrap();
-        let code = AccountCode::new(account_module_ast, assembler).unwrap();
+
+        let code = AccountCode::compile(account_code, assembler).unwrap();
 
         // Ensures the mast root constants match the latest version of the code.
         //
@@ -168,10 +162,6 @@ impl AccountCode {
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        let mut module = ModuleAst::parse(CODE).unwrap();
-        // clears are needed since they're not serialized for account code
-        module.clear_imports();
-        module.clear_locations();
-        AccountCode::new(module, &Assembler::default()).unwrap()
+        AccountCode::compile(CODE, Assembler::default()).unwrap()
     }
 }

@@ -16,7 +16,6 @@ use miden_lib::transaction::{
     TransactionKernel,
 };
 use miden_objects::{
-    assembly::ProgramAst,
     testing::{
         account::AccountBuilder,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
@@ -51,20 +50,18 @@ fn test_transaction_prologue() {
         end
         ";
 
-    let mock_tx_script_code = ProgramAst::parse(
-        "
+    let mock_tx_script_code = "
         begin
             push.1.2.3.4 dropw
         end
-        ",
-    )
-    .unwrap();
-    let (tx_script, _) = TransactionScript::new(
-        mock_tx_script_code,
-        vec![],
-        &TransactionKernel::assembler().with_debug_mode(true),
-    )
-    .unwrap();
+        ";
+
+    let mock_tx_script_program = TransactionKernel::assembler()
+        .with_debug_mode(true)
+        .assemble_program(mock_tx_script_code)
+        .unwrap();
+
+    let tx_script = TransactionScript::new(mock_tx_script_program, vec![]);
 
     let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
@@ -125,7 +122,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
-        **inputs.tx_args().tx_script().as_ref().unwrap().hash(),
+        *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
@@ -361,7 +358,7 @@ fn input_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
@@ -381,7 +378,7 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -406,7 +403,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
@@ -434,7 +431,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -460,7 +457,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -486,7 +483,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
 
     let code = "

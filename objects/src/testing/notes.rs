@@ -8,7 +8,6 @@ use rand::Rng;
 
 use crate::{
     accounts::AccountId,
-    assembly::ProgramAst,
     assets::Asset,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
@@ -17,10 +16,10 @@ use crate::{
     Felt, NoteError, Word, ZERO,
 };
 
-pub const DEFAULT_NOTE_CODE: &str = "\
-begin
-end
-";
+pub const DEFAULT_NOTE_CODE: &str = "begin nop end";
+
+// NOTE BUILDER
+// ================================================================================================
 
 #[derive(Debug, Clone)]
 pub struct NoteBuilder {
@@ -95,8 +94,8 @@ impl NoteBuilder {
     }
 
     pub fn build(self, assembler: &Assembler) -> Result<Note, NoteError> {
-        let note_ast = ProgramAst::parse(&self.code).unwrap();
-        let (note_script, _) = NoteScript::new(note_ast, assembler)?;
+        let code = assembler.clone().assemble_program(&self.code).unwrap();
+        let note_script = NoteScript::new(code);
         let vault = NoteAssets::new(self.assets)?;
         let metadata = NoteMetadata::new(
             self.sender,
@@ -108,5 +107,16 @@ impl NoteBuilder {
         let inputs = NoteInputs::new(self.inputs)?;
         let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
         Ok(Note::new(vault, metadata, recipient))
+    }
+}
+
+// NOTE SCRIPT
+// ================================================================================================
+
+impl NoteScript {
+    pub fn mock() -> Self {
+        let assembler = Assembler::default();
+        let code = assembler.assemble_program(DEFAULT_NOTE_CODE).unwrap();
+        Self::new(code)
     }
 }

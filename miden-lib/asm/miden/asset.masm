@@ -1,5 +1,3 @@
-use.miden::kernels::tx::account->internal_account
-use.miden::kernels::tx::asset
 use.miden::account
 
 # ERRORS
@@ -36,11 +34,11 @@ const.FUNGIBLE_BITMASK_U32=0x20000000
 #! - ASSET is the built fungible asset.
 export.build_fungible_asset
     # assert the faucet is a fungible faucet
-    dup exec.internal_account::is_fungible_faucet assert.err=ERR_ASSET_NOT_FUNGIBLE_ID
+    dup exec.account::is_fungible_faucet assert.err=ERR_ASSET_NOT_FUNGIBLE_ID
     # => [faucet_id, amount]
 
     # assert the amount is valid
-    dup.1 exec.asset::get_fungible_asset_max_amount lte assert.err=ERR_ASSET_INVALID_AMOUNT
+    dup.1 exec.get_fungible_asset_max_amount lte assert.err=ERR_ASSET_INVALID_AMOUNT
     # => [faucet_id, amount]
 
     # create the asset
@@ -75,7 +73,7 @@ end
 #! - ASSET is the built non-fungible asset.
 export.build_non_fungible_asset
     # assert the faucet is a non-fungible faucet
-    dup exec.internal_account::is_non_fungible_faucet assert.err=ERR_ASSET_NOT_NON_FUNGIBLE_ID
+    dup exec.account::is_non_fungible_faucet assert.err=ERR_ASSET_NOT_NON_FUNGIBLE_ID
     # => [faucet_id, DATA_HASH]
 
     # build the asset
@@ -102,4 +100,20 @@ export.create_non_fungible_asset
     # build the non-fungible asset
     exec.build_non_fungible_asset
     # => [ASSET]
+end
+
+# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
+# =================================================================================================
+
+const.FUNGIBLE_ASSET_MAX_AMOUNT=9223372036854775807
+
+#! Returns the maximum amount of a fungible asset.
+#!
+#! Stack: []
+#! Outputs: [fungible_asset_max_amount]
+#!
+#! fungible_asset_max_amount is the maximum amount of a fungible asset.
+export.get_fungible_asset_max_amount
+    push.FUNGIBLE_ASSET_MAX_AMOUNT
+    # => [fungible_asset_max_amount]
 end

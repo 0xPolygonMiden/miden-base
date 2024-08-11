@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -10,7 +10,7 @@ use miden_objects::{
         },
         Account, AccountId,
     },
-    assembly::{Assembler, ModuleAst},
+    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
@@ -24,9 +24,7 @@ use miden_objects::{
         prepare_word,
         storage::prepare_assets,
     },
-    transaction::{
-        InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
-    },
+    transaction::{InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -50,13 +48,13 @@ pub struct TransactionContext {
 
 impl TransactionContext {
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let program = assembler.compile(code).unwrap();
-        let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
-        let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
-        advice_inputs.extend(self.advice_inputs.clone());
+        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
+            &self.tx_inputs,
+            &self.tx_args,
+            Some(self.advice_inputs.clone()),
+        );
 
-        CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
+        CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)
             .run(code)
     }
@@ -104,12 +102,6 @@ impl DataStore for TransactionContext {
 
         Ok(self.tx_inputs.clone())
     }
-
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
-        assert_eq!(account_id, self.tx_inputs.account().id());
-        Ok(self.tx_inputs.account().code().module().clone())
-    }
 }
 
 // TRANSACTION CONTEXT BUILDER
@@ -144,8 +136,11 @@ impl TransactionContextBuilder {
 
     pub fn with_standard_account(nonce: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account =
-            Account::mock(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, nonce, &assembler);
+        let account = Account::mock(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            nonce,
+            assembler.clone(),
+        );
 
         Self {
             assembler,
@@ -161,7 +156,8 @@ impl TransactionContextBuilder {
 
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = Account::mock_fungible_faucet(acct_id, nonce, initial_balance, &assembler);
+        let account =
+            Account::mock_fungible_faucet(acct_id, nonce, initial_balance, assembler.clone());
 
         Self {
             assembler,
@@ -177,8 +173,12 @@ impl TransactionContextBuilder {
 
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account =
-            Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler);
+        let account = Account::mock_non_fungible_faucet(
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+            assembler.clone(),
+        );
 
         Self {
             assembler,
