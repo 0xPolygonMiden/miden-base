@@ -1,30 +1,28 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::ops::Deref;
 
-use assembly::ast::AstSerdeOptions;
 use miden_crypto::merkle::InnerNodeInfo;
-use vm_core::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
+use vm_core::{
+    mast::{MastForest, MastNodeId},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    Program,
+};
 use vm_processor::{AdviceInputs, AdviceMap, DeserializationError};
 
 use super::{Digest, Felt, Word};
-use crate::{
-    assembly::{Assembler, AssemblyContext, ProgramAst},
-    notes::{NoteDetails, NoteId},
-    vm::CodeBlock,
-    TransactionScriptError,
-};
+use crate::notes::{NoteDetails, NoteId};
 
 // TRANSACTION ARGS
 // ================================================================================================
 
-/// A struct that represents optional transaction arguments.
+/// Optional transaction arguments.
 ///
 /// - Transaction script: a program that is executed in a transaction after all input notes
 ///   scripts have been executed.
 /// - Note arguments: data put onto the stack right before a note script is executed. These
 ///   are different from note inputs, as the user executing the transaction can specify arbitrary
 ///   note args.
-/// - Advice inputs: Provides data needed by the runtime, like the details of a public output note.
+/// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
@@ -146,20 +144,19 @@ impl TransactionArgs {
 // TRANSACTION SCRIPT
 // ================================================================================================
 
-/// A struct that represents a transaction script.
+/// Transaction script.
 ///
 /// A transaction script is a program that is executed in a transaction after all input notes
 /// have been executed.
 ///
 /// The [TransactionScript] object is composed of:
-/// - [code](TransactionScript::code): the transaction script source code.
-/// - [hash](TransactionScript::hash): the hash of the compiled transaction script.
-/// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
-///   advice inputs' map such that the transaction script can access them.
+/// - An executable program defined by a [MastForest] and an associated entrypoint.
+/// - A set of transaction script inputs defined by a map of key-value inputs that are loaded into
+///   the advice inputs' map such that the transaction script can access them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionScript {
-    code: ProgramAst,
-    hash: Digest,
+    mast: MastForest,
+    entrypoint: MastNodeId,
     inputs: BTreeMap<Digest, Vec<Felt>>,
 }
 
@@ -167,59 +164,42 @@ impl TransactionScript {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new instance of a [TransactionScript] with the provided script and inputs and the
-    /// compiled script code block.
-    ///
-    /// # Errors
-    /// Returns an error if script compilation fails.
-    pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
-        code: ProgramAst,
-        inputs: T,
-        assembler: &Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
-        let code_block = assembler
-            .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(TransactionScriptError::ScriptCompilationError)?;
-        Ok((
-            Self {
-                code,
-                hash: code_block.hash(),
-                inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
-            },
-            code_block,
-        ))
+    /// Returns a new [TransactionScript] instantiated with the provided code and inputs.
+    pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(code: Program, inputs: T) -> Self {
+        Self {
+            entrypoint: code.entrypoint(),
+            mast: code.into(),
+            inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
+        }
     }
 
-    /// Returns a new instance of a [TransactionScript] instantiated from the provided components.
+    /// Returns a new [TransactionScript] instantiated from the provided components.
     ///
-    /// Note: this constructor does not verify that a compiled code in fact results in the provided
-    /// hash.
-    pub fn from_parts<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
-        code: ProgramAst,
-        hash: Digest,
-        inputs: T,
-    ) -> Result<Self, TransactionScriptError> {
-        Ok(Self {
-            code,
-            hash,
-            inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
-        })
+    /// # Panics
+    /// Panics if the specified entrypoint is not in the provided MAST forest.
+    pub fn from_parts(
+        mast: MastForest,
+        entrypoint: MastNodeId,
+        inputs: BTreeMap<Digest, Vec<Felt>>,
+    ) -> Self {
+        assert!(mast.get_node_by_id(entrypoint).is_some());
+        Self { mast, entrypoint, inputs }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a reference to the code.
-    pub fn code(&self) -> &ProgramAst {
-        &self.code
+    /// Returns a reference to the [MastForest] backing this transaction script.
+    pub fn mast(&self) -> &MastForest {
+        &self.mast
     }
 
     /// Returns a reference to the code hash.
-    pub fn hash(&self) -> &Digest {
-        &self.hash
+    pub fn hash(&self) -> Digest {
+        self.mast[self.entrypoint].digest()
     }
 
-    /// Returns a reference to the inputs.
+    /// Returns a reference to the inputs for this transaction script.
     pub fn inputs(&self) -> &BTreeMap<Digest, Vec<Felt>> {
         &self.inputs
     }
@@ -230,20 +210,18 @@ impl TransactionScript {
 
 impl Serializable for TransactionScript {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.code.write_into(target, AstSerdeOptions { serialize_imports: true });
-        self.code.write_source_locations(target);
-        self.hash.write_into(target);
+        self.mast.write_into(target);
+        target.write_u32(self.entrypoint.as_u32());
         self.inputs.write_into(target);
     }
 }
 
 impl Deserializable for TransactionScript {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mut code = ProgramAst::read_from(source)?;
-        code.load_source_locations(source)?;
-        let hash = Digest::read_from(source)?;
+        let mast = MastForest::read_from(source)?;
+        let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
         let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
 
-        Ok(Self { code, hash, inputs })
+        Ok(Self::from_parts(mast, entrypoint, inputs))
     }
 }

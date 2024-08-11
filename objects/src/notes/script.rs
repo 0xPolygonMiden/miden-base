@@ -1,18 +1,14 @@
 use alloc::vec::Vec;
 
-use assembly::ast::AstSerdeOptions;
-use miden_crypto::Felt;
+use vm_core::{
+    mast::{MastForest, MastNodeId},
+    Program,
+};
 
-use super::{Assembler, AssemblyContext, CodeBlock, Digest, NoteError, ProgramAst};
+use super::{Digest, Felt};
 use crate::utils::serde::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
-
-// CONSTANTS
-// ================================================================================================
-
-/// Default serialization options for script code AST.
-const CODE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 
 // NOTE SCRIPT
 // ================================================================================================
@@ -23,32 +19,29 @@ const CODE_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions::new(true);
 /// it defines the rules and side effects of consuming a given note.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoteScript {
-    hash: Digest,
-    code: ProgramAst,
+    mast: MastForest,
+    entrypoint: MastNodeId,
 }
 
 impl NoteScript {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [NoteScript] instantiated from the provided program and compiled with the
-    /// provided assembler. The compiled code block is also returned.
-    ///
-    /// # Errors
-    /// Returns an error if the compilation of the provided program fails.
-    pub fn new(code: ProgramAst, assembler: &Assembler) -> Result<(Self, CodeBlock), NoteError> {
-        let code_block = assembler
-            .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(NoteError::ScriptCompilationError)?;
-        Ok((Self { hash: code_block.hash(), code }, code_block))
+    /// Returns a new [NoteScript] instantiated from the provided program.
+    pub fn new(code: Program) -> Self {
+        Self {
+            entrypoint: code.entrypoint(),
+            mast: code.into(),
+        }
     }
 
     /// Returns a new [NoteScript] instantiated from the provided components.
     ///
-    /// **Note**: this function assumes that the specified hash results from the compilation of the
-    /// provided program, but this is not checked.
-    pub fn from_parts(code: ProgramAst, hash: Digest) -> Self {
-        Self { code, hash }
+    /// # Panics
+    /// Panics if the specified entrypoint is not in the provided MAST forest.
+    pub fn from_parts(mast: MastForest, entrypoint: MastNodeId) -> Self {
+        assert!(mast.get_node_by_id(entrypoint).is_some());
+        Self { mast, entrypoint }
     }
 
     // PUBLIC ACCESSORS
@@ -56,12 +49,12 @@ impl NoteScript {
 
     /// Returns MAST root of this note script.
     pub fn hash(&self) -> Digest {
-        self.hash
+        self.mast[self.entrypoint].digest()
     }
 
-    /// Returns the AST of this note script.
-    pub fn code(&self) -> &ProgramAst {
-        &self.code
+    /// Returns a reference to the [MastForest] backing this note script.
+    pub fn mast(&self) -> &MastForest {
+        &self.mast
     }
 }
 
@@ -69,19 +62,19 @@ impl NoteScript {
 // ================================================================================================
 
 impl From<&NoteScript> for Vec<Felt> {
-    fn from(value: &NoteScript) -> Self {
-        let mut bytes = value.code.to_bytes(AstSerdeOptions { serialize_imports: true });
+    fn from(script: &NoteScript) -> Self {
+        let mut bytes = script.mast.to_bytes();
         let len = bytes.len();
 
         // Pad the data so that it can be encoded with u32
         let missing = if len % 4 > 0 { 4 - (len % 4) } else { 0 };
         bytes.resize(bytes.len() + missing, 0);
 
-        let final_size = 5 + bytes.len();
+        let final_size = 2 + bytes.len();
         let mut result = Vec::with_capacity(final_size);
 
         // Push the length, this is used to remove the padding later
-        result.extend(value.hash);
+        result.push(Felt::from(script.entrypoint.as_u32()));
         result.push(Felt::new(len as u64));
 
         // A Felt can not represent all u64 values, so the data is encoded using u32.
@@ -111,25 +104,24 @@ impl From<NoteScript> for Vec<Felt> {
 impl TryFrom<&[Felt]> for NoteScript {
     type Error = DeserializationError;
 
-    fn try_from(value: &[Felt]) -> Result<Self, Self::Error> {
-        if value.len() < 5 {
+    fn try_from(elements: &[Felt]) -> Result<Self, Self::Error> {
+        if elements.len() < 2 {
             return Err(DeserializationError::UnexpectedEOF);
         }
 
-        let hash = Digest::new([value[0], value[1], value[2], value[3]]);
-        let len = value[4].as_int();
-        let mut data = Vec::with_capacity(value.len() * 4);
+        let entrypoint: u32 = elements[0].try_into().map_err(DeserializationError::InvalidValue)?;
+        let len = elements[1].as_int();
+        let mut data = Vec::with_capacity(elements.len() * 4);
 
-        for felt in &value[5..] {
-            let v = u32::try_from(felt.as_int())
-                .map_err(|v| DeserializationError::InvalidValue(format!("{v}")))?;
+        for &felt in &elements[2..] {
+            let v: u32 = felt.try_into().map_err(DeserializationError::InvalidValue)?;
             data.extend(v.to_le_bytes())
         }
         data.shrink_to(len as usize);
 
-        // TODO: validate the hash matches the code
-        let code = ProgramAst::from_bytes(&data)?;
-        Ok(NoteScript::from_parts(code, hash))
+        let mast = MastForest::read_from_bytes(&data)?;
+        let entrypoint = MastNodeId::from_u32_safe(entrypoint, &mast)?;
+        Ok(NoteScript::from_parts(mast, entrypoint))
     }
 }
 
@@ -146,16 +138,16 @@ impl TryFrom<Vec<Felt>> for NoteScript {
 
 impl Serializable for NoteScript {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.hash.write_into(target);
-        self.code.write_into(target, CODE_SERDE_OPTIONS);
+        self.mast.write_into(target);
+        target.write_u32(self.entrypoint.as_u32());
     }
 }
 
 impl Deserializable for NoteScript {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let hash = Digest::read_from(source)?;
-        let code = ProgramAst::read_from(source)?;
+        let mast = MastForest::read_from(source)?;
+        let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
 
-        Ok(Self::from_parts(code, hash))
+        Ok(Self::from_parts(mast, entrypoint))
     }
 }

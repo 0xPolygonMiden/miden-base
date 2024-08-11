@@ -1,6 +1,6 @@
-use assembly::{ast::ModuleAst, Assembler};
+use assembly::Assembler;
 
-use crate::accounts::AccountCode;
+use crate::{accounts::AccountCode, testing::str_to_account_code};
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
@@ -136,8 +136,8 @@ impl AccountCode {
             sub
         end
         ";
-        let account_module_ast = ModuleAst::parse(account_code).unwrap();
-        let code = AccountCode::new(account_module_ast, assembler).unwrap();
+
+        let code = str_to_account_code(account_code, assembler).unwrap();
 
         // Ensures the mast root constants match the latest version of the code.
         //
@@ -168,10 +168,7 @@ impl AccountCode {
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        let mut module = ModuleAst::parse(CODE).unwrap();
-        // clears are needed since they're not serialized for account code
-        module.clear_imports();
-        module.clear_locations();
-        AccountCode::new(module, &Assembler::default()).unwrap()
+        let assembler = Assembler::default();
+        str_to_account_code(CODE, &assembler).unwrap()
     }
 }

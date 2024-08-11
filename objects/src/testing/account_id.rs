@@ -1,12 +1,14 @@
 use alloc::string::{String, ToString};
 
-use assembly::{ast::ModuleAst, Assembler};
+use assembly::Assembler;
 use rand::Rng;
 
-use super::{account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE};
+use super::{
+    account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE, str_to_account_code,
+};
 use crate::{
-    accounts::{AccountCode, AccountId, AccountStorageType, AccountType},
-    AccountError, Digest, Word,
+    accounts::{AccountId, AccountStorageType, AccountType},
+    Digest, Word,
 };
 
 /// Builder for an `AccountId`, the builder can be configured and used multiple times.
@@ -120,12 +122,4 @@ pub fn account_id_build_details<T: Rng>(
     .map_err(AccountBuilderError::AccountError)?;
 
     Ok((seed, code_commitment))
-}
-
-pub fn str_to_account_code(
-    source: &str,
-    assembler: &Assembler,
-) -> Result<AccountCode, AccountError> {
-    let account_module_ast = ModuleAst::parse(source).unwrap();
-    AccountCode::new(account_module_ast, assembler)
 }

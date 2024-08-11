@@ -12,9 +12,10 @@ use vm_core::FieldElement;
 
 use super::{
     account_code::DEFAULT_ACCOUNT_CODE,
-    account_id::{str_to_account_code, AccountIdBuilder},
+    account_id::AccountIdBuilder,
     constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
+    str_to_account_code,
 };
 use crate::{
     accounts::{
