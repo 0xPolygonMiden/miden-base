@@ -20,6 +20,8 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
+    AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountCodeProcedureInvalidStorageOffset,
@@ -151,6 +153,8 @@ pub enum NoteError {
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
     NoteDeserializationError(DeserializationError),
+    NoteScriptAssemblyError(String), // TODO: use Report
+    NoteScriptDeserializationError(DeserializationError),
     PublicUseCaseRequiresPublicNote(NoteType),
     TooManyAssets(usize),
     TooManyInputs(usize),

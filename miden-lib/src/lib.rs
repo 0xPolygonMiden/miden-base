@@ -7,7 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use miden_objects::{
-    assembly::{Library, LibraryNamespace, MaslLibrary, Version},
+    assembly::{mast::MastForest, Library},
     utils::serde::Deserializable,
 };
 
@@ -23,38 +23,34 @@ pub mod transaction;
 
 pub use miden_objects::utils;
 
-// STANDARD LIBRARY
+// MIDEN LIBRARY
 // ================================================================================================
 
-pub struct MidenLib {
-    contents: MaslLibrary,
+pub struct MidenLib(Library);
+
+impl AsRef<Library> for MidenLib {
+    fn as_ref(&self) -> &Library {
+        &self.0
+    }
+}
+
+impl From<MidenLib> for Library {
+    fn from(value: MidenLib) -> Self {
+        value.0
+    }
+}
+
+impl From<MidenLib> for MastForest {
+    fn from(value: MidenLib) -> Self {
+        value.0.into()
+    }
 }
 
 impl Default for MidenLib {
     fn default() -> Self {
         let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
-        let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read masl!");
-        Self { contents }
-    }
-}
-
-impl Library for MidenLib {
-    type ModuleIterator<'a> = <MaslLibrary as Library>::ModuleIterator<'a>;
-
-    fn root_ns(&self) -> &LibraryNamespace {
-        self.contents.root_ns()
-    }
-
-    fn version(&self) -> &Version {
-        self.contents.version()
-    }
-
-    fn modules(&self) -> Self::ModuleIterator<'_> {
-        self.contents.modules()
-    }
-
-    fn dependencies(&self) -> &[LibraryNamespace] {
-        self.contents.dependencies()
+        let contents = Library::read_from_bytes(bytes).expect("failed to read masl!");
+        Self(contents)
     }
 }
 
@@ -64,18 +60,18 @@ impl Library for MidenLib {
 // NOTE: Most kernel-related tests can be found under /miden-tx/kernel_tests
 #[cfg(all(test, feature = "std"))]
 mod tests {
-    use miden_objects::assembly::Library;
+    use miden_objects::assembly::LibraryPath;
+
+    use super::MidenLib;
 
     #[test]
     fn test_compile() {
-        let path = "miden::kernels::tx::memory::get_input_note_ptr";
-        let miden = super::MidenLib::default();
-        let exists = miden.modules().any(|module| {
+        let path = "miden::account::get_id".parse::<LibraryPath>().unwrap();
+        let stdlib = MidenLib::default();
+        let exists = stdlib.0.module_infos().any(|module| {
             module
-                .ast
-                .procs()
-                .iter()
-                .any(|proc| module.path.append(&proc.name).unwrap().as_str() == path)
+                .procedures()
+                .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)
         });
 
         assert!(exists);

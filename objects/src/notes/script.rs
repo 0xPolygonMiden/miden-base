@@ -1,13 +1,15 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
+use assembly::{Assembler, Compile};
 use vm_core::{
     mast::{MastForest, MastNodeId},
     Program,
 };
 
 use super::{Digest, Felt};
-use crate::utils::serde::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+use crate::{
+    utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    NoteError,
 };
 
 // NOTE SCRIPT
@@ -33,6 +35,26 @@ impl NoteScript {
             entrypoint: code.entrypoint(),
             mast: code.into(),
         }
+    }
+
+    /// Returns a new [NoteScript] compiled from the provided source code using the specified
+    /// assembler.
+    ///
+    /// # Errors
+    /// Returns an error if the compilation of the provided source code fails.
+    pub fn compile(source_code: impl Compile, assembler: Assembler) -> Result<Self, NoteError> {
+        let program = assembler
+            .assemble_program(source_code)
+            .map_err(|report| NoteError::NoteScriptAssemblyError(report.to_string()))?;
+        Ok(Self::new(program))
+    }
+
+    /// Returns a new [NoteScript] deserialized from the provided bytes.
+    ///
+    /// # Errors
+    /// Returns an error if note script deserialization fails.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, NoteError> {
+        Self::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)
     }
 
     /// Returns a new [NoteScript] instantiated from the provided components.

@@ -1,11 +1,14 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
     accounts::AccountId,
-    assembly::{Assembler, AssemblyContext, ProgramAst},
+    assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
-    utils::{group_slice_elements, serde::DeserializationError},
-    vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
+    utils::{
+        group_slice_elements,
+        serde::{Deserializable, DeserializationError},
+    },
+    vm::{AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
@@ -40,18 +43,21 @@ impl TransactionKernel {
     // --------------------------------------------------------------------------------------------
 
     /// Returns MASM source code which encodes the transaction kernel system procedures.
-    pub fn kernel() -> &'static str {
-        include_str!("../../asm/kernels/transaction/api.masm")
+    pub fn kernel() -> KernelLibrary {
+        let kernel_bytes =
+            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
+        KernelLibrary::read_from_bytes(kernel_bytes)
+            .expect("failed to deserialize transaction kernel library")
     }
 
     /// Returns an AST of the transaction kernel executable program.
     ///
     /// # Errors
     /// Returns an error if deserialization of the binary fails.
-    pub fn main() -> Result<ProgramAst, DeserializationError> {
+    pub fn main() -> Result<Program, DeserializationError> {
         let kernel_bytes =
-            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/transaction.masb"));
-        ProgramAst::from_bytes(kernel_bytes)
+            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+        Program::read_from_bytes(kernel_bytes)
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
@@ -59,14 +65,10 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn program_info() -> ProgramInfo {
-        // TODO: construct kernel_main and kernel using lazy static or at build time
-        let assembler = Self::assembler();
-        let main_ast = TransactionKernel::main().expect("main is well formed");
-        let kernel_main = assembler
-            .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
-            .expect("main is well formed");
+        let program_hash = Self::main().unwrap().hash();
+        let kernel = Self::kernel().kernel().clone();
 
-        ProgramInfo::new(kernel_main.hash(), assembler.kernel().clone())
+        ProgramInfo::new(program_hash, kernel)
     }
 
     // ASSEMBLER CONSTRUCTOR
@@ -75,13 +77,12 @@ impl TransactionKernel {
     /// Returns a new Miden assembler instantiated with the transaction kernel and loaded with the
     /// Miden stdlib as well as with midenlib.
     pub fn assembler() -> Assembler {
-        Assembler::default()
-            .with_library(&MidenLib::default())
-            .expect("failed to load miden-lib")
+        let source_manager = Arc::new(DefaultSourceManager::default());
+        Assembler::with_kernel(source_manager, Self::kernel())
             .with_library(&StdLibrary::default())
             .expect("failed to load std-lib")
-            .with_kernel(Self::kernel())
-            .expect("kernel must be well formed")
+            .with_library(&MidenLib::default())
+            .expect("failed to load miden-lib")
     }
 
     // STACK INPUTS / OUTPUTS

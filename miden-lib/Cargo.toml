@@ -20,7 +20,7 @@ default = ["std"]
 std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
-with-debug-info = [] # ["miden-stdlib/with-debug-info"]
+with-debug-info = ["miden-stdlib/with-debug-info"]
 
 [dependencies]
 miden-objects = { path = "../objects", version = "0.5", default-features = false }

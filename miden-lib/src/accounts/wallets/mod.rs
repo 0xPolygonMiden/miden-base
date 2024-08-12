@@ -7,7 +7,6 @@ use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
     },
-    assembly::ModuleAst,
     AccountError, Word,
 };
 
@@ -43,7 +42,7 @@ pub fn create_basic_wallet(
         AuthScheme::RpoFalcon512 { pub_key } => ("basic::auth_tx_rpo_falcon512", pub_key.into()),
     };
 
-    let account_code_string: String = format!(
+    let source_code: String = format!(
         "
         use.miden::contracts::wallets::basic->basic_wallet
         use.miden::contracts::auth::basic
@@ -53,12 +52,9 @@ pub fn create_basic_wallet(
         export.{auth_scheme_procedure}
     "
     );
-    let account_code_src: &str = &account_code_string;
 
-    let account_code_ast = ModuleAst::parse(account_code_src)
-        .map_err(|e| AccountError::AccountCodeAssemblerError(e.into()))?;
-    let account_assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler)?;
+    let assembler = TransactionKernel::assembler();
+    let account_code = AccountCode::compile(source_code, assembler)?;
 
     let account_storage =
         AccountStorage::new(vec![SlotItem::new_value(0, 0, storage_slot_0_data)], BTreeMap::new())?;

@@ -4,12 +4,11 @@ use miden_objects::{
     accounts::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
     },
-    assembly::LibraryPath,
     assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
 };
 
-use super::{AuthScheme, Library, MidenLib, TransactionKernel};
+use super::{AuthScheme, TransactionKernel};
 
 // FUNGIBLE FAUCET
 // ================================================================================================
@@ -44,14 +43,15 @@ pub fn create_basic_fungible_faucet(
         AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
     };
 
-    let miden = MidenLib::default();
-    let path = "miden::contracts::faucets::basic_fungible";
-    let faucet_code_ast = miden
-        .get_module_ast(&LibraryPath::new(path).unwrap())
-        .expect("Getting module AST failed");
+    let source_code = "
+        use.miden::contracts::faucets::basic_fungible
 
-    let account_assembler = TransactionKernel::assembler();
-    let account_code = AccountCode::new(faucet_code_ast.clone(), &account_assembler)?;
+        export.basic_fungible::distribute
+        export.basic_fungible::burn
+    ";
+
+    let assembler = TransactionKernel::assembler();
+    let account_code = AccountCode::compile(source_code, assembler)?;
 
     // First check that the metadata is valid.
     if decimals > MAX_DECIMALS {

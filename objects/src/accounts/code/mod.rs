@@ -1,6 +1,6 @@
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
-use assembly::Library;
+use assembly::{Assembler, Compile, Library};
 use vm_core::mast::MastForest;
 
 use super::{
@@ -45,17 +45,17 @@ impl AccountCode {
     /// The maximum number of account interface procedures.
     pub const MAX_NUM_PROCEDURES: usize = u8::MAX as usize;
 
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new definition of an account's interface instantiated from the provided [Library].
+
+    /// Returns a new [AccountCode] instantiated from the provided [Library].
     ///
     /// All procedures exported from the provided library will become members of the account's
     /// public interface.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// - The number of procedures exported from the provided library is smaller than 1 or greater
-    ///   than 256.
+    /// Returns an error if the number of procedures exported from the provided library is smaller
+    /// than 1 or greater than 256.
     pub fn new(library: Library) -> Result<Self, AccountError> {
         // extract procedure information from the library exports
         // TODO: currently, offsets for all procedures are set to 0; instead they should be read
@@ -82,6 +82,32 @@ impl AccountCode {
             procedures,
             mast: library.into(),
         })
+    }
+
+    /// Returns a new [AccountCode] compiled from the provided source code using the specified
+    /// assembler.
+    ///
+    /// All procedures exported from the provided code will become members of the account's
+    /// public interface.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Compilation of the provided source code fails.
+    /// - The number of procedures exported from the provided library is smaller than 1 or greater
+    ///   than 256.
+    pub fn compile(source_code: impl Compile, assembler: Assembler) -> Result<Self, AccountError> {
+        let library = assembler
+            .assemble_library([source_code])
+            .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
+        Self::new(library)
+    }
+
+    /// Returns a new [AccountCode] deserialized from the provided bytes.
+    ///
+    /// # Errors
+    /// Returns an error if account code deserialization fails.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AccountError> {
+        Self::read_from_bytes(bytes).map_err(AccountError::AccountCodeDeserializationError)
     }
 
     /// Returns a new definition of an account's interface instantiated from the provided

@@ -155,7 +155,7 @@ fn build_advice_stack(
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
-    inputs.extend_stack(tx_script.map_or(Word::default(), |script| **script.hash()));
+    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.hash()));
 }
 
 // CHAIN MMR INJECTOR
