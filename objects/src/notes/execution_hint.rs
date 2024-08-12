@@ -165,7 +165,7 @@ impl From<NoteExecutionHint> for Felt {
 /// - 6 least significant bits: Hint identifier (tag).
 /// - Bits 6 to 38: Hint payload.
 ///
-/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `1u64`
 impl TryFrom<u64> for NoteExecutionHint {
     type Error = NoteError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
