@@ -15,13 +15,11 @@ on:
 
 jobs:
   test:
-    name: test ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
-    runs-on: ${{matrix.os}}-latest
+    name: test ${{matrix.args}}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable, nightly]
-        os: [ubuntu]
         args: [default, prove]
     timeout-minutes: 30
     steps:
@@ -32,5 +30,5 @@ jobs:
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Perform tests
         run: |
-          rustup update --no-self-update ${{matrix.toolchain}} 
+          rustup update --no-self-update 
           make test-${{matrix.args}}

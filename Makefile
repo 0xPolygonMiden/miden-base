@@ -14,12 +14,12 @@ ALL_FEATURES_BUT_ASYNC=--features concurrent,testing,serde
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	cargo +nightly clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
+	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
 .PHONY: fix
 fix: ## Runs Fix with configs
-	cargo +nightly fix --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	cargo fix --workspace --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 
 .PHONY: format
