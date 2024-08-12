@@ -160,6 +160,22 @@ impl From<NoteExecutionHint> for Felt {
     }
 }
 
+/// As a u64, the ExecutionHint is encoded as:
+///
+/// - 6 least significant bits: Hint identifier (tag).
+/// - Bits 6 to 38: Hint payload.
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
+impl TryFrom<u64> for NoteExecutionHint {
+    type Error = NoteError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let tag = (value & 0b111111) as u8;
+        let payload = ((value >> 6) & 0xFFFFFF) as u32;
+
+        Self::from_parts(tag, payload)
+    }
+}
+
 // TESTS
 // ================================================================================================
 
