@@ -155,8 +155,8 @@ impl NoteExecutionHint {
 /// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
 impl From<NoteExecutionHint> for Felt {
     fn from(value: NoteExecutionHint) -> Self {
-        let (tag, payload) = value.into_parts();
-        Felt::new(((payload as u64) << 6) | (tag as u64))
+        let int_representation: u64 = value.into();
+        Felt::new(int_representation)
     }
 }
 
@@ -173,6 +173,13 @@ impl TryFrom<u64> for NoteExecutionHint {
         let payload = ((value >> 6) & 0xFFFFFF) as u32;
 
         Self::from_parts(tag, payload)
+    }
+}
+
+impl From<NoteExecutionHint> for u64 {
+    fn from(value: NoteExecutionHint) -> Self {
+        let (tag, payload) = value.into_parts();
+        (payload as u64) << 6 | (tag as u64)
     }
 }
 
