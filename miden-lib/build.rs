@@ -3,11 +3,13 @@ use std::{
     fs::File,
     io::{self, BufRead, BufReader, Write},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use assembly::{
-    ast::{AstSerdeOptions, ProgramAst},
-    LibraryNamespace, MaslLibrary, Version,
+    diagnostics::{IntoDiagnostic, Result},
+    utils::Serializable,
+    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
 };
 
 // CONSTANTS
@@ -17,7 +19,7 @@ const ASSETS_DIR: &str = "assets";
 const ASM_DIR: &str = "asm";
 const ASM_MIDEN_DIR: &str = "miden";
 const ASM_NOTE_SCRIPTS_DIR: &str = "note_scripts";
-const ASM_KERNELS_DIR: &str = "kernels/transaction";
+const ASM_TX_KERNEL_DIR: &str = "kernels/transaction";
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -26,7 +28,7 @@ const ASM_KERNELS_DIR: &str = "kernels/transaction";
 /// - Compiles contents of asm/miden directory into a Miden library file (.masl) under
 ///   miden namespace.
 /// - Compiles contents of asm/scripts directory into individual .masb files.
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed=asm");
 
@@ -43,26 +45,91 @@ fn main() -> io::Result<()> {
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
 
-    // compile miden library
-    compile_miden_lib(&source_dir, &target_dir)?;
+    // compile transaction kernel
+    let assembler = Assembler::default()
+        .with_debug_mode(cfg!(feature = "with-debug-info"))
+        .with_library(miden_stdlib::StdLibrary::default())?;
 
-    // compile kernel and note scripts
-    compile_kernels(&source_dir.join(ASM_KERNELS_DIR), &target_dir.join("kernels"))?;
+    let tx_kernel = compile_tx_kernel(
+        &source_dir.join(ASM_TX_KERNEL_DIR),
+        &target_dir.join("kernels"),
+        assembler,
+    )?;
+
+    println!("tx kernel built!");
+
+    // compile miden library
+    let source_manager = Arc::new(DefaultSourceManager::default());
+    let assembler = Assembler::with_kernel(source_manager.clone(), tx_kernel.clone())
+        .with_debug_mode(cfg!(feature = "with-debug-info"))
+        .with_library(miden_stdlib::StdLibrary::default())?;
+
+    let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler)?;
+
+    println!("miden lib built!");
+
+    // compile note scripts
+    let assembler = Assembler::with_kernel(source_manager, tx_kernel)
+        .with_debug_mode(cfg!(feature = "with-debug-info"))
+        .with_library(miden_stdlib::StdLibrary::default())?
+        .with_library(miden_lib)?;
     compile_note_scripts(
         &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
         &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
+        assembler,
     )?;
 
     Ok(())
 }
 
+// COMPILE KERNELS
+// ================================================================================================
+
+fn compile_tx_kernel(
+    source_dir: &Path,
+    target_dir: &Path,
+    assembler: Assembler,
+) -> Result<KernelLibrary> {
+    // assemble kernel library
+    let kernel_lib = KernelLibrary::from_dir(
+        source_dir.join("api.masm"),
+        Some(source_dir.join("lib")),
+        assembler.clone(),
+    )?;
+
+    let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
+    kernel_lib.write_to_file(output_file).into_diagnostic()?;
+
+    // assemble the kernel program
+    let mut assembler = assembler;
+    let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
+    assembler.add_modules_from_dir(namespace, &source_dir.join("lib"))?;
+
+    let main_file_path = source_dir.join("main.masm").clone();
+    let kernel_main = assembler.assemble_program(main_file_path)?;
+
+    // create the output file path
+    let masb_file_name = "tx_kernel";
+    let mut masb_file_path = target_dir.join(masb_file_name);
+    masb_file_path.set_extension("masb");
+
+    kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
+
+    Ok(kernel_lib)
+}
+
 // COMPILE MIDEN LIB
 // ================================================================================================
 
-fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+fn compile_miden_lib(
+    source_dir: &Path,
+    target_dir: &Path,
+    assembler: Assembler,
+) -> Result<Library> {
     let source_dir = source_dir.join(ASM_MIDEN_DIR);
 
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
+    /*
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
             let constants = source_dir.join("kernels/tx/constants.masm");
@@ -86,14 +153,15 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
         },
         _ => (),
     }
+    */
 
-    let ns = LibraryNamespace::try_from("miden".to_string()).expect("invalid base namespace");
-    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let miden_lib = MaslLibrary::read_from_dir(source_dir, ns, true, version)?;
+    let namespace = "miden".parse::<LibraryNamespace>().expect("invalid base namespace");
+    let miden_lib = Library::from_dir(source_dir, namespace, assembler)?;
 
-    miden_lib.write_to_dir(target_dir)?;
+    let output_file = target_dir.join("miden").with_extension(Library::LIBRARY_EXTENSION);
+    miden_lib.write_to_file(output_file).into_diagnostic()?;
 
-    Ok(())
+    Ok(miden_lib)
 }
 
 fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
@@ -113,15 +181,16 @@ fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
 // COMPILE EXECUTABLE MODULES
 // ================================================================================================
 
-fn compile_note_scripts(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
+fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembler) -> Result<()> {
     if let Err(e) = fs::create_dir_all(target_dir) {
         println!("Failed to create note_scripts directory: {}", e);
     }
 
-    for masm_file_path in get_masm_files(source_dir)? {
+    for masm_file_path in get_masm_files(source_dir).unwrap() {
         // read the MASM file, parse it, and serialize the parsed AST to bytes
-        let ast = ProgramAst::parse(&fs::read_to_string(masm_file_path.clone())?)?;
-        let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
+        let code = assembler.clone().assemble_program(masm_file_path.clone())?;
+
+        let bytes = code.to_bytes();
 
         // TODO: get rid of unwraps
         let masb_file_name = masm_file_path.file_name().unwrap().to_str().unwrap();
@@ -129,30 +198,8 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path) -> io::Result<()> 
 
         // write the binary MASB to the output dir
         masb_file_path.set_extension("masb");
-        fs::write(masb_file_path, bytes)?;
+        fs::write(masb_file_path, bytes).unwrap();
     }
-    Ok(())
-}
-
-// COMPILE KERNELS
-// ================================================================================================
-
-fn compile_kernels(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
-    // read the MASM file, parse it, and serialize the parsed AST to bytes
-    let ast = ProgramAst::parse(&fs::read_to_string(source_dir.join("main.masm").clone())?)?;
-    let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
-
-    // create the output file path
-    let masb_file_name = "transaction";
-    let mut masb_file_path = target_dir.join(masb_file_name);
-    if let Err(e) = fs::create_dir_all(masb_file_path.clone()) {
-        println!("Failed to create kernels directory: {}", e);
-    }
-
-    // write the binary MASB to the output dir
-    masb_file_path.set_extension("masb");
-    fs::write(masb_file_path.clone(), bytes)?;
-
     Ok(())
 }
 

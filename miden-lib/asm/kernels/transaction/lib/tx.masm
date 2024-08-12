@@ -1,8 +1,8 @@
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::note
+use.kernel::account
+use.kernel::asset
+use.kernel::constants
+use.kernel::memory
+use.kernel::note
 
 # CONSTANTS
 # =================================================================================================

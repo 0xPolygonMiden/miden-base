@@ -3,11 +3,11 @@ use.std::collections::mmr
 use.std::crypto::hashes::native
 use.std::collections::smt
 
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset_vault
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::utils
+use.kernel::account
+use.kernel::asset_vault
+use.kernel::constants
+use.kernel::memory
+use.kernel::utils
 
 # ERRORS
 # =================================================================================================

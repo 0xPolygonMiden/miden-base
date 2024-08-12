@@ -1,8 +1,8 @@
 use.std::collections::smt
 
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset
-use.miden::kernels::tx::memory
+use.kernel::account
+use.kernel::asset
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================

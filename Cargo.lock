@@ -728,8 +728,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 [[package]]
 name = "miden-air"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05e396af383ee2a38ca41f188173672cd70e221985eec4afcb854fe37d18fd1b"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "miden-core",
  "miden-thiserror",
@@ -740,8 +739,7 @@ dependencies = [
 [[package]]
 name = "miden-assembly"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d013ba230b6ed8a20126e48553e25418bcc3cf8b3960fa5c4df371e2efb381a7"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "aho-corasick",
  "lalrpop",
@@ -771,8 +769,7 @@ dependencies = [
 [[package]]
 name = "miden-core"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4b3100c499da8e6a8a2b5797b529c86cb267eceaf568d00697331d6b7056eb8"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "lock_api",
  "loom",
@@ -891,8 +888,7 @@ dependencies = [
 [[package]]
 name = "miden-processor"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd84a70d120aa6f9036f2140becda691e62a3f1cfded0da58f19f0d30064a22"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -903,8 +899,7 @@ dependencies = [
 [[package]]
 name = "miden-prover"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa0a36c7a6a538588dfe5aac0e94670b3743e40b335f393ff93f9dbbdc8313c5"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "miden-air",
  "miden-processor",
@@ -915,8 +910,7 @@ dependencies = [
 [[package]]
 name = "miden-stdlib"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4c2d8a4e4004dfd4c109d86f7a6a8876910bc495cf8b966d9acbb1c5730a9f5"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "miden-assembly",
 ]
@@ -959,8 +953,7 @@ dependencies = [
 [[package]]
 name = "miden-verifier"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f60892d9932ea1d9687a50e5abaa395dd3438350dcd677e8e9457d92747e924b"
+source = "git+https://github.com/0xPolygonMiden/miden-vm.git?rev=fe33a48a4b45a128e2150223f15157b4c638958c#fe33a48a4b45a128e2150223f15157b4c638958c"
 dependencies = [
  "miden-air",
  "miden-core",
@@ -1470,9 +1463,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.123"
+version = "1.0.124"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a11b3b6ce5cfd25b9759a24c3ed4bf24e23893866863547de4655518c951bcd4"
+checksum = "66ad62847a56b3dba58cc891acd13884b9c61138d330c0d7b6181713d4fce38d"
 dependencies = [
  "indexmap",
  "itoa",

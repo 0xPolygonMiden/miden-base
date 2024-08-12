@@ -1,4 +1,3 @@
-use.miden::kernels::tx::constants
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -95,7 +94,7 @@ export.get_inputs
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # validate the input length
-    dup exec.constants::get_max_inputs_per_note lte assert.err=ERR_NOTE_TOO_MANY_INPUTS
+    dup exec.get_max_inputs_per_note lte assert.err=ERR_NOTE_TOO_MANY_INPUTS
     # => [num_inputs, INPUTS_HASH, dest_ptr]
 
     # calculate the number of words required to store the inputs
@@ -308,3 +307,18 @@ export.compute_inputs_hash
     end
 end
 
+# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
+# =================================================================================================
+
+# The maximum number of input values associated with a single note.
+const.MAX_INPUTS_PER_NOTE=128
+
+#! Returns the max allowed number of input values per note.
+#!
+#! Stack: []
+#! Output: [max_inputs_per_note]
+#!
+#! - max_inputs_per_note is the max inputs per note.
+export.get_max_inputs_per_note
+    push.MAX_INPUTS_PER_NOTE
+end

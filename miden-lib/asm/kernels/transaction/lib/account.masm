@@ -1,8 +1,8 @@
 use.std::collections::smt
 use.std::crypto::hashes::native
 
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
+use.kernel::constants
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================
@@ -216,7 +216,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns the most significant half with the account type bits masked out.
 #!
-#! The accout type can be defined by comparing this value with the following constants:
+#! The account type can be defined by comparing this value with the following constants:
 #!
 #! - REGULAR_ACCOUNT_UPDATABLE_CODE
 #! - REGULAR_ACCOUNT_IMMUTABLE_CODE

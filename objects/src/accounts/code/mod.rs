@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use assembly::library::Library;
+use assembly::Library;
 use vm_core::mast::MastForest;
 
 use super::{
