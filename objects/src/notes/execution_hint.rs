@@ -209,6 +209,26 @@ mod tests {
     }
 
     #[test]
+    fn test_encode_round_trip() {
+        let hint = NoteExecutionHint::AfterBlock { block_num: 15 };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let hint = NoteExecutionHint::OnBlockSlot {
+            epoch_len: 22,
+            slot_len: 33,
+            slot_offset: 44,
+        };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let always_int: u64 = NoteExecutionHint::always().into();
+        assert_eq!(always_int, 1u64);
+    }
+
+    #[test]
     fn test_can_be_consumed() {
         let none = NoteExecutionHint::none();
         assert!(none.can_be_consumed(100).is_none());
