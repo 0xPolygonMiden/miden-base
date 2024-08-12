@@ -48,6 +48,10 @@ doc-serve: ## Serves documentation site
 
 # --- testing -------------------------------------------------------------------------------------
 
+.PHONY: test-build
+test-build: ## Build the test binary
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)" --no-run
+
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`
 	$(DEBUG_ASSERTIONS) cargo nextest run --profile default --cargo-profile test-release --features concurrent,testing --filter-expr "not test(prove)"
