@@ -88,14 +88,14 @@ impl NoteExecutionHint {
             },
             AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
             ON_BLOCK_SLOT_TAG => {
-                let remainder = (payload >> 24 & 0xFF) as u8;
+                let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
 
-                let epoch_len = ((payload >> 16) & 0xFF) as u8;
-                let slot_len = ((payload >> 8) & 0xFF) as u8;
-                let slot_offset = (payload & 0xFF) as u8;
+                let epoch_len = ((payload >> 16) & 0xff) as u8;
+                let slot_len = ((payload >> 8) & 0xff) as u8;
+                let slot_offset = (payload & 0xff) as u8;
                 let hint = NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset };
 
                 Ok(hint)

@@ -13,7 +13,7 @@ const NETWORK_EXECUTION: u8 = 0;
 const LOCAL_EXECUTION: u8 = 1;
 
 // The 2 most significant bits are set to `0b11`
-const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xC0000000;
+const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc0000000;
 // The 2 most significant bits are set to `0b10`
 const PUBLIC_USECASE: u32 = 0x80000000;
 
@@ -94,7 +94,7 @@ impl NoteTag {
             NoteExecutionMode::Local => {
                 let id: u64 = account_id.into();
                 // select 14 most significant bits of the account ID and shift them right by 2 bits
-                let high_bits = (id >> 34) as u32 & 0xFFFF0000;
+                let high_bits = (id >> 34) as u32 & 0xffff0000;
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
@@ -206,7 +206,7 @@ impl NoteTag {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
         }
 
-        let is_public_use_case = (self.0 & 0xC0000000) == PUBLIC_USECASE;
+        let is_public_use_case = (self.0 & 0xc0000000) == PUBLIC_USECASE;
         if is_public_use_case && note_type != NoteType::Public {
             Err(NoteError::PublicUseCaseRequiresPublicNote(note_type))
         } else {
