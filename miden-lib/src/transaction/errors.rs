@@ -2,8 +2,8 @@ use alloc::{string::String, vec::Vec};
 use core::fmt;
 
 use miden_objects::{
-    accounts::AccountStorage, notes::NoteMetadata, AccountError, AssetError, Digest, Felt,
-    NoteError,
+    accounts::AccountStorage, notes::NoteMetadata, AccountDeltaError, AccountError, AssetError,
+    Digest, Felt, NoteError,
 };
 
 // TRANSACTION KERNEL ERROR
@@ -11,6 +11,7 @@ use miden_objects::{
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TransactionKernelError {
+    AccountDeltaError(AccountDeltaError),
     FailedToAddAssetToNote(NoteError),
     InvalidNoteInputs {
         expected: Digest,
@@ -39,7 +40,7 @@ impl fmt::Display for TransactionKernelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TransactionKernelError::FailedToAddAssetToNote(err) => {
-                write!(f, "failed to add asset to note: {err}")
+                write!(f, "Failed to add asset to note: {err}")
             },
             TransactionKernelError::InvalidNoteInputs { expected, got, data } => {
                 write!(
@@ -50,7 +51,7 @@ impl fmt::Display for TransactionKernelError {
             },
             TransactionKernelError::InvalidStorageSlotIndex(index) => {
                 let num_slots = AccountStorage::NUM_STORAGE_SLOTS;
-                write!(f, "storage slot index {index} is invalid, must be smaller than {num_slots}")
+                write!(f, "Storage slot index {index} is invalid, must be smaller than {num_slots}")
             },
             TransactionKernelError::MalformedAccountId(err) => {
                 write!( f, "Account id data extracted from the stack by the event handler is not well formed {err}")
@@ -59,7 +60,7 @@ impl fmt::Display for TransactionKernelError {
                 write!(f, "Asset data extracted from the stack by the event handler is not well formed {err}")
             },
             TransactionKernelError::MalformedAssetOnAccountVaultUpdate(err) => {
-                write!(f, "malformed asset during account vault update: {err}")
+                write!(f, "Malformed asset during account vault update: {err}")
             },
             TransactionKernelError::MalformedNoteInputs(err) => {
                 write!( f, "Note inputs data extracted from the advice map by the event handler is not well formed {err}")
@@ -89,16 +90,19 @@ impl fmt::Display for TransactionKernelError {
                 write!(f, "Public note missing or incomplete inputs in the advice provider")
             },
             TransactionKernelError::MissingStorageSlotValue(index, err) => {
-                write!(f, "value for storage slot {index} could not be found: {err}")
+                write!(f, "Value for storage slot {index} could not be found: {err}")
             },
             TransactionKernelError::TooFewElementsForNoteInputs => {
                 write!(
                     f,
-                    "note input data in advice provider contains fewer elements than specified by its inputs length"
+                    "Note input data in advice provider contains fewer elements than specified by its inputs length"
                 )
             },
             TransactionKernelError::UnknownAccountProcedure(proc_root) => {
-                write!(f, "account procedure with root {proc_root} is not in the advice provider")
+                write!(f, "Account procedure with root {proc_root} is not in the advice provider")
+            },
+            TransactionKernelError::AccountDeltaError(error) => {
+                write!(f, "Account delta error: {error}")
             },
         }
     }

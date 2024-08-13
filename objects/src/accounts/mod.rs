@@ -19,7 +19,8 @@ pub use code::{procedure::AccountProcedureInfo, AccountCode};
 
 pub mod delta;
 pub use delta::{
-    AccountDelta, AccountStorageDelta, AccountVaultDelta, NonFungibleDeltaAction, StorageMapDelta,
+    AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
+    NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
 };
 
 mod seed;

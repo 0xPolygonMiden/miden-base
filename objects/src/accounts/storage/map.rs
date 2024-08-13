@@ -106,16 +106,13 @@ impl StorageMap {
     }
 
     /// Applies the provided delta to this account storage.
-    ///
-    /// This method assumes that the delta has been validated by the calling method and so, no
-    /// additional validation of delta is performed.
-    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Result<Digest, AccountError> {
+    pub fn apply_delta(&mut self, delta: &StorageMapDelta) -> Digest {
         // apply the updated and cleared leaves to the storage map
         for (&key, &value) in delta.leaves().iter() {
             self.insert(key, value);
         }
 
-        Ok(self.root())
+        self.root()
     }
 }
 

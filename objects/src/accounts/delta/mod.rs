@@ -10,7 +10,9 @@ mod storage;
 pub use storage::{AccountStorageDelta, AccountStorageDeltaBuilder, StorageMapDelta};
 
 mod vault;
-pub use vault::{AccountVaultDelta, NonFungibleDeltaAction};
+pub use vault::{
+    AccountVaultDelta, FungibleAssetDelta, NonFungibleAssetDelta, NonFungibleDeltaAction,
+};
 
 // ACCOUNT DELTA
 // ================================================================================================
@@ -44,10 +46,6 @@ impl AccountDelta {
         vault: AccountVaultDelta,
         nonce: Option<Felt>,
     ) -> Result<Self, AccountDeltaError> {
-        // make sure storage and vault deltas are valid
-        storage.validate()?;
-        vault.validate()?;
-
         // nonce must be updated if either account storage or vault were updated
         validate_nonce(nonce, &storage, &vault)?;
 

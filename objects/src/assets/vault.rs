@@ -92,10 +92,19 @@ impl AssetVault {
     // PUBLIC MODIFIERS
     // --------------------------------------------------------------------------------------------
 
+    /// Applies the specified delta to the asset vault.
+    ///
+    /// # Errors
+    /// Returns an error:
+    /// - If the total value of assets is greater than or equal to 2^63.
+    /// - If the delta contains an addition/subtraction for a fungible asset that is not stored in
+    ///   the vault.
+    /// - If the delta contains a non-fungible asset removal that is not stored in the vault.
+    /// - If the delta contains a non-fungible asset addition that is already stored in the vault.
     pub fn apply_delta(&mut self, delta: &AccountVaultDelta) -> Result<(), AssetVaultError> {
-        for (&faucet_id, &delta) in delta.fungible() {
+        for (&faucet_id, &delta) in delta.fungible().iter() {
             let asset = FungibleAsset::new(faucet_id, delta.unsigned_abs())
-                .map_err(AssetVaultError::FungibleAssetValidationError)?;
+                .expect("Not a fungible faucet ID or delta is too large");
             if delta >= 0 {
                 self.add_fungible_asset(asset)?;
             } else {
@@ -103,8 +112,9 @@ impl AssetVault {
             }
         }
 
-        for (&asset, &action) in delta.non_fungible() {
-            // # SAFETY: the asset must be a valid word representation of a non-fungible asset
+        for (&asset, &action) in delta.non_fungible().iter() {
+            // SAFETY: the asset must be a valid word representation of a non-fungible asset.
+            //         This is safe because we allow only to add non-fungible assets.
             let asset = unsafe { NonFungibleAsset::new_unchecked(asset.into()) };
             match action {
                 NonFungibleDeltaAction::Add => {
@@ -118,21 +128,6 @@ impl AssetVault {
 
         Ok(())
     }
-
-    // fn apply_fungible_asset_delta(&mut self, faucet_id: AccountId, delta: i64) -> Result<(), AssetVaultError> {
-    //     let vault_key = FungibleAsset::to_vault_key(faucet_id).into();
-    //
-    //     // fetch current asset value from the tree and add amount delta to it.
-    //     let new_amount: u64 =
-    //         match self.asset_tree.get_value(&vault_key) {
-    //             current if current == Smt::EMPTY_VALUE => delta.try_into().map_err(|_| AssetVaultError::AddFungibleAssetBalanceError(0.into()))?,
-    //             current => {
-    //                 let current = FungibleAsset::new_unchecked(current);
-    //                 current.add(asset).map_err(AssetVaultError::AddFungibleAssetBalanceError)?
-    //             },
-    //         };
-    //     self.asset_tree.insert(new.vault_key().into(), new.into());
-    // }
 
     // ADD ASSET
     // --------------------------------------------------------------------------------------------

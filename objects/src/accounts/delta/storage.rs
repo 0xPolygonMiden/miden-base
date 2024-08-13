@@ -32,23 +32,14 @@ pub struct AccountStorageDelta {
 
 impl AccountStorageDelta {
     /// Creates a new storage delta from the provided fields.
-    pub const fn new(slots: BTreeMap<u8, Word>, maps: BTreeMap<u8, StorageMapDelta>) -> Self {
-        Self { slots, maps }
-    }
+    pub fn new(
+        slots: BTreeMap<u8, Word>,
+        maps: BTreeMap<u8, StorageMapDelta>,
+    ) -> Result<Self, AccountDeltaError> {
+        let result = Self { slots, maps };
+        result.validate()?;
 
-    /// Creates an [AccountStorageDelta] from the given iterators.
-    #[cfg(test)]
-    pub fn from_iters(
-        cleared_items: impl IntoIterator<Item = u8>,
-        updated_items: impl IntoIterator<Item = (u8, Word)>,
-        updated_maps: impl IntoIterator<Item = (u8, StorageMapDelta)>,
-    ) -> Self {
-        Self {
-            slots: BTreeMap::from_iter(
-                cleared_items.into_iter().map(|key| (key, EMPTY_WORD)).chain(updated_items),
-            ),
-            maps: BTreeMap::from_iter(updated_maps),
-        }
+        Ok(result)
     }
 
     /// Returns a reference to the updated slots in this storage delta.
@@ -66,11 +57,18 @@ impl AccountStorageDelta {
         self.slots.is_empty() && self.maps.is_empty()
     }
 
+    /// Tracks a slot change
+    pub fn slot_update(&mut self, slot_index: u8, new_slot_value: Word) {
+        self.slots.insert(slot_index, new_slot_value);
+    }
+
+    /// Tracks a slot change
+    pub fn maps_update(&mut self, slot_index: u8, key: Digest, new_value: Word) {
+        self.maps.entry(slot_index).or_default().insert(key, new_value);
+    }
+
     /// Merges another delta into this one, overwriting any existing values.
     pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
-        self.validate()?;
-        other.validate()?;
-
         self.slots.extend(other.slots);
 
         // merge maps
@@ -79,7 +77,7 @@ impl AccountStorageDelta {
                 Entry::Vacant(entry) => {
                     entry.insert(update);
                 },
-                Entry::Occupied(mut entry) => entry.get_mut().merge(update),
+                Entry::Occupied(mut entry) => entry.get_mut().merge(update)?,
             }
         }
 
@@ -92,7 +90,7 @@ impl AccountStorageDelta {
     /// Returns an error if:
     /// - Any of updated items are at slot 255 (i.e., immutable slot).
     /// - Any of the updated slot is referenced from both maps (e.g., updated twice).
-    pub fn validate(&self) -> Result<(), AccountDeltaError> {
+    fn validate(&self) -> Result<(), AccountDeltaError> {
         if self.slots.contains_key(&IMMUTABLE_STORAGE_SLOT)
             || self.maps.contains_key(&IMMUTABLE_STORAGE_SLOT)
         {
@@ -106,6 +104,23 @@ impl AccountStorageDelta {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(any(feature = "testing", test))]
+impl AccountStorageDelta {
+    /// Creates an [AccountStorageDelta] from the given iterators.
+    pub fn from_iters(
+        cleared_items: impl IntoIterator<Item = u8>,
+        updated_items: impl IntoIterator<Item = (u8, Word)>,
+        updated_maps: impl IntoIterator<Item = (u8, StorageMapDelta)>,
+    ) -> Self {
+        Self {
+            slots: BTreeMap::from_iter(
+                cleared_items.into_iter().map(|key| (key, EMPTY_WORD)).chain(updated_items),
+            ),
+            maps: BTreeMap::from_iter(updated_maps),
+        }
     }
 }
 
@@ -148,13 +163,7 @@ impl Deserializable for AccountStorageDelta {
         let num_maps = source.read_u8()? as usize;
         let maps = source.read_many::<(u8, StorageMapDelta)>(num_maps)?.into_iter().collect();
 
-        let result = Self { slots, maps };
-
-        result
-            .validate()
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
-
-        Ok(result)
+        Self::new(slots, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -163,19 +172,60 @@ impl Deserializable for AccountStorageDelta {
 
 /// [StorageMapDelta] stores the differences between two states of account storage maps.
 ///
-/// The differences are represented as follows:
-/// - leave updates: represented by `cleared_leaves` and `updated_leaves` field.
+/// The differences are represented as leaf updates: a map of updated item key ([Digest]) to
+/// value ([Word]). For cleared items the value is [EMPTY_WORD].
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct StorageMapDelta(BTreeMap<Digest, Word>);
 
 impl StorageMapDelta {
     /// Creates a new storage map delta from the provided leaves.
-    pub const fn new(map: BTreeMap<Digest, Word>) -> Self {
-        Self(map)
+    pub fn new(map: BTreeMap<Digest, Word>) -> Result<Self, AccountDeltaError> {
+        let delta = Self(map);
+        delta.validate()?;
+
+        Ok(delta)
     }
 
+    /// Returns a reference to the updated leaves in this storage map delta.
+    pub fn leaves(&self) -> &BTreeMap<Digest, Word> {
+        &self.0
+    }
+
+    /// Inserts an item into the storage map delta.
+    pub fn insert(&mut self, key: Digest, value: Word) {
+        self.0.insert(key, value);
+    }
+
+    /// Returns true if storage map delta contains no updates.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Merge `other` into this delta, giving precedence to `other`.
+    pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
+        // Aggregate the changes into a map such that `other` overwrites self.
+        self.0.extend(other.0);
+
+        // Validate the resulted delta.
+        self.validate()
+    }
+
+    /// Validates the storage map delta.
+    fn validate(&self) -> Result<(), AccountDeltaError> {
+        if self.leaves().len() > u16::MAX as usize {
+            return Err(AccountDeltaError::TooManyStorageItems {
+                actual: self.leaves().len(),
+                max: u16::MAX as usize,
+            });
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(any(feature = "testing", test))]
+impl StorageMapDelta {
     /// Creates a new [StorageMapDelta] from the provided iterators.
-    #[cfg(test)]
     pub fn from_iters(
         cleared_leaves: impl IntoIterator<Item = Word>,
         updated_leaves: impl IntoIterator<Item = (Word, Word)>,
@@ -186,22 +236,6 @@ impl StorageMapDelta {
                 .map(|key| (key.into(), EMPTY_WORD))
                 .chain(updated_leaves.into_iter().map(|(key, value)| (key.into(), value))),
         ))
-    }
-
-    /// Returns a reference to the updated leaves in this storage map delta.
-    pub fn leaves(&self) -> &BTreeMap<Digest, Word> {
-        &self.0
-    }
-
-    /// Returns true if storage map delta contains no updates.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Merge `other` into this delta, giving precedence to `other`.
-    pub fn merge(&mut self, other: Self) {
-        // Aggregate the changes into a map such that `other` overwrites self.
-        self.0.extend(other.0)
     }
 }
 
@@ -216,26 +250,26 @@ impl Serializable for StorageMapDelta {
 
         let updated: Vec<_> = self.0.iter().filter(|&(_, value)| value != &EMPTY_WORD).collect();
 
-        target.write_u8(cleared.len() as u8);
+        target.write_usize(cleared.len());
         target.write_many(cleared.iter());
 
-        target.write_u8(updated.len() as u8);
+        target.write_usize(updated.len());
         target.write_many(updated.iter());
     }
 }
 
 impl Deserializable for StorageMapDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let cleared_count = source.read_u8()? as usize;
+        let cleared_count = source.read_usize()?;
         let cleared: Vec<Digest> = source.read_many(cleared_count)?;
 
-        let updated_count = source.read_u8()? as usize;
+        let updated_count = source.read_usize()?;
         let updated: Vec<(Digest, Word)> = source.read_many(updated_count)?;
 
         let map =
             BTreeMap::from_iter(cleared.into_iter().map(|key| (key, EMPTY_WORD)).chain(updated));
 
-        Ok(Self::new(map))
+        Self::new(map).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -458,7 +492,7 @@ mod tests {
         let delta_y = create_delta(y);
         let expected = create_delta(expected);
 
-        delta_x.merge(delta_y);
+        delta_x.merge(delta_y).unwrap();
 
         assert_eq!(delta_x, expected);
     }
