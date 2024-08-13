@@ -10,7 +10,9 @@ use miden_objects::{
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
     assets::Asset,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteType},
+    notes::{
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
+    },
     testing::{constants::NON_FUNGIBLE_ASSET_DATA_2, prepare_word},
     transaction::{OutputNote, OutputNotes},
 };
@@ -39,6 +41,7 @@ fn test_create_note() {
             exec.prologue::prepare_transaction
 
             push.{recipient}
+            push.{note_execution_hint}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
@@ -48,6 +51,7 @@ fn test_create_note() {
         ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
+        note_execution_hint = Felt::from(NoteExecutionHint::after_block(23)),
         tag = tag,
     );
 
@@ -65,9 +69,24 @@ fn test_create_note() {
         "recipient must be stored at the correct memory location",
     );
 
+    let expected_note_metadata: Word = NoteMetadata::new(
+        account_id,
+        NoteType::Public,
+        tag.try_into().unwrap(),
+        NoteExecutionHint::after_block(23),
+        Felt::new(27),
+    )
+    .unwrap()
+    .into();
+
     assert_eq!(
         read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + OUTPUT_NOTE_METADATA_OFFSET),
-        [tag, Felt::from(account_id), NoteType::Public.into(), Felt::new(27)],
+        [
+            expected_note_metadata[0],
+            expected_note_metadata[1],
+            expected_note_metadata[2],
+            expected_note_metadata[3]
+        ],
         "metadata must be stored at the correct memory location",
     );
 
@@ -94,6 +113,7 @@ fn test_create_note_with_invalid_tag() {
             exec.prologue::prepare_transaction
 
             push.{recipient}
+            push.{note_execution_hint}
             push.{PUBLIC_NOTE}
             push.{tag}
 
@@ -101,6 +121,7 @@ fn test_create_note_with_invalid_tag() {
         end
         ",
         recipient = prepare_word(&recipient),
+        note_execution_hint = Felt::from(NoteExecutionHint::always()),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
     );
@@ -163,6 +184,7 @@ fn test_get_output_notes_hash() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_1,
+        NoteExecutionHint::Always,
         ZERO,
     )
     .unwrap();
@@ -178,6 +200,7 @@ fn test_get_output_notes_hash() {
         tx_context.tx_inputs().account().id(),
         NoteType::Public,
         output_tag_2,
+        NoteExecutionHint::after_block(123),
         ZERO,
     )
     .unwrap();
@@ -205,39 +228,43 @@ fn test_get_output_notes_hash() {
 
             # create output note 1
             push.{recipient_1}
+            push.{NOTE_EXECUTION_HINT_1}
             push.{PUBLIC_NOTE}
             push.{aux_1}
             push.{tag_1}
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset_1} movup.4
+            push.{asset_1}
             exec.tx::add_asset_to_note
-
-
-            drop
+            # => [ASSET, note_idx]
+            
+            dropw drop
             # => []
 
             # create output note 2
             push.{recipient_2}
+            push.{NOTE_EXECUTION_HINT_2}
             push.{PUBLIC_NOTE}
             push.{aux_2}
             push.{tag_2}
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset_2} movup.4
+            push.{asset_2} 
             exec.tx::add_asset_to_note
+            # => [ASSET, note_idx]
 
-            drop
+            dropw drop
             # => []
 
             # compute the output notes hash
             exec.tx::get_output_notes_hash
-            # => [COMM]
+            # => [COM]
         end
         ",
         PUBLIC_NOTE = NoteType::Public as u8,
+        NOTE_EXECUTION_HINT_1 = Felt::from(output_note_1.metadata().execution_hint()),
         recipient_1 = prepare_word(&output_note_1.recipient().digest()),
         tag_1 = output_note_1.metadata().tag(),
         aux_1 = output_note_1.metadata().aux(),
@@ -245,6 +272,7 @@ fn test_get_output_notes_hash() {
             **output_note_1.assets().iter().take(1).collect::<Vec<_>>().first().unwrap()
         )),
         recipient_2 = prepare_word(&output_note_2.recipient().digest()),
+        NOTE_EXECUTION_HINT_2 = Felt::from(output_note_2.metadata().execution_hint()),
         tag_2 = output_note_2.metadata().tag(),
         aux_2 = output_note_2.metadata().aux(),
         asset_2 = prepare_word(&Word::from(
@@ -300,6 +328,7 @@ fn test_create_note_and_add_asset() {
             exec.prologue::prepare_transaction
 
             push.{recipient}
+            push.{NOTE_EXECUTION_HINT}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
@@ -307,13 +336,17 @@ fn test_create_note_and_add_asset() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset} movup.4
+            push.{asset}
             exec.tx::add_asset_to_note
+            # => [ASSET, note_idx]
 
+            dropw
+            # => [note_idx]
         end
         ",
         recipient = prepare_word(&recipient),
         PUBLIC_NOTE = NoteType::Public as u8,
+        NOTE_EXECUTION_HINT = Felt::from(NoteExecutionHint::always()),
         tag = tag,
         asset = prepare_word(&asset),
     );
@@ -367,20 +400,20 @@ fn test_create_note_and_add_multiple_assets() {
             exec.tx::create_note
             # => [note_idx]
 
-            push.{asset} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{asset_2} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset_2}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{asset_3} movup.4
-            exec.tx::add_asset_to_note
+            push.{asset_3}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
 
-            push.{nft} movup.4
-            exec.tx::add_asset_to_note
+            push.{nft}
+            exec.tx::add_asset_to_note dropw
             # => [note_idx]
         end
         ",
@@ -496,6 +529,7 @@ fn test_build_recipient_hash() {
             push.{output_serial_no}
             exec.tx::build_recipient_hash
 
+            push.{execution_hint}
             push.{PUBLIC_NOTE}
             push.{aux}
             push.{tag}
@@ -507,6 +541,7 @@ fn test_build_recipient_hash() {
         output_serial_no = prepare_word(&output_serial_no),
         PUBLIC_NOTE = NoteType::Public as u8,
         tag = tag,
+        execution_hint = Felt::from(NoteExecutionHint::after_block(2)),
         aux = aux,
     );
 

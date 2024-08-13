@@ -279,7 +279,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 79] = [
     (ERR_P2IDR_WRONG_NUMBER_OF_INPUTS, "P2IDR scripts expect exactly 2 note inputs"),
     (ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, "P2IDR's can only be reclaimed by the sender"),
     (ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED, "Transaction's reference block is lower than reclaim height. The P2IDR can not be reclaimed"),
-    (ERR_SWAP_WRONG_NUMBER_OF_INPUTS, "SWAP script expects exactly 9 note inputs"),
+    (ERR_SWAP_WRONG_NUMBER_OF_INPUTS, "SWAP script expects exactly 10 note inputs"),
     (ERR_SWAP_WRONG_NUMBER_OF_ASSETS, "SWAP script requires exactly 1 note asset"),
     (ERR_NONCE_DID_NOT_INCREASE, "The nonce did not increase after a state changing transaction"),
     (ERR_EPILOGUE_ASSETS_DONT_ADD_UP, "Total number of assets in the account and all involved notes must stay the same"),

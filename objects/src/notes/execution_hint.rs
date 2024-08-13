@@ -1,6 +1,8 @@
 // NOTE EXECUTION HINT
 // ================================================================================================
 
+use vm_core::Felt;
+
 use crate::NoteError;
 
 // CONSTANTS
@@ -11,8 +13,11 @@ const ALWAYS_TAG: u8 = 1;
 const AFTER_BLOCK_TAG: u8 = 2;
 const ON_BLOCK_SLOT_TAG: u8 = 3;
 
-/// Describes the conditions under which a note is ready to be consumed.
+/// Specifies the conditions under which a note is ready to be consumed.
 /// These conditions are meant to be encoded in the note script as well.
+///
+/// This struct can be represented as the combination of a tag, and a payload.
+/// The tag specifies the variant of the hint, and the payload encodes the hint data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum NoteExecutionHint {
@@ -142,6 +147,42 @@ impl NoteExecutionHint {
     }
 }
 
+/// As a Felt, the ExecutionHint is encoded as:
+///
+/// - 6 least significant bits: Hint identifier (tag).
+/// - Bits 6 to 38: Hint payload.
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
+impl From<NoteExecutionHint> for Felt {
+    fn from(value: NoteExecutionHint) -> Self {
+        let int_representation: u64 = value.into();
+        Felt::new(int_representation)
+    }
+}
+
+/// As a u64, the ExecutionHint is encoded as:
+///
+/// - 6 least significant bits: Hint identifier (tag).
+/// - Bits 6 to 38: Hint payload.
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `1u64`
+impl TryFrom<u64> for NoteExecutionHint {
+    type Error = NoteError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let tag = (value & 0b111111) as u8;
+        let payload = ((value >> 6) & 0xFFFFFFFF) as u32;
+
+        Self::from_parts(tag, payload)
+    }
+}
+
+impl From<NoteExecutionHint> for u64 {
+    fn from(value: NoteExecutionHint) -> Self {
+        let (tag, payload) = value.into_parts();
+        (payload as u64) << 6 | (tag as u64)
+    }
+}
+
 // TESTS
 // ================================================================================================
 
@@ -168,6 +209,26 @@ mod tests {
     }
 
     #[test]
+    fn test_encode_round_trip() {
+        let hint = NoteExecutionHint::AfterBlock { block_num: 15 };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let hint = NoteExecutionHint::OnBlockSlot {
+            epoch_len: 22,
+            slot_len: 33,
+            slot_offset: 44,
+        };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let always_int: u64 = NoteExecutionHint::always().into();
+        assert_eq!(always_int, 1u64);
+    }
+
+    #[test]
     fn test_can_be_consumed() {
         let none = NoteExecutionHint::none();
         assert!(none.can_be_consumed(100).is_none());
@@ -187,7 +248,7 @@ mod tests {
         assert!(on_block_slot.can_be_consumed(1152).unwrap()); // Block 1152 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(1279).unwrap()); // Block 1279 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(2176).unwrap()); // Block 2176 is in the slot 2176..2303
-        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 1279 is in the slot 2176..2303
+        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 2175 is not in the slot 2176..2303
     }
 
     #[test]

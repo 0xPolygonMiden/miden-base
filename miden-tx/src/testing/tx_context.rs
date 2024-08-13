@@ -12,9 +12,9 @@ use miden_objects::{
     },
     assembly::{Assembler, ModuleAst},
     assets::{Asset, FungibleAsset},
-    notes::{Note, NoteId, NoteType},
+    notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
-        account_code::{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT},
+        account_code::ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
         block::{MockChain, MockChainBuilder},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
@@ -258,16 +258,19 @@ impl TransactionContextBuilder {
     ) -> Note {
         let code = format!(
             "
+            use.miden::contracts::wallets::basic->wallet
+
             begin
                 # NOTE
                 # ---------------------------------------------------------------------------------
                 push.{recipient}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux}
                 push.{tag}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
-                push.{asset} movup.4
+                push.{asset}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
             end
@@ -277,6 +280,7 @@ impl TransactionContextBuilder {
             aux = output.metadata().aux(),
             tag = output.metadata().tag(),
             asset = prepare_assets(output.assets())[0],
+            execution_hint_always = Felt::from(NoteExecutionHint::always())
         );
 
         NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))
@@ -298,28 +302,32 @@ impl TransactionContextBuilder {
     ) -> Note {
         let code = format!(
             "
+            use.miden::contracts::wallets::basic->wallet
+
             begin
                 # NOTE 0
                 # ---------------------------------------------------------------------------------
                 push.{recipient0}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux0}
                 push.{tag0}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
-                push.{asset0} movup.4
+                push.{asset0}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
 
                 # NOTE 1
                 # ---------------------------------------------------------------------------------
                 push.{recipient1}
+                push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux1}
                 push.{tag1}
-                call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+                call.wallet::create_note
 
-                push.{asset1} movup.4
+                push.{asset1}
                 call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
                 dropw dropw dropw
             end
@@ -333,6 +341,7 @@ impl TransactionContextBuilder {
             aux1 = output1.metadata().aux(),
             tag1 = output1.metadata().tag(),
             asset1 = prepare_assets(output1.assets())[0],
+            execution_hint_always = Felt::from(NoteExecutionHint::always())
         );
 
         NoteBuilder::new(sender, ChaCha20Rng::from_seed(self.rng.gen()))

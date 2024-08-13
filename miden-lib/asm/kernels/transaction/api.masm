@@ -8,6 +8,13 @@ use.miden::kernels::tx::memory
 use.miden::kernels::tx::note
 use.miden::kernels::tx::tx
 
+# NOTE
+# =================================================================================================
+# Procedures in this module are expected to be invoked using a `syscall` instruction. It makes no #
+# guarantees about the contents of the `PAD` elements shown in the inputs and outputs. It is the  #
+# caller's responsibility to make sure these elements do not contain any meaningful data.         #
+# =================================================================================================
+
 # ERRORS
 # =================================================================================================
 
@@ -504,35 +511,28 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
-#! Outputs: [note_idx, 0, 0, 0, 0, 0]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+#! Outputs: [note_idx, PAD(15)]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
-#! note_type is the note storage type
+#! note_type is the note storage type.
+#! execution_hint is the note execution hint tag and payload.
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [tag, aux, note_type, RECIPIENT]
-
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+   
     exec.tx::create_note
-    # => [note_idx]
-
-    # prepare stack for return. Note: when create_note is called, the stack looks
-    # like [tag, aux, note_type, RECIPIENT, x, X, X], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, EMPTY_WORD] adding 0's.
-    # To keep the data in position we move 0's to the left between note_idx and the potentially
-    # important first element x.
-    movupw.3 movup.15 movup.15 movup.6
-    # => [note_idx, 0, 0, 0, 0, 0, 0]
+    # => [note_idx, PAD(15)]
 end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_idx, ASSET]
-#! Outputs: [note_idx, 0, 0, 0, 0]
+#! Inputs:  [note_idx, ASSET, PAD(11)]
+#! Outputs: [note_idx, ASSET, PAD(11)]
 #!
 #! note_idx is the index of the the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
@@ -541,16 +541,12 @@ export.add_asset_to_note
     exec.authenticate_account_origin
     # => [note_idx, ASSET]
 
-    exec.tx::add_asset_to_note
-    # => [note_idx]
+    # duplicate the asset word to be able to return it
+    movdn.4 dupw movup.8
+    # => [note_idx, ASSET, ASSET]
 
-    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
-    # like [idx, ASSET, X, X, x, x, x], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, EMPTY_WORD] adding 0's.
-    # To keep the data in position we insert 0's between idx and the potentially important
-    # first element x.
-    movupw.3 movup.4
-    # => [note_idx, 0, 0, 0, 0]
+    exec.tx::add_asset_to_note
+    # => [note_idx, ASSET]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.

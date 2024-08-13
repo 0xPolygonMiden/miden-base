@@ -267,6 +267,7 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
     let tx_outputs =
         TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
             .map_err(TransactionExecutorError::InvalidTransactionOutput)?;
+
     let final_account = &tx_outputs.account;
 
     let initial_account = tx_inputs.account();
