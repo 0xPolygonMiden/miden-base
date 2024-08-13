@@ -15,8 +15,8 @@ use super::{AuthScheme, TransactionKernel};
 // BASIC WALLET
 // ================================================================================================
 
-/// Creates a new account with basic wallet interface, the specified authentication scheme and the account storage type.
-/// Basic wallets can be specified to have either mutable or immutable code.
+/// Creates a new account with basic wallet interface, the specified authentication scheme and the
+/// account storage type. Basic wallets can be specified to have either mutable or immutable code.
 ///
 /// The basic wallet interface exposes two procedures:
 /// - `receive_asset`, which can be used to add an asset to the account.
@@ -39,17 +39,14 @@ pub fn create_basic_wallet(
     }
 
     let (auth_scheme_procedure, storage_slot_0_data): (&str, Word) = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => ("basic::auth_tx_rpo_falcon512", pub_key.into()),
+        AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
     };
 
     let source_code: String = format!(
         "
-        use.miden::contracts::wallets::basic->basic_wallet
-        use.miden::contracts::auth::basic
-
-        export.basic_wallet::receive_asset
-        export.basic_wallet::send_asset
-        export.{auth_scheme_procedure}
+        export.::miden::contracts::wallets::basic::receive_asset
+        export.::miden::contracts::wallets::basic::send_asset
+        export.::miden::contracts::auth::basic::{auth_scheme_procedure}
     "
     );
 
@@ -68,4 +65,30 @@ pub fn create_basic_wallet(
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+
+    use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+
+    use super::{create_basic_wallet, AccountStorageType, AccountType, AuthScheme};
+
+    #[test]
+    fn test_create_basic_wallet() {
+        let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
+        let wallet = create_basic_wallet(
+            [1; 32],
+            AuthScheme::RpoFalcon512 { pub_key },
+            AccountType::RegularAccountImmutableCode,
+            AccountStorageType::OnChain,
+        );
+        
+        wallet.unwrap_or_else(|err| {
+            panic!("{}", err);
+        });
+    }
 }

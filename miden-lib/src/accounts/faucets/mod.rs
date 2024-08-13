@@ -44,10 +44,8 @@ pub fn create_basic_fungible_faucet(
     };
 
     let source_code = "
-        use.miden::contracts::faucets::basic_fungible
-
-        export.basic_fungible::distribute
-        export.basic_fungible::burn
+        export.::miden::contracts::faucets::basic_fungible::distribute
+        export.::miden::contracts::faucets::basic_fungible::burn
     ";
 
     let assembler = TransactionKernel::assembler();
