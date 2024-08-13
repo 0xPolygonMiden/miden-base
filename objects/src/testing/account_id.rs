@@ -3,11 +3,9 @@ use alloc::string::{String, ToString};
 use assembly::Assembler;
 use rand::Rng;
 
-use super::{
-    account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE, str_to_account_code,
-};
+use super::{account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE};
 use crate::{
-    accounts::{AccountId, AccountStorageType, AccountType},
+    accounts::{AccountCode, AccountId, AccountStorageType, AccountType},
     Digest, Word,
 };
 
@@ -54,7 +52,7 @@ impl<T: Rng> AccountIdBuilder<T> {
 
     pub fn build(
         &mut self,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Result<(AccountId, Word), AccountBuilderError> {
         let (seed, code_commitment) = account_id_build_details(
             &mut self.rng,
@@ -74,9 +72,9 @@ impl<T: Rng> AccountIdBuilder<T> {
     pub fn with_seed(
         &mut self,
         seed: Word,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Result<AccountId, AccountBuilderError> {
-        let code = str_to_account_code(&self.code, assembler)
+        let code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
         let code_commitment = code.commitment();
 
@@ -107,10 +105,10 @@ pub fn account_id_build_details<T: Rng>(
     account_type: AccountType,
     storage_type: AccountStorageType,
     storage_root: Digest,
-    assembler: &Assembler,
+    assembler: Assembler,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
-    let code = str_to_account_code(code, assembler).map_err(AccountBuilderError::AccountError)?;
+    let code = AccountCode::compile(code, assembler).map_err(AccountBuilderError::AccountError)?;
     let code_commitment = code.commitment();
     let seed = AccountId::get_account_seed(
         init_seed,

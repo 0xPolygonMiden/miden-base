@@ -2,8 +2,8 @@ use core::cell::OnceCell;
 
 use super::{
     Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNote,
-    InputNotes, OutputNotes, Program, TransactionArgs, TransactionId, TransactionInputs,
-    TransactionOutputs, TransactionWitness,
+    InputNotes, OutputNotes, TransactionArgs, TransactionId, TransactionInputs, TransactionOutputs,
+    TransactionWitness,
 };
 
 // EXECUTED TRANSACTION
@@ -22,7 +22,6 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
-    program: Program,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
     account_delta: AccountDelta,
@@ -39,7 +38,6 @@ impl ExecutedTransaction {
     /// # Panics
     /// Panics if input and output account IDs are not the same.
     pub fn new(
-        program: Program,
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
         account_delta: AccountDelta,
@@ -51,7 +49,6 @@ impl ExecutedTransaction {
 
         Self {
             id: OnceCell::new(),
-            program,
             tx_inputs,
             tx_outputs,
             account_delta,
@@ -66,11 +63,6 @@ impl ExecutedTransaction {
     /// Returns a unique identifier of this transaction.
     pub fn id(&self) -> TransactionId {
         *self.id.get_or_init(|| self.into())
-    }
-
-    /// Returns a reference the program defining this transaction.
-    pub fn program(&self) -> &Program {
-        &self.program
     }
 
     /// Returns the ID of the account against which this transaction was executed.
@@ -129,12 +121,7 @@ impl ExecutedTransaction {
 
     /// Returns individual components of this transaction.
     pub fn into_parts(self) -> (AccountDelta, TransactionOutputs, TransactionWitness) {
-        let tx_witness = TransactionWitness::new(
-            self.program,
-            self.tx_inputs,
-            self.tx_args,
-            self.advice_witness,
-        );
+        let tx_witness = TransactionWitness::new(self.tx_inputs, self.tx_args, self.advice_witness);
 
         (self.account_delta, self.tx_outputs, tx_witness)
     }

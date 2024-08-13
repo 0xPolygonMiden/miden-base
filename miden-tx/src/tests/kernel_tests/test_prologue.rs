@@ -358,7 +358,7 @@ fn input_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
 
@@ -378,7 +378,7 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -403,7 +403,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
@@ -431,7 +431,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -457,7 +457,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -483,7 +483,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
 
     let code = "

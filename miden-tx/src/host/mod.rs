@@ -41,35 +41,50 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
+///
+/// Transaction hosts are created on per-transaction basis. That is a transaction host is meant to
+/// support execution of a single transaction, and is discarded after the transaction finishes
+/// execution.
 pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
 
-    /// TODO: add comments
+    /// MAST store which contains the code required to execute the transaction.
     mast_store: Rc<TransactionMastStore>,
 
-    /// Accumulates the state changes notified via events.
+    /// Account state changes accumulated during transaction execution.
+    ///
+    /// This field is updated by the [TransactionHost::on_event()] handler.
     account_delta: AccountDeltaTracker,
 
-    /// A map for the account's procedures.
+    /// A map of the account's procedure MAST roots to the corresponding procedure indexes in the
+    /// account code.
     acct_procedure_index_map: AccountProcedureIndexMap,
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
     /// map.
     output_notes: BTreeMap<usize, OutputNoteBuilder>,
 
-    /// Provides a way to get a signature for a message into a transaction
+    /// Serves signature generation requests from the transaction runtime for signatures which are
+    /// not present in the `generated_signatures` field.
     authenticator: Option<Rc<T>>,
 
-    /// Contains the information about the number of cycles for each of the transaction execution
-    /// stages.
-    tx_progress: TransactionProgress,
-
-    /// Contains generated signatures for messages
+    /// Contains previously generated signatures (as a message |-> signature map) required for
+    /// transaction execution.
+    ///
+    /// If a required signature is not present in this map, the host will attempt to generate the
+    /// signature using the transaction authenticator.
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 
-    /// Contains mappings from error codes to the related error messages
+    /// Tracks the number of cycles for each of the transaction execution stages.
+    ///
+    /// This field is updated by the [TransactionHost::on_trace()] handler.
+    tx_progress: TransactionProgress,
+
+    /// Contains mappings from error codes to the related error messages.
+    ///
+    /// This map is initialized at construction time from the [KERNEL_ERRORS] array.
     error_messages: BTreeMap<u32, &'static str>,
 }
 
@@ -97,7 +112,8 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         })
     }
 
-    /// Consumes `self` and returns the advice provider and account vault delta.
+    /// Consumes `self` and returns the advice provider, account vault delta, output notes and
+    /// signatures generated during the transaction execution.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
 
@@ -109,7 +125,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         )
     }
 
-    /// Returns a reference to the `tx_progress` field of the [`TransactionHost`].
+    /// Returns a reference to the `tx_progress` field of this transaction host.
     pub fn tx_progress(&self) -> &TransactionProgress {
         &self.tx_progress
     }
@@ -383,6 +399,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         }
     }
 }
+
+// HOST IMPLEMENTATION FOR TRANSACTION HOST
+// ================================================================================================
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
     fn get_advice<S: ProcessState>(

@@ -48,7 +48,7 @@ fn test_epilogue() {
     let final_account = Account::mock(
         tx_context.account().id().into(),
         tx_context.account().nonce() + ONE,
-        &TransactionKernel::assembler(),
+        TransactionKernel::assembler(),
     );
 
     let output_notes = OutputNotes::new(

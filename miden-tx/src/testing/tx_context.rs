@@ -144,8 +144,11 @@ impl TransactionContextBuilder {
 
     pub fn with_standard_account(nonce: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account =
-            Account::mock(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, nonce, &assembler);
+        let account = Account::mock(
+            ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
+            nonce,
+            assembler.clone(),
+        );
 
         Self {
             assembler,
@@ -161,7 +164,8 @@ impl TransactionContextBuilder {
 
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account = Account::mock_fungible_faucet(acct_id, nonce, initial_balance, &assembler);
+        let account =
+            Account::mock_fungible_faucet(acct_id, nonce, initial_balance, assembler.clone());
 
         Self {
             assembler,
@@ -177,8 +181,12 @@ impl TransactionContextBuilder {
 
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let account =
-            Account::mock_non_fungible_faucet(acct_id, nonce, empty_reserved_slot, &assembler);
+        let account = Account::mock_non_fungible_faucet(
+            acct_id,
+            nonce,
+            empty_reserved_slot,
+            assembler.clone(),
+        );
 
         Self {
             assembler,

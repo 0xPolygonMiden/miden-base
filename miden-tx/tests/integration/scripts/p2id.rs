@@ -321,7 +321,7 @@ fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
         .add_storage_item(storage_item)
         .account_type(AccountType::RegularAccountUpdatableCode)
         .nonce(Felt::ZERO)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
 
     (account, seed, falcon_auth)

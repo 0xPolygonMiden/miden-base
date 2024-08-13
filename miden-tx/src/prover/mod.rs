@@ -50,12 +50,15 @@ impl TransactionProver {
         // execute and prove
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
+
+        // TODO: load the store with account/note/tx_script MASTs
         let mast_store = Rc::new(TransactionMastStore::new());
+
         let mut host: TransactionHost<_, ()> =
             TransactionHost::new(tx_witness.account().into(), advice_provider, mast_store, None)
                 .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
-            prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())
+            prove(&TransactionKernel::main(), stack_inputs, &mut host, self.proof_options.clone())
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data

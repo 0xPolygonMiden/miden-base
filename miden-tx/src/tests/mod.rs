@@ -78,9 +78,13 @@ fn transaction_executor_witness() {
     let mut host: TransactionHost<MemAdviceProvider, ()> =
         TransactionHost::new(tx_witness.account().into(), mem_advice_provider, mast_store, None)
             .unwrap();
-    let result =
-        vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
-            .unwrap();
+    let result = vm_processor::execute(
+        &TransactionKernel::main(),
+        stack_inputs,
+        &mut host,
+        Default::default(),
+    )
+    .unwrap();
 
     let (advice_provider, _, output_notes, _signatures) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();

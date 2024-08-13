@@ -4,7 +4,7 @@ use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
     notes::NoteScript,
     transaction::{TransactionArgs, TransactionInputs, TransactionScript},
-    vm::{Program, StackOutputs},
+    vm::StackOutputs,
     Felt, Word, ZERO,
 };
 use vm_processor::ExecutionOptions;
@@ -95,15 +95,12 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Fetches the account code from the [DataStore], compiles it, and loads the compiled code
-    /// into the internal cache.
+    /// Fetches the account code from the [DataStore], and loads the into the internal cache.
     ///
-    /// This also returns the [AccountCode] object built from the loaded account code.
+    /// TODO: remove this as we can load the code on execute_transaction() call?
     ///
     /// # Errors:
-    /// Returns an error if:
-    /// - If the account code cannot be fetched from the [DataStore].
-    /// - If the account code fails to be loaded into the compiler.
+    /// Returns an error if the account code cannot be fetched from the [DataStore].
     #[maybe_async]
     pub fn load_account(
         &mut self,
@@ -118,9 +115,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // COMPILERS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles the provided source code into a [NoteScript] and checks (to the extent possible) if
-    /// the specified note program could be executed against all accounts with the specified
-    /// interfaces.
+    /// TODO: remove as this is just a wrapper around [NoteScript::compile()].
     pub fn compile_note_script(
         &self,
         note_script: &str,
@@ -129,9 +124,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             .map_err(TransactionExecutorError::CompileNoteScriptFailed)
     }
 
-    /// Compiles the provided transaction script source and inputs into a [TransactionScript] and
-    /// checks (to the extent possible) that the transaction script can be executed against all
-    /// accounts with the specified interfaces.
+    /// TODO: remove as this is just a wrapper around [TransactionScript::compile()].
     pub fn compile_tx_script(
         &self,
         tx_script: &str,
@@ -154,8 +147,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
-    /// - If the transaction program can not be compiled.
-    /// - If the transaction program can not be executed.
     #[maybe_async]
     pub fn execute_transaction(
         &self,
@@ -170,32 +161,36 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
-        // TODO: load note and tx_scripts into the MAST store
+        let (_, tx_inputs, tx_args) = transaction.into_parts();
+
+        // load note script MAST into the MAST store
+        for note in tx_inputs.input_notes() {
+            self.mast_store.load_note_script(note.note().script())
+        }
+
+        // load tx script MAST into the MAST store
+        if let Some(tx_script) = tx_args.tx_script() {
+            self.mast_store.load_tx_script(tx_script);
+        }
+
         let mut host = TransactionHost::new(
-            transaction.account().into(),
+            tx_inputs.account().into(),
             advice_recorder,
             self.mast_store.clone(),
             self.authenticator.clone(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
+        // execute the transaction kernel
         let result = vm_processor::execute(
-            transaction.program(),
+            &TransactionKernel::main(),
             stack_inputs,
             &mut host,
             self.exec_options,
         )
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
-        let (tx_program, tx_inputs, tx_args) = transaction.into_parts();
-
-        build_executed_transaction(
-            tx_program,
-            tx_args,
-            tx_inputs,
-            result.stack_outputs().clone(),
-            host,
-        )
+        build_executed_transaction(tx_args, tx_inputs, result.stack_outputs().clone(), host)
     }
 
     // HELPER METHODS
@@ -221,7 +216,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let tx_program = TransactionKernel::main().unwrap();
+        let tx_program = TransactionKernel::main();
 
         Ok(PreparedTransaction::new(tx_program, tx_inputs, tx_args))
     }
@@ -232,7 +227,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
 
 /// Creates a new [ExecutedTransaction] from the provided data.
 fn build_executed_transaction<A: TransactionAuthenticator>(
-    program: Program,
     tx_args: TransactionArgs,
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
@@ -277,7 +271,6 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
     advice_witness.extend_map(generated_signatures);
 
     Ok(ExecutedTransaction::new(
-        program,
         tx_inputs,
         tx_outputs,
         account_delta,

@@ -1,6 +1,6 @@
 use assembly::Assembler;
 
-use crate::{accounts::AccountCode, testing::str_to_account_code};
+use crate::accounts::AccountCode;
 
 // The MAST root of the default account's interface. Use these constants to interact with the
 // account's procedures.
@@ -61,7 +61,7 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 
 impl AccountCode {
     /// Creates a mock [AccountCode] that exposes wallet interface
-    pub fn mock_wallet(assembler: &Assembler) -> AccountCode {
+    pub fn mock_wallet(assembler: Assembler) -> AccountCode {
         let account_code = "\
         use.miden::account
         use.miden::tx
@@ -137,7 +137,7 @@ impl AccountCode {
         end
         ";
 
-        let code = str_to_account_code(account_code, assembler).unwrap();
+        let code = AccountCode::compile(account_code, assembler).unwrap();
 
         // Ensures the mast root constants match the latest version of the code.
         //
@@ -168,7 +168,6 @@ impl AccountCode {
 
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        let assembler = Assembler::default();
-        str_to_account_code(CODE, &assembler).unwrap()
+        AccountCode::compile(CODE, Assembler::default()).unwrap()
     }
 }

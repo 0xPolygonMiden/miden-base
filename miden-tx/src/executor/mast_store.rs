@@ -42,7 +42,7 @@ impl TransactionMastStore {
         self.insert(mast_forest);
     }
 
-    pub fn load_tx_script(&self, script: TransactionScript) {
+    pub fn load_tx_script(&self, script: &TransactionScript) {
         let mast_forest = Arc::new(script.mast().clone());
         self.insert(mast_forest);
     }

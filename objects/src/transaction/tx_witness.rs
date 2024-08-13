@@ -1,6 +1,5 @@
 use super::{
-    Account, AdviceInputs, BlockHeader, InputNote, InputNotes, Program, TransactionArgs,
-    TransactionInputs,
+    Account, AdviceInputs, BlockHeader, InputNote, InputNotes, TransactionArgs, TransactionInputs,
 };
 
 // TRANSACTION WITNESS
@@ -13,7 +12,6 @@ use super::{
 /// of transactions.
 ///
 /// A transaction witness consists of:
-/// - The executable transaction [Program].
 /// - Transaction inputs which contain information about the initial state of the account, input
 ///   notes, block header etc.
 /// - An optional transaction script.
@@ -24,7 +22,6 @@ use super::{
 /// and tx outputs). we should optimize it to contain only the minimum data required for
 /// executing/proving the transaction.
 pub struct TransactionWitness {
-    program: Program,
     tx_inputs: TransactionInputs,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
@@ -35,26 +32,15 @@ impl TransactionWitness {
     // --------------------------------------------------------------------------------------------
     /// Creates a new [TransactionWitness] from the provided data.
     pub fn new(
-        program: Program,
         tx_inputs: TransactionInputs,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
     ) -> Self {
-        Self {
-            program,
-            tx_inputs,
-            tx_args,
-            advice_witness,
-        }
+        Self { tx_inputs, tx_args, advice_witness }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Returns a reference the program defining this transaction.
-    pub fn program(&self) -> &Program {
-        &self.program
-    }
 
     /// Returns the account state before the transaction was executed.
     pub fn account(&self) -> &Account {

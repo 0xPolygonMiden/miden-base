@@ -4,10 +4,7 @@ use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     transaction::{OutputNote, OutputNotes, TransactionOutputs},
-    utils::{
-        group_slice_elements,
-        serde::{Deserializable, DeserializationError},
-    },
+    utils::{group_slice_elements, serde::Deserializable},
     vm::{AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
@@ -44,6 +41,7 @@ impl TransactionKernel {
 
     /// Returns MASM source code which encodes the transaction kernel system procedures.
     pub fn kernel() -> KernelLibrary {
+        // TODO: make these static
         let kernel_bytes =
             include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
         KernelLibrary::read_from_bytes(kernel_bytes)
@@ -54,10 +52,11 @@ impl TransactionKernel {
     ///
     /// # Errors
     /// Returns an error if deserialization of the binary fails.
-    pub fn main() -> Result<Program, DeserializationError> {
+    pub fn main() -> Program {
+        // TODO: make these static
         let kernel_bytes =
             include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
-        Program::read_from_bytes(kernel_bytes)
+        Program::read_from_bytes(kernel_bytes).expect("failed to deserialize transaction runtime")
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
@@ -65,7 +64,7 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn program_info() -> ProgramInfo {
-        let program_hash = Self::main().unwrap().hash();
+        let program_hash = Self::main().hash();
         let kernel = Self::kernel().kernel().clone();
 
         ProgramInfo::new(program_hash, kernel)
