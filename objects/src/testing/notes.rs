@@ -16,10 +16,7 @@ use crate::{
     Felt, NoteError, Word, ZERO,
 };
 
-pub const DEFAULT_NOTE_CODE: &str = "\
-begin
-end
-";
+pub const DEFAULT_NOTE_CODE: &str = "begin nop end";
 
 // NOTE BUILDER
 // ================================================================================================
