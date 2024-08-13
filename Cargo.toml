@@ -31,17 +31,11 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-#assembly = { package = "miden-assembly", version = "0.10", default-features = false }
-assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
+assembly = { package = "miden-assembly", version = "0.10", default-features = false }
 miden-crypto = { version = "0.10", default-features = false }
-#miden-prover = { version = "0.10", default-features = false }
-miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
-#miden-stdlib = { version = "0.10", default-features = false }
-miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
-#miden-verifier = { version = "0.10", default-features = false }
-miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
+miden-prover = { version = "0.10", default-features = false }
+miden-stdlib = { version = "0.10", default-features = false }
+miden-verifier = { version = "0.10", default-features = false }
 rand = { version = "0.8", default-features = false }
-#vm-core = { package = "miden-core", version = "0.10", default-features = false }
-vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
-#vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
-vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "7abafe0f1c48f9e10919b958a925f97dc663907e", default-features = false }
+vm-core = { package = "miden-core", version = "0.10", default-features = false }
+vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
