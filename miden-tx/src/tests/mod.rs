@@ -586,12 +586,11 @@ fn test_send_note_proc() {
         assert!(executed_transaction
             .account_delta()
             .vault()
-            .removed_assets
-            .iter()
-            .all(|x| removed_assets.contains(x)));
+            .removed_assets()
+            .all(|x| removed_assets.contains(&x)));
         assert_eq!(
             removed_assets.len(),
-            executed_transaction.account_delta().vault().removed_assets.len()
+            executed_transaction.account_delta().vault().removed_assets().count()
         );
     }
 }
