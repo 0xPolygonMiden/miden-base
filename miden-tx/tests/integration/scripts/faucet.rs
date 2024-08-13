@@ -12,7 +12,6 @@ use miden_objects::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
         AccountStorage, AccountStorageType, SlotItem,
     },
-    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
@@ -61,9 +60,8 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
-    let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+    let tx_script_code = format!(
+        "
             use.miden::contracts::faucets::basic_fungible->faucet
             use.miden::contracts::auth::basic->auth_tx
 
@@ -82,17 +80,14 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
             end
             ",
-            note_type = note_type as u8,
-            recipient = prepare_word(&recipient),
-            aux = aux,
-            tag = u32::from(tag),
-            note_execution_hint = Felt::from(note_execution_hint)
-        )
-        .as_str(),
-    )
-    .unwrap();
+        note_type = note_type as u8,
+        recipient = prepare_word(&recipient),
+        aux = aux,
+        tag = u32::from(tag),
+        note_execution_hint = Felt::from(note_execution_hint)
+    );
 
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor.compile_tx_script(&tx_script_code, vec![]).unwrap();
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor
@@ -143,9 +138,8 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     let tag = Felt::new(4);
     let amount = Felt::new(250);
 
-    let tx_script_code = ProgramAst::parse(
-        format!(
-            "
+    let tx_script_code = format!(
+        "
             use.miden::contracts::faucets::basic_fungible->faucet
             use.miden::contracts::auth::basic->auth_tx
 
@@ -163,13 +157,10 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
             end
             ",
-            note_type = NoteType::Private as u8,
-            recipient = prepare_word(&recipient),
-        )
-        .as_str(),
-    )
-    .unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+        note_type = NoteType::Private as u8,
+        recipient = prepare_word(&recipient),
+    );
+    let tx_script = executor.compile_tx_script(&tx_script_code, vec![]).unwrap();
 
     let tx_args = TransactionArgs::with_tx_script(tx_script);
 
@@ -202,8 +193,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     );
 
     // need to create a note with the fungible asset to be burned
-    let note_script = ProgramAst::parse(
-        "
+    let note_script = "
         use.miden::contracts::faucets::basic_fungible->faucet_contract
         use.miden::note
 
@@ -214,9 +204,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
             mem_loadw
             call.faucet_contract::burn
         end
-        ",
-    )
-    .unwrap();
+        ";
 
     let note = get_note_with_fungible_asset_and_script(fungible_asset, note_script);
 
@@ -300,11 +288,10 @@ fn faucet_contract_creation() {
 
     let exp_faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
-    let exp_faucet_account_code_ast = ModuleAst::parse(exp_faucet_account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let exp_faucet_account_code =
-        AccountCode::new(exp_faucet_account_code_ast.clone(), &account_assembler).unwrap();
+        AccountCode::compile(exp_faucet_account_code_src, assembler).unwrap();
 
     assert_eq!(faucet_account.code(), &exp_faucet_account_code);
 }
@@ -317,11 +304,9 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
     let faucet_account_code_src =
         include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
-    let faucet_account_code_ast = ModuleAst::parse(faucet_account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let faucet_account_code =
-        AccountCode::new(faucet_account_code_ast.clone(), &account_assembler).unwrap();
+    let faucet_account_code = AccountCode::compile(faucet_account_code_src, assembler).unwrap();
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(

@@ -224,6 +224,23 @@ impl fmt::Display for ChainMmrError {
 #[cfg(feature = "std")]
 impl std::error::Error for ChainMmrError {}
 
+// TRANSACTION SCRIPT ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionScriptError {
+    AssemblyError(String), // TODO: change to Report
+}
+
+impl fmt::Display for TransactionScriptError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TransactionScriptError {}
+
 // TRANSACTION INPUT ERROR
 // ================================================================================================
 

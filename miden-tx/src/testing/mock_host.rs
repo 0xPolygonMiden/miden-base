@@ -1,13 +1,16 @@
 // MOCK HOST
 // ================================================================================================
 
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
 
 use miden_lib::transaction::TransactionEvent;
-use miden_objects::accounts::{AccountStub, AccountVaultDelta};
+use miden_objects::{
+    accounts::{AccountStub, AccountVaultDelta},
+    Digest,
+};
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
+    ExecutionError, Host, HostResponse, MastForest, MemAdviceProvider, ProcessState,
 };
 
 use crate::host::AccountProcedureIndexMap;
@@ -72,6 +75,10 @@ impl Host for MockHost {
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
+    }
+
+    fn get_mast_forest(&self, _node_digest: &Digest) -> Option<Arc<MastForest>> {
+        todo!("add transaction MAST store")
     }
 
     fn on_event<S: ProcessState>(

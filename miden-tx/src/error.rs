@@ -2,8 +2,8 @@ use alloc::string::String;
 use core::fmt::{self, Display};
 
 use miden_objects::{
-    assembly::AssemblyError, notes::NoteId, Felt, NoteError, ProvenTransactionError,
-    TransactionInputError, TransactionOutputError,
+    notes::NoteId, Felt, NoteError, ProvenTransactionError, TransactionInputError,
+    TransactionOutputError, TransactionScriptError,
 };
 use miden_verifier::VerificationError;
 
@@ -15,9 +15,6 @@ use super::{AccountError, AccountId, Digest, ExecutionError};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionCompilerError {
     AccountInterfaceNotFound(AccountId),
-    BuildCodeBlockTableFailed(AssemblyError),
-    CompileNoteScriptFailed(AssemblyError),
-    CompileTxScriptFailed(AssemblyError),
     LoadAccountFailed(AccountError),
     NoteIncompatibleWithAccountInterface(Digest),
     NoteScriptError(NoteError),
@@ -39,8 +36,8 @@ impl std::error::Error for TransactionCompilerError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionExecutorError {
-    CompileNoteScriptFailed(TransactionCompilerError),
-    CompileTransactionScriptFailed(TransactionCompilerError),
+    CompileNoteScriptFailed(NoteError),
+    CompileTransactionScriptFailed(TransactionScriptError),
     CompileTransactionFailed(TransactionCompilerError),
     ExecuteTransactionProgramFailed(ExecutionError),
     FetchAccountCodeFailed(DataStoreError),

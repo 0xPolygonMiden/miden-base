@@ -8,7 +8,6 @@ use miden_objects::{
         },
         Account, AccountId,
     },
-    assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
@@ -102,9 +101,8 @@ fn p2idr_script() {
     let block_ref_1 = tx_context_1.tx_inputs().block_header().block_num();
     let note_ids = tx_context_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target =
-        executor_1.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
+    let tx_script_code = DEFAULT_AUTH_SCRIPT;
+    let tx_script_target = executor_1.compile_tx_script(tx_script_code, vec![]).unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -130,8 +128,7 @@ fn p2idr_script() {
     let mut executor_2 =
         TransactionExecutor::new(tx_context_2.clone(), Some(sender_falcon_auth.clone()));
     executor_2.load_account(sender_account_id).unwrap();
-    let tx_script_sender =
-        executor_2.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
+    let tx_script_sender = executor_2.compile_tx_script(tx_script_code, vec![]).unwrap();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
     let block_ref_2 = tx_context_2.tx_inputs().block_header().block_num();
@@ -157,7 +154,7 @@ fn p2idr_script() {
     let mut executor_3 =
         TransactionExecutor::new(tx_context_3.clone(), Some(malicious_falcon_auth.clone()));
     executor_3.load_account(malicious_account_id).unwrap();
-    let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref_3 = tx_context_3.tx_inputs().block_header().block_num();

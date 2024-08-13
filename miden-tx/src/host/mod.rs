@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
@@ -12,7 +12,7 @@ use miden_objects::{
 };
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
-    Host, HostResponse, ProcessState,
+    Host, HostResponse, MastForest, MastForestStore, ProcessState,
 };
 
 mod account_delta_tracker;
@@ -27,7 +27,10 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{auth::TransactionAuthenticator, error::TransactionHostError, KERNEL_ERRORS};
+use crate::{
+    auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
+    KERNEL_ERRORS,
+};
 
 // CONSTANTS
 // ================================================================================================
@@ -42,6 +45,9 @@ pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
+
+    /// TODO: add comments
+    mast_store: Rc<TransactionMastStore>,
 
     /// Accumulates the state changes notified via events.
     account_delta: AccountDeltaTracker,
@@ -72,6 +78,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     pub fn new(
         account: AccountStub,
         adv_provider: A,
+        mast_store: Rc<TransactionMastStore>,
         authenticator: Option<Rc<T>>,
     ) -> Result<Self, TransactionHostError> {
         let proc_index_map =
@@ -79,6 +86,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
         Ok(Self {
             adv_provider,
+            mast_store,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: BTreeMap::default(),
@@ -396,6 +404,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
         }
     }
 
+    fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
+        self.mast_store.get(node_digest)
+    }
+
     fn on_event<S: ProcessState>(
         &mut self,
         process: &S,
@@ -461,20 +473,24 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
         use TransactionTrace::*;
         match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
-            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
+            PrologueStart => self.tx_progress.start_prologue(process.clk().as_u32()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_u32()),
+            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk().as_u32()),
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_u32()),
             NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?
                     .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
-                self.tx_progress.start_note_execution(process.clk(), note_id);
+                self.tx_progress.start_note_execution(process.clk().as_u32(), note_id);
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
-            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
-            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_u32()),
+            TxScriptProcessingStart => {
+                self.tx_progress.start_tx_script_processing(process.clk().as_u32())
+            },
+            TxScriptProcessingEnd => {
+                self.tx_progress.end_tx_script_processing(process.clk().as_u32())
+            },
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_u32()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_u32()),
         }
 
         Ok(HostResponse::None)

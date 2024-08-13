@@ -18,6 +18,7 @@
 - Implemented `create_note` and `move_asset_into_note` basic wallet procedures (#808).
 - [BREAKING] Interface of the `miden::tx::add_asset_to_note` procedure was changed (#808).
 - Added serialization and equality comparison for `TransactionScript` (#824).
+- [BREAKING] Migrated to Miden VM v0.10 (#826).
 
 ## 0.4.0 (2024-07-03)
 

@@ -6,22 +6,17 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use miden_lib::transaction::TransactionKernel;
 pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
-    notes::{NoteId, NoteScript},
+    notes::NoteId,
     transaction::{ExecutedTransaction, PreparedTransaction},
-    vm::{CodeBlock, Program},
     AccountError, Digest,
 };
 use vm_processor::{ExecutionError, RecAdviceProvider};
 
-mod compiler;
-pub use compiler::{ScriptTarget, TransactionCompiler};
-
 mod executor;
-pub use executor::{DataStore, TransactionExecutor};
+pub use executor::{DataStore, TransactionExecutor, TransactionMastStore};
 
 pub mod host;
 pub use host::{TransactionHost, TransactionProgress};

@@ -8,9 +8,9 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId,
+        Account, AccountCode, AccountId,
     },
-    assembly::{Assembler, ModuleAst},
+    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
@@ -51,7 +51,7 @@ pub struct TransactionContext {
 impl TransactionContext {
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let program = assembler.compile(code).unwrap();
+        let program = assembler.assemble_program(code).unwrap();
         let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
         let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
         advice_inputs.extend(self.advice_inputs.clone());
@@ -106,9 +106,9 @@ impl DataStore for TransactionContext {
     }
 
     #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
+    fn get_account_code(&self, account_id: AccountId) -> Result<AccountCode, DataStoreError> {
         assert_eq!(account_id, self.tx_inputs.account().id());
-        Ok(self.tx_inputs.account().code().module().clone())
+        Ok(self.tx_inputs.account().code().clone())
     }
 }
 

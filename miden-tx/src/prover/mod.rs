@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -10,6 +10,7 @@ pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
 
 use super::{TransactionHost, TransactionProverError};
+use crate::executor::TransactionMastStore;
 
 /// Transaction prover is a stateless component which is responsible for proving transactions.
 ///
@@ -49,8 +50,9 @@ impl TransactionProver {
         // execute and prove
         let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
         let advice_provider: MemAdviceProvider = advice_inputs.into();
+        let mast_store = Rc::new(TransactionMastStore::new());
         let mut host: TransactionHost<_, ()> =
-            TransactionHost::new(tx_witness.account().into(), advice_provider, None)
+            TransactionHost::new(tx_witness.account().into(), advice_provider, mast_store, None)
                 .map_err(TransactionProverError::TransactionHostCreationFailed)?;
         let (stack_outputs, proof) =
             prove(tx_witness.program(), stack_inputs, &mut host, self.proof_options.clone())

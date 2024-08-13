@@ -2,7 +2,7 @@ use alloc::{rc::Rc, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
-    assembly::ProgramAst,
+    notes::NoteScript,
     transaction::{TransactionArgs, TransactionInputs, TransactionScript},
     vm::{Program, StackOutputs},
     Felt, Word, ZERO,
@@ -11,14 +11,16 @@ use vm_processor::ExecutionOptions;
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{
-    AccountCode, AccountId, Digest, ExecutedTransaction, NoteId, NoteScript, PreparedTransaction,
-    RecAdviceProvider, ScriptTarget, TransactionCompiler, TransactionExecutorError,
-    TransactionHost,
+    AccountCode, AccountId, ExecutedTransaction, NoteId, PreparedTransaction, RecAdviceProvider,
+    TransactionExecutorError, TransactionHost,
 };
 use crate::auth::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
+
+mod mast_store;
+pub use mast_store::TransactionMastStore;
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -38,8 +40,8 @@ pub use data_store::DataStore;
 /// can then be used to by the prover to generate a proof transaction execution.
 pub struct TransactionExecutor<D, A> {
     data_store: D,
+    mast_store: Rc<TransactionMastStore>,
     authenticator: Option<Rc<A>>,
-    compiler: TransactionCompiler,
     exec_options: ExecutionOptions,
 }
 
@@ -51,8 +53,8 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
         Self {
             data_store,
+            mast_store: Rc::new(TransactionMastStore::new()),
             authenticator,
-            compiler: TransactionCompiler::new(),
             exec_options: ExecutionOptions::default(),
         }
     }
@@ -63,7 +65,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     /// account code) will be compiled and executed in debug mode. This will ensure that all debug
     /// instructions present in the original source code are executed.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
-        self.compiler = self.compiler.with_debug_mode(in_debug_mode);
         if in_debug_mode && !self.exec_options.enable_debugging() {
             self.exec_options = self.exec_options.with_debugging();
         } else if !in_debug_mode && self.exec_options.enable_debugging() {
@@ -110,52 +111,33 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     ) -> Result<AccountCode, TransactionExecutorError> {
         let account_code = maybe_await!(self.data_store.get_account_code(account_id))
             .map_err(TransactionExecutorError::FetchAccountCodeFailed)?;
-        self.compiler
-            .load_account(account_id, account_code)
-            .map_err(TransactionExecutorError::LoadAccountFailed)
-    }
-
-    /// Loads the provided account interface (vector of procedure digests) into the compiler.
-    ///
-    /// Returns the old interface for the specified account ID if it previously existed.
-    pub fn load_account_interface(
-        &mut self,
-        account_id: AccountId,
-        procedures: Vec<Digest>,
-    ) -> Option<Vec<Digest>> {
-        self.compiler.load_account_interface(account_id, procedures)
+        self.mast_store.load_account(account_code.clone());
+        Ok(account_code)
     }
 
     // COMPILERS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles the provided program into a [NoteScript] and checks (to the extent possible) if
+    /// Compiles the provided source code into a [NoteScript] and checks (to the extent possible) if
     /// the specified note program could be executed against all accounts with the specified
     /// interfaces.
     pub fn compile_note_script(
         &self,
-        note_script_ast: ProgramAst,
-        target_account_procs: Vec<ScriptTarget>,
+        note_script: &str,
     ) -> Result<NoteScript, TransactionExecutorError> {
-        self.compiler
-            .compile_note_script(note_script_ast, target_account_procs)
+        NoteScript::compile(note_script, TransactionKernel::assembler())
             .map_err(TransactionExecutorError::CompileNoteScriptFailed)
     }
 
     /// Compiles the provided transaction script source and inputs into a [TransactionScript] and
     /// checks (to the extent possible) that the transaction script can be executed against all
     /// accounts with the specified interfaces.
-    pub fn compile_tx_script<T>(
+    pub fn compile_tx_script(
         &self,
-        tx_script_ast: ProgramAst,
-        inputs: T,
-        target_account_procs: Vec<ScriptTarget>,
-    ) -> Result<TransactionScript, TransactionExecutorError>
-    where
-        T: IntoIterator<Item = (Word, Vec<Felt>)>,
-    {
-        self.compiler
-            .compile_tx_script(tx_script_ast, inputs, target_account_procs)
+        tx_script: &str,
+        inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>,
+    ) -> Result<TransactionScript, TransactionExecutorError> {
+        TransactionScript::compile(tx_script, inputs, TransactionKernel::assembler())
             .map_err(TransactionExecutorError::CompileTransactionScriptFailed)
     }
 
@@ -187,9 +169,12 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
 
         let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+        // TODO: load note and tx_scripts into the MAST store
         let mut host = TransactionHost::new(
             transaction.account().into(),
             advice_recorder,
+            self.mast_store.clone(),
             self.authenticator.clone(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
@@ -236,14 +221,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let tx_program = self
-            .compiler
-            .compile_transaction(
-                account_id,
-                tx_inputs.input_notes(),
-                tx_args.tx_script().map(|x| x.code()),
-            )
-            .map_err(TransactionExecutorError::CompileTransactionFailed)?;
+        let tx_program = TransactionKernel::main().unwrap();
 
         Ok(PreparedTransaction::new(tx_program, tx_inputs, tx_args))
     }

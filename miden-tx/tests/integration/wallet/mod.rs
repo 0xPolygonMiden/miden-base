@@ -9,7 +9,6 @@ use miden_objects::{
         },
         Account, AccountId, AccountStorage, SlotItem,
     },
-    assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteExecutionHint, NoteTag, NoteType},
@@ -39,8 +38,7 @@ fn prove_receive_asset_via_wallet() {
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let note_script_ast = ProgramAst::parse(
-        "
+    let note_script_src = "
     use.miden::note
     use.miden::contracts::wallets::basic->wallet
 
@@ -52,13 +50,9 @@ fn prove_receive_asset_via_wallet() {
         call.wallet::receive_asset
         dropw
     end
-    "
-        .to_string()
-        .as_str(),
-    )
-    .unwrap();
+    ";
 
-    let note = get_note_with_fungible_asset_and_script(fungible_asset_1, note_script_ast);
+    let note = get_note_with_fungible_asset_and_script(fungible_asset_1, note_script_src);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -78,8 +72,8 @@ fn prove_receive_asset_via_wallet() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script_src = DEFAULT_AUTH_SCRIPT;
+    let tx_script = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
@@ -146,7 +140,7 @@ fn prove_send_asset_via_wallet() {
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
-    let var_name = &format!(
+    let tx_script_src = &format!(
         "
         use.miden::contracts::auth::basic->auth_tx
         use.miden::contracts::wallets::basic->wallet
@@ -169,8 +163,7 @@ fn prove_send_asset_via_wallet() {
         asset = prepare_word(&fungible_asset_1.into()),
         note_execution_hint = Felt::from(NoteExecutionHint::always())
     );
-    let tx_script_code = ProgramAst::parse(var_name.as_str()).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
     let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
 
     let executed_transaction = executor

@@ -7,7 +7,6 @@ use miden_objects::{
         },
         Account, AccountId,
     },
-    assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
     crypto::rand::RpoRandomCoin,
     notes::{
@@ -24,6 +23,9 @@ use crate::{
     get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction,
 };
+
+//  SWAP NOTE TESTS
+// ===============================================================================================
 
 #[test]
 fn prove_swap_script() {
@@ -79,9 +81,8 @@ fn prove_swap_script() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script_target =
-        executor.compile_tx_script(tx_script_code.clone(), vec![], vec![]).unwrap();
+    let tx_script_code = DEFAULT_AUTH_SCRIPT;
+    let tx_script_target = executor.compile_tx_script(tx_script_code, vec![]).unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     let executed_transaction = executor

@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{rc::Rc, string::String, vec::Vec};
 
 use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
 use miden_objects::{
@@ -10,7 +10,7 @@ use miden_objects::{
         },
         AccountCode,
     },
-    assembly::{Assembler, ModuleAst, ProgramAst},
+    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
@@ -37,7 +37,7 @@ use vm_processor::{
 };
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::testing::TransactionContextBuilder;
+use crate::{testing::TransactionContextBuilder, TransactionMastStore};
 
 mod kernel_tests;
 
@@ -72,8 +72,12 @@ fn transaction_executor_witness() {
     let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
 
+    let mast_store = Rc::new(TransactionMastStore::new());
+    // TODO: add account/note/tx_script MAST to the mast_store?
+
     let mut host: TransactionHost<MemAdviceProvider, ()> =
-        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None).unwrap();
+        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, mast_store, None)
+            .unwrap();
     let result =
         vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
             .unwrap();
@@ -108,8 +112,7 @@ fn executed_transaction_account_delta() {
         dropw
     end
     ";
-    let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
-    let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+    let new_acct_code = AccountCode::compile(new_acct_code_src, Assembler::default()).unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -294,8 +297,8 @@ fn executed_transaction_account_delta() {
         EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
         EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
+    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -404,8 +407,8 @@ fn test_empty_delta_nonce_update() {
         end
     "
     );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
+    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -556,8 +559,7 @@ fn test_send_note_proc() {
             note_type = note_type as u8,
         );
 
-        let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-        let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+        let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
         let tx_args = TransactionArgs::new(
             Some(tx_script),
             None,
@@ -664,8 +666,7 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_program_ast_2 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
+    let note_script_2 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
     let metadata_2 =
         NoteMetadata::new(account_id, note_type2, tag2, NoteExecutionHint::none(), aux2).unwrap();
@@ -675,8 +676,7 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
-    let note_program_ast_3 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
+    let note_script_3 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(
         account_id,
@@ -816,8 +816,7 @@ fn executed_transaction_output_notes() {
         EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(11, 22, 33)),
     );
 
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
     let mut tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -926,7 +925,7 @@ fn test_tx_script() {
 
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
-    let tx_script_source = format!(
+    let tx_script_src = format!(
         "
     begin
         # push the tx script input key onto the stack
@@ -942,12 +941,10 @@ fn test_tx_script() {
         key = prepare_word(&tx_script_input_key),
         value = prepare_word(&tx_script_input_value)
     );
-    let tx_script_code = ProgramAst::parse(&tx_script_source).unwrap();
     let tx_script = executor
         .compile_tx_script(
-            tx_script_code,
+            &tx_script_src,
             vec![(tx_script_input_key, tx_script_input_value.into())],
-            vec![],
         )
         .unwrap();
     let tx_args = TransactionArgs::new(

@@ -44,7 +44,7 @@ impl<H: Host> CodeExecutor<H> {
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
         let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-        let program = assembler.compile(code).unwrap();
+        let program = assembler.assemble_program(code).unwrap();
         self.execute_program(program)
     }
 

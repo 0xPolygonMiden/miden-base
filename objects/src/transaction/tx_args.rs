@@ -1,6 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
 use core::ops::Deref;
 
+use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
 use vm_core::{
     mast::{MastForest, MastNodeId},
@@ -10,7 +11,10 @@ use vm_core::{
 use vm_processor::{AdviceInputs, AdviceMap, DeserializationError};
 
 use super::{Digest, Felt, Word};
-use crate::notes::{NoteDetails, NoteId};
+use crate::{
+    notes::{NoteDetails, NoteId},
+    TransactionScriptError,
+};
 
 // TRANSACTION ARGS
 // ================================================================================================
@@ -165,12 +169,28 @@ impl TransactionScript {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new [TransactionScript] instantiated with the provided code and inputs.
-    pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(code: Program, inputs: T) -> Self {
+    pub fn new(code: Program, inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>) -> Self {
         Self {
             entrypoint: code.entrypoint(),
             mast: code.into(),
             inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
         }
+    }
+
+    /// Returns a new [TransactionScript] compiled from the provided source code and inputs using
+    /// the specified assembler.
+    ///
+    /// # Errors
+    /// Returns an error if the compilation of the provided source code fails.
+    pub fn compile(
+        source_code: impl Compile,
+        inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>,
+        assembler: Assembler,
+    ) -> Result<Self, TransactionScriptError> {
+        let program = assembler
+            .assemble_program(source_code)
+            .map_err(|report| TransactionScriptError::AssemblyError(report.to_string()))?;
+        Ok(Self::new(program, inputs))
     }
 
     /// Returns a new [TransactionScript] instantiated from the provided components.
