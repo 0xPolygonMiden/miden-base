@@ -19,6 +19,7 @@
 - [BREAKING] Interface of the `miden::tx::add_asset_to_note` procedure was changed (#808).
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
+- Added conversions for `NoteExecutionHint` (#827).
 
 ## 0.4.0 (2024-07-03)
 
