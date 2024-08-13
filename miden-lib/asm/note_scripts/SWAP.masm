@@ -30,7 +30,8 @@ const.ERR_SWAP_WRONG_NUMBER_OF_ASSETS=0x00020008
 #
 # FAILS if:
 # - Account does not expose miden::contracts::wallets::basic::receive_asset procedure
-# - Account does not expose miden::contracts::wallets::basic::send_asset procedure
+# - Account does not expose miden::contracts::wallets::basic::create_note procedure
+# - Account does not expose miden::contracts::wallets::basic::move_asset_to_note procedure
 # - Account vault does not contain the requested asset
 # - Adding a fungible asset would result in amount overflow, i.e., the total amount would be
 #   greater than 2^63
@@ -79,10 +80,19 @@ begin
     # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
 
     # create a note using inputs
-    call.wallet::send_asset
-    # => [ptr, EMPTY_WORD, EMPTY_WORD, 0]
+    padw swapdw padw movdnw.2
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8), ASSET]
+    call.wallet::create_note
+    # => [note_idx, PAD(15), ASSET]
+
+    swapw dropw movupw.3 
+    # => [ASSET, note_idx, PAD(11)]
+
+    # move asset to the note
+    call.wallet::move_asset_to_note
+    # => [ASSET, note_idx, PAD(11)]
 
     # clean stack
-    dropw dropw drop drop drop
+    dropw dropw dropw dropw
     # => []
 end

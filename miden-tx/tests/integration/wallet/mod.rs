@@ -100,8 +100,90 @@ fn prove_receive_asset_via_wallet() {
 }
 
 #[test]
-/// Testing the basic Miden wallet - sending an asset
-fn prove_send_asset_via_wallet() {
+/// Testing the basic Miden wallet - creating a note
+fn prove_create_note_via_wallet() {
+    let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
+    let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
+    let sender_account =
+        get_account_with_default_account_code(sender_account_id, sender_pub_key, None);
+
+    // CONSTRUCT AND EXECUTE TX (Success)
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
+
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+    let aux = Felt::new(27);
+    let tag = NoteTag::for_local_use_case(0, 0).unwrap();
+    let note_type = NoteType::Private;
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
+
+    let tx_script_src = &format!(
+        "
+        use.miden::contracts::auth::basic->auth_tx
+        use.miden::contracts::wallets::basic->wallet
+
+        begin
+            padw padw
+            push.{recipient}
+            push.{note_execution_hint}
+            push.{note_type}
+            push.{aux}
+            push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+            dropw dropw dropw dropw
+            call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+        end
+        ",
+        recipient = prepare_word(&recipient),
+        note_type = note_type as u8,
+        tag = tag,
+        note_execution_hint = Felt::from(NoteExecutionHint::always())
+    );
+    let tx_args = build_tx_args_from_script(tx_script_src);
+
+    let executed_transaction = executor
+        .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
+        .unwrap();
+
+    assert!(prove_and_verify_transaction(executed_transaction.clone()).is_ok());
+
+    // clones account info
+    let sender_account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(sender_pub_key),
+        StorageSlot::Map(StorageMap::default()),
+    ])
+    .unwrap();
+    let sender_account_code = sender_account.code().clone();
+
+    // vault delta
+    let sender_account_after: Account = Account::from_parts(
+        tx_context.account().id(),
+        AssetVault::new(&[]).unwrap(),
+        sender_account_storage,
+        sender_account_code,
+        Felt::new(2),
+    );
+
+    assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
+}
+
+#[test]
+/// Testing the basic Miden wallet - creating a note and moving asset to it
+fn prove_move_asset_to_note_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
@@ -137,14 +219,20 @@ fn prove_send_asset_via_wallet() {
     let tx_script_src = &format!(
         "
         begin
+            padw padw
             push.{recipient}
             push.{note_execution_hint}
             push.{note_type}
             push.{aux}
             push.{tag}
+            call.::miden::contracts::wallets::basic::create_note
+            # => [note_idx, PAD(15)]
+
+            swapw dropw 
             push.{asset}
-            call.::miden::contracts::wallets::basic::send_asset
+            call.::miden::contracts::wallets::basic::move_asset_to_note
             dropw dropw dropw dropw
+            
             call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         end
         ",

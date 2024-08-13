@@ -19,7 +19,8 @@ pub const CODE: &str = "
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
     export.::miden::contracts::wallets::basic::receive_asset
-    export.::miden::contracts::wallets::basic::send_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
     export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
@@ -43,8 +44,8 @@ impl AccountCode {
         use.miden::account
         use.miden::faucet
         use.miden::tx
+
         export.::miden::contracts::wallets::basic::receive_asset
-        export.::miden::contracts::wallets::basic::send_asset
         export.::miden::contracts::wallets::basic::create_note
         export.::miden::contracts::wallets::basic::move_asset_to_note
 
