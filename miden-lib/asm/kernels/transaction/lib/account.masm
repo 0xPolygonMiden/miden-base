@@ -570,7 +570,9 @@ end
 #! Output: []
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
+        padw exec.memory::get_acct_id push.0.0.0
+        adv.push_mapval push.15263 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
         # populate last four elements of the hasher rate with the code commitment

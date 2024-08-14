@@ -211,8 +211,7 @@ proc.ingest_acct_storage_types
     exec.account::get_slot_types_commitment_storage_slot exec.account::get_item
     # => [TYPES_COM]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
-    adv.push_mapval
+    adv.push_mapval push.15683 drop             # FIX: wrap the decorator to ensure MAST uniqueness
     # => [TYPES_COM]
 
     # get the storage slot types data pointer
@@ -404,9 +403,11 @@ end
 #! Stack: [CODE_COMMITMENT]
 #! Output: []
 proc.validate_account_procedures
-  # move procedure data from the advice map to the advice stack and then push the number of
-  # procedures onto the operand stack before storing it in memory
-  adv.push_mapval adv_push.1
+  # move procedure data from the advice map to the advice stack 
+  adv.push_mapval push.15161 drop               # FIX: wrap the decorator to ensure MAST uniqueness
+  
+  # push the number of procedures onto the operand stack before storing it in memory
+  adv_push.1
   # => [num_procs, CODE_COMMITMENT]
 
   # assert that account does not exceed allowed maximum number of procedures
@@ -985,7 +986,9 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_input_notes_commitment adv.push_mapval dropw
+        exec.memory::get_input_notes_commitment 
+        adv.push_mapval push.15787 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        dropw
     end
     # => [num_notes]
 

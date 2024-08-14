@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, AccountProcedureInfo},
+    accounts::Account,
     transaction::{
         ChainMmr, ExecutedTransaction, InputNote, PreparedTransaction, TransactionArgs,
         TransactionInputs, TransactionScript, TransactionWitness,
@@ -245,10 +245,9 @@ fn add_account_to_advice_inputs(
     let code = account.code();
 
     // extend the advice_map with the account code data and number of procedures
-    let num_procs = code.as_elements().len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
-    let mut procs = code.as_elements();
-    procs.insert(0, Felt::from(num_procs as u32));
-    inputs.extend_map([(code.commitment(), procs)]);
+    let mut proc_elements: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
+    proc_elements.append(&mut code.as_elements());
+    inputs.extend_map([(code.commitment(), proc_elements)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

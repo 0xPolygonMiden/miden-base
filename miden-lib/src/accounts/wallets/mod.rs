@@ -86,7 +86,7 @@ mod tests {
             AccountType::RegularAccountImmutableCode,
             AccountStorageType::OnChain,
         );
-        
+
         wallet.unwrap_or_else(|err| {
             panic!("{}", err);
         });

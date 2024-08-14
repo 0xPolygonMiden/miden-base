@@ -53,7 +53,7 @@ export.get_assets
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # load the asset data from the advice map to the advice stack
-    adv.push_mapval
+    adv.push_mapval push.15887 drop             # FIX: wrap the decorator to ensure MAST uniqueness
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # calculate number of assets rounded up to an even number
@@ -87,7 +87,7 @@ export.get_inputs
     # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
-    adv.push_mapval
+    adv.push_mapval push.15973 drop             # FIX: wrap the decorator to ensure MAST uniqueness
     # => [INPUTS_HASH, dest_ptr]
 
     adv_push.1

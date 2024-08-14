@@ -43,19 +43,14 @@ pub const CODE: &str = "
 // ================================================================================================
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::contracts::wallets::basic->basic_wallet
-    use.miden::contracts::auth::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::send_asset
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
 pub const DEFAULT_AUTH_SCRIPT: &str = "
-    use.miden::contracts::auth::basic->auth_tx
-
     begin
-        call.auth_tx::auth_tx_rpo_falcon512
+        call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
     end
 ";
 
