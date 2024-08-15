@@ -68,8 +68,8 @@ mod tests {
     #[test]
     fn test_compile() {
         let path = "miden::account::get_id".parse::<LibraryPath>().unwrap();
-        let stdlib = MidenLib::default();
-        let exists = stdlib.0.module_infos().any(|module| {
+        let miden = MidenLib::default();
+        let exists = miden.0.module_infos().any(|module| {
             module
                 .procedures()
                 .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)

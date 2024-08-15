@@ -7,13 +7,6 @@ extern crate alloc;
 extern crate std;
 
 pub use miden_objects::transaction::TransactionInputs;
-use miden_objects::{
-    accounts::{AccountCode, AccountId},
-    notes::NoteId,
-    transaction::ExecutedTransaction,
-    AccountError, Digest,
-};
-use vm_processor::{ExecutionError, RecAdviceProvider};
 
 mod executor;
 pub use executor::{DataStore, TransactionExecutor, TransactionMastStore};

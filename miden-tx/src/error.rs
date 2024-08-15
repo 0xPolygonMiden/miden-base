@@ -2,12 +2,11 @@ use alloc::string::String;
 use core::fmt::{self, Display};
 
 use miden_objects::{
-    notes::NoteId, Felt, NoteError, ProvenTransactionError, TransactionInputError,
-    TransactionOutputError, TransactionScriptError,
+    accounts::AccountId, notes::NoteId, AccountError, Digest, Felt, NoteError,
+    ProvenTransactionError, TransactionInputError, TransactionOutputError, TransactionScriptError,
 };
 use miden_verifier::VerificationError;
-
-use super::{AccountError, AccountId, Digest, ExecutionError};
+use vm_processor::ExecutionError;
 
 // TRANSACTION COMPILER ERROR
 // ================================================================================================

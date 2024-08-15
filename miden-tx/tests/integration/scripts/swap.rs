@@ -69,9 +69,7 @@ fn prove_swap_script() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let mut executor =
-        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
-    executor.load_account(target_account_id).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

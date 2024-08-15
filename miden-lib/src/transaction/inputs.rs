@@ -2,59 +2,10 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     accounts::Account,
-    transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, TransactionArgs, TransactionInputs,
-        TransactionScript, TransactionWitness,
-    },
-    vm::{AdviceInputs, StackInputs},
+    transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    vm::AdviceInputs,
     Felt, FieldElement, Word, EMPTY_WORD, ZERO,
 };
-
-use super::TransactionKernel;
-
-// TRANSACTION KERNEL INPUTS
-// ================================================================================================
-
-/// Defines how inputs required to execute a transaction kernel can be extracted from self.
-pub trait ToTransactionKernelInputs {
-    /// Returns stack and advice inputs required to execute the transaction kernel.
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
-}
-
-impl ToTransactionKernelInputs for ExecutedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.initial_account();
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
-}
-
-impl ToTransactionKernelInputs for TransactionWitness {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.account();
-
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
-}
 
 // ADVICE INPUTS
 // ================================================================================================

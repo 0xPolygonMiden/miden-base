@@ -65,8 +65,7 @@ fn prove_p2id_script() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
-    executor.load_account(target_account_id).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -111,9 +110,8 @@ fn prove_p2id_script() {
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let mut executor_2 =
+    let executor_2 =
         TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
-    executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
 
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
@@ -175,8 +173,7 @@ fn p2id_script_multiple_assets() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
-    executor.load_account(target_account_id).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -219,9 +216,8 @@ fn p2id_script_multiple_assets() {
     let tx_context_malicious_account = TransactionContextBuilder::new(malicious_account)
         .input_notes(vec![note])
         .build();
-    let mut executor_2 =
+    let executor_2 =
         TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
-    executor_2.load_account(malicious_account_id).unwrap();
     let tx_script_malicious = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
@@ -269,8 +265,7 @@ fn test_execute_prove_new_account() {
 
     assert!(target_account.is_new());
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
-    executor.load_account(target_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

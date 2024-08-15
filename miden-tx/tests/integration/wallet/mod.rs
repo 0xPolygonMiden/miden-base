@@ -60,9 +60,7 @@ fn prove_receive_asset_via_wallet() {
         .input_notes(vec![note])
         .build();
 
-    let mut executor =
-        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
-    executor.load_account(target_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -121,9 +119,7 @@ fn prove_send_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
-    let mut executor =
-        TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
-    executor.load_account(sender_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

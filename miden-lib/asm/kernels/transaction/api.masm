@@ -342,7 +342,7 @@ export.account_vault_add_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.19891 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT
     # => [ASSET]
 
@@ -359,7 +359,9 @@ export.account_vault_add_asset
     # => [ASSET', ASSET]
 
     # emit event to signal that an asset is being added to the account vault
-    swapw emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
+    swapw
+    push.21383 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
     # => [ASSET']
 end
 
@@ -379,7 +381,7 @@ export.account_vault_remove_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20071 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
     # => [ASSET]
 
@@ -391,8 +393,8 @@ export.account_vault_remove_asset
     exec.asset_vault::remove_asset
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     # emit event to signal that an asset is being removed from the account vault
+    push.20149 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
     # => [ASSET]
 end

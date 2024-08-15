@@ -20,7 +20,6 @@ mod events;
 pub use events::{TransactionEvent, TransactionTrace};
 
 mod inputs;
-pub use inputs::ToTransactionKernelInputs;
 
 mod outputs;
 pub use outputs::{
@@ -74,9 +73,12 @@ impl TransactionKernel {
 
     /// Transforms the provided [TransactionInputs] and [TransactionArgs] into stack and advice
     /// inputs needed to execute a transaction kernel for a specific transaction.
+    ///
+    /// If `init_advice_inputs` is provided, they will be included in the returned advice inputs.
     pub fn prepare_inputs(
         tx_inputs: &TransactionInputs,
         tx_args: &TransactionArgs,
+        init_advice_inputs: Option<AdviceInputs>,
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
         let stack_inputs = TransactionKernel::build_input_stack(
@@ -86,7 +88,7 @@ impl TransactionKernel {
             tx_inputs.block_header().hash(),
         );
 
-        let mut advice_inputs = AdviceInputs::default();
+        let mut advice_inputs = init_advice_inputs.unwrap_or_default();
         inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)

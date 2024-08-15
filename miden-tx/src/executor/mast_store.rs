@@ -3,8 +3,9 @@ use core::cell::RefCell;
 
 use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
 use miden_objects::{
-    accounts::AccountCode, assembly::mast::MastForest, notes::NoteScript,
-    transaction::TransactionScript, Digest,
+    assembly::mast::MastForest,
+    transaction::{TransactionArgs, TransactionInputs},
+    Digest,
 };
 use vm_processor::MastForestStore;
 
@@ -32,19 +33,19 @@ impl TransactionMastStore {
         store
     }
 
-    pub fn load_account(&self, code: AccountCode) {
-        let mast_forest = Arc::new(code.into());
-        self.insert(mast_forest);
-    }
+    pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
+        // load account code
+        self.insert(Arc::new(tx_inputs.account().code().clone().into()));
 
-    pub fn load_note_script(&self, script: &NoteScript) {
-        let mast_forest = Arc::new(script.mast().clone());
-        self.insert(mast_forest);
-    }
+        // load note script MAST into the MAST store
+        for note in tx_inputs.input_notes() {
+            self.insert(Arc::new(note.note().script().mast().clone()))
+        }
 
-    pub fn load_tx_script(&self, script: &TransactionScript) {
-        let mast_forest = Arc::new(script.mast().clone());
-        self.insert(mast_forest);
+        // load tx script MAST into the MAST store
+        if let Some(tx_script) = tx_args.tx_script() {
+            self.insert(Arc::new(tx_script.mast().clone()));
+        }
     }
 
     fn insert(&self, mast_forest: Arc<MastForest>) {

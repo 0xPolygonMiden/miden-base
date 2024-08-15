@@ -121,7 +121,11 @@ impl ExecutedTransaction {
 
     /// Returns individual components of this transaction.
     pub fn into_parts(self) -> (AccountDelta, TransactionOutputs, TransactionWitness) {
-        let tx_witness = TransactionWitness::new(self.tx_inputs, self.tx_args, self.advice_witness);
+        let tx_witness = TransactionWitness {
+            tx_inputs: self.tx_inputs,
+            tx_args: self.tx_args,
+            advice_witness: self.advice_witness,
+        };
 
         (self.account_delta, self.tx_outputs, tx_witness)
     }

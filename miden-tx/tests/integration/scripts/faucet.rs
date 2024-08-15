@@ -40,8 +40,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
-    executor.load_account(faucet_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -122,8 +121,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(faucet_account.clone()).build();
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
-    executor.load_account(faucet_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -214,8 +212,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
         .input_notes(vec![note.clone()])
         .build();
 
-    let mut executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
-    executor.load_account(faucet_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context

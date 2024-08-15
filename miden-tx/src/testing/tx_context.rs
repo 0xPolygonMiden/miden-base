@@ -48,9 +48,11 @@ pub struct TransactionContext {
 
 impl TransactionContext {
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
-        let (stack_inputs, mut advice_inputs) =
-            TransactionKernel::prepare_inputs(&self.tx_inputs, &self.tx_args);
-        advice_inputs.extend(self.advice_inputs.clone());
+        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
+            &self.tx_inputs,
+            &self.tx_args,
+            Some(self.advice_inputs.clone()),
+        );
 
         CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)

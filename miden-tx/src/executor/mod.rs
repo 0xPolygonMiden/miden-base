@@ -2,18 +2,16 @@ use alloc::{rc::Rc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    notes::NoteScript,
-    transaction::{TransactionArgs, TransactionInputs, TransactionScript},
+    accounts::AccountId,
+    notes::{NoteId, NoteScript},
+    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
     vm::StackOutputs,
     Felt, Word, ZERO,
 };
-use vm_processor::ExecutionOptions;
+use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
-use super::{
-    AccountCode, AccountId, ExecutedTransaction, NoteId, RecAdviceProvider,
-    TransactionExecutorError, TransactionHost,
-};
+use super::{TransactionExecutorError, TransactionHost};
 use crate::auth::TransactionAuthenticator;
 
 mod data_store;
@@ -92,26 +90,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         self
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Fetches the account code from the [DataStore], and loads the into the internal cache.
-    ///
-    /// TODO: remove this as we can load the code on execute_transaction() call?
-    ///
-    /// # Errors:
-    /// Returns an error if the account code cannot be fetched from the [DataStore].
-    #[maybe_async]
-    pub fn load_account(
-        &mut self,
-        account_id: AccountId,
-    ) -> Result<AccountCode, TransactionExecutorError> {
-        let account_code = maybe_await!(self.data_store.get_account_code(account_id))
-            .map_err(TransactionExecutorError::FetchAccountCodeFailed)?;
-        self.mast_store.load_account(account_code.clone());
-        Ok(account_code)
-    }
-
     // COMPILERS
     // --------------------------------------------------------------------------------------------
 
@@ -159,18 +137,12 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
             maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(&tx_inputs, &tx_args);
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
         // load note script MAST into the MAST store
-        for note in tx_inputs.input_notes() {
-            self.mast_store.load_note_script(note.note().script())
-        }
-
-        // load tx script MAST into the MAST store
-        if let Some(tx_script) = tx_args.tx_script() {
-            self.mast_store.load_tx_script(tx_script);
-        }
+        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
