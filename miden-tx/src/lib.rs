@@ -10,7 +10,7 @@ pub use miden_objects::transaction::TransactionInputs;
 use miden_objects::{
     accounts::{AccountCode, AccountId},
     notes::NoteId,
-    transaction::{ExecutedTransaction, PreparedTransaction},
+    transaction::ExecutedTransaction,
     AccountError, Digest,
 };
 use vm_processor::{ExecutionError, RecAdviceProvider};

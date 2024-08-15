@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -24,9 +24,7 @@ use miden_objects::{
         prepare_word,
         storage::prepare_assets,
     },
-    transaction::{
-        InputNote, InputNotes, OutputNote, PreparedTransaction, TransactionArgs, TransactionInputs,
-    },
+    transaction::{InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -50,13 +48,11 @@ pub struct TransactionContext {
 
 impl TransactionContext {
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-        let program = assembler.assemble_program(code).unwrap();
-        let tx = PreparedTransaction::new(program, self.tx_inputs.clone(), self.tx_args.clone());
-        let (stack_inputs, mut advice_inputs) = tx.get_kernel_inputs();
+        let (stack_inputs, mut advice_inputs) =
+            TransactionKernel::prepare_inputs(&self.tx_inputs, &self.tx_args);
         advice_inputs.extend(self.advice_inputs.clone());
 
-        CodeExecutor::new(MockHost::new(tx.account().into(), advice_inputs))
+        CodeExecutor::new(MockHost::new(self.tx_inputs.account().into(), advice_inputs))
             .stack_inputs(stack_inputs)
             .run(code)
     }

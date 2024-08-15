@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [ 
-    "bench-tx",
+    #"bench-tx",
     "miden-lib",
     "miden-tx",
     "objects",
@@ -31,11 +31,17 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", version = "0.10", default-features = false }
+#assembly = { package = "miden-assembly", version = "0.10", default-features = false }
+assembly = { package = "miden-assembly", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }
 miden-crypto = { version = "0.10", default-features = false }
-miden-prover = { version = "0.10", default-features = false }
-miden-stdlib = { version = "0.10", default-features = false }
-miden-verifier = { version = "0.10", default-features = false }
+#miden-prover = { version = "0.10", default-features = false }
+miden-prover = { package = "miden-prover", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }
+#miden-stdlib = { version = "0.10", default-features = false }
+miden-stdlib = { package = "miden-stdlib", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }
+#miden-verifier = { version = "0.10", default-features = false }
+miden-verifier = { package = "miden-verifier", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }
 rand = { version = "0.8", default-features = false }
-vm-core = { package = "miden-core", version = "0.10", default-features = false }
-vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
+#vm-core = { package = "miden-core", version = "0.10", default-features = false }
+vm-core = { package = "miden-core", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }
+#vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
+vm-processor = { package = "miden-processor", git = "https://github.com/0xPolygonMiden/miden-vm.git", rev = "1f5f59b3f2230f94a32b9126d9d7a04b4daf7d21", default-features = false }

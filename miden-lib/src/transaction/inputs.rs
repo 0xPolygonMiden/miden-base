@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use miden_objects::{
     accounts::Account,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, PreparedTransaction, TransactionArgs,
-        TransactionInputs, TransactionScript, TransactionWitness,
+        ChainMmr, ExecutedTransaction, InputNote, TransactionArgs, TransactionInputs,
+        TransactionScript, TransactionWitness,
     },
     vm::{AdviceInputs, StackInputs},
     Felt, FieldElement, Word, EMPTY_WORD, ZERO,
@@ -19,23 +19,6 @@ use super::TransactionKernel;
 pub trait ToTransactionKernelInputs {
     /// Returns stack and advice inputs required to execute the transaction kernel.
     fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
-}
-
-impl ToTransactionKernelInputs for PreparedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.account();
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
 }
 
 impl ToTransactionKernelInputs for ExecutedTransaction {
@@ -82,7 +65,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 /// This includes the initial account, an optional account seed (required for new accounts), and
 /// the input note data, including core note data + authentication paths all the way to the root
 /// of one of chain MMR peaks.
-fn extend_advice_inputs(
+pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,

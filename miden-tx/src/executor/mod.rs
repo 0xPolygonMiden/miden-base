@@ -1,6 +1,6 @@
 use alloc::{rc::Rc, vec::Vec};
 
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     notes::NoteScript,
     transaction::{TransactionArgs, TransactionInputs, TransactionScript},
@@ -11,7 +11,7 @@ use vm_processor::ExecutionOptions;
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{
-    AccountCode, AccountId, ExecutedTransaction, NoteId, PreparedTransaction, RecAdviceProvider,
+    AccountCode, AccountId, ExecutedTransaction, NoteId, RecAdviceProvider,
     TransactionExecutorError, TransactionHost,
 };
 use crate::auth::TransactionAuthenticator;
@@ -155,13 +155,12 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         notes: &[NoteId],
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let transaction =
-            maybe_await!(self.prepare_transaction(account_id, block_ref, notes, tx_args))?;
+        let tx_inputs =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
+        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(&tx_inputs, &tx_args);
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-
-        let (_, tx_inputs, tx_args) = transaction.into_parts();
 
         // load note script MAST into the MAST store
         for note in tx_inputs.input_notes() {
@@ -191,34 +190,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         .map_err(TransactionExecutorError::ExecuteTransactionProgramFailed)?;
 
         build_executed_transaction(tx_args, tx_inputs, result.stack_outputs().clone(), host)
-    }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Fetches the data required to execute the transaction from the [DataStore], compiles the
-    /// transaction into an executable program using the [TransactionCompiler], and returns a
-    /// [PreparedTransaction].
-    ///
-    /// # Errors:
-    /// Returns an error if:
-    /// - If required data can not be fetched from the [DataStore].
-    /// - If the transaction can not be compiled.
-    #[maybe_async]
-    pub fn prepare_transaction(
-        &self,
-        account_id: AccountId,
-        block_ref: u32,
-        notes: &[NoteId],
-        tx_args: TransactionArgs,
-    ) -> Result<PreparedTransaction, TransactionExecutorError> {
-        let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
-                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
-
-        let tx_program = TransactionKernel::main();
-
-        Ok(PreparedTransaction::new(tx_program, tx_inputs, tx_args))
     }
 }
 

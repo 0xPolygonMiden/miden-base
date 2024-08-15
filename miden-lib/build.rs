@@ -45,30 +45,15 @@ fn main() -> Result<()> {
     // set target directory to {OUT_DIR}/assets
     let target_dir = Path::new(&build_dir).join(ASSETS_DIR);
 
-    // --- compile transaction kernel -----------------------------------------
-    let assembler = Assembler::default()
-        .with_debug_mode(cfg!(feature = "with-debug-info"))
-        .with_library(miden_stdlib::StdLibrary::default())?;
+    // compile transaction kernel
+    let mut assembler =
+        compile_tx_kernel(&source_dir.join(ASM_TX_KERNEL_DIR), &target_dir.join("kernels"))?;
 
-    let tx_kernel = compile_tx_kernel(
-        &source_dir.join(ASM_TX_KERNEL_DIR),
-        &target_dir.join("kernels"),
-        assembler,
-    )?;
+    // compile miden library
+    let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler.clone())?;
+    assembler.add_library(miden_lib)?;
 
-    // --- compile miden library ----------------------------------------------
-    let source_manager = Arc::new(DefaultSourceManager::default());
-    let assembler = Assembler::with_kernel(source_manager.clone(), tx_kernel.clone())
-        .with_debug_mode(cfg!(feature = "with-debug-info"))
-        .with_library(miden_stdlib::StdLibrary::default())?;
-
-    let miden_lib = compile_miden_lib(&source_dir, &target_dir, assembler)?;
-
-    // --- compile note scripts -----------------------------------------------
-    let assembler = Assembler::with_kernel(source_manager, tx_kernel)
-        .with_debug_mode(cfg!(feature = "with-debug-info"))
-        .with_library(miden_stdlib::StdLibrary::default())?
-        .with_library(miden_lib)?;
+    // compile note scripts
     compile_note_scripts(
         &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
         &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
@@ -82,7 +67,7 @@ fn main() -> Result<()> {
 // ================================================================================================
 
 /// Reads the transaction kernel MASM source from the `source_dir`, compiles it, saves the results
-/// to the `target_dir`, and returns the complied [KernelLibrary].
+/// to the `target_dir`, and returns an [Assembler] instantiated with the compiled kernel.
 ///
 /// `source_dir` is expected to have the following structure:
 ///
@@ -97,11 +82,9 @@ fn main() -> Result<()> {
 ///
 /// When the `testing` feature is enabled, the POW requirements for account ID generation are
 /// adjusted by modifying the corresponding constants in {source_dir}/lib/constants.masm file.
-fn compile_tx_kernel(
-    source_dir: &Path,
-    target_dir: &Path,
-    assembler: Assembler,
-) -> Result<KernelLibrary> {
+fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> {
+    let assembler = build_assembler(None)?;
+
     // if this build has the testing flag set, modify the code and reduce the cost of proof-of-work
     match env::var("CARGO_FEATURE_TESTING") {
         Ok(ref s) if s == "1" => {
@@ -131,28 +114,26 @@ fn compile_tx_kernel(
     let kernel_lib = KernelLibrary::from_dir(
         source_dir.join("api.masm"),
         Some(source_dir.join("lib")),
-        assembler.clone(),
+        assembler,
     )?;
 
     let output_file = target_dir.join("tx_kernel").with_extension(Library::LIBRARY_EXTENSION);
     kernel_lib.write_to_file(output_file).into_diagnostic()?;
 
+    let assembler = build_assembler(Some(kernel_lib))?;
+
     // assemble the kernel program and write it the "tx_kernel.masb" file
-    let mut assembler = assembler;
+    let mut main_assembler = assembler.clone();
     let namespace = LibraryNamespace::new("kernel").expect("invalid namespace");
-    assembler.add_modules_from_dir(namespace, &source_dir.join("lib"))?;
+    main_assembler.add_modules_from_dir(namespace, &source_dir.join("lib"))?;
 
     let main_file_path = source_dir.join("main.masm").clone();
-    let kernel_main = assembler.assemble_program(main_file_path)?;
+    let kernel_main = main_assembler.assemble_program(main_file_path)?;
 
-    // create the output file path
-    let masb_file_name = "tx_kernel";
-    let mut masb_file_path = target_dir.join(masb_file_name);
-    masb_file_path.set_extension("masb");
-
+    let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
 
-    Ok(kernel_lib)
+    Ok(assembler)
 }
 
 fn decrease_pow(line: io::Result<String>) -> io::Result<String> {
@@ -221,6 +202,17 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path, assembler: Assembl
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+/// Returns a new [Assembler] loaded with miden-stdlib and the specified kernel, if provided.
+///
+/// The returned assembler will be in the `debug` mode if the `with-debug-info` feature is enabled.
+fn build_assembler(kernel: Option<KernelLibrary>) -> Result<Assembler> {
+    kernel
+        .map(|kernel| Assembler::with_kernel(Arc::new(DefaultSourceManager::default()), kernel))
+        .unwrap_or_default()
+        .with_debug_mode(cfg!(feature = "with-debug-info"))
+        .with_library(miden_stdlib::StdLibrary::default())
+}
 
 /// Recursively copies `src` into `dst`.
 ///

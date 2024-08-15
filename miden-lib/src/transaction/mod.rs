@@ -3,9 +3,11 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 use miden_objects::{
     accounts::AccountId,
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
-    transaction::{OutputNote, OutputNotes, TransactionOutputs},
+    transaction::{
+        OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
+    },
     utils::{group_slice_elements, serde::Deserializable},
-    vm::{AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
+    vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
@@ -68,6 +70,26 @@ impl TransactionKernel {
         let kernel = Self::kernel().kernel().clone();
 
         ProgramInfo::new(program_hash, kernel)
+    }
+
+    /// Transforms the provided [TransactionInputs] and [TransactionArgs] into stack and advice
+    /// inputs needed to execute a transaction kernel for a specific transaction.
+    pub fn prepare_inputs(
+        tx_inputs: &TransactionInputs,
+        tx_args: &TransactionArgs,
+    ) -> (StackInputs, AdviceInputs) {
+        let account = tx_inputs.account();
+        let stack_inputs = TransactionKernel::build_input_stack(
+            account.id(),
+            account.init_hash(),
+            tx_inputs.input_notes().commitment(),
+            tx_inputs.block_header().hash(),
+        );
+
+        let mut advice_inputs = AdviceInputs::default();
+        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
+
+        (stack_inputs, advice_inputs)
     }
 
     // ASSEMBLER CONSTRUCTOR
