@@ -1,16 +1,19 @@
 // MOCK HOST
 // ================================================================================================
 
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
 
 use miden_lib::transaction::TransactionEvent;
-use miden_objects::accounts::{AccountStub, AccountVaultDelta};
+use miden_objects::{
+    accounts::{AccountStub, AccountVaultDelta},
+    Digest,
+};
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
+    ExecutionError, Host, HostResponse, MastForest, MemAdviceProvider, ProcessState,
 };
 
-use super::account_procs::AccountProcedureIndexMap;
+use crate::host::AccountProcedureIndexMap;
 
 // MOCK HOST
 // ================================================================================================
@@ -28,10 +31,11 @@ impl MockHost {
     /// Returns a new [MockHost] instance with the provided [AdviceInputs].
     pub fn new(account: AccountStub, advice_inputs: AdviceInputs) -> Self {
         let adv_provider: MemAdviceProvider = advice_inputs.into();
-        let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
         Self {
             adv_provider,
-            acct_procedure_index_map: proc_index_map,
+            acct_procedure_index_map: proc_index_map.unwrap(),
         }
     }
 
@@ -71,6 +75,10 @@ impl Host for MockHost {
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
+    }
+
+    fn get_mast_forest(&self, _node_digest: &Digest) -> Option<Arc<MastForest>> {
+        todo!("add transaction MAST store")
     }
 
     fn on_event<S: ProcessState>(

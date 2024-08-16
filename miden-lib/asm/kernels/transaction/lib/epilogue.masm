@@ -1,8 +1,8 @@
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset_vault
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::note
+use.kernel::account
+use.kernel::asset_vault
+use.kernel::constants
+use.kernel::memory
+use.kernel::note
 
 # ERRORS
 # =================================================================================================
@@ -41,7 +41,7 @@ proc.copy_output_notes_to_advice_map
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # insert created data into the advice map
-        adv.insert_mem
+        adv.insert_mem push.15511 drop          # FIX: wrap the decorator to ensure MAST uniqueness
         # => [OUTPUT_NOTES_COMMITMENT, output_note_ptr, output_notes_end_ptr, ...]
 
         # drop output note pointers
@@ -144,20 +144,20 @@ end
 # ACCOUNT CODE UPDATE
 # =================================================================================================
 
-#! Updates the account code root if the account code has changed. `NEW_ACCT_CODE_ROOT` is set to
-#! the initial account code root in the prologue and as such this procedure will not result in a
-#! change to the account code root if the `account::set_code` procedure has not been invoked in
-#! this transaction.
+#! Updates the account code commitment if the account code has changed. `NEW_ACCT_CODE_COMMITMENT`
+#! is set to the initial account code commitment in the prologue and as such this procedure will
+#! not result in a change to the account code commitment if the `account::set_code` procedure has
+#! not been invoked in this transaction.
 #!
 #! Stack: []
 #! Output: []
 proc.update_account_code
-    # check if the account code root has been updated
-    exec.memory::get_new_acct_code_root
-    # => [NEW_ACCT_CODE_ROOT]
+    # check if the account code commitment has been updated
+    exec.memory::get_new_acct_code_commitment
+    # => [NEW_ACCT_CODE_COMMITMENT]
 
-    # set the account code root to the new account code root (may not have changed)
-    exec.memory::set_acct_code_root dropw
+    # set the account code commitment to the new account code commitment (may not have changed)
+    exec.memory::set_acct_code_commitment dropw
     # => []
 end
 
@@ -198,7 +198,7 @@ export.finalize_transaction
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # insert final account data into the advice map
-    adv.insert_mem
+    adv.insert_mem push.15619 drop              # FIX: wrap the decorator to ensure MAST uniqueness
     # => [FINAL_ACCOUNT_HASH, acct_data_ptr, acct_data_end_ptr, INIT_ACCT_HASH]
 
     # drop account data section pointers

@@ -1,25 +1,25 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
+    accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
     transaction::OutputNote,
     Digest, Hasher,
 };
 use vm_processor::{
-    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Felt, Host, HostResponse, ProcessState,
+    AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
+    Host, HostResponse, MastForest, MastForestStore, ProcessState,
 };
 
 mod account_delta_tracker;
 use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
-use account_procs::AccountProcedureIndexMap;
+pub use account_procs::AccountProcedureIndexMap;
 
 mod note_builder;
 use note_builder::OutputNoteBuilder;
@@ -27,7 +27,10 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{auth::TransactionAuthenticator, KERNEL_ERRORS};
+use crate::{
+    auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
+    KERNEL_ERRORS,
+};
 
 // CONSTANTS
 // ================================================================================================
@@ -38,42 +41,67 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
+///
+/// Transaction hosts are created on per-transaction basis. That is a transaction host is meant to
+/// support execution of a single transaction, and is discarded after the transaction finishes
+/// execution.
 pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
 
-    /// Accumulates the state changes notified via events.
+    /// MAST store which contains the code required to execute the transaction.
+    mast_store: Rc<TransactionMastStore>,
+
+    /// Account state changes accumulated during transaction execution.
+    ///
+    /// This field is updated by the [TransactionHost::on_event()] handler.
     account_delta: AccountDeltaTracker,
 
-    /// A map for the account's procedures.
+    /// A map of the account's procedure MAST roots to the corresponding procedure indexes in the
+    /// account code.
     acct_procedure_index_map: AccountProcedureIndexMap,
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
     /// map.
     output_notes: BTreeMap<usize, OutputNoteBuilder>,
 
-    /// Provides a way to get a signature for a message into a transaction
+    /// Serves signature generation requests from the transaction runtime for signatures which are
+    /// not present in the `generated_signatures` field.
     authenticator: Option<Rc<T>>,
 
-    /// Contains the information about the number of cycles for each of the transaction execution
-    /// stages.
-    tx_progress: TransactionProgress,
-
-    /// Contains generated signatures for messages
+    /// Contains previously generated signatures (as a message |-> signature map) required for
+    /// transaction execution.
+    ///
+    /// If a required signature is not present in this map, the host will attempt to generate the
+    /// signature using the transaction authenticator.
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 
-    /// Contains mappings from error codes to the related error messages
+    /// Tracks the number of cycles for each of the transaction execution stages.
+    ///
+    /// This field is updated by the [TransactionHost::on_trace()] handler.
+    tx_progress: TransactionProgress,
+
+    /// Contains mappings from error codes to the related error messages.
+    ///
+    /// This map is initialized at construction time from the [KERNEL_ERRORS] array.
     error_messages: BTreeMap<u32, &'static str>,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
-        let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+    pub fn new(
+        account: AccountStub,
+        adv_provider: A,
+        mast_store: Rc<TransactionMastStore>,
+        authenticator: Option<Rc<T>>,
+    ) -> Result<Self, TransactionHostError> {
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider)?;
         let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
-        Self {
+        Ok(Self {
             adv_provider,
+            mast_store,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: BTreeMap::default(),
@@ -81,10 +109,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
             error_messages: kernel_assertion_errors,
-        }
+        })
     }
 
-    /// Consumes `self` and returns the advice provider and account vault delta.
+    /// Consumes `self` and returns the advice provider, account vault delta, output notes and
+    /// signatures generated during the transaction execution.
     pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
 
@@ -96,7 +125,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         )
     }
 
-    /// Returns a reference to the `tx_progress` field of the [`TransactionHost`].
+    /// Returns a reference to the `tx_progress` field of this transaction host.
     pub fn tx_progress(&self) -> &TransactionProgress {
         &self.tx_progress
     }
@@ -107,13 +136,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
     /// `output_notes` field of this [TransactionHost].
     ///
-    /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
+    /// Expected stack state: `[NOTE_METADATA, RECIPIENT, ...]`
     fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+        // # => [NOTE_METADATA]
 
         let note_idx: usize = stack[9].as_int() as usize;
 
@@ -371,6 +400,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 }
 
+// HOST IMPLEMENTATION FOR TRANSACTION HOST
+// ================================================================================================
+
 impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
     fn get_advice<S: ProcessState>(
         &mut self,
@@ -389,6 +421,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             AdviceInjector::SigToStack { .. } => self.on_signature_requested(process),
             injector => self.adv_provider.set_advice(process, &injector),
         }
+    }
+
+    fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
+        self.mast_store.get(node_digest)
     }
 
     fn on_event<S: ProcessState>(
@@ -456,20 +492,24 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
         use TransactionTrace::*;
         match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
-            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
+            PrologueStart => self.tx_progress.start_prologue(process.clk().as_u32()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_u32()),
+            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk().as_u32()),
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_u32()),
             NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?
                     .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
-                self.tx_progress.start_note_execution(process.clk(), note_id);
+                self.tx_progress.start_note_execution(process.clk().as_u32(), note_id);
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
-            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
-            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_u32()),
+            TxScriptProcessingStart => {
+                self.tx_progress.start_tx_script_processing(process.clk().as_u32())
+            },
+            TxScriptProcessingEnd => {
+                self.tx_progress.end_tx_script_processing(process.clk().as_u32())
+            },
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_u32()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_u32()),
         }
 
         Ok(HostResponse::None)

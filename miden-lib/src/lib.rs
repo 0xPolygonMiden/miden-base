@@ -7,7 +7,7 @@ extern crate alloc;
 extern crate std;
 
 use miden_objects::{
-    assembly::{Library, LibraryNamespace, MaslLibrary, Version},
+    assembly::{mast::MastForest, Library},
     utils::serde::Deserializable,
 };
 
@@ -18,45 +18,67 @@ pub mod accounts;
 pub mod notes;
 pub mod transaction;
 
-#[cfg(all(test, feature = "std"))]
-mod tests;
-
 // RE-EXPORTS
 // ================================================================================================
 
 pub use miden_objects::utils;
+pub use miden_stdlib::StdLibrary;
 
-// STANDARD LIBRARY
+// CONSTANTS
 // ================================================================================================
 
-pub struct MidenLib {
-    contents: MaslLibrary,
+const MIDEN_LIB_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
+
+// MIDEN LIBRARY
+// ================================================================================================
+
+pub struct MidenLib(Library);
+
+impl AsRef<Library> for MidenLib {
+    fn as_ref(&self) -> &Library {
+        &self.0
+    }
+}
+
+impl From<MidenLib> for Library {
+    fn from(value: MidenLib) -> Self {
+        value.0
+    }
+}
+
+impl From<MidenLib> for MastForest {
+    fn from(value: MidenLib) -> Self {
+        value.0.into()
+    }
 }
 
 impl Default for MidenLib {
     fn default() -> Self {
-        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
-        let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read masl!");
-        Self { contents }
+        let contents = Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read masl!");
+        Self(contents)
     }
 }
 
-impl Library for MidenLib {
-    type ModuleIterator<'a> = <MaslLibrary as Library>::ModuleIterator<'a>;
+// TESTS
+// ================================================================================================
 
-    fn root_ns(&self) -> &LibraryNamespace {
-        self.contents.root_ns()
-    }
+// NOTE: Most kernel-related tests can be found under /miden-tx/kernel_tests
+#[cfg(all(test, feature = "std"))]
+mod tests {
+    use miden_objects::assembly::LibraryPath;
 
-    fn version(&self) -> &Version {
-        self.contents.version()
-    }
+    use super::MidenLib;
 
-    fn modules(&self) -> Self::ModuleIterator<'_> {
-        self.contents.modules()
-    }
+    #[test]
+    fn test_compile() {
+        let path = "miden::account::get_id".parse::<LibraryPath>().unwrap();
+        let miden = MidenLib::default();
+        let exists = miden.0.module_infos().any(|module| {
+            module
+                .procedures()
+                .any(|(_, proc)| module.path().clone().append(&proc.name).unwrap() == path)
+        });
 
-    fn dependencies(&self) -> &[LibraryNamespace] {
-        self.contents.dependencies()
+        assert!(exists);
     }
 }

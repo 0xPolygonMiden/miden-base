@@ -1,8 +1,8 @@
 use.std::collections::smt
 use.std::crypto::hashes::native
 
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
+use.kernel::constants
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================
@@ -27,6 +27,12 @@ const.ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT=0x00020047
 
 # Setting a map item on a non-map slot
 const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
+
+# Account procedure is not part of the account code
+const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002004A
+
+# Provided index is out of bounds
+const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
 
 # CONSTANTS
 # =================================================================================================
@@ -68,6 +74,9 @@ const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
 
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
+
+# The maximum number of account interface procedures.
+const.MAX_NUM_PROCEDURES=65535
 
 # EVENTS
 # =================================================================================================
@@ -127,6 +136,16 @@ export.get_max_slot_type
     push.MAX_SLOT_TYPE
 end
 
+#! Returns the maximum number of account interface procedures.
+#!
+#! Stack: []
+#! Output: [max_num_procedures]
+#!
+#! - max_num_procedures is the maximum number of account interface procedures.
+export.get_max_num_procedures
+    push.MAX_NUM_PROCEDURES
+end
+
 # PROCEDURES
 # =================================================================================================
 
@@ -162,12 +181,13 @@ export.incr_nonce
     u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
 
     # emit event to signal that account nonce is being incremented
+    push.20261 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20357 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
@@ -197,7 +217,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns the most significant half with the account type bits masked out.
 #!
-#! The accout type can be defined by comparing this value with the following constants:
+#! The account type can be defined by comparing this value with the following constants:
 #!
 #! - REGULAR_ACCOUNT_UPDATABLE_CODE
 #! - REGULAR_ACCOUNT_IMMUTABLE_CODE
@@ -299,21 +319,21 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: []
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
     # get the account id
     exec.memory::get_acct_id
-    # => [acct_id, CODE_ROOT]
+    # => [acct_id, CODE_COMMITMENT]
 
     # assert the account is an updatable regular account
     exec.is_updatable_account assert.err=ERR_ACCOUNT_SET_CODE_ACCOUNT_MUST_BE_UPDATABLE
-    # => [CODE_ROOT]
+    # => [CODE_COMMITMENT]
 
-    # set the code root
-    exec.memory::set_new_acct_code_root dropw
+    # set the code commitment
+    exec.memory::set_new_acct_code_commitment dropw
     # => []
 end
 
@@ -374,7 +394,7 @@ proc.set_item_raw
     # => [OLD_VALUE]
 end
 
-#! Sets an item in the account storage. Panics if 
+#! Sets an item in the account storage. Panics if
 #! - the index is out of bounds
 #! - the slot type is not value
 #!
@@ -385,7 +405,7 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20443 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
@@ -407,7 +427,9 @@ export.set_item
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
-    swapw movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
+    swapw movup.8 
+    push.20551 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
     # => [V]
 end
 
@@ -438,7 +460,7 @@ export.set_map_item.3
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20693 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
@@ -457,7 +479,9 @@ export.set_map_item.3
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
-    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
+    movup.8
+    push.20771 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
     # => [KEY, NEW_VALUE, ...]
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack
@@ -469,39 +493,80 @@ export.set_map_item.3
     # => [OLD_MAP_ROOT, OLD_VALUE, ...]
 end
 
-#! Verifies that the procedure root is part of the account code Merkle tree. Panics if the
-#! procedure root is not part of the account code Merkle tree.
+#! Returns the procedure information
+#!
+#! Stack: [index, ...]
+#! Output: [PROC_ROOT, storage_offset, ...]
+#!
+#! - PROC_ROOT is the hash of the procedure.
+#! - storage_offset is the procedure storage offset.
+#!
+#! Panics if
+#! - index is out of bounds
+export.get_procedure_info
+  # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
+  # check if index == 255
+  dup push.255 neq
+  # => [is_255, index]
+
+  # load procedure information from memory
+  if.true
+    # check that index < number of procedures contained in the account code
+    dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
+    # => [index]
+
+    # get procedure section ptr
+    push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
+    # => [proc_ptr, offset_ptr]
+
+    # load procedure information from memory
+    mem_load swap padw movup.4 mem_loadw
+    # => [PROC_ROOT, storage_offset]
+  end
+ end
+
+#! Verifies that the procedure root is part of the account code
 #!
 #! Stack: [PROC_ROOT]
-#! Output: [PROC_ROOT]
+#! Output: [storage_offset]
 #!
 #! - PROC_ROOT is the hash of the procedure to authenticate.
-export.authenticate_procedure.1
-    # load the account code root onto the stack
-    exec.memory::get_acct_code_root swapw
-    # => [PROC_ROOT, CODE_ROOT]
+#!
+#! Panics if
+#! - procedure root is not part of the account code.
+export.authenticate_procedure
+    # load procedure index
+    push.20897 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
+    # => [index, PROC_ROOT]
 
-    # load the index of the procedure root onto the advice stack, and move it to the operand stack
-    emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1 movdn.4
-    # => [PROC_ROOT, index, CODE_ROOT]
+    # get procedure info (PROC_ELEMENTS, storage_offset) from memory stored at index
+    exec.get_procedure_info
+    # In production:
+    # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
+    # During testing:
+    # => [255, PROC_ROOT]
 
-    # push the depth of the code Merkle tree onto the stack
-    push.ACCOUNT_CODE_TREE_DEPTH movdn.4
-    # => [PROC_ROOT, depth, index, CODE_ROOT]
+    # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
+    # check if get_procedure_info returned 255
+    dup push.255 neq
+    # => [is_255, index, PROC_ROOT]
 
-    # verify the procedure exists in the account code Merkle tree
-    mtree_verify
-    # => [PROC_ROOT, depth, index, CODE_ROOT]
-
-    # drop accessory variables
-    movup.4 drop movup.4 drop swapw dropw
-    # => [PROC_ROOT]
+    # verify that PROC_ROOT matches returned procedure information
+    if.true
+      # verify that PROC_ROOT exists in memory at index
+      movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+      # => [storage_offset]
+    else
+      # drop PROC_ROOT
+      movdn.4 dropw
+    end
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. compute the hash of (SEED, CODE_ROOT, STORAGE_ROOT, 0, 0, 0, 0)
+#! 1. compute the hash of (SEED, CODE_commitment, STORAGE_ROOT, 0, 0, 0, 0)
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
@@ -511,14 +576,16 @@ end
 #! Output: []
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
+        padw exec.memory::get_acct_id push.0.0.0
+        adv.push_mapval push.15263 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
-        # populate last four elements of the hasher rate with the code root
-        exec.memory::get_acct_code_root
-        # => [CODE_ROOT, SEED, 0, 0, 0, 0]
+        # populate last four elements of the hasher rate with the code commitment
+        exec.memory::get_acct_code_commitment
+        # => [CODE_COMMITMENT, SEED, 0, 0, 0, 0]
 
-        # perform first permutation of seed and code_root (from advice stack) perm(seed, code_root)
+        # perform first permutation of seed and code_commitment (from advice stack) perm(seed, code_commitment)
         hperm
         # => [RATE, RATE, PERM]
 

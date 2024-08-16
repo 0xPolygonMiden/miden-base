@@ -5,13 +5,13 @@ use miden_objects::{
     assets::Asset,
     crypto::rand::FeltRng,
     notes::{
-        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient,
-        NoteTag, NoteType,
+        Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
+    utils::Deserializable,
+    vm::Program,
     Felt, NoteError, Word,
 };
-
-use self::utils::build_note_script;
 
 pub mod utils;
 
@@ -37,13 +37,15 @@ pub fn create_p2id_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let inputs = NoteInputs::new(vec![target.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let vault = NoteAssets::new(assets)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
@@ -71,14 +73,16 @@ pub fn create_p2idr_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
-    let tag = NoteTag::from_account_id(target, NoteExecutionHint::Local)?;
+    let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
     let serial_num = rng.draw_word();
 
     let vault = NoteAssets::new(assets)?;
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     Ok(Note::new(vault, metadata, recipient))
 }
@@ -101,14 +105,16 @@ pub fn create_swap_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;
 
     let payback_recipient_word: Word = payback_recipient.digest().into();
     let requested_asset_word: Word = requested_asset.into();
-    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionHint::Local)?;
+    let payback_tag = NoteTag::from_account_id(sender, NoteExecutionMode::Local)?;
 
     let inputs = NoteInputs::new(vec![
         payback_recipient_word[0],
@@ -120,6 +126,7 @@ pub fn create_swap_note<R: FeltRng>(
         requested_asset_word[2],
         requested_asset_word[3],
         payback_tag.inner().into(),
+        NoteExecutionHint::always().into(),
     ])?;
 
     // build the tag for the SWAP use case
@@ -127,7 +134,7 @@ pub fn create_swap_note<R: FeltRng>(
     let serial_num = rng.draw_word();
 
     // build the outgoing note
-    let metadata = NoteMetadata::new(sender, note_type, tag, aux)?;
+    let metadata = NoteMetadata::new(sender, note_type, tag, NoteExecutionHint::always(), aux)?;
     let assets = NoteAssets::new(vec![offered_asset])?;
     let recipient = NoteRecipient::new(serial_num, note_script, inputs);
     let note = Note::new(assets, metadata, recipient);
@@ -150,7 +157,7 @@ pub fn create_swap_note<R: FeltRng>(
 /// together as offered_asset_tag + requested_asset tag.
 ///
 /// Network execution hint for the returned tag is set to `Local`.
-fn build_swap_tag(
+pub fn build_swap_tag(
     note_type: NoteType,
     offered_asset: &Asset,
     requested_asset: &Asset,
@@ -169,7 +176,7 @@ fn build_swap_tag(
 
     let payload = ((offered_asset_tag as u16) << 8) | (requested_asset_tag as u16);
 
-    let execution = NoteExecutionHint::Local;
+    let execution = NoteExecutionMode::Local;
     match note_type {
         NoteType::Public => NoteTag::for_public_use_case(SWAP_USE_CASE_ID, payload, execution),
         _ => NoteTag::for_local_use_case(SWAP_USE_CASE_ID, payload),

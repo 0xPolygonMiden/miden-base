@@ -1,6 +1,6 @@
-use alloc::vec::Vec;
+use alloc::{rc::Rc, string::String, vec::Vec};
 
-use miden_lib::transaction::{ToTransactionKernelInputs, TransactionKernel};
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -10,24 +10,24 @@ use miden_objects::{
         },
         AccountCode,
     },
-    assembly::{Assembler, ModuleAst, ProgramAst},
+    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{
-        Note, NoteAssets, NoteExecutionHint, NoteHeader, NoteId, NoteInputs, NoteMetadata,
-        NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
+        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{
         account_code::{
-            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_CREATE_NOTE_MAST_ROOT,
-            ACCOUNT_INCR_NONCE_MAST_ROOT, ACCOUNT_REMOVE_ASSET_MAST_ROOT,
-            ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT, ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_INCR_NONCE_MAST_ROOT,
+            ACCOUNT_REMOVE_ASSET_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
+            ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    transaction::{ProvenTransaction, TransactionArgs, TransactionWitness},
+    transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
@@ -37,7 +37,7 @@ use vm_processor::{
 };
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
-use crate::testing::TransactionContextBuilder;
+use crate::{testing::TransactionContextBuilder, TransactionMastStore};
 
 mod kernel_tests;
 
@@ -49,11 +49,9 @@ fn transaction_executor_witness() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
 
     let account_id = tx_context.account().id();
-    executor.load_account(account_id).unwrap();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -66,17 +64,32 @@ fn transaction_executor_witness() {
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
-    let tx_witness: TransactionWitness = executed_transaction.clone().into();
+
+    let tx_inputs = executed_transaction.tx_inputs();
+    let tx_args = executed_transaction.tx_args();
 
     // use the witness to execute the transaction again
-    let (stack_inputs, advice_inputs) = tx_witness.get_kernel_inputs();
+    let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
+        tx_inputs,
+        tx_args,
+        Some(executed_transaction.advice_witness().clone()),
+    );
     let mem_advice_provider: MemAdviceProvider = advice_inputs.into();
-    let _authenticator = ();
+
+    // load account/note/tx_script MAST to the mast_store
+    let mast_store = Rc::new(TransactionMastStore::new());
+    mast_store.load_transaction_code(tx_inputs, tx_args);
+
     let mut host: TransactionHost<MemAdviceProvider, ()> =
-        TransactionHost::new(tx_witness.account().into(), mem_advice_provider, None);
-    let result =
-        vm_processor::execute(tx_witness.program(), stack_inputs, &mut host, Default::default())
+        TransactionHost::new(tx_inputs.account().into(), mem_advice_provider, mast_store, None)
             .unwrap();
+    let result = vm_processor::execute(
+        &TransactionKernel::main(),
+        stack_inputs,
+        &mut host,
+        Default::default(),
+    )
+    .unwrap();
 
     let (advice_provider, _, output_notes, _signatures) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
@@ -97,10 +110,8 @@ fn executed_transaction_account_delta() {
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
     let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
 
     let new_acct_code_src = "\
     export.account_proc_1
@@ -108,8 +119,7 @@ fn executed_transaction_account_delta() {
         dropw
     end
     ";
-    let new_acct_code_ast = ModuleAst::parse(new_acct_code_src).unwrap();
-    let new_acct_code = AccountCode::new(new_acct_code_ast.clone(), &Assembler::default()).unwrap();
+    let new_acct_code = AccountCode::compile(new_acct_code_src, Assembler::default()).unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -139,7 +149,7 @@ fn executed_transaction_account_delta() {
 
     let tag1 = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        NoteExecutionHint::Local,
+        NoteExecutionMode::Local,
     )
     .unwrap();
     let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
@@ -156,10 +166,10 @@ fn executed_transaction_account_delta() {
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
-    let tx_script = format!(
+
+    let tx_script_src = format!(
         "\
         use.miden::account
-        use.miden::contracts::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
@@ -235,34 +245,43 @@ fn executed_transaction_account_delta() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_1} # note_execution_hint
             push.{NOTETYPE1}        # note_type
             push.{aux1}             # aux
             push.{tag1}             # tag
             push.{REMOVED_ASSET_1}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             # totally deplete fungible asset balance
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_2} # note_execution_hint
             push.{NOTETYPE2}        # note_type
             push.{aux2}             # aux
             push.{tag2}             # tag
             push.{REMOVED_ASSET_2}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             # send non-fungible asset
             push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_3} # note_execution_hint
             push.{NOTETYPE3}        # note_type
             push.{aux3}             # aux
             push.{tag3}             # tag
             push.{REMOVED_ASSET_3}  # asset
-            call.wallet::send_asset dropw dropw dropw dropw
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+            
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             ## Update account code
             ## ------------------------------------------------------------------------------------
-            push.{NEW_ACCOUNT_ROOT} exec.set_code dropw
+            push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw
             # => []
 
             ## Update the account nonce
@@ -271,7 +290,7 @@ fn executed_transaction_account_delta() {
             # => []
         end
     ",
-        NEW_ACCOUNT_ROOT = prepare_word(&new_acct_code.root()),
+        NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
         UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
@@ -281,9 +300,13 @@ fn executed_transaction_account_delta() {
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -374,26 +397,25 @@ fn executed_transaction_account_delta() {
 fn test_empty_delta_nonce_update() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
     let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
 
-    let tx_script = format!(
+    let tx_script_src = format!(
         "\
         begin
-            push.1 
-            
+            push.1
+
             call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
             # => [0, 1]
-            
+
             drop drop
             # => []
         end
     "
     );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -427,15 +449,173 @@ fn test_empty_delta_nonce_update() {
 }
 
 #[test]
+fn test_send_note_proc() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .build();
+
+    let executor: TransactionExecutor<_, ()> =
+        TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
+    let account_id = tx_context.tx_inputs().account().id();
+
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+
+    let tag = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionMode::Local,
+    )
+    .unwrap();
+    let aux = Felt::new(27);
+    let note_type = NoteType::Private;
+
+    assert_eq!(tag.validate(note_type), Ok(tag));
+
+    // prepare the asset vector to be removed for each test variant
+    let assets_matrix = vec![
+        vec![],
+        vec![removed_asset_1],
+        vec![removed_asset_1, removed_asset_2],
+        vec![removed_asset_1, removed_asset_2, removed_asset_3],
+    ];
+
+    for removed_assets in assets_matrix {
+        // Prepare the string containing the procedures required for adding assets to the note.
+        // Depending on the number of the assets to remove, the resulting string will be extended
+        // with the corresponding number of procedure "blocks"
+        let mut assets_to_remove = String::new();
+        for asset in removed_assets.iter() {
+            assets_to_remove.push_str(&format!(
+                "\n
+            # prepare the stack for the next call
+            dropw
+
+            # push the asset to be removed            
+            push.{ASSET}
+            # => [ASSET, note_idx, GARBAGE(11)]
+
+            call.wallet::move_asset_to_note
+            # => [ASSET, note_idx, GARBAGE(11)]\n",
+                ASSET = prepare_word(&asset.into())
+            ))
+        }
+
+        let tx_script_src = format!(
+            "\
+            use.miden::account
+            use.miden::contracts::wallets::basic->wallet
+            use.miden::tx
+    
+            ## ACCOUNT PROCEDURE WRAPPERS
+            ## ========================================================================================
+            proc.incr_nonce
+                call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+                # => [0]
+    
+                drop
+                # => []
+            end
+    
+            ## TRANSACTION SCRIPT
+            ## ========================================================================================
+            begin
+                # prepare the values for note creation
+                push.1.2.3.4      # recipient
+                push.1            # note_execution_hint (NoteExecutionHint::Always)
+                push.{note_type}  # note_type
+                push.{aux}        # aux
+                push.{tag}        # tag
+                # => [tag, aux, note_type, RECIPIENT, ...]
+
+                # pad the stack with zeros before calling the `create_note`.
+                padw padw swapdw
+                # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8) ...]
+
+                call.wallet::create_note
+                # => [note_idx, GARBAGE(15)]
+
+                movdn.4
+                # => [GARBAGE(4), note_idx, GARBAGE(11)]
+
+                {assets_to_remove}
+                
+                dropw dropw dropw dropw
+    
+                ## Update the account nonce
+                ## ------------------------------------------------------------------------------------
+                push.1 exec.incr_nonce drop
+                # => []
+            end
+        ",
+            note_type = note_type as u8,
+        );
+
+        let tx_script =
+            TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
+        let tx_args = TransactionArgs::new(
+            Some(tx_script),
+            None,
+            tx_context.tx_args().advice_inputs().clone().map,
+        );
+
+        let block_ref = tx_context.tx_inputs().block_header().block_num();
+        let note_ids = tx_context
+            .tx_inputs()
+            .input_notes()
+            .iter()
+            .map(|note| note.id())
+            .collect::<Vec<_>>();
+
+        // expected delta
+        // --------------------------------------------------------------------------------------------
+        // execute the transaction and get the witness
+        let executed_transaction =
+            executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+        // nonce delta
+        // --------------------------------------------------------------------------------------------
+        assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+
+        // vault delta
+        // --------------------------------------------------------------------------------------------
+        // assert that removed assets are tracked
+        assert!(executed_transaction
+            .account_delta()
+            .vault()
+            .removed_assets
+            .iter()
+            .all(|x| removed_assets.contains(x)));
+        assert_eq!(
+            removed_assets.len(),
+            executed_transaction.account_delta().vault().removed_assets.len()
+        );
+    }
+}
+
+#[test]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
         .build();
 
-    let mut executor: TransactionExecutor<_, ()> =
+    let executor: TransactionExecutor<_, ()> =
         TransactionExecutor::new(tx_context.clone(), None).with_debug_mode(true);
     let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
 
     // removed assets
     let removed_asset_1 = Asset::Fungible(
@@ -471,11 +651,11 @@ fn executed_transaction_output_notes() {
 
     let tag1 = NoteTag::from_account_id(
         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-        NoteExecutionHint::Local,
+        NoteExecutionMode::Local,
     )
     .unwrap();
-    let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
-    let tag3 = NoteTag::for_public_use_case(0, 0, NoteExecutionHint::Local).unwrap();
+    let tag2 = NoteTag::for_public_use_case(0, 0, NoteExecutionMode::Local).unwrap();
+    let tag3 = NoteTag::for_public_use_case(0, 0, NoteExecutionMode::Local).unwrap();
     let aux1 = Felt::new(27);
     let aux2 = Felt::new(28);
     let aux3 = Felt::new(29);
@@ -492,48 +672,71 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_program_ast_2 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_script_2, _) = NoteScript::new(note_program_ast_2, &Assembler::default()).unwrap();
+    let note_script_2 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
-    let metadata_2 = NoteMetadata::new(account_id, note_type2, tag2, aux2).unwrap();
+    let metadata_2 =
+        NoteMetadata::new(account_id, note_type2, tag2, NoteExecutionHint::none(), aux2).unwrap();
     let vault_2 = NoteAssets::new(vec![removed_asset_3, removed_asset_4]).unwrap();
     let recipient_2 = NoteRecipient::new(serial_num_2, note_script_2, inputs_2);
     let expected_output_note_2 = Note::new(vault_2, metadata_2, recipient_2);
 
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
-    let note_program_ast_3 = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-    let (note_script_3, _) = NoteScript::new(note_program_ast_3, &Assembler::default()).unwrap();
+    let note_script_3 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
-    let metadata_3 = NoteMetadata::new(account_id, note_type3, tag3, aux3).unwrap();
+    let metadata_3 = NoteMetadata::new(
+        account_id,
+        note_type3,
+        tag3,
+        NoteExecutionHint::on_block_slot(1, 2, 3),
+        aux3,
+    )
+    .unwrap();
     let vault_3 = NoteAssets::new(vec![]).unwrap();
     let recipient_3 = NoteRecipient::new(serial_num_3, note_script_3, inputs_3);
     let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
 
-    let tx_script = format!(
+    let tx_script_src = format!(
         "\
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
-        #TODO: Move this into an account library
         proc.create_note
-            call.{ACCOUNT_CREATE_NOTE_MAST_ROOT}
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+            # elements 
+            padw padw swapdw
+            # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
 
-            swapw dropw swapw dropw swapw dropw
+            call.wallet::create_note
+            # => [note_idx, PAD(15)]
+
+            # remove excess PADs from the stack 
+            swapdw dropw dropw movdn.7 dropw drop drop drop
             # => [note_idx]
         end
 
         proc.add_asset_to_note
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
+            # elements 
+            push.0.0.0 padw padw swapdw movup.7 swapw
+            # => [ASSET, note_idx, PAD(11)]
+
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
-            swapw dropw
+            # => [ASSET, note_idx, PAD(11)]
+
+            # remove excess PADs from the stack 
+            swapdw dropw dropw swapw movdn.7 drop drop drop
+            # => [ASSET, note_idx]
+
+            dropw
             # => [note_idx]
         end
 
         proc.remove_asset
-        call.{ACCOUNT_REMOVE_ASSET_MAST_ROOT}
-        # => [note_ptr]
+            call.{ACCOUNT_REMOVE_ASSET_MAST_ROOT}
+            # => [note_ptr]
         end
 
         proc.incr_nonce
@@ -551,6 +754,7 @@ fn executed_transaction_output_notes() {
             ## ------------------------------------------------------------------------------------
             # partially deplete fungible asset balance
             push.0.1.2.3                        # recipient
+            push.{EXECUTION_HINT_1}             # note execution hint
             push.{NOTETYPE1}                    # note_type
             push.{aux1}                         # aux
             push.{tag1}                         # tag
@@ -558,19 +762,20 @@ fn executed_transaction_output_notes() {
             # => [note_idx]
 
             push.{REMOVED_ASSET_1}              # asset
-            exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            exec.remove_asset 
+            # => [ASSET, note_ptr]
+            exec.add_asset_to_note
             # => [note_idx]
-
 
             push.{REMOVED_ASSET_2}              # asset_2
             exec.remove_asset
             # => [ASSET, note_ptr]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # send non-fungible asset
             push.{RECIPIENT2}                   # recipient
+            push.{EXECUTION_HINT_2}             # note execution hint
             push.{NOTETYPE2}                    # note_type
             push.{aux2}                         # aux
             push.{tag2}                         # tag
@@ -579,27 +784,27 @@ fn executed_transaction_output_notes() {
 
             push.{REMOVED_ASSET_3}              # asset_3
             exec.remove_asset
-            movup.4 exec.add_asset_to_note
+            exec.add_asset_to_note
             # => [note_idx]
 
             push.{REMOVED_ASSET_4}              # asset_4
             exec.remove_asset
             # => [ASSET, note_idx]
-            movup.4 exec.add_asset_to_note drop
+            exec.add_asset_to_note drop
             # => []
 
             # create a public note without assets
             push.{RECIPIENT3}                   # recipient
+            push.{EXECUTION_HINT_3}             # note execution hint
             push.{NOTETYPE3}                    # note_type
             push.{aux3}                         # aux
             push.{tag3}                         # tag
-            exec.create_note
-
-            drop
+            exec.create_note drop
+            # => []
 
             ## Update the account nonce
             ## ------------------------------------------------------------------------------------
-            push.1 exec.incr_nonce drop
+            push.1 exec.incr_nonce
             # => []
         end
     ",
@@ -612,9 +817,13 @@ fn executed_transaction_output_notes() {
         NOTETYPE1 = note_type1 as u8,
         NOTETYPE2 = note_type2 as u8,
         NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(11, 22, 33)),
     );
-    let tx_script_code = ProgramAst::parse(&tx_script).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
+
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let mut tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -668,11 +877,8 @@ fn prove_witness_and_verify() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
 
     let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -682,6 +888,7 @@ fn prove_witness_and_verify() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
@@ -693,8 +900,8 @@ fn prove_witness_and_verify() {
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
-    let serialised_transaction = proven_transaction.to_bytes();
-    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
+    let serialized_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialized_transaction).unwrap();
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }
@@ -707,11 +914,9 @@ fn test_tx_script() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None);
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
 
     let account_id = tx_context.tx_inputs().account().id();
-    executor.load_account(account_id).unwrap();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -723,14 +928,15 @@ fn test_tx_script() {
 
     let tx_script_input_key = [Felt::new(9999), Felt::new(8888), Felt::new(9999), Felt::new(8888)];
     let tx_script_input_value = [Felt::new(9), Felt::new(8), Felt::new(7), Felt::new(6)];
-    let tx_script_source = format!(
+    let tx_script_src = format!(
         "
     begin
         # push the tx script input key onto the stack
         push.{key}
 
         # load the tx script input value from the map and read it onto the stack
-        adv.push_mapval adv_loadw
+        adv.push_mapval push.16073 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv_loadw
 
         # assert that the value is correct
         push.{value} assert_eqw
@@ -739,14 +945,13 @@ fn test_tx_script() {
         key = prepare_word(&tx_script_input_key),
         value = prepare_word(&tx_script_input_value)
     );
-    let tx_script_code = ProgramAst::parse(&tx_script_source).unwrap();
-    let tx_script = executor
-        .compile_tx_script(
-            tx_script_code,
-            vec![(tx_script_input_key, tx_script_input_value.into())],
-            vec![],
-        )
-        .unwrap();
+
+    let tx_script = TransactionScript::compile(
+        tx_script_src,
+        [(tx_script_input_key, tx_script_input_value.into())],
+        TransactionKernel::assembler(),
+    )
+    .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,

@@ -1,5 +1,7 @@
 use miden_objects::{
-    accounts::AccountId, assembly::ModuleAst, notes::NoteId, transaction::TransactionInputs,
+    accounts::AccountId,
+    notes::NoteId,
+    transaction::TransactionInputs,
 };
 use winter_maybe_async::maybe_async;
 
@@ -33,8 +35,4 @@ pub trait DataStore {
         block_ref: u32,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError>;
-
-    /// Returns the account code [ModuleAst] associated with the specified [AccountId].
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError>;
 }

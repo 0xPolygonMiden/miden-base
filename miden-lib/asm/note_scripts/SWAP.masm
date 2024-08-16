@@ -9,7 +9,7 @@ const.PRIVATE_NOTE=2
 # ERRORS
 # =================================================================================================
 
-# SWAP script expects exactly 9 note inputs
+# SWAP script expects exactly 10 note inputs
 const.ERR_SWAP_WRONG_NUMBER_OF_INPUTS=0x00020007
 
 # SWAP script requires exactly 1 note asset
@@ -51,8 +51,8 @@ begin
     push.0 exec.note::get_inputs
     # => [num_inputs, inputs_ptr]
 
-    # make sure the number of inputs is 9
-    eq.9 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
+    # make sure the number of inputs is 10
+    eq.10 assert.err=ERR_SWAP_WRONG_NUMBER_OF_INPUTS
     # => [inputs_ptr]
 
     # load RECIPIENT
@@ -63,23 +63,26 @@ begin
     # => [ASSET, RECIPIENT]
 
     padw mem_loadw.2
-    # => [0, 0, 0, tag, ASSET, RECIPIENT]
+    # => [0, 0, execution_hint, tag, ASSET, RECIPIENT]
 
-    drop drop drop movdn.4
-    # => [ASSET, tag, RECIPIENT]
-
-    push.PRIVATE_NOTE movdn.5
-    # => [ASSET, tag, note_type, RECIPIENT]
-
+    drop drop swap
+    # => [tag, execution_hint, ASSET, RECIPIENT]
+    
     # we add aux = 0 to the note assuming we don't need it for the second leg of the SWAP
-    push.0 movdn.5
-    # => [ASSET, tag, aux, note_type, RECIPIENT]
+    push.0 swap
+    # => [tag, aux, execution_hint, ASSET, RECIPIENT]
+
+    push.PRIVATE_NOTE movdn.2
+    # => [tag, aux, note_type, execution_hint, ASSET, RECIPIENT]
+
+    swapw
+    # => [ASSET, tag, aux, note_type, execution_hint, RECIPIENT]
 
     # create a note using inputs
     call.wallet::send_asset
     # => [ptr, EMPTY_WORD, EMPTY_WORD, 0]
 
     # clean stack
-    dropw dropw drop drop
+    dropw dropw drop drop drop
     # => []
 end

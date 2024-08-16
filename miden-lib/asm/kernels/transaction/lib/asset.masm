@@ -1,4 +1,4 @@
-use.miden::kernels::tx::account
+use.kernel::account
 
 # ERRORS
 # =================================================================================================
@@ -57,11 +57,11 @@ end
 #!
 #! ASSET is the asset to validate.
 export.validate_fungible_asset
-    # assert that ASSET[1] == EMPTY_WORD
+    # assert that ASSET[1] == ZERO
     dup.1 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_ONE_MUST_BE_ZERO
     # => [ASSET]
 
-    # assert that ASSET[2] == EMPTY_WORD
+    # assert that ASSET[2] == ZERO
     dup.2 not assert.err=ERR_FUNGIBLE_ASSET_FORMAT_POSITION_TWO_MUST_BE_ZERO
     # => [ASSET]
 

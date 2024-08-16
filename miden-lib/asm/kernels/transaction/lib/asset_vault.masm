@@ -1,8 +1,8 @@
 use.std::collections::smt
 
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset
-use.miden::kernels::tx::memory
+use.kernel::account
+use.kernel::asset
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================
@@ -118,7 +118,9 @@ export.add_fungible_asset
     # get the asset vault root and read the vault asset value using the `push_smtpeek` decorator.
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
-    padw dup.10 mem_loadw swapw adv.push_smtpeek adv_loadw swapw dupw.1 drop movup.11
+    padw dup.10 mem_loadw swapw
+    adv.push_smtpeek push.15329 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv_loadw swapw dupw.1 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, vault_root_ptr]
 
     # arrange elements
@@ -238,7 +240,9 @@ export.remove_fungible_asset
     # get the asset vault root and read the vault asset value using the `push_smtpeek` decorator
     # To account for the edge case in which CUR_VAULT_VALUE is an EMPTY_WORD, we replace the most
     # significant element with the faucet_id to construct the CUR_ASSET.
-    padw dup.14 mem_loadw swapw adv.push_smtpeek adv_loadw dupw movdnw.2 drop movup.11
+    padw dup.14 mem_loadw swapw
+    adv.push_smtpeek push.15413 drop            # FIX: wrap the decorator to ensure MAST uniqueness
+    adv_loadw dupw movdnw.2 drop movup.11
     # => [CUR_ASSET, VAULT_ROOT, CUR_VAULT_VALUE, amount, ASSET, vault_root_ptr]
 
     # arrange elements
@@ -323,7 +327,7 @@ export.remove_asset
     exec.asset::is_fungible_asset
     # => [is_fungible_asset, ASSET, vault_root_ptr]
 
-    # add the asset to the asset vault
+    # remove the asset from the asset vault
     if.true
         exec.remove_fungible_asset
         # => [ASSET]

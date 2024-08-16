@@ -4,7 +4,6 @@ pub use alloc::collections::BTreeMap;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
-    assembly::ModuleAst,
     assets::{Asset, AssetVault},
     Felt, Word,
 };
@@ -84,10 +83,9 @@ pub fn get_account_with_default_account_code(
     assets: Option<Asset>,
 ) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler();
 
-    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
     let account_storage =
         AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
 

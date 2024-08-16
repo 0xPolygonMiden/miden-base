@@ -9,11 +9,10 @@ use miden_objects::{
         },
         Account, AccountId, AccountStorage, SlotItem,
     },
-    assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteTag, NoteType},
-    testing::{account_code::DEFAULT_AUTH_SCRIPT, prepare_word},
+    notes::{NoteExecutionHint, NoteTag, NoteType},
+    testing::prepare_word,
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
 };
@@ -21,8 +20,9 @@ use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    get_account_with_default_account_code, get_new_pk_and_authenticator,
-    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
+    build_default_auth_script, build_tx_args_from_script, get_account_with_default_account_code,
+    get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
+    prove_and_verify_transaction,
 };
 
 #[test]
@@ -39,26 +39,18 @@ fn prove_receive_asset_via_wallet() {
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
     // Create the note
-    let note_script_ast = ProgramAst::parse(
-        "
-    use.miden::note
-    use.miden::contracts::wallets::basic->wallet
-
+    let note_script_src = "
     # add the asset
     begin
         dropw
-        exec.note::get_assets drop
+        exec.::miden::note::get_assets drop
         mem_loadw
-        call.wallet::receive_asset
+        call.::miden::contracts::wallets::basic::receive_asset
         dropw
     end
-    "
-        .to_string()
-        .as_str(),
-    )
-    .unwrap();
+    ";
 
-    let note = get_note_with_fungible_asset_and_script(fungible_asset_1, note_script_ast);
+    let note = get_note_with_fungible_asset_and_script(fungible_asset_1, note_script_src);
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
@@ -66,9 +58,7 @@ fn prove_receive_asset_via_wallet() {
         .input_notes(vec![note])
         .build();
 
-    let mut executor =
-        TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
-    executor.load_account(target_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(target_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -78,9 +68,8 @@ fn prove_receive_asset_via_wallet() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
+    let tx_script = build_default_auth_script();
+    let tx_args = TransactionArgs::with_tx_script(tx_script);
 
     // Execute the transaction and get the witness
     let executed_transaction = executor
@@ -127,9 +116,7 @@ fn prove_send_asset_via_wallet() {
     // --------------------------------------------------------------------------------------------
     let tx_context = TransactionContextBuilder::new(sender_account.clone()).build();
 
-    let mut executor =
-        TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
-    executor.load_account(sender_account.id()).unwrap();
+    let executor = TransactionExecutor::new(tx_context.clone(), Some(sender_falcon_auth.clone()));
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -146,30 +133,27 @@ fn prove_send_asset_via_wallet() {
 
     assert_eq!(tag.validate(note_type), Ok(tag));
 
-    let var_name = &format!(
+    let tx_script_src = &format!(
         "
-        use.miden::contracts::auth::basic->auth_tx
-        use.miden::contracts::wallets::basic->wallet
-
         begin
             push.{recipient}
+            push.{note_execution_hint}
             push.{note_type}
             push.{aux}
             push.{tag}
             push.{asset}
-            call.wallet::send_asset
+            call.::miden::contracts::wallets::basic::send_asset
             dropw dropw dropw dropw
-            call.auth_tx::auth_tx_rpo_falcon512
+            call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         end
         ",
         recipient = prepare_word(&recipient),
         note_type = note_type as u8,
         tag = tag,
-        asset = prepare_word(&fungible_asset_1.into())
+        asset = prepare_word(&fungible_asset_1.into()),
+        note_execution_hint = Felt::from(NoteExecutionHint::always())
     );
-    let tx_script_code = ProgramAst::parse(var_name.as_str()).unwrap();
-    let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();
-    let tx_args: TransactionArgs = TransactionArgs::with_tx_script(tx_script);
+    let tx_args = build_tx_args_from_script(tx_script_src);
 
     let executed_transaction = executor
         .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)
@@ -223,13 +207,13 @@ fn wallet_creation() {
 
     // sender_account_id not relevant here, just to create a default account code
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
-    let expected_code_root =
+    let expected_code_commitment =
         get_account_with_default_account_code(sender_account_id, pub_key.into(), None)
             .code()
-            .root();
+            .commitment();
 
     assert!(wallet.is_regular_account());
-    assert_eq!(wallet.code().root(), expected_code_root);
+    assert_eq!(wallet.code().commitment(), expected_code_commitment);
     let pub_key_word: Word = pub_key.into();
     assert_eq!(wallet.storage().get_item(0).as_elements(), pub_key_word);
 }

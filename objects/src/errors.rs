@@ -1,7 +1,6 @@
 use alloc::{string::String, vec::Vec};
 use core::fmt;
 
-use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
@@ -21,9 +20,12 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
-    AccountCodeAssemblerError(AssemblyError),
+    AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeProcedureInvalidStorageOffset,
+    AccountCodeProcedureInvalidPadding,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
@@ -142,15 +144,18 @@ pub enum NoteError {
     InvalidAssetData(AssetError),
     InvalidNoteSender(AccountError),
     InvalidNoteTagUseCase(u16),
+    InvalidNoteExecutionHintTag(u8),
+    InvalidNoteExecutionHintPayload(u8, u32),
     InvalidNoteType(NoteType),
     InvalidNoteTypeValue(u64),
-    InvalidOriginIndex(String),
+    InvalidLocationIndex(String),
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
     NoteDeserializationError(DeserializationError),
+    NoteScriptAssemblyError(String), // TODO: use Report
+    NoteScriptDeserializationError(DeserializationError),
     PublicUseCaseRequiresPublicNote(NoteType),
-    ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
 }
@@ -164,8 +169,8 @@ impl NoteError {
         Self::DuplicateNonFungibleAsset(asset)
     }
 
-    pub fn invalid_origin_index(msg: String) -> Self {
-        Self::InvalidOriginIndex(msg)
+    pub fn invalid_location_index(msg: String) -> Self {
+        Self::InvalidLocationIndex(msg)
     }
 
     pub fn too_many_assets(num_assets: usize) -> Self {
@@ -224,7 +229,7 @@ impl std::error::Error for ChainMmrError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionScriptError {
-    ScriptCompilationError(AssemblyError),
+    AssemblyError(String), // TODO: change to Report
 }
 
 impl fmt::Display for TransactionScriptError {

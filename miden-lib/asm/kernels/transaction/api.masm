@@ -1,12 +1,19 @@
 use.std::collections::smt
 
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset_vault
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::faucet
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::note
-use.miden::kernels::tx::tx
+use.kernel::account
+use.kernel::asset_vault
+use.kernel::constants
+use.kernel::faucet
+use.kernel::memory
+use.kernel::note
+use.kernel::tx
+
+# NOTE
+# =================================================================================================
+# Procedures in this module are expected to be invoked using a `syscall` instruction. It makes no #
+# guarantees about the contents of the `PAD` elements shown in the inputs and outputs. It is the  #
+# caller's responsibility to make sure these elements do not contain any meaningful data.         #
+# =================================================================================================
 
 # ERRORS
 # =================================================================================================
@@ -50,10 +57,11 @@ proc.authenticate_account_origin
 
     # assert that the caller is from the user context
     exec.account::authenticate_procedure
-    # => [CALLER, ...]
+    # => [storage_offset, ...]
 
-    # drop the caller
-    dropw
+    # TODO: use the storage_offset for storage access
+    # drop the storage_offset
+    drop
     # => [...]
 end
 
@@ -260,18 +268,18 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: [0, 0, 0, 0]
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_account_code
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [CODE_ROOT]
+    # => [CODE_COMMITMENT]
 
     # arrange stack
     padw swapw
-    # => [CODE_ROOT, 0, 0, 0, 0]
+    # => [CODE_COMMITMENT, 0, 0, 0, 0]
 
     # set the account code
     exec.account::set_code
@@ -334,7 +342,7 @@ export.account_vault_add_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.19891 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_ADD_ASSET_EVENT
     # => [ASSET]
 
@@ -351,7 +359,9 @@ export.account_vault_add_asset
     # => [ASSET', ASSET]
 
     # emit event to signal that an asset is being added to the account vault
-    swapw emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
+    swapw
+    push.21383 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_VAULT_AFTER_ADD_ASSET_EVENT dropw
     # => [ASSET']
 end
 
@@ -371,7 +381,7 @@ export.account_vault_remove_asset
     exec.authenticate_account_origin
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20071 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_BEFORE_REMOVE_ASSET_EVENT
     # => [ASSET]
 
@@ -383,8 +393,8 @@ export.account_vault_remove_asset
     exec.asset_vault::remove_asset
     # => [ASSET]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
     # emit event to signal that an asset is being removed from the account vault
+    push.20149 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_VAULT_AFTER_REMOVE_ASSET_EVENT
     # => [ASSET]
 end
@@ -503,35 +513,28 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [tag, aux, note_type, RECIPIENT]
-#! Outputs: [note_idx, 0, 0, 0, 0, 0]
+#! Inputs: [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+#! Outputs: [note_idx, PAD(15)]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
-#! note_type is the note storage type
+#! note_type is the note storage type.
+#! execution_hint is the note execution hint tag and payload.
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
-    # => [tag, aux, note_type, RECIPIENT]
-
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+   
     exec.tx::create_note
-    # => [note_idx]
-
-    # prepare stack for return. Note: when create_note is called, the stack looks
-    # like [tag, aux, note_type, RECIPIENT, x, X, X], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [note_idx, x, X, X, 0, 0, EMPTY_WORD] adding 0's.
-    # To keep the data in position we move 0's to the left between note_idx and the potentially
-    # important first element x.
-    movupw.3 movup.15 movup.15 movup.6
-    # => [note_idx, 0, 0, 0, 0, 0, 0]
+    # => [note_idx, PAD(15)]
 end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs: [note_idx, ASSET]
-#! Outputs: [note_idx, 0, 0, 0, 0]
+#! Inputs:  [note_idx, ASSET, PAD(11)]
+#! Outputs: [note_idx, ASSET, PAD(11)]
 #!
 #! note_idx is the index of the the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
@@ -540,16 +543,12 @@ export.add_asset_to_note
     exec.authenticate_account_origin
     # => [note_idx, ASSET]
 
-    exec.tx::add_asset_to_note
-    # => [note_idx]
+    # duplicate the asset word to be able to return it
+    movdn.4 dupw movup.8
+    # => [note_idx, ASSET, ASSET]
 
-    # prepare stack for return. Note: when add_asset_to_note is called, the stack looks
-    # like [idx, ASSET, X, X, x, x, x], with 16 elements and X might be important data
-    # for the user. Without padding the kernel returns [idx, X, X, x, x, x, EMPTY_WORD] adding 0's.
-    # To keep the data in position we insert 0's between idx and the potentially important
-    # first element x.
-    movupw.3 movup.4
-    # => [note_idx, 0, 0, 0, 0]
+    exec.tx::add_asset_to_note
+    # => [note_idx, ASSET]
 end
 
 #! Returns a commitment to the account vault the transaction is being executed against.

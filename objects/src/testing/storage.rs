@@ -139,7 +139,7 @@ pub enum AccountSeedType {
 /// Returns the account id and seed for the specified account type.
 pub fn generate_account_seed(
     account_seed_type: AccountSeedType,
-    assembler: &Assembler,
+    assembler: Assembler,
 ) -> (AccountId, Word) {
     let init_seed: [u8; 32] = Default::default();
 
@@ -202,12 +202,13 @@ pub fn generate_account_seed(
         init_seed,
         account_type,
         AccountStorageType::OnChain,
-        account.code().root(),
+        account.code().commitment(),
         account.storage().root(),
     )
     .unwrap();
 
-    let account_id = AccountId::new(seed, account.code().root(), account.storage().root()).unwrap();
+    let account_id =
+        AccountId::new(seed, account.code().commitment(), account.storage().root()).unwrap();
 
     (account_id, seed)
 }

@@ -8,18 +8,18 @@ use rand::Rng;
 
 use crate::{
     accounts::AccountId,
-    assembly::ProgramAst,
     assets::Asset,
     notes::{
-        Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
+        NoteTag, NoteType,
     },
     Felt, NoteError, Word, ZERO,
 };
 
-pub const DEFAULT_NOTE_CODE: &str = "\
-begin
-end
-";
+pub const DEFAULT_NOTE_CODE: &str = "begin nop end";
+
+// NOTE BUILDER
+// ================================================================================================
 
 #[derive(Debug, Clone)]
 pub struct NoteBuilder {
@@ -27,6 +27,7 @@ pub struct NoteBuilder {
     inputs: Vec<Felt>,
     assets: Vec<Asset>,
     note_type: NoteType,
+    note_execution_hint: NoteExecutionHint,
     serial_num: Word,
     tag: NoteTag,
     code: String,
@@ -47,6 +48,7 @@ impl NoteBuilder {
             inputs: vec![],
             assets: vec![],
             note_type: NoteType::Public,
+            note_execution_hint: NoteExecutionHint::None,
             serial_num,
             tag: 0.into(),
             code: DEFAULT_NOTE_CODE.to_string(),
@@ -71,6 +73,11 @@ impl NoteBuilder {
         self
     }
 
+    pub fn note_execution_hint(mut self, note_execution_hint: NoteExecutionHint) -> Self {
+        self.note_execution_hint = note_execution_hint;
+        self
+    }
+
     pub fn tag(mut self, tag: u32) -> Self {
         self.tag = tag.into();
         self
@@ -87,12 +94,29 @@ impl NoteBuilder {
     }
 
     pub fn build(self, assembler: &Assembler) -> Result<Note, NoteError> {
-        let note_ast = ProgramAst::parse(&self.code).unwrap();
-        let (note_script, _) = NoteScript::new(note_ast, assembler)?;
+        let code = assembler.clone().assemble_program(&self.code).unwrap();
+        let note_script = NoteScript::new(code);
         let vault = NoteAssets::new(self.assets)?;
-        let metadata = NoteMetadata::new(self.sender, self.note_type, self.tag, self.aux)?;
+        let metadata = NoteMetadata::new(
+            self.sender,
+            self.note_type,
+            self.tag,
+            self.note_execution_hint,
+            self.aux,
+        )?;
         let inputs = NoteInputs::new(self.inputs)?;
         let recipient = NoteRecipient::new(self.serial_num, note_script, inputs);
         Ok(Note::new(vault, metadata, recipient))
+    }
+}
+
+// NOTE SCRIPT
+// ================================================================================================
+
+impl NoteScript {
+    pub fn mock() -> Self {
+        let assembler = Assembler::default();
+        let code = assembler.assemble_program(DEFAULT_NOTE_CODE).unwrap();
+        Self::new(code)
     }
 }

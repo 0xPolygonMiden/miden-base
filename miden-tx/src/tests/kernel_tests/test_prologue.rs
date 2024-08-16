@@ -2,21 +2,20 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_lib::transaction::{
     memory::{
-        MemoryOffset, ACCT_CODE_ROOT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR, ACCT_ID_PTR,
-        ACCT_STORAGE_ROOT_PTR, ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR,
-        BLK_HASH_PTR, BLOCK_METADATA_PTR, BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR,
-        CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR, INIT_ACCT_HASH_PTR, INIT_NONCE_PTR,
-        INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET, INPUT_NOTE_ASSETS_HASH_OFFSET,
-        INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET, INPUT_NOTE_INPUTS_HASH_OFFSET,
-        INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET, INPUT_NOTE_SCRIPT_ROOT_OFFSET,
-        INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET, NOTE_ROOT_PTR,
-        NULLIFIER_DB_ROOT_PTR, PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX,
-        TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+        MemoryOffset, ACCT_CODE_COMMITMENT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR,
+        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_ROOT_PTR,
+        ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET, ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
+        BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
+        INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
+        INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
+        INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
+        INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
+        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR, PREV_BLOCK_HASH_PTR,
+        PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
 use miden_objects::{
-    assembly::ProgramAst,
     testing::{
         account::AccountBuilder,
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
@@ -51,20 +50,18 @@ fn test_transaction_prologue() {
         end
         ";
 
-    let mock_tx_script_code = ProgramAst::parse(
-        "
+    let mock_tx_script_code = "
         begin
             push.1.2.3.4 dropw
         end
-        ",
-    )
-    .unwrap();
-    let (tx_script, _) = TransactionScript::new(
-        mock_tx_script_code,
-        vec![],
-        &TransactionKernel::assembler().with_debug_mode(true),
-    )
-    .unwrap();
+        ";
+
+    let mock_tx_script_program = TransactionKernel::assembler()
+        .with_debug_mode(true)
+        .assemble_program(mock_tx_script_code)
+        .unwrap();
+
+    let tx_script = TransactionScript::new(mock_tx_script_program, vec![]);
 
     let note_args = [
         [Felt::new(91), Felt::new(91), Felt::new(91), Felt::new(91)],
@@ -125,7 +122,7 @@ fn global_input_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, TX_SCRIPT_ROOT_PTR),
-        **inputs.tx_args().tx_script().as_ref().unwrap().hash(),
+        *inputs.tx_args().tx_script().as_ref().unwrap().hash(),
         "The transaction script root should be stored at the TX_SCRIPT_ROOT_PTR"
     );
 }
@@ -238,8 +235,8 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_CODE_ROOT_PTR),
-        inputs.account().code().root().as_elements(),
+        read_root_mem_value(process, ACCT_CODE_COMMITMENT_PTR),
+        inputs.account().code().commitment().as_elements(),
         "account code commitment should be stored at (ACCOUNT_DATA_OFFSET + 4)"
     );
 
@@ -254,6 +251,25 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
             read_root_mem_value(process, types_ptr),
             Word::try_from(types.iter().map(Felt::from).collect::<Vec<_>>()).unwrap(),
             "The account types data should be stored in (ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET..ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET + 64)"
+        );
+    }
+
+    assert_eq!(
+        read_root_mem_value(process, NUM_ACCT_PROCEDURES_PTR),
+        [
+            u16::try_from(inputs.account().code().procedures().len()).unwrap().into(),
+            ZERO,
+            ZERO,
+            ZERO
+        ],
+        "The number of procedures should be stored at NUM_ACCT_PROCEDURES_PTR"
+    );
+
+    for (i, elements) in inputs.account().code().as_elements().chunks(4).enumerate() {
+        assert_eq!(
+            read_root_mem_value(process, ACCT_PROCEDURES_SECTION_OFFSET + i as u32),
+            Word::try_from(elements).unwrap(),
+            "The account procedures and storage offsets should be stored starting at ACCT_PROCEDURES_SECTION_OFFSET"
         );
     }
 }
@@ -342,7 +358,7 @@ fn input_notes_memory_assertions(
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
@@ -362,7 +378,7 @@ pub fn test_prologue_create_account() {
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -387,7 +403,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
@@ -415,7 +431,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -441,7 +457,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
-        &TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler().with_debug_mode(true),
     );
 
     let tx_context =
@@ -467,7 +483,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(&TransactionKernel::assembler())
+        .build(TransactionKernel::assembler())
         .unwrap();
 
     let code = "

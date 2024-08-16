@@ -12,7 +12,7 @@ use vm_core::FieldElement;
 
 use super::{
     account_code::DEFAULT_ACCOUNT_CODE,
-    account_id::{str_to_account_code, AccountIdBuilder},
+    account_id::AccountIdBuilder,
     constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
     storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
 };
@@ -93,14 +93,13 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn build(mut self, assembler: &Assembler) -> Result<(Account, Word), AccountBuilderError> {
+    pub fn build(mut self, assembler: Assembler) -> Result<(Account, Word), AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
-        self.account_id_builder.code(&self.code).storage_root(storage.root());
-
-        let (account_id, seed) = self.account_id_builder.build(assembler)?;
-
-        let account_code = str_to_account_code(&self.code, assembler)
+        self.account_id_builder.code(&self.code);
+        self.account_id_builder.storage_root(storage.root());
+        let (account_id, seed) = self.account_id_builder.build(assembler.clone())?;
+        let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
 
         let account = Account::from_parts(account_id, vault, storage, account_code, self.nonce);
@@ -111,14 +110,14 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn with_seed(
         mut self,
         seed: Word,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.with_seed(seed, assembler)?;
-        let account_code = str_to_account_code(&self.code, assembler)
+        let account_id = self.account_id_builder.with_seed(seed, assembler.clone())?;
+        let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
@@ -130,7 +129,7 @@ impl<T: Rng> AccountBuilder<T> {
         mut self,
         seed: Word,
         mut storage: AccountStorage,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let inner_storage = self.storage_builder.build();
@@ -146,8 +145,8 @@ impl<T: Rng> AccountBuilder<T> {
 
         self.account_id_builder.code(&self.code);
         self.account_id_builder.storage_root(storage.root());
-        let account_id = self.account_id_builder.with_seed(seed, assembler)?;
-        let account_code = str_to_account_code(&self.code, assembler)
+        let account_id = self.account_id_builder.with_seed(seed, assembler.clone())?;
+        let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
@@ -192,7 +191,7 @@ impl std::error::Error for AccountBuilderError {}
 
 impl Account {
     /// Creates a non-new mock account with a defined number of assets and storage
-    pub fn mock(account_id: u64, nonce: Felt, assembler: &Assembler) -> Self {
+    pub fn mock(account_id: u64, nonce: Felt, assembler: Assembler) -> Self {
         let account_storage = AccountStorage::mock();
 
         let account_vault = if nonce == Felt::ZERO {
@@ -211,7 +210,7 @@ impl Account {
         account_id: u64,
         nonce: Felt,
         initial_balance: Felt,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Self {
         let account_storage = AccountStorage::new(
             vec![SlotItem {
@@ -230,7 +229,7 @@ impl Account {
         account_id: u64,
         nonce: Felt,
         empty_reserved_slot: bool,
-        assembler: &Assembler,
+        assembler: Assembler,
     ) -> Self {
         let entries = match empty_reserved_slot {
             true => vec![],
