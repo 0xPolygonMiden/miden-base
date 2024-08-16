@@ -27,7 +27,7 @@ pub use mast_store::TransactionMastStore;
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Compile the transaction into a program using the [TransactionCompiler](crate::TransactionCompiler).
+/// - Load the code associated with the transaction into the [TransactionMastStore].
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The transaction executor is generic over the [DataStore] which allows it to be used with
