@@ -24,6 +24,11 @@ pub mod transaction;
 pub use miden_objects::utils;
 pub use miden_stdlib::StdLibrary;
 
+// CONSTANTS
+// ================================================================================================
+
+const MIDEN_LIB_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
+
 // MIDEN LIBRARY
 // ================================================================================================
 
@@ -49,8 +54,7 @@ impl From<MidenLib> for MastForest {
 
 impl Default for MidenLib {
     fn default() -> Self {
-        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/miden.masl"));
-        let contents = Library::read_from_bytes(bytes).expect("failed to read masl!");
+        let contents = Library::read_from_bytes(MIDEN_LIB_BYTES).expect("failed to read masl!");
         Self(contents)
     }
 }

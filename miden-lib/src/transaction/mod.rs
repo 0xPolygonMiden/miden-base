@@ -31,6 +31,14 @@ pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
 
+// CONSTANTS
+// ================================================================================================
+
+const KERNEL_LIB_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
+const KERNEL_MAIN_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+
 // TRANSACTION KERNEL
 // ================================================================================================
 
@@ -40,24 +48,24 @@ impl TransactionKernel {
     // KERNEL SOURCE CODE
     // --------------------------------------------------------------------------------------------
 
-    /// Returns MASM source code which encodes the transaction kernel system procedures.
+    /// Returns a library with the transaction kernel system procedures.
+    ///
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
     pub fn kernel() -> KernelLibrary {
-        // TODO: make these static
-        let kernel_bytes =
-            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
-        KernelLibrary::read_from_bytes(kernel_bytes)
+        // TODO: make this static
+        KernelLibrary::read_from_bytes(KERNEL_LIB_BYTES)
             .expect("failed to deserialize transaction kernel library")
     }
 
     /// Returns an AST of the transaction kernel executable program.
     ///
-    /// # Errors
-    /// Returns an error if deserialization of the binary fails.
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
     pub fn main() -> Program {
-        // TODO: make these static
-        let kernel_bytes =
-            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
-        Program::read_from_bytes(kernel_bytes).expect("failed to deserialize transaction runtime")
+        // TODO: make static
+        Program::read_from_bytes(KERNEL_MAIN_BYTES)
+            .expect("failed to deserialize transaction kernel runtime")
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
@@ -65,6 +73,7 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn program_info() -> ProgramInfo {
+        // TODO: make static
         let program_hash = Self::main().hash();
         let kernel = Self::kernel().kernel().clone();
 
