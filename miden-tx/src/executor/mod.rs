@@ -113,7 +113,7 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_num, notes))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
         let (stack_inputs, advice_inputs) =

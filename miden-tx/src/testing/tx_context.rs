@@ -15,7 +15,6 @@ use miden_objects::{
     notes::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
         account_code::ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT,
-        block::{MockChain, MockChainBuilder},
         constants::{
             CONSUMED_ASSET_1_AMOUNT, CONSUMED_ASSET_2_AMOUNT, CONSUMED_ASSET_3_AMOUNT,
             NON_FUNGIBLE_ASSET_DATA_2,
@@ -24,7 +23,10 @@ use miden_objects::{
         prepare_word,
         storage::prepare_assets,
     },
-    transaction::{InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs},
+    transaction::{
+        ExecutedTransaction, InputNote, InputNotes, OutputNote, TransactionArgs, TransactionInputs,
+        TransactionScript,
+    },
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -75,11 +77,10 @@ impl TransactionContext {
 
         let account_id = self.account().id();
         let block_num = mock_data_store.tx_inputs.block_header().block_num();
-        let mut tx_executor =
+        let tx_executor =
             TransactionExecutor::new(mock_data_store, self.authenticator.map(Rc::new));
         let notes: Vec<NoteId> = self.tx_inputs.input_notes().into_iter().map(|n| n.id()).collect();
 
-        maybe_await!(tx_executor.load_account(account_id))?;
         maybe_await!(tx_executor.execute_transaction(account_id, block_num, &notes, self.tx_args))
     }
 
@@ -710,11 +711,5 @@ impl DataStore for MockDataStore {
         assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
 
         Ok(self.tx_inputs.clone())
-    }
-
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<ModuleAst, DataStoreError> {
-        assert_eq!(account_id, self.tx_inputs.account().id());
-        Ok(self.tx_inputs.account().code().module().clone())
     }
 }

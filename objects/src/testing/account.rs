@@ -159,7 +159,7 @@ impl<T: Rng> AccountBuilder<T> {
         let pub_key: Word = sec_key.public_key().into();
 
         let storage_item = SlotItem::new_value(0, 0, pub_key);
-        let (account, seed) = self.add_storage_item(storage_item).build(assembler)?;
+        let (account, seed) = self.add_storage_item(storage_item).build(assembler.clone())?;
         Ok((account, seed, sec_key))
     }
 }

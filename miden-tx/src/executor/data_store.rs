@@ -1,8 +1,4 @@
-use miden_objects::{
-    accounts::AccountId,
-    notes::NoteId,
-    transaction::TransactionInputs,
-};
+use miden_objects::{accounts::AccountId, notes::NoteId, transaction::TransactionInputs};
 use winter_maybe_async::maybe_async;
 
 use crate::DataStoreError;
