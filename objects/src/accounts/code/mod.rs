@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use assembly::{Assembler, Compile, Library};
 use vm_core::mast::MastForest;
@@ -33,7 +33,7 @@ use procedure::AccountProcedureInfo;
 /// ```
 #[derive(Debug, Clone)]
 pub struct AccountCode {
-    mast: MastForest,
+    mast: Arc<MastForest>,
     procedures: Vec<AccountProcedureInfo>,
     commitment: Digest,
 }
@@ -80,7 +80,7 @@ impl AccountCode {
         Ok(Self {
             commitment: build_procedure_commitment(&procedures),
             procedures,
-            mast: library.into(),
+            mast: Arc::new(library.into()),
         })
     }
 
@@ -118,7 +118,7 @@ impl AccountCode {
     /// - The number of procedures is smaller than 1 or greater than 256.
     /// - If some any of the provided procedures does not have a corresponding root in the
     ///   provided MAST forest.
-    pub fn from_parts(mast: MastForest, procedures: Vec<AccountProcedureInfo>) -> Self {
+    pub fn from_parts(mast: Arc<MastForest>, procedures: Vec<AccountProcedureInfo>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
 
@@ -143,8 +143,8 @@ impl AccountCode {
     }
 
     /// Returns a reference to the [MastForest] backing this account code.
-    pub fn mast(&self) -> &MastForest {
-        &self.mast
+    pub fn mast(&self) -> Arc<MastForest> {
+        self.mast.clone()
     }
 
     /// Returns a reference to the account procedures.
@@ -196,15 +196,6 @@ impl AccountCode {
     }
 }
 
-// CONVERSIONS
-// ================================================================================================
-
-impl From<AccountCode> for MastForest {
-    fn from(code: AccountCode) -> Self {
-        code.mast
-    }
-}
-
 // EQUALITY
 // ================================================================================================
 
@@ -236,7 +227,7 @@ impl Deserializable for AccountCode {
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
 
-        Ok(Self::from_parts(module, procedures))
+        Ok(Self::from_parts(Arc::new(module), procedures))
     }
 }
 

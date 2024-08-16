@@ -153,7 +153,7 @@ fn prove_send_asset_via_wallet() {
         asset = prepare_word(&fungible_asset_1.into()),
         note_execution_hint = Felt::from(NoteExecutionHint::always())
     );
-    let tx_args = build_tx_args_from_script(&tx_script_src);
+    let tx_args = build_tx_args_from_script(tx_script_src);
 
     let executed_transaction = executor
         .execute_transaction(sender_account.id(), block_ref, &note_ids, tx_args)

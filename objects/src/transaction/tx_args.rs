@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 use core::ops::Deref;
 
 use assembly::{Assembler, Compile};
@@ -159,7 +159,7 @@ impl TransactionArgs {
 ///   the advice inputs' map such that the transaction script can access them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionScript {
-    mast: MastForest,
+    mast: Arc<MastForest>,
     entrypoint: MastNodeId,
     inputs: BTreeMap<Digest, Vec<Felt>>,
 }
@@ -172,7 +172,7 @@ impl TransactionScript {
     pub fn new(code: Program, inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>) -> Self {
         Self {
             entrypoint: code.entrypoint(),
-            mast: code.into(),
+            mast: Arc::new(code.into()),
             inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
         }
     }
@@ -198,7 +198,7 @@ impl TransactionScript {
     /// # Panics
     /// Panics if the specified entrypoint is not in the provided MAST forest.
     pub fn from_parts(
-        mast: MastForest,
+        mast: Arc<MastForest>,
         entrypoint: MastNodeId,
         inputs: BTreeMap<Digest, Vec<Felt>>,
     ) -> Self {
@@ -210,8 +210,8 @@ impl TransactionScript {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the [MastForest] backing this transaction script.
-    pub fn mast(&self) -> &MastForest {
-        &self.mast
+    pub fn mast(&self) -> Arc<MastForest> {
+        self.mast.clone()
     }
 
     /// Returns a reference to the code hash.
@@ -242,6 +242,6 @@ impl Deserializable for TransactionScript {
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
         let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
 
-        Ok(Self::from_parts(mast, entrypoint, inputs))
+        Ok(Self::from_parts(Arc::new(mast), entrypoint, inputs))
     }
 }

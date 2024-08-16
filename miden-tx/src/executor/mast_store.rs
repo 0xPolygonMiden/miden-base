@@ -13,6 +13,7 @@ pub struct TransactionMastStore {
     mast_forests: RefCell<BTreeMap<Digest, Arc<MastForest>>>,
 }
 
+#[allow(clippy::new_without_default)]
 impl TransactionMastStore {
     pub fn new() -> Self {
         let mast_forests = RefCell::new(BTreeMap::new());
@@ -35,16 +36,16 @@ impl TransactionMastStore {
 
     pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
         // load account code
-        self.insert(Arc::new(tx_inputs.account().code().clone().into()));
+        self.insert(tx_inputs.account().code().mast().clone());
 
         // load note script MAST into the MAST store
         for note in tx_inputs.input_notes() {
-            self.insert(Arc::new(note.note().script().mast().clone()))
+            self.insert(note.note().script().mast().clone());
         }
 
         // load tx script MAST into the MAST store
         if let Some(tx_script) = tx_args.tx_script() {
-            self.insert(Arc::new(tx_script.mast().clone()));
+            self.insert(tx_script.mast().clone());
         }
     }
 

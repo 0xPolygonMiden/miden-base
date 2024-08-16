@@ -98,13 +98,13 @@ impl TransactionKernel {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new Miden assembler instantiated with the transaction kernel and loaded with the
-    /// Miden stdlib as well as with midenlib.
+    /// Miden stdlib as well as with miden-lib.
     pub fn assembler() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         Assembler::with_kernel(source_manager, Self::kernel())
-            .with_library(&StdLibrary::default())
+            .with_library(StdLibrary::default())
             .expect("failed to load std-lib")
-            .with_library(&MidenLib::default())
+            .with_library(MidenLib::default())
             .expect("failed to load miden-lib")
     }
 

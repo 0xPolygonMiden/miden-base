@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use assembly::{Assembler, Compile};
 use vm_core::{
@@ -21,7 +21,7 @@ use crate::{
 /// it defines the rules and side effects of consuming a given note.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoteScript {
-    mast: MastForest,
+    mast: Arc<MastForest>,
     entrypoint: MastNodeId,
 }
 
@@ -33,7 +33,7 @@ impl NoteScript {
     pub fn new(code: Program) -> Self {
         Self {
             entrypoint: code.entrypoint(),
-            mast: code.into(),
+            mast: Arc::new(code.into()),
         }
     }
 
@@ -61,7 +61,7 @@ impl NoteScript {
     ///
     /// # Panics
     /// Panics if the specified entrypoint is not in the provided MAST forest.
-    pub fn from_parts(mast: MastForest, entrypoint: MastNodeId) -> Self {
+    pub fn from_parts(mast: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
         assert!(mast.get_node_by_id(entrypoint).is_some());
         Self { mast, entrypoint }
     }
@@ -75,8 +75,8 @@ impl NoteScript {
     }
 
     /// Returns a reference to the [MastForest] backing this note script.
-    pub fn mast(&self) -> &MastForest {
-        &self.mast
+    pub fn mast(&self) -> Arc<MastForest> {
+        self.mast.clone()
     }
 }
 
@@ -143,7 +143,7 @@ impl TryFrom<&[Felt]> for NoteScript {
 
         let mast = MastForest::read_from_bytes(&data)?;
         let entrypoint = MastNodeId::from_u32_safe(entrypoint, &mast)?;
-        Ok(NoteScript::from_parts(mast, entrypoint))
+        Ok(NoteScript::from_parts(Arc::new(mast), entrypoint))
     }
 }
 
@@ -170,7 +170,7 @@ impl Deserializable for NoteScript {
         let mast = MastForest::read_from(source)?;
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
 
-        Ok(Self::from_parts(mast, entrypoint))
+        Ok(Self::from_parts(Arc::new(mast), entrypoint))
     }
 }
 
