@@ -11,13 +11,14 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
-    testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::TransactionArgs,
     Felt,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
-use crate::{get_account_with_default_account_code, get_new_pk_and_authenticator};
+use crate::{
+    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
+};
 
 // P2IDR TESTS
 // ===============================================================================================
@@ -99,8 +100,7 @@ fn p2idr_script() {
     let block_ref_1 = tx_context_1.tx_inputs().block_header().block_num();
     let note_ids = tx_context_1.input_notes().iter().map(|note| note.id()).collect::<Vec<_>>();
 
-    let tx_script_code = DEFAULT_AUTH_SCRIPT;
-    let tx_script_target = executor_1.compile_tx_script(tx_script_code, vec![]).unwrap();
+    let tx_script_target = build_default_auth_script();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -125,7 +125,7 @@ fn p2idr_script() {
         .build();
     let executor_2 =
         TransactionExecutor::new(tx_context_2.clone(), Some(sender_falcon_auth.clone()));
-    let tx_script_sender = executor_2.compile_tx_script(tx_script_code, vec![]).unwrap();
+    let tx_script_sender = build_default_auth_script();
     let tx_args_sender = TransactionArgs::with_tx_script(tx_script_sender);
 
     let block_ref_2 = tx_context_2.tx_inputs().block_header().block_num();
@@ -150,7 +150,8 @@ fn p2idr_script() {
         .build();
     let executor_3 =
         TransactionExecutor::new(tx_context_3.clone(), Some(malicious_falcon_auth.clone()));
-    let tx_script_malicious = executor_3.compile_tx_script(tx_script_code, vec![]).unwrap();
+
+    let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref_3 = tx_context_3.tx_inputs().block_header().block_num();

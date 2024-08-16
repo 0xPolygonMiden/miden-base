@@ -16,15 +16,14 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::SecretKey,
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
-    transaction::TransactionArgs,
     Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
-    get_new_pk_and_authenticator, get_note_with_fungible_asset_and_script,
-    prove_and_verify_transaction,
+    build_tx_args_from_script, get_new_pk_and_authenticator,
+    get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
 
 // TESTS MINT FUNGIBLE ASSET
@@ -61,9 +60,6 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
 
     let tx_script_code = format!(
         "
-            use.miden::contracts::faucets::basic_fungible->faucet
-            use.miden::contracts::auth::basic->auth_tx
-
             begin
 
                 push.{recipient}
@@ -72,9 +68,9 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
                 push.{aux}
                 push.{tag}
                 push.{amount}
-                call.faucet::distribute
+                call.::miden::contracts::faucets::basic_fungible::distribute
 
-                call.auth_tx::auth_tx_rpo_falcon512
+                call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
                 dropw dropw drop
 
             end
@@ -86,8 +82,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
         note_execution_hint = Felt::from(note_execution_hint)
     );
 
-    let tx_script = executor.compile_tx_script(&tx_script_code, vec![]).unwrap();
-    let tx_args = TransactionArgs::with_tx_script(tx_script);
+    let tx_args = build_tx_args_from_script(&tx_script_code);
 
     let executed_transaction = executor
         .execute_transaction(faucet_account.id(), block_ref, &note_ids, tx_args)
@@ -138,9 +133,6 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 
     let tx_script_code = format!(
         "
-            use.miden::contracts::faucets::basic_fungible->faucet
-            use.miden::contracts::auth::basic->auth_tx
-
             begin
 
                 push.{recipient}
@@ -148,9 +140,9 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
                 push.{aux}
                 push.{tag}
                 push.{amount}
-                call.faucet::distribute
+                call.::miden::contracts::faucets::basic_fungible::distribute
 
-                call.auth_tx::auth_tx_rpo_falcon512
+                call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
                 dropw dropw
 
             end
@@ -158,9 +150,8 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
         note_type = NoteType::Private as u8,
         recipient = prepare_word(&recipient),
     );
-    let tx_script = executor.compile_tx_script(&tx_script_code, vec![]).unwrap();
 
-    let tx_args = TransactionArgs::with_tx_script(tx_script);
+    let tx_args = build_tx_args_from_script(&tx_script_code);
 
     // Execute the transaction and get the witness
     let executed_transaction =
@@ -192,15 +183,12 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // need to create a note with the fungible asset to be burned
     let note_script = "
-        use.miden::contracts::faucets::basic_fungible->faucet_contract
-        use.miden::note
-
         # burn the asset
         begin
             dropw
-            exec.note::get_assets drop
+            exec.::miden::note::get_assets drop
             mem_loadw
-            call.faucet_contract::burn
+            call.::miden::contracts::faucets::basic_fungible::burn
         end
         ";
 

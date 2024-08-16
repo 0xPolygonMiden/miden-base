@@ -173,3 +173,24 @@ impl Deserializable for NoteScript {
         Ok(Self::from_parts(mast, entrypoint))
     }
 }
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::{Assembler, Felt, NoteScript, Vec};
+    use crate::testing::notes::DEFAULT_NOTE_CODE;
+
+    #[test]
+    fn test_note_script_to_from_felt() {
+        let assembler = Assembler::default();
+        let tx_script_src = DEFAULT_NOTE_CODE;
+        let note_script = NoteScript::compile(tx_script_src, assembler).unwrap();
+
+        let encoded: Vec<Felt> = (&note_script).into();
+        let decoded: NoteScript = encoded.try_into().unwrap();
+
+        assert_eq!(note_script, decoded);
+    }
+}

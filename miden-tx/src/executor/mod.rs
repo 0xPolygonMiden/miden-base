@@ -1,12 +1,12 @@
-use alloc::{rc::Rc, vec::Vec};
+use alloc::rc::Rc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::AccountId,
-    notes::{NoteId, NoteScript},
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
+    notes::NoteId,
+    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs},
     vm::StackOutputs,
-    Felt, Word, ZERO,
+    ZERO,
 };
 use vm_processor::{ExecutionOptions, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
@@ -47,7 +47,8 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and [TransactionAuthenticator].
+    /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and
+    /// [TransactionAuthenticator].
     pub fn new(data_store: D, authenticator: Option<Rc<A>>) -> Self {
         Self {
             data_store,
@@ -88,28 +89,6 @@ impl<D: DataStore, A: TransactionAuthenticator> TransactionExecutor<D, A> {
     pub fn with_tracing(mut self) -> Self {
         self.exec_options = self.exec_options.with_tracing();
         self
-    }
-
-    // COMPILERS
-    // --------------------------------------------------------------------------------------------
-
-    /// TODO: remove as this is just a wrapper around [NoteScript::compile()].
-    pub fn compile_note_script(
-        &self,
-        note_script: &str,
-    ) -> Result<NoteScript, TransactionExecutorError> {
-        NoteScript::compile(note_script, TransactionKernel::assembler())
-            .map_err(TransactionExecutorError::CompileNoteScriptFailed)
-    }
-
-    /// TODO: remove as this is just a wrapper around [TransactionScript::compile()].
-    pub fn compile_tx_script(
-        &self,
-        tx_script: &str,
-        inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>,
-    ) -> Result<TransactionScript, TransactionExecutorError> {
-        TransactionScript::compile(tx_script, inputs, TransactionKernel::assembler())
-            .map_err(TransactionExecutorError::CompileTransactionScriptFailed)
     }
 
     // TRANSACTION EXECUTION

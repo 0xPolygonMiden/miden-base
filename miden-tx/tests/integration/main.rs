@@ -10,7 +10,8 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
-    transaction::{ExecutedTransaction, ProvenTransaction},
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
+    transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
@@ -109,4 +110,16 @@ pub fn get_note_with_fungible_asset_and_script(
     let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
 
     Note::new(vault, metadata, recipient)
+}
+
+#[cfg(test)]
+pub fn build_default_auth_script() -> TransactionScript {
+    TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler()).unwrap()
+}
+
+#[cfg(test)]
+pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
+    let tx_script =
+        TransactionScript::compile(script_source, [], TransactionKernel::assembler()).unwrap();
+    TransactionArgs::with_tx_script(tx_script)
 }

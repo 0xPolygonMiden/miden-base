@@ -13,8 +13,8 @@ use miden_objects::{
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
-    notes::{NoteScript, NoteType},
-    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    notes::NoteType,
+    testing::account::AccountBuilder,
     transaction::TransactionArgs,
     Felt, FieldElement,
 };
@@ -24,7 +24,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
 
 use crate::{
-    get_account_with_default_account_code, get_new_pk_and_authenticator,
+    build_default_auth_script, get_account_with_default_account_code, get_new_pk_and_authenticator,
     prove_and_verify_transaction,
 };
 
@@ -75,8 +75,7 @@ fn prove_p2id_script() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_src = DEFAULT_AUTH_SCRIPT;
-    let tx_script_target = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
+    let tx_script_target = build_default_auth_script();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -112,8 +111,8 @@ fn prove_p2id_script() {
         .build();
     let executor_2 =
         TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
-    let tx_script_malicious = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
 
+    let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = tx_context_malicious_account.tx_inputs().block_header().block_num();
@@ -183,9 +182,7 @@ fn p2id_script_multiple_assets() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_src = DEFAULT_AUTH_SCRIPT;
-    let tx_script_target = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
-
+    let tx_script_target = build_default_auth_script();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -218,7 +215,7 @@ fn p2id_script_multiple_assets() {
         .build();
     let executor_2 =
         TransactionExecutor::new(tx_context_malicious_account.clone(), Some(malicious_falcon_auth));
-    let tx_script_malicious = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
+    let tx_script_malicious = build_default_auth_script();
     let tx_args_malicious = TransactionArgs::with_tx_script(tx_script_malicious);
 
     let block_ref = tx_context_malicious_account.tx_inputs().block_header().block_num();
@@ -275,9 +272,7 @@ fn test_execute_prove_new_account() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_src = DEFAULT_AUTH_SCRIPT;
-    let tx_script_target = executor.compile_tx_script(tx_script_src, vec![]).unwrap();
-
+    let tx_script_target = build_default_auth_script();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // Execute the transaction and get the witness
@@ -290,18 +285,6 @@ fn test_execute_prove_new_account() {
     assert!(!target_account.is_new());
 
     prove_and_verify_transaction(executed_transaction).unwrap();
-}
-
-#[test]
-fn test_note_script_to_from_felt() {
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
-    let tx_script_src = DEFAULT_AUTH_SCRIPT;
-    let note_script = NoteScript::compile(tx_script_src, assembler).unwrap();
-
-    let encoded: Vec<Felt> = (&note_script).into();
-    let decoded: NoteScript = encoded.try_into().unwrap();
-
-    assert_eq!(note_script, decoded);
 }
 
 // HELPER FUNCTIONS

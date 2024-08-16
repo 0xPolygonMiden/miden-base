@@ -27,7 +27,7 @@ use miden_objects::{
         prepare_word,
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
-    transaction::{ProvenTransaction, TransactionArgs},
+    transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
 };
 use miden_prover::ProvingOptions;
@@ -166,10 +166,10 @@ fn executed_transaction_account_delta() {
     assert_eq!(tag1.validate(note_type1), Ok(tag1));
     assert_eq!(tag2.validate(note_type2), Ok(tag2));
     assert_eq!(tag3.validate(note_type3), Ok(tag3));
-    let tx_script = format!(
+
+    let tx_script_src = format!(
         "\
         use.miden::account
-        use.miden::contracts::wallets::basic->wallet
 
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
@@ -252,7 +252,7 @@ fn executed_transaction_account_delta() {
             push.{REMOVED_ASSET_1}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
 
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             # totally deplete fungible asset balance
@@ -264,7 +264,7 @@ fn executed_transaction_account_delta() {
             push.{REMOVED_ASSET_2}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
 
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             # send non-fungible asset
@@ -276,7 +276,7 @@ fn executed_transaction_account_delta() {
             push.{REMOVED_ASSET_3}  # asset
             # => [ASSET, tag, aux, note_type, RECIPIENT]
             
-            call.wallet::send_asset dropw dropw dropw dropw
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
             # => []
 
             ## Update account code
@@ -305,7 +305,8 @@ fn executed_transaction_account_delta() {
         EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
     );
 
-    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -399,7 +400,7 @@ fn test_empty_delta_nonce_update() {
     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
     let account_id = tx_context.tx_inputs().account().id();
 
-    let tx_script = format!(
+    let tx_script_src = format!(
         "\
         begin
             push.1
@@ -413,7 +414,8 @@ fn test_empty_delta_nonce_update() {
     "
     );
 
-    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -513,7 +515,7 @@ fn test_send_note_proc() {
             ))
         }
 
-        let tx_script = format!(
+        let tx_script_src = format!(
             "\
             use.miden::account
             use.miden::contracts::wallets::basic->wallet
@@ -563,7 +565,8 @@ fn test_send_note_proc() {
             note_type = note_type as u8,
         );
 
-        let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
+        let tx_script =
+            TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
         let tx_args = TransactionArgs::new(
             Some(tx_script),
             None,
@@ -693,7 +696,7 @@ fn executed_transaction_output_notes() {
     let recipient_3 = NoteRecipient::new(serial_num_3, note_script_3, inputs_3);
     let expected_output_note_3 = Note::new(vault_3, metadata_3, recipient_3);
 
-    let tx_script = format!(
+    let tx_script_src = format!(
         "\
         use.miden::account
         use.miden::contracts::wallets::basic->wallet
@@ -819,7 +822,8 @@ fn executed_transaction_output_notes() {
         EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(11, 22, 33)),
     );
 
-    let tx_script = executor.compile_tx_script(&tx_script, vec![]).unwrap();
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
     let mut tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -873,7 +877,6 @@ fn prove_witness_and_verify() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
-    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
 
     let account_id = tx_context.tx_inputs().account().id();
 
@@ -885,6 +888,7 @@ fn prove_witness_and_verify() {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
         .unwrap();
@@ -896,8 +900,8 @@ fn prove_witness_and_verify() {
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
-    let serialised_transaction = proven_transaction.to_bytes();
-    let proven_transaction = ProvenTransaction::read_from_bytes(&serialised_transaction).unwrap();
+    let serialized_transaction = proven_transaction.to_bytes();
+    let proven_transaction = ProvenTransaction::read_from_bytes(&serialized_transaction).unwrap();
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(proven_transaction).is_ok());
 }
@@ -941,12 +945,13 @@ fn test_tx_script() {
         key = prepare_word(&tx_script_input_key),
         value = prepare_word(&tx_script_input_value)
     );
-    let tx_script = executor
-        .compile_tx_script(
-            &tx_script_src,
-            vec![(tx_script_input_key, tx_script_input_value.into())],
-        )
-        .unwrap();
+
+    let tx_script = TransactionScript::compile(
+        tx_script_src,
+        [(tx_script_input_key, tx_script_input_value.into())],
+        TransactionKernel::assembler(),
+    )
+    .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
