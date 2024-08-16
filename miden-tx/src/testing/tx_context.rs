@@ -8,7 +8,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN, ACCOUNT_ID_SENDER,
         },
-        Account, AccountCode, AccountId,
+        Account, AccountId,
     },
     assembly::Assembler,
     assets::{Asset, FungibleAsset},
@@ -101,12 +101,6 @@ impl DataStore for TransactionContext {
         assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
 
         Ok(self.tx_inputs.clone())
-    }
-
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<AccountCode, DataStoreError> {
-        assert_eq!(account_id, self.tx_inputs.account().id());
-        Ok(self.tx_inputs.account().code().clone())
     }
 }
 

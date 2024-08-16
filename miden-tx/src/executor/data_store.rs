@@ -1,5 +1,5 @@
 use miden_objects::{
-    accounts::{AccountCode, AccountId},
+    accounts::AccountId,
     notes::NoteId,
     transaction::TransactionInputs,
 };
@@ -35,8 +35,4 @@ pub trait DataStore {
         block_ref: u32,
         notes: &[NoteId],
     ) -> Result<TransactionInputs, DataStoreError>;
-
-    /// Returns the [AccountCode] associated with the specified [AccountId].
-    #[maybe_async]
-    fn get_account_code(&self, account_id: AccountId) -> Result<AccountCode, DataStoreError>;
 }
