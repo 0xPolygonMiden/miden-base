@@ -2,10 +2,13 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     assets::Asset,
-    notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, PartialNote},
+    notes::{
+        Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
+        PartialNote,
+    },
 };
 
-use super::{AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
+use super::{AccountId, AdviceProvider, Digest, Felt, OutputNote, TransactionKernelError};
 
 // OUTPUT NOTE BUILDER
 // ================================================================================================
@@ -26,7 +29,7 @@ impl OutputNoteBuilder {
     ///
     /// The stack is expected to be in the following state:
     ///
-    ///   [NOTE_METADATA, RECIPIENT]
+    ///   [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT]
     ///
     /// Detailed note info such as assets and recipient (when available) are retrieved from the
     /// advice provider.
@@ -44,9 +47,14 @@ impl OutputNoteBuilder {
         adv_provider: &A,
     ) -> Result<Self, TransactionKernelError> {
         // read note metadata info from the stack and build the metadata object
-        let metadata_word = [stack[3], stack[2], stack[1], stack[0]];
-        let metadata: NoteMetadata = metadata_word
-            .try_into()
+        let aux = stack[0];
+        let note_type =
+            NoteType::try_from(stack[1]).map_err(TransactionKernelError::MalformedNoteType)?;
+        let sender =
+            AccountId::try_from(stack[2]).map_err(TransactionKernelError::MalformedAccountId)?;
+        let tag = NoteTag::try_from(stack[3])
+            .map_err(|_| TransactionKernelError::MalformedTag(stack[3]))?;
+        let metadata = NoteMetadata::new(sender, note_type, tag, aux)
             .map_err(TransactionKernelError::MalformedNoteMetadata)?;
 
         // read recipient digest from the stack and try to build note recipient object if there is
@@ -105,6 +113,7 @@ impl OutputNoteBuilder {
             // if there are no recipient details and the note is not private, return an error
             return Err(TransactionKernelError::MissingNoteDetails(metadata, recipient_digest));
         };
+
         Ok(Self {
             metadata,
             recipient_digest,

@@ -55,48 +55,37 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs:  [tag, aux, note_type, execution_hint, RECIPIENT, ...]
-#! Outputs: [note_idx, ...]
+#! Inputs: [tag, aux, note_type, RECIPIENT]
+#! Outputs: [note_idx]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
 #! note_type is the storage type of the note
-#! execution_hint is the note's execution hint
 #! RECIPIENT is the recipient of the note.
 #! note_idx is the index of the crated note.
 export.create_note
-    # pad the stack before the syscall to prevent accidental modification of the deeper stack 
-    # elements 
-    padw padw swapdw
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
-
     syscall.create_note
-    # => [note_idx, PAD(15)]
+    # => [note_idx, EMPTY_WORD, 0]
 
-    # remove excess PADs from the stack 
-    swapdw dropw dropw movdn.7 dropw drop drop drop
+    # clear the padding from the kernel response
+    movdn.4 dropw swap drop
     # => [note_idx]
 end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [ASSET, note_idx, ...]
-#! Outputs: [ASSET, note_idx, ...]
+#! Inputs: [note_idx, ASSET]
+#! Outputs: [note_idx]
 #!
 #! note_idx is the index of the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
 export.add_asset_to_note
-    # pad the stack before the syscall to prevent accidental modification of the deeper stack 
-    # elements 
-    push.0.0.0 padw padw swapdw movup.7 swapw movup.4
-    # => [note_idx, ASSET, PAD(11)]
+    syscall.add_asset_to_note
+    # => [note_idx, EMPTY_WORD]
 
-    syscall.add_asset_to_note 
-    # => [note_idx, ASSET, PAD(11)]
-
-    # remove excess PADs from the stack 
-    swapdw dropw dropw swapw movdn.7 drop drop drop movdn.4
-    # => [ASSET, note_idx]
+    # clear the padding from the kernel response
+    movdn.4 dropw
+    # => [note_idx]
 end
 
 #! Returns the RECIPIENT for a specified SERIAL_NUM, SCRIPT_HASH, and inputs hash

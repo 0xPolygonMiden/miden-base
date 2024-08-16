@@ -12,7 +12,7 @@ use miden_objects::{
     assembly::ProgramAst,
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
-    notes::{NoteExecutionHint, NoteTag, NoteType},
+    notes::{NoteTag, NoteType},
     testing::{account_code::DEFAULT_AUTH_SCRIPT, prepare_word},
     transaction::TransactionArgs,
     Felt, Word, ONE, ZERO,
@@ -153,7 +153,6 @@ fn prove_send_asset_via_wallet() {
 
         begin
             push.{recipient}
-            push.{note_execution_hint}
             push.{note_type}
             push.{aux}
             push.{tag}
@@ -166,8 +165,7 @@ fn prove_send_asset_via_wallet() {
         recipient = prepare_word(&recipient),
         note_type = note_type as u8,
         tag = tag,
-        asset = prepare_word(&fungible_asset_1.into()),
-        note_execution_hint = Felt::from(NoteExecutionHint::always())
+        asset = prepare_word(&fungible_asset_1.into())
     );
     let tx_script_code = ProgramAst::parse(var_name.as_str()).unwrap();
     let tx_script = executor.compile_tx_script(tx_script_code, vec![], vec![]).unwrap();

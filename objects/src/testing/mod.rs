@@ -9,7 +9,6 @@ pub mod account;
 pub mod account_code;
 pub mod account_id;
 pub mod assets;
-pub mod block;
 pub mod constants;
 pub mod notes;
 pub mod storage;
