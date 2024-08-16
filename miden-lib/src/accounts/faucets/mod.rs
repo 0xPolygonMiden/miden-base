@@ -38,15 +38,18 @@ pub fn create_basic_fungible_faucet(
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
     // faucet contract, so we can just use the public key as storage slot 0.
-    // TODO: consider using a trait when we have more auth schemes.
-    let auth_data: Word = match auth_scheme {
-        AuthScheme::RpoFalcon512 { pub_key } => pub_key.into(),
+
+    let (auth_scheme_procedure, auth_data): (&str, Word) = match auth_scheme {
+        AuthScheme::RpoFalcon512 { pub_key } => ("auth_tx_rpo_falcon512", pub_key.into()),
     };
 
-    let source_code = "
+    let source_code = format!(
+        "
         export.::miden::contracts::faucets::basic_fungible::distribute
         export.::miden::contracts::faucets::basic_fungible::burn
-    ";
+        export.::miden::contracts::auth::basic::{auth_scheme_procedure}
+    "
+    );
 
     let assembler = TransactionKernel::assembler();
     let account_code = AccountCode::compile(source_code, assembler)?;
@@ -82,4 +85,52 @@ pub fn create_basic_fungible_faucet(
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+
+    use super::{
+        create_basic_fungible_faucet, AccountStorageType, AuthScheme, Felt, TokenSymbol, ZERO,
+    };
+
+    #[test]
+    fn faucet_contract_creation() {
+        let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
+        let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
+
+        // we need to use an initial seed to create the wallet account
+        let init_seed: [u8; 32] = [
+            90, 110, 209, 94, 84, 105, 250, 242, 223, 203, 216, 124, 22, 159, 14, 132, 215, 85,
+            183, 204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
+        ];
+
+        let max_supply = Felt::new(123);
+        let token_symbol_string = "POL";
+        let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
+        let decimals = 2u8;
+        let storage_type = AccountStorageType::OffChain;
+
+        let (faucet_account, _) = create_basic_fungible_faucet(
+            init_seed,
+            token_symbol,
+            decimals,
+            max_supply,
+            storage_type,
+            auth_scheme,
+        )
+        .unwrap();
+
+        // check that max_supply (slot 1) is 123
+        assert_eq!(
+            faucet_account.storage().get_item(1),
+            [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
+        );
+
+        assert!(faucet_account.is_faucet());
+    }
 }

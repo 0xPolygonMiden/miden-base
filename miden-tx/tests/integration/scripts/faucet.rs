@@ -2,29 +2,29 @@ extern crate alloc;
 
 use std::collections::BTreeMap;
 
-use miden_lib::{
-    accounts::faucets::create_basic_fungible_faucet,
-    transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel},
-    AuthScheme,
-};
+use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, AccountStorageType, SlotItem,
+        AccountStorage, SlotItem,
     },
-    assets::{Asset, AssetVault, FungibleAsset, TokenSymbol},
-    crypto::dsa::rpo_falcon512::SecretKey,
+    assets::{Asset, AssetVault, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
-    Felt, Word, ZERO,
+    Felt, Word,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 use crate::{
     build_tx_args_from_script, get_new_pk_and_authenticator,
     get_note_with_fungible_asset_and_script, prove_and_verify_transaction,
 };
+
+const FUNGIBLE_FAUCET_SOURCE: &str = "
+export.::miden::contracts::faucets::basic_fungible::distribute
+export.::miden::contracts::faucets::basic_fungible::burn
+export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
+";
 
 // TESTS MINT FUNGIBLE ASSET
 // ================================================================================================
@@ -228,58 +228,8 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     assert_eq!(executed_transaction.input_notes().get_note(0).id(), note.id());
 }
 
-// TESTS FUNGIBLE CONTRACT CONSTRUCTION
+// HELPER FUNCTIONS
 // ================================================================================================
-
-#[test]
-fn faucet_contract_creation() {
-    // we need a Falcon Public Key to create the wallet account
-    let seed = [0_u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
-    let sec_key = SecretKey::with_rng(&mut rng);
-    let pub_key = sec_key.public_key();
-    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
-
-    // we need to use an initial seed to create the wallet account
-    let init_seed: [u8; 32] = [
-        90, 110, 209, 94, 84, 105, 250, 242, 223, 203, 216, 124, 22, 159, 14, 132, 215, 85, 183,
-        204, 149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
-    ];
-
-    let max_supply = Felt::new(123);
-    let token_symbol_string = "POL";
-    let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
-    let decimals = 2u8;
-    let storage_type = AccountStorageType::OffChain;
-
-    let (faucet_account, _) = create_basic_fungible_faucet(
-        init_seed,
-        token_symbol,
-        decimals,
-        max_supply,
-        storage_type,
-        auth_scheme,
-    )
-    .unwrap();
-
-    // check that max_supply (slot 1) is 123
-    assert_eq!(
-        faucet_account.storage().get_item(1),
-        [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
-    );
-
-    assert!(faucet_account.is_faucet());
-
-    let exp_faucet_account_code_src =
-        include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-    let exp_faucet_account_code =
-        AccountCode::compile(exp_faucet_account_code_src, assembler).unwrap();
-
-    assert_eq!(faucet_account.code(), &exp_faucet_account_code);
-}
 
 fn get_faucet_account_with_max_supply_and_total_issuance(
     public_key: Word,
@@ -287,11 +237,9 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     total_issuance: Option<u64>,
 ) -> Account {
     let faucet_account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
-    let faucet_account_code_src =
-        include_str!("../../../../miden-lib/asm/miden/contracts/faucets/basic_fungible.masm");
-    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let faucet_account_code = AccountCode::compile(faucet_account_code_src, assembler).unwrap();
+    let assembler = TransactionKernel::assembler();
+    let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
     let mut faucet_account_storage = AccountStorage::new(
