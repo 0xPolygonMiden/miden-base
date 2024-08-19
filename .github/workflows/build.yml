@@ -15,7 +15,7 @@ on:
 
 jobs:
   async:
-    name: Build using `async` feature
+    name: build using async feature
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
@@ -24,13 +24,13 @@ jobs:
           # Only update the cache on push onto the next branch. This strikes a nice balance between
           # cache hits and cache evictions (github has a 10GB cache limit). 
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
-      - name: Build using `async` feature
+      - name: build
         run: |
           rustup update --no-self-update
           make build-async
 
   no-std:
-    name: Build for no-std
+    name: build for no-std
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
@@ -39,7 +39,7 @@ jobs:
           # Only update the cache on push onto the next branch. This strikes a nice balance between
           # cache hits and cache evictions (github has a 10GB cache limit). 
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
-      - name: Build for no-std
+      - name: build
         run: |
           rustup update --no-self-update
           rustup target add wasm32-unknown-unknown
