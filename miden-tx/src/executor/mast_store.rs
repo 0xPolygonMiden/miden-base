@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::cell::RefCell;
+use std::println;
 
 use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
 use miden_objects::{
@@ -37,7 +38,6 @@ impl TransactionMastStore {
     pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
         // load account code
         self.insert(tx_inputs.account().code().mast().clone());
-
         // load note script MAST into the MAST store
         for note in tx_inputs.input_notes() {
             self.insert(note.note().script().mast().clone());
@@ -49,7 +49,7 @@ impl TransactionMastStore {
         }
     }
 
-    fn insert(&self, mast_forest: Arc<MastForest>) {
+    pub fn insert(&self, mast_forest: Arc<MastForest>) {
         let mut mast_forests = self.mast_forests.borrow_mut();
         for proc_digest in mast_forest.procedure_digests() {
             mast_forests.insert(proc_digest, mast_forest.clone());

@@ -32,10 +32,10 @@ fn test_mint_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -73,7 +73,7 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -95,7 +95,7 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -117,7 +117,7 @@ fn test_mint_fungible_asset_fails_saturate_max_amount() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -155,10 +155,10 @@ fn test_mint_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -201,7 +201,7 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -227,7 +227,7 @@ fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -260,7 +260,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -292,10 +292,10 @@ fn test_burn_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -334,7 +334,7 @@ fn test_burn_fungible_asset_fails_not_faucet_account() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -361,7 +361,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -387,7 +387,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -425,10 +425,10 @@ fn test_burn_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -478,10 +478,10 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -510,10 +510,10 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -547,10 +547,10 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -582,7 +582,7 @@ fn test_get_total_issuance_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
