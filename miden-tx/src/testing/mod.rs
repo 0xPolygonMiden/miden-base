@@ -1,20 +1,6 @@
 pub mod executor;
 
-use std::{
-    env,
-    fs::File,
-    io::{self, BufReader, Read, Write},
-    path::{Path, PathBuf},
-    println,
-    string::String,
-    sync::{Arc, Once},
-    vec::Vec,
-};
 
-use miden_lib::{transaction::TransactionKernel, MidenLib};
-use miden_objects::assembly::{
-    Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace,
-};
 pub use mock_host::MockHost;
 mod mock_host;
 

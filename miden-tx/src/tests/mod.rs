@@ -1,5 +1,4 @@
 use alloc::{rc::Rc, string::String, vec::Vec};
-use std::{print, println};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -11,7 +10,6 @@ use miden_objects::{
         },
         AccountCode,
     },
-    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,

@@ -1,7 +1,7 @@
 // TRANSACTION CONTEXT BUILDER
 // ================================================================================================
 
-use std::{collections::BTreeMap, print, vec::Vec};
+use std::{collections::BTreeMap, vec::Vec};
 
 use miden_objects::{
     accounts::{

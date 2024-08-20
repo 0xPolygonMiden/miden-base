@@ -2,7 +2,6 @@
 // ================================================================================================
 
 use alloc::{rc::Rc, string::ToString, sync::Arc};
-use std::println;
 
 use miden_lib::transaction::TransactionEvent;
 use miden_objects::{

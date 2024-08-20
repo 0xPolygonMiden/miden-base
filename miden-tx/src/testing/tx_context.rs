@@ -1,5 +1,5 @@
 use alloc::{rc::Rc, vec::Vec};
-use std::{env, path::PathBuf, println, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -8,7 +8,7 @@ use miden_objects::{
     notes::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
-use vm_processor::{AdviceInputs, ExecutionError, Felt, Process};
+use vm_processor::{AdviceInputs, ExecutionError, Process};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{

@@ -1,6 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::cell::RefCell;
-use std::println;
 
 use miden_lib::{transaction::TransactionKernel, MidenLib, StdLibrary};
 use miden_objects::{

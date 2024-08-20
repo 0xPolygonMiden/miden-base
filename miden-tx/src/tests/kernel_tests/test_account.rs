@@ -1,7 +1,4 @@
-use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
-    TransactionKernel,
-};
+use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{

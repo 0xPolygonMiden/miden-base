@@ -1,4 +1,4 @@
-use std::{path::PathBuf, println};
+use std::path::PathBuf;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::assembly::{Assembler, Library, LibraryNamespace};
