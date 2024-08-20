@@ -333,6 +333,7 @@ export.create_note
 
     # set the RECIPIENT for the output note
     exec.memory::set_output_note_recipient dropw
+
     # => [note_idx]
 end
 

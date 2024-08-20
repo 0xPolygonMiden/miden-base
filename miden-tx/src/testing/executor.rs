@@ -1,5 +1,7 @@
-#[cfg(not(target_family = "wasm"))]
+use std::path::PathBuf;
+
 use miden_lib::transaction::TransactionKernel;
+use miden_objects::assembly::{Assembler, Library, LibraryNamespace};
 #[cfg(feature = "std")]
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
@@ -37,13 +39,7 @@ impl<H: Host> CodeExecutor<H> {
     }
 
     /// Compiles and runs the desired code in the host and returns the [Process] state
-    ///
-    /// If a module file path was set, its contents will be inserted between `self.imports` and
-    /// `code` before execution.
-    /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
-    pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
+    pub fn run(self, code: &str, assembler: Assembler) -> Result<Process<H>, ExecutionError> {
         let program = assembler.assemble_program(code).unwrap();
         self.execute_program(program)
     }
@@ -65,7 +61,14 @@ where
     A: AdviceProvider,
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
-        let host = DefaultHost::new(adv_provider);
+        let mut host = DefaultHost::new(adv_provider);
+        let workspace_dir = env!("CARGO_MANIFEST_DIR");
+        let path = PathBuf::from(format!("{workspace_dir}/../miden-lib/asm/kernels/transaction/"));
+
+        let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
+        let test_lib =
+            Library::from_dir(path.join("lib"), namespace, TransactionKernel::assembler()).unwrap();
+        host.load_mast_forest(test_lib.mast_forest().clone());
         CodeExecutor::new(host)
     }
 }

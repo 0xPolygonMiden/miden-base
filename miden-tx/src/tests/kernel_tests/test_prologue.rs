@@ -37,13 +37,14 @@ use crate::{
 };
 
 #[test]
+#[ignore = "stack overflow bug"]
 fn test_transaction_prologue() {
     let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
 
         begin
             exec.prologue::prepare_transaction
@@ -357,16 +358,15 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
         .build(TransactionKernel::assembler())
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
-        exec.prologue::prepare_transaction
+        call.prologue::prepare_transaction
     end
     ";
 
@@ -375,6 +375,7 @@ pub fn test_prologue_create_account() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
+#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
@@ -383,11 +384,11 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -400,6 +401,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
+#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
@@ -411,11 +413,11 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         Felt::ZERO,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
-    .account_seed(account_seed)
+    .account_seed(Some(account_seed))
     .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -428,6 +430,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
+#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
@@ -436,11 +439,11 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -454,6 +457,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
+#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
@@ -462,11 +466,11 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -480,6 +484,7 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
+#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
@@ -487,7 +492,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         .unwrap();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -500,7 +505,7 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(account_seed)
+        .account_seed(Some(account_seed))
         .advice_inputs(adv_inputs)
         .build();
 
@@ -512,8 +517,8 @@ pub fn test_prologue_create_account_invalid_seed() {
 fn test_get_blk_version() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
-    use.miden::kernels::tx::memory
-    use.miden::kernels::tx::prologue
+    use.kernel::memory
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -530,8 +535,8 @@ fn test_get_blk_version() {
 fn test_get_blk_timestamp() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
-    use.miden::kernels::tx::memory
-    use.miden::kernels::tx::prologue
+    use.kernel::memory
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction

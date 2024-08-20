@@ -31,9 +31,8 @@ pub mod auth;
 #[cfg(feature = "testing")]
 pub mod testing;
 
-// TODO: re-enable
-//#[cfg(test)]
-//mod tests;
+#[cfg(test)]
+mod tests;
 
 // RE-EXPORTS
 // ================================================================================================

@@ -69,7 +69,6 @@ export.create_note
     # elements 
     padw padw swapdw
     # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
-
     syscall.create_note
     # => [note_idx, PAD(15)]
 

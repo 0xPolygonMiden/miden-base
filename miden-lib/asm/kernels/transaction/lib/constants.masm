@@ -24,11 +24,11 @@ const.MAX_OUTPUT_NOTES_PER_TX=4096
 
 # Specifies a modulus used to asses if an account seed digest has the required number of trailing
 # zeros for a regular account (2^23).
-const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=8388608
+const.REGULAR_ACCOUNT_SEED_DIGEST_MODULUS=32 # reduced via build.rs
 
 # Specifies a modulus used to asses if an account seed digest has the required number of trailing
 # zeros for a faucet account (2^31).
-const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=2147483648
+const.FAUCET_ACCOUNT_SEED_DIGEST_MODULUS=64 # reduced via build.rs
 
 # TYPES
 # =================================================================================================
