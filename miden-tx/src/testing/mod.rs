@@ -10,7 +10,8 @@ mod tx_context;
 
 pub mod utils;
 
-/// Contains code to get an instance of the [Assembler] that should be used in tests.
+/// Contains code to get an instance of the [Assembler](miden_objects::assembly::Assembler) that
+/// should be used in tests.
 ///
 /// This assembler is similar to the assembler used to assemble the kernel and transactions,
 /// with the difference that it also includes an extra library on the namespace of `kernel`.
