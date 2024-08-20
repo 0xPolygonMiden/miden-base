@@ -1,6 +1,7 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use assembly::Assembler;
+use miden_crypto::EMPTY_WORD;
 use vm_core::{Felt, FieldElement, Word, ZERO};
 use vm_processor::Digest;
 
@@ -15,10 +16,11 @@ use crate::{
         },
         get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
         AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
-        StorageMap, StorageSlot,
+        StorageMap, StorageMapDelta, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::NoteAssets,
+    AccountDeltaError,
 };
 
 #[derive(Default, Debug, Clone)]
@@ -53,6 +55,45 @@ impl AccountStorageBuilder {
 
     pub fn build(&self) -> AccountStorage {
         AccountStorage::new(self.items.clone(), self.maps.clone()).unwrap()
+    }
+}
+
+// ACCOUNT STORAGE DELTA BUILDER
+// ================================================================================================
+
+#[derive(Clone, Debug, Default)]
+pub struct AccountStorageDeltaBuilder {
+    slots: BTreeMap<u8, Word>,
+    maps: BTreeMap<u8, StorageMapDelta>,
+}
+
+impl AccountStorageDeltaBuilder {
+    // MODIFIERS
+    // -------------------------------------------------------------------------------------------
+
+    pub fn add_cleared_items(mut self, items: impl IntoIterator<Item = u8>) -> Self {
+        self.slots.extend(items.into_iter().map(|slot| (slot, EMPTY_WORD)));
+        self
+    }
+
+    pub fn add_updated_items(mut self, items: impl IntoIterator<Item = (u8, Word)>) -> Self {
+        self.slots.extend(items);
+        self
+    }
+
+    pub fn add_updated_maps(
+        mut self,
+        items: impl IntoIterator<Item = (u8, StorageMapDelta)>,
+    ) -> Self {
+        self.maps.extend(items);
+        self
+    }
+
+    // BUILDERS
+    // -------------------------------------------------------------------------------------------
+
+    pub fn build(self) -> Result<AccountStorageDelta, AccountDeltaError> {
+        AccountStorageDelta::new(self.slots, self.maps)
     }
 }
 

@@ -5,7 +5,10 @@ use super::{
     parse_word, AccountId, AccountType, Asset, AssetError, Felt, Hasher, Word,
     ACCOUNT_ISFAUCET_MASK,
 };
-use crate::Digest;
+use crate::{
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
+    Digest,
+};
 
 /// Position of the faucet_id inside the [NonFungibleAsset] word.
 const FAUCET_ID_POS: usize = 1;
@@ -17,7 +20,7 @@ const FAUCET_ID_POS: usize = 1;
 /// The commitment is constructed as follows:
 ///
 /// - Hash the asset data producing `[d0, d1, d2, d3]`.
-/// - Replace the value of `d1` with the fauce id producing `[d0, faucet_id, d2, d3]`.
+/// - Replace the value of `d1` with the faucet id producing `[d0, faucet_id, d2, d3]`.
 /// - Force the bit position [ACCOUNT_ISFAUCET_MASK] of `d3` to be `0`.
 ///
 /// [NonFungibleAsset] itself does not contain the actual asset data. The container for this data
@@ -177,6 +180,20 @@ impl TryFrom<[u8; 32]> for NonFungibleAsset {
 impl fmt::Display for NonFungibleAsset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl Serializable for NonFungibleAsset {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(self.0)
+    }
+}
+
+impl Deserializable for NonFungibleAsset {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let value: Word = source.read()?;
+
+        Self::try_from(value).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 

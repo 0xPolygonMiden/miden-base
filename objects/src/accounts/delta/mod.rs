@@ -7,7 +7,7 @@ use super::{
 use crate::AccountDeltaError;
 
 mod storage;
-pub use storage::{AccountStorageDelta, AccountStorageDeltaBuilder, StorageMapDelta};
+pub use storage::{AccountStorageDelta, StorageMapDelta};
 
 mod vault;
 pub use vault::{
@@ -38,9 +38,8 @@ impl AccountDelta {
     /// Returns new [AccountDelta] instantiated from the provided components.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// - Storage or vault deltas are invalid.
-    /// - Storage or vault deltas are not empty, but nonce was not updated.
+    /// Returns an error if storage or vault were updated, but the nonce was either not updated
+    /// or set to 0.
     pub fn new(
         storage: AccountStorageDelta,
         vault: AccountVaultDelta,
@@ -206,8 +205,8 @@ impl Deserializable for AccountUpdateDetails {
 /// Checks if the nonce was updated correctly given the provided storage and vault deltas.
 ///
 /// # Errors
-/// Returns an error if:
-/// - Storage or vault were updated, but the nonce was either not updated or set to 0.
+/// Returns an error if storage or vault were updated, but the nonce was either not updated
+/// or set to 0.
 fn validate_nonce(
     nonce: Option<Felt>,
     storage: &AccountStorageDelta,

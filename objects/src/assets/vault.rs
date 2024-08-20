@@ -105,25 +105,17 @@ impl AssetVault {
         for (&faucet_id, &delta) in delta.fungible().iter() {
             let asset = FungibleAsset::new(faucet_id, delta.unsigned_abs())
                 .expect("Not a fungible faucet ID or delta is too large");
-            if delta >= 0 {
-                self.add_fungible_asset(asset)?;
-            } else {
-                self.remove_fungible_asset(asset)?;
-            }
+            match delta >= 0 {
+                true => self.add_fungible_asset(asset),
+                false => self.remove_fungible_asset(asset),
+            }?;
         }
 
         for (&asset, &action) in delta.non_fungible().iter() {
-            // SAFETY: the asset must be a valid word representation of a non-fungible asset.
-            //         This is safe because we allow only to add non-fungible assets.
-            let asset = unsafe { NonFungibleAsset::new_unchecked(asset.into()) };
             match action {
-                NonFungibleDeltaAction::Add => {
-                    self.add_non_fungible_asset(asset)?;
-                },
-                NonFungibleDeltaAction::Remove => {
-                    self.remove_non_fungible_asset(asset)?;
-                },
-            }
+                NonFungibleDeltaAction::Add => self.add_non_fungible_asset(asset),
+                NonFungibleDeltaAction::Remove => self.remove_non_fungible_asset(asset),
+            }?;
         }
 
         Ok(())

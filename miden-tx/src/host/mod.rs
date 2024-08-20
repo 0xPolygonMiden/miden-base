@@ -220,7 +220,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {
             let slot_index = slot_index.as_int() as u8;
-            self.account_delta.storage_delta().slot_update(slot_index, new_slot_value);
+            self.account_delta.storage_delta().set_item(slot_index, new_slot_value);
         }
 
         Ok(())
@@ -257,7 +257,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         ];
 
         let slot_index = slot_index.as_int() as u8;
-        self.account_delta.storage_delta().maps_update(
+        self.account_delta.storage_delta().set_map_item(
             slot_index,
             new_map_key.into(),
             new_map_value,

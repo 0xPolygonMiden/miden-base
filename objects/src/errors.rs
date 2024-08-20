@@ -60,7 +60,7 @@ impl std::error::Error for AccountError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
     DuplicateStorageItemUpdate(usize),
-    DuplicateNonFungibleVaultUpdate(Digest),
+    DuplicateNonFungibleVaultUpdate(NonFungibleAsset),
     FungibleAssetDeltaOverflow {
         faucet_id: AccountId,
         this: i64,
@@ -70,18 +70,6 @@ pub enum AccountDeltaError {
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
     InconsistentNonceUpdate(String),
     NotAFungibleFaucetId(AccountId),
-    TooManyFungibleAssets {
-        actual: usize,
-        max: usize,
-    },
-    TooManyNonFungibleAssets {
-        actual: usize,
-        max: usize,
-    },
-    TooManyStorageItems {
-        actual: usize,
-        max: usize,
-    },
 }
 
 #[cfg(feature = "std")]

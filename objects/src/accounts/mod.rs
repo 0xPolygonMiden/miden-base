@@ -322,10 +322,10 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{
-            delta::AccountStorageDeltaBuilder, Account, SlotItem, StorageMap, StorageMapDelta,
+        accounts::{Account, SlotItem, StorageMap, StorageMapDelta},
+        testing::storage::{
+            build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
         },
-        testing::storage::{build_account, build_account_delta, build_assets},
     };
 
     #[test]
