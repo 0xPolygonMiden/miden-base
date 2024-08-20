@@ -3,6 +3,7 @@
 
 use std::{collections::BTreeMap, vec::Vec};
 
+use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -32,10 +33,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, AdviceMap, Felt, Word};
 
 use super::TransactionContext;
-use crate::testing::{
-    mock_chain::{MockAuthenticator, MockChain, MockChainBuilder},
-    testing_assembler,
-};
+use crate::testing::mock_chain::{MockAuthenticator, MockChain, MockChainBuilder};
 
 pub struct TransactionContextBuilder {
     assembler: Assembler,
@@ -55,7 +53,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         Self {
-            assembler: testing_assembler::instance().clone(),
+            assembler: TransactionKernel::assembler_testing().clone(),
             account,
             account_seed: None,
             input_notes: Vec::new(),
@@ -71,7 +69,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_standard_account(nonce: Felt) -> Self {
-        let assembler = testing_assembler::instance();
+        let assembler = TransactionKernel::assembler_testing();
         let account = Account::mock(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             nonce,
@@ -95,7 +93,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
-        let assembler = testing_assembler::instance().clone();
+        let assembler = TransactionKernel::assembler_testing().clone();
         let account =
             Account::mock_fungible_faucet(acct_id, nonce, initial_balance, assembler.clone());
 
@@ -116,7 +114,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
-        let assembler = testing_assembler::instance().clone();
+        let assembler = TransactionKernel::assembler_testing().clone();
         let account = Account::mock_non_fungible_faucet(
             acct_id,
             nonce,
@@ -272,7 +270,6 @@ impl TransactionContextBuilder {
                 push.{execution_hint_always}
                 push.{PUBLIC_NOTE}
                 push.{aux0}
-                #push.0 assert
                 push.{tag0}
 
 

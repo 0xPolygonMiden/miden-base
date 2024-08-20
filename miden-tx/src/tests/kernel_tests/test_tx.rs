@@ -1,8 +1,11 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::memory::{
-    NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET, OUTPUT_NOTE_METADATA_OFFSET,
-    OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+use miden_lib::transaction::{
+    memory::{
+        NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
+        OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
+    },
+    TransactionKernel,
 };
 use miden_objects::{
     accounts::account_id::testing::{
@@ -19,7 +22,7 @@ use miden_objects::{
 
 use super::{Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
 use crate::{
-    testing::{executor::CodeExecutor, testing_assembler, TransactionContextBuilder},
+    testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -159,7 +162,7 @@ fn test_create_note_too_many_notes() {
     );
 
     let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-        .run(&code, testing_assembler::instance().clone());
+        .run(&code, TransactionKernel::assembler_testing().clone());
 
     // assert the process failed
     assert!(process.is_err());

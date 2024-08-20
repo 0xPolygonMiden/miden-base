@@ -358,7 +358,7 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .build(TransactionKernel::assembler())
+        .build(TransactionKernel::assembler_testing().clone())
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
