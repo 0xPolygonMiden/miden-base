@@ -25,7 +25,14 @@ mod tx_context;
 
 pub mod utils;
 
-pub mod TestingAssembler {
+/// Contains code to get an instance of the [Assembler] that should be used in tests.
+///
+/// This assembler is similar to the assembler used to assemble the kernel and transactions,
+/// with the difference that it also includes an extra library on the namespace of `kernel`.
+/// The `kernel` library is added separately because even though the library (`api.masm`) and
+/// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding it
+/// separately, we can expose procedures from `/lib` and test them individually.
+pub mod testing_assembler {
     use std::{
         path::PathBuf,
         sync::{Arc, Once},
@@ -36,12 +43,11 @@ pub mod TestingAssembler {
 
     static mut INSTANCE: Option<Assembler> = None;
     static INIT: Once = Once::new();
-    pub fn get() -> &'static Assembler {
+    pub fn instance() -> &'static Assembler {
         unsafe {
             INIT.call_once(|| {
-                let path = PathBuf::from(format!(
-                    "/Users/ignacioamigo/repos/miden-base/miden-lib/asm/kernels/transaction/"
-                ));
+                let env = env!("CARGO_MANIFEST_DIR");
+                let path = PathBuf::from(format!("{env}/../miden-lib/asm/kernels/transaction/"));
                 let assembler = Assembler::default()
                     .with_library(miden_lib::StdLibrary::default())
                     .unwrap()

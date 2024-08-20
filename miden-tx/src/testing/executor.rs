@@ -62,9 +62,8 @@ where
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
         let mut host = DefaultHost::new(adv_provider);
-        let path = PathBuf::from(format!(
-            "/Users/ignacioamigo/repos/miden-base/miden-lib/asm/kernels/transaction/"
-        ));
+        let workspace_dir = env!("CARGO_MANIFEST_DIR");
+        let path = PathBuf::from(format!("{workspace_dir}/../miden-lib/asm/kernels/transaction/"));
 
         let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
         let test_lib =

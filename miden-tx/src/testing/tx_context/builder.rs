@@ -34,7 +34,7 @@ use vm_processor::{AdviceInputs, AdviceMap, Felt, Word};
 use super::TransactionContext;
 use crate::testing::{
     mock_chain::{MockAuthenticator, MockChain, MockChainBuilder},
-    TestingAssembler,
+    testing_assembler,
 };
 
 pub struct TransactionContextBuilder {
@@ -55,7 +55,7 @@ pub struct TransactionContextBuilder {
 impl TransactionContextBuilder {
     pub fn new(account: Account) -> Self {
         Self {
-            assembler: TestingAssembler::get().clone(),
+            assembler: testing_assembler::instance().clone(),
             account,
             account_seed: None,
             input_notes: Vec::new(),
@@ -71,7 +71,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_standard_account(nonce: Felt) -> Self {
-        let assembler = TestingAssembler::get();
+        let assembler = testing_assembler::instance();
         let account = Account::mock(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             nonce,
@@ -95,7 +95,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_fungible_faucet(acct_id: u64, nonce: Felt, initial_balance: Felt) -> Self {
-        let assembler = TestingAssembler::get().clone();
+        let assembler = testing_assembler::instance().clone();
         let account =
             Account::mock_fungible_faucet(acct_id, nonce, initial_balance, assembler.clone());
 
@@ -116,7 +116,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_non_fungible_faucet(acct_id: u64, nonce: Felt, empty_reserved_slot: bool) -> Self {
-        let assembler = TestingAssembler::get().clone();
+        let assembler = testing_assembler::instance().clone();
         let account = Account::mock_non_fungible_faucet(
             acct_id,
             nonce,

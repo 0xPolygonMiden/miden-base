@@ -19,7 +19,7 @@ use vm_processor::{Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
 use crate::{
-    testing::{executor::CodeExecutor, TestingAssembler, TransactionContextBuilder},
+    testing::{executor::CodeExecutor, testing_assembler, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
 };
 
@@ -133,7 +133,7 @@ pub fn test_account_type() {
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
                 .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
-                .run(&code, TestingAssembler::get().clone())
+                .run(&code, testing_assembler::instance().clone())
                 .unwrap();
 
             let type_matches = account_id.account_type() == expected_type;
@@ -169,7 +169,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
     );
 
     let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-        .run(&code, TestingAssembler::get().clone());
+        .run(&code, testing_assembler::instance().clone());
 
     assert!(result.is_err());
 }
@@ -199,7 +199,7 @@ fn test_is_faucet_procedure() {
         );
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-            .run(&code, TestingAssembler::get().clone())
+            .run(&code, testing_assembler::instance().clone())
             .unwrap();
 
         let is_faucet = account_id.is_faucet();

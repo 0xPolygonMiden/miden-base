@@ -39,7 +39,7 @@ use vm_processor::{
 
 use super::{TransactionExecutor, TransactionHost, TransactionProver, TransactionVerifier};
 use crate::{
-    testing::{TestingAssembler, TransactionContextBuilder},
+    testing::{testing_assembler, TransactionContextBuilder},
     TransactionMastStore,
 };
 
@@ -127,7 +127,7 @@ fn executed_transaction_account_delta() {
     end
     ";
     let new_acct_code =
-        AccountCode::compile(new_acct_code_src, TestingAssembler::get().clone()).unwrap();
+        AccountCode::compile(new_acct_code_src, testing_assembler::instance().clone()).unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -314,7 +314,8 @@ fn executed_transaction_account_delta() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TestingAssembler::get().clone()).unwrap();
+        TransactionScript::compile(tx_script_src, [], testing_assembler::instance().clone())
+            .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -423,7 +424,8 @@ fn test_empty_delta_nonce_update() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TestingAssembler::get().clone()).unwrap();
+        TransactionScript::compile(tx_script_src, [], testing_assembler::instance().clone())
+            .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -575,7 +577,8 @@ fn test_send_note_proc() {
         );
 
         let tx_script =
-            TransactionScript::compile(tx_script_src, [], TestingAssembler::get().clone()).unwrap();
+            TransactionScript::compile(tx_script_src, [], testing_assembler::instance().clone())
+                .unwrap();
         let tx_args = TransactionArgs::new(
             Some(tx_script),
             None,
@@ -683,7 +686,7 @@ fn executed_transaction_output_notes() {
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
     let note_script_2 =
-        NoteScript::compile(DEFAULT_NOTE_CODE, TestingAssembler::get().clone()).unwrap();
+        NoteScript::compile(DEFAULT_NOTE_CODE, testing_assembler::instance().clone()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
     let metadata_2 =
         NoteMetadata::new(account_id, note_type2, tag2, NoteExecutionHint::none(), aux2).unwrap();
@@ -694,7 +697,7 @@ fn executed_transaction_output_notes() {
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
     let note_script_3 =
-        NoteScript::compile(DEFAULT_NOTE_CODE, TestingAssembler::get().clone()).unwrap();
+        NoteScript::compile(DEFAULT_NOTE_CODE, testing_assembler::instance().clone()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(
         account_id,
@@ -834,7 +837,8 @@ fn executed_transaction_output_notes() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TestingAssembler::get().clone()).unwrap();
+        TransactionScript::compile(tx_script_src, [], testing_assembler::instance().clone())
+            .unwrap();
     let mut tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -964,7 +968,7 @@ fn test_tx_script() {
     let tx_script = TransactionScript::compile(
         tx_script_src,
         [(tx_script_input_key, tx_script_input_value.into())],
-        TestingAssembler::get().clone(),
+        testing_assembler::instance().clone(),
     )
     .unwrap();
     let tx_args = TransactionArgs::new(

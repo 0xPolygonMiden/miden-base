@@ -22,7 +22,7 @@ use miden_objects::{
 
 use super::{Felt, MemAdviceProvider, ProcessState, Word, ONE, ZERO};
 use crate::{
-    testing::{executor::CodeExecutor, TestingAssembler, TransactionContextBuilder},
+    testing::{executor::CodeExecutor, testing_assembler, TransactionContextBuilder},
     tests::kernel_tests::read_root_mem_value,
 };
 
@@ -162,7 +162,7 @@ fn test_create_note_too_many_notes() {
     );
 
     let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-        .run(&code, TestingAssembler::get().clone());
+        .run(&code, testing_assembler::instance().clone());
 
     // assert the process failed
     assert!(process.is_err());

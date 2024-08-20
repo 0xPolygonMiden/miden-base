@@ -48,9 +48,8 @@ impl TransactionContext {
             Some(self.advice_inputs.clone()),
         );
 
-        let path = PathBuf::from(format!(
-            "/Users/ignacioamigo/repos/miden-base/miden-lib/asm/kernels/transaction/"
-        ));
+        let workspace_dir = env!("CARGO_MANIFEST_DIR");
+        let path = PathBuf::from(format!("{workspace_dir}/../miden-lib/asm/kernels/transaction/"));
         let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
         let test_lib =
             Library::from_dir(path.join("lib"), namespace, TransactionKernel::assembler()).unwrap();
