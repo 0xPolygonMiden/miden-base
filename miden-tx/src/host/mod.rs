@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionProgress},
     Digest, Hasher,
 };
 use vm_processor::{
@@ -23,9 +23,6 @@ pub use account_procs::AccountProcedureIndexMap;
 
 mod note_builder;
 use note_builder::OutputNoteBuilder;
-
-mod tx_progress;
-pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
@@ -114,7 +111,15 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Consumes `self` and returns the advice provider, account vault delta, output notes and
     /// signatures generated during the transaction execution.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        A,
+        AccountDelta,
+        Vec<OutputNote>,
+        BTreeMap<Digest, Vec<Felt>>,
+        TransactionProgress,
+    ) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
 
         (
@@ -122,6 +127,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             self.account_delta.into_delta(),
             output_notes,
             self.generated_signatures,
+            self.tx_progress,
         )
     }
 

@@ -154,8 +154,8 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider, A>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-    let (advice_recorder, account_delta, output_notes, generated_signatures) = host.into_parts();
-
+    let (advice_recorder, account_delta, output_notes, generated_signatures, tx_progress) =
+        host.into_parts();
     let (mut advice_witness, _, map, _store) = advice_recorder.finalize();
 
     let tx_outputs =
@@ -198,5 +198,6 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
         account_delta,
         tx_args,
         advice_witness,
+        tx_progress,
     ))
 }

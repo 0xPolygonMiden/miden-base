@@ -5,9 +5,10 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
     assets::{Asset, AssetVault},
+    crypto::dsa::rpo_falcon512::SecretKey,
+    transaction::TransactionProgress,
     Felt, Word,
 };
-use miden_tx::TransactionProgress;
 use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
 
@@ -29,12 +30,10 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 ";
 
 pub const DEFAULT_ACCOUNT_CODE: &str = "
-    use.miden::contracts::wallets::basic->basic_wallet
-    use.miden::contracts::auth::basic->basic_eoa
-
-    export.basic_wallet::receive_asset
-    export.basic_wallet::send_asset
-    export.basic_eoa::auth_tx_rpo_falcon512
+    export.::miden::contracts::wallets::basic::receive_asset
+    export.::miden::contracts::wallets::basic::create_note
+    export.::miden::contracts::wallets::basic::move_asset_to_note
+    export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
 
 // TRANSACTION BENCHMARK
@@ -83,7 +82,7 @@ pub fn get_account_with_default_account_code(
     assets: Option<Asset>,
 ) -> Account {
     let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let assembler = TransactionKernel::assembler();
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
     let account_storage =
@@ -95,6 +94,27 @@ pub fn get_account_with_default_account_code(
     };
 
     Account::from_parts(account_id, account_vault, account_storage, account_code, Felt::new(1))
+}
+
+pub fn get_new_pk_and_authenticator(
+) -> (Word, std::rc::Rc<miden_tx::auth::BasicAuthenticator<rand::rngs::StdRng>>) {
+    use std::rc::Rc;
+
+    use miden_objects::accounts::AuthSecretKey;
+    use miden_tx::auth::BasicAuthenticator;
+    use rand::rngs::StdRng;
+    use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+
+    let sec_key = SecretKey::with_rng(&mut rng);
+    let pub_key: Word = sec_key.public_key().into();
+
+    let authenticator =
+        BasicAuthenticator::<StdRng>::new(&[(pub_key, AuthSecretKey::RpoFalcon512(sec_key))]);
+
+    (pub_key, Rc::new(authenticator))
 }
 
 pub fn write_bench_results_to_json(

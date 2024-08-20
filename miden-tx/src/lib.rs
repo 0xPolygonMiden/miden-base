@@ -12,7 +12,7 @@ mod executor;
 pub use executor::{DataStore, TransactionExecutor, TransactionMastStore};
 
 pub mod host;
-pub use host::{TransactionHost, TransactionProgress};
+pub use host::TransactionHost;
 
 mod prover;
 pub use prover::{ProvingOptions, TransactionProver};

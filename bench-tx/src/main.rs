@@ -6,27 +6,27 @@ use std::{
     rc::Rc,
 };
 
-use miden_lib::{notes::create_p2id_note, transaction::ToTransactionKernelInputs};
+use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{AccountId, AuthSecretKey},
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
     notes::NoteType,
-    transaction::TransactionArgs,
+    transaction::{TransactionArgs, TransactionProgress, TransactionScript},
     Felt,
 };
 use miden_tx::{
     auth::BasicAuthenticator, testing::TransactionContextBuilder, utils::Serializable,
-    TransactionExecutor, TransactionHost, TransactionMastStore, TransactionProgress,
+    TransactionExecutor, TransactionHost, TransactionMastStore,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word, ONE};
 
 mod utils;
 use utils::{
-    get_account_with_default_account_code, write_bench_results_to_json,
-    ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-    ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
+    get_account_with_default_account_code, get_new_pk_and_authenticator,
+    write_bench_results_to_json, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
+    ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, ACCOUNT_ID_SENDER, DEFAULT_AUTH_SCRIPT,
 };
 pub enum Benchmark {
     Simple,
@@ -50,7 +50,7 @@ fn main() -> Result<(), String> {
 
     // run all available benchmarks
     let benchmark_results = vec![
-        (Benchmark::Simple, benchmark_default_tx()?),
+        // (Benchmark::Simple, benchmark_default_tx()?),
         (Benchmark::P2ID, benchmark_p2id()?),
     ];
 
@@ -63,49 +63,42 @@ fn main() -> Result<(), String> {
 // BENCHMARKS
 // ================================================================================================
 
-/// Runs the default transaction with empty transaction script and two default notes.
-pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved()
-        .build();
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None).with_tracing();
+// /// Runs the default transaction with empty transaction script and two default notes.
+// pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
+//     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+//         .with_mock_notes_preserved()
+//         .build();
 
-    let account_id = tx_context.account().id();
-    executor.load_account(account_id).map_err(|e| e.to_string())?;
+//     // std::println!("{:?}", tx_context);
 
-    let block_ref = tx_context.tx_inputs().block_header().block_num();
-    let note_ids = tx_context
-        .tx_inputs()
-        .input_notes()
-        .iter()
-        .map(|note| note.id())
-        .collect::<Vec<_>>();
+//     // std::println!("initial: {:?}\n", tx_context.tx_inputs().account().vault());
 
-    let transaction = executor
-        .prepare_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-        .map_err(|e| e.to_string())?;
+//     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None)
+//         .with_tracing()
+//         .with_debug_mode(true);
 
-    let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
-    let advice_recorder: RecAdviceProvider = advice_inputs.into();
+//     let account_id = tx_context.account().id();
 
-    let mast_store = Rc::new(TransactionMastStore::new());
-    // TODO: add account/note/tx_script MAST to the mast_store?
+//     let block_ref = tx_context.tx_inputs().block_header().block_num();
 
-    let mut host: TransactionHost<_, ()> =
-        TransactionHost::new(transaction.account().into(), advice_recorder, mast_store, None)
-            .map_err(|e| format!("Failed to create transaction host: {}", e))?;
+//     let note_ids = tx_context
+//         .tx_inputs()
+//         .input_notes()
+//         .iter()
+//         .map(|note| {
+//             // std::println!("\nnote: {:?}\n", note.note().assets());
+//             note.id()
+//         })
+//         .collect::<Vec<_>>();
 
-    vm_processor::execute(
-        transaction.program(),
-        stack_inputs,
-        &mut host,
-        ExecutionOptions::default().with_tracing(),
-    )
-    .map_err(|e| e.to_string())?;
+//     // std::println!("\n{:?}", note_ids);
 
-    Ok(host.tx_progress().clone())
-}
+//     let executed_transaction = executor
+//         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
+//         .map_err(|e| e.to_string())?;
+
+//     Ok(executed_transaction.into())
+// }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
 pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
@@ -118,12 +111,8 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
 
     let target_account_id =
         AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let sec_key = SecretKey::new();
-    let target_pub_key: Word = sec_key.public_key().into();
-    let mut pk_sk_bytes = sec_key.to_bytes();
-    pk_sk_bytes.append(&mut target_pub_key.to_bytes());
-    let target_sk_pk_felt: Vec<Felt> =
-        pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    let (target_pub_key, falcon_auth) = get_new_pk_and_authenticator();
+
     let target_account =
         get_account_with_default_account_code(target_account_id, target_pub_key, None);
 
@@ -142,9 +131,8 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         .input_notes(vec![note.clone()])
         .build();
 
-    let mut executor: TransactionExecutor<_, ()> =
-        TransactionExecutor::new(tx_context.clone(), None).with_tracing();
-    executor.load_account(target_account_id).unwrap();
+    let executor =
+        TransactionExecutor::new(tx_context.clone(), Some(falcon_auth.clone())).with_tracing();
 
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let note_ids = tx_context
@@ -154,43 +142,15 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_src = DEFAULT_AUTH_SCRIPT;
-    let tx_script_target = executor
-        .compile_tx_script(tx_script_src, vec![(target_pub_key, target_sk_pk_felt)])
-        .unwrap();
+    let tx_script_target =
+        TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler())
+            .unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
     // execute transaction
-    let transaction = executor
-        .prepare_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
-        .map_err(|e| e.to_string())?;
+    let executed_transaction = executor
+        .execute_transaction(target_account_id, block_ref, &note_ids, tx_args_target)
+        .unwrap();
 
-    let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
-    let advice_recorder: RecAdviceProvider = advice_inputs.into();
-    let authenticator = BasicAuthenticator::<StdRng>::new(&[(
-        sec_key.public_key().into(),
-        AuthSecretKey::RpoFalcon512(sec_key),
-    )]);
-    let authenticator = Some(Rc::new(authenticator));
-
-    let mast_store = Rc::new(TransactionMastStore::new());
-    // TODO: add account/note/tx_script MAST to the mast_store?
-
-    let mut host = TransactionHost::new(
-        transaction.account().into(),
-        advice_recorder,
-        mast_store,
-        authenticator,
-    )
-    .map_err(|e| format!("Failed to create transaction host: {}", e))?;
-
-    vm_processor::execute(
-        transaction.program(),
-        stack_inputs,
-        &mut host,
-        ExecutionOptions::default().with_tracing(),
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok(host.tx_progress().clone())
+    Ok(executed_transaction.into())
 }

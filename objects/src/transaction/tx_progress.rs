@@ -1,13 +1,13 @@
 pub use alloc::vec::Vec;
 
-use miden_objects::notes::NoteId;
+use super::NoteId;
 
 // TRANSACTION PROGRESS
 // ================================================================================================
 
 /// Contains the information about the number of cycles for each of the transaction execution
 /// stages.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct TransactionProgress {
     prologue: CycleInterval,
     notes_processing: CycleInterval,
@@ -87,7 +87,7 @@ impl TransactionProgress {
 }
 
 /// Stores the cycles corresponding to the start and the end of an interval.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct CycleInterval {
     start: Option<u32>,
     end: Option<u32>,
