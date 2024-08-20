@@ -21,9 +21,9 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
 2. Install the Miden client.
 
       ```shell
-      cargo install miden-client --features testing,concurrent
+      cargo install miden-cli --features testing,concurrent
       ```
-      You can now use the `miden --version` command, and you should see `Miden 0.3.0`.
+      You can now use the `miden --version` command, and you should see `Miden 0.4.0`.
 
 3. Initialize the client. This creates the `miden-client.toml` file.
 
@@ -91,7 +91,7 @@ Save the account ID for a future step.
       ![Result of viewing miden notes](../../img/get-started/note-view.png)
 
 !!! tip "The importance of syncing"
-      - As you can see, the listed note is lacking a `commit-height`. 
+      - As you can see, the note is listed as `Expected`.
       - This is because you have received a private note but have not yet synced your view of the rollup to check that the note is the result of a valid transaction.
       - Hence, before consuming the note we will need to update our view of the rollup by syncing.
       - Many users could have received the same private note, but only one user can consume the note in a transaction that gets verified by the Miden operator.
@@ -108,11 +108,16 @@ You will see something like this as output:
 
 ```sh
 State synced to block 179672
+New public notes: 0
+Tracked notes updated: 1
+Tracked notes consumed: 0
+Tracked accounts updated: 0
+Commited transactions: 0
 ```
 
 ## Consume the note & receive the funds
 
-1. Now that we have synced the client, the input-note imported from the faucet should have a `Commit Height` confirming it exists at the rollup level:
+1. Now that we have synced the client, the input-note imported from the faucet should have a `Committed` status, confirming it exists at the rollup level:
 
       ```shell
       miden notes
@@ -135,7 +140,36 @@ State synced to block 179672
       miden consume-notes --account <Account-Id> <Note-Id>
       ```
 
-  Amazing! You just have created a client-side zero-knowledge proof locally on your machine. 
+5. You should see a confirmation message like this:
+
+      ![Transaction confirmation message](../../img/get-started/transaction-confirmation.png)
+
+6. After confirming you can view the new note status by running the following command:
+
+      ```shell
+      miden notes
+      ```
+
+7. You should see something like this:
+
+      ![Viewing process info](../../img/get-started/processing-note.png)
+
+8. The note is `Processing`. This means that the proof of the transaction was sent, but there is no network confirmation yet. You can update your view of the rollup by syncing again:
+
+      ```shell
+      miden sync
+      ```
+
+9. After syncing, you should have received confirmation of the consumed note. You should see the note as `Consumed` after listing the notes:
+
+      ```shell
+      miden notes
+      ```
+
+      ![Viewing consumed note](../../img/get-started/consumed-note.png)
+
+
+  Amazing! You just have created a client-side zero-knowledge proof locally on your machine and submitted it to the Miden rollup.
 
 !!! tip
       You only need to copy the top line of characters of the Note ID.
