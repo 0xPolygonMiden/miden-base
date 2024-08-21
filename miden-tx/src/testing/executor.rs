@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 use miden_lib::transaction::TransactionKernel;
-use miden_objects::assembly::{Assembler, Library, LibraryNamespace};
+use miden_objects::assembly::Assembler;
 #[cfg(feature = "std")]
 use vm_processor::{
     AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, Host, Process, Program, StackInputs,
@@ -62,12 +60,7 @@ where
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
         let mut host = DefaultHost::new(adv_provider);
-        let workspace_dir = env!("CARGO_MANIFEST_DIR");
-        let path = PathBuf::from(format!("{workspace_dir}/../miden-lib/asm/kernels/transaction/"));
-
-        let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
-        let test_lib =
-            Library::from_dir(path.join("lib"), namespace, TransactionKernel::assembler()).unwrap();
+        let test_lib = TransactionKernel::kernel_as_library();
         host.load_mast_forest(test_lib.mast_forest().clone());
         CodeExecutor::new(host)
     }

@@ -135,6 +135,9 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
 
     #[cfg(feature = "testing")]
     {
+        // Build kernel as a library and save it to file.
+        // This is needed in test assemblers to access individual procedures which would otherwise
+        // be hidden when using KernelLibrary (api.masm)
         let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
         let test_lib =
             Library::from_dir(source_dir.join("lib"), namespace, assembler.clone()).unwrap();

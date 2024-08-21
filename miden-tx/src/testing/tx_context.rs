@@ -1,10 +1,10 @@
 use alloc::{rc::Rc, vec::Vec};
-use std::{env, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{Account, AccountId},
-    assembly::{Assembler, Library, LibraryNamespace},
+    assembly::Assembler,
     notes::{Note, NoteId},
     transaction::{ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs},
 };
@@ -42,20 +42,18 @@ pub struct TransactionContext {
 impl TransactionContext {
     /// Executes arbitrary code
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
-        let (stack_inputs, advice_inputs) = TransactionKernel::prepare_inputs(
+        let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
             &self.tx_args,
             Some(self.advice_inputs.clone()),
         );
-
-        let workspace_dir = env!("CARGO_MANIFEST_DIR");
-        let path = PathBuf::from(format!("{workspace_dir}/../miden-lib/asm/kernels/transaction/"));
-        let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
-        let test_lib =
-            Library::from_dir(path.join("lib"), namespace, TransactionKernel::assembler()).unwrap();
+        advice_inputs.extend(self.advice_inputs.clone());
 
         let mast_store = Rc::new(TransactionMastStore::new());
+
+        let test_lib = TransactionKernel::kernel_as_library();
         mast_store.insert(Arc::new(test_lib.mast_forest().clone()));
+
         let program = self.assembler.clone().assemble_program(code).unwrap();
         mast_store.insert(Arc::new(program.mast_forest().clone()));
         mast_store.load_transaction_code(&self.tx_inputs, &self.tx_args);

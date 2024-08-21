@@ -225,7 +225,6 @@ fn test_add_non_fungible_asset_fail_duplicate() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_remove_fungible_asset_success_no_balance_remaining() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let mut account_vault = tx_context.account().vault().clone();
@@ -260,7 +259,6 @@ fn test_remove_fungible_asset_success_no_balance_remaining() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_remove_fungible_asset_fail_remove_too_much() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let faucet_id: AccountId = ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();
@@ -288,7 +286,6 @@ fn test_remove_fungible_asset_fail_remove_too_much() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_remove_fungible_asset_success_balance_remaining() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let mut account_vault = tx_context.account().vault().clone();
@@ -326,7 +323,6 @@ fn test_remove_fungible_asset_success_balance_remaining() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_remove_inexisting_non_fungible_asset_fails() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1.try_into().unwrap();
@@ -368,7 +364,6 @@ fn test_remove_inexisting_non_fungible_asset_fails() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_remove_non_fungible_asset_success() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let faucet_id: AccountId = ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap();

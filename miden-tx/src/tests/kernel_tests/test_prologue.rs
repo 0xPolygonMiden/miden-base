@@ -37,7 +37,6 @@ use crate::{
 };
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_transaction_prologue() {
     let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -375,7 +374,6 @@ pub fn test_prologue_create_account() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
-#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetValidInitialBalance,
@@ -401,7 +399,6 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
-#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
@@ -430,7 +427,6 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
-#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetValidReservedSlot,
@@ -457,7 +453,6 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
-#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::NonFungibleFaucetInvalidReservedSlot,
@@ -484,11 +479,10 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
-#[ignore = "stack overflow bug"]
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(TransactionKernel::assembler())
+        .build(TransactionKernel::assembler_testing())
         .unwrap();
 
     let code = "
@@ -508,7 +502,6 @@ pub fn test_prologue_create_account_invalid_seed() {
         .account_seed(Some(account_seed))
         .advice_inputs(adv_inputs)
         .build();
-
     let process = tx_context.execute_code(code);
     assert!(process.is_err());
 }

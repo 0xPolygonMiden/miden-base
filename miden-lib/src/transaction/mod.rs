@@ -255,6 +255,11 @@ impl TransactionKernel {
     const KERNEL_TESTING_LIB_BYTES: &'static [u8] =
         include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/kernel_library.masl"));
 
+    pub fn kernel_as_library() -> miden_objects::assembly::Library {
+        miden_objects::assembly::Library::read_from_bytes(Self::KERNEL_TESTING_LIB_BYTES)
+            .expect("failed to deserialize transaction kernel library")
+    }
+
     /// Contains code to get an instance of the [Assembler] that should be used in tests.
     ///
     /// This assembler is similar to the assembler used to assemble the kernel and transactions,
@@ -264,9 +269,7 @@ impl TransactionKernel {
     /// separately, we can expose procedures from `/lib` and test them individually.
     pub fn assembler_testing() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
-        let kernel_library =
-            miden_objects::assembly::Library::read_from_bytes(Self::KERNEL_TESTING_LIB_BYTES)
-                .expect("failed to deserialize transaction kernel library");
+        let kernel_library = Self::kernel_as_library();
 
         Assembler::with_kernel(source_manager, Self::kernel())
             .with_library(StdLibrary::default())

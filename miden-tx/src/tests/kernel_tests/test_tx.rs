@@ -169,7 +169,6 @@ fn test_create_note_too_many_notes() {
 }
 
 #[test]
-#[ignore = "stack oveflow bug"]
 fn test_get_output_notes_hash() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -315,7 +314,6 @@ fn test_get_output_notes_hash() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_create_note_and_add_asset() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
@@ -373,7 +371,6 @@ fn test_create_note_and_add_asset() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_create_note_and_add_multiple_assets() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 

@@ -44,7 +44,6 @@ mod kernel_tests;
 // ================================================================================================
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn transaction_executor_witness() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -106,7 +105,6 @@ fn transaction_executor_witness() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn executed_transaction_account_delta() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
@@ -224,7 +222,7 @@ fn executed_transaction_account_delta() {
             # => [idx, 13, 11, 9, 7]
 
             # update the storage value
-            call.set_item dropw dropw
+            exec.set_item dropw dropw
             # => []
 
             ## Update account storage map
@@ -242,7 +240,7 @@ fn executed_transaction_account_delta() {
             # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
 
             # update the storage value
-            call.set_map_item dropw dropw dropw
+            exec.set_map_item dropw dropw dropw
             # => []
 
             ## Send some assets from the account vault
@@ -461,7 +459,6 @@ fn test_empty_delta_nonce_update() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn test_send_note_proc() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
@@ -625,7 +622,6 @@ fn test_send_note_proc() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn executed_transaction_output_notes() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved_with_account_vault_delta()
@@ -900,7 +896,6 @@ fn executed_transaction_output_notes() {
 }
 
 #[test]
-#[ignore = "stack overflow bug"]
 fn prove_witness_and_verify() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
@@ -938,7 +933,6 @@ fn prove_witness_and_verify() {
 // ================================================================================================
 
 #[test]
-#[ignore = "staack overflow bug"]
 fn test_tx_script() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
