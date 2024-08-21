@@ -24,5 +24,5 @@ pub use proven_tx::{
 };
 pub use transaction_id::TransactionId;
 pub use tx_args::{TransactionArgs, TransactionScript};
-pub use tx_progress::TransactionProgress;
+pub use tx_progress::{TransactionMeasurements, TransactionProgress};
 pub use tx_witness::TransactionWitness;

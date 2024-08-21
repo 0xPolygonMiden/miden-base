@@ -498,24 +498,26 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
         use TransactionTrace::*;
         match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk().as_u32()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_u32()),
-            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk().as_u32()),
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_u32()),
+            PrologueStart => self.tx_progress.start_prologue(process.clk().as_usize()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_usize()),
+            NotesProcessingStart => {
+                self.tx_progress.start_notes_processing(process.clk().as_usize())
+            },
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_usize()),
             NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?
                     .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
-                self.tx_progress.start_note_execution(process.clk().as_u32(), note_id);
+                self.tx_progress.start_note_execution(process.clk().as_usize(), note_id);
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_u32()),
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_usize()),
             TxScriptProcessingStart => {
-                self.tx_progress.start_tx_script_processing(process.clk().as_u32())
+                self.tx_progress.start_tx_script_processing(process.clk().as_usize())
             },
             TxScriptProcessingEnd => {
-                self.tx_progress.end_tx_script_processing(process.clk().as_u32())
+                self.tx_progress.end_tx_script_processing(process.clk().as_usize())
             },
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_u32()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_u32()),
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_usize()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_usize()),
         }
 
         Ok(HostResponse::None)

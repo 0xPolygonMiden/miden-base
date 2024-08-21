@@ -2,9 +2,12 @@
   "p2id": {
     "prologue": 2758,
     "notes_processing": 1178,
-    "note_execution": {
-      "0x9fada8b55784181cf073fc5318febd47cdd0d4f44b93f8cb099f156ea76f9606": 1115
-    },
+    "note_execution": [
+      [
+        "0x9fada8b55784181cf073fc5318febd47cdd0d4f44b93f8cb099f156ea76f9606",
+        1115
+      ]
+    ],
     "tx_script_processing": 125247,
     "epilogue": 401
   }

@@ -3,24 +3,19 @@ use std::{
     fs::{read_to_string, write, File},
     io::Write,
     path::Path,
-    rc::Rc,
 };
 
 use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    accounts::{AccountId, AuthSecretKey},
+    accounts::AccountId,
     assets::{Asset, FungibleAsset},
-    crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
+    crypto::rand::RpoRandomCoin,
     notes::NoteType,
-    transaction::{TransactionArgs, TransactionProgress, TransactionScript},
+    transaction::{TransactionArgs, TransactionMeasurements, TransactionScript},
     Felt,
 };
-use miden_tx::{
-    auth::BasicAuthenticator, testing::TransactionContextBuilder, utils::Serializable,
-    TransactionExecutor, TransactionHost, TransactionMastStore,
-};
-use rand::rngs::StdRng;
-use vm_processor::{ExecutionOptions, RecAdviceProvider, Word, ONE};
+use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
+use vm_processor::ONE;
 
 mod utils;
 use utils::{
@@ -63,45 +58,47 @@ fn main() -> Result<(), String> {
 // BENCHMARKS
 // ================================================================================================
 
-// /// Runs the default transaction with empty transaction script and two default notes.
-// pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
-//     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-//         .with_mock_notes_preserved()
-//         .build();
+/*
+/// Runs the default transaction with empty transaction script and two default notes.
+pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
-//     // std::println!("{:?}", tx_context);
+    // std::println!("{:?}", tx_context);
 
-//     // std::println!("initial: {:?}\n", tx_context.tx_inputs().account().vault());
+    // std::println!("initial: {:?}\n", tx_context.tx_inputs().account().vault());
 
-//     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None)
-//         .with_tracing()
-//         .with_debug_mode(true);
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None)
+        .with_tracing()
+        .with_debug_mode(true);
 
-//     let account_id = tx_context.account().id();
+    let account_id = tx_context.account().id();
 
-//     let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
 
-//     let note_ids = tx_context
-//         .tx_inputs()
-//         .input_notes()
-//         .iter()
-//         .map(|note| {
-//             // std::println!("\nnote: {:?}\n", note.note().assets());
-//             note.id()
-//         })
-//         .collect::<Vec<_>>();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| {
+            // std::println!("\nnote: {:?}\n", note.note().assets());
+            note.id()
+        })
+        .collect::<Vec<_>>();
 
-//     // std::println!("\n{:?}", note_ids);
+    // std::println!("\n{:?}", note_ids);
 
-//     let executed_transaction = executor
-//         .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
-//         .map_err(|e| e.to_string())?;
+    let executed_transaction = executor
+        .execute_transaction(account_id, block_ref, &note_ids, tx_context.tx_args().clone())
+        .map_err(|e| e.to_string())?;
 
-//     Ok(executed_transaction.into())
-// }
+    Ok(executed_transaction.into())
+}
+*/
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
-pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
+pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset: Asset = FungibleAsset::new(faucet_id, 100).unwrap().into();

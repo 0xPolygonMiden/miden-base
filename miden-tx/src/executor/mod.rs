@@ -198,6 +198,6 @@ fn build_executed_transaction<A: TransactionAuthenticator>(
         account_delta,
         tx_args,
         advice_witness,
-        tx_progress,
+        tx_progress.into(),
     ))
 }
