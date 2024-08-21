@@ -7,7 +7,7 @@ use miden_objects::{
     transaction::{TransactionArgs, TransactionInputs},
     Digest,
 };
-use vm_processor::MastForestStore;
+use vm_processor::{MastForestStore, MastNode};
 
 pub struct TransactionMastStore {
     mast_forests: RefCell<BTreeMap<Digest, Arc<MastForest>>>,
@@ -52,7 +52,15 @@ impl TransactionMastStore {
     fn insert(&self, mast_forest: Arc<MastForest>) {
         let mut mast_forests = self.mast_forests.borrow_mut();
         for proc_digest in mast_forest.procedure_digests() {
-            mast_forests.insert(proc_digest, mast_forest.clone());
+            let proc_root_id =
+                mast_forest.find_procedure_root(proc_digest).expect("malformed MAST forest");
+            let proc_root_node = &mast_forest[proc_root_id];
+
+            // only register procedures which are actually in this MAST forest (i.e., not external
+            // or dynamic references)
+            if !matches!(proc_root_node, MastNode::External(_) | MastNode::Dyn) {
+                mast_forests.insert(proc_digest, mast_forest.clone());
+            }
         }
     }
 }
