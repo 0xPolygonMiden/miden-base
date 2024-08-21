@@ -1,15 +1,14 @@
-#![allow(dead_code)]
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
-use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel, utils::Serializable};
+use miden_lib::{notes::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     accounts::{
         delta::AccountUpdateDetails, Account, AccountDelta, AccountId, AccountType, AuthSecretKey,
         SlotItem,
     },
     assets::{Asset, FungibleAsset, TokenSymbol},
-    block::{Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
+    block::{compute_tx_hash, Block, BlockAccountUpdate, BlockNoteIndex, BlockNoteTree, NoteBatch},
     crypto::merkle::{Mmr, MmrError, PartialMmr, Smt},
     notes::{Note, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account::AccountBuilder,
@@ -17,7 +16,7 @@ use miden_objects::{
         ChainMmr, ExecutedTransaction, InputNote, InputNotes, OutputNote, ToInputNoteCommitments,
         TransactionId, TransactionInputs,
     },
-    AccountError, BlockHeader, FieldElement, Hasher, NoteError, ACCOUNT_TREE_DEPTH,
+    AccountError, BlockHeader, FieldElement, NoteError, ACCOUNT_TREE_DEPTH,
 };
 use rand::{rngs::StdRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -29,6 +28,9 @@ use vm_processor::{
 use super::TransactionContextBuilder;
 use crate::auth::BasicAuthenticator;
 
+// CONSTANTS
+// ================================================================================================
+
 /// Initial timestamp value
 const TIMESTAMP_START: u32 = 1693348223;
 /// Timestamp of timestamp on each new block
@@ -36,7 +38,10 @@ const TIMESTAMP_STEP: u32 = 10;
 
 pub type MockAuthenticator = BasicAuthenticator<StdRng>;
 
-/// Represents a fungible faucet that exists on the MockChain
+// MOCK FUNGIBLE FAUCET
+// ================================================================================================
+
+/// Represents a fungible faucet that exists on the MockChain.
 pub struct MockFungibleFaucet(Account);
 
 impl MockFungibleFaucet {
@@ -49,7 +54,12 @@ impl MockFungibleFaucet {
     }
 }
 
-/// Represents a fungible faucet that exists on the MockChain
+// MOCK ACCOUNT
+// ================================================================================================
+
+/// Represents a mock account that exists on the MockChain.
+/// It optionally includes the seed, and an authenticator that can be used for generating
+/// valid transaction contexts.
 #[derive(Clone, Debug)]
 struct MockAccount {
     account: Account,
@@ -66,6 +76,7 @@ impl MockAccount {
         MockAccount { account, seed, authenticator }
     }
 
+    #[allow(dead_code)]
     pub fn apply_delta(&mut self, delta: &AccountDelta) -> Result<(), AccountError> {
         self.account.apply_delta(delta)
     }
@@ -83,8 +94,12 @@ impl MockAccount {
     }
 }
 
+// PENDING OBJECTS
+// ================================================================================================
+
+/// Aggregates all entities that were added to the blockchain in the last block (not yet finalized)
 #[derive(Default, Debug, Clone)]
-pub struct PendingObjects {
+struct PendingObjects {
     /// Account updates for the block.
     updated_accounts: Vec<BlockAccountUpdate>,
 
@@ -95,7 +110,7 @@ pub struct PendingObjects {
     created_nullifiers: Vec<Nullifier>,
 
     /// Transaction IDs added to the block.
-    transaction_ids: Vec<TransactionId>,
+    included_transactions: Vec<(TransactionId, AccountId)>,
 }
 
 impl PendingObjects {
@@ -104,7 +119,7 @@ impl PendingObjects {
             updated_accounts: vec![],
             output_note_batches: vec![],
             created_nullifiers: vec![],
-            transaction_ids: vec![],
+            included_transactions: vec![],
         }
     }
 
@@ -129,7 +144,38 @@ impl PendingObjects {
     }
 }
 
-/// Structure chain data, used to build necessary openings and to construct [BlockHeader]s.
+#[derive(Debug)]
+pub enum MockError {
+    DuplicatedNullifier,
+    DuplicatedNote,
+}
+
+// AUTH
+// ================================================================================================
+
+/// Specifies which authentication mechanism is desired for accounts
+pub enum Auth {
+    /// Creates a [SecretKey](miden_objects::crypto::dsa::rpo_falcon512::SecretKey) for the
+    /// account and creates a [BasicAuthenticator] that gets used for authenticating the account
+    BasicAuth,
+
+    /// Does not create any authentication mechanism for the account.
+    NoAuth,
+}
+
+impl fmt::Display for MockError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for MockError {}
+
+// MOCK CHAIN
+// ================================================================================================
+
+/// Structure chain data, used to build necessary openings and to construct [BlockHeader].
 #[derive(Debug, Clone)]
 pub struct MockChain {
     /// An append-only structure used to represent the history of blocks produced for this chain.
@@ -160,26 +206,6 @@ pub struct MockChain {
 
     removed_notes: Vec<NoteId>,
 }
-
-#[derive(Debug)]
-pub enum MockError {
-    DuplicatedNullifier,
-    DuplicatedNote,
-}
-
-pub enum Auth {
-    RpoAuth,
-    NoAuth,
-}
-
-impl fmt::Display for MockError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for MockError {}
 
 impl Default for MockChain {
     fn default() -> Self {
@@ -228,6 +254,9 @@ impl MockChain {
         // TODO: check that notes are not duplicate
         let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
         self.pending_objects.output_note_batches.push(output_notes);
+        self.pending_objects
+            .included_transactions
+            .push((transaction.id(), transaction.account_id()));
     }
 
     /// Add a public [Note] to the pending objects.
@@ -246,6 +275,7 @@ impl MockChain {
         note_type: NoteType,
     ) -> Result<Note, NoteError> {
         let mut rng = RpoRandomCoin::new(Word::default());
+
         let note = create_p2id_note(
             sender_account_id,
             target_account_id,
@@ -254,9 +284,8 @@ impl MockChain {
             Default::default(),
             &mut rng,
         )?;
-        self.pending_objects
-            .output_note_batches
-            .push(vec![OutputNote::Full(note.clone())]);
+
+        self.add_note(note.clone());
 
         Ok(note)
     }
@@ -266,6 +295,9 @@ impl MockChain {
     pub fn add_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
+
+    // OTHER IMPLEMENTATIONS
+    // ================================================================================================
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
@@ -336,7 +368,7 @@ impl MockChain {
         account_builder: AccountBuilder<ChaCha20Rng>,
     ) -> Account {
         let (account, seed, authenticator) = match auth_method {
-            Auth::RpoAuth => {
+            Auth::BasicAuth => {
                 let (acc, seed, auth) =
                     account_builder.build_with_auth(&TransactionKernel::assembler()).unwrap();
 
@@ -349,7 +381,7 @@ impl MockChain {
             },
             Auth::NoAuth => {
                 let (account, seed) =
-                    account_builder.build(TransactionKernel::assembler()).unwrap();
+                    account_builder.build(TransactionKernel::assembler_testing()).unwrap();
                 (account, seed, None)
             },
         };
@@ -418,7 +450,7 @@ impl MockChain {
     }
 
     // MODIFIERS
-    // ----------------------------------------------------------------------------------------
+    // =========================================================================================
 
     /// Creates the next block.
     ///
@@ -473,8 +505,8 @@ impl MockChain {
         let note_root = notes_tree.root();
         let timestamp =
             previous.map_or(TIMESTAMP_START, |block| block.header().timestamp() + TIMESTAMP_STEP);
-        // TODO: Implement proper tx_hash once https://github.com/0xPolygonMiden/miden-base/pull/740 is merged
-        let tx_hash = Hasher::hash(&self.pending_objects.transaction_ids.to_bytes());
+        let tx_hash =
+            compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
 
         // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
@@ -542,7 +574,7 @@ impl MockChain {
     }
 
     // ACCESSORS
-    // ----------------------------------------------------------------------------------------
+    // =========================================================================================
 
     /// Get the latest [ChainMmr].
     pub fn chain(&self) -> ChainMmr {
@@ -565,27 +597,17 @@ impl MockChain {
     }
 }
 
+// MOCK CHAIN BUILDER
+// ================================================================================================
+
+#[derive(Default)]
 pub struct MockChainBuilder {
     accounts: Vec<Account>,
     notes: Vec<Note>,
     starting_block_num: u32,
 }
 
-impl Default for MockChainBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl MockChainBuilder {
-    pub fn new() -> Self {
-        Self {
-            accounts: vec![],
-            notes: vec![],
-            starting_block_num: 0,
-        }
-    }
-
     pub fn accounts(mut self, accounts: Vec<Account>) -> Self {
         self.accounts = accounts;
         self
@@ -621,7 +643,7 @@ impl MockChainBuilder {
 // ================================================================================================
 
 /// Converts the MMR into partial MMR by copying all leaves from MMR to partial MMR.
-pub fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> Result<ChainMmr, MmrError> {
+fn mmr_to_chain_mmr(mmr: &Mmr, blocks: &[BlockHeader]) -> Result<ChainMmr, MmrError> {
     let target_forest = mmr.forest() - 1;
     let mut partial_mmr = PartialMmr::from_peaks(mmr.peaks(target_forest)?);
 

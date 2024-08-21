@@ -30,8 +30,8 @@ fn prove_swap_script() {
     .into();
 
     // Create sender and target account
-    let sender_account = chain.add_new_wallet(Auth::RpoAuth, vec![offered_asset]);
-    let target_account = chain.add_existing_wallet(Auth::RpoAuth, vec![requested_asset]);
+    let sender_account = chain.add_new_wallet(Auth::BasicAuth, vec![offered_asset]);
+    let target_account = chain.add_existing_wallet(Auth::BasicAuth, vec![requested_asset]);
 
     // Create the note containing the SWAP script
     let (note, payback_note) = create_swap_note(

@@ -557,7 +557,7 @@ impl TransactionContextBuilder {
         let mut mock_chain = if let Some(mock_chain) = self.mock_chain {
             mock_chain
         } else {
-            MockChainBuilder::new().notes(self.input_notes.clone()).build()
+            MockChainBuilder::default().notes(self.input_notes.clone()).build()
         };
         for _ in 0..4 {
             mock_chain.seal_block(None);
