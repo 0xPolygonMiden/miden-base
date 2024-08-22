@@ -76,7 +76,7 @@ impl TransactionContext {
     /// Executes the transaction through a [TransactionExecutor]
     #[maybe_async]
     pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let mock_data_store = MockDataStore::new(self.tx_inputs.clone());
+        let mock_data_store = self.clone();
 
         let account_id = self.account().id();
         let block_num = mock_data_store.tx_inputs.block_header().block_num();
@@ -117,32 +117,6 @@ impl TransactionContext {
 }
 
 impl DataStore for TransactionContext {
-    #[maybe_async]
-    fn get_transaction_inputs(
-        &self,
-        account_id: AccountId,
-        block_num: u32,
-        notes: &[NoteId],
-    ) -> Result<TransactionInputs, DataStoreError> {
-        assert_eq!(account_id, self.tx_inputs.account().id());
-        assert_eq!(block_num, self.tx_inputs.block_header().block_num());
-        assert_eq!(notes.len(), self.tx_inputs.input_notes().num_notes());
-
-        Ok(self.tx_inputs.clone())
-    }
-}
-
-struct MockDataStore {
-    tx_inputs: TransactionInputs,
-}
-
-impl MockDataStore {
-    fn new(tx_inputs: TransactionInputs) -> Self {
-        MockDataStore { tx_inputs }
-    }
-}
-
-impl DataStore for MockDataStore {
     #[maybe_async]
     fn get_transaction_inputs(
         &self,
