@@ -34,7 +34,7 @@ fn test_create_note() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
 
         begin
@@ -106,7 +106,7 @@ fn test_create_note_with_invalid_tag() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
 
         begin
@@ -138,8 +138,8 @@ fn test_create_note_too_many_notes() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::constants
-        use.miden::kernels::tx::memory
+        use.kernel::constants
+        use.kernel::memory
         use.miden::tx
 
         begin
@@ -218,7 +218,7 @@ fn test_get_output_notes_hash() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
 
         begin
@@ -320,9 +320,9 @@ fn test_create_note_and_add_asset() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
-        use.miden::kernels::tx::memory
+        use.kernel::memory
 
         begin
             exec.prologue::prepare_transaction
@@ -386,7 +386,7 @@ fn test_create_note_and_add_multiple_assets() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
 
         begin
@@ -465,7 +465,7 @@ fn test_create_note_and_add_same_nft_twice() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
 
         begin
@@ -517,7 +517,7 @@ fn test_build_recipient_hash() {
     let recipient = NoteRecipient::new(output_serial_no, input_note_1.script().clone(), inputs);
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::tx
         begin
             exec.prologue::prepare_transaction

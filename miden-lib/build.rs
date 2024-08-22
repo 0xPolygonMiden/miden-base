@@ -133,6 +133,20 @@ fn compile_tx_kernel(source_dir: &Path, target_dir: &Path) -> Result<Assembler> 
     let masb_file_path = target_dir.join("tx_kernel.masb");
     kernel_main.write_to_file(masb_file_path).into_diagnostic()?;
 
+    #[cfg(feature = "testing")]
+    {
+        // Build kernel as a library and save it to file.
+        // This is needed in test assemblers to access individual procedures which would otherwise
+        // be hidden when using KernelLibrary (api.masm)
+        let namespace = "kernel".parse::<LibraryNamespace>().expect("invalid base namespace");
+        let test_lib =
+            Library::from_dir(source_dir.join("lib"), namespace, assembler.clone()).unwrap();
+
+        let masb_file_path =
+            target_dir.join("kernel_library").with_extension(Library::LIBRARY_EXTENSION);
+        test_lib.write_to_file(masb_file_path).into_diagnostic()?;
+    }
+
     Ok(assembler)
 }
 
