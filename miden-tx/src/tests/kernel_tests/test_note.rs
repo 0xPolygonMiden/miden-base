@@ -19,8 +19,8 @@ fn test_get_sender_no_sender() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     // calling get_sender should return sender
     let code = "
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::note
 
         begin
@@ -47,8 +47,8 @@ fn test_get_sender() {
 
     // calling get_sender should return sender
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         begin
@@ -76,8 +76,8 @@ fn test_get_vault_data() {
     // calling get_assets_info should return assets info
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -142,8 +142,8 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         proc.process_note_0
@@ -250,8 +250,8 @@ fn test_get_inputs() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         begin
@@ -299,8 +299,8 @@ fn test_note_setup() {
         .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -326,9 +326,9 @@ fn test_note_script_and_note_args() {
         .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::memory
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -386,9 +386,9 @@ fn test_get_note_serial_number() {
 
     // calling get_serial_number should return the serial number of the note
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
-        use.miden::note
+        use.kernel::prologue
+        use.kernel::note->note_internal
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction

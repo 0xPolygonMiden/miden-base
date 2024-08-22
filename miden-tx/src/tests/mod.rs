@@ -10,7 +10,6 @@ use miden_objects::{
         },
         AccountCode,
     },
-    assembly::Assembler,
     assets::{Asset, FungibleAsset},
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
@@ -49,6 +48,7 @@ fn transaction_executor_witness() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
+
     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
 
     let account_id = tx_context.account().id();
@@ -119,7 +119,8 @@ fn executed_transaction_account_delta() {
         dropw
     end
     ";
-    let new_acct_code = AccountCode::compile(new_acct_code_src, Assembler::default()).unwrap();
+    let new_acct_code =
+        AccountCode::compile(new_acct_code_src, TransactionKernel::assembler_testing()).unwrap();
 
     // updated storage
     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
@@ -306,7 +307,8 @@ fn executed_transaction_account_delta() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
+            .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -413,7 +415,8 @@ fn test_empty_delta_nonce_update() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
+            .unwrap();
     let tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -564,7 +567,8 @@ fn test_send_note_proc() {
         );
 
         let tx_script =
-            TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
+            TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
+                .unwrap();
         let tx_args = TransactionArgs::new(
             Some(tx_script),
             None,
@@ -669,7 +673,8 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 2 which is public
     let serial_num_2 = Word::from([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    let note_script_2 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
+    let note_script_2 =
+        NoteScript::compile(DEFAULT_NOTE_CODE, TransactionKernel::assembler_testing()).unwrap();
     let inputs_2 = NoteInputs::new(vec![]).unwrap();
     let metadata_2 =
         NoteMetadata::new(account_id, note_type2, tag2, NoteExecutionHint::none(), aux2).unwrap();
@@ -679,7 +684,8 @@ fn executed_transaction_output_notes() {
 
     // Create the expected output note for Note 3 which is public
     let serial_num_3 = Word::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
-    let note_script_3 = NoteScript::compile(DEFAULT_NOTE_CODE, Assembler::default()).unwrap();
+    let note_script_3 =
+        NoteScript::compile(DEFAULT_NOTE_CODE, TransactionKernel::assembler_testing()).unwrap();
     let inputs_3 = NoteInputs::new(vec![]).unwrap();
     let metadata_3 = NoteMetadata::new(
         account_id,
@@ -757,7 +763,6 @@ fn executed_transaction_output_notes() {
             push.{tag1}                         # tag
             exec.create_note
             # => [note_idx]
-
             push.{REMOVED_ASSET_1}              # asset
             exec.remove_asset
             # => [ASSET, note_ptr]
@@ -820,7 +825,8 @@ fn executed_transaction_output_notes() {
     );
 
     let tx_script =
-        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler()).unwrap();
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
+            .unwrap();
     let mut tx_args = TransactionArgs::new(
         Some(tx_script),
         None,
@@ -837,9 +843,11 @@ fn executed_transaction_output_notes() {
         .iter()
         .map(|note| note.id())
         .collect::<Vec<_>>();
+
     // expected delta
     // --------------------------------------------------------------------------------------------
     // execute the transaction and get the witness
+
     let executed_transaction =
         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
 
@@ -946,7 +954,7 @@ fn test_tx_script() {
     let tx_script = TransactionScript::compile(
         tx_script_src,
         [(tx_script_input_key, tx_script_input_value.into())],
-        TransactionKernel::assembler(),
+        TransactionKernel::assembler_testing(),
     )
     .unwrap();
     let tx_args = TransactionArgs::new(

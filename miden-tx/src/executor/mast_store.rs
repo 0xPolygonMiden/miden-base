@@ -49,7 +49,7 @@ impl TransactionMastStore {
         }
     }
 
-    fn insert(&self, mast_forest: Arc<MastForest>) {
+    pub fn insert(&self, mast_forest: Arc<MastForest>) {
         let mut mast_forests = self.mast_forests.borrow_mut();
 
         // only register procedures that are local to this forest

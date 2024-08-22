@@ -10,6 +10,7 @@
 - [BREAKING] Increase of nonce does not require changes in account state any more (#796).
 - Added `CHANGELOG.md` warning message on CI (#799).
 - Account deltas can now be merged (#797).
+- Added high-level methods for `MockChain` and related structures (#807).
 - Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
 - [BREAKING] Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812, #816).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).

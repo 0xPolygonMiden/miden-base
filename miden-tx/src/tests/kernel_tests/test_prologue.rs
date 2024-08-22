@@ -43,7 +43,7 @@ fn test_transaction_prologue() {
         .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
 
         begin
             exec.prologue::prepare_transaction
@@ -357,16 +357,15 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(TransactionKernel::assembler())
+        .build(TransactionKernel::assembler_testing())
         .unwrap();
-    let tx_context = TransactionContextBuilder::new(account).account_seed(seed).build();
+    let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
-        exec.prologue::prepare_transaction
+        call.prologue::prepare_transaction
     end
     ";
 
@@ -383,11 +382,11 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_fungible_faucet(acct_id.into(), Felt::ZERO, ZERO)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -411,11 +410,11 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
         Felt::ZERO,
         Felt::new(FUNGIBLE_FAUCET_INITIAL_BALANCE),
     )
-    .account_seed(account_seed)
+    .account_seed(Some(account_seed))
     .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -436,11 +435,11 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, true)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -462,11 +461,11 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let tx_context =
         TransactionContextBuilder::with_non_fungible_faucet(acct_id.into(), Felt::ZERO, false)
-            .account_seed(account_seed)
+            .account_seed(Some(account_seed))
             .build();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -483,11 +482,11 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(TransactionKernel::assembler())
+        .build(TransactionKernel::assembler_testing())
         .unwrap();
 
     let code = "
-    use.miden::kernels::tx::prologue
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -500,10 +499,9 @@ pub fn test_prologue_create_account_invalid_seed() {
         AdviceInputs::default().with_map([(Digest::from(account_seed_key), vec![ZERO; 4])]);
 
     let tx_context = TransactionContextBuilder::new(acct)
-        .account_seed(account_seed)
+        .account_seed(Some(account_seed))
         .advice_inputs(adv_inputs)
         .build();
-
     let process = tx_context.execute_code(code);
     assert!(process.is_err());
 }
@@ -512,8 +510,8 @@ pub fn test_prologue_create_account_invalid_seed() {
 fn test_get_blk_version() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
-    use.miden::kernels::tx::memory
-    use.miden::kernels::tx::prologue
+    use.kernel::memory
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction
@@ -530,8 +528,8 @@ fn test_get_blk_version() {
 fn test_get_blk_timestamp() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     let code = "
-    use.miden::kernels::tx::memory
-    use.miden::kernels::tx::prologue
+    use.kernel::memory
+    use.kernel::prologue
 
     begin
         exec.prologue::prepare_transaction

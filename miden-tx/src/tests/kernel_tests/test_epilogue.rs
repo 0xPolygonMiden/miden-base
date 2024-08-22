@@ -24,9 +24,9 @@ fn test_epilogue() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.kernel::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -91,8 +91,8 @@ fn test_compute_output_note_id() {
     for (note, i) in tx_context.expected_output_notes().iter().zip(0u32..) {
         let code = format!(
             "
-            use.miden::kernels::tx::prologue
-            use.miden::kernels::tx::epilogue
+            use.kernel::prologue
+            use.kernel::epilogue
 
             {output_notes_data_procedure}
 
@@ -134,9 +134,9 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -165,9 +165,9 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -196,9 +196,9 @@ fn test_epilogue_increment_nonce_success() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -235,9 +235,9 @@ fn test_epilogue_increment_nonce_violation() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 

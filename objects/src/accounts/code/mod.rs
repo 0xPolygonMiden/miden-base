@@ -99,6 +99,7 @@ impl AccountCode {
         let library = assembler
             .assemble_library([source_code])
             .map_err(|report| AccountError::AccountCodeAssemblyError(report.to_string()))?;
+
         Self::new(library)
     }
 

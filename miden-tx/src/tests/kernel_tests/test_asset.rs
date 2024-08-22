@@ -26,7 +26,7 @@ fn test_create_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::asset
 
         begin
@@ -66,7 +66,7 @@ fn test_create_non_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::asset
 
         begin
@@ -100,7 +100,7 @@ fn test_validate_non_fungible_asset() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::asset
+        use.kernel::asset
 
         begin
             push.{asset} exec.asset::validate_non_fungible_asset
