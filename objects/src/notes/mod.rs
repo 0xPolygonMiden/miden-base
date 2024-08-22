@@ -7,7 +7,7 @@ use miden_crypto::{
 use vm_processor::DeserializationError;
 
 use crate::{
-    accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH,
+    accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError,
     WORD_SIZE, ZERO,
 };
 
@@ -55,14 +55,6 @@ pub use script::NoteScript;
 
 mod file;
 pub use file::NoteFile;
-
-// CONSTANTS
-// ================================================================================================
-
-/// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
-/// This is equal `NOTE_TREE_DEPTH + 1`. In the kernel we do not authenticate leaf data directly
-/// but rather authenticate hash(left_leaf, right_leaf).
-pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;
 
 // NOTE
 // ================================================================================================
