@@ -7,8 +7,6 @@ use.kernel::faucet
 use.kernel::memory
 use.kernel::note
 use.kernel::tx
-use.kernel::prologue
-
 
 # NOTE
 # =================================================================================================
