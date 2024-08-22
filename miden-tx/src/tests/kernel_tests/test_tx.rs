@@ -1,12 +1,9 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::{
-    memory::{
+use miden_lib::transaction::memory::{
         NOTE_MEM_SIZE, NUM_OUTPUT_NOTES_PTR, OUTPUT_NOTE_ASSETS_OFFSET,
         OUTPUT_NOTE_METADATA_OFFSET, OUTPUT_NOTE_RECIPIENT_OFFSET, OUTPUT_NOTE_SECTION_OFFSET,
-    },
-    TransactionKernel,
-};
+    };
 use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
@@ -161,8 +158,7 @@ fn test_create_note_too_many_notes() {
         PUBLIC_NOTE = NoteType::Public as u8,
     );
 
-    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-        .run(&code, TransactionKernel::assembler_testing().clone());
+    let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
     // assert the process failed
     assert!(process.is_err());

@@ -1,7 +1,4 @@
-use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
-    TransactionKernel,
-};
+use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -133,7 +130,7 @@ pub fn test_account_type() {
 
             let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
                 .stack_inputs(StackInputs::new(vec![account_id.into()]).unwrap())
-                .run(&code, TransactionKernel::assembler_testing().clone())
+                .run(&code)
                 .unwrap();
 
             let type_matches = account_id.account_type() == expected_type;
@@ -168,8 +165,7 @@ fn test_validate_id_fails_on_insufficient_ones() {
         "
     );
 
-    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-        .run(&code, TransactionKernel::assembler_testing().clone());
+    let result = CodeExecutor::with_advice_provider(MemAdviceProvider::default()).run(&code);
 
     assert!(result.is_err());
 }
@@ -199,7 +195,7 @@ fn test_is_faucet_procedure() {
         );
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
-            .run(&code, TransactionKernel::assembler_testing().clone())
+            .run(&code)
             .unwrap();
 
         let is_faucet = account_id.is_faucet();

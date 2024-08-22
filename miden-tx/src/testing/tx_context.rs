@@ -40,7 +40,20 @@ pub struct TransactionContext {
     assembler: Assembler,
 }
 impl TransactionContext {
-    /// Executes arbitrary code
+    /// Executes arbitrary code within the context of a mocked transaction environment.
+    ///
+    /// This function is takes a string of code and execute it as a program within a specific
+    /// environment. Concretely, the program is assembled with the defined assembler, and executed
+    /// with all the correct advice inputs. The program runs on a [MockHost] which will host code
+    /// exposed by the transaction kernel, and also individual kernel functions (not normally exposed).
+    ///
+    ///
+    /// ## Returns:
+    /// - The resulting [Process] upon a succesful execution. The function can return an [ExecutionError]
+    ///   if there are issues during the program assembly or execution
+    ///
+    /// This function is typically used in scenarios where arbitrary code needs to be tested or executed within a
+    /// controlled, simulated environment, making it particularly useful for testing, debugging, and development purposes.
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
         let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
