@@ -244,7 +244,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {
             let slot_index = slot_index.as_int() as u8;
-            self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
+            self.account_delta.storage_delta().set_item(slot_index, new_slot_value);
         }
 
         Ok(())
@@ -281,9 +281,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         ];
 
         let slot_index = slot_index.as_int() as u8;
-        self.account_delta
-            .storage_tracker()
-            .maps_update(slot_index, new_map_key, new_map_value);
+        self.account_delta.storage_delta().set_map_item(
+            slot_index,
+            new_map_key.into(),
+            new_map_value,
+        );
 
         Ok(())
     }
@@ -304,7 +306,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .try_into()
             .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
 
-        self.account_delta.vault_tracker().add_asset(asset);
+        self.account_delta
+            .vault_delta()
+            .add_asset(asset)
+            .map_err(TransactionKernelError::AccountDeltaError)?;
         Ok(())
     }
 
@@ -321,7 +326,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .try_into()
             .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
 
-        self.account_delta.vault_tracker().remove_asset(asset);
+        self.account_delta
+            .vault_delta()
+            .remove_asset(asset)
+            .map_err(TransactionKernelError::AccountDeltaError)?;
         Ok(())
     }
 
