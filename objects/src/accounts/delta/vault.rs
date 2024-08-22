@@ -33,15 +33,8 @@ impl AccountVaultDelta {
     ///
     /// # Errors
     /// Returns an error if the delta does not pass the validation.
-    pub fn new(
-        fungible: FungibleAssetDelta,
-        non_fungible: NonFungibleAssetDelta,
-    ) -> Result<Self, AccountDeltaError> {
-        let delta = Self { fungible, non_fungible };
-
-        delta.validate()?;
-
-        Ok(delta)
+    pub const fn new(fungible: FungibleAssetDelta, non_fungible: NonFungibleAssetDelta) -> Self {
+        Self { fungible, non_fungible }
     }
 
     /// Returns a reference to the fungible asset delta.
@@ -84,17 +77,6 @@ impl AccountVaultDelta {
     pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
         self.non_fungible.merge(other.non_fungible)?;
         self.fungible.merge(other.fungible)
-    }
-
-    // HELPER FUNCTIONS
-    // ---------------------------------------------------------------------------------------------
-
-    /// Checks whether this vault delta is valid.
-    ///
-    /// # Errors
-    /// Returns an error if one or more fungible assets' faucet IDs are invalid.
-    fn validate(&self) -> Result<(), AccountDeltaError> {
-        self.fungible.validate()
     }
 }
 
@@ -178,10 +160,12 @@ impl Deserializable for AccountVaultDelta {
         let fungible = source.read()?;
         let non_fungible = source.read()?;
 
-        Self::new(fungible, non_fungible)
-            .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        Ok(Self::new(fungible, non_fungible))
     }
 }
+
+// FUNGIBLE ASSET DELTA
+// ================================================================================================
 
 /// A binary tree map of fungible asset balance changes in the account vault.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -243,7 +227,7 @@ impl FungibleAssetDelta {
             self.add_delta(faucet_id, amount)?;
         }
 
-        self.validate()
+        Ok(())
     }
 
     // HELPER FUNCTIONS
@@ -329,7 +313,7 @@ pub struct NonFungibleAssetDelta(BTreeMap<NonFungibleAsset, NonFungibleDeltaActi
 
 impl NonFungibleAssetDelta {
     /// Creates a new non-fungible asset delta.
-    pub fn new(map: BTreeMap<NonFungibleAsset, NonFungibleDeltaAction>) -> Self {
+    pub const fn new(map: BTreeMap<NonFungibleAsset, NonFungibleDeltaAction>) -> Self {
         Self(map)
     }
 
