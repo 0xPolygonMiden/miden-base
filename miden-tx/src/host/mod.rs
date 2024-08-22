@@ -7,7 +7,7 @@ use miden_objects::{
     accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
-    transaction::{OutputNote, TransactionProgress},
+    transaction::OutputNote,
     Digest, Hasher,
 };
 use vm_processor::{
@@ -23,6 +23,9 @@ pub use account_procs::AccountProcedureIndexMap;
 
 mod note_builder;
 use note_builder::OutputNoteBuilder;
+
+mod tx_progress;
+pub use tx_progress::TransactionProgress;
 
 use crate::{
     auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
@@ -498,26 +501,20 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
         use TransactionTrace::*;
         match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk().as_usize()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_usize()),
-            NotesProcessingStart => {
-                self.tx_progress.start_notes_processing(process.clk().as_usize())
-            },
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_usize()),
+            PrologueStart => self.tx_progress.start_prologue(process.clk()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
+            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?
                     .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
-                self.tx_progress.start_note_execution(process.clk().as_usize(), note_id);
+                self.tx_progress.start_note_execution(process.clk(), note_id);
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_usize()),
-            TxScriptProcessingStart => {
-                self.tx_progress.start_tx_script_processing(process.clk().as_usize())
-            },
-            TxScriptProcessingEnd => {
-                self.tx_progress.end_tx_script_processing(process.clk().as_usize())
-            },
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_usize()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_usize()),
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
+            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
+            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
         }
 
         Ok(HostResponse::None)

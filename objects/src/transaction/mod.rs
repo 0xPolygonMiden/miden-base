@@ -12,7 +12,7 @@ mod outputs;
 mod proven_tx;
 mod transaction_id;
 mod tx_args;
-mod tx_progress;
+mod tx_measurements;
 mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
@@ -24,5 +24,5 @@ pub use proven_tx::{
 };
 pub use transaction_id::TransactionId;
 pub use tx_args::{TransactionArgs, TransactionScript};
-pub use tx_progress::{TransactionMeasurements, TransactionProgress};
+pub use tx_measurements::TransactionMeasurements;
 pub use tx_witness::TransactionWitness;

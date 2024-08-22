@@ -766,6 +766,7 @@ dependencies = [
  "miden-tx",
  "rand",
  "rand_chacha",
+ "serde",
  "serde_json",
 ]
 

@@ -1,7 +1,9 @@
 extern crate alloc;
-pub use alloc::collections::BTreeMap;
+pub use alloc::{collections::BTreeMap, string::String};
+
 use rand::rngs::StdRng;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use serde::Serialize;
 use serde_json::{from_str, to_string_pretty, Value};
 use std::rc::Rc;
 
@@ -38,6 +40,33 @@ pub const DEFAULT_ACCOUNT_CODE: &str = "
     export.::miden::contracts::wallets::basic::move_asset_to_note
     export.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
 ";
+
+// MEASUREMENTS PRINTER
+// ================================================================================================
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MeasurementsPrinter {
+    pub prologue: usize,
+    pub notes_processing: usize,
+    pub note_execution: BTreeMap<String, usize>,
+    pub tx_script_processing: usize,
+    pub epilogue: usize,
+}
+
+impl From<TransactionMeasurements> for MeasurementsPrinter {
+    fn from(value: TransactionMeasurements) -> Self {
+        let note_execution_map =
+            value.note_execution.iter().map(|(id, len)| (id.to_hex(), *len)).collect();
+
+        MeasurementsPrinter {
+            prologue: value.prologue,
+            notes_processing: value.notes_processing,
+            note_execution: note_execution_map,
+            tx_script_processing: value.tx_script_processing,
+            epilogue: value.epilogue,
+        }
+    }
+}
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -77,7 +106,7 @@ pub fn get_new_pk_and_authenticator() -> (Word, Rc<BasicAuthenticator<StdRng>>) 
 
 pub fn write_bench_results_to_json(
     path: &Path,
-    tx_benchmarks: Vec<(Benchmark, TransactionMeasurements)>,
+    tx_benchmarks: Vec<(Benchmark, MeasurementsPrinter)>,
 ) -> Result<(), String> {
     // convert benchmark file internals to the JSON Value
     let benchmark_file = read_to_string(path).map_err(|e| e.to_string())?;

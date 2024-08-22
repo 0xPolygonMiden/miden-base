@@ -46,7 +46,7 @@ fn main() -> Result<(), String> {
     // run all available benchmarks
     let benchmark_results = vec![
         // (Benchmark::Simple, benchmark_default_tx()?),
-        (Benchmark::P2ID, benchmark_p2id()?),
+        (Benchmark::P2ID, benchmark_p2id()?.into()),
     ];
 
     // store benchmark results in the JSON file
