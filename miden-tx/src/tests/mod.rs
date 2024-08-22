@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, rc:Rc, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::String, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
