@@ -51,9 +51,6 @@ impl TransactionContext {
     /// ## Returns:
     /// - The resulting [Process] upon a succesful execution. The function can return an [ExecutionError]
     ///   if there are issues during the program assembly or execution
-    ///
-    /// This function is typically used in scenarios where arbitrary code needs to be tested or executed within a
-    /// controlled, simulated environment, making it particularly useful for testing, debugging, and development purposes.
     pub fn execute_code(&self, code: &str) -> Result<Process<MockHost>, ExecutionError> {
         let (stack_inputs, mut advice_inputs) = TransactionKernel::prepare_inputs(
             &self.tx_inputs,
