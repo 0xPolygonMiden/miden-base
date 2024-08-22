@@ -22,6 +22,7 @@
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
 - Added conversions for `NoteExecutionHint` (#827).
+- Refactored batch/block note trees (#834).
 
 ## 0.4.0 (2024-07-03)
 
