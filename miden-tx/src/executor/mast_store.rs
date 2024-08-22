@@ -37,7 +37,7 @@ impl TransactionMastStore {
     pub fn load_transaction_code(&self, tx_inputs: &TransactionInputs, tx_args: &TransactionArgs) {
         // load account code
         self.insert(tx_inputs.account().code().mast().clone());
-        
+
         // load note script MAST into the MAST store
         for note in tx_inputs.input_notes() {
             self.insert(note.note().script().mast().clone());

@@ -107,7 +107,7 @@ impl<T: Rng> AccountBuilder<T> {
     }
 
     /// Build an account using the provided `seed`.
-    pub fn with_seed(
+    pub fn build_with_seed(
         mut self,
         seed: Word,
         assembler: Assembler,
@@ -125,7 +125,7 @@ impl<T: Rng> AccountBuilder<T> {
     /// Build an account using the provided `seed` and `storage`.
     ///
     /// The storage items added to this builder will added on top of `storage`.
-    pub fn with_seed_and_storage(
+    pub fn build_with_seed_and_storage(
         mut self,
         seed: Word,
         mut storage: AccountStorage,
