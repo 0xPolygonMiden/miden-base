@@ -1,4 +1,4 @@
-use alloc::{rc::Rc, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::String, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
@@ -334,24 +334,24 @@ fn executed_transaction_account_delta() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 1);
     assert_eq!(
-        executed_transaction.account_delta().storage().updated_items[0].0,
-        STORAGE_INDEX_0
-    );
-    assert_eq!(
-        executed_transaction.account_delta().storage().updated_items[0].1,
-        updated_slot_value
+        executed_transaction.account_delta().storage().slots().get(&STORAGE_INDEX_0),
+        Some(&updated_slot_value)
     );
 
-    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 1);
+    assert_eq!(executed_transaction.account_delta().storage().maps().len(), 1);
     assert_eq!(
-        executed_transaction.account_delta().storage().updated_maps[0].0,
-        STORAGE_INDEX_2
-    );
-    assert_eq!(
-        executed_transaction.account_delta().storage().updated_maps[0].1.updated_leaves[0],
-        (updated_map_key, updated_map_value)
+        executed_transaction
+            .account_delta()
+            .storage()
+            .maps()
+            .get(&STORAGE_INDEX_2)
+            .unwrap()
+            .leaves(),
+        &Some((updated_map_key.into(), updated_map_value))
+            .into_iter()
+            .collect::<BTreeMap<Digest, _>>()
     );
 
     // vault delta
@@ -372,24 +372,22 @@ fn executed_transaction_account_delta() {
     assert!(executed_transaction
         .account_delta()
         .vault()
-        .added_assets
-        .iter()
-        .all(|x| added_assets.contains(x)));
+        .added_assets()
+        .all(|x| added_assets.contains(&x)));
     assert_eq!(
         added_assets.len(),
-        executed_transaction.account_delta().vault().added_assets.len()
+        executed_transaction.account_delta().vault().added_assets().count()
     );
 
     // assert that removed assets are tracked
     assert!(executed_transaction
         .account_delta()
         .vault()
-        .removed_assets
-        .iter()
-        .all(|x| removed_assets.contains(x)));
+        .removed_assets()
+        .all(|x| removed_assets.contains(&x)));
     assert_eq!(
         removed_assets.len(),
-        executed_transaction.account_delta().vault().removed_assets.len()
+        executed_transaction.account_delta().vault().removed_assets().count()
     );
 }
 
@@ -443,9 +441,9 @@ fn test_empty_delta_nonce_update() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().updated_items.len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 0);
 
-    assert_eq!(executed_transaction.account_delta().storage().updated_maps.len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().maps().len(), 0);
 }
 
 #[test]
@@ -505,7 +503,7 @@ fn test_send_note_proc() {
             # prepare the stack for the next call
             dropw
 
-            # push the asset to be removed            
+            # push the asset to be removed
             push.{ASSET}
             # => [ASSET, note_idx, GARBAGE(11)]
 
@@ -520,17 +518,17 @@ fn test_send_note_proc() {
             use.miden::account
             use.miden::contracts::wallets::basic->wallet
             use.miden::tx
-    
+
             ## ACCOUNT PROCEDURE WRAPPERS
             ## ========================================================================================
             proc.incr_nonce
                 call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
                 # => [0]
-    
+
                 drop
                 # => []
             end
-    
+
             ## TRANSACTION SCRIPT
             ## ========================================================================================
             begin
@@ -553,9 +551,9 @@ fn test_send_note_proc() {
                 # => [GARBAGE(4), note_idx, GARBAGE(11)]
 
                 {assets_to_remove}
-                
+
                 dropw dropw dropw dropw
-    
+
                 ## Update the account nonce
                 ## ------------------------------------------------------------------------------------
                 push.1 exec.incr_nonce drop
@@ -597,12 +595,11 @@ fn test_send_note_proc() {
         assert!(executed_transaction
             .account_delta()
             .vault()
-            .removed_assets
-            .iter()
-            .all(|x| removed_assets.contains(x)));
+            .removed_assets()
+            .all(|x| removed_assets.contains(&x)));
         assert_eq!(
             removed_assets.len(),
-            executed_transaction.account_delta().vault().removed_assets.len()
+            executed_transaction.account_delta().vault().removed_assets().count()
         );
     }
 }
@@ -704,29 +701,29 @@ fn executed_transaction_output_notes() {
         ## ACCOUNT PROCEDURE WRAPPERS
         ## ========================================================================================
         proc.create_note
-            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
-            # elements 
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack
+            # elements
             padw padw swapdw
             # => [tag, aux, execution_hint, note_type, RECIPIENT, PAD(8)]
 
             call.wallet::create_note
             # => [note_idx, PAD(15)]
 
-            # remove excess PADs from the stack 
+            # remove excess PADs from the stack
             swapdw dropw dropw movdn.7 dropw drop drop drop
             # => [note_idx]
         end
 
         proc.add_asset_to_note
-            # pad the stack before the syscall to prevent accidental modification of the deeper stack 
-            # elements 
+            # pad the stack before the syscall to prevent accidental modification of the deeper stack
+            # elements
             push.0.0.0 padw padw swapdw movup.7 swapw
             # => [ASSET, note_idx, PAD(11)]
 
             call.{ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT}
             # => [ASSET, note_idx, PAD(11)]
 
-            # remove excess PADs from the stack 
+            # remove excess PADs from the stack
             swapdw dropw dropw swapw movdn.7 drop drop drop
             # => [ASSET, note_idx]
 
@@ -762,7 +759,7 @@ fn executed_transaction_output_notes() {
             # => [note_idx]
 
             push.{REMOVED_ASSET_1}              # asset
-            exec.remove_asset 
+            exec.remove_asset
             # => [ASSET, note_ptr]
             exec.add_asset_to_note
             # => [note_idx]
