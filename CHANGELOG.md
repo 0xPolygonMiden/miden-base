@@ -19,6 +19,7 @@
 - [BREAKING] Interface of the `miden::tx::add_asset_to_note` procedure was changed (#808).
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - Added conversions for `NoteExecutionHint` (#827).
+- [BREAKING] Refactored account storage and vault deltas (#822).
 
 ## 0.4.0 (2024-07-03)
 

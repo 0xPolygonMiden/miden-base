@@ -4,8 +4,11 @@ use super::{
     AccountId, AccountType, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
     FungibleAsset, NonFungibleAsset, Serializable, ZERO,
 };
-use crate::{crypto::merkle::Smt, AssetVaultError, Digest};
-
+use crate::{
+    accounts::{AccountVaultDelta, NonFungibleDeltaAction},
+    crypto::merkle::Smt,
+    AssetVaultError, Digest,
+};
 // ASSET VAULT
 // ================================================================================================
 
@@ -88,6 +91,35 @@ impl AssetVault {
 
     // PUBLIC MODIFIERS
     // --------------------------------------------------------------------------------------------
+
+    /// Applies the specified delta to the asset vault.
+    ///
+    /// # Errors
+    /// Returns an error:
+    /// - If the total value of assets is greater than or equal to 2^63.
+    /// - If the delta contains an addition/subtraction for a fungible asset that is not stored in
+    ///   the vault.
+    /// - If the delta contains a non-fungible asset removal that is not stored in the vault.
+    /// - If the delta contains a non-fungible asset addition that is already stored in the vault.
+    pub fn apply_delta(&mut self, delta: &AccountVaultDelta) -> Result<(), AssetVaultError> {
+        for (&faucet_id, &delta) in delta.fungible().iter() {
+            let asset = FungibleAsset::new(faucet_id, delta.unsigned_abs())
+                .expect("Not a fungible faucet ID or delta is too large");
+            match delta >= 0 {
+                true => self.add_fungible_asset(asset),
+                false => self.remove_fungible_asset(asset),
+            }?;
+        }
+
+        for (&asset, &action) in delta.non_fungible().iter() {
+            match action {
+                NonFungibleDeltaAction::Add => self.add_non_fungible_asset(asset),
+                NonFungibleDeltaAction::Remove => self.remove_non_fungible_asset(asset),
+            }?;
+        }
+
+        Ok(())
+    }
 
     // ADD ASSET
     // --------------------------------------------------------------------------------------------
