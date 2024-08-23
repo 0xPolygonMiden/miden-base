@@ -1,4 +1,3 @@
-#[cfg(not(target_family = "wasm"))]
 use miden_lib::transaction::TransactionKernel;
 #[cfg(feature = "std")]
 use vm_processor::{
@@ -37,14 +36,8 @@ impl<H: Host> CodeExecutor<H> {
     }
 
     /// Compiles and runs the desired code in the host and returns the [Process] state
-    ///
-    /// If a module file path was set, its contents will be inserted between `self.imports` and
-    /// `code` before execution.
-    /// Otherwise, `self.imports` and `code` will be concatenated and the result will be executed.
     pub fn run(self, code: &str) -> Result<Process<H>, ExecutionError> {
-        let assembler = TransactionKernel::assembler().with_debug_mode(true);
-
-        let program = assembler.compile(code).unwrap();
+        let program = TransactionKernel::assembler_testing().assemble_program(code).unwrap();
         self.execute_program(program)
     }
 
@@ -65,7 +58,9 @@ where
     A: AdviceProvider,
 {
     pub fn with_advice_provider(adv_provider: A) -> Self {
-        let host = DefaultHost::new(adv_provider);
+        let mut host = DefaultHost::new(adv_provider);
+        let test_lib = TransactionKernel::kernel_as_library();
+        host.load_mast_forest(test_lib.mast_forest().clone());
         CodeExecutor::new(host)
     }
 }

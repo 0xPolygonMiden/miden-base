@@ -1,77 +1,11 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, AccountProcedureInfo},
-    transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, PreparedTransaction, TransactionArgs,
-        TransactionInputs, TransactionScript, TransactionWitness,
-    },
-    vm::{AdviceInputs, StackInputs},
+    accounts::Account,
+    transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    vm::AdviceInputs,
     Felt, FieldElement, Word, EMPTY_WORD, ZERO,
 };
-
-use super::TransactionKernel;
-
-// TRANSACTION KERNEL INPUTS
-// ================================================================================================
-
-/// Defines how inputs required to execute a transaction kernel can be extracted from self.
-pub trait ToTransactionKernelInputs {
-    /// Returns stack and advice inputs required to execute the transaction kernel.
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs);
-}
-
-impl ToTransactionKernelInputs for PreparedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.account();
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = AdviceInputs::default();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
-}
-
-impl ToTransactionKernelInputs for ExecutedTransaction {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.initial_account();
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
-}
-
-impl ToTransactionKernelInputs for TransactionWitness {
-    fn get_kernel_inputs(&self) -> (StackInputs, AdviceInputs) {
-        let account = self.account();
-
-        let stack_inputs = TransactionKernel::build_input_stack(
-            account.id(),
-            account.init_hash(),
-            self.input_notes().commitment(),
-            self.block_header().hash(),
-        );
-
-        let mut advice_inputs = self.advice_witness().clone();
-        extend_advice_inputs(self.tx_inputs(), self.tx_args(), &mut advice_inputs);
-
-        (stack_inputs, advice_inputs)
-    }
-}
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -82,7 +16,7 @@ impl ToTransactionKernelInputs for TransactionWitness {
 /// This includes the initial account, an optional account seed (required for new accounts), and
 /// the input note data, including core note data + authentication paths all the way to the root
 /// of one of chain MMR peaks.
-fn extend_advice_inputs(
+pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
@@ -155,7 +89,7 @@ fn build_advice_stack(
     inputs.extend_stack([Felt::from(tx_inputs.input_notes().num_notes() as u32)]);
 
     // push tx_script root onto the stack
-    inputs.extend_stack(tx_script.map_or(Word::default(), |script| **script.hash()));
+    inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.hash()));
 }
 
 // CHAIN MMR INJECTOR
@@ -245,10 +179,9 @@ fn add_account_to_advice_inputs(
     let code = account.code();
 
     // extend the advice_map with the account code data and number of procedures
-    let num_procs = code.as_elements().len() / AccountProcedureInfo::NUM_ELEMENTS_PER_PROC;
-    let mut procs = code.as_elements();
-    procs.insert(0, Felt::from(num_procs as u32));
-    inputs.extend_map([(code.commitment(), procs)]);
+    let mut proc_elements: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
+    proc_elements.append(&mut code.as_elements());
+    inputs.extend_map([(code.commitment(), proc_elements)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {

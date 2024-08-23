@@ -239,14 +239,16 @@ impl Deserializable for BlockHeader {
 
 #[cfg(test)]
 mod tests {
+    use vm_core::Word;
     use winter_rand_utils::rand_array;
 
     use super::*;
 
     #[test]
     fn test_serde() {
-        let header =
-            BlockHeader::mock(0, Some(rand_array().into()), Some(rand_array().into()), &[]);
+        let chain_root: Word = rand_array();
+        let note_root: Word = rand_array();
+        let header = BlockHeader::mock(0, Some(chain_root.into()), Some(note_root.into()), &[]);
         let serialized = header.to_bytes();
         let deserialized = BlockHeader::read_from_bytes(&serialized).unwrap();
 

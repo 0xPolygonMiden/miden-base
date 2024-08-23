@@ -155,8 +155,31 @@ impl NoteExecutionHint {
 /// This way, hints such as [NoteExecutionHint::Always], are represented by `Felt::new(1)`
 impl From<NoteExecutionHint> for Felt {
     fn from(value: NoteExecutionHint) -> Self {
+        let int_representation: u64 = value.into();
+        Felt::new(int_representation)
+    }
+}
+
+/// As a u64, the ExecutionHint is encoded as:
+///
+/// - 6 least significant bits: Hint identifier (tag).
+/// - Bits 6 to 38: Hint payload.
+///
+/// This way, hints such as [NoteExecutionHint::Always], are represented by `1u64`
+impl TryFrom<u64> for NoteExecutionHint {
+    type Error = NoteError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let tag = (value & 0b111111) as u8;
+        let payload = ((value >> 6) & 0xFFFFFFFF) as u32;
+
+        Self::from_parts(tag, payload)
+    }
+}
+
+impl From<NoteExecutionHint> for u64 {
+    fn from(value: NoteExecutionHint) -> Self {
         let (tag, payload) = value.into_parts();
-        Felt::new(((payload as u64) << 6) | (tag as u64))
+        (payload as u64) << 6 | (tag as u64)
     }
 }
 
@@ -183,6 +206,26 @@ mod tests {
             slot_len: 12,
             slot_offset: 18,
         });
+    }
+
+    #[test]
+    fn test_encode_round_trip() {
+        let hint = NoteExecutionHint::AfterBlock { block_num: 15 };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let hint = NoteExecutionHint::OnBlockSlot {
+            epoch_len: 22,
+            slot_len: 33,
+            slot_offset: 44,
+        };
+        let hint_int: u64 = hint.into();
+        let decoded_hint: NoteExecutionHint = hint_int.try_into().unwrap();
+        assert_eq!(hint, decoded_hint);
+
+        let always_int: u64 = NoteExecutionHint::always().into();
+        assert_eq!(always_int, 1u64);
     }
 
     #[test]

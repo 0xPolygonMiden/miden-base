@@ -1,7 +1,7 @@
 use.std::crypto::hashes::native
 
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
+use.kernel::constants
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================

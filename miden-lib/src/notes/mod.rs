@@ -6,12 +6,12 @@ use miden_objects::{
     crypto::rand::FeltRng,
     notes::{
         Note, NoteAssets, NoteDetails, NoteExecutionHint, NoteExecutionMode, NoteInputs,
-        NoteMetadata, NoteRecipient, NoteTag, NoteType,
+        NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
     },
+    utils::Deserializable,
+    vm::Program,
     Felt, NoteError, Word,
 };
-
-use self::utils::build_note_script;
 
 pub mod utils;
 
@@ -37,7 +37,9 @@ pub fn create_p2id_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2ID.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let inputs = NoteInputs::new(vec![target.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
@@ -71,7 +73,9 @@ pub fn create_p2idr_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/P2IDR.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let inputs = NoteInputs::new(vec![target.into(), recall_height.into()])?;
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
@@ -101,7 +105,9 @@ pub fn create_swap_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<(Note, NoteDetails), NoteError> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/note_scripts/SWAP.masb"));
-    let note_script = build_note_script(bytes)?;
+    let program =
+        Program::read_from_bytes(bytes).map_err(NoteError::NoteScriptDeserializationError)?;
+    let note_script = NoteScript::new(program);
 
     let payback_serial_num = rng.draw_word();
     let payback_recipient = utils::build_p2id_recipient(sender, payback_serial_num)?;

@@ -1,9 +1,9 @@
 use.std::utils
 
-use.miden::kernels::tx::epilogue
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::note
-use.miden::kernels::tx::prologue
+use.kernel::epilogue
+use.kernel::memory
+use.kernel::note
+use.kernel::prologue
 
 # TRACES
 # =================================================================================================

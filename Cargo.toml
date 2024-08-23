@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [ 
-    "bench-tx",
+    #"bench-tx",
     "miden-lib",
     "miden-tx",
     "objects",
@@ -9,7 +9,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.80"
 license = "MIT"
 authors = ["Miden contributors"]
 homepage = "https://polygon.technology/polygon-miden"
@@ -31,11 +31,11 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies]
-assembly = { package = "miden-assembly", version = "0.9", default-features = false }
-miden-crypto = { version = "0.9", default-features = false }
-miden-prover = { version = "0.9", default-features = false }
-miden-stdlib = { version = "0.9", default-features = false }
-miden-verifier = { version = "0.9", default-features = false }
+assembly = { package = "miden-assembly", version = "0.10", default-features = false }
+miden-crypto = { version = "0.10", default-features = false }
+miden-prover = { version = "0.10", default-features = false }
+miden-stdlib = { version = "0.10", default-features = false }
+miden-verifier = { version = "0.10", default-features = false }
 rand = { version = "0.8", default-features = false }
-vm-core = { package = "miden-core", version = "0.9", default-features = false }
-vm-processor = { package = "miden-processor", version = "0.9", default-features = false }
+vm-core = { package = "miden-core", version = "0.10", default-features = false }
+vm-processor = { package = "miden-processor", version = "0.10", default-features = false }

@@ -7,11 +7,8 @@ use miden_crypto::{
 use vm_processor::DeserializationError;
 
 use crate::{
-    accounts::AccountId,
-    assembly::{Assembler, AssemblyContext, ProgramAst},
-    assets::Asset,
-    vm::CodeBlock,
-    Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
+    accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH,
+    WORD_SIZE, ZERO,
 };
 
 mod assets;
