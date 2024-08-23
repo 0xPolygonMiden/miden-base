@@ -12,9 +12,8 @@ use super::{AdviceInputs, TransactionArgs, TransactionInputs};
 /// A transaction witness consists of:
 /// - Transaction inputs which contain information about the initial state of the account, input
 ///   notes, block header etc.
-/// - Optional transaction arguments which may contain a transaction script, note arguments, and
-///   any additional advice data to initialize the advice provide with prior to transaction
-///   execution.
+/// - Optional transaction arguments which may contain a transaction script, note arguments, and any
+///   additional advice data to initialize the advice provide with prior to transaction execution.
 /// - Advice witness which contains all data requested by the VM from the advice provider while
 ///   executing the transaction program.
 ///

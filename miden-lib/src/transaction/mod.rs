@@ -265,8 +265,8 @@ impl TransactionKernel {
     /// This assembler is similar to the assembler used to assemble the kernel and transactions,
     /// with the difference that it also includes an extra library on the namespace of `kernel`.
     /// The `kernel` library is added separately because even though the library (`api.masm`) and
-    /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding it
-    /// separately, we can expose procedures from `/lib` and test them individually.
+    /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding
+    /// it separately, we can expose procedures from `/lib` and test them individually.
     pub fn assembler_testing() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         let kernel_library = Self::kernel_as_library();

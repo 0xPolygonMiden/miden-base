@@ -148,7 +148,6 @@ impl AccountVaultDelta {
     }
 }
 
-
 impl Serializable for AccountVaultDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(&self.fungible);

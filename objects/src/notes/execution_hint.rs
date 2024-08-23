@@ -170,7 +170,7 @@ impl TryFrom<u64> for NoteExecutionHint {
     type Error = NoteError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let tag = (value & 0b111111) as u8;
-        let payload = ((value >> 6) & 0xFFFFFFFF) as u32;
+        let payload = ((value >> 6) & 0xffffffff) as u32;
 
         Self::from_parts(tag, payload)
     }
