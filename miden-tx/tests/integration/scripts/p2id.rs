@@ -246,7 +246,7 @@ fn p2id_script_multiple_assets() {
 
 /// Consumes an existing note with a new account
 #[test]
-fn test_execute_prove_new_account() {
+fn prove_consume_note_with_new_account() {
     let (mut target_account, seed, falcon_auth) = create_new_account();
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();
@@ -291,13 +291,13 @@ fn test_execute_prove_new_account() {
     target_account.apply_delta(executed_transaction.account_delta()).unwrap();
     assert!(!target_account.is_new());
 
-    prove_and_verify_transaction(executed_transaction).unwrap();
+    assert!(prove_and_verify_transaction(executed_transaction).is_ok());
 }
 
 /// Consumes two existing notes (with an asset from a faucet for a combined total of 123 tokens)
 /// with a basic account
 #[test]
-fn test_consume_multiple_notes() {
+fn prove_consume_multiple_notes() {
     let mut mock_chain = MockChain::new();
     let mut account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
 
@@ -346,7 +346,7 @@ fn test_consume_multiple_notes() {
         panic!("Resulting asset should be fungible");
     }
 
-    prove_and_verify_transaction(executed_transaction).unwrap();
+    assert!(prove_and_verify_transaction(executed_transaction).is_ok());
 }
 
 // HELPER FUNCTIONS
