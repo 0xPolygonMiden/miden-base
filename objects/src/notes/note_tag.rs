@@ -13,7 +13,7 @@ const NETWORK_EXECUTION: u8 = 0;
 const LOCAL_EXECUTION: u8 = 1;
 
 // The 2 most significant bits are set to `0b11`
-const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xC0000000;
+const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc0000000;
 // The 2 most significant bits are set to `0b10`
 const PUBLIC_USECASE: u32 = 0x80000000;
 
@@ -54,9 +54,9 @@ pub enum NoteExecutionMode {
 /// - [NoteExecutionMode] is set to [NoteExecutionMode::Network] to hint a [super::Note] should be
 ///   consumed by the network. These notes will be further validated and if possible consumed by it.
 /// - Target describes how to further interpret the bits in the tag. For tags with a specific
-///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning of
-///   the rest of the tag is not specified by the protocol and can be used by applications built on
-///   top of the rollup.
+///   target, the rest of the tag is interpreted as an account_id. For use case values, the meaning
+///   of the rest of the tag is not specified by the protocol and can be used by applications built
+///   on top of the rollup.
 ///
 /// The note type is the only value enforced by the protocol. The rationale is that any note
 /// intended to be consumed by the network must be public to have all the details available. The
@@ -86,7 +86,6 @@ impl NoteTag {
     ///
     /// This will return an error if the account_id is not for an on-chain account and the execution
     /// hint is set to [NoteExecutionMode::Network].
-    ///
     pub fn from_account_id(
         account_id: AccountId,
         execution: NoteExecutionMode,
@@ -95,7 +94,7 @@ impl NoteTag {
             NoteExecutionMode::Local => {
                 let id: u64 = account_id.into();
                 // select 14 most significant bits of the account ID and shift them right by 2 bits
-                let high_bits = (id >> 34) as u32 & 0xFFFF0000;
+                let high_bits = (id >> 34) as u32 & 0xffff0000;
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
@@ -207,7 +206,7 @@ impl NoteTag {
             return Err(NoteError::NetworkExecutionRequiresPublicNote(note_type));
         }
 
-        let is_public_use_case = (self.0 & 0xC0000000) == PUBLIC_USECASE;
+        let is_public_use_case = (self.0 & 0xc0000000) == PUBLIC_USECASE;
         if is_public_use_case && note_type != NoteType::Public {
             Err(NoteError::PublicUseCaseRequiresPublicNote(note_type))
         } else {

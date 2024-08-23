@@ -29,7 +29,8 @@ pub use builder::TransactionContextBuilder;
 #[derive(Clone)]
 /// Represents all needed data for executing a transaction, or arbitrary code.
 ///
-/// It implements [DataStore], so transactions may be executed with [TransactionExecutor](crate::TransactionExecutor)
+/// It implements [DataStore], so transactions may be executed with
+/// [TransactionExecutor](crate::TransactionExecutor)
 pub struct TransactionContext {
     mock_chain: MockChain,
     expected_output_notes: Vec<Note>,

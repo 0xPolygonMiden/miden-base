@@ -31,16 +31,16 @@ pub enum NoteExecutionHint {
     /// The note's script can be executed in the specified slot within the specified epoch.
     ///
     /// The slot is defined as follows:
-    /// - First we define the length of the epoch in powers of 2. For example, epoch_len = 10 is
-    ///   an epoch of 1024 blocks.
+    /// - First we define the length of the epoch in powers of 2. For example, epoch_len = 10 is an
+    ///   epoch of 1024 blocks.
     /// - Then we define the length of a slot within the epoch also using powers of 2. For example,
     ///   slot_len = 7 is a slot of 128 blocks.
     /// - Lastly, the offset specifies the index of the slot within the epoch - i.e., 0 is the
     ///   first slot, 1 is the second slot etc.
     ///
     /// For example: { epoch_len: 10, slot_len: 7, slot_offset: 1 } means that the note can
-    /// be executed in any second 128 block slot of a 1024 block epoch. These would be blocks 128..255,
-    /// 1152..1279, 2176..2303 etc.
+    /// be executed in any second 128 block slot of a 1024 block epoch. These would be blocks
+    /// 128..255, 1152..1279, 2176..2303 etc.
     OnBlockSlot {
         epoch_len: u8,
         slot_len: u8,
@@ -88,14 +88,14 @@ impl NoteExecutionHint {
             },
             AFTER_BLOCK_TAG => Ok(NoteExecutionHint::AfterBlock { block_num: payload }),
             ON_BLOCK_SLOT_TAG => {
-                let remainder = (payload >> 24 & 0xFF) as u8;
+                let remainder = (payload >> 24 & 0xff) as u8;
                 if remainder != 0 {
                     return Err(NoteError::InvalidNoteExecutionHintPayload(tag, payload));
                 }
 
-                let epoch_len = ((payload >> 16) & 0xFF) as u8;
-                let slot_len = ((payload >> 8) & 0xFF) as u8;
-                let slot_offset = (payload & 0xFF) as u8;
+                let epoch_len = ((payload >> 16) & 0xff) as u8;
+                let slot_len = ((payload >> 8) & 0xff) as u8;
+                let slot_offset = (payload & 0xff) as u8;
                 let hint = NoteExecutionHint::OnBlockSlot { epoch_len, slot_len, slot_offset };
 
                 Ok(hint)
@@ -170,7 +170,7 @@ impl TryFrom<u64> for NoteExecutionHint {
     type Error = NoteError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let tag = (value & 0b111111) as u8;
-        let payload = ((value >> 6) & 0xFFFFFFFF) as u32;
+        let payload = ((value >> 6) & 0xffffffff) as u32;
 
         Self::from_parts(tag, payload)
     }
@@ -248,7 +248,8 @@ mod tests {
         assert!(on_block_slot.can_be_consumed(1152).unwrap()); // Block 1152 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(1279).unwrap()); // Block 1279 is in the slot 1152..1279
         assert!(on_block_slot.can_be_consumed(2176).unwrap()); // Block 2176 is in the slot 2176..2303
-        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 2175 is not in the slot 2176..2303
+        assert!(!on_block_slot.can_be_consumed(2175).unwrap()); // Block 1279 is in the slot
+                                                                // 2176..2303
     }
 
     #[test]

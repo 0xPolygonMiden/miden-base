@@ -15,7 +15,6 @@ use super::{
 /// - For off-chain notes, the most significant bit of the tag must be 0.
 /// - For public notes, the second most significant bit of the tag must be 0.
 /// - For encrypted notes, two most significant bits of the tag must be 00.
-///
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteMetadata {
@@ -166,7 +165,7 @@ fn merge_type_and_hint(note_type: NoteType, note_execution_hint: NoteExecutionHi
 fn unmerge_type_and_hint(value: u64) -> Result<(NoteType, NoteExecutionHint), NoteError> {
     let high_nibble = ((value >> 38) & 0b11) as u8;
     let tag_byte = (value & 0b111111) as u8;
-    let payload_u32 = (value >> 6 & 0xFFFFFFFF) as u32;
+    let payload_u32 = (value >> 6 & 0xffffffff) as u32;
 
     let note_type = NoteType::try_from(high_nibble)?;
     let note_execution_hint = NoteExecutionHint::from_parts(tag_byte, payload_u32)?;

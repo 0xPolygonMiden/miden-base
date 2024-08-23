@@ -139,8 +139,8 @@ impl AccountCode {
         // tests will work properly. If these asserts fail, copy the value of the code (the left
         // value), into the constants.
         //
-        // Comparing all the values together, in case multiple of them change, a single test run will
-        // detect it.
+        // Comparing all the values together, in case multiple of them change, a single test run
+        // will detect it.
         let current = [
             code.procedures()[0].mast_root().to_hex(),
             code.procedures()[1].mast_root().to_hex(),

@@ -2,6 +2,11 @@
 
 name: lint
 
+# Limits workflow concurrency to only the latest commit in the PR.
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, next]
@@ -10,21 +15,31 @@ on:
 
 jobs:
   clippy:
-    name: clippy nightly on ubuntu-latest
+    name: clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Only update the cache on push onto the next branch. This strikes a nice balance between
+          # cache hits and cache evictions (github has a 10GB cache limit). 
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Clippy
         run: |
-          rustup update --no-self-update nightly
-          rustup +nightly component add clippy
+          rustup update --no-self-update
+          rustup component add clippy
           make clippy
 
   rustfmt:
-    name: rustfmt check nightly on ubuntu-latest
+    name: rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Only update the cache on push onto the next branch. This strikes a nice balance between
+          # cache hits and cache evictions (github has a 10GB cache limit). 
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Rustfmt
         run: |
           rustup update --no-self-update nightly
@@ -32,10 +47,15 @@ jobs:
           make format-check
 
   doc:
-    name: doc stable on ubuntu-latest
+    name: doc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Only update the cache on push onto the next branch. This strikes a nice balance between
+          # cache hits and cache evictions (github has a 10GB cache limit). 
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
       - name: Build docs
         run: |
           rustup update --no-self-update

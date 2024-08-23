@@ -14,12 +14,12 @@ ALL_FEATURES_BUT_ASYNC=--features concurrent,testing,serde
 
 .PHONY: clippy
 clippy: ## Runs Clippy with configs
-	cargo +nightly clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
+	cargo clippy --workspace --all-targets $(ALL_FEATURES_BUT_ASYNC) -- -D warnings
 
 
 .PHONY: fix
 fix: ## Runs Fix with configs
-	cargo +nightly fix --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
+	cargo fix --workspace --allow-staged --allow-dirty --all-targets $(ALL_FEATURES_BUT_ASYNC)
 
 
 .PHONY: format
@@ -47,6 +47,10 @@ doc-serve: ## Serves documentation site
 	./scripts/serve-doc-site.sh
 
 # --- testing -------------------------------------------------------------------------------------
+
+.PHONY: test-build
+test-build: ## Build the test binary
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features concurrent,testing --no-run
 
 .PHONY: test-default
 test-default: ## Run default tests excluding `prove`

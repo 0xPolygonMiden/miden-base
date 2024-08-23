@@ -2,6 +2,11 @@
 
 name: test
 
+# Limits workflow concurrency to only the latest commit in the PR.
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, next]
@@ -10,19 +15,19 @@ on:
 
 jobs:
   test:
-    name: test ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
-    runs-on: ${{matrix.os}}-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain: [stable, nightly]
-        os: [ubuntu]
-        args: [default, prove]
-    timeout-minutes: 30
+    name: test
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
       - uses: taiki-e/install-action@nextest 
-      - name: Perform tests
-        run: |
-          rustup update --no-self-update ${{matrix.toolchain}} 
-          make test-${{matrix.args}}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+      - name: Install rust
+        run: rustup update --no-self-update 
+      - name: Build tests
+        run: make test-build
+      - name: test-default
+        run: make test-default
+      - name: test-prove
+        run: make test-prove

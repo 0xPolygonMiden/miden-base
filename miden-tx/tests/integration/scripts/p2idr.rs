@@ -84,10 +84,13 @@ fn p2idr_script() {
     .unwrap();
 
     // --------------------------------------------------------------------------------------------
-    //  We have two cases:
-    //  Case "in time": block height is 4, reclaim block height is 5. Only the target account can consume the note.
-    //  Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account can consume the note.
-    //  The malicious account should never be able to consume the note.
+    // We have two cases.
+    //
+    // Case "in time": block height is 4, reclaim block height is 5. Only the target account can
+    // consume the note.
+    //
+    // Case "reclaimable": block height is 4, reclaim block height is 3. Target and sender account
+    // can consume the note.  The malicious account should never be able to consume the note.
     // --------------------------------------------------------------------------------------------
     // CONSTRUCT AND EXECUTE TX (Case "in time" - Target Account Execution Success)
     // --------------------------------------------------------------------------------------------

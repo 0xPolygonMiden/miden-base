@@ -198,7 +198,8 @@ impl<T: ToInputNoteCommitments> InputNotes<T> {
     ///
     /// For non empty lists the commitment is defined as:
     ///
-    /// > hash(nullifier_0 || noteid0_or_zero || nullifier_1 || noteid1_or_zero || .. || nullifier_n || noteidn_or_zero)
+    /// > hash(nullifier_0 || noteid0_or_zero || nullifier_1 || noteid1_or_zero || .. || nullifier_n
+    /// > || noteidn_or_zero)
     ///
     /// Otherwise defined as ZERO for empty lists.
     pub fn commitment(&self) -> Digest {

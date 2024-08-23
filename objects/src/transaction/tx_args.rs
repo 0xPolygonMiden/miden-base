@@ -21,11 +21,11 @@ use crate::{
 
 /// Optional transaction arguments.
 ///
-/// - Transaction script: a program that is executed in a transaction after all input notes
-///   scripts have been executed.
-/// - Note arguments: data put onto the stack right before a note script is executed. These
-///   are different from note inputs, as the user executing the transaction can specify arbitrary
-///   note args.
+/// - Transaction script: a program that is executed in a transaction after all input notes scripts
+///   have been executed.
+/// - Note arguments: data put onto the stack right before a note script is executed. These are
+///   different from note inputs, as the user executing the transaction can specify arbitrary note
+///   args.
 /// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {

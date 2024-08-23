@@ -166,8 +166,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// # Errors
     /// Returns an error if:
@@ -216,8 +216,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// The actual data describing the new account state and output notes is expected to be located
     /// in the provided advice map under keys CNC and FAH.
@@ -265,8 +265,8 @@ impl TransactionKernel {
     /// This assembler is similar to the assembler used to assemble the kernel and transactions,
     /// with the difference that it also includes an extra library on the namespace of `kernel`.
     /// The `kernel` library is added separately because even though the library (`api.masm`) and
-    /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding it
-    /// separately, we can expose procedures from `/lib` and test them individually.
+    /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding
+    /// it separately, we can expose procedures from `/lib` and test them individually.
     pub fn assembler_testing() -> Assembler {
         let source_manager = Arc::new(DefaultSourceManager::default());
         let kernel_library = Self::kernel_as_library();

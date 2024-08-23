@@ -117,8 +117,8 @@ impl AccountCode {
     /// # Panics
     /// Panics if:
     /// - The number of procedures is smaller than 1 or greater than 256.
-    /// - If some any of the provided procedures does not have a corresponding root in the
-    ///   provided MAST forest.
+    /// - If some any of the provided procedures does not have a corresponding root in the provided
+    ///   MAST forest.
     pub fn from_parts(mast: Arc<MastForest>, procedures: Vec<AccountProcedureInfo>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");

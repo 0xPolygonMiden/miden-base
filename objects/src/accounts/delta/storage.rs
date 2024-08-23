@@ -25,8 +25,8 @@ const IMMUTABLE_STORAGE_SLOT: u8 = u8::MAX;
 /// The delta consists of two maps:
 /// - A map containing the updates to simple storage slots. The keys in this map are indexes of the
 ///   updated storage slots and the values are the new values for these slots.
-/// - A map containing updates to storage maps. The keys in this map are also indexes of the
-///   updated storage slots  and the values are corresponding storage map delta objects.
+/// - A map containing updates to storage maps. The keys in this map are also indexes of the updated
+///   storage slots  and the values are corresponding storage map delta objects.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AccountStorageDelta {
     slots: BTreeMap<u8, Word>,

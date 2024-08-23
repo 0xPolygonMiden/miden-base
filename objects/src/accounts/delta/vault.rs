@@ -529,8 +529,8 @@ mod tests {
         #[case] y: Option<bool>,
         #[case] expected: Result<Option<bool>, ()>,
     ) {
-        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta will
-        /// be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
+        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta
+        /// will be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
         fn create_delta_with_non_fungible(
             account_id: AccountId,
             added: Option<bool>,

@@ -173,8 +173,8 @@ pub const ACCT_CODE_COMMITMENT_OFFSET: MemoryOffset = 3;
 pub const ACCT_CODE_COMMITMENT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_CODE_COMMITMENT_OFFSET;
 
-/// The offset at which the accounts new code commitment is stored relative to the start of the account
-/// data segment.
+/// The offset at which the accounts new code commitment is stored relative to the start of the
+/// account data segment.
 pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
 
 /// The memory address at which the new account code commitment is stored
@@ -196,6 +196,7 @@ pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 
+#[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
 // Inputs note section contains data of all notes consumed by a transaction. The section starts at
