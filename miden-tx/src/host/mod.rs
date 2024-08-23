@@ -7,7 +7,8 @@ use miden_objects::{
     accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionMeasurements},
+    vm::RowIndex,
     Digest, Hasher,
 };
 use vm_processor::{
@@ -114,7 +115,15 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
 
     /// Consumes `self` and returns the advice provider, account vault delta, output notes and
     /// signatures generated during the transaction execution.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        A,
+        AccountDelta,
+        Vec<OutputNote>,
+        BTreeMap<Digest, Vec<Felt>>,
+        TransactionProgress,
+    ) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
 
         (
@@ -122,6 +131,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             self.account_delta.into_delta(),
             output_notes,
             self.generated_signatures,
+            self.tx_progress,
         )
     }
 
@@ -500,24 +510,20 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
 
         use TransactionTrace::*;
         match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk().as_u32()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk().as_u32()),
-            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk().as_u32()),
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk().as_u32()),
+            PrologueStart => self.tx_progress.start_prologue(process.clk()),
+            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
+            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
+            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
             NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?
                     .expect("Note execution interval measurement is incorrect: check the placement of the start and the end of the interval");
-                self.tx_progress.start_note_execution(process.clk().as_u32(), note_id);
+                self.tx_progress.start_note_execution(process.clk(), note_id);
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk().as_u32()),
-            TxScriptProcessingStart => {
-                self.tx_progress.start_tx_script_processing(process.clk().as_u32())
-            },
-            TxScriptProcessingEnd => {
-                self.tx_progress.end_tx_script_processing(process.clk().as_u32())
-            },
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk().as_u32()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk().as_u32()),
+            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
+            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
+            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
+            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
+            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
         }
 
         Ok(HostResponse::None)

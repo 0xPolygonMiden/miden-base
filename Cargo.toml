@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [ 
-    #"bench-tx",
+    "bench-tx",
     "miden-lib",
     "miden-tx",
     "objects",
