@@ -14,11 +14,18 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
     notes::NoteType,
-    testing::account::AccountBuilder,
-    transaction::TransactionArgs,
+    testing::{account::AccountBuilder, account_code::DEFAULT_AUTH_SCRIPT},
+    transaction::{TransactionArgs, TransactionScript},
     Felt, FieldElement,
 };
-use miden_tx::{auth::BasicAuthenticator, testing::TransactionContextBuilder, TransactionExecutor};
+use miden_tx::{
+    auth::BasicAuthenticator,
+    testing::{
+        mock_chain::{Auth, MockChain},
+        TransactionContextBuilder,
+    },
+    TransactionExecutor,
+};
 use rand::{rngs::StdRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::Word;
@@ -239,7 +246,7 @@ fn p2id_script_multiple_assets() {
 
 /// Consumes an existing note with a new account
 #[test]
-fn test_execute_prove_new_account() {
+fn prove_consume_note_with_new_account() {
     let (mut target_account, seed, falcon_auth) = create_new_account();
     let faucet_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id, 123).unwrap().into();
@@ -284,7 +291,62 @@ fn test_execute_prove_new_account() {
     target_account.apply_delta(executed_transaction.account_delta()).unwrap();
     assert!(!target_account.is_new());
 
-    prove_and_verify_transaction(executed_transaction).unwrap();
+    assert!(prove_and_verify_transaction(executed_transaction).is_ok());
+}
+
+/// Consumes two existing notes (with an asset from a faucet for a combined total of 123 tokens)
+/// with a basic account
+#[test]
+fn prove_consume_multiple_notes() {
+    let mut mock_chain = MockChain::new();
+    let mut account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+
+    let fungible_asset_1: Asset =
+        FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap(), 100)
+            .unwrap()
+            .into();
+    let fungible_asset_2: Asset =
+        FungibleAsset::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().unwrap(), 23)
+            .unwrap()
+            .into();
+
+    let note_1 = mock_chain
+        .add_p2id_note(
+            ACCOUNT_ID_SENDER.try_into().unwrap(),
+            account.id(),
+            &[fungible_asset_1],
+            NoteType::Private,
+        )
+        .unwrap();
+    let note_2 = mock_chain
+        .add_p2id_note(
+            ACCOUNT_ID_SENDER.try_into().unwrap(),
+            account.id(),
+            &[fungible_asset_2],
+            NoteType::Private,
+        )
+        .unwrap();
+
+    let tx_script =
+        TransactionScript::compile(DEFAULT_AUTH_SCRIPT, vec![], TransactionKernel::assembler())
+            .unwrap();
+    let tx_context = mock_chain
+        .build_tx_context(account.id())
+        .input_notes(vec![note_1, note_2])
+        .tx_script(tx_script)
+        .build();
+
+    let executed_transaction = tx_context.execute().unwrap();
+
+    account.apply_delta(executed_transaction.account_delta()).unwrap();
+    let resulting_asset = account.vault().assets().next().unwrap();
+    if let Asset::Fungible(asset) = resulting_asset {
+        assert_eq!(asset.amount(), 123u64);
+    } else {
+        panic!("Resulting asset should be fungible");
+    }
+
+    assert!(prove_and_verify_transaction(executed_transaction).is_ok());
 }
 
 // HELPER FUNCTIONS
