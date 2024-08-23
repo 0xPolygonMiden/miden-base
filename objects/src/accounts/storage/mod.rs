@@ -23,7 +23,6 @@ pub const STORAGE_TREE_DEPTH: u8 = 8;
 
 /// Represents a single storage slot item.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct SlotItem {
     /// The index this item will occupy in the [AccountStorage] tree.
     pub index: u8,
@@ -71,7 +70,6 @@ impl SlotItem {
 
 /// Represents a single storage slot entry.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct StorageSlot {
     /// The type of the value
     pub slot_type: StorageSlotType,

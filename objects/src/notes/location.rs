@@ -5,7 +5,6 @@ use crate::{crypto::merkle::MerklePath, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BAT
 
 /// Contains information about the location of a note.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteLocation {
     /// The block number the note was created in.
     block_num: u32,
@@ -33,7 +32,6 @@ impl NoteLocation {
 
 /// Contains the data required to prove inclusion of a note in the canonical chain.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteInclusionProof {
     /// Details about the note's location.
     location: NoteLocation,

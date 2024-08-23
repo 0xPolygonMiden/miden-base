@@ -26,7 +26,6 @@ const PUBLIC_USECASE: u32 = 0x80000000;
 ///
 /// The goal of the hint is to allow for a network node to quickly filter notes that are not
 /// intended for network execution, and skip the validation steps mentioned above.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum NoteExecutionMode {
@@ -63,7 +62,6 @@ pub enum NoteExecutionMode {
 /// public note for local execution is intended to allow users to search for notes that can be
 /// consumed right away, without requiring an off-band communication channel.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteTag(u32);
 
 impl NoteTag {

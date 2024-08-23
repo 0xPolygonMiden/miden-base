@@ -64,7 +64,6 @@ pub use vault::AssetVault;
 /// to be different as per the faucet creation logic. Collision resistance for non-fungible assets
 /// issued by the same faucet is ~2^95.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Asset {
     Fungible(FungibleAsset),
     NonFungible(NonFungibleAsset),
