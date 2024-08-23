@@ -74,8 +74,9 @@ pub fn create_basic_wallet(
 mod tests {
 
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+    use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, AccountStorageType, AccountType, AuthScheme};
+    use super::{create_basic_wallet, Account, AccountStorageType, AccountType, AuthScheme};
 
     #[test]
     fn test_create_basic_wallet() {
@@ -90,5 +91,22 @@ mod tests {
         wallet.unwrap_or_else(|err| {
             panic!("{}", err);
         });
+    }
+
+    #[test]
+    fn test_serialize_basic_wallet() {
+        let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
+        let wallet = create_basic_wallet(
+            [1; 32],
+            AuthScheme::RpoFalcon512 { pub_key },
+            AccountType::RegularAccountImmutableCode,
+            AccountStorageType::OnChain,
+        )
+        .unwrap()
+        .0;
+
+        let bytes = wallet.to_bytes();
+        let deserialized_wallet = Account::read_from_bytes(&bytes).unwrap();
+        assert_eq!(wallet, deserialized_wallet);
     }
 }

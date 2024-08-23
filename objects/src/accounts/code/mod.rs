@@ -43,7 +43,7 @@ impl AccountCode {
     // --------------------------------------------------------------------------------------------
 
     /// The maximum number of account interface procedures.
-    pub const MAX_NUM_PROCEDURES: usize = u8::MAX as usize;
+    pub const MAX_NUM_PROCEDURES: usize = 256;
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ impl AccountCode {
             }
         }
 
-        // make sure the number of procedures is between 1 and 65535 (both inclusive)
+        // make sure the number of procedures is between 1 and 256 (both inclusive)
         if procedures.is_empty() {
             return Err(AccountError::AccountCodeNoProcedures);
         } else if procedures.len() > Self::MAX_NUM_PROCEDURES {
@@ -122,11 +122,6 @@ impl AccountCode {
     pub fn from_parts(mast: Arc<MastForest>, procedures: Vec<AccountProcedureInfo>) -> Self {
         assert!(!procedures.is_empty(), "no account procedures");
         assert!(procedures.len() <= Self::MAX_NUM_PROCEDURES, "too many account procedures");
-
-        // make sure all procedures are roots in the MAST forest
-        for procedure in procedures.iter() {
-            assert!(mast.find_procedure_root(*procedure.mast_root()).is_some());
-        }
 
         Self {
             commitment: build_procedure_commitment(&procedures),
@@ -224,11 +219,11 @@ impl Serializable for AccountCode {
 
 impl Deserializable for AccountCode {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let module = MastForest::read_from(source)?;
+        let module = Arc::new(MastForest::read_from(source)?);
         let num_procedures = (source.read_u8()? as usize) + 1;
         let procedures = source.read_many::<AccountProcedureInfo>(num_procedures)?;
 
-        Ok(Self::from_parts(Arc::new(module), procedures))
+        Ok(Self::from_parts(module, procedures))
     }
 }
 
