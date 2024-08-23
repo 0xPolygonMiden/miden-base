@@ -91,7 +91,7 @@ fn transaction_executor_witness() {
     )
     .unwrap();
 
-    let (advice_provider, _, output_notes, _signatures) = host.into_parts();
+    let (advice_provider, _, output_notes, _signatures, _tx_progress) = host.into_parts();
     let (_, map, _) = advice_provider.into_parts();
     let tx_outputs = TransactionKernel::from_transaction_parts(
         result.stack_outputs(),

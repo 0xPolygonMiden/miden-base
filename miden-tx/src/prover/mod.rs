@@ -69,7 +69,8 @@ impl TransactionProver {
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, account_delta, output_notes, _signatures) = host.into_parts();
+        let (advice_provider, account_delta, output_notes, _signatures, _tx_progress) =
+            host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs =
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)

@@ -23,7 +23,6 @@
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
 - Added conversions for `NoteExecutionHint` (#827).
 
-
 ## 0.4.0 (2024-07-03)
 
 ### Features

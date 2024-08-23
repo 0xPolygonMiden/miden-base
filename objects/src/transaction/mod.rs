@@ -1,6 +1,6 @@
 use super::{
     accounts::{Account, AccountDelta, AccountId, AccountStub},
-    notes::Nullifier,
+    notes::{NoteId, Nullifier},
     vm::AdviceInputs,
     BlockHeader, Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,
 };
@@ -15,7 +15,7 @@ mod tx_args;
 mod tx_witness;
 
 pub use chain_mmr::ChainMmr;
-pub use executed_tx::ExecutedTransaction;
+pub use executed_tx::{ExecutedTransaction, TransactionMeasurements};
 pub use inputs::{InputNote, InputNotes, ToInputNoteCommitments, TransactionInputs};
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
 pub use proven_tx::{
