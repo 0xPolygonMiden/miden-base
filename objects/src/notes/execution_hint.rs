@@ -19,7 +19,6 @@ const ON_BLOCK_SLOT_TAG: u8 = 3;
 /// This struct can be represented as the combination of a tag, and a payload.
 /// The tag specifies the variant of the hint, and the payload encodes the hint data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum NoteExecutionHint {
     /// Unspecified note execution hint. Implies it is not knorn under which conditions the note
     /// is consumable.

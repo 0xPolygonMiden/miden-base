@@ -22,6 +22,7 @@
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
 - Added conversions for `NoteExecutionHint` (#827).
+- [BREAKING] Removed `serde`-based serialization from `miden-object` structs (#838).
 
 
 ## 0.4.0 (2024-07-03)

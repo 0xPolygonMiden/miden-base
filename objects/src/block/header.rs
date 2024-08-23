@@ -25,7 +25,6 @@ use crate::utils::serde::{
 /// - `sub_hash` is a sequential hash of all fields except the note_root.
 /// - `hash` is a 2-to-1 hash of the sub_hash and the note_root.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockHeader {
     version: u32,
     prev_hash: Digest,

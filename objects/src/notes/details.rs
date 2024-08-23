@@ -13,7 +13,6 @@ use super::{NoteAssets, NoteId, NoteInputs, NoteRecipient, NoteScript, Nullifier
 ///
 /// See [super::Note] for more details.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteDetails {
     assets: NoteAssets,
     recipient: NoteRecipient,

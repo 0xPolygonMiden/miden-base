@@ -17,7 +17,6 @@ use crate::{
 /// ID's leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
 /// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTES_TREE_DEPTH>);
 
 impl BlockNoteTree {

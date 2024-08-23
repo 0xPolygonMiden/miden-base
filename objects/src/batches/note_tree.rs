@@ -12,7 +12,6 @@ use crate::{
 ///
 /// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BatchNoteTree(SimpleSmt<BATCH_NOTES_TREE_DEPTH>);
 
 impl BatchNoteTree {
