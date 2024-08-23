@@ -1,7 +1,6 @@
 use alloc::{string::String, vec::Vec};
 use core::fmt;
 
-use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
@@ -21,7 +20,8 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
-    AccountCodeAssemblerError(AssemblyError),
+    AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
     AccountCodeProcedureInvalidStorageOffset,
@@ -153,8 +153,9 @@ pub enum NoteError {
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
     NoteDeserializationError(DeserializationError),
+    NoteScriptAssemblyError(String), // TODO: use Report
+    NoteScriptDeserializationError(DeserializationError),
     PublicUseCaseRequiresPublicNote(NoteType),
-    ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
 }
@@ -228,7 +229,7 @@ impl std::error::Error for ChainMmrError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionScriptError {
-    ScriptCompilationError(AssemblyError),
+    AssemblyError(String), // TODO: change to Report
 }
 
 impl fmt::Display for TransactionScriptError {

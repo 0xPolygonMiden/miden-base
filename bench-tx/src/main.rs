@@ -9,7 +9,6 @@ use std::{
 use miden_lib::{notes::create_p2id_note, transaction::ToTransactionKernelInputs};
 use miden_objects::{
     accounts::{AccountId, AuthSecretKey},
-    assembly::ProgramAst,
     assets::{Asset, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, rand::RpoRandomCoin},
     notes::NoteType,
@@ -18,7 +17,7 @@ use miden_objects::{
 };
 use miden_tx::{
     auth::BasicAuthenticator, testing::TransactionContextBuilder, utils::Serializable,
-    TransactionExecutor, TransactionHost, TransactionProgress,
+    TransactionExecutor, TransactionHost, TransactionMastStore, TransactionProgress,
 };
 use rand::rngs::StdRng;
 use vm_processor::{ExecutionOptions, RecAdviceProvider, Word, ONE};
@@ -89,8 +88,12 @@ pub fn benchmark_default_tx() -> Result<TransactionProgress, String> {
 
     let (stack_inputs, advice_inputs) = transaction.get_kernel_inputs();
     let advice_recorder: RecAdviceProvider = advice_inputs.into();
+
+    let mast_store = Rc::new(TransactionMastStore::new());
+    // TODO: add account/note/tx_script MAST to the mast_store?
+
     let mut host: TransactionHost<_, ()> =
-        TransactionHost::new(transaction.account().into(), advice_recorder, None)
+        TransactionHost::new(transaction.account().into(), advice_recorder, mast_store, None)
             .map_err(|e| format!("Failed to create transaction host: {}", e))?;
 
     vm_processor::execute(
@@ -151,14 +154,9 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         .map(|note| note.id())
         .collect::<Vec<_>>();
 
-    let tx_script_code = ProgramAst::parse(DEFAULT_AUTH_SCRIPT).unwrap();
-
+    let tx_script_src = DEFAULT_AUTH_SCRIPT;
     let tx_script_target = executor
-        .compile_tx_script(
-            tx_script_code.clone(),
-            vec![(target_pub_key, target_sk_pk_felt)],
-            vec![],
-        )
+        .compile_tx_script(tx_script_src, vec![(target_pub_key, target_sk_pk_felt)])
         .unwrap();
     let tx_args_target = TransactionArgs::with_tx_script(tx_script_target);
 
@@ -174,9 +172,17 @@ pub fn benchmark_p2id() -> Result<TransactionProgress, String> {
         AuthSecretKey::RpoFalcon512(sec_key),
     )]);
     let authenticator = Some(Rc::new(authenticator));
-    let mut host =
-        TransactionHost::new(transaction.account().into(), advice_recorder, authenticator)
-            .map_err(|e| format!("Failed to create transaction host: {}", e))?;
+
+    let mast_store = Rc::new(TransactionMastStore::new());
+    // TODO: add account/note/tx_script MAST to the mast_store?
+
+    let mut host = TransactionHost::new(
+        transaction.account().into(),
+        advice_recorder,
+        mast_store,
+        authenticator,
+    )
+    .map_err(|e| format!("Failed to create transaction host: {}", e))?;
 
     vm_processor::execute(
         transaction.program(),

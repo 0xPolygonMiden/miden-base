@@ -10,16 +10,19 @@
 - [BREAKING] Increase of nonce does not require changes in account state any more (#796).
 - Added `CHANGELOG.md` warning message on CI (#799).
 - Account deltas can now be merged (#797).
+- Added high-level methods for `MockChain` and related structures (#807).
 - Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
 - [BREAKING] Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812, #816).
+- Implemented `create_note` and `move_asset_into_note` basic wallet procedures (#808).
+- [BREAKING] Changed the interface of the `miden::tx::add_asset_to_note` (#808).
 - [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
 - Made `miden_lib::notes::build_swap_tag()` function public (#817).
 - [BREAKING] Changed the `NoteFile::NoteDetails` type to struct and added a `after_block_num` field (#823).
-- Implemented `create_note` and `move_asset_into_note` basic wallet procedures (#808).
-- [BREAKING] Interface of the `miden::tx::add_asset_to_note` procedure was changed (#808).
-- Added serialization and equality comparison for `TransactionScript` (#824).
-- Added conversions for `NoteExecutionHint` (#827).
 - [BREAKING] Refactored account storage and vault deltas (#822).
+- Added serialization and equality comparison for `TransactionScript` (#824).
+- [BREAKING] Migrated to Miden VM v0.10 (#826).
+- Added conversions for `NoteExecutionHint` (#827).
+
 
 ## 0.4.0 (2024-07-03)
 

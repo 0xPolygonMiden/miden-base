@@ -34,9 +34,8 @@ pub use vm_core::{Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SI
 
 pub mod assembly {
     pub use assembly::{
-        ast::{AstSerdeOptions, ModuleAst, ProgramAst},
-        Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath,
-        MaslLibrary, Version,
+        mast, Assembler, AssemblyError, DefaultSourceManager, KernelLibrary, Library,
+        LibraryNamespace, LibraryPath, SourceManager, Version,
     };
 }
 
@@ -57,6 +56,6 @@ pub mod utils {
 
 pub mod vm {
     pub use miden_verifier::ExecutionProof;
-    pub use vm_core::{code_blocks::CodeBlock, Program, ProgramInfo};
+    pub use vm_core::{Program, ProgramInfo};
     pub use vm_processor::{AdviceInputs, AdviceMap, StackInputs, StackOutputs};
 }

@@ -98,33 +98,13 @@ impl Deserializable for AccountProcedureInfo {
 
 #[cfg(test)]
 mod tests {
-
-    use assembly::{ast::ModuleAst, Assembler};
     use miden_crypto::utils::{Deserializable, Serializable};
 
     use crate::accounts::{AccountCode, AccountProcedureInfo};
 
-    const CODE: &str = "
-        export.foo
-            push.1 push.2 mul
-        end
-
-        export.bar
-            push.1 push.2 add
-        end
-    ";
-
-    fn make_account_code() -> AccountCode {
-        let mut module = ModuleAst::parse(CODE).unwrap();
-        // clears are needed since they're not serialized for account code
-        module.clear_imports();
-        module.clear_locations();
-        AccountCode::new(module, &Assembler::default()).unwrap()
-    }
-
     #[test]
     fn test_serde_account_procedure() {
-        let account_code = make_account_code();
+        let account_code = AccountCode::mock();
 
         let serialized = account_code.procedures()[0].to_bytes();
         let deserialized = AccountProcedureInfo::read_from_bytes(&serialized).unwrap();

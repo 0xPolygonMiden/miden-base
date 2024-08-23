@@ -3,7 +3,7 @@
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/0xPolygonMiden/miden-base/blob/main/LICENSE)
 [![test](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/test.yml)
 [![build](https://github.com/0xPolygonMiden/miden-base/actions/workflows/build.yml/badge.svg)](https://github.com/0xPolygonMiden/miden-base/actions/workflows/build.yml)
-[![RUST_VERSION](https://img.shields.io/badge/rustc-1.78+-lightgray.svg)](https://www.rust-lang.org/tools/install)
+[![RUST_VERSION](https://img.shields.io/badge/rustc-1.80+-lightgray.svg)](https://www.rust-lang.org/tools/install)
 [![GitHub Release](https://img.shields.io/github/release/0xPolygonMiden/miden-base)](https://github.com/0xPolygonMiden/miden-base/releases/)
 
 Description and core structures for the Miden Rollup protocol.
@@ -33,13 +33,13 @@ Polygon Miden is currently on release v0.5. This is an early version of the prot
 - **Public notes**. With public notes, the users are be able to store all note details on-chain, thus, eliminating the need to communicate note details via side-channels.
 - **Local transactions**. Users can execute and prove transactions locally on their devices. The Miden Operator verifies the proofs and if the proofs are valid, updates the state of the rollup accordingly.
 - **Standard account**. Users can create accounts using a small number of standard account interfaces (e.g., basic wallet). In the future, the set of standard smart contracts will be expanded.
-- **Standard notes**. Can create notes using standardized note scripts such as pay-to-ID (`P2ID`) and atomic swap (`SWAP`). In the future, the set of standardized notes will be expanded.
+- **Standard notes**. Can create notes using standardized note scripts such as Pay-to-ID (`P2ID`) and atomic swap (`SWAP`). In the future, the set of standardized notes will be expanded.
+- **Delegated note inclusion proofs**. By delegating note inclusion proofs, users can create chains of dependent notes which are included into a block as a single batch.
 
 ### Planned features
 
 - **More storage types**. In addition to simple storage slots and storage maps, the accounts will be able to store data in storage arrays.
 - **Transaction recency conditions**. Users will be able to specify how close to the chain tip their transactions are to be executed. This will enable things like rate limiting and oracles.
-- **Delegated note inclusion proofs**. By delegating note inclusion proofs, users will be able to create chains of dependent notes which are would be included into a block as a single batch.
 - **Network transactions**. Users will be able to create notes intended for network execution. Such notes will be included into transactions executed and proven by the Miden operator.
 - **Encrypted notes**. With encrypted notes users will be able to put all note details on-chain, but the data contained withing the notes would be encrypted with the recipients key.
 

@@ -1,17 +1,20 @@
 // MOCK HOST
 // ================================================================================================
 
-use alloc::string::ToString;
+use alloc::{rc::Rc, string::ToString, sync::Arc};
 
 use miden_lib::transaction::TransactionEvent;
-use miden_objects::accounts::{AccountStub, AccountVaultDelta};
+use miden_objects::{
+    accounts::{AccountStub, AccountVaultDelta},
+    Digest,
+};
 use vm_processor::{
     AdviceExtractor, AdviceInjector, AdviceInputs, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Host, HostResponse, MemAdviceProvider, ProcessState,
+    ExecutionError, Host, HostResponse, MastForest, MastForestStore, MemAdviceProvider,
+    ProcessState,
 };
 
-use crate::host::AccountProcedureIndexMap;
-
+use crate::{host::AccountProcedureIndexMap, TransactionMastStore};
 // MOCK HOST
 // ================================================================================================
 
@@ -22,17 +25,23 @@ use crate::host::AccountProcedureIndexMap;
 pub struct MockHost {
     adv_provider: MemAdviceProvider,
     acct_procedure_index_map: AccountProcedureIndexMap,
+    mast_store: Rc<TransactionMastStore>,
 }
 
 impl MockHost {
     /// Returns a new [MockHost] instance with the provided [AdviceInputs].
-    pub fn new(account: AccountStub, advice_inputs: AdviceInputs) -> Self {
+    pub fn new(
+        account: AccountStub,
+        advice_inputs: AdviceInputs,
+        mast_store: Rc<TransactionMastStore>,
+    ) -> Self {
         let adv_provider: MemAdviceProvider = advice_inputs.into();
         let proc_index_map =
             AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider);
         Self {
             adv_provider,
             acct_procedure_index_map: proc_index_map.unwrap(),
+            mast_store,
         }
     }
 
@@ -72,6 +81,10 @@ impl Host for MockHost {
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
+    }
+
+    fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
+        self.mast_store.get(node_digest)
     }
 
     fn on_event<S: ProcessState>(

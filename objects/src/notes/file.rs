@@ -100,7 +100,6 @@ impl Deserializable for NoteFile {
 mod tests {
     use alloc::vec::Vec;
 
-    use assembly::{ast::ProgramAst, Assembler};
     use vm_core::{
         utils::{Deserializable, Serializable},
         Felt,
@@ -119,7 +118,6 @@ mod tests {
             Note, NoteAssets, NoteFile, NoteInclusionProof, NoteInputs, NoteMetadata,
             NoteRecipient, NoteScript, NoteTag, NoteType,
         },
-        testing::notes::DEFAULT_NOTE_CODE,
     };
 
     fn create_example_note() -> Note {
@@ -129,8 +127,7 @@ mod tests {
         ));
 
         let serial_num = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
-        let note_program_ast = ProgramAst::parse(DEFAULT_NOTE_CODE).unwrap();
-        let (script, _) = NoteScript::new(note_program_ast, &Assembler::default()).unwrap();
+        let script = NoteScript::mock();
         let note_inputs = NoteInputs::new(vec![target.into()]).unwrap();
         let recipient = NoteRecipient::new(serial_num, script, note_inputs);
 

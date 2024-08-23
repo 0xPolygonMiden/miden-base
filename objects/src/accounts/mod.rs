@@ -1,5 +1,4 @@
 use crate::{
-    assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::AssetVault,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AccountError, Digest, Felt, Hasher, Word, ZERO,

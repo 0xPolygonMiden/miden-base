@@ -1,8 +1,8 @@
 use.std::collections::smt
 use.std::crypto::hashes::native
 
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
+use.kernel::constants
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================
@@ -181,12 +181,13 @@ export.incr_nonce
     u32assert.err=ERR_ACCOUNT_NONCE_INCR_MUST_BE_U32
 
     # emit event to signal that account nonce is being incremented
+    push.20261 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_BEFORE_INCREMENT_NONCE_EVENT
 
     exec.memory::get_acct_nonce add
     exec.memory::set_acct_nonce
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20357 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_AFTER_INCREMENT_NONCE_EVENT
 end
 
@@ -216,7 +217,7 @@ export.memory::get_init_acct_hash->get_initial_hash
 
 #! Returns the most significant half with the account type bits masked out.
 #!
-#! The accout type can be defined by comparing this value with the following constants:
+#! The account type can be defined by comparing this value with the following constants:
 #!
 #! - REGULAR_ACCOUNT_UPDATABLE_CODE
 #! - REGULAR_ACCOUNT_IMMUTABLE_CODE
@@ -404,7 +405,7 @@ end
 #! - V' is the value to set.
 #! - V is the previous value of the item.
 export.set_item
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20443 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
@@ -426,7 +427,9 @@ export.set_item
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
-    swapw movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
+    swapw movup.8 
+    push.20551 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
     # => [V]
 end
 
@@ -457,7 +460,7 @@ export.set_map_item.3
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
+    push.20693 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
@@ -476,7 +479,9 @@ export.set_map_item.3
     # => [KEY, NEW_VALUE, index, ...]
 
     # emit event to signal that an account storage item is being updated
-    movup.8 emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
+    movup.8
+    push.20771 drop                                     # TODO: remove line, see miden-vm/#1122
+    emit.ACCOUNT_STORAGE_AFTER_SET_MAP_ITEM_EVENT drop
     # => [KEY, NEW_VALUE, ...]
 
     # load OLD_VALUE and NEW_ROOT on the top of the stack
@@ -531,6 +536,7 @@ export.get_procedure_info
 #! - procedure root is not part of the account code.
 export.authenticate_procedure
     # load procedure index
+    push.20897 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
@@ -570,7 +576,9 @@ end
 #! Output: []
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
-        padw exec.memory::get_acct_id push.0.0.0 adv.push_mapval adv_loadw
+        padw exec.memory::get_acct_id push.0.0.0
+        adv.push_mapval push.15263 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
         # populate last four elements of the hasher rate with the code commitment

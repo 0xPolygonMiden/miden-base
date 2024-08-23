@@ -21,7 +21,7 @@ async = ["winter-maybe-async/async"]
 concurrent = ["miden-lib/concurrent", "miden-objects/concurrent", "miden-prover/concurrent", "std"]
 default = ["std"]
 std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier/std", "vm-processor/std"]
-testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/internals", "dep:rand_chacha"]
+testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing", "dep:rand_chacha"]
 
 [dependencies]
 miden-lib = { path = "../miden-lib", version = "0.5", default-features = false }
