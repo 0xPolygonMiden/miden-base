@@ -10,14 +10,14 @@ use crate::error::TransactionHostError;
 // ================================================================================================
 
 /// A map of proc_root |-> proc_index for all known procedures of an account interface.
-pub struct AccountProcedureIndexMap(BTreeMap<Digest, u16>);
+pub struct AccountProcedureIndexMap(BTreeMap<Digest, u8>);
 
 impl AccountProcedureIndexMap {
     /// Returns a new [AccountProcedureIndexMap] instantiated with account procedures present in
     /// the provided advice provider.
-    pub fn new<A: AdviceProvider>(
+    pub fn new(
         account_code_commitment: Digest,
-        adv_provider: &A,
+        adv_provider: &impl AdviceProvider,
     ) -> Result<Self, TransactionHostError> {
         // get the account procedures from the advice_map
         let proc_data =
@@ -69,7 +69,7 @@ impl AccountProcedureIndexMap {
                 ))
             })?;
 
-            let proc_idx = u16::try_from(proc_idx).expect("Invalid procedure index.");
+            let proc_idx = u8::try_from(proc_idx).expect("Invalid procedure index.");
 
             result.insert(*procedure.mast_root(), proc_idx);
         }
@@ -83,10 +83,10 @@ impl AccountProcedureIndexMap {
     /// # Errors
     /// Returns an error if the procedure at the top of the operand stack is not present in this
     /// map.
-    pub fn get_proc_index<S: ProcessState>(
+    pub fn get_proc_index(
         &self,
-        process: &S,
-    ) -> Result<u16, TransactionKernelError> {
+        process: &impl ProcessState,
+    ) -> Result<u8, TransactionKernelError> {
         let proc_root = process.get_stack_word(0).into();
 
         // mock account method for testing from root context
