@@ -39,4 +39,3 @@ miden-verifier = { version = "0.10", default-features = false }
 rand = { version = "0.8", default-features = false }
 vm-core = { package = "miden-core", version = "0.10", default-features = false }
 vm-processor = { package = "miden-processor", version = "0.10", default-features = false }
-getrandom = { version = "0.2", features = ["js"]}
