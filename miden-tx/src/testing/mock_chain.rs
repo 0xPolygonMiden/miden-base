@@ -371,8 +371,9 @@ impl MockChain {
             Auth::BasicAuth => {
                 let mut rng = StdRng::from_entropy();
 
-                let (acc, seed, auth) =
-                    account_builder.build_with_auth(&TransactionKernel::assembler(), &mut rng).unwrap();
+                let (acc, seed, auth) = account_builder
+                    .build_with_auth(&TransactionKernel::assembler(), &mut rng)
+                    .unwrap();
 
                 let authenticator = BasicAuthenticator::<StdRng>::new(&[(
                     auth.public_key().into(),

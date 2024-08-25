@@ -152,14 +152,14 @@ impl<T: Rng> AccountBuilder<T> {
     }
 
     /// Build an account using the provided `seed` and `storage`.
-    /// This method also returns the seed and secret key generated for the account based on the 
+    /// This method also returns the seed and secret key generated for the account based on the
     /// provided RNG.
     ///
     /// The storage items added to this builder will added on top of `storage`.
     pub fn build_with_auth(
         self,
         assembler: &Assembler,
-        rng: &mut impl Rng
+        rng: &mut impl Rng,
     ) -> Result<(Account, Word, SecretKey), AccountBuilderError> {
         let sec_key = SecretKey::with_rng(rng);
         let pub_key: Word = sec_key.public_key().into();
