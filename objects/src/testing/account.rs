@@ -151,11 +151,17 @@ impl<T: Rng> AccountBuilder<T> {
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
+    /// Build an account using the provided `seed` and `storage`.
+    /// This method also returns the seed and secret key generated for the account based on the 
+    /// provided RNG.
+    ///
+    /// The storage items added to this builder will added on top of `storage`.
     pub fn build_with_auth(
         self,
         assembler: &Assembler,
+        rng: &mut impl Rng
     ) -> Result<(Account, Word, SecretKey), AccountBuilderError> {
-        let sec_key = SecretKey::new();
+        let sec_key = SecretKey::with_rng(rng);
         let pub_key: Word = sec_key.public_key().into();
 
         let storage_item = SlotItem::new_value(0, 0, pub_key);
