@@ -345,5 +345,5 @@ pub const KERNEL_ERRORS: [(u32, &str); 79] = [
     (ERR_PROC_NOT_PART_OF_ACCOUNT_CODE, "Provided procedure is not part of account code"),
     (ERR_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds"),
     (ERR_ACCT_CODE_HASH_MISMATCH, "Provided account hash does not match stored account hash"),
-    (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 65535")
+    (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 256")
 ];
