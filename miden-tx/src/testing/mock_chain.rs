@@ -426,13 +426,9 @@ impl MockChain {
         let mut block_headers_map: BTreeMap<u32, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note = self.available_notes.get(note).unwrap().clone();
-            block_headers_map.insert(
-                input_note.location().unwrap().block_num(),
-                self.blocks
-                    .get(input_note.location().unwrap().block_num() as usize)
-                    .unwrap()
-                    .header(),
-            );
+            let note_block_num = input_note.location().unwrap().block_num();
+            let block_header = self.blocks.get(note_block_num as usize).unwrap().header();
+            block_headers_map.insert(note_block_num, block_header);
             input_notes.push(input_note);
         }
 
