@@ -40,6 +40,8 @@ export.auth_tx_rpo_falcon512
     push.1 exec.account::incr_nonce
     # => []
 
+    debug.stack
+
     # Verify the signature against the public key and the message. The procedure gets as
     # inputs the hash of the public key and the hash of the message via the operand
     # stack. The signature is provided via the advice stack. The signature is valid if and

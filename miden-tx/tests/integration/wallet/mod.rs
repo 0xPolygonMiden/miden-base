@@ -23,8 +23,8 @@ use crate::{
     prove_and_verify_transaction,
 };
 
-#[test]
 // Testing the basic Miden wallet - receiving an asset
+#[test]
 fn prove_receive_asset_via_wallet() {
     // Create assets
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
@@ -99,9 +99,9 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.final_account().hash(), target_account_after.hash());
 }
 
+/// Testing sending a note without assets from the basic wallet
 #[test]
-/// Testing the basic Miden wallet - creating a note
-fn prove_create_note_via_wallet() {
+fn prove_send_note_without_asset_via_wallet() {
     let sender_account_id = AccountId::try_from(ACCOUNT_ID_OFF_CHAIN_SENDER).unwrap();
     let (sender_pub_key, sender_falcon_auth) = get_new_pk_and_authenticator();
     let sender_account =
@@ -130,9 +130,6 @@ fn prove_create_note_via_wallet() {
 
     let tx_script_src = &format!(
         "
-        use.miden::contracts::auth::basic->auth_tx
-        use.miden::contracts::wallets::basic->wallet
-
         begin
             padw padw
             push.{recipient}
@@ -142,7 +139,6 @@ fn prove_create_note_via_wallet() {
             push.{tag}
             call.::miden::contracts::wallets::basic::create_note
             dropw dropw dropw dropw
-            call.::miden::contracts::auth::basic::auth_tx_rpo_falcon512
         end
         ",
         recipient = prepare_word(&recipient),
@@ -160,10 +156,8 @@ fn prove_create_note_via_wallet() {
 
     // clones account info
     let sender_account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
-        StorageSlot::Value(Word::default()),
         StorageSlot::Value(sender_pub_key),
+        StorageSlot::Value(Word::default()),
         StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();
@@ -175,15 +169,16 @@ fn prove_create_note_via_wallet() {
         AssetVault::new(&[]).unwrap(),
         sender_account_storage,
         sender_account_code,
-        Felt::new(2),
+        // state of the account did not change, so nonce should remain the same
+        Felt::new(1),
     );
 
     assert_eq!(executed_transaction.final_account().hash(), sender_account_after.hash());
 }
 
-#[test]
 /// Testing the basic Miden wallet - creating a note and moving asset to it
-fn prove_move_asset_to_note_via_wallet() {
+#[test]
+fn prove_send_note_with_asset_via_wallet() {
     let faucet_id_1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
     let fungible_asset_1: Asset = FungibleAsset::new(faucet_id_1, 100).unwrap().into();
 
