@@ -161,7 +161,9 @@ impl AccountCode {
     }
 
     /// Creates a mock [AccountCode] with default assembler and mock code
-    pub fn mock() -> AccountCode {
-        AccountCode::compile(CODE, Assembler::default()).unwrap()
+    pub fn mock(source_code: Option<&str>, assembler: Option<Assembler>) -> AccountCode {
+        let code = source_code.unwrap_or(CODE);
+        let assembler = assembler.unwrap_or_default();
+        Self::compile(code, assembler).unwrap()
     }
 }

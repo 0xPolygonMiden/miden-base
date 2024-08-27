@@ -1,4 +1,9 @@
-use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
+use std::{collections::BTreeMap, println};
+
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
+    TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -7,10 +12,13 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountId, AccountStorage, AccountType, StorageSlotType,
+        Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
+        SlotItem, StorageSlotType,
     },
+    assets::AssetVault,
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
     testing::{prepare_word, storage::STORAGE_LEAVES_2},
+    transaction::TransactionScript,
 };
 use vm_processor::{Felt, MemAdviceProvider};
 
@@ -225,7 +233,7 @@ fn test_get_item() {
                 exec.prologue::prepare_transaction
                 # push the account storage item index
                 push.{item_index}
-                
+
                 # assert the item value is correct
                 exec.account::get_item
                 push.{item_value}
@@ -438,6 +446,101 @@ fn test_set_map_item() {
         storage_item.slot.value,
         process.get_stack_word(1),
         "The original value stored in the map doesn't match the expected value",
+    );
+}
+
+#[test]
+fn test_storage_offset() {
+    // setup assembler
+    let assembler = TransactionKernel::assembler_testing();
+
+    // setup account
+    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
+    let vault = AssetVault::mock();
+    let storage = AccountStorage::new(
+        vec![
+            SlotItem::new_value(0, 0, [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]),
+            SlotItem::new_value(1, 0, [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]),
+            SlotItem::new_value(2, 0, [Felt::new(8), Felt::new(9), Felt::new(10), Felt::new(11)]),
+        ],
+        BTreeMap::new(),
+    )
+    .unwrap();
+    let source_code = "
+        use.miden::account
+
+        export.one
+            push.0
+            exec.account::get_item
+            swapw dropw
+        end
+
+        export.two
+            push.1 push.2 mul
+        end
+
+
+        export.three
+            push.1 push.2 sub
+        end
+    ";
+    let code = AccountCode::mock(Some(source_code), Some(assembler));
+    let procedures_with_offsets = vec![
+        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 1),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 3),
+    ];
+    let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
+    let nonce = ONE;
+    let account = Account::from_parts(id, vault, storage, code, nonce);
+
+    println!("Created account: {:#?}", account);
+
+    // setup transaction script
+    let tx_script_code = format!(
+        "
+    begin
+       call.{}
+    end
+    ",
+        procedures_with_offsets[0].mast_root()
+    );
+
+    let tx_script_program = TransactionKernel::assembler()
+        .with_debug_mode(true)
+        .assemble_program(tx_script_code)
+        .unwrap();
+
+    println!("root: {:?}", tx_script_program.hash().as_elements());
+
+    let tx_script = TransactionScript::new(tx_script_program, vec![]);
+
+    // setup transaction context
+    let tx_context = TransactionContextBuilder::new(account).tx_script(tx_script).build();
+
+    // setup code
+    let code = "
+        use.kernel::memory
+        use.kernel::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # execute transaction script
+            exec.memory::get_tx_script_root
+            dyncall
+        end
+        ";
+
+    // execute code in context
+    let process = tx_context.execute_code(code).unwrap();
+
+    println!(
+        "w0: {:?} \n w1: {:?} \n w2: {:?} \n w3: {:?}",
+        process.get_stack_word(0),
+        process.get_stack_word(1),
+        process.get_stack_word(2),
+        process.get_stack_word(3)
     );
 }
 
