@@ -24,8 +24,8 @@ std = ["miden-lib/std", "miden-objects/std", "miden-prover/std", "miden-verifier
 testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing", "dep:rand_chacha"]
 
 [dependencies]
-miden-lib = { path = "../miden-lib", version = "0.5", default-features = false }
-miden-objects = { path = "../objects", version = "0.5", default-features = false }
+miden-lib = { workspace = true }
+miden-objects = { workspace = true }
 miden-prover = { workspace = true }
 miden-verifier = { workspace = true }
 rand = { workspace = true }
@@ -34,5 +34,5 @@ vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.10" }
 
 [dev-dependencies]
-miden-tx = { path = ".", features = ["testing"] }
+miden-tx = { workspace = true, features = ["testing"] }
 rand_chacha = { version = "0.3", default-features = false }
