@@ -6,7 +6,10 @@ use miden_crypto::{
 };
 use vm_processor::DeserializationError;
 
-use crate::{accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError, WORD_SIZE, ZERO};
+use crate::{
+    accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError, BLOCK_NOTES_TREE_DEPTH,
+    WORD_SIZE, ZERO,
+};
 
 mod assets;
 pub use assets::NoteAssets;
@@ -52,6 +55,13 @@ pub use script::NoteScript;
 
 mod file;
 pub use file::NoteFile;
+
+// CONSTANTS
+// ================================================================================================
+
+/// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
+/// This is equal `BLOCK_NOTES_TREE_DEPTH`.
+pub const NOTE_LEAF_DEPTH: u8 = BLOCK_NOTES_TREE_DEPTH;
 
 // NOTE
 // ================================================================================================
