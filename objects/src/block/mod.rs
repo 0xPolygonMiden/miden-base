@@ -109,9 +109,8 @@ impl Block {
 
     /// Returns a note tree containing all notes created in this block.
     pub fn build_note_tree(&self) -> BlockNoteTree {
-        let entries = self
-            .notes()
-            .map(|(note_index, note)| (note_index, note.id().into(), *note.metadata()));
+        let entries =
+            self.notes().map(|(note_index, note)| (note_index, note.id(), *note.metadata()));
 
         BlockNoteTree::with_entries(entries)
             .expect("Something went wrong: block is invalid, but passed or skipped validation")

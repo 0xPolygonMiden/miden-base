@@ -132,11 +132,7 @@ impl PendingObjects {
         let entries =
             self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
                 batch.iter().enumerate().map(move |(note_index, note)| {
-                    (
-                        BlockNoteIndex::new(batch_index, note_index),
-                        note.id().into(),
-                        *note.metadata(),
-                    )
+                    (BlockNoteIndex::new(batch_index, note_index), note.id(), *note.metadata())
                 })
             });
 

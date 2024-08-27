@@ -6,7 +6,7 @@ use miden_crypto::{
 };
 
 use crate::{
-    notes::{compute_note_hash, NoteMetadata},
+    notes::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BLOCK_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_NOTES_PER_BLOCK,
 };
@@ -34,13 +34,10 @@ impl BlockNoteTree {
     /// - The number of entries exceeds the maximum notes tree capacity, that is 2^16.
     /// - The provided entries contain multiple values for the same key.
     pub fn with_entries(
-        entries: impl IntoIterator<Item = (BlockNoteIndex, RpoDigest, NoteMetadata)>,
+        entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
-            (
-                index.to_absolute_index().into(),
-                compute_note_hash(note_id.into(), &metadata).into(),
-            )
+            (index.to_absolute_index().into(), compute_note_hash(note_id, &metadata).into())
         });
 
         SimpleSmt::with_leaves(leaves).map(Self)
