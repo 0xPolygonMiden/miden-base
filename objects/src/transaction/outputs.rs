@@ -197,7 +197,7 @@ impl OutputNote {
     /// - All partial notes are converted into note headers.
     pub fn shrink(&self) -> Self {
         match self {
-            OutputNote::Full(note) if note.metadata().is_offchain() => {
+            OutputNote::Full(note) if note.metadata().is_private() => {
                 OutputNote::Header(*note.header())
             },
             OutputNote::Partial(note) => OutputNote::Header(note.into()),

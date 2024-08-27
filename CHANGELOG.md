@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.5.0 (2024-08-27)
+
+### Features
+
+- [BREAKING] Increase of nonce does not require changes in account state any more (#796).
+- Changed `AccountCode` procedures from merkle tree to sequential hash + added storage_offset support (#763).
+- Implemented merging of account deltas (#797).
+- Implemented `create_note` and `move_asset_into_note` basic wallet procedures (#808).
+- Made `miden_lib::notes::build_swap_tag()` function public (#817).
+- [BREAKING] Changed the `NoteFile::NoteDetails` type to struct and added a `after_block_num` field (#823).
+
+### Changes
+
+- Renamed "consumed" and "created" notes into "input" and "output" respectively (#791).
+- [BREAKING] Renamed `NoteType::OffChain` into `NoteType::Private`.
+- [BREAKING] Renamed public accessors of the `Block` struct to match the updated fields (#791).
+- [BREAKING] Changed the `TransactionArgs` to use `AdviceInputs` (#793).
+- Setters in `memory` module don't drop the setting `Word` anymore (#795).
+- Added `CHANGELOG.md` warning message on CI (#799).
+- Added high-level methods for `MockChain` and related structures (#807).
+- [BREAKING] Renamed `NoteExecutionHint` to `NoteExecutionMode` and added new `NoteExecutionHint` to `NoteMetadata` (#812, #816).
+- [BREAKING] Changed the interface of the `miden::tx::add_asset_to_note` (#808).
+- [BREAKING] Refactored and simplified `NoteOrigin` and `NoteInclusionProof` structs (#810, #814).
+- [BREAKING] Refactored account storage and vault deltas (#822).
+- Added serialization and equality comparison for `TransactionScript` (#824).
+- [BREAKING] Migrated to Miden VM v0.10 (#826).
+- Added conversions for `NoteExecutionHint` (#827).
+
 ## 0.4.0 (2024-07-03)
 
 ### Features
@@ -34,9 +62,9 @@
 
 ## 0.3.1 (2024-06-12)
 
-* Replaced `cargo-make` with just `make` for running tasks (#696).
-* Made `DataStore` conditionally async using `winter-maybe-async` (#725)
-* Fixed `StorageMap`s implementation and included into apply_delta (#745)
+- Replaced `cargo-make` with just `make` for running tasks (#696).
+- Made `DataStore` conditionally async using `winter-maybe-async` (#725)
+- Fixed `StorageMap`s implementation and included into apply_delta (#745)
 
 ## 0.3.0 (2024-05-14)
 

@@ -1,25 +1,26 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::ToString, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::CURRENT_CONSUMED_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountId, AccountStorage, AccountStub},
+    accounts::{AccountDelta, AccountStorage, AccountStub},
     assets::Asset,
     notes::NoteId,
-    transaction::OutputNote,
+    transaction::{OutputNote, TransactionMeasurements},
+    vm::RowIndex,
     Digest, Hasher,
 };
 use vm_processor::{
-    crypto::NodeIndex, AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId,
-    ExecutionError, Felt, Host, HostResponse, ProcessState,
+    AdviceExtractor, AdviceInjector, AdviceProvider, AdviceSource, ContextId, ExecutionError, Felt,
+    Host, HostResponse, MastForest, MastForestStore, ProcessState,
 };
 
 mod account_delta_tracker;
 use account_delta_tracker::AccountDeltaTracker;
 
 mod account_procs;
-use account_procs::AccountProcedureIndexMap;
+pub use account_procs::AccountProcedureIndexMap;
 
 mod note_builder;
 use note_builder::OutputNoteBuilder;
@@ -27,7 +28,10 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{auth::TransactionAuthenticator, KERNEL_ERRORS};
+use crate::{
+    auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
+    KERNEL_ERRORS,
+};
 
 // CONSTANTS
 // ================================================================================================
@@ -38,42 +42,67 @@ pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPT
 // ================================================================================================
 
 /// Transaction host is responsible for handling [Host] requests made by a transaction kernel.
+///
+/// Transaction hosts are created on per-transaction basis. That is a transaction host is meant to
+/// support execution of a single transaction, and is discarded after the transaction finishes
+/// execution.
 pub struct TransactionHost<A, T> {
     /// Advice provider which is used to provide non-deterministic inputs to the transaction
     /// runtime.
     adv_provider: A,
 
-    /// Accumulates the state changes notified via events.
+    /// MAST store which contains the code required to execute the transaction.
+    mast_store: Rc<TransactionMastStore>,
+
+    /// Account state changes accumulated during transaction execution.
+    ///
+    /// This field is updated by the [TransactionHost::on_event()] handler.
     account_delta: AccountDeltaTracker,
 
-    /// A map for the account's procedures.
+    /// A map of the account's procedure MAST roots to the corresponding procedure indexes in the
+    /// account code.
     acct_procedure_index_map: AccountProcedureIndexMap,
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
     /// map.
     output_notes: BTreeMap<usize, OutputNoteBuilder>,
 
-    /// Provides a way to get a signature for a message into a transaction
+    /// Serves signature generation requests from the transaction runtime for signatures which are
+    /// not present in the `generated_signatures` field.
     authenticator: Option<Rc<T>>,
 
-    /// Contains the information about the number of cycles for each of the transaction execution
-    /// stages.
-    tx_progress: TransactionProgress,
-
-    /// Contains generated signatures for messages
+    /// Contains previously generated signatures (as a message |-> signature map) required for
+    /// transaction execution.
+    ///
+    /// If a required signature is not present in this map, the host will attempt to generate the
+    /// signature using the transaction authenticator.
     generated_signatures: BTreeMap<Digest, Vec<Felt>>,
 
-    /// Contains mappings from error codes to the related error messages
+    /// Tracks the number of cycles for each of the transaction execution stages.
+    ///
+    /// This field is updated by the [TransactionHost::on_trace()] handler.
+    tx_progress: TransactionProgress,
+
+    /// Contains mappings from error codes to the related error messages.
+    ///
+    /// This map is initialized at construction time from the [KERNEL_ERRORS] array.
     error_messages: BTreeMap<u32, &'static str>,
 }
 
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
-    pub fn new(account: AccountStub, adv_provider: A, authenticator: Option<Rc<T>>) -> Self {
-        let proc_index_map = AccountProcedureIndexMap::new(account.code_root(), &adv_provider);
+    pub fn new(
+        account: AccountStub,
+        adv_provider: A,
+        mast_store: Rc<TransactionMastStore>,
+        authenticator: Option<Rc<T>>,
+    ) -> Result<Self, TransactionHostError> {
+        let proc_index_map =
+            AccountProcedureIndexMap::new(account.code_commitment(), &adv_provider)?;
         let kernel_assertion_errors = BTreeMap::from(KERNEL_ERRORS);
-        Self {
+        Ok(Self {
             adv_provider,
+            mast_store,
             account_delta: AccountDeltaTracker::new(&account),
             acct_procedure_index_map: proc_index_map,
             output_notes: BTreeMap::default(),
@@ -81,11 +110,20 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             tx_progress: TransactionProgress::default(),
             generated_signatures: BTreeMap::new(),
             error_messages: kernel_assertion_errors,
-        }
+        })
     }
 
-    /// Consumes `self` and returns the advice provider and account vault delta.
-    pub fn into_parts(self) -> (A, AccountDelta, Vec<OutputNote>, BTreeMap<Digest, Vec<Felt>>) {
+    /// Consumes `self` and returns the advice provider, account vault delta, output notes and
+    /// signatures generated during the transaction execution.
+    pub fn into_parts(
+        self,
+    ) -> (
+        A,
+        AccountDelta,
+        Vec<OutputNote>,
+        BTreeMap<Digest, Vec<Felt>>,
+        TransactionProgress,
+    ) {
         let output_notes = self.output_notes.into_values().map(|builder| builder.build()).collect();
 
         (
@@ -93,10 +131,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             self.account_delta.into_delta(),
             output_notes,
             self.generated_signatures,
+            self.tx_progress,
         )
     }
 
-    /// Returns a reference to the `tx_progress` field of the [`TransactionHost`].
+    /// Returns a reference to the `tx_progress` field of this transaction host.
     pub fn tx_progress(&self) -> &TransactionProgress {
         &self.tx_progress
     }
@@ -107,13 +146,13 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Crates a new [OutputNoteBuilder] from the data on the operand stack and stores it into the
     /// `output_notes` field of this [TransactionHost].
     ///
-    /// Expected stack state: `[aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, ...]`
+    /// Expected stack state: `[NOTE_METADATA, RECIPIENT, ...]`
     fn on_note_after_created<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<(), TransactionKernelError> {
         let stack = process.get_stack_state();
-        // # => [aux, note_type, sender_acct_id, tag, note_ptr, RECIPIENT, note_idx]
+        // # => [NOTE_METADATA]
 
         let note_idx: usize = stack[9].as_int() as usize;
 
@@ -215,7 +254,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         // update the delta tracker only if the current and new values are different
         if current_slot_value != new_slot_value {
             let slot_index = slot_index.as_int() as u8;
-            self.account_delta.storage_tracker().slot_update(slot_index, new_slot_value);
+            self.account_delta.storage_delta().set_item(slot_index, new_slot_value);
         }
 
         Ok(())
@@ -252,9 +291,11 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
         ];
 
         let slot_index = slot_index.as_int() as u8;
-        self.account_delta
-            .storage_tracker()
-            .maps_update(slot_index, new_map_key, new_map_value);
+        self.account_delta.storage_delta().set_map_item(
+            slot_index,
+            new_map_key.into(),
+            new_map_value,
+        );
 
         Ok(())
     }
@@ -275,7 +316,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .try_into()
             .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
 
-        self.account_delta.vault_tracker().add_asset(asset);
+        self.account_delta
+            .vault_delta()
+            .add_asset(asset)
+            .map_err(TransactionKernelError::AccountDeltaError)?;
         Ok(())
     }
 
@@ -292,7 +336,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
             .try_into()
             .map_err(TransactionKernelError::MalformedAssetOnAccountVaultUpdate)?;
 
-        self.account_delta.vault_tracker().remove_asset(asset);
+        self.account_delta
+            .vault_delta()
+            .remove_asset(asset)
+            .map_err(TransactionKernelError::AccountDeltaError)?;
         Ok(())
     }
 
@@ -351,7 +398,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// greater than `u32::MAX`).
     fn get_current_note_id<S: ProcessState>(process: &S) -> Result<Option<NoteId>, ExecutionError> {
         // get the word where note address is stored
-        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_CONSUMED_NOTE_PTR);
+        let note_address_word = process.get_mem_value(process.ctx(), CURRENT_INPUT_NOTE_PTR);
         // get the note address in `Felt` from or return `None` if the address hasn't been accessed
         // previously.
         let note_address_felt = match note_address_word {
@@ -371,6 +418,9 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     }
 }
 
+// HOST IMPLEMENTATION FOR TRANSACTION HOST
+// ================================================================================================
+
 impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A, T> {
     fn get_advice<S: ProcessState>(
         &mut self,
@@ -389,6 +439,10 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> Host for TransactionHost<A,
             AdviceInjector::SigToStack { .. } => self.on_signature_requested(process),
             injector => self.adv_provider.set_advice(process, &injector),
         }
+    }
+
+    fn get_mast_forest(&self, node_digest: &Digest) -> Option<Arc<MastForest>> {
+        self.mast_store.get(node_digest)
     }
 
     fn on_event<S: ProcessState>(

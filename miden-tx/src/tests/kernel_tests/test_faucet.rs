@@ -2,7 +2,6 @@ use miden_objects::{
     accounts::account_id::testing::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1,
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     },
     assets::{Asset, FungibleAsset},
     testing::{
@@ -33,10 +32,10 @@ fn test_mint_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -70,15 +69,11 @@ fn test_mint_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -96,15 +91,11 @@ fn test_mint_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_fungible_asset_inconsistent_faucet_id() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -122,15 +113,11 @@ fn test_mint_fungible_asset_inconsistent_faucet_id() {
 
 #[test]
 fn test_mint_fungible_asset_fails_saturate_max_amount() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -168,10 +155,10 @@ fn test_mint_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -207,18 +194,14 @@ fn test_mint_non_fungible_asset_succeeds() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3, 4]);
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -237,18 +220,14 @@ fn test_mint_non_fungible_asset_fails_not_faucet_account() {
 
 #[test]
 fn test_mint_non_fungible_asset_fails_inconsistent_faucet_id() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let non_fungible_asset =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1, &[1, 2, 3, 4]);
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -281,7 +260,7 @@ fn test_mint_non_fungible_asset_fails_asset_already_exists() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -313,10 +292,10 @@ fn test_burn_fungible_asset_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -351,15 +330,11 @@ fn test_burn_fungible_asset_succeeds() {
 
 #[test]
 fn test_burn_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -386,7 +361,7 @@ fn test_burn_fungible_asset_inconsistent_faucet_id() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -412,7 +387,7 @@ fn test_burn_fungible_asset_insufficient_input_amount() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -450,10 +425,10 @@ fn test_burn_non_fungible_asset_succeeds() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -503,10 +478,10 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -526,11 +501,7 @@ fn test_burn_non_fungible_asset_fails_does_not_exist() {
 
 #[test]
 fn test_burn_non_fungible_asset_fails_not_faucet_account() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
     let non_fungible_asset_burnt =
         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
@@ -539,10 +510,10 @@ fn test_burn_non_fungible_asset_fails_not_faucet_account() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -576,10 +547,10 @@ fn test_burn_non_fungible_asset_fails_inconsistent_faucet_id() {
         "
         use.std::collections::smt
 
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::asset_vault
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::account
+        use.kernel::asset_vault
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::faucet
 
         begin
@@ -611,7 +582,7 @@ fn test_get_total_issuance_succeeds() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
+        use.kernel::prologue
         use.miden::faucet
 
         begin

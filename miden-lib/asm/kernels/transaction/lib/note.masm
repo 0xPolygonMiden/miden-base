@@ -1,7 +1,7 @@
 use.std::crypto::hashes::native
 
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
+use.kernel::constants
+use.kernel::memory
 
 # ERRORS
 # =================================================================================================
@@ -36,8 +36,8 @@ const.OUTPUT_NOTE_HASHING_MEM_DIFF=510
 #!
 #! - sender is the sender of the note currently being processed.
 export.get_sender
-    # get the current consumed note pointer
-    exec.memory::get_current_consumed_note_ptr
+    # get the current input note pointer
+    exec.memory::get_current_input_note_ptr
     # => [ptr]
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
@@ -46,21 +46,21 @@ export.get_sender
     # => [ptr]
 
     # get the sender from the note pointer
-    exec.memory::get_consumed_note_sender
+    exec.memory::get_input_note_sender
     # => [sender]
 end
 
-#! Returns the number of assets and vault hash of the note currently being processed. Panics if a
-#! note is not being processed.
+#! Returns the number of assets and the assets hash of the note currently being processed. Panics
+#! if a note is not being processed.
 #!
 #! Inputs: []
-#! Outputs: [VAULT_HASH, num_assets]
+#! Outputs: [ASSETS_HASH, num_assets]
 #!
 #! - num_assets is the number of assets in the note currently being processed.
-#! - VAULT_HASH is the vault hash of the note currently being processed.
-export.get_vault_info
-    # get the current consumed note pointer
-    exec.memory::get_current_consumed_note_ptr
+#! - ASSETS_HASH is the vault hash of the note currently being processed.
+export.get_assets_info
+    # get the current input note pointer
+    exec.memory::get_current_input_note_ptr
     # => [ptr]
 
     # assert the pointer is not zero - this would suggest the procedure has been called from an
@@ -69,12 +69,12 @@ export.get_vault_info
     # => [ptr]
 
     # get the number of assets in the note
-    dup exec.memory::get_consumed_note_num_assets
+    dup exec.memory::get_input_note_num_assets
     # => [num_assets, ptr]
 
-    # get the vault hash from the note pointer
-    swap exec.memory::get_consumed_note_assets_hash
-    # => [VAULT_HASH, num_assets]
+    # get the assets hash from the note pointer
+    swap exec.memory::get_input_note_assets_hash
+    # => [ASSETS_HASH, num_assets]
 end
 
 #! Returns the commitment to the note's inputs.
@@ -87,7 +87,7 @@ end
 #! Where:
 #! - NOTE_INPUTS_HASH is the note inputs hash of the note currently being processed.
 export.get_note_inputs_hash
-    exec.memory::get_current_consumed_note_ptr
+    exec.memory::get_current_input_note_ptr
     # => [ptr]
 
     # The kernel memory is initialized by prologue::process_input_notes_data, and reset by
@@ -96,39 +96,39 @@ export.get_note_inputs_hash
     dup neq.0 assert.err=ERR_NOTE_INVALID_INPUTS
     # => [ptr]
 
-    exec.memory::get_consumed_note_inputs_hash
+    exec.memory::get_input_note_inputs_hash
     # => [NOTE_INPUTS_HASH]
 end
 
-#! Increment current consumed note pointer to the next note and returns the pointer value.
+#! Move the current input note pointer to the next note and returns the pointer value.
 #!
 #! Inputs: []
-#! Outputs: [current_consumed_note_ptr]
+#! Outputs: [current_input_note_ptr]
 #!
 #! Where:
-#! - current_consumed_note_ptr is the pointer to the next note to be processed.
-export.increment_current_consumed_note_ptr
-    # get the current consumed note pointer
-    exec.memory::get_current_consumed_note_ptr
-    # => [orig_consumed_note_ptr]
+#! - current_input_note_ptr is the pointer to the next note to be processed.
+export.increment_current_input_note_ptr
+    # get the current input note pointer
+    exec.memory::get_current_input_note_ptr
+    # => [orig_input_note_ptr]
 
     # increment the pointer
     exec.constants::get_note_mem_size add
-    # => [current_consumed_note_ptr]
+    # => [current_input_note_ptr]
 
-    # set the current consumed note pointer to the incremented value
-    dup exec.memory::set_current_consumed_note_ptr
-    # => [current_consumed_note_ptr]
+    # set the current input note pointer to the incremented value
+    dup exec.memory::set_current_input_note_ptr
+    # => [current_input_note_ptr]
 end
 
-#! Sets the current consumed note pointer to 0. This should be called after all consumed notes have
+#! Sets the current input note pointer to 0. This should be called after all input notes have
 #! been processed.
 #!
 #! Inputs: []
 #! Outputs: []
 export.note_processing_teardown
-    # set the current consumed note pointer to 0
-    push.0 exec.memory::set_current_consumed_note_ptr
+    # set the current input note pointer to 0
+    push.0 exec.memory::set_current_input_note_ptr
     # => []
 end
 
@@ -143,13 +143,13 @@ end
 #! - NOTE_SCRIPT_ROOT, the note's script root.
 #! - NOTE_ARGS, the note's arguments.
 export.prepare_note
-    exec.memory::get_current_consumed_note_ptr
+    exec.memory::get_current_input_note_ptr
     # => [note_ptr]
 
-    dup exec.memory::get_consumed_note_args movup.4
+    dup exec.memory::get_input_note_args movup.4
     # => [note_ptr, NOTE_ARGS]
 
-    exec.memory::get_consumed_note_script_root
+    exec.memory::get_input_note_script_root
     # => [NOTE_SCRIPT_ROOT, NOTE_ARGS]
 end
 
@@ -169,7 +169,7 @@ end
 #! - ASSETS_HASH is the hash of the assets of the output note located at note_data_ptr.
 proc.compute_output_note_assets_hash
     # duplicate note pointer and fetch num_assets
-    dup dup exec.memory::get_created_note_num_assets
+    dup dup exec.memory::get_output_note_num_assets
     # => [num_assets, note_data_ptr, note_data_ptr]
 
     # calculate the number of pairs of assets (takes ceiling if we have an odd number)
@@ -183,7 +183,7 @@ proc.compute_output_note_assets_hash
     # => [asset_counter, num_asset_pairs, note_data_ptr, note_data_ptr]
 
     # prepare address and stack for reading assets
-    movup.2 exec.memory::get_created_note_asset_data_ptr padw padw padw
+    movup.2 exec.memory::get_output_note_asset_data_ptr padw padw padw
     # => [PAD, PAD, PAD, asset_data_ptr, asset_counter, num_asset_pairs, note_data_ptr]
 
     # check if we should loop
@@ -215,7 +215,7 @@ proc.compute_output_note_assets_hash
     # => [ASSETS_HASH, note_data_ptr]
 
     # save vault hash to memory
-    movup.4 exec.memory::set_created_note_assets_hash
+    movup.4 exec.memory::set_output_note_assets_hash
     # => []
 end
 
@@ -237,15 +237,15 @@ proc.compute_output_note_id
     padw
 
     # insert output note recipient into the first four elements of the hasher rate
-    dup.4 exec.memory::get_created_note_recipient
+    dup.4 exec.memory::get_output_note_recipient
 
     # populate the last four elements of the hasher rate with the output note's asset hash
     dup.8 exec.compute_output_note_assets_hash
 
-    # compute output note hash and extract digest
+    # compute output note commitment and extract digest
     hperm exec.native::state_to_digest
 
-    # save output note hash to memory
+    # save the output notes commitment to memory
     movup.4 mem_storew
 end
 
@@ -255,18 +255,18 @@ end
 #! Stack: []
 #! Output: [OUTPUT_NOTES_COMMITMENT]
 #!
-#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes created by the transaction.
+#! - OUTPUT_NOTES_COMMITMENT is the commitment to the notes output by the transaction.
 export.compute_output_notes_commitment
     # get the number of output notes from memory
-    exec.memory::get_num_created_notes
+    exec.memory::get_num_output_notes
     # => [num_notes, ...]
 
     # calculate the address at which we should stop looping
-    exec.memory::get_created_note_ptr
+    exec.memory::get_output_note_ptr
     # => [end_ptr, ...]
 
     # compute pointer for first address
-    push.0 exec.memory::get_created_note_ptr
+    push.0 exec.memory::get_output_note_ptr
     # => [first_note_ptr, end_ptr, ...]
 
     # prepare stack for hashing
@@ -318,9 +318,9 @@ end
 #!
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
 export.get_serial_number
-    exec.memory::get_current_consumed_note_ptr
+    exec.memory::get_current_input_note_ptr
     # => [note_ptr, ...]
 
-    exec.memory::get_consumed_note_serial_num
+    exec.memory::get_input_note_serial_num
     # => [SERIAL_NUMBER, ...]
 end

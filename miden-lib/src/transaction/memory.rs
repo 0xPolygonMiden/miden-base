@@ -10,12 +10,25 @@ pub type StorageSlot = u8;
 // PUBLIC CONSTANTS
 // ================================================================================================
 
+// | Section           | Start address |  End address |
+// | -------------     | :------------:| :-----------:|
+// | Bookkeeping       | 0             | 4            |
+// | Global inputs     | 100           | 105          |
+// | Block header      | 200           | 207          |
+// | Chain MMR         | 300           | 332?         |
+// | Account data      | 400           | 651?         |
+// | Account procedures| 999           | ?            |
+// | Input notes       | 1_048_576     | ?            |
+// | Output notes      | 4_194_304     | ?            |
+
 // RESERVED ACCOUNT STORAGE SLOTS
 // ------------------------------------------------------------------------------------------------
 
 /// The account storage slot at which faucet data is stored.
-/// Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
-/// Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
+///
+/// - Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance].
+/// - Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible
+///   assets.
 pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
 
 /// The account storage slot at which the slot types commitment is stored.
@@ -27,11 +40,11 @@ pub const SLOT_TYPES_COMMITMENT_STORAGE_SLOT: StorageSlot = 255;
 /// The memory address at which the transaction vault root is stored.
 pub const TX_VAULT_ROOT_PTR: MemoryAddress = 0;
 
-/// The memory address at which a pointer to the consumed note being executed is stored.
-pub const CURRENT_CONSUMED_NOTE_PTR: MemoryAddress = 1;
+/// The memory address at which a pointer to the input note being executed is stored.
+pub const CURRENT_INPUT_NOTE_PTR: MemoryAddress = 1;
 
-/// The memory address at which the number of created notes is stored.
-pub const NUM_CREATED_NOTES_PTR: MemoryAddress = 2;
+/// The memory address at which the number of output notes is stored.
+pub const NUM_OUTPUT_NOTES_PTR: MemoryAddress = 2;
 
 /// The memory address at which the input vault root is stored
 pub const INPUT_VAULT_ROOT_PTR: MemoryAddress = 3;
@@ -117,14 +130,14 @@ pub const CHAIN_MMR_PEAKS_PTR: MemoryAddress = 301;
 // ACCOUNT DATA
 // ------------------------------------------------------------------------------------------------
 
-/// The size of the memory segment allocated to core account data (excluding new code root)
+/// The size of the memory segment allocated to core account data (excluding new code commitment)
 pub const ACCT_DATA_MEM_SIZE: MemSize = 4;
 
 /// The memory address at which the account data section begins
 pub const ACCT_DATA_SECTION_OFFSET: MemoryOffset = 400;
 
-/// The offset at which the account id and nonce is stored relative to the start of the account
-/// data segment.
+/// The offset at which the account id and nonce is stored relative to the start of
+/// the account data segment.
 pub const ACCT_ID_AND_NONCE_OFFSET: MemoryOffset = 0;
 
 /// The index of the account id within the account id and nonce data.
@@ -154,23 +167,30 @@ pub const ACCT_STORAGE_ROOT_OFFSET: MemoryOffset = 2;
 pub const ACCT_STORAGE_ROOT_PTR: MemoryAddress =
     ACCT_DATA_SECTION_OFFSET + ACCT_STORAGE_ROOT_OFFSET;
 
-/// The offset at which the account code root is stored relative to the start of the account
+/// The offset at which the account code commitment is stored relative to the start of the account
 /// data segment.
-pub const ACCT_CODE_ROOT_OFFSET: MemoryOffset = 3;
+pub const ACCT_CODE_COMMITMENT_OFFSET: MemoryOffset = 3;
 
-/// The memory address at which the account code root is stored.
-pub const ACCT_CODE_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_CODE_ROOT_OFFSET;
+/// The memory address at which the account code commitment is stored.
+pub const ACCT_CODE_COMMITMENT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_CODE_COMMITMENT_OFFSET;
 
-/// The offset at which the accounts new code root is stored relative to the start of the account
-/// data segment.
-pub const ACCT_NEW_CODE_ROOT_OFFSET: MemoryOffset = 4;
+/// The offset at which the accounts new code commitment is stored relative to the start of the
+/// account data segment.
+pub const ACCT_NEW_CODE_COMMITMENT_OFFSET: MemoryOffset = 4;
 
-/// The memory address at which the new account code root is stored
-pub const ACCT_NEW_CODE_ROOT_PTR: MemoryAddress =
-    ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_ROOT_OFFSET;
+/// The memory address at which the new account code commitment is stored
+pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
+    ACCT_DATA_SECTION_OFFSET + ACCT_NEW_CODE_COMMITMENT_OFFSET;
 
-/// The memory address at which the account storage slot type data beings
+/// The memory address at which the account storage slot type data begins
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
+
+/// The memory address at which the number of procedures contained in the account code is stored
+pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 999;
+
+/// The memory address at which the account procedures section begins.
+pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
 
 // NOTES DATA
 // ================================================================================================
@@ -178,6 +198,7 @@ pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
 /// The size of the memory segment allocated to each note.
 pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 
+#[rustfmt::skip]
 // INPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
 // Inputs note section contains data of all notes consumed by a transaction. The section starts at
@@ -203,25 +224,25 @@ pub const NOTE_MEM_SIZE: MemoryAddress = 512;
 // - INPUTS_HASH is the key to look up note inputs in the advice map.
 // - ASSETS_HASH is the key to look up note assets in the advice map.
 
-/// The memory address at which the consumed note section begins.
-pub const CONSUMED_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
+/// The memory address at which the input note section begins.
+pub const INPUT_NOTE_SECTION_OFFSET: MemoryOffset = 1_048_576;
 
-/// The memory address at which the consumed note data section begins.
-pub const CONSUMED_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
+/// The memory address at which the input note data section begins.
+pub const INPUT_NOTE_DATA_SECTION_OFFSET: MemoryAddress = 1_064_960;
 
-/// The memory address at which the number of consumed notes is stored.
-pub const CONSUMED_NOTE_NUM_PTR: MemoryAddress = CONSUMED_NOTE_SECTION_OFFSET;
+/// The memory address at which the number of input notes is stored.
+pub const NUM_INPUT_NOTES_PTR: MemoryAddress = INPUT_NOTE_SECTION_OFFSET;
 
-/// The offsets at which data of a consumed note is stored relative to the start of its data segment.
-pub const CONSUMED_NOTE_ID_OFFSET: MemoryOffset = 0;
-pub const CONSUMED_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
-pub const CONSUMED_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
-pub const CONSUMED_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
-pub const CONSUMED_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
-pub const CONSUMED_NOTE_METADATA_OFFSET: MemoryOffset = 5;
-pub const CONSUMED_NOTE_ARGS_OFFSET: MemoryOffset = 6;
-pub const CONSUMED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
-pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
+/// The offsets at which data of a input note is stored relative to the start of its data segment.
+pub const INPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
+pub const INPUT_NOTE_SERIAL_NUM_OFFSET: MemoryOffset = 1;
+pub const INPUT_NOTE_SCRIPT_ROOT_OFFSET: MemoryOffset = 2;
+pub const INPUT_NOTE_INPUTS_HASH_OFFSET: MemoryOffset = 3;
+pub const INPUT_NOTE_ASSETS_HASH_OFFSET: MemoryOffset = 4;
+pub const INPUT_NOTE_METADATA_OFFSET: MemoryOffset = 5;
+pub const INPUT_NOTE_ARGS_OFFSET: MemoryOffset = 6;
+pub const INPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 7;
+pub const INPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 
 // OUTPUT NOTES DATA
 // ------------------------------------------------------------------------------------------------
@@ -244,16 +265,16 @@ pub const CONSUMED_NOTE_ASSETS_OFFSET: MemoryOffset = 8;
 // Even though NUM_ASSETS takes up a while word, the actual value of this variable is stored in the
 // first element of the word.
 
-/// The memory address at which the created notes section begins.
-pub const CREATED_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
+/// The memory address at which the output notes section begins.
+pub const OUTPUT_NOTE_SECTION_OFFSET: MemoryOffset = 4_194_304;
 
-/// The size of the core created note data segment.
-pub const CREATED_NOTE_CORE_DATA_SIZE: MemSize = 4;
+/// The size of the core output note data segment.
+pub const OUTPUT_NOTE_CORE_DATA_SIZE: MemSize = 4;
 
-/// The offsets at which data of a created note is stored relative to the start of its data segment.
-pub const CREATED_NOTE_ID_OFFSET: MemoryOffset = 0;
-pub const CREATED_NOTE_METADATA_OFFSET: MemoryOffset = 1;
-pub const CREATED_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
-pub const CREATED_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
-pub const CREATED_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
-pub const CREATED_NOTE_ASSETS_OFFSET: MemoryOffset = 5;
+/// The offsets at which data of a output note is stored relative to the start of its data segment.
+pub const OUTPUT_NOTE_ID_OFFSET: MemoryOffset = 0;
+pub const OUTPUT_NOTE_METADATA_OFFSET: MemoryOffset = 1;
+pub const OUTPUT_NOTE_RECIPIENT_OFFSET: MemoryOffset = 2;
+pub const OUTPUT_NOTE_ASSET_HASH_OFFSET: MemoryOffset = 3;
+pub const OUTPUT_NOTE_NUM_ASSETS_OFFSET: MemoryOffset = 4;
+pub const OUTPUT_NOTE_ASSETS_OFFSET: MemoryOffset = 5;

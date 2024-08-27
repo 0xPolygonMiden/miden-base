@@ -1,6 +1,6 @@
 [package]
 name = "miden-objects"
-version = "0.4.0"
+version = "0.5.0"
 description = "Core components of the Miden rollup"
 readme = "README.md"
 categories = ["no-std"]
@@ -35,9 +35,10 @@ rand = { workspace = true, optional = true }
 serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
 vm-core = { workspace = true }
 vm-processor = { workspace = true }
-winter-rand-utils = { version = "0.8", optional = true }
+winter-rand-utils = { version = "0.9", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
-miden-objects = { path = ".", features = ["testing"] }
-tempfile = { version = "3.0" }
+miden-objects = { workspace = true, features = ["testing"] }
+rstest = { version = "0.22" }
+tempfile = { version = "3.12" }

@@ -23,7 +23,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       ```shell
       cargo install miden-cli --features testing,concurrent
       ```
-      You can now use the `miden --version` command, and you should see `Miden 0.4.0`.
+      You can now use the `miden --version` command, and you should see `Miden 0.5.0`.
 
 3. Initialize the client. This creates the `miden-client.toml` file.
 
@@ -77,7 +77,7 @@ Save the account ID for a future step.
 2. You should see something like this:
 
       ```sh
-      Succesfully imported note 0x0ff340133840d35e95e0dc2e62c88ed75ab2e383dc6673ce0341bd486fed8cb6
+      Successfully imported note 0x0ff340133840d35e95e0dc2e62c88ed75ab2e383dc6673ce0341bd486fed8cb6
       ```
 
 3. Now that the note has been successfully imported, you can view the note's information using the following command: 

@@ -1,8 +1,7 @@
 use alloc::{collections::BTreeMap, string::String};
 
-use miden_lib::transaction::memory::CURRENT_CONSUMED_NOTE_PTR;
+use miden_lib::transaction::memory::CURRENT_INPUT_NOTE_PTR;
 use miden_objects::{
-    accounts::account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
     notes::Note, testing::prepare_word, transaction::TransactionArgs, Hasher, WORD_SIZE,
 };
 use vm_processor::{ProcessState, EMPTY_WORD, ONE};
@@ -10,29 +9,25 @@ use vm_processor::{ProcessState, EMPTY_WORD, ONE};
 use super::{Felt, Process, ZERO};
 use crate::{
     testing::{
-        utils::consumed_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
+        utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
     tests::kernel_tests::read_root_mem_value,
 };
 
 #[test]
 fn test_get_sender_no_sender() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
     // calling get_sender should return sender
     let code = "
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::prologue
+        use.kernel::memory
+        use.kernel::prologue
         use.miden::note
 
         begin
             exec.prologue::prepare_transaction
 
-            # force the current consumed note pointer to 0
-            push.0 exec.memory::set_current_consumed_note_ptr
+            # force the current input note pointer to 0
+            push.0 exec.memory::set_current_input_note_ptr
 
             # get the sender
             exec.note::get_sender
@@ -46,17 +41,14 @@ fn test_get_sender_no_sender() {
 
 #[test]
 fn test_get_sender() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     // calling get_sender should return sender
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         begin
@@ -75,20 +67,17 @@ fn test_get_sender() {
 
 #[test]
 fn test_get_vault_data() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let notes = tx_context.input_notes();
 
-    // calling get_vault_info should return vault info
+    // calling get_assets_info should return assets info
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -96,23 +85,23 @@ fn test_get_vault_data() {
             # prepare note 0
             exec.note::prepare_note
 
-            # get the vault data
-            exec.note::get_vault_info
+            # get the assets info
+            exec.note::get_assets_info
 
-            # assert the vault data is correct
+            # assert the assets data is correct
             push.{note_0_asset_hash} assert_eqw
             push.{note_0_num_assets} assert_eq
 
-            # increment current consumed note pointer
-            exec.note::increment_current_consumed_note_ptr
+            # increment current input note pointer
+            exec.note::increment_current_input_note_ptr
 
             # prepare note 1
             exec.note::prepare_note
 
-            # get the vault data
-            exec.note::get_vault_info
+            # get the assets data
+            exec.note::get_assets_info
 
-            # assert the vault data is correct
+            # assert the assets data is correct
             push.{note_1_asset_hash} assert_eqw
             push.{note_1_num_assets} assert_eq
         end
@@ -127,12 +116,9 @@ fn test_get_vault_data() {
 }
 #[test]
 fn test_get_assets() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let notes = tx_context.input_notes();
 
@@ -156,8 +142,8 @@ fn test_get_assets() {
     // calling get_assets should return assets at the specified address
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         proc.process_note_0
@@ -216,8 +202,8 @@ fn test_get_assets() {
             # process note 0
             call.process_note_0
 
-            # increment current consumed note pointer
-            exec.note_internal::increment_current_consumed_note_ptr
+            # increment current input note pointer
+            exec.note_internal::increment_current_input_note_ptr
 
             # prepare note 1
             exec.note_internal::prepare_note
@@ -237,12 +223,9 @@ fn test_get_assets() {
 
 #[test]
 fn test_get_inputs() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let notes = tx_context.mock_chain().available_notes();
 
@@ -267,8 +250,8 @@ fn test_get_inputs() {
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
+        use.kernel::prologue
+        use.kernel::note->note_internal
         use.miden::note
 
         begin
@@ -311,16 +294,13 @@ fn test_get_inputs() {
 
 #[test]
 fn test_note_setup() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -341,23 +321,20 @@ fn test_note_script_and_note_args() {
         [Felt::new(92), Felt::new(92), Felt::new(92), Felt::new(92)],
     ];
 
-    let mut tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let mut tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::memory
-        use.miden::kernels::tx::note
+        use.kernel::prologue
+        use.kernel::memory
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
-            exec.memory::get_total_num_consumed_notes push.2 assert_eq
+            exec.memory::get_num_input_notes push.2 assert_eq
             exec.note::prepare_note dropw
-            exec.note::increment_current_consumed_note_ptr drop
+            exec.note::increment_current_input_note_ptr drop
             exec.note::prepare_note dropw
         end
         ";
@@ -367,8 +344,11 @@ fn test_note_script_and_note_args() {
         (tx_context.input_notes().get_note(1).note().id(), note_args[0]),
     ]);
 
-    let tx_args =
-        TransactionArgs::new(None, Some(note_args_map), tx_context.tx_args().advice_map().clone());
+    let tx_args = TransactionArgs::new(
+        None,
+        Some(note_args_map),
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
 
     tx_context.set_tx_args(tx_args);
     let process = tx_context.execute_code(code).unwrap();
@@ -393,25 +373,22 @@ fn note_setup_stack_assertions(process: &Process<MockHost>, inputs: &Transaction
 fn note_setup_memory_assertions(process: &Process<MockHost>) {
     // assert that the correct pointer is stored in bookkeeping memory
     assert_eq!(
-        read_root_mem_value(process, CURRENT_CONSUMED_NOTE_PTR)[0],
-        Felt::from(consumed_note_data_ptr(0))
+        read_root_mem_value(process, CURRENT_INPUT_NOTE_PTR)[0],
+        Felt::from(input_note_data_ptr(0))
     );
 }
 
 #[test]
 fn test_get_note_serial_number() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     // calling get_serial_number should return the serial number of the note
     let code = "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::note->note_internal
-        use.miden::note
+        use.kernel::prologue
+        use.kernel::note->note_internal
+        use.kernel::note
 
         begin
             exec.prologue::prepare_transaction
@@ -429,12 +406,9 @@ fn test_get_note_serial_number() {
 
 #[test]
 fn test_get_inputs_hash() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let code = "
         use.miden::note
@@ -515,7 +489,7 @@ fn test_get_inputs_hash() {
     .to_vec();
     expected_15.reverse();
 
-    let mut expected_stack = vec![Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)];
+    let mut expected_stack = vec![ZERO, ZERO, ZERO, ZERO];
     expected_stack.extend_from_slice(&expected_15);
     expected_stack.extend_from_slice(&expected_8);
     expected_stack.extend_from_slice(&expected_5);

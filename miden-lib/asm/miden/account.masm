@@ -143,10 +143,10 @@ end
 #! Sets the code of the account the transaction is being executed against. This procedure can only
 #! executed on regular accounts with updatable code. Otherwise, this procedure fails.
 #!
-#! Stack: [CODE_ROOT]
+#! Stack: [CODE_COMMITMENT]
 #! Output: []
 #!
-#! - CODE_ROOT is the hash of the code to set.
+#! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
     syscall.set_account_code
     # => [0, 0, 0, 0]
@@ -231,4 +231,59 @@ export.get_vault_commitment
     # invoke the syscall
     syscall.get_account_vault_commitment
     # => [COM]
+end
+
+# PROCEDURES COPIED FROM KERNEL (TODO: get rid of this duplication)
+# =================================================================================================
+
+# Given the most significant half of an account id, this mask defines the bits used to determine the account type.
+const.ACCOUNT_TYPE_U32MASK=805306368 # 0b00110000_00000000_00000000_00000000
+
+# Bit pattern for a fungible faucet w/ immutable code, after the account type mask has been applied.
+const.FUNGIBLE_FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
+
+# Bit pattern for a non-fungible faucet w/ immutable code, after the account type mask has been applied.
+const.NON_FUNGIBLE_FAUCET_ACCOUNT=805306368 # 0b00110000_00000000_00000000_00000000
+
+#! Returns the most significant half with the account type bits masked out.
+#!
+#! The account type can be defined by comparing this value with the following constants:
+#!
+#! - REGULAR_ACCOUNT_UPDATABLE_CODE
+#! - REGULAR_ACCOUNT_IMMUTABLE_CODE
+#! - FUNGIBLE_FAUCET_ACCOUNT
+#! - NON_FUNGIBLE_FAUCET_ACCOUNT
+#!
+#! Stack: [acct_id]
+#! Output: [acct_type]
+#!
+#! - acct_id is the account id.
+#! - acct_type is the account type.
+proc.type
+    u32split swap drop push.ACCOUNT_TYPE_U32MASK u32and
+    # => [acct_type]
+end
+
+#! Returns a boolean indicating whether the account is a fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_fungible_faucet is a boolean indicating whether the account is a fungible faucet.
+export.is_fungible_faucet
+    exec.type push.FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_fungible_faucet]
+end
+
+#! Returns a boolean indicating whether the account is a non-fungible faucet.
+#!
+#! Stack: [acct_id]
+#! Output: [is_non_fungible_faucet]
+#!
+#! - acct_id is the account id.
+#! - is_non_fungible_faucet is a boolean indicating whether the account is a non-fungible faucet.
+export.is_non_fungible_faucet
+    exec.type push.NON_FUNGIBLE_FAUCET_ACCOUNT eq
+    # => [is_non_fungible_faucet]
 end

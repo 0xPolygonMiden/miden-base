@@ -1,11 +1,13 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
     accounts::AccountId,
-    assembly::{Assembler, AssemblyContext, ProgramAst},
-    transaction::{OutputNote, OutputNotes, TransactionOutputs},
-    utils::{group_slice_elements, serde::DeserializationError},
-    vm::{AdviceMap, ProgramInfo, StackInputs, StackOutputs},
+    assembly::{Assembler, DefaultSourceManager, KernelLibrary},
+    transaction::{
+        OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
+    },
+    utils::{group_slice_elements, serde::Deserializable},
+    vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
     Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
@@ -18,7 +20,6 @@ mod events;
 pub use events::{TransactionEvent, TransactionTrace};
 
 mod inputs;
-pub use inputs::ToTransactionKernelInputs;
 
 mod outputs;
 pub use outputs::{
@@ -30,6 +31,14 @@ pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
 
+// CONSTANTS
+// ================================================================================================
+
+const KERNEL_LIB_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masl"));
+const KERNEL_MAIN_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/tx_kernel.masb"));
+
 // TRANSACTION KERNEL
 // ================================================================================================
 
@@ -39,19 +48,24 @@ impl TransactionKernel {
     // KERNEL SOURCE CODE
     // --------------------------------------------------------------------------------------------
 
-    /// Returns MASM source code which encodes the transaction kernel system procedures.
-    pub fn kernel() -> &'static str {
-        include_str!("../../asm/kernels/transaction/api.masm")
+    /// Returns a library with the transaction kernel system procedures.
+    ///
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
+    pub fn kernel() -> KernelLibrary {
+        // TODO: make this static
+        KernelLibrary::read_from_bytes(KERNEL_LIB_BYTES)
+            .expect("failed to deserialize transaction kernel library")
     }
 
     /// Returns an AST of the transaction kernel executable program.
     ///
-    /// # Errors
-    /// Returns an error if deserialization of the binary fails.
-    pub fn main() -> Result<ProgramAst, DeserializationError> {
-        let kernel_bytes =
-            include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/transaction.masb"));
-        ProgramAst::from_bytes(kernel_bytes)
+    /// # Panics
+    /// Panics if the transaction kernel source is not well-formed.
+    pub fn main() -> Program {
+        // TODO: make static
+        Program::read_from_bytes(KERNEL_MAIN_BYTES)
+            .expect("failed to deserialize transaction kernel runtime")
     }
 
     /// Returns [ProgramInfo] for the transaction kernel executable program.
@@ -59,29 +73,48 @@ impl TransactionKernel {
     /// # Panics
     /// Panics if the transaction kernel source is not well-formed.
     pub fn program_info() -> ProgramInfo {
-        // TODO: construct kernel_main and kernel using lazy static or at build time
-        let assembler = Self::assembler();
-        let main_ast = TransactionKernel::main().expect("main is well formed");
-        let kernel_main = assembler
-            .compile_in_context(&main_ast, &mut AssemblyContext::for_program(Some(&main_ast)))
-            .expect("main is well formed");
+        // TODO: make static
+        let program_hash = Self::main().hash();
+        let kernel = Self::kernel().kernel().clone();
 
-        ProgramInfo::new(kernel_main.hash(), assembler.kernel().clone())
+        ProgramInfo::new(program_hash, kernel)
+    }
+
+    /// Transforms the provided [TransactionInputs] and [TransactionArgs] into stack and advice
+    /// inputs needed to execute a transaction kernel for a specific transaction.
+    ///
+    /// If `init_advice_inputs` is provided, they will be included in the returned advice inputs.
+    pub fn prepare_inputs(
+        tx_inputs: &TransactionInputs,
+        tx_args: &TransactionArgs,
+        init_advice_inputs: Option<AdviceInputs>,
+    ) -> (StackInputs, AdviceInputs) {
+        let account = tx_inputs.account();
+        let stack_inputs = TransactionKernel::build_input_stack(
+            account.id(),
+            account.init_hash(),
+            tx_inputs.input_notes().commitment(),
+            tx_inputs.block_header().hash(),
+        );
+
+        let mut advice_inputs = init_advice_inputs.unwrap_or_default();
+        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
+
+        (stack_inputs, advice_inputs)
     }
 
     // ASSEMBLER CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new Miden assembler instantiated with the transaction kernel and loaded with the
-    /// Miden stdlib as well as with midenlib.
+    /// Miden stdlib as well as with miden-lib.
     pub fn assembler() -> Assembler {
-        Assembler::default()
-            .with_library(&MidenLib::default())
-            .expect("failed to load miden-lib")
-            .with_library(&StdLibrary::default())
+        let source_manager = Arc::new(DefaultSourceManager::default());
+        Assembler::with_kernel(source_manager, Self::kernel())
+            .with_library(StdLibrary::default())
             .expect("failed to load std-lib")
-            .with_kernel(Self::kernel())
-            .expect("kernel must be well formed")
+            .with_library(MidenLib::default())
+            .expect("failed to load miden-lib")
     }
 
     // STACK INPUTS / OUTPUTS
@@ -133,8 +166,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// # Errors
     /// Returns an error if:
@@ -183,8 +216,8 @@ impl TransactionKernel {
     ///
     /// Where:
     /// - CNC is the commitment to the notes created by the transaction.
-    /// - FAH is the final account hash of the account that the transaction is being
-    ///   executed against.
+    /// - FAH is the final account hash of the account that the transaction is being executed
+    ///   against.
     ///
     /// The actual data describing the new account state and output notes is expected to be located
     /// in the provided advice map under keys CNC and FAH.
@@ -214,5 +247,36 @@ impl TransactionKernel {
         }
 
         Ok(TransactionOutputs { account, output_notes })
+    }
+}
+
+#[cfg(feature = "testing")]
+impl TransactionKernel {
+    const KERNEL_TESTING_LIB_BYTES: &'static [u8] =
+        include_bytes!(concat!(env!("OUT_DIR"), "/assets/kernels/kernel_library.masl"));
+
+    pub fn kernel_as_library() -> miden_objects::assembly::Library {
+        miden_objects::assembly::Library::read_from_bytes(Self::KERNEL_TESTING_LIB_BYTES)
+            .expect("failed to deserialize transaction kernel library")
+    }
+
+    /// Contains code to get an instance of the [Assembler] that should be used in tests.
+    ///
+    /// This assembler is similar to the assembler used to assemble the kernel and transactions,
+    /// with the difference that it also includes an extra library on the namespace of `kernel`.
+    /// The `kernel` library is added separately because even though the library (`api.masm`) and
+    /// the kernel binary (`main.masm`) include this code, it is not exposed explicitly. By adding
+    /// it separately, we can expose procedures from `/lib` and test them individually.
+    pub fn assembler_testing() -> Assembler {
+        let source_manager = Arc::new(DefaultSourceManager::default());
+        let kernel_library = Self::kernel_as_library();
+
+        Assembler::with_kernel(source_manager, Self::kernel())
+            .with_library(StdLibrary::default())
+            .expect("failed to load std-lib")
+            .with_library(MidenLib::default())
+            .expect("failed to load miden-lib")
+            .with_library(kernel_library)
+            .expect("failed to load kernel library (/lib)")
     }
 }

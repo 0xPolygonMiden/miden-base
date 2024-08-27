@@ -1,8 +1,9 @@
 # Miden transactions benchmark
 
-This crate contains an executable used for benchmarking transactions. 
+This crate contains an executable used for benchmarking transactions.
 
 For each transaction, data is collected on the number of cycles required to complete:
+
 - Prologue
 - All notes processing
 - Each note execution

@@ -105,7 +105,8 @@ pub enum AccountStorageType {
 pub struct AccountId(Felt);
 
 impl AccountId {
-    /// Specifies a minimum number of trailing zeros required in the last element of the seed digest.
+    /// Specifies a minimum number of trailing zeros required in the last element of the seed
+    /// digest.
     ///
     /// Note: The account id includes 4 bits of metadata, these bits determine the account type
     /// (normal account, fungible token, non-fungible token), the storage type (on/off chain), and
@@ -126,25 +127,28 @@ impl AccountId {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new account ID derived from the specified seed, code root and storage root.
+    /// Returns a new account ID derived from the specified seed, code commitment and storage root.
     ///
-    /// The account ID is computed by hashing the seed, code root and storage root and using 1
+    /// The account ID is computed by hashing the seed, code commitment and storage root and using 1
     /// element of the resulting digest to form the ID. Specifically we take element 0. We also
     /// require that the last element of the seed digest has at least `23` trailing zeros if it
     /// is a regular account, or `31` trailing zeros if it is a faucet account.
     ///
     /// The seed digest is computed using a sequential hash over
-    /// hash(SEED, CODE_ROOT, STORAGE_ROOT, ZERO).  This takes two permutations.
+    /// hash(SEED, CODE_COMMITMENT, STORAGE_ROOT, ZERO).  This takes two permutations.
     ///
     /// # Errors
     /// Returns an error if the resulting account ID does not comply with account ID rules:
     /// - the metadata embedded in the ID (i.e., the first 4 bits) is valid.
     /// - the ID has at least `5` ones.
-    /// - the last element of the seed digest has at least `23` trailing zeros for regular
-    ///   accounts.
+    /// - the last element of the seed digest has at least `23` trailing zeros for regular accounts.
     /// - the last element of the seed digest has at least `31` trailing zeros for faucet accounts.
-    pub fn new(seed: Word, code_root: Digest, storage_root: Digest) -> Result<Self, AccountError> {
-        let seed_digest = compute_digest(seed, code_root, storage_root);
+    pub fn new(
+        seed: Word,
+        code_commitment: Digest,
+        storage_root: Digest,
+    ) -> Result<Self, AccountError> {
+        let seed_digest = compute_digest(seed, code_commitment, storage_root);
 
         Self::validate_seed_digest(&seed_digest)?;
         seed_digest[0].try_into()
@@ -161,19 +165,19 @@ impl AccountId {
     /// Creates a new dummy [AccountId] for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn new_dummy(init_seed: [u8; 32], account_type: AccountType) -> Self {
-        let code_root = Digest::default();
+        let code_commitment = Digest::default();
         let storage_root = Digest::default();
 
         let seed = get_account_seed(
             init_seed,
             account_type,
             AccountStorageType::OnChain,
-            code_root,
+            code_commitment,
             storage_root,
         )
         .unwrap();
 
-        Self::new(seed, code_root, storage_root).unwrap()
+        Self::new(seed, code_commitment, storage_root).unwrap()
     }
 
     // PUBLIC ACCESSORS
@@ -218,10 +222,10 @@ impl AccountId {
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_type: AccountStorageType,
-        code_root: Digest,
+        code_commitment: Digest,
         storage_root: Digest,
     ) -> Result<Word, AccountError> {
-        get_account_seed(init_seed, account_type, storage_type, code_root, storage_root)
+        get_account_seed(init_seed, account_type, storage_type, code_commitment, storage_root)
     }
 
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
@@ -230,8 +234,8 @@ impl AccountId {
         hex_to_bytes(hex_value)
             .map_err(|err| AccountError::HexParseError(err.to_string()))
             .and_then(|mut bytes: [u8; 8]| {
-                // `bytes` ends up being parsed as felt, and the input to that is assumed to be little-endian
-                // so we need to reverse the order
+                // `bytes` ends up being parsed as felt, and the input to that is assumed to be
+                // little-endian so we need to reverse the order
                 bytes.reverse();
                 bytes.try_into()
             })
@@ -399,12 +403,12 @@ fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
     Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
 }
 
-/// Returns the digest of two hashing permutations over the seed, code root, storage root and
+/// Returns the digest of two hashing permutations over the seed, code commitment, storage root and
 /// padding.
-pub(super) fn compute_digest(seed: Word, code_root: Digest, storage_root: Digest) -> Digest {
+pub(super) fn compute_digest(seed: Word, code_commitment: Digest, storage_root: Digest) -> Digest {
     let mut elements = Vec::with_capacity(16);
     elements.extend(seed);
-    elements.extend(*code_root);
+    elements.extend(*code_commitment);
     elements.extend(*storage_root);
     elements.resize(16, ZERO);
     Hasher::hash_elements(&elements)

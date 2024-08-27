@@ -7,11 +7,8 @@ use miden_crypto::{
 use vm_processor::DeserializationError;
 
 use crate::{
-    accounts::AccountId,
-    assembly::{Assembler, AssemblyContext, ProgramAst},
-    assets::Asset,
-    vm::CodeBlock,
-    Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH, WORD_SIZE, ZERO,
+    accounts::AccountId, assets::Asset, Digest, Felt, Hasher, NoteError, NOTE_TREE_DEPTH,
+    WORD_SIZE, ZERO,
 };
 
 mod assets;
@@ -29,11 +26,14 @@ pub use inputs::NoteInputs;
 mod metadata;
 pub use metadata::NoteMetadata;
 
+mod execution_hint;
+pub use execution_hint::NoteExecutionHint;
+
 mod note_id;
 pub use note_id::NoteId;
 
 mod note_tag;
-pub use note_tag::{NoteExecutionHint, NoteTag};
+pub use note_tag::{NoteExecutionMode, NoteTag};
 
 mod note_type;
 pub use note_type::NoteType;
@@ -41,8 +41,8 @@ pub use note_type::NoteType;
 mod nullifier;
 pub use nullifier::Nullifier;
 
-mod origin;
-pub use origin::{NoteInclusionProof, NoteOrigin};
+mod location;
+pub use location::{NoteInclusionProof, NoteLocation};
 
 mod partial;
 pub use partial::PartialNote;
@@ -60,6 +60,7 @@ pub use file::NoteFile;
 // ================================================================================================
 
 /// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
+///
 /// This is equal `NOTE_TREE_DEPTH + 1`. In the kernel we do not authenticate leaf data directly
 /// but rather authenticate hash(left_leaf, right_leaf).
 pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;

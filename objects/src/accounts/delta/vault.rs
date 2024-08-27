@@ -1,8 +1,15 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::{
+    collections::{btree_map::Entry, BTreeMap},
+    string::ToString,
+    vec::Vec,
+};
 
 use super::{
-    AccountDeltaError, Asset, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Serializable,
+    AccountDeltaError, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+};
+use crate::{
+    accounts::{AccountId, AccountType},
+    assets::{Asset, FungibleAsset, NonFungibleAsset},
 };
 
 // ACCOUNT VAULT DELTA
@@ -11,130 +18,426 @@ use super::{
 /// [AccountVaultDelta] stores the difference between the initial and final account vault states.
 ///
 /// The difference is represented as follows:
-/// - added_assets: a vector of assets that were added to the account vault.
-/// - removed_assets: a vector of assets that were removed from the account vault.
+/// - fungible: a binary tree map of fungible asset balance changes in the account vault.
+/// - non_fungible: a binary tree map of non-fungible assets that were added to or removed from the
+///   account vault.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AccountVaultDelta {
-    pub added_assets: Vec<Asset>,
-    pub removed_assets: Vec<Asset>,
+    fungible: FungibleAssetDelta,
+    non_fungible: NonFungibleAssetDelta,
 }
 
 impl AccountVaultDelta {
-    /// Creates an empty [AccountVaultDelta].
-    pub fn empty() -> Self {
-        Self::default()
-    }
-
-    /// Creates an [AccountVaultDelta] from the given iterators.
-    pub fn from_iterators<A, B>(added_assets: A, removed_assets: B) -> Self
-    where
-        A: IntoIterator<Item = Asset>,
-        B: IntoIterator<Item = Asset>,
-    {
-        Self {
-            added_assets: Vec::from_iter(added_assets),
-            removed_assets: Vec::from_iter(removed_assets),
-        }
-    }
-
-    /// Checks whether this vault delta is valid.
+    /// Validates and creates an [AccountVaultDelta] with the given fungible and non-fungible asset
+    /// deltas.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// - The number added assets is greater than [u16::MAX].
-    /// - The number of removed assets is greater than [u16::MAX].
-    /// - The same asset was added more than once, removed more than once, or both added and
-    ///   removed.
-    pub fn validate(&self) -> Result<(), AccountDeltaError> {
-        if self.added_assets.len() > u16::MAX as usize {
-            return Err(AccountDeltaError::TooManyAddedAsset {
-                actual: self.added_assets.len(),
-                max: u16::MAX as usize,
-            });
-        } else if self.removed_assets.len() > u16::MAX as usize {
-            return Err(AccountDeltaError::TooManyRemovedAssets {
-                actual: self.removed_assets.len(),
-                max: u16::MAX as usize,
-            });
-        }
+    /// Returns an error if the delta does not pass the validation.
+    pub const fn new(fungible: FungibleAssetDelta, non_fungible: NonFungibleAssetDelta) -> Self {
+        Self { fungible, non_fungible }
+    }
 
-        // make sure all added assets are unique
-        for (pos, asset) in self.added_assets.iter().enumerate() {
-            if self.added_assets[..pos].iter().any(|a| a.is_same(asset)) {
-                return Err(AccountDeltaError::DuplicateVaultUpdate(*asset));
-            }
-        }
+    /// Returns a reference to the fungible asset delta.
+    pub fn fungible(&self) -> &FungibleAssetDelta {
+        &self.fungible
+    }
 
-        // make sure all removed assets are the same
-        for (pos, asset) in self.removed_assets.iter().enumerate() {
-            if self.removed_assets[..pos].iter().any(|a| a.is_same(asset)) {
-                return Err(AccountDeltaError::DuplicateVaultUpdate(*asset));
-            }
-
-            if self.added_assets.iter().any(|a| a.is_same(asset)) {
-                return Err(AccountDeltaError::DuplicateVaultUpdate(*asset));
-            }
-        }
-
-        Ok(())
+    /// Returns a reference to the non-fungible asset delta.
+    pub fn non_fungible(&self) -> &NonFungibleAssetDelta {
+        &self.non_fungible
     }
 
     /// Returns true if this vault delta contains no updates.
     pub fn is_empty(&self) -> bool {
-        self.added_assets.is_empty() && self.removed_assets.is_empty()
+        self.fungible.is_empty() && self.non_fungible.is_empty()
+    }
+
+    /// Tracks asset addition.
+    pub fn add_asset(&mut self, asset: Asset) -> Result<(), AccountDeltaError> {
+        match asset {
+            Asset::Fungible(asset) => self.fungible.add(asset),
+            Asset::NonFungible(asset) => self.non_fungible.add(asset),
+        }
+    }
+
+    /// Tracks asset removal.
+    pub fn remove_asset(&mut self, asset: Asset) -> Result<(), AccountDeltaError> {
+        match asset {
+            Asset::Fungible(asset) => self.fungible.remove(asset),
+            Asset::NonFungible(asset) => self.non_fungible.remove(asset),
+        }
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    ///
+    /// The result is validated as part of the merge.
+    ///
+    /// # Errors
+    /// Returns an error if the resulted delta does not pass the validation.
+    pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
+        self.non_fungible.merge(other.non_fungible)?;
+        self.fungible.merge(other.fungible)
+    }
+}
+
+#[cfg(any(feature = "testing", test))]
+impl AccountVaultDelta {
+    /// Creates an [AccountVaultDelta] from the given iterators.
+    pub fn from_iters(
+        added_assets: impl IntoIterator<Item = crate::assets::Asset>,
+        removed_assets: impl IntoIterator<Item = crate::assets::Asset>,
+    ) -> Self {
+        use crate::assets::Asset;
+
+        let mut fungible = FungibleAssetDelta::default();
+        let mut non_fungible = NonFungibleAssetDelta::default();
+
+        for asset in added_assets {
+            match asset {
+                Asset::Fungible(asset) => {
+                    fungible.add(asset).unwrap();
+                },
+                Asset::NonFungible(asset) => {
+                    non_fungible.add(asset).unwrap();
+                },
+            }
+        }
+
+        for asset in removed_assets {
+            match asset {
+                Asset::Fungible(asset) => {
+                    fungible.remove(asset).unwrap();
+                },
+                Asset::NonFungible(asset) => {
+                    non_fungible.remove(asset).unwrap();
+                },
+            }
+        }
+
+        Self { fungible, non_fungible }
+    }
+
+    /// Returns an iterator over the added assets in this delta.
+    pub fn added_assets(&self) -> impl Iterator<Item = crate::assets::Asset> + '_ {
+        use crate::assets::{Asset, FungibleAsset, NonFungibleAsset};
+        self.fungible
+            .0
+            .iter()
+            .filter(|&(_, &value)| value >= 0)
+            .map(|(&faucet_id, &diff)| {
+                Asset::Fungible(FungibleAsset::new(faucet_id, diff.unsigned_abs()).unwrap())
+            })
+            .chain(self.non_fungible.filter_by_action(NonFungibleDeltaAction::Add).map(|key| {
+                Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(key.into()) })
+            }))
+    }
+
+    /// Returns an iterator over the removed assets in this delta.
+    pub fn removed_assets(&self) -> impl Iterator<Item = crate::assets::Asset> + '_ {
+        use crate::assets::{Asset, FungibleAsset, NonFungibleAsset};
+        self.fungible
+            .0
+            .iter()
+            .filter(|&(_, &value)| value < 0)
+            .map(|(&faucet_id, &diff)| {
+                Asset::Fungible(FungibleAsset::new(faucet_id, diff.unsigned_abs()).unwrap())
+            })
+            .chain(self.non_fungible.filter_by_action(NonFungibleDeltaAction::Remove).map(|key| {
+                Asset::NonFungible(unsafe { NonFungibleAsset::new_unchecked(key.into()) })
+            }))
     }
 }
 
 impl Serializable for AccountVaultDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        assert!(self.added_assets.len() <= u16::MAX as usize, "too many added assets");
-        target.write_u16(self.added_assets.len() as u16);
-        target.write_many(self.added_assets.iter());
-
-        assert!(self.removed_assets.len() <= u16::MAX as usize, "too many removed assets");
-        target.write_u16(self.removed_assets.len() as u16);
-        target.write_many(self.removed_assets.iter());
+        target.write(&self.fungible);
+        target.write(&self.non_fungible);
     }
 }
 
 impl Deserializable for AccountVaultDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // deserialize and validate added assets
-        let num_added_assets = source.read_u16()? as usize;
-        let mut added_assets: Vec<Asset> = Vec::with_capacity(num_added_assets);
-        for _ in 0..num_added_assets {
-            let asset = Asset::read_from(source)?;
-            if added_assets.iter().any(|a| a.is_same(&asset)) {
-                return Err(DeserializationError::InvalidValue(
-                    "asset added more than once".to_string(),
-                ));
-            }
+        let fungible = source.read()?;
+        let non_fungible = source.read()?;
 
-            added_assets.push(asset);
-        }
-
-        // deserialize and validate removed assets
-        let num_removed_assets = source.read_u16()? as usize;
-        let mut removed_assets: Vec<Asset> = Vec::with_capacity(num_removed_assets);
-        for _ in 0..num_removed_assets {
-            let asset = Asset::read_from(source)?;
-
-            if removed_assets.iter().any(|a| a.is_same(&asset)) {
-                return Err(DeserializationError::InvalidValue(
-                    "asset added more than once".to_string(),
-                ));
-            }
-
-            if added_assets.iter().any(|a| a.is_same(&asset)) {
-                return Err(DeserializationError::InvalidValue(
-                    "asset both added and removed".to_string(),
-                ));
-            }
-            removed_assets.push(asset);
-        }
-
-        Ok(Self { added_assets, removed_assets })
+        Ok(Self::new(fungible, non_fungible))
     }
+}
+
+// FUNGIBLE ASSET DELTA
+// ================================================================================================
+
+/// A binary tree map of fungible asset balance changes in the account vault.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FungibleAssetDelta(BTreeMap<AccountId, i64>);
+
+impl FungibleAssetDelta {
+    /// Validates and creates a new fungible asset delta.
+    ///
+    /// # Errors
+    /// Returns an error if the delta does not pass the validation.
+    pub fn new(map: BTreeMap<AccountId, i64>) -> Result<Self, AccountDeltaError> {
+        let delta = Self(map);
+        delta.validate()?;
+
+        Ok(delta)
+    }
+
+    /// Adds a new fungible asset to the delta.
+    ///
+    /// # Errors
+    /// Returns an error if the delta would overflow.
+    pub fn add(&mut self, asset: FungibleAsset) -> Result<(), AccountDeltaError> {
+        let amount: i64 = asset.amount().try_into().expect("Amount it too high");
+        self.add_delta(asset.faucet_id(), amount)
+    }
+
+    /// Removes a fungible asset from the delta.
+    ///
+    /// # Errors
+    /// Returns an error if the delta would overflow.
+    pub fn remove(&mut self, asset: FungibleAsset) -> Result<(), AccountDeltaError> {
+        let amount: i64 = asset.amount().try_into().expect("Amount it too high");
+        self.add_delta(asset.faucet_id(), -amount)
+    }
+
+    /// Returns true if this vault delta contains no updates.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns an iterator over the (key, value) pairs of the map.
+    pub fn iter(&self) -> impl Iterator<Item = (&AccountId, &i64)> {
+        self.0.iter()
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    ///
+    /// The result is validated as part of the merge.
+    ///
+    /// # Errors
+    /// Returns an error if the result did not pass validation.
+    pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
+        // Merge fungible assets.
+        //
+        // Track fungible asset amounts - positive and negative. `i64` is not lossy while
+        // fungibles are restricted to 2^63-1. Overflow is still possible but we check for that.
+
+        for (&faucet_id, &amount) in other.0.iter() {
+            self.add_delta(faucet_id, amount)?;
+        }
+
+        Ok(())
+    }
+
+    // HELPER FUNCTIONS
+    // ---------------------------------------------------------------------------------------------
+
+    /// Updates the provided map with the provided key and amount. If the final amount is 0,
+    /// the entry is removed.
+    ///
+    /// # Errors
+    /// Returns an error if the delta would overflow.
+    fn add_delta(&mut self, faucet_id: AccountId, delta: i64) -> Result<(), AccountDeltaError> {
+        match self.0.entry(faucet_id) {
+            Entry::Vacant(entry) => {
+                entry.insert(delta);
+            },
+            Entry::Occupied(mut entry) => {
+                let old = *entry.get();
+                let new = old.checked_add(delta).ok_or(
+                    AccountDeltaError::FungibleAssetDeltaOverflow {
+                        faucet_id,
+                        this: old,
+                        other: delta,
+                    },
+                )?;
+
+                if new == 0 {
+                    entry.remove();
+                } else {
+                    *entry.get_mut() = new;
+                }
+            },
+        }
+
+        Ok(())
+    }
+
+    /// Checks whether this vault delta is valid.
+    ///
+    /// # Errors
+    /// Returns an error if one or more fungible assets' faucet IDs are invalid.
+    fn validate(&self) -> Result<(), AccountDeltaError> {
+        for faucet_id in self.0.keys() {
+            if !matches!(faucet_id.account_type(), AccountType::FungibleFaucet) {
+                return Err(AccountDeltaError::NotAFungibleFaucetId(*faucet_id));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Serializable for FungibleAssetDelta {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_usize(self.0.len());
+        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
+        //   We should update this code (and deserialization as well) once it support signed
+        //   integers.
+        target.write_many(self.0.iter().map(|(&faucet_id, &delta)| (faucet_id, delta as u64)));
+    }
+}
+
+impl Deserializable for FungibleAssetDelta {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num_fungible_assets = source.read_usize()?;
+        // TODO: We save `i64` as `u64` since winter utils only support unsigned integers for now.
+        //   We should update this code (and serialization as well) once it support signed integers.
+        let map = source
+            .read_many::<(AccountId, u64)>(num_fungible_assets)?
+            .into_iter()
+            .map(|(account_id, delta_as_u64)| (account_id, delta_as_u64 as i64))
+            .collect();
+
+        Self::new(map).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// NON-FUNGIBLE ASSET DELTA
+// ================================================================================================
+
+/// A binary tree map of non-fungible asset changes (addition and removal) in the account vault.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct NonFungibleAssetDelta(BTreeMap<NonFungibleAsset, NonFungibleDeltaAction>);
+
+impl NonFungibleAssetDelta {
+    /// Creates a new non-fungible asset delta.
+    pub const fn new(map: BTreeMap<NonFungibleAsset, NonFungibleDeltaAction>) -> Self {
+        Self(map)
+    }
+
+    /// Adds a new non-fungible asset to the delta.
+    ///
+    /// # Errors
+    /// Returns an error if the delta already contains the asset addition.
+    pub fn add(&mut self, asset: NonFungibleAsset) -> Result<(), AccountDeltaError> {
+        self.apply_action(asset, NonFungibleDeltaAction::Add)
+    }
+
+    /// Removes a non-fungible asset from the delta.
+    ///
+    /// # Errors
+    /// Returns an error if the delta already contains the asset removal.
+    pub fn remove(&mut self, asset: NonFungibleAsset) -> Result<(), AccountDeltaError> {
+        self.apply_action(asset, NonFungibleDeltaAction::Remove)
+    }
+
+    /// Returns true if this vault delta contains no updates.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns an iterator over the (key, value) pairs of the map.
+    pub fn iter(&self) -> impl Iterator<Item = (&NonFungibleAsset, &NonFungibleDeltaAction)> {
+        self.0.iter()
+    }
+
+    /// Merges another delta into this one, overwriting any existing values.
+    ///
+    /// The result is validated as part of the merge.
+    ///
+    /// # Errors
+    /// Returns an error if duplicate non-fungible assets are added or removed.
+    pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
+        // Merge non-fungible assets. Each non-fungible asset can cancel others out.
+        for (&key, &action) in other.0.iter() {
+            self.apply_action(key, action)?;
+        }
+
+        Ok(())
+    }
+
+    // HELPER FUNCTIONS
+    // ---------------------------------------------------------------------------------------------
+
+    /// Updates the provided map with the provided key and action.
+    /// If the action is the opposite to the previous one, the entry is removed.
+    ///
+    /// # Errors
+    /// Returns an error if the delta already contains the provided key and action.
+    fn apply_action(
+        &mut self,
+        asset: NonFungibleAsset,
+        action: NonFungibleDeltaAction,
+    ) -> Result<(), AccountDeltaError> {
+        match self.0.entry(asset) {
+            Entry::Vacant(entry) => {
+                entry.insert(action);
+            },
+            Entry::Occupied(entry) => {
+                let previous = *entry.get();
+                if previous == action {
+                    // Asset cannot be added nor removed twice.
+                    return Err(AccountDeltaError::DuplicateNonFungibleVaultUpdate(asset));
+                }
+                // Otherwise they cancel out.
+                entry.remove();
+            },
+        }
+
+        Ok(())
+    }
+
+    /// Returns an iterator over all keys that have the provided action.
+    fn filter_by_action(
+        &self,
+        action: NonFungibleDeltaAction,
+    ) -> impl Iterator<Item = NonFungibleAsset> + '_ {
+        self.0
+            .iter()
+            .filter(move |&(_, cur_action)| cur_action == &action)
+            .map(|(key, _)| *key)
+    }
+}
+
+impl Serializable for NonFungibleAssetDelta {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let added: Vec<_> = self.filter_by_action(NonFungibleDeltaAction::Add).collect();
+        let removed: Vec<_> = self.filter_by_action(NonFungibleDeltaAction::Remove).collect();
+
+        target.write_usize(added.len());
+        target.write_many(added.iter());
+
+        target.write_usize(removed.len());
+        target.write_many(removed.iter());
+    }
+}
+
+impl Deserializable for NonFungibleAssetDelta {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mut map = BTreeMap::new();
+
+        let num_added = source.read_usize()?;
+        for _ in 0..num_added {
+            let added_asset = source.read()?;
+            map.insert(added_asset, NonFungibleDeltaAction::Add);
+        }
+
+        let num_removed = source.read_usize()?;
+        for _ in 0..num_removed {
+            let removed_asset = source.read()?;
+            map.insert(removed_asset, NonFungibleDeltaAction::Remove);
+        }
+
+        Ok(Self::new(map))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NonFungibleDeltaAction {
+    Add,
+    Remove,
 }
 
 // TESTS
@@ -142,90 +445,23 @@ impl Deserializable for AccountVaultDelta {
 
 #[cfg(test)]
 mod tests {
-    use super::{AccountVaultDelta, Asset, Deserializable, Serializable};
+    use super::{AccountVaultDelta, Deserializable, Serializable};
     use crate::{
         accounts::{
             account_id::testing::{
                 ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN,
-                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+                ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             },
             AccountId,
         },
-        assets::{FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
+        assets::{Asset, FungibleAsset, NonFungibleAsset, NonFungibleAssetDetails},
         testing::storage::build_assets,
     };
 
     #[test]
-    fn account_vault_delta_validation() {
-        let ffid1 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
-        let ffid2 = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-        let nffid1 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
-        let nffid2 = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
-
-        let asset1: Asset = FungibleAsset::new(ffid1, 10).unwrap().into();
-        let asset2: Asset = FungibleAsset::new(ffid1, 30).unwrap().into();
-        let asset3: Asset = FungibleAsset::new(ffid2, 20).unwrap().into();
-
-        let asset4: Asset =
-            NonFungibleAsset::new(&NonFungibleAssetDetails::new(nffid1, vec![1, 2, 3]).unwrap())
-                .unwrap()
-                .into();
-        let asset5: Asset =
-            NonFungibleAsset::new(&NonFungibleAssetDetails::new(nffid1, vec![4, 5, 6]).unwrap())
-                .unwrap()
-                .into();
-        let asset6: Asset =
-            NonFungibleAsset::new(&NonFungibleAssetDetails::new(nffid2, vec![7, 8, 9]).unwrap())
-                .unwrap()
-                .into();
-
-        assert_eq!(asset5, Asset::read_from_bytes(&asset5.to_bytes()).unwrap());
-
-        // control case
-        let delta = AccountVaultDelta {
-            added_assets: vec![asset1, asset4, asset5],
-            removed_assets: vec![asset3, asset6],
-        };
-        assert!(delta.validate().is_ok());
-
-        let bytes = delta.to_bytes();
-        assert_eq!(AccountVaultDelta::read_from_bytes(&bytes), Ok(delta));
-
-        // duplicate asset in added assets
-        let delta = AccountVaultDelta {
-            added_assets: vec![asset1, asset4, asset5, asset2],
-            removed_assets: vec![],
-        };
-        assert!(delta.validate().is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
-
-        // duplicate asset in removed assets
-        let delta = AccountVaultDelta {
-            added_assets: vec![],
-            removed_assets: vec![asset1, asset4, asset5, asset2],
-        };
-        assert!(delta.validate().is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
-
-        // duplicate asset across added and removed assets
-        let delta = AccountVaultDelta {
-            added_assets: vec![asset1, asset3],
-            removed_assets: vec![asset4, asset5, asset2],
-        };
-        assert!(delta.validate().is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountVaultDelta::read_from_bytes(&bytes).is_err());
-    }
-
-    #[test]
     fn test_serde_account_vault() {
         let (asset_0, asset_1) = build_assets();
-        let delta = AccountVaultDelta::from_iterators([asset_0], [asset_1]);
+        let delta = AccountVaultDelta::from_iters([asset_0], [asset_1]);
 
         let serialized = delta.to_bytes();
         let deserialized = AccountVaultDelta::read_from_bytes(&serialized).unwrap();
@@ -237,8 +473,93 @@ mod tests {
         let faucet = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).unwrap();
         let asset: Asset = FungibleAsset::new(faucet, 123).unwrap().into();
 
-        assert!(AccountVaultDelta::empty().is_empty());
-        assert!(!AccountVaultDelta::from_iterators([asset], []).is_empty());
-        assert!(!AccountVaultDelta::from_iterators([], [asset]).is_empty());
+        assert!(AccountVaultDelta::default().is_empty());
+        assert!(!AccountVaultDelta::from_iters([asset], []).is_empty());
+        assert!(!AccountVaultDelta::from_iters([], [asset]).is_empty());
+    }
+
+    #[rstest::rstest]
+    #[case::pos_pos(50, 50, Some(100))]
+    #[case::neg_neg(-50, -50, Some(-100))]
+    #[case::empty_pos(0, 50, Some(50))]
+    #[case::empty_neg(0, -50, Some(-50))]
+    #[case::nullify_pos_neg(100, -100, Some(0))]
+    #[case::nullify_neg_pos(-100, 100, Some(0))]
+    #[case::overflow(FungibleAsset::MAX_AMOUNT as i64, FungibleAsset::MAX_AMOUNT as i64, None)]
+    #[case::underflow(-(FungibleAsset::MAX_AMOUNT as i64), -(FungibleAsset::MAX_AMOUNT as i64), None)]
+    #[test]
+    fn merge_fungible_aggregation(#[case] x: i64, #[case] y: i64, #[case] expected: Option<i64>) {
+        /// Creates an [AccountVaultDelta] with a single [FungibleAsset] delta. This delta will
+        /// be added if `amount > 0`, removed if `amount < 0` or entirely missing if `amount == 0`.
+        fn create_delta_with_fungible(account_id: AccountId, amount: i64) -> AccountVaultDelta {
+            let asset = FungibleAsset::new(account_id, amount.unsigned_abs()).unwrap().into();
+            match amount {
+                0 => AccountVaultDelta::default(),
+                x if x.is_positive() => AccountVaultDelta::from_iters([asset], []),
+                _ => AccountVaultDelta::from_iters([], [asset]),
+            }
+        }
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+
+        let mut delta_x = create_delta_with_fungible(account_id, x);
+        let delta_y = create_delta_with_fungible(account_id, y);
+
+        let result = delta_x.merge(delta_y);
+
+        // None is used to indicate an error is expected.
+        if let Some(expected) = expected {
+            let expected = create_delta_with_fungible(account_id, expected);
+            assert_eq!(result.map(|_| delta_x).unwrap(), expected);
+        } else {
+            assert!(result.is_err());
+        }
+    }
+
+    #[rstest::rstest]
+    #[case::empty_removed(None, Some(false), Ok(Some(false)))]
+    #[case::empty_added(None, Some(true), Ok(Some(true)))]
+    #[case::add_remove(Some(true), Some(false), Ok(None))]
+    #[case::remove_add(Some(false), Some(true), Ok(None))]
+    #[case::double_add(Some(true), Some(true), Err(()))]
+    #[case::double_remove(Some(false), Some(false), Err(()))]
+    #[test]
+    fn merge_non_fungible_aggregation(
+        #[case] x: Option<bool>,
+        #[case] y: Option<bool>,
+        #[case] expected: Result<Option<bool>, ()>,
+    ) {
+        /// Creates an [AccountVaultDelta] with an optional [NonFungibleAsset] delta. This delta
+        /// will be added if `Some(true)`, removed for `Some(false)` and missing for `None`.
+        fn create_delta_with_non_fungible(
+            account_id: AccountId,
+            added: Option<bool>,
+        ) -> AccountVaultDelta {
+            let asset: Asset = NonFungibleAsset::new(
+                &NonFungibleAssetDetails::new(account_id, vec![1, 2, 3]).unwrap(),
+            )
+            .unwrap()
+            .into();
+
+            match added {
+                Some(true) => AccountVaultDelta::from_iters([asset], []),
+                Some(false) => AccountVaultDelta::from_iters([], [asset]),
+                None => AccountVaultDelta::default(),
+            }
+        }
+
+        let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN).unwrap();
+
+        let mut delta_x = create_delta_with_non_fungible(account_id, x);
+        let delta_y = create_delta_with_non_fungible(account_id, y);
+
+        let result = delta_x.merge(delta_y);
+
+        if let Ok(expected) = expected {
+            let expected = create_delta_with_non_fungible(account_id, expected);
+            assert_eq!(result.map(|_| delta_x).unwrap(), expected);
+        } else {
+            assert!(result.is_err());
+        }
     }
 }

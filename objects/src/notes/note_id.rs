@@ -22,8 +22,8 @@ use crate::utils::{
 ///
 /// This achieves the following properties:
 /// - Every note can be reduced to a single unique ID.
-/// - To compute a note ID, we do not need to know the note's serial_num. Knowing the hash
-///   of the serial_num (as well as script hash, input hash, and note assets) is sufficient.
+/// - To compute a note ID, we do not need to know the note's serial_num. Knowing the hash of the
+///   serial_num (as well as script hash, input hash, and note assets) is sufficient.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct NoteId(Digest);

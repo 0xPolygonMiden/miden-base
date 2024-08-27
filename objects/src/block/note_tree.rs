@@ -8,20 +8,21 @@ use miden_crypto::{
 use crate::{
     notes::NoteMetadata,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_OUTPUT_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH,
+    BLOCK_NOTES_TREE_DEPTH, MAX_NOTES_PER_BATCH, MAX_NOTES_PER_BLOCK,
 };
 
-/// Wrapper over [SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>] for notes tree.
+/// Wrapper over [SimpleSmt<BLOCK_NOTES_TREE_DEPTH>] for notes tree.
 ///
 /// Each note is stored as two adjacent leaves: odd leaf for id, even leaf for metadata hash.
 /// ID's leaf index is calculated as [(batch_idx * MAX_NOTES_PER_BATCH + note_idx_in_batch) * 2].
 /// Metadata hash leaf is stored the next after id leaf: [id_index + 1].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct BlockNoteTree(SimpleSmt<BLOCK_OUTPUT_NOTES_TREE_DEPTH>);
+pub struct BlockNoteTree(SimpleSmt<BLOCK_NOTES_TREE_DEPTH>);
 
 impl BlockNoteTree {
-    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided entries.
+    /// Returns a new [BlockNoteTree] instantiated with entries set as specified by the provided
+    /// entries.
     ///
     /// Entry format: (note_index, note_id, note_metadata).
     ///
@@ -35,7 +36,7 @@ impl BlockNoteTree {
         entries: impl IntoIterator<Item = (BlockNoteIndex, RpoDigest, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let interleaved = entries.into_iter().flat_map(|(index, note_id, metadata)| {
-            let id_index = index.leaf_index();
+            let id_index = index.leaf_index().into();
             [(id_index, note_id.into()), (id_index + 1, metadata.into())]
         });
 
@@ -52,7 +53,7 @@ impl BlockNoteTree {
     /// The returned path is to the node which is the parent of both note and note metadata node.
     pub fn get_note_path(&self, index: BlockNoteIndex) -> Result<MerklePath, MerkleError> {
         // get the path to the leaf containing the note (path len = 21)
-        let leaf_index = LeafIndex::new(index.leaf_index())?;
+        let leaf_index = LeafIndex::new(index.leaf_index().into())?;
 
         // move up the path by removing the first node, this path now points to the parent of the
         // note path
@@ -92,11 +93,14 @@ impl BlockNoteIndex {
     }
 
     /// Returns an index to the node which the parent of both the note and note metadata.
-    pub fn to_absolute_index(&self) -> u64 {
-        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64
+    pub fn to_absolute_index(&self) -> u32 {
+        const _: () = assert!(MAX_NOTES_PER_BLOCK <= u32::MAX as usize);
+        (self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u32
     }
 
-    fn leaf_index(&self) -> u64 {
+    /// Returns an index of the leaf containing the note.
+    fn leaf_index(&self) -> u32 {
+        const _: () = assert!(MAX_NOTES_PER_BLOCK * 2 <= u32::MAX as usize);
         self.to_absolute_index() * 2
     }
 }

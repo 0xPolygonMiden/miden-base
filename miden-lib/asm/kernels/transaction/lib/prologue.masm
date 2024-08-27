@@ -1,12 +1,13 @@
-use.std::collections::smt
+use.std::mem
 use.std::collections::mmr
 use.std::crypto::hashes::native
+use.std::collections::smt
 
-use.miden::kernels::tx::account
-use.miden::kernels::tx::asset_vault
-use.miden::kernels::tx::constants
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::utils
+use.kernel::account
+use.kernel::asset_vault
+use.kernel::constants
+use.kernel::memory
+use.kernel::utils
 
 # ERRORS
 # =================================================================================================
@@ -71,6 +72,12 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
+# Computed account code hash does not match recorded account code hash
+const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
+
+# Number of account procedures exceeded the maximum limit of 256
+const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+
 # PUBLIC INPUTS
 # =================================================================================================
 
@@ -85,10 +92,10 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 proc.process_global_inputs
-    exec.memory::set_block_hash
+    exec.memory::set_block_hash dropw
     exec.memory::set_global_acct_id
-    exec.memory::set_init_acct_hash
-    exec.memory::set_nullifier_commitment
+    exec.memory::set_init_acct_hash dropw
+    exec.memory::set_nullifier_commitment dropw
 end
 
 # BLOCK DATA
@@ -113,14 +120,14 @@ end
 #! Where:
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, rollup tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with the nullifiers of consumed notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, current protocol version.
 #! - timestamp, current timestamp.
-#! - NOTE_ROOT, epoch tree with created notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 proc.process_block_data
     exec.memory::get_block_data_ptr
     # => [block_data_ptr]
@@ -136,7 +143,7 @@ proc.process_block_data
 
     # store the note root in memory
     padw adv_loadw
-    dupw exec.memory::set_note_root
+    dupw exec.memory::set_note_root dropw
     # => [NOTE_ROOT, DIG, block_data_ptr']
 
     # merge the note root with the block data digest
@@ -204,8 +211,7 @@ proc.ingest_acct_storage_types
     exec.account::get_slot_types_commitment_storage_slot exec.account::get_item
     # => [TYPES_COM]
 
-    push.0 drop                                             # TODO: remove line, see miden-vm/#1122
-    adv.push_mapval
+    adv.push_mapval push.15683 drop             # FIX: wrap the decorator to ensure MAST uniqueness
     # => [TYPES_COM]
 
     # get the storage slot types data pointer
@@ -384,6 +390,59 @@ proc.validate_new_account
     # => []
 end
 
+#! Validates that account procedures match account code commitment and saves procedure information
+#! into memory.
+#!
+#! This is achieved by reading account procedure information from the advice map, saving it into
+#! memory, and sequentially hashing them before comparing the final hash to the account code
+#! commitment.
+#!
+#! Information for each saved procedure consists of the procedure's MAST root and the storage
+#! offset associated with this procedure.
+#!
+#! Stack: [CODE_COMMITMENT]
+#! Output: []
+proc.validate_account_procedures
+  # move procedure data from the advice map to the advice stack 
+  adv.push_mapval push.15161 drop               # FIX: wrap the decorator to ensure MAST uniqueness
+  
+  # push the number of procedures onto the operand stack before storing it in memory
+  adv_push.1
+  # => [num_procs, CODE_COMMITMENT]
+
+  # assert that account does not exceed allowed maximum number of procedures
+  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+  # => [num_procs, CODE_COMMITMENT]
+
+  # store number of procedures in memory
+  dup exec.memory::set_num_account_procedures
+  # => [num_procs, CODE_COMMITMENT]
+
+  # setup acct_proc_offset and end_ptr for reading from advice stack
+  mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
+  # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+
+  # pad stack before reading from advice stack
+  padw padw padw
+  # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+
+  # read the data from advice stack to memory and hash
+  exec.mem::pipe_double_words_to_memory
+  # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
+
+  # extract the digest
+  exec.native::state_to_digest
+  # => [DIGEST, end_ptr, CODE_COMMITMENT]
+
+  # drop end_ptr
+  movup.4 drop
+  # => [DIGEST, CODE_COMMITMENT]
+
+  # verify hashed account procedures match account code commitment
+  assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
+  # => []
+end
+
 #! Saves the account data to memory and validates it.
 #!
 #! This procedure will:
@@ -396,7 +455,7 @@ end
 #!   and the account nonce is not zero
 #!
 #! Stack: []
-#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_ROOT]
+#! Advice stack: [[account_id, 0, 0, account_nonce], ACCOUNT_VAULT_ROOT, ACCOUNT_STORAGE_ROOT, ACCOUNT_CODE_COMMITMENT]
 #! Output: []
 #!
 #! Where:
@@ -404,7 +463,7 @@ end
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
     # Copy the account data from the advice stack to memory and hash it
     # ---------------------------------------------------------------------------------------------
@@ -440,7 +499,7 @@ proc.process_account_data
     # process conditional logic depending on whether the account is new or existing
     if.true
         # set the initial account hash
-        exec.memory::set_init_acct_hash
+        exec.memory::set_init_acct_hash dropw
         # => []
 
         # validate the new account
@@ -472,15 +531,18 @@ proc.process_account_data
     exec.memory::set_init_nonce
     # => []
 
-    # set the new account code root to the initial account code root this is used for managing
-    # code root updates
-    exec.memory::get_acct_code_root
-    exec.memory::set_new_acct_code_root
+    # set the new account code commitment to the initial account code root this is used for managing
+    # code commitment updates
+    exec.memory::get_acct_code_commitment
+    exec.memory::set_new_acct_code_commitment
+
+    # validates and stores account procedures in memory.
+    exec.validate_account_procedures
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset
     # invariant checking
-    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root
+    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
     # => []
 end
 
@@ -578,7 +640,7 @@ end
 #! - ASSETS_HASH, sequential hash of the padded note's assets.
 #! - NULLIFIER result of `hash(SERIAL_NUMBER || SCRIPT_ROOT || INPUTS_HASH || ASSETS_HASH)`.
 proc.process_input_note_details
-    exec.memory::get_consumed_note_core_ptr
+    exec.memory::get_input_note_core_ptr
     # => [note_data_ptr]
 
     # read input note's data and compute its digest. See `Advice stack` above for details.
@@ -615,10 +677,10 @@ end
 #! - NOTE_ARGS, user arguments passed to the note.
 #! - NOTE_METADATA, note's metadata.
 proc.process_note_args_and_metadata
-    padw adv_loadw dup.4 exec.memory::set_consumed_note_args
+    padw adv_loadw dup.4 exec.memory::set_input_note_args dropw
     # => [note_ptr]
 
-    padw adv_loadw movup.4 exec.memory::set_consumed_note_metadata
+    padw adv_loadw movup.4 exec.memory::set_input_note_metadata
     # => [NOTE_METADATA]
 end
 
@@ -645,7 +707,7 @@ proc.process_note_assets
     dup exec.constants::get_max_assets_per_note lte assert.err=ERR_PROLOGUE_NOTE_TOO_MANY_ASSETS
     # => [assets_count, note_ptr]
 
-    dup dup.2 exec.memory::set_consumed_note_num_assets
+    dup dup.2 exec.memory::set_input_note_num_assets
     # => [assets_count, note_ptr]
 
     # round up the number of assets, to the its padded length
@@ -667,7 +729,7 @@ proc.process_note_assets
     push.0 movup.2
     # => [note_ptr, counter, rounded_num_assets]
 
-    dup exec.memory::get_consumed_note_assets_ptr
+    dup exec.memory::get_input_note_assets_ptr
     # => [assets_ptr, note_ptr, counter, rounded_num_assets]
 
     padw padw padw
@@ -700,7 +762,7 @@ proc.process_note_assets
     # => [note_ptr, ASSET_HASH_COMPUTED]
 
     # VERIFY: computed ASSET_HASH matches the provided hash
-    exec.memory::get_consumed_note_assets_hash
+    exec.memory::get_input_note_assets_hash
     assert_eqw.err=ERR_PROLOGUE_NOTE_CONSUMED_ASSETS_MISMATCH
     # => []
 end
@@ -719,10 +781,10 @@ proc.add_input_note_assets_to_vault
     exec.memory::get_input_vault_root_ptr
     # => [input_vault_root_ptr, note_ptr]
 
-    dup.1 exec.memory::get_consumed_note_assets_ptr
+    dup.1 exec.memory::get_input_note_assets_ptr
     # => [assets_start_ptr, input_vault_root_ptr, note_ptr]
 
-    dup movup.3 exec.memory::get_consumed_note_num_assets add swap
+    dup movup.3 exec.memory::get_input_note_num_assets add swap
     # => [assets_start_ptr, assets_end_ptr, input_vault_root_ptr]
 
     # add input note's assets to input vault
@@ -754,7 +816,7 @@ proc.add_input_note_assets_to_vault
     # => []
 end
 
-#! Computes the inpute note's id.
+#! Computes an input note's id.
 #!
 #! Stack: [note_ptr]
 #! Output: [NOTE_ID]
@@ -762,21 +824,21 @@ end
 #! Where:
 #! - note_ptr, memory location for the input note.
 #! - NOTE_ID, the note's id, i.e. `hash(RECIPIENT || ASSET_HASH)`.
-proc.compute_note_id
+proc.compute_input_note_id
     # compute SERIAL_HASH: hash(SERIAL_NUMBER || EMPTY_WORD)
-    dup exec.memory::get_consumed_note_serial_num padw hmerge
+    dup exec.memory::get_input_note_serial_num padw hmerge
     # => [SERIAL_HASH, note_ptr]
 
     # compute MERGE_SCRIPT: hash(SERIAL_HASH || SCRIPT_HASH)
-    dup.4 exec.memory::get_consumed_note_script_root hmerge
+    dup.4 exec.memory::get_input_note_script_root hmerge
     # => [MERGE_SCRIPT, note_ptr]
 
     # compute RECIPIENT: hash(MERGE_SCRIPT || INPUT_HASH)
-    dup.4 exec.memory::get_consumed_note_inputs_hash hmerge
+    dup.4 exec.memory::get_input_note_inputs_hash hmerge
     # => [RECIPIENT, note_ptr]
 
     # compute NOTE_ID: hash(RECIPIENT || ASSET_HASH)
-    movup.4 exec.memory::get_consumed_note_assets_hash hmerge
+    movup.4 exec.memory::get_input_note_assets_hash hmerge
     # => [NOTE_ID]
 end
 
@@ -829,14 +891,14 @@ proc.process_input_note
     # note details
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.memory::get_consumed_note_ptr dup
+    dup exec.memory::get_input_note_ptr dup
     # => [note_ptr, note_ptr, idx, HASHER_CAPACITY]
 
     exec.process_input_note_details
     # => [NULLIFIER, note_ptr, idx, HASHER_CAPACITY]
 
     # save NULLIFIER to memory
-    movup.5 exec.memory::get_consumed_note_nullifier_ptr mem_storew
+    movup.5 exec.memory::get_input_note_nullifier_ptr mem_storew
     # => [NULLIFIER, note_ptr, HASHER_CAPACITY]
 
     # note metadata & args
@@ -861,11 +923,11 @@ proc.process_input_note
     # note id
     # ---------------------------------------------------------------------------------------------
 
-    dup exec.compute_note_id
+    dup exec.compute_input_note_id
     # => [NOTE_ID, note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # save note id to memory
-    movup.4 exec.memory::set_consumed_note_id
+    movup.4 exec.memory::set_input_note_id
     # => [NOTE_ID, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
     # note authentication
@@ -917,19 +979,21 @@ proc.process_input_notes_data
     # assert the number of input notes is within limits; since max number of input notes is
     # expected to be smaller than 2^32, we can use a more efficient u32 comparison
     dup
-    exec.constants::get_max_num_consumed_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
+    exec.constants::get_max_num_input_notes u32assert2.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     u32lte assert.err=ERR_PROLOGUE_TOO_MANY_INPUT_NOTES
     # => [num_notes]
 
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_input_notes_commitment adv.push_mapval dropw
+        exec.memory::get_input_notes_commitment 
+        adv.push_mapval push.15787 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        dropw
     end
     # => [num_notes]
 
     # store the number of input notes into kernel memory
-    dup exec.memory::set_total_num_consumed_notes
+    dup exec.memory::set_num_input_notes
     # => [num_notes]
 
     # loop over input notes and read data
@@ -983,8 +1047,8 @@ proc.process_input_notes_data
 
     # set the current input note ptr to the address of the first input note
     push.0
-    exec.memory::get_consumed_note_ptr
-    exec.memory::set_current_consumed_note_ptr
+    exec.memory::get_input_note_ptr
+    exec.memory::set_current_input_note_ptr
     # => [idx+1, num_notes]
 
     drop drop
@@ -1008,7 +1072,7 @@ proc.process_tx_script_root
     # => [TX_SCRIPT_ROOT]
 
     # store the transaction script root in memory
-    exec.memory::set_tx_script_root
+    exec.memory::set_tx_script_root dropw
     # => []
 end
 
@@ -1040,7 +1104,7 @@ end
 #!     [account_id, 0, 0, account_nonce],
 #!     ACCOUNT_VAULT_ROOT,
 #!     ACCOUNT_STORAGE_ROOT,
-#!     ACCOUNT_CODE_ROOT,
+#!     ACCOUNT_CODE_COMMITMENT,
 #!     number_of_input_notes,
 #!     TX_SCRIPT_ROOT,
 #! ]
@@ -1057,18 +1121,18 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - PREVIOUS_BLOCK_HASH, hash of the previous block.
 #! - CHAIN_MMR_HASH, sequential hash of the reference MMR.
-#! - ACCOUNT_ROOT, tree with latest account states.
-#! - NULLIFIER_ROOT, epoch tree with nullifiers of consumed notes.
+#! - ACCOUNT_ROOT, root of the tree with latest account states for all accounts.
+#! - NULLIFIER_ROOT, root of the tree with nullifiers of all notes that have ever been consumed.
 #! - TX_HASH, commitment to a set of IDs of transactions which affected accounts in the block.
 #! - PROOF_HASH, hash of the block's stark proof.
 #! - block_num, the reference block number.
 #! - version, the current protocol version.
 #! - timestamp, the current timestamp.
-#! - NOTE_ROOT, tree with created notes.
+#! - NOTE_ROOT, root of the tree with all notes created in the block.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
-#! - ACCOUNT_CODE_ROOT, account's code root.
+#! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 #! - number_of_input_notes, number of input notes.
 #! - TX_SCRIPT_ROOT, the transaction's script root.
 #! - MMR_PEAKS, is the MMR peak data, see process_chain_data

@@ -1,5 +1,4 @@
 use crate::{
-    assembly::{Assembler, AssemblyContext, ModuleAst},
     assets::AssetVault,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     AccountError, Digest, Felt, Hasher, Word, ZERO,
@@ -15,10 +14,13 @@ pub mod auth;
 pub use auth::AuthSecretKey;
 
 pub mod code;
-pub use code::AccountCode;
+pub use code::{procedure::AccountProcedureInfo, AccountCode};
 
 pub mod delta;
-pub use delta::{AccountDelta, AccountStorageDelta, AccountVaultDelta, StorageMapDelta};
+pub use delta::{
+    AccountDelta, AccountStorageDelta, AccountVaultDelta, FungibleAssetDelta,
+    NonFungibleAssetDelta, NonFungibleDeltaAction, StorageMapDelta,
+};
 
 mod seed;
 pub use seed::{get_account_seed, get_account_seed_single};
@@ -75,7 +77,7 @@ impl Account {
         code: AccountCode,
         storage: AccountStorage,
     ) -> Result<Self, AccountError> {
-        let id = AccountId::new(seed, code.root(), storage.root())?;
+        let id = AccountId::new(seed, code.commitment(), storage.root())?;
         let vault = AssetVault::default();
         let nonce = ZERO;
         Ok(Self { id, vault, storage, code, nonce })
@@ -97,15 +99,16 @@ impl Account {
 
     /// Returns hash of this account.
     ///
-    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
-    /// Computing the account hash requires 2 permutations of the hash function.
+    /// Hash of an account is computed as hash(id, nonce, vault_root, storage_root,
+    /// code_commitment). Computing the account hash requires 2 permutations of the hash
+    /// function.
     pub fn hash(&self) -> Digest {
         hash_account(
             self.id,
             self.nonce,
             self.vault.commitment(),
             self.storage.root(),
-            self.code.root(),
+            self.code.commitment(),
         )
     }
 
@@ -189,15 +192,11 @@ impl Account {
     /// - The nonce specified in the provided delta smaller than or equal to the current account
     ///   nonce.
     pub fn apply_delta(&mut self, delta: &AccountDelta) -> Result<(), AccountError> {
-        // update vault; we don't check vault delta validity here because AccountDelta can contain
+        // update vault; we don't check vault delta validity here because `AccountDelta` can contain
         // only valid vault deltas
-        for &asset in delta.vault().added_assets.iter() {
-            self.vault.add_asset(asset).map_err(AccountError::AssetVaultUpdateError)?;
-        }
-
-        for &asset in delta.vault().removed_assets.iter() {
-            self.vault.remove_asset(asset).map_err(AccountError::AssetVaultUpdateError)?;
-        }
+        self.vault
+            .apply_delta(delta.vault())
+            .map_err(AccountError::AssetVaultUpdateError)?;
 
         // update storage
         self.storage.apply_delta(delta.storage())?;
@@ -287,23 +286,24 @@ impl<'de> serde::Deserialize<'de> for Account {
 // HELPERS
 // ================================================================================================
 
-/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code root.
+/// Returns hash of an account with the specified ID, nonce, vault root, storage root, and code
+/// commitment.
 ///
-/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_root).
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_root, code_commitment).
 /// Computing the account hash requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,
     vault_root: Digest,
     storage_root: Digest,
-    code_root: Digest,
+    code_commitment: Digest,
 ) -> Digest {
     let mut elements = [ZERO; 16];
     elements[0] = id.into();
     elements[3] = nonce;
     elements[4..8].copy_from_slice(&*vault_root);
     elements[8..12].copy_from_slice(&*storage_root);
-    elements[12..].copy_from_slice(&*code_root);
+    elements[12..].copy_from_slice(&*code_commitment);
     Hasher::hash_elements(&elements)
 }
 
@@ -322,10 +322,10 @@ mod tests {
 
     use super::{AccountDelta, AccountStorageDelta, AccountVaultDelta};
     use crate::{
-        accounts::{
-            delta::AccountStorageDeltaBuilder, Account, SlotItem, StorageMap, StorageMapDelta,
+        accounts::{Account, SlotItem, StorageMap, StorageMapDelta},
+        testing::storage::{
+            build_account, build_account_delta, build_assets, AccountStorageDeltaBuilder,
         },
-        testing::storage::{build_account, build_account_delta, build_assets},
     };
 
     #[test]
@@ -345,7 +345,7 @@ mod tests {
     fn test_serde_account_delta() {
         let final_nonce = Felt::new(2);
         let (asset_0, asset_1) = build_assets();
-        let storage_delta = AccountStorageDeltaBuilder::new()
+        let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
             .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
@@ -396,13 +396,13 @@ mod tests {
             [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
         );
         let updated_map =
-            StorageMapDelta::from(vec![], vec![(new_map_entry.0.into(), new_map_entry.1)]);
+            StorageMapDelta::from_iters([], [(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
         maps.insert(2u8, storage_map.clone());
 
         // build account delta
         let final_nonce = Felt::new(2);
-        let storage_delta = AccountStorageDeltaBuilder::new()
+        let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
             .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .add_updated_maps([(2_u8, updated_map)])
@@ -443,7 +443,7 @@ mod tests {
         );
 
         // build account delta
-        let storage_delta = AccountStorageDeltaBuilder::new()
+        let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
             .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
@@ -469,7 +469,7 @@ mod tests {
 
         // build account delta
         let final_nonce = Felt::new(1);
-        let storage_delta = AccountStorageDeltaBuilder::new()
+        let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
             .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
@@ -481,7 +481,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn empty_account_delta_with_incremented_nonce() {
         // build account
         let init_nonce = Felt::new(1);

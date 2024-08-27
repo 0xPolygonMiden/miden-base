@@ -8,7 +8,7 @@ use crate::{
 
 // Keep these masks in sync with `miden-lib/asm/miden/kernels/tx/tx.masm`
 const PUBLIC: u8 = 0b01;
-const OFF_CHAIN: u8 = 0b10;
+const PRIVATE: u8 = 0b10;
 const ENCRYPTED: u8 = 0b11;
 
 // NOTE TYPE
@@ -19,7 +19,7 @@ const ENCRYPTED: u8 = 0b11;
 #[repr(u8)]
 pub enum NoteType {
     /// Notes with this type have only their hash published to the network.
-    OffChain = OFF_CHAIN,
+    Private = PRIVATE,
 
     /// Notes with type are shared with the network encrypted.
     Encrypted = ENCRYPTED,
@@ -45,7 +45,7 @@ impl TryFrom<u8> for NoteType {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            OFF_CHAIN => Ok(NoteType::OffChain),
+            PRIVATE => Ok(NoteType::Private),
             ENCRYPTED => Ok(NoteType::Encrypted),
             PUBLIC => Ok(NoteType::Public),
             _ => Err(NoteError::InvalidNoteTypeValue(value.into())),
@@ -100,7 +100,7 @@ impl Deserializable for NoteType {
         let discriminat = u8::read_from(source)?;
 
         let note_type = match discriminat {
-            OFF_CHAIN => NoteType::OffChain,
+            PRIVATE => NoteType::Private,
             ENCRYPTED => NoteType::Encrypted,
             PUBLIC => NoteType::Public,
             v => {

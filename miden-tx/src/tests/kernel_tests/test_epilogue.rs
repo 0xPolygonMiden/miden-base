@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use miden_lib::transaction::memory::{
-    CREATED_NOTE_ASSET_HASH_OFFSET, CREATED_NOTE_SECTION_OFFSET, NOTE_MEM_SIZE,
+use miden_lib::transaction::{
+    memory::{NOTE_MEM_SIZE, OUTPUT_NOTE_ASSET_HASH_OFFSET, OUTPUT_NOTE_SECTION_OFFSET},
+    TransactionKernel,
 };
 use miden_objects::{
-    accounts::{account_id::testing::ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN, Account},
+    accounts::Account,
     transaction::{OutputNote, OutputNotes},
 };
 use vm_processor::ONE;
@@ -14,21 +15,18 @@ use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_m
 
 #[test]
 fn test_epilogue() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.kernel::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -50,7 +48,7 @@ fn test_epilogue() {
     let final_account = Account::mock(
         tx_context.account().id().into(),
         tx_context.account().nonce() + ONE,
-        tx_context.account().code().clone(),
+        TransactionKernel::assembler(),
     );
 
     let output_notes = OutputNotes::new(
@@ -82,13 +80,10 @@ fn test_epilogue() {
 }
 
 #[test]
-fn test_compute_created_note_id() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+fn test_compute_output_note_id() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
@@ -96,8 +91,8 @@ fn test_compute_created_note_id() {
     for (note, i) in tx_context.expected_output_notes().iter().zip(0u32..) {
         let code = format!(
             "
-            use.miden::kernels::tx::prologue
-            use.miden::kernels::tx::epilogue
+            use.kernel::prologue
+            use.kernel::epilogue
 
             {output_notes_data_procedure}
 
@@ -115,14 +110,14 @@ fn test_compute_created_note_id() {
             note.assets().commitment().as_elements(),
             read_root_mem_value(
                 &process,
-                CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + CREATED_NOTE_ASSET_HASH_OFFSET
+                OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE + OUTPUT_NOTE_ASSET_HASH_OFFSET
             ),
             "ASSET_HASH didn't match expected value",
         );
 
         assert_eq!(
             note.id().as_elements(),
-            &read_root_mem_value(&process, CREATED_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
+            &read_root_mem_value(&process, OUTPUT_NOTE_SECTION_OFFSET + i * NOTE_MEM_SIZE),
             "NOTE_ID didn't match expected value",
         );
     }
@@ -130,21 +125,18 @@ fn test_compute_created_note_id() {
 
 #[test]
 fn test_epilogue_asset_preservation_violation_too_few_input() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_too_few_input()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_too_few_input()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -164,21 +156,18 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
 
 #[test]
 fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_too_many_fungible_input()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_too_many_fungible_input()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -198,21 +187,18 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
 
 #[test]
 fn test_epilogue_increment_nonce_success() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 
@@ -240,21 +226,18 @@ fn test_epilogue_increment_nonce_success() {
 
 #[test]
 fn test_epilogue_increment_nonce_violation() {
-    let tx_context = TransactionContextBuilder::with_standard_account(
-        ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        ONE,
-    )
-    .with_mock_notes_preserved()
-    .build();
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
 
     let output_notes_data_procedure =
         output_notes_data_procedure(tx_context.expected_output_notes());
 
     let code = format!(
         "
-        use.miden::kernels::tx::prologue
-        use.miden::kernels::tx::account
-        use.miden::kernels::tx::epilogue
+        use.kernel::prologue
+        use.miden::account
+        use.kernel::epilogue
 
         {output_notes_data_procedure}
 

@@ -1,32 +1,37 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 use core::ops::Deref;
 
-use vm_processor::AdviceMap;
+use assembly::{Assembler, Compile};
+use miden_crypto::merkle::InnerNodeInfo;
+use vm_core::{
+    mast::{MastForest, MastNodeId},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
+    Program,
+};
+use vm_processor::{AdviceInputs, AdviceMap, DeserializationError};
 
 use super::{Digest, Felt, Word};
 use crate::{
-    assembly::{Assembler, AssemblyContext, ProgramAst},
     notes::{NoteDetails, NoteId},
-    vm::CodeBlock,
     TransactionScriptError,
 };
 
 // TRANSACTION ARGS
 // ================================================================================================
 
-/// A struct that represents optional transaction arguments.
+/// Optional transaction arguments.
 ///
-/// - Transaction script: a program that is executed in a transaction after all input notes
-///   scripts have been executed.
-/// - Note arguments: data put onto the stack right before a note script is executed. These
-///   are different from note inputs, as the user executing the transaction can specify arbitrary
-///   note args.
-/// - Advice map: Provides data needed by the runtime, like the details of a public output note.
+/// - Transaction script: a program that is executed in a transaction after all input notes scripts
+///   have been executed.
+/// - Note arguments: data put onto the stack right before a note script is executed. These are
+///   different from note inputs, as the user executing the transaction can specify arbitrary note
+///   args.
+/// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
 #[derive(Clone, Debug, Default)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
-    advice_map: AdviceMap,
+    advice_inputs: AdviceInputs,
 }
 
 impl TransactionArgs {
@@ -37,21 +42,23 @@ impl TransactionArgs {
     /// arguments.
     ///
     /// If tx_script is provided, this also adds all mappings from the transaction script inputs
-    /// to the advice map.
+    /// to the advice inputs' map.
     pub fn new(
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
-        mut advice_map: AdviceMap,
+        advice_map: AdviceMap,
     ) -> Self {
-        // add transaction script inputs to the advice map
+        let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
+        // add transaction script inputs to the advice inputs' map
         if let Some(ref tx_script) = tx_script {
-            advice_map.extend(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())))
+            advice_inputs
+                .extend_map(tx_script.inputs().iter().map(|(hash, input)| (*hash, input.clone())))
         }
 
         Self {
             tx_script,
             note_args: note_args.unwrap_or_default(),
-            advice_map,
+            advice_inputs,
         }
     }
 
@@ -78,9 +85,9 @@ impl TransactionArgs {
         self.note_args.get(&note_id)
     }
 
-    /// Returns a reference to the args [AdviceMap].
-    pub fn advice_map(&self) -> &AdviceMap {
-        &self.advice_map
+    /// Returns a reference to the args [AdviceInputs].
+    pub fn advice_inputs(&self) -> &AdviceInputs {
+        &self.advice_inputs
     }
 
     // STATE MUTATORS
@@ -88,7 +95,7 @@ impl TransactionArgs {
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The advice map is extended with the following keys:
+    /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num).
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -100,14 +107,18 @@ impl TransactionArgs {
         let script = note.script();
         let script_encoded: Vec<Felt> = script.into();
 
-        self.advice_map.insert(recipient.digest(), recipient.to_elements());
-        self.advice_map.insert(inputs.commitment(), inputs.format_for_advice());
-        self.advice_map.insert(script.hash(), script_encoded);
+        let new_elements = [
+            (recipient.digest(), recipient.to_elements()),
+            (inputs.commitment(), inputs.format_for_advice()),
+            (script.hash(), script_encoded),
+        ];
+
+        self.advice_inputs.extend_map(new_elements);
     }
 
     /// Populates the advice inputs with the specified note details.
     ///
-    /// The advice map is extended with the following keys:
+    /// The advice inputs' map is extended with the following keys:
     ///
     /// - recipient |-> recipient details (inputs_hash, script_hash, serial_num)
     /// - inputs_key |-> inputs, where inputs_key is computed by taking note inputs commitment and
@@ -123,29 +134,33 @@ impl TransactionArgs {
         }
     }
 
-    /// Extends the internal advice map with the provided key-value pairs.
+    /// Extends the internal advice inputs' map with the provided key-value pairs.
     pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
-        self.advice_map.extend(iter)
+        self.advice_inputs.extend_map(iter)
+    }
+
+    /// Extends the internal advice inputs' merkle store with the provided nodes.
+    pub fn extend_merkle_store<I: Iterator<Item = InnerNodeInfo>>(&mut self, iter: I) {
+        self.advice_inputs.extend_merkle_store(iter)
     }
 }
 
 // TRANSACTION SCRIPT
 // ================================================================================================
 
-/// A struct that represents a transaction script.
+/// Transaction script.
 ///
 /// A transaction script is a program that is executed in a transaction after all input notes
 /// have been executed.
 ///
 /// The [TransactionScript] object is composed of:
-/// - [code](TransactionScript::code): the transaction script source code.
-/// - [hash](TransactionScript::hash): the hash of the compiled transaction script.
-/// - [inputs](TransactionScript::inputs): a map of key, value inputs that are loaded into the
-///   advice map such that the transaction script can access them.
-#[derive(Clone, Debug)]
+/// - An executable program defined by a [MastForest] and an associated entrypoint.
+/// - A set of transaction script inputs defined by a map of key-value inputs that are loaded into
+///   the advice inputs' map such that the transaction script can access them.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransactionScript {
-    code: ProgramAst,
-    hash: Digest,
+    mast: Arc<MastForest>,
+    entrypoint: MastNodeId,
     inputs: BTreeMap<Digest, Vec<Felt>>,
 }
 
@@ -153,60 +168,80 @@ impl TransactionScript {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new instance of a [TransactionScript] with the provided script and inputs and the
-    /// compiled script code block.
-    ///
-    /// # Errors
-    /// Returns an error if script compilation fails.
-    pub fn new<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
-        code: ProgramAst,
-        inputs: T,
-        assembler: &Assembler,
-    ) -> Result<(Self, CodeBlock), TransactionScriptError> {
-        let code_block = assembler
-            .compile_in_context(&code, &mut AssemblyContext::for_program(Some(&code)))
-            .map_err(TransactionScriptError::ScriptCompilationError)?;
-        Ok((
-            Self {
-                code,
-                hash: code_block.hash(),
-                inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
-            },
-            code_block,
-        ))
+    /// Returns a new [TransactionScript] instantiated with the provided code and inputs.
+    pub fn new(code: Program, inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>) -> Self {
+        Self {
+            entrypoint: code.entrypoint(),
+            mast: Arc::new(code.into()),
+            inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
+        }
     }
 
-    /// Returns a new instance of a [TransactionScript] instantiated from the provided components.
+    /// Returns a new [TransactionScript] compiled from the provided source code and inputs using
+    /// the specified assembler.
     ///
-    /// Note: this constructor does not verify that a compiled code in fact results in the provided
-    /// hash.
-    pub fn from_parts<T: IntoIterator<Item = (Word, Vec<Felt>)>>(
-        code: ProgramAst,
-        hash: Digest,
-        inputs: T,
+    /// # Errors
+    /// Returns an error if the compilation of the provided source code fails.
+    pub fn compile(
+        source_code: impl Compile,
+        inputs: impl IntoIterator<Item = (Word, Vec<Felt>)>,
+        assembler: Assembler,
     ) -> Result<Self, TransactionScriptError> {
-        Ok(Self {
-            code,
-            hash,
-            inputs: inputs.into_iter().map(|(k, v)| (k.into(), v)).collect(),
-        })
+        let program = assembler
+            .assemble_program(source_code)
+            .map_err(|report| TransactionScriptError::AssemblyError(report.to_string()))?;
+        Ok(Self::new(program, inputs))
+    }
+
+    /// Returns a new [TransactionScript] instantiated from the provided components.
+    ///
+    /// # Panics
+    /// Panics if the specified entrypoint is not in the provided MAST forest.
+    pub fn from_parts(
+        mast: Arc<MastForest>,
+        entrypoint: MastNodeId,
+        inputs: BTreeMap<Digest, Vec<Felt>>,
+    ) -> Self {
+        assert!(mast.get_node_by_id(entrypoint).is_some());
+        Self { mast, entrypoint, inputs }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a reference to the code.
-    pub fn code(&self) -> &ProgramAst {
-        &self.code
+    /// Returns a reference to the [MastForest] backing this transaction script.
+    pub fn mast(&self) -> Arc<MastForest> {
+        self.mast.clone()
     }
 
     /// Returns a reference to the code hash.
-    pub fn hash(&self) -> &Digest {
-        &self.hash
+    pub fn hash(&self) -> Digest {
+        self.mast[self.entrypoint].digest()
     }
 
-    /// Returns a reference to the inputs.
+    /// Returns a reference to the inputs for this transaction script.
     pub fn inputs(&self) -> &BTreeMap<Digest, Vec<Felt>> {
         &self.inputs
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for TransactionScript {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.mast.write_into(target);
+        target.write_u32(self.entrypoint.as_u32());
+        self.inputs.write_into(target);
+    }
+}
+
+impl Deserializable for TransactionScript {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let mast = MastForest::read_from(source)?;
+        let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
+        let inputs = BTreeMap::<Digest, Vec<Felt>>::read_from(source)?;
+
+        Ok(Self::from_parts(Arc::new(mast), entrypoint, inputs))
     }
 }

@@ -265,21 +265,16 @@ impl AccountStorage {
 
     /// Applies the provided delta to this account storage.
     ///
-    /// This method assumes that the delta has been validated by the calling method and so, no
-    /// additional validation of delta is performed.
-    ///
-    /// Returns an error if:
-    /// - The delta implies an update to a reserved account slot.
-    /// - The updates violate storage layout constraints.
-    /// - The updated value has an arity different from 0.
+    /// # Errors
+    /// Returns an error if the updates violate storage layout constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // --- update storage maps --------------------------------------------
 
-        for &(slot_idx, ref map_delta) in delta.updated_maps.iter() {
+        for (&slot_idx, map_delta) in delta.maps().iter() {
             let storage_map =
                 self.maps.get_mut(&slot_idx).ok_or(AccountError::StorageMapNotFound(slot_idx))?;
 
-            let new_root = storage_map.apply_delta(map_delta)?;
+            let new_root = storage_map.apply_delta(map_delta);
 
             let index = LeafIndex::new(slot_idx.into()).expect("index is u8 - index within range");
             self.slots.insert(index, new_root.into());
@@ -287,11 +282,7 @@ impl AccountStorage {
 
         // --- update storage slots -------------------------------------------
 
-        for &slot_idx in delta.cleared_items.iter() {
-            self.set_item(slot_idx, Word::default())?;
-        }
-
-        for &(slot_idx, slot_value) in delta.updated_items.iter() {
+        for (&slot_idx, &slot_value) in delta.slots().iter() {
             self.set_item(slot_idx, slot_value)?;
         }
 

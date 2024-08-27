@@ -106,7 +106,7 @@ To make sure all commits adhere to our programming standards we use [pre-commit]
 2. Commit messages and code style follow conventions.
 3. Tests added for new functionality.
 4. Documentation/comments updated for all changes according to our documentation convention.
-5. Rustfmt, Clippy and Rustdoc linting passed (Will be ran automatically by pre-commit).
+5. Rustfmt, Clippy and Rustdoc linting passed (Will be run automatically by pre-commit).
 6. New branch rebased from `next`.
 
 &nbsp;

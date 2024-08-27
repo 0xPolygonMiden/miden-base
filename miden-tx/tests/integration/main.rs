@@ -7,11 +7,11 @@ use miden_objects::{
         account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
         SlotItem,
     },
-    assembly::{ModuleAst, ProgramAst},
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
     notes::{Note, NoteAssets, NoteInputs, NoteMetadata, NoteRecipient, NoteScript, NoteType},
-    transaction::{ExecutedTransaction, ProvenTransaction},
+    testing::account_code::DEFAULT_AUTH_SCRIPT,
+    transaction::{ExecutedTransaction, ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
@@ -76,10 +76,9 @@ pub fn get_account_with_default_account_code(
 
     use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
     let account_code_src = DEFAULT_ACCOUNT_CODE;
-    let account_code_ast = ModuleAst::parse(account_code_src).unwrap();
-    let account_assembler = TransactionKernel::assembler().with_debug_mode(true);
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
-    let account_code = AccountCode::new(account_code_ast.clone(), &account_assembler).unwrap();
+    let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
     let account_storage =
         AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
 
@@ -94,17 +93,33 @@ pub fn get_account_with_default_account_code(
 #[cfg(test)]
 pub fn get_note_with_fungible_asset_and_script(
     fungible_asset: FungibleAsset,
-    note_script: ProgramAst,
+    note_script: &str,
 ) -> Note {
-    let note_assembler = TransactionKernel::assembler().with_debug_mode(true);
-    let (note_script, _) = NoteScript::new(note_script, &note_assembler).unwrap();
+    use miden_objects::notes::NoteExecutionHint;
+
+    let assembler = TransactionKernel::assembler().with_debug_mode(true);
+    let note_script = NoteScript::compile(note_script, assembler).unwrap();
     const SERIAL_NUM: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
     let sender_id = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
 
     let vault = NoteAssets::new(vec![fungible_asset.into()]).unwrap();
-    let metadata = NoteMetadata::new(sender_id, NoteType::Public, 1.into(), ZERO).unwrap();
+    let metadata =
+        NoteMetadata::new(sender_id, NoteType::Public, 1.into(), NoteExecutionHint::Always, ZERO)
+            .unwrap();
     let inputs = NoteInputs::new(vec![]).unwrap();
     let recipient = NoteRecipient::new(SERIAL_NUM, note_script, inputs);
 
     Note::new(vault, metadata, recipient)
+}
+
+#[cfg(test)]
+pub fn build_default_auth_script() -> TransactionScript {
+    TransactionScript::compile(DEFAULT_AUTH_SCRIPT, [], TransactionKernel::assembler()).unwrap()
+}
+
+#[cfg(test)]
+pub fn build_tx_args_from_script(script_source: &str) -> TransactionArgs {
+    let tx_script =
+        TransactionScript::compile(script_source, [], TransactionKernel::assembler()).unwrap();
+    TransactionArgs::with_tx_script(tx_script)
 }

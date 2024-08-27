@@ -6,7 +6,8 @@ use crate::{
     AssetError,
 };
 
-/// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied times.
+/// Builder for an `NonFungibleAssetDetails`, the builder can be configured and used multiplied
+/// times.
 #[derive(Debug, Clone)]
 pub struct NonFungibleAssetDetailsBuilder<T> {
     faucet_id: AccountId,

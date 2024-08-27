@@ -1,9 +1,9 @@
 use.std::utils
 
-use.miden::kernels::tx::epilogue
-use.miden::kernels::tx::memory
-use.miden::kernels::tx::note
-use.miden::kernels::tx::prologue
+use.kernel::epilogue
+use.kernel::memory
+use.kernel::note
+use.kernel::prologue
 
 # TRACES
 # =================================================================================================
@@ -50,14 +50,14 @@ const.EPILOGUE_END=131081
 #! advice provider.
 #!
 #! Stack:   [BLOCK_HASH, account_id, INITIAL_ACCOUNT_HASH, INPUT_NOTES_COMMITMENT]
-#! Output:  [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+#! Output:  [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 #!
 #! Where:
 #! - BLOCK_HASH, reference block for the transaction execution.
 #! - account_id, the account that the transaction is being executed against.
 #! - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-#! - CREATED_NOTES_COMMITMENT, commitment to the notes created by the transaction.
+#! - OUTPUT_NOTES_COMMITMENT, commitment to the notes created by the transaction.
 #! - FINAL_ACCOUNT_HASH, account's hash after execution the transaction.
 proc.main.1
     # Prologue
@@ -68,27 +68,27 @@ proc.main.1
     exec.prologue::prepare_transaction
     # => []
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.1 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.2 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
-    exec.memory::get_total_num_consumed_notes
-    # => [num_consumed_notes]
+    exec.memory::get_num_input_notes
+    # => [num_input_notes]
 
     # compute the memory location after all input notes, i.e. the exit condition
-    dup exec.memory::get_consumed_note_ptr loc_store.0
-    # => [num_consumed_notes]
+    dup exec.memory::get_input_note_ptr loc_store.0
+    # => [num_input_notes]
 
     eq.0 not
     # => [should_loop]
 
     while.true
-        push.0 drop                     # TODO: remove line, see miden-vm/#1122
+        push.4 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_START
         # => []
 
@@ -103,27 +103,27 @@ proc.main.1
         dropw dropw dropw dropw
         # => []
 
-        exec.note::increment_current_consumed_note_ptr
-        # => [current_consumed_note_ptr]
+        exec.note::increment_current_input_note_ptr
+        # => [current_input_note_ptr]
 
         # loop condition, exit when the memory ptr is after all input notes
         loc_load.0 neq
         # => [should_loop]
 
-        push.0 drop                     # TODO: remove line, see miden-vm/#1122
+        push.5 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_END
     end
 
     exec.note::note_processing_teardown
     # => []
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.3 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.6 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_START
 
     # execute the transaction script
@@ -147,22 +147,22 @@ proc.main.1
         # => []
     end
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.7 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.8 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.9 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
-    # => [CREATED_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
+    # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end
 
 begin

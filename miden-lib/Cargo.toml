@@ -1,6 +1,6 @@
 [package]
 name = "miden-lib"
-version = "0.4.0"
+version = "0.5.0"
 description = "Standard library of the Miden rollup"
 readme = "README.md"
 categories = ["no-std"]
@@ -20,14 +20,16 @@ default = ["std"]
 std = ["assembly/std", "miden-objects/std", "miden-stdlib/std", "vm-processor/std"]
 # the testing feature is required to enable the account creation pow patch
 testing = ["miden-objects/testing"]
+with-debug-info = ["miden-stdlib/with-debug-info"]
 
 [dependencies]
-miden-objects = { path = "../objects", version = "0.4", default-features = false }
+miden-objects = { workspace = true }
 miden-stdlib = { workspace = true }
 
 [dev-dependencies]
-miden-objects = { path = "../objects", version = "0.4", default-features = false, features = ["testing"] }
-vm-processor = { workspace = true, features = ["internals"] }
+miden-objects = { workspace = true, features = ["testing"] }
+vm-processor = { workspace = true, features = ["testing"] }
 
 [build-dependencies]
 assembly = { workspace = true }
+miden-stdlib = { workspace = true }

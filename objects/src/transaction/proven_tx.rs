@@ -26,7 +26,7 @@ pub struct ProvenTransaction {
     /// Account update data.
     account_update: TxAccountUpdate,
 
-    /// Commited details of all notes consumed by the transaction.
+    /// Committed details of all notes consumed by the transaction.
     input_notes: InputNotes<InputNoteCommitment>,
 
     /// Notes created by the transaction. For private notes, this will contain only note headers,
@@ -494,14 +494,14 @@ mod tests {
     /// [ProvenTransaction] being Sync is part of its public API and changing it is backwards
     /// incompatible.
     #[test]
-    fn proven_transaction_is_sync() {
+    fn test_proven_transaction_is_sync() {
         check_if_sync::<ProvenTransaction>();
     }
 
     /// [ProvenTransaction] being Send is part of its public API and changing it is backwards
     /// incompatible.
     #[test]
-    fn proven_transaction_is_send() {
+    fn test_proven_transaction_is_send() {
         check_if_send::<ProvenTransaction>();
     }
 }

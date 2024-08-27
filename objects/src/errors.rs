@@ -1,26 +1,31 @@
 use alloc::{string::String, vec::Vec};
 use core::fmt;
 
-use assembly::AssemblyError;
 use vm_processor::DeserializationError;
 
 use super::{
     accounts::{AccountId, StorageSlotType},
     assets::{Asset, FungibleAsset, NonFungibleAsset},
-    crypto::{hash::rpo::RpoDigest, merkle::MerkleError},
+    crypto::merkle::MerkleError,
     notes::NoteId,
     Digest, Word, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
-use crate::{accounts::AccountType, notes::NoteType};
+use crate::{
+    accounts::{delta::AccountUpdateDetails, AccountType},
+    notes::NoteType,
+};
 
 // ACCOUNT ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountError {
-    AccountCodeAssemblerError(AssemblyError),
+    AccountCodeAssemblyError(String), // TODO: use Report
+    AccountCodeDeserializationError(DeserializationError),
     AccountCodeNoProcedures,
     AccountCodeTooManyProcedures { max: usize, actual: usize },
+    AccountCodeProcedureInvalidStorageOffset,
+    AccountCodeProcedureInvalidPadding,
     AccountIdInvalidFieldElement(String),
     AccountIdTooFewOnes(u32, u32),
     AssetVaultUpdateError(AssetVaultError),
@@ -55,14 +60,16 @@ impl std::error::Error for AccountError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountDeltaError {
     DuplicateStorageItemUpdate(usize),
-    DuplicateVaultUpdate(Asset),
-    InconsistentNonceUpdate(String),
+    DuplicateNonFungibleVaultUpdate(NonFungibleAsset),
+    FungibleAssetDeltaOverflow {
+        faucet_id: AccountId,
+        this: i64,
+        other: i64,
+    },
     ImmutableStorageSlot(usize),
-    TooManyAddedAsset { actual: usize, max: usize },
-    TooManyClearedStorageItems { actual: usize, max: usize },
-    TooManyRemovedAssets { actual: usize, max: usize },
-    TooManyUpdatedStorageItems { actual: usize, max: usize },
-    DuplicateStorageMapLeaf { key: RpoDigest },
+    IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
+    InconsistentNonceUpdate(String),
+    NotAFungibleFaucetId(AccountId),
 }
 
 #[cfg(feature = "std")]
@@ -137,15 +144,18 @@ pub enum NoteError {
     InvalidAssetData(AssetError),
     InvalidNoteSender(AccountError),
     InvalidNoteTagUseCase(u16),
+    InvalidNoteExecutionHintTag(u8),
+    InvalidNoteExecutionHintPayload(u8, u32),
     InvalidNoteType(NoteType),
     InvalidNoteTypeValue(u64),
-    InvalidOriginIndex(String),
+    InvalidLocationIndex(String),
     InvalidStubDataLen(usize),
     NetworkExecutionRequiresOnChainAccount,
     NetworkExecutionRequiresPublicNote(NoteType),
     NoteDeserializationError(DeserializationError),
+    NoteScriptAssemblyError(String), // TODO: use Report
+    NoteScriptDeserializationError(DeserializationError),
     PublicUseCaseRequiresPublicNote(NoteType),
-    ScriptCompilationError(AssemblyError),
     TooManyAssets(usize),
     TooManyInputs(usize),
 }
@@ -159,8 +169,8 @@ impl NoteError {
         Self::DuplicateNonFungibleAsset(asset)
     }
 
-    pub fn invalid_origin_index(msg: String) -> Self {
-        Self::InvalidOriginIndex(msg)
+    pub fn invalid_location_index(msg: String) -> Self {
+        Self::InvalidLocationIndex(msg)
     }
 
     pub fn too_many_assets(num_assets: usize) -> Self {
@@ -219,7 +229,7 @@ impl std::error::Error for ChainMmrError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionScriptError {
-    ScriptCompilationError(AssemblyError),
+    AssemblyError(String), // TODO: change to Report
 }
 
 impl fmt::Display for TransactionScriptError {
