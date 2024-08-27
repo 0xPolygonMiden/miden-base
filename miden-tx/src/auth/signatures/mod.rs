@@ -7,9 +7,10 @@ use vm_processor::{Felt, Word};
 use crate::AuthenticationError;
 
 /// Retrieves a falcon signature over a message.
+///
 /// Gets as input a [Word] containing a secret key, and a [Word] representing a message and
-/// outputs a vector of values to be pushed onto the advice stack.
-/// The values are the ones required for a Falcon signature verification inside the VM and they are:
+/// outputs a vector of values to be pushed onto the advice stack. The values are the ones required
+/// for a Falcon signature verification inside the VM and they are:
 ///
 /// 1. The nonce represented as 8 field elements.
 /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
