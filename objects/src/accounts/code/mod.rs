@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_serde() {
-        let code = AccountCode::mock(None, None);
+        let code = AccountCode::mock();
         let serialized = code.to_bytes();
         let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, code)
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_account_code_procedure_commitment() {
-        let code = AccountCode::mock(None, None);
+        let code = AccountCode::mock();
         let procedure_commitment = build_procedure_commitment(code.procedures());
         assert_eq!(procedure_commitment, code.commitment())
     }

@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_serde_account_procedure() {
-        let account_code = AccountCode::mock(None, None);
+        let account_code = AccountCode::mock();
 
         let serialized = account_code.procedures()[0].to_bytes();
         let deserialized = AccountProcedureInfo::read_from_bytes(&serialized).unwrap();

@@ -115,7 +115,7 @@ mod tests {
 
     fn build_account_data() -> AccountData {
         let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-        let code = AccountCode::mock(None, None);
+        let code = AccountCode::mock();
 
         // create account and auth
         let vault = AssetVault::new(&[]).unwrap();

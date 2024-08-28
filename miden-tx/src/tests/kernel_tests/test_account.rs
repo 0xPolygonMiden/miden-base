@@ -483,7 +483,7 @@ fn test_storage_offset() {
             swapw dropw swapw
         end
     ";
-    let code = AccountCode::mock(Some(source_code), Some(assembler));
+    let code = AccountCode::mock_specific(source_code, assembler);
 
     // modify procedure offsets for testing
     let procedures_with_offsets = vec![

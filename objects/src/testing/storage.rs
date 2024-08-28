@@ -264,7 +264,7 @@ pub fn build_account(
     maps: Option<BTreeMap<u8, StorageMap>>,
 ) -> Account {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN).unwrap();
-    let code = AccountCode::mock(None, None);
+    let code = AccountCode::mock();
 
     let vault = AssetVault::new(&assets).unwrap();
     // Use the provided maps or create an empty BTreeMap if None is provided

@@ -160,10 +160,13 @@ impl AccountCode {
         code
     }
 
+    /// Creates a mock [AccountCode] with specific code and assembler
+    pub fn mock_specific(source_code: &str, assembler: Assembler) -> AccountCode {
+        Self::compile(source_code, assembler).unwrap()
+    }
+
     /// Creates a mock [AccountCode] with default assembler and mock code
-    pub fn mock(source_code: Option<&str>, assembler: Option<Assembler>) -> AccountCode {
-        let code = source_code.unwrap_or(CODE);
-        let assembler = assembler.unwrap_or_default();
-        Self::compile(code, assembler).unwrap()
+    pub fn mock() -> AccountCode {
+        Self::compile(CODE, Assembler::default()).unwrap()
     }
 }
