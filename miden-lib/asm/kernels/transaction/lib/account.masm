@@ -461,7 +461,7 @@ export.set_item
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
-    swapw movup.8 
+    swapw movup.8
     push.20551 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
     # => [V]
@@ -539,9 +539,9 @@ end
 #! - index is out of bounds
 export.get_procedure_info
   # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-  # check if index == 0
-  dup push.0 neq
-  # => [is_0, index]
+  # check if index == 99
+  dup push.99 neq
+  # => [is_99, index]
 
   # load procedure information from memory
   if.true
@@ -579,12 +579,12 @@ export.authenticate_procedure
     # In production:
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
     # During testing:
-    # => [0, PROC_ROOT]
+    # => [99, PROC_ROOT]
 
     # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-    # check if get_procedure_info returned 0
-    dup push.0 neq
-    # => [is_0, index, PROC_ROOT]
+    # check if get_procedure_info returned 99
+    dup push.99 neq
+    # => [is_99, index, PROC_ROOT]
 
     # verify that PROC_ROOT matches returned procedure information
     if.true

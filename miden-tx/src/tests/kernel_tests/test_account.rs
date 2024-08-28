@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, println};
+use std::collections::BTreeMap;
 
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
@@ -459,59 +459,58 @@ fn test_storage_offset() {
     let vault = AssetVault::mock();
     let storage = AccountStorage::new(
         vec![
-            SlotItem::new_value(0, 0, [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]),
-            SlotItem::new_value(1, 0, [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]),
-            SlotItem::new_value(2, 0, [Felt::new(8), Felt::new(9), Felt::new(10), Felt::new(11)]),
+            SlotItem::new_value(0, 0, [ZERO, ZERO, ZERO, ZERO]),
+            SlotItem::new_value(1, 0, [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]),
+            SlotItem::new_value(2, 0, [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]),
+            SlotItem::new_value(3, 0, [Felt::new(8), Felt::new(9), Felt::new(10), Felt::new(11)]),
         ],
         BTreeMap::new(),
     )
     .unwrap();
     let source_code = "
         use.miden::account
+        use.kernel::memory
 
-        export.one
+        export.zero
             push.0
             exec.account::get_item
             swapw dropw
         end
 
-        export.two
-            push.1 push.2 mul
-        end
-
-
-        export.three
-            push.1 push.2 sub
+        export.one
+            push.1
+            exec.account::get_item
+            swapw dropw swapw
         end
     ";
     let code = AccountCode::mock(Some(source_code), Some(assembler));
+
+    // modify procedure offsets for testing
     let procedures_with_offsets = vec![
         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 1),
         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 3),
     ];
+
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
     let nonce = ONE;
     let account = Account::from_parts(id, vault, storage, code, nonce);
-
-    println!("Created account: {:#?}", account);
 
     // setup transaction script
     let tx_script_code = format!(
         "
     begin
-       call.{}
+        call.{}
+        call.{}
     end
     ",
-        procedures_with_offsets[0].mast_root()
+        procedures_with_offsets[0].mast_root(),
+        procedures_with_offsets[1].mast_root(),
     );
 
     let tx_script_program = TransactionKernel::assembler()
         .with_debug_mode(true)
         .assemble_program(tx_script_code)
         .unwrap();
-
-    println!("root: {:?}", tx_script_program.hash().as_elements());
 
     let tx_script = TransactionScript::new(tx_script_program, vec![]);
 
@@ -535,12 +534,15 @@ fn test_storage_offset() {
     // execute code in context
     let process = tx_context.execute_code(code).unwrap();
 
-    println!(
-        "w0: {:?} \n w1: {:?} \n w2: {:?} \n w3: {:?}",
+    // assert that both storage accesses have been correctly offset
+    assert_eq!(
         process.get_stack_word(0),
+        [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]
+    );
+
+    assert_eq!(
         process.get_stack_word(1),
-        process.get_stack_word(2),
-        process.get_stack_word(3)
+        [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]
     );
 }
 
