@@ -70,7 +70,7 @@ The [account API](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-l
 #! Add the specified asset to the vault.
 #! ...
 export.add_asset
-    exec.mem::account_vault_add_asset_ptr
+    exec.kernel_invocation::account_vault_add_asset_offset
     syscall.exec_kernel_proc
 end
 ```

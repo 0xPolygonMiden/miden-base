@@ -366,7 +366,7 @@ pub fn test_prologue_create_account() {
     use.kernel::prologue
 
     begin
-        call.prologue::prepare_transaction
+        exec.prologue::prepare_transaction
     end
     ";
 

@@ -5,6 +5,7 @@
 - Implemented offset based storage access (#843).
 - [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
 - [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
+- [BREAKING] Kernel procedures now have to be invoked using `dynexec` instruction (#803).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 

@@ -36,7 +36,7 @@ impl TransactionVerifier {
         // compute the kernel hash
         let kernel = self.tx_program_info.kernel();
         // we need to get &[Felt] from &[Digest]
-        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().iter())
             .cloned()
             .collect::<Vec<Felt>>();
         let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
@@ -47,7 +47,7 @@ impl TransactionVerifier {
             transaction.account_update().init_state_hash(),
             transaction.input_notes().commitment(),
             transaction.block_ref(),
-            (kernel.proc_hashes().len(), kernel_hash)
+            (kernel.proc_hashes().len(), kernel_hash),
         );
         let stack_outputs = TransactionKernel::build_output_stack(
             transaction.account_update().final_state_hash(),

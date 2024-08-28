@@ -1,4 +1,4 @@
-use.miden::kernels::tx::memory
+use.miden::kernel_invocation
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -46,12 +46,18 @@ end
 #! - dest_ptr is the memory address to write the assets.
 #! - num_assets is the number of assets in the currently executing note.
 export.get_assets
-    padw push.0
-    # => [0, 0, 0, 0, 0, dest_ptr]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15), dest_ptr]
 
-    # get the current input note assets info
-    exec.memory::get_note_assets_info_ptr
+    exec.kernel_invocation::get_note_assets_info_offset
+    # => [offset, PAD(15), dest_ptr]
+
     syscall.exec_kernel_proc
+    # => [ASSETS_HASH, num_assets, PAD(11), dest_ptr]
+
+    # clean the stack
+    swapdw dropw dropw movup.7 movup.7 movup.7 drop drop drop
     # => [ASSETS_HASH, num_assets, dest_ptr]
 
     # load the asset data from the advice map to the advice stack
@@ -85,9 +91,18 @@ end
 #! - inputs_len, the note's input count.
 #! - INPUTS, the data corresponding to the note's inputs.
 export.get_inputs
-    padw 
-    exec.memory::get_note_inputs_hash_ptr
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15), dest_ptr]
+
+    exec.kernel_invocation::get_note_inputs_hash_offset
+    # => [offset, PAD(15), dest_ptr]
+
     syscall.exec_kernel_proc
+    # => [INPUTS_HASH, PAD(12), dest_ptr]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [INPUTS_HASH, dest_ptr]
 
     # load the inputs from the advice map to the advice stack
@@ -126,11 +141,18 @@ end
 #!
 #! - sender is the sender of the note currently being processed.
 export.get_sender
-    push.0
-    # => [0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    exec.memory::get_note_sender_ptr
+    exec.kernel_invocation::get_note_sender_offset
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [sender, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [sender]
 end
 
@@ -142,11 +164,18 @@ end
 #!
 #! - SERIAL_NUMBER is the serial number of the note currently being processed.
 export.get_serial_number
-    padw
-    # => [0, 0, 0, 0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    exec.memory::get_note_serial_number_ptr
+    exec.kernel_invocation::get_note_serial_number_offset
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [SERIAL_NUMBER, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [SERIAL_NUMBER]
 end
 

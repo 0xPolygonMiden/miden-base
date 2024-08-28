@@ -1,4 +1,4 @@
-use.kernel::transaction::lib::memory
+use.miden::kernel_invocation
 
 #! Returns the account id.
 #!
@@ -10,8 +10,21 @@ export.get_id
     push.0
     # => [0]
 
-    exec.memory::get_account_id_ptr
+    # start padding the stack
+    push.0.0
+
+    exec.kernel_invocation::get_account_id_offset
+    # => [offset, 0, 0, 0]
+
+    # pad the stack
+    padw swapw padw padw swapdw
+    # => [offset, 0, PAD(14)]
+
     syscall.exec_kernel_proc
+    # => [acct_id, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [acct_id]
 end
 
@@ -25,8 +38,21 @@ export.get_nonce
     push.0
     # => [0]
 
-    exec.memory::get_account_nonce_ptr
+    # start padding the stack
+    push.0.0
+
+    exec.kernel_invocation::get_account_nonce_offset
+    # => [offset, 0, 0, 0]
+
+    # pad the stack
+    padw swapw padw padw swapdw
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [nonce, PAD(15)]
+    
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [nonce]
 end
 
@@ -37,11 +63,18 @@ end
 #!
 #! - H is the initial account hash.
 export.get_initial_hash
-    padw
-    # => [0, 0, 0, 0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    exec.memory::get_initial_account_hash_ptr
+    exec.kernel_invocation::get_initial_account_hash_offset
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [H, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [H]
 end
 
@@ -52,11 +85,18 @@ end
 #!
 #! - ACCT_HASH is the hash of the account data.
 export.get_current_hash
-    padw
-    # => [0, 0, 0, 0]
+    # pad the stack
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    exec.memory::get_current_account_hash_ptr
+    exec.kernel_invocation::get_current_account_hash_offset
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [ACCT_HASH, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [ACCT_HASH]
 end
 
@@ -68,12 +108,21 @@ end
 #! - value is the value to increment the nonce by. value can be at most 2^32 - 1 otherwise this
 #!   procedure panics.
 export.incr_nonce
-    exec.memory::incr_account_nonce_ptr
-    syscall.exec_kernel_proc
-    # => [0]
+    # start padding the stack
+    push.0.0 movup.2
+    # => [value, 0, 0]
 
-    drop
-    # => []
+    exec.kernel_invocation::incr_account_nonce_offset
+    # => [offset, value, 0, 0]
+
+    # pad the stack
+    padw swapw padw padw swapdw
+    # => [offset, value, PAD(14)]
+
+    syscall.exec_kernel_proc
+    # => [PAD(16)]
+
+    dropw dropw dropw dropw
 end
 
 #! Gets an item from the account storage. Panics if the index is out of bounds.
@@ -84,11 +133,21 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_item
-    push.0.0.0 movup.3
-    # => [index, 0, 0, 0]
+    push.0.0 movup.2
+    # => [index, 0, 0]
 
-    exec.memory::get_account_item_ptr
+    exec.kernel_invocation::get_account_item_offset
+    # => [offset, index, 0, 0]
+
+    # pad the stack
+    padw swapw padw padw swapdw
+    # => [offset, index, PAD(14)]
+
     syscall.exec_kernel_proc
+    # => [VALUE, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [VALUE]
 end
 
@@ -102,12 +161,18 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_item
-    push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
-    # => [index, V', 0, 0, 0]
+    exec.kernel_invocation::set_account_item_offset
+    # => [offset, index, V']
 
-    exec.memory::set_account_item_ptr
+    # pad the stack
+    push.0.0 movdn.7 movdn.7 padw padw swapdw 
+    # => [offset, index, V', PAD(10)]
+    
     syscall.exec_kernel_proc
-    # => [R', V]
+    # => [R', V, PAD(8)]
+
+    # clean the stack
+    swapdw dropw dropw
 end
 
 #! Gets a map item from the account storage. Panics if
@@ -121,13 +186,19 @@ end
 #! - KEY is the key of the item to get.
 #! - VALUE is the value of the item.
 export.get_map_item
-    exec.memory::get_account_map_item_ptr
-    syscall.exec_kernel_proc
-    # => [VALUE]
+    exec.kernel_invocation::get_account_map_item_offset
+    # => [offset, index, KEY]
 
-    # prepare stack for return
-    movup.5 drop
-    # => [VALUE, 0]
+    # pad the stack
+    push.0.0 movdn.7 movdn.7 padw padw swapdw 
+    # => [offset, index, KEY, PAD(10)]
+
+    syscall.exec_kernel_proc
+    # => [VALUE, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [VALUE]
 end
 
 #! Sets a map item in the account storage. Panics if
@@ -143,11 +214,18 @@ end
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.
 export.set_map_item
-    exec.memory::set_account_map_item_ptr
-    syscall.exec_kernel_proc
-    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, 0]
+    exec.kernel_invocation::set_account_map_item_offset
+    # => [offset, index, KEY, VALUE]
 
-    movup.8 drop
+    # pad the stack
+    push.0.0 movdn.11 movdn.11 padw movdnw.3
+    # => [offset, index, KEY, VALUE, PAD(6)]
+
+    syscall.exec_kernel_proc
+    # => [OLD_MAP_ROOT, OLD_MAP_VALUE, PAD(8)]
+
+    # clean the stack
+    swapdw dropw dropw
     # => [OLD_MAP_ROOT, OLD_MAP_VALUE]
 end
 
@@ -159,11 +237,18 @@ end
 #!
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
-    exec.memory::set_account_code_ptr
-    syscall.exec_kernel_proc
-    # => [0, 0, 0, 0]
+    exec.kernel_invocation::set_account_code_offset
+    # => [offset, CODE_COMMITMENT]
 
-    dropw
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, CODE_COMMITMENT, PAD(11)]
+
+    syscall.exec_kernel_proc
+    # => [PAD(16)]
+
+    # clean the stack
+    dropw dropw dropw dropw 
     # => []
 end
 
@@ -176,8 +261,18 @@ end
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 export.get_balance
-    exec.memory::account_vault_get_balance_ptr
+    exec.kernel_invocation::account_vault_get_balance_offset
+    # => [offset, faucet_id]
+
+    # pad the stack
+    push.0.0 movdn.3 movdn.3 padw swapw padw padw swapdw
+    # => [offset, faucet_id, PAD(14)]
+
     syscall.exec_kernel_proc
+    # => [balance, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [balance]
 end
 
@@ -190,11 +285,18 @@ end
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.has_non_fungible_asset
-    exec.memory::account_vault_has_non_fungible_asset_ptr
-    syscall.exec_kernel_proc
-    # => [has_asset, 0, 0, 0]
+    exec.kernel_invocation::account_vault_has_non_fungible_asset_offset
+    # => [offset, ASSET]
 
-    swap drop swap drop swap drop
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw 
+    # => [offset, ASSET, PAD(11)]
+
+    syscall.exec_kernel_proc
+    # => [has_asset, PAD(15)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw movdn.3 drop drop drop
     # => [has_asset]
 end
 
@@ -213,8 +315,19 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.add_asset
-    exec.memory::account_vault_add_asset_ptr
+    exec.kernel_invocation::account_vault_add_asset_offset
+    # => [offset, ASSET]
+
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, ASSET, PAD(11)]
+
     syscall.exec_kernel_proc
+    # => [ASSET', PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [ASSET']
 end
 
 #! Remove the specified asset from the vault.
@@ -229,8 +342,19 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.remove_asset
-    exec.memory::account_vault_remove_asset_ptr
+    exec.kernel_invocation::account_vault_remove_asset_offset
+    # => [offset, ASSET]
+
+    # pad the stack
+    push.0.0.0 movdn.7 movdn.7 movdn.7 padw padw swapdw
+    # => [offset, ASSET, PAD(11)]
+
     syscall.exec_kernel_proc
+    # => [ASSET, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
+    # => [ASSET]
 end
 
 #! Returns a commitment to the account vault.
@@ -241,12 +365,17 @@ end
 #! - COM is a commitment to the account vault.
 export.get_vault_commitment
     # pad the stack for syscall invocation
-    padw
-    # => [0, 0, 0, 0]
+    padw padw padw push.0.0.0
+    # => [PAD(15)]
 
-    # invoke the syscall
-    exec.memory::get_account_vault_commitment_ptr
+    exec.kernel_invocation::get_account_vault_commitment_offset
+    # => [offset, PAD(15)]
+
     syscall.exec_kernel_proc
+    # => [COM, PAD(12)]
+
+    # clean the stack
+    swapdw dropw dropw swapw dropw
     # => [COM]
 end
 

@@ -8,7 +8,7 @@ use miden_objects::{
     },
     utils::{group_slice_elements, serde::Deserializable},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD, Hasher,
+    Digest, Felt, Hasher, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
 
@@ -91,12 +91,13 @@ impl TransactionKernel {
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
 
-        let kernel = Self::kernel().kernel(); 
+        let kernel_lib = Self::kernel();
+        let kernel = kernel_lib.kernel();
+
         // we need to get &[Felt] from &[Digest]
-        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().into_iter())
+        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().iter())
             .cloned()
             .collect::<Vec<Felt>>();
-        // let aboba = kernel.proc_hashes().iter().flat_map(|digest| digest.as_elements().to_vec()).collect::<Vec<Felt>>();
         let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
 
         let stack_inputs = TransactionKernel::build_input_stack(
@@ -302,5 +303,6 @@ impl TransactionKernel {
             .expect("failed to load miden-lib")
             .with_library(kernel_library)
             .expect("failed to load kernel library (/lib)")
+            .with_debug_mode(true)
     }
 }

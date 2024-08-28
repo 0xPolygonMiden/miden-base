@@ -116,7 +116,7 @@ end
 #! - [KERNEL_PROCS], array of hashes of the kernel procedures.
 proc.process_kernel_data
     # get the pointer to the memory where hashes of the kernel procedures will be stored
-    exec.memory::get_kernel_procs_ptr swap
+    exec.memory::get_kernel_procedures_ptr swap
     # => [kernel_procs_len, kernel_procs_ptr, KERNEL_HASH]
 
     # store the kernel procedures to the memory
@@ -125,9 +125,6 @@ proc.process_kernel_data
 
     drop
     # => []
-
-    # kernel hash
-    # 14953775620698834032, 17523231931899419664, 4825234885919677706, 11125827748116184971
 end
 
 # BLOCK DATA
