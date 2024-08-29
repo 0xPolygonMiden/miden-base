@@ -13,7 +13,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
         Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
-        SlotItem, StorageSlotType,
+        StorageSlotType,
     },
     assets::AssetVault,
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
@@ -457,38 +457,36 @@ fn test_storage_offset() {
     // setup account
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let vault = AssetVault::mock();
-    let storage = AccountStorage::new(
-        vec![
-            SlotItem::new_value(0, 0, [ZERO, ZERO, ZERO, ZERO]),
-            SlotItem::new_value(1, 0, [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)]),
-            SlotItem::new_value(2, 0, [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]),
-            SlotItem::new_value(3, 0, [Felt::new(8), Felt::new(9), Felt::new(10), Felt::new(11)]),
-        ],
-        BTreeMap::new(),
-    )
-    .unwrap();
+    let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
     let source_code = "
         use.miden::account
         use.kernel::memory
 
-        export.zero
-            push.0
-            exec.account::get_item
-            swapw dropw
+        export.set_item
+            push.4.5.6.7.0
+            exec.account::set_item
+            dropw dropw
         end
 
-        export.one
-            push.1
+        export.get_item_0
+            push.0
             exec.account::get_item
             swapw dropw swapw
+        end
+
+        export.get_item_1
+            push.1
+            exec.account::get_item
+            swapw dropw
         end
     ";
     let code = AccountCode::mock_specific(source_code, assembler);
 
     // modify procedure offsets for testing
     let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 1),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 1),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 2),
     ];
 
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
@@ -499,12 +497,14 @@ fn test_storage_offset() {
     let tx_script_code = format!(
         "
     begin
-        call.{}
-        call.{}
+        call.{set_item}
+        call.{get_item_0}
+        call.{get_item_1}
     end
     ",
-        procedures_with_offsets[0].mast_root(),
-        procedures_with_offsets[1].mast_root(),
+        set_item = procedures_with_offsets[2].mast_root(),
+        get_item_0 = procedures_with_offsets[0].mast_root(),
+        get_item_1 = procedures_with_offsets[1].mast_root(),
     );
 
     let tx_script_program = TransactionKernel::assembler()
