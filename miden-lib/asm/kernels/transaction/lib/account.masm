@@ -539,9 +539,9 @@ end
 #! - index is out of bounds
 export.get_procedure_info
   # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-  # check if index == 99
-  dup push.99 neq
-  # => [is_99, index]
+  # check if index == 255
+  dup push.255 neq
+  # => [is_255, index]
 
   # load procedure information from memory
   if.true
@@ -579,12 +579,12 @@ export.authenticate_procedure
     # In production:
     # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
     # During testing:
-    # => [99, PROC_ROOT]
+    # => [255, PROC_ROOT]
 
     # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-    # check if get_procedure_info returned 99
-    dup push.99 neq
-    # => [is_99, index, PROC_ROOT]
+    # check if get_procedure_info returned 255
+    dup push.255 neq
+    # => [is_255, index, PROC_ROOT]
 
     # verify that PROC_ROOT matches returned procedure information
     if.true
