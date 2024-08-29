@@ -10,6 +10,7 @@
 - Implemented `create_note` and `move_asset_into_note` basic wallet procedures (#808).
 - Made `miden_lib::notes::build_swap_tag()` function public (#817).
 - [BREAKING] Changed the `NoteFile::NoteDetails` type to struct and added a `after_block_num` field (#823).
+- Implemented offset based storage access (#843)
 
 ### Changes
 
