@@ -1,8 +1,10 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
+use core::fmt::Display;
 
 use assembly::{Assembler, Compile};
 use vm_core::{
     mast::{MastForest, MastNodeId},
+    prettier::PrettyPrint,
     Program,
 };
 
@@ -171,6 +173,24 @@ impl Deserializable for NoteScript {
         let entrypoint = MastNodeId::from_u32_safe(source.read_u32()?, &mast)?;
 
         Ok(Self::from_parts(Arc::new(mast), entrypoint))
+    }
+}
+
+// PRETTY-PRINTING
+// ================================================================================================
+
+impl PrettyPrint for NoteScript {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+        let entrypoint = self.mast[self.entrypoint].to_pretty_print(&self.mast);
+
+        indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
+    }
+}
+
+impl Display for NoteScript {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.pretty_print(f)
     }
 }
 
