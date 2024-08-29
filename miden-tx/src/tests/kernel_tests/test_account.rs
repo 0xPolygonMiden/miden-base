@@ -480,21 +480,22 @@ fn test_storage_offset() {
             swapw dropw
         end
     ";
-    let code = AccountCode::mock_specific(source_code, assembler);
+    let code = AccountCode::mock_specific(source_code, assembler.clone());
 
-    // modify procedure offsets for testing
+    // modify procedure offsets
     let procedures_with_offsets = vec![
         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 1),
         AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 2),
     ];
 
+    // rebuild [AccountCode] using new procedures with offsets
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
     let nonce = ONE;
     let account = Account::from_parts(id, vault, storage, code, nonce);
 
     // setup transaction script
-    let tx_script_code = format!(
+    let tx_script_source_code = format!(
         "
     begin
         call.{set_item}
@@ -506,18 +507,13 @@ fn test_storage_offset() {
         get_item_0 = procedures_with_offsets[0].mast_root(),
         get_item_1 = procedures_with_offsets[1].mast_root(),
     );
-
-    let tx_script_program = TransactionKernel::assembler()
-        .with_debug_mode(true)
-        .assemble_program(tx_script_code)
-        .unwrap();
-
+    let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
     let tx_script = TransactionScript::new(tx_script_program, vec![]);
 
     // setup transaction context
     let tx_context = TransactionContextBuilder::new(account).tx_script(tx_script).build();
 
-    // setup code
+    // setup code to be executed
     let code = "
         use.kernel::memory
         use.kernel::prologue
@@ -534,7 +530,8 @@ fn test_storage_offset() {
     // execute code in context
     let process = tx_context.execute_code(code).unwrap();
 
-    // assert that both storage accesses have been correctly offset
+    // assert that storage has been correctly set and that both
+    // storage accesses have been correctly offset
     assert_eq!(
         process.get_stack_word(0),
         [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]

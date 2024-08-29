@@ -543,7 +543,6 @@ export.get_procedure_info
   dup push.255 neq
   # => [is_255, index]
 
-  # load procedure information from memory
   if.true
     # check that index < number of procedures contained in the account code
     dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
@@ -586,7 +585,6 @@ export.authenticate_procedure
     dup push.255 neq
     # => [is_255, index, PROC_ROOT]
 
-    # verify that PROC_ROOT matches returned procedure information
     if.true
       # verify that PROC_ROOT exists in memory at index
       movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
