@@ -39,6 +39,6 @@ winter-rand-utils = { version = "0.9", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false, features = ["html_reports"] }
-miden-objects = { path = ".", features = ["testing"] }
-rstest = { version = "0.21" }
-tempfile = { version = "3.0" }
+miden-objects = { workspace = true, features = ["testing"] }
+rstest = { version = "0.22" }
+tempfile = { version = "3.12" }
