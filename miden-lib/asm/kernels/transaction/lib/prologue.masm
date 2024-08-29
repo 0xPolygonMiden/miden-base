@@ -75,7 +75,7 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 # Computed account code hash does not match recorded account code hash
 const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
 
-# Number of account procedures exceeded the maximum limit of 65535
+# Number of account procedures exceeded the maximum limit of 256
 const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
 
 # PUBLIC INPUTS

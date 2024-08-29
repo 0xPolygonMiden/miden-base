@@ -60,6 +60,7 @@ pub use file::NoteFile;
 // ================================================================================================
 
 /// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
+///
 /// This is equal `BLOCK_NOTES_TREE_DEPTH`.
 pub const NOTE_LEAF_DEPTH: u8 = BLOCK_NOTES_TREE_DEPTH;
 

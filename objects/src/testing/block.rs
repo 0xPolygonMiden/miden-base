@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use miden_crypto::merkle::SimpleSmt;
 use vm_core::Felt;
 use vm_processor::Digest;
+#[cfg(not(target_family = "wasm"))]
 use winter_rand_utils::{rand_array, rand_value};
 
 use crate::{accounts::Account, BlockHeader, ACCOUNT_TREE_DEPTH};
