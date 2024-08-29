@@ -593,7 +593,7 @@ export.authenticate_procedure
       # => [storage_offset]
     else
       # drop PROC_ROOT
-      movdn.4 dropw
+      movdn.4 dropw drop push.0
     end
 end
 
