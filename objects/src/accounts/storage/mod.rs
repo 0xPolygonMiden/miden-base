@@ -1,13 +1,14 @@
 use alloc::{collections::BTreeMap, string::ToString, vec::Vec};
+use vm_core::EMPTY_WORD;
 
 use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
 };
-use crate::crypto::merkle::{LeafIndex, NodeIndex, SimpleSmt};
+use crate::crypto::merkle::LeafIndex;
 
 mod slot;
-pub use slot::StorageSlotType;
+pub use slot::{StorageSlot, StorageSlotType};
 
 mod map;
 pub use map::StorageMap;
@@ -15,105 +16,8 @@ pub use map::StorageMap;
 // CONSTANTS
 // ================================================================================================
 
-/// Depth of the storage tree.
-pub const STORAGE_TREE_DEPTH: u8 = 8;
-
-// TYPE ALIASES
-// ================================================================================================
-
-/// Represents a single storage slot item.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct SlotItem {
-    /// The index this item will occupy in the [AccountStorage] tree.
-    pub index: u8,
-
-    /// The type and value of the item.
-    pub slot: StorageSlot,
-}
-
-impl SlotItem {
-    /// Returns a new [SlotItem] with the [StorageSlotType::Value] type.
-    pub fn new_value(index: u8, arity: u8, value: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Value { value_arity: arity },
-                value,
-            },
-        }
-    }
-
-    /// Returns a new [SlotItem] with the [StorageSlotType::Map] type.
-    pub fn new_map(index: u8, arity: u8, root: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Map { value_arity: arity },
-                value: root,
-            },
-        }
-    }
-
-    /// Returns a new [SlotItem] with the [StorageSlotType::Array] type.
-    ///
-    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
-    pub fn new_array(index: u8, arity: u8, log_n: u8, root: Word) -> Self {
-        Self {
-            index,
-            slot: StorageSlot {
-                slot_type: StorageSlotType::Array { depth: log_n, value_arity: arity },
-                value: root,
-            },
-        }
-    }
-}
-
-/// Represents a single storage slot entry.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct StorageSlot {
-    /// The type of the value
-    pub slot_type: StorageSlotType,
-
-    /// The value itself.
-    ///
-    /// The value can be a raw value or a commitment to the underlying data structure.
-    pub value: Word,
-}
-
-impl StorageSlot {
-    /// Returns a new [StorageSlot] with the provided value.
-    ///
-    /// The value arity for the slot is set to 0.
-    pub fn new_value(value: Word) -> Self {
-        Self {
-            slot_type: StorageSlotType::Value { value_arity: 0 },
-            value,
-        }
-    }
-
-    /// Returns a new [StorageSlot] with a map defined by the provided root.
-    ///
-    /// The value arity for the slot is set to 0.
-    pub fn new_map(root: Word) -> Self {
-        Self {
-            slot_type: StorageSlotType::Map { value_arity: 0 },
-            value: root,
-        }
-    }
-
-    /// Returns a new [StorageSlot] with an array defined by the provided root and the number of
-    /// elements.
-    ///
-    /// The max size of the array is set to 2^log_n and the value arity for the slot is set to 0.
-    pub fn new_array(root: Word, log_n: u8) -> Self {
-        Self {
-            slot_type: StorageSlotType::Array { depth: log_n, value_arity: 0 },
-            value: root,
-        }
-    }
-}
+/// Total number of storage slots.
+pub const NUM_STORAGE_SLOTS: usize = 256;
 
 // ACCOUNT STORAGE
 // ================================================================================================
@@ -135,129 +39,65 @@ impl StorageSlot {
 /// consumes one storage slot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
-    slots: SimpleSmt<STORAGE_TREE_DEPTH>,
-    layout: Vec<StorageSlotType>,
-    maps: BTreeMap<u8, StorageMap>,
+    slots: Vec<StorageSlot>,
+    commitment: Digest,
 }
 
 impl AccountStorage {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    /// Depth of the storage tree.
-    pub const STORAGE_TREE_DEPTH: u8 = STORAGE_TREE_DEPTH;
-
-    /// Total number of storage slots.
-    pub const NUM_STORAGE_SLOTS: usize = 256;
-
-    /// The storage slot at which the layout commitment is stored.
-    pub const SLOT_LAYOUT_COMMITMENT_INDEX: u8 = 255;
-
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of account storage initialized with the provided items.
-    pub fn new(
-        items: Vec<SlotItem>,
-        maps: BTreeMap<u8, StorageMap>,
-    ) -> Result<AccountStorage, AccountError> {
-        // Empty layout
-        let mut layout = vec![StorageSlotType::default(); AccountStorage::NUM_STORAGE_SLOTS];
-        layout[usize::from(AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX)] =
-            StorageSlotType::Value { value_arity: 64 };
+    pub fn new(slots: Vec<StorageSlot>) -> Result<AccountStorage, AccountError> {
+        let len = slots.len();
 
-        // The following loop will:
-        //
-        // - Validate the slot and check it doesn't assign a value to a reserved slot.
-        // - Extract the slot value.
-        // - Check that every map index has a corresponding map in `maps`.
-        // - Count the number of maps to validate `maps`.
-        //
-        // It won't detect duplicates, that is later done by the `SimpleSmt` instantiation.
-        //
-        let mut entries = Vec::with_capacity(AccountStorage::NUM_STORAGE_SLOTS);
-        let mut num_maps = 0;
-        for item in items {
-            if item.index == AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX {
-                return Err(AccountError::StorageSlotIsReserved(item.index));
-            }
-
-            if matches!(item.slot.slot_type, StorageSlotType::Map { .. }) {
-                // check that for every map index there is a map in maps
-                if !maps.contains_key(&item.index) {
-                    return Err(AccountError::StorageMapNotFound(item.index));
-                }
-                num_maps += 1;
-            }
-
-            layout[usize::from(item.index)] = item.slot.slot_type;
-            entries.push((item.index.into(), item.slot.value))
+        if len > NUM_STORAGE_SLOTS {
+            return Err(AccountError::StorageTooManySlots(len as u64));
         }
 
-        // add layout commitment entry
-        entries.push((
-            AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX.into(),
-            *layout_commitment(&layout),
-        ));
-
-        // construct storage slots smt and populate the types vector.
-        let slots = SimpleSmt::<STORAGE_TREE_DEPTH>::with_leaves(entries)
-            .map_err(AccountError::DuplicateStorageItems)?;
-
-        // make sure the number of provide maps matches the number of map slots
-        if maps.len() != num_maps {
-            return Err(AccountError::StorageMapTooManyMaps {
-                expected: num_maps,
-                actual: maps.len(),
-            });
-        }
-
-        Ok(Self { slots, layout, maps })
+        Ok(Self {
+            commitment: build_slots_commitment(&slots),
+            slots,
+        })
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns a reference to the storage slots.
+    pub fn slots(&self) -> &Vec<StorageSlot> {
+        &self.slots
+    }
+
     /// Returns a commitment to this storage.
-    pub fn root(&self) -> Digest {
-        self.slots.root()
+    pub fn commitment(&self) -> Digest {
+        self.commitment
     }
 
     /// Returns an item from the storage at the specified index.
     ///
     /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
     pub fn get_item(&self, index: u8) -> Digest {
-        let item_index = NodeIndex::new(Self::STORAGE_TREE_DEPTH, index.into())
-            .expect("index is u8 - index within range");
-        self.slots.get_node(item_index).expect("index is u8 - index within range")
+        if self.slots.len() < index as usize {
+            return Digest::default();
+        };
+
+        Digest::from(self.slots[index as usize].get_value_as_word())
     }
 
     /// Returns a map item from the storage at the specified index.
     ///
     /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
-        let storage_map = self.maps.get(&index).ok_or(AccountError::StorageMapNotFound(index))?;
+        if self.slots.len() < index as usize {
+            return Ok(EMPTY_WORD);
+        };
 
-        Ok(storage_map.get_value(&Digest::from(key)))
-    }
+        let storage_slot = self.slots[index as usize].clone();
 
-    /// Returns a reference to the Sparse Merkle Tree that backs the storage slots.
-    pub fn slots(&self) -> &SimpleSmt<STORAGE_TREE_DEPTH> {
-        &self.slots
-    }
-
-    /// Returns layout info for this storage.
-    pub fn layout(&self) -> &[StorageSlotType] {
-        &self.layout
-    }
-
-    /// Returns a commitment to the storage layout.
-    pub fn layout_commitment(&self) -> Digest {
-        layout_commitment(&self.layout)
-    }
-
-    /// Returns the storage maps for this storage.
-    pub fn maps(&self) -> &BTreeMap<u8, StorageMap> {
-        &self.maps
+        match storage_slot {
+            StorageSlot::Map(map) => Ok(map.get_value(&Digest::from(key))),
+            _ => return Err(AccountError::StorageMapNotFound(index)),
+        }
     }
 
     // DATA MUTATORS
@@ -379,12 +219,24 @@ impl AccountStorage {
     }
 }
 
-// UTILITIES
+// HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------------------
 
-/// Computes the commitment to the given layout
-fn layout_commitment(layout: &[StorageSlotType]) -> Digest {
-    Hasher::hash_elements(&layout.iter().map(Felt::from).collect::<Vec<_>>())
+/// Converts given slots into field elements
+fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
+    let mut elements = Vec::new();
+
+    slots.iter().map(|slot| {
+        elements.extend_from_slice(&slot.as_elements());
+    });
+
+    elements
+}
+
+/// Computes the commitment to the given slots
+fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
+    let elements = slots_as_elements(slots);
+    Hasher::hash_elements(&elements)
 }
 
 // SERIALIZATION

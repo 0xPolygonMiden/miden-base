@@ -42,6 +42,7 @@ pub enum AccountError {
     StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
     StorageMapNotFound(u8),
     StorageMapTooManyMaps { expected: usize, actual: usize },
+    StorageTooManySlots(u64),
     StubDataIncorrectLength(usize, usize),
 }
 
