@@ -1,8 +1,9 @@
-use alloc::{collections::BTreeMap, string::ToString};
+use alloc::string::ToString;
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
+        StorageSlot,
     },
     assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
@@ -72,17 +73,15 @@ pub fn create_basic_fungible_faucet(
     // We store the authentication data and the token metadata in the account storage:
     // - slot 0: authentication data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
-    let account_storage = AccountStorage::new(
-        vec![SlotItem::new_value(0, 0, auth_data), SlotItem::new_value(1, 0, metadata)],
-        BTreeMap::new(),
-    )?;
+    let account_storage =
+        AccountStorage::new(vec![StorageSlot::Value(auth_data), StorageSlot::Value(metadata)])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
         account_storage_type,
         account_code.commitment(),
-        account_storage.root(),
+        account_storage.commitment(),
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))

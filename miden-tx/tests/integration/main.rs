@@ -5,7 +5,6 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_SENDER, Account, AccountCode, AccountId, AccountStorage,
-        SlotItem,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::{dsa::rpo_falcon512::SecretKey, utils::Serializable},
@@ -72,15 +71,12 @@ pub fn get_account_with_default_account_code(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    use std::collections::BTreeMap;
-
-    use miden_objects::testing::account_code::DEFAULT_ACCOUNT_CODE;
+    use miden_objects::{accounts::StorageSlot, testing::account_code::DEFAULT_ACCOUNT_CODE};
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, public_key)], BTreeMap::new()).unwrap();
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(public_key)]).unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

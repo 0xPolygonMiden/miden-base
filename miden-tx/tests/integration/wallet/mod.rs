@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use miden_lib::{accounts::wallets::create_basic_wallet, AuthScheme};
 use miden_objects::{
     accounts::{
@@ -7,7 +5,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountId, AccountStorage, SlotItem,
+        Account, AccountId, AccountStorage, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -83,9 +81,7 @@ fn prove_receive_asset_via_wallet() {
     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
 
     // clone account info
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, target_pub_key)], BTreeMap::new())
-            .unwrap();
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(target_pub_key)]).unwrap();
     let account_code = target_account.code().clone();
     // vault delta
     let target_account_after: Account = Account::from_parts(
@@ -163,8 +159,7 @@ fn prove_send_asset_via_wallet() {
 
     // clones account info
     let sender_account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, sender_pub_key)], BTreeMap::new())
-            .unwrap();
+        AccountStorage::new(vec![StorageSlot::Value(sender_pub_key)]).unwrap();
     let sender_account_code = sender_account.code().clone();
 
     // vault delta

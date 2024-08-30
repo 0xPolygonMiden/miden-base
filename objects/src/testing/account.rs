@@ -1,5 +1,4 @@
 use alloc::{
-    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -14,7 +13,7 @@ use super::{
     account_code::DEFAULT_ACCOUNT_CODE,
     account_id::AccountIdBuilder,
     constants::{self, FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-    storage::{AccountStorageBuilder, FAUCET_STORAGE_DATA_SLOT},
+    storage::AccountStorageBuilder,
 };
 use crate::{
     accounts::{
@@ -22,7 +21,7 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
         StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
@@ -63,13 +62,13 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_storage_item(mut self, item: SlotItem) -> Self {
-        self.storage_builder.add_item(item);
+    pub fn add_storage_slot(mut self, slot: StorageSlot) -> Self {
+        self.storage_builder.add_slot(slot);
         self
     }
 
-    pub fn add_storage_items<I: IntoIterator<Item = SlotItem>>(mut self, items: I) -> Self {
-        self.storage_builder.add_items(items);
+    pub fn add_storage_items<I: IntoIterator<Item = StorageSlot>>(mut self, slots: I) -> Self {
+        self.storage_builder.add_slots(slots);
         self
     }
 
@@ -97,7 +96,7 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let (account_id, seed) = self.account_id_builder.build(assembler.clone())?;
         let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
@@ -115,7 +114,7 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed, assembler.clone())?;
         let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
@@ -128,26 +127,18 @@ impl<T: Rng> AccountBuilder<T> {
     pub fn build_with_seed_and_storage(
         mut self,
         seed: Word,
-        mut storage: AccountStorage,
+        storage: AccountStorage,
         assembler: Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
-        let inner_storage = self.storage_builder.build();
-
-        for (key, value) in inner_storage.slots().leaves() {
-            // Explicitly cast to `u64` to silence "type annotations needed" error.
-            // Using `as u64` makes the intended type clear and avoids type inference issues.
-            if key != AccountStorage::SLOT_LAYOUT_COMMITMENT_INDEX as u64 {
-                // don't copy the reserved key
-                storage.set_item(key as u8, *value).map_err(AccountBuilderError::AccountError)?;
-            }
-        }
 
         self.account_id_builder.code(&self.code);
-        self.account_id_builder.storage_root(storage.root());
+        self.account_id_builder.storage_root(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed, assembler.clone())?;
+
         let account_code = AccountCode::compile(&self.code, assembler)
             .map_err(AccountBuilderError::AccountError)?;
+
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))
     }
 
@@ -164,8 +155,8 @@ impl<T: Rng> AccountBuilder<T> {
         let sec_key = SecretKey::with_rng(rng);
         let pub_key: Word = sec_key.public_key().into();
 
-        let storage_item = SlotItem::new_value(0, 0, pub_key);
-        let (account, seed) = self.add_storage_item(storage_item).build(assembler.clone())?;
+        let storage_slot = StorageSlot::Value(pub_key);
+        let (account, seed) = self.add_storage_slot(storage_slot).build(assembler.clone())?;
         Ok((account, seed, sec_key))
     }
 }
@@ -218,14 +209,9 @@ impl Account {
         initial_balance: Felt,
         assembler: Assembler,
     ) -> Self {
-        let account_storage = AccountStorage::new(
-            vec![SlotItem {
-                index: FAUCET_STORAGE_DATA_SLOT,
-                slot: StorageSlot::new_value([ZERO, ZERO, ZERO, initial_balance]),
-            }],
-            BTreeMap::new(),
-        )
-        .unwrap();
+        let account_storage =
+            AccountStorage::new(vec![StorageSlot::Value([ZERO, ZERO, ZERO, initial_balance])])
+                .unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
         let account_code = AccountCode::mock_wallet(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)
@@ -249,17 +235,8 @@ impl Account {
         };
         // construct nft tree
         let nft_storage_map = StorageMap::with_entries(entries).unwrap();
-        let mut maps = BTreeMap::new();
-        maps.insert(FAUCET_STORAGE_DATA_SLOT, nft_storage_map.clone());
 
-        let account_storage = AccountStorage::new(
-            vec![SlotItem {
-                index: FAUCET_STORAGE_DATA_SLOT,
-                slot: StorageSlot::new_map(*nft_storage_map.root()),
-            }],
-            maps,
-        )
-        .unwrap();
+        let account_storage = AccountStorage::new(vec![StorageSlot::Map(nft_storage_map)]).unwrap();
         let account_id = AccountId::try_from(account_id).unwrap();
         let account_code = AccountCode::mock_wallet(assembler);
         Account::from_parts(account_id, AssetVault::default(), account_storage, account_code, nonce)

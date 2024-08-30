@@ -9,7 +9,7 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
-        Account, AccountId, AccountType, SlotItem,
+        Account, AccountId, AccountType, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::rand::RpoRandomCoin,
@@ -355,10 +355,10 @@ fn prove_consume_multiple_notes() {
 fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
     let (pub_key, falcon_auth) = get_new_pk_and_authenticator();
 
-    let storage_item = SlotItem::new_value(0, 0, pub_key);
+    let storage_item = StorageSlot::Value(pub_key);
 
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .add_storage_item(storage_item)
+        .add_storage_slot(storage_item)
         .account_type(AccountType::RegularAccountUpdatableCode)
         .nonce(Felt::ZERO)
         .build(TransactionKernel::assembler())

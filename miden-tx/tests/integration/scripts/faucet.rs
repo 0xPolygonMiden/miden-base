@@ -1,12 +1,10 @@
 extern crate alloc;
 
-use std::collections::BTreeMap;
-
 use miden_lib::transaction::{memory::FAUCET_STORAGE_DATA_SLOT, TransactionKernel};
 use miden_objects::{
     accounts::{
         account_id::testing::ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN, Account, AccountCode, AccountId,
-        AccountStorage, SlotItem,
+        AccountStorage, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
@@ -242,13 +240,10 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
 
     let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    let mut faucet_account_storage = AccountStorage::new(
-        vec![
-            SlotItem::new_value(0, 0, public_key),
-            SlotItem::new_value(1, 0, faucet_storage_slot_1),
-        ],
-        BTreeMap::new(),
-    )
+    let mut faucet_account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(public_key),
+        StorageSlot::Value(faucet_storage_slot_1),
+    ])
     .unwrap();
 
     if total_issuance.is_some() {

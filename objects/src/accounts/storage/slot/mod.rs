@@ -1,6 +1,5 @@
-use alloc::vec::Vec;
 use vm_core::{
-    utils::{Deserializable, Serializable},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     Word, EMPTY_WORD, ZERO,
 };
 use vm_processor::DeserializationError;
@@ -89,16 +88,29 @@ impl From<&StorageSlot> for [Felt; 8] {
 // ================================================================================================
 
 impl Serializable for StorageSlot {
-    fn write_into<W: vm_core::utils::ByteWriter>(&self, target: &mut W) {
-        target.write_u16(self.into());
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(self.get_slot_type());
+
+        match self {
+            Self::Value(value) => target.write(value),
+            Self::Map(map) => target.write(map),
+        }
     }
 }
 
 impl Deserializable for StorageSlot {
-    fn read_from<R: vm_core::utils::ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, vm_processor::DeserializationError> {
-        let encoded = source.read_u16()?;
-        StorageSlotType::try_from(encoded).map_err(DeserializationError::InvalidValue)
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let storage_slot_type = source.read::<StorageSlotType>()?;
+
+        match storage_slot_type {
+            StorageSlotType::Value => {
+                let word = source.read::<Word>()?;
+                Ok(StorageSlot::Value(word))
+            },
+            StorageSlotType::Map => {
+                let map = source.read::<StorageMap>()?;
+                Ok(StorageSlot::Map(map))
+            },
+        }
     }
 }

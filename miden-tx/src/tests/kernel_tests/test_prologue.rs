@@ -230,7 +230,7 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
 
     assert_eq!(
         read_root_mem_value(process, ACCT_STORAGE_ROOT_PTR),
-        Word::from(inputs.account().storage().root()),
+        Word::from(inputs.account().storage().commitment()),
         "The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR"
     );
 

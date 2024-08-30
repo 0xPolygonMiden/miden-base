@@ -36,7 +36,7 @@ use crate::{
 // CONSTANTS
 // ================================================================================================
 
-pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPTH as u64);
+pub const STORAGE_TREE_DEPTH: Felt = Felt::new(8);
 
 // TRANSACTION HOST
 // ================================================================================================

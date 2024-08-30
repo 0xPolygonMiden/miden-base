@@ -82,7 +82,7 @@ fn build_advice_stack(
     let account = tx_inputs.account();
     inputs.extend_stack([account.id().into(), ZERO, ZERO, account.nonce()]);
     inputs.extend_stack(account.vault().commitment());
-    inputs.extend_stack(account.storage().root());
+    inputs.extend_stack(account.storage().commitment());
     inputs.extend_stack(account.code().commitment());
 
     // push the number of input notes onto the stack
@@ -145,25 +145,12 @@ fn add_account_to_advice_inputs(
     // --- account storage ----------------------------------------------------
     let storage = account.storage();
 
-    // extend the merkle store with the storage items
-    inputs.extend_merkle_store(account.storage().slots().inner_nodes());
+    // extend advice map with storage commitment |-> storage slots
+    let mut storage_slots: Vec<Felt> = vec![(storage.num_slots() as u8).into()];
+    storage_slots.append(&mut storage.as_elements());
+    inputs.extend_map([(storage.commitment(), storage_slots)]);
 
-    // extend advice map with storage types commitment |-> storage types
-    inputs.extend_map([(
-        storage.layout_commitment(),
-        storage.layout().iter().map(Felt::from).collect(),
-    )]);
-
-    // If there are storage maps, we populate the merkle store and advice map
-    if !account.storage().maps().is_empty() {
-        for map in account.storage().maps().values() {
-            // extend the merkle store and map with the storage maps
-            inputs.extend_merkle_store(map.inner_nodes());
-
-            // populate advice map with Sparse Merkle Tree leaf nodes
-            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
-        }
-    }
+    // TODO: Populate merkle store with all StorageSlot::Map()
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();
@@ -178,10 +165,10 @@ fn add_account_to_advice_inputs(
     // --- account code -------------------------------------------------------
     let code = account.code();
 
-    // extend the advice_map with the account code data and number of procedures
-    let mut proc_elements: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
-    proc_elements.append(&mut code.as_elements());
-    inputs.extend_map([(code.commitment(), proc_elements)]);
+    // extend the advice map with the account code data and number of procedures
+    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
+    procedures.append(&mut code.as_elements());
+    inputs.extend_map([(code.commitment(), procedures)]);
 
     // --- account seed -------------------------------------------------------
     if let Some(account_seed) = account_seed {
