@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 (2024-08-28) - `miden-objects` crate only
+
+- Implemented `PrettyPrint` and `Display` for `NoteScript`.
+
 ## 0.5.0 (2024-08-27)
 
 ### Features
