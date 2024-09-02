@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
@@ -457,7 +455,7 @@ fn test_storage_offset() {
     // setup account
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let vault = AssetVault::mock();
-    let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
+    let storage = AccountStorage::new(vec![]).unwrap();
 
     // The following code will execute the following logic that will be asserted during the test:
     //

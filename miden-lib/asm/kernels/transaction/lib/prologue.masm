@@ -72,11 +72,17 @@ const.ERR_PROLOGUE_TOO_MANY_INPUT_NOTES=0x0002001E
 # Cannot compute matching nullifier commitment using the provided input note data
 const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x0002001F
 
-# Computed account code hash does not match recorded account code hash
-const.ERR_ACCT_CODE_HASH_MISMATCH=0x0002004C
+# Computed account code commitment does not match recorded account code commitment
+const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
 
 # Number of account procedures exceeded the maximum limit of 256
 const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
+
+# Number of account storage slots exceeded the maximum limit of 256
+const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
+
+# Computed account storage commitment does not match recorded account storage commitment
+const.ERR_ACCT_STORAGE_COMMITMENT_MISMATCH=0x00020050
 
 # PUBLIC INPUTS
 # =================================================================================================
@@ -390,10 +396,60 @@ proc.validate_new_account
     # => []
 end
 
+
+#! Validates that storage slots match storage commitment and saves storage slots into memory.
+#!
+#! This is achieved by reading the storage slots from the advice map, saving them into memory,
+#! and sequentially hashing them before comparing the final hash to the storage commitment.
+#! well formed. Currently we only support scalar slots with an entry of maximum arity of 256.
+#!
+#! Stack: [STORAGE_COMMITMENT]
+#! Output: []
+proc.validate_account_storage_slots
+    # move storage slot data from the advice map to the advice stack
+    adv.push_mapval push.15160 drop                # FIX: wrap the decorator to ensure MAST uniqueness
+
+    # push the number of storage slots onto the operand stack before storing it into memory
+    adv_push.1
+    # => [num_storage_slots, STORAGE_COMMITMENT]
+
+    # assert that account does not exceed allowed maximum number of storage slots
+    dup exec.account::get_max_num_storage_slots lt assert.err=ERR_ACCT_TOO_MANY_STORAGE_SLOTS
+    # => [num_storage_slots, STORAGE_COMMITMENT]
+
+    # store number of storage slots in memory
+    dup exec.memory::set_num_storage_slots
+    # => [num_procs, STORAGE_COMMITMENT]
+
+    # setup acct_storage_slots_offset and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_account_storage_slots_section_offset dup movdn.2 add swap
+    # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
+
+    # pad stack before reading from advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, STORAGE_COMMITMENT]
+
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, STORAGE_COMMITMENT]
+
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, STORAGE_COMMITMENT]
+
+    # drop end_ptr
+    movup.4 drop
+    # => [DIGEST, STORAGE_COMMITMENT]
+
+    # verify hashed account storage slots match account storage commitment
+    assert_eqw.err=ERR_ACCT_STORAGE_COMMITMENT_MISMATCH
+    # => []
+end
+
 #! Validates that account procedures match account code commitment and saves procedure information
 #! into memory.
 #!
-#! This is achieved by reading account procedure information from the advice map, saving it into
+#! This is achieved by reading account procedure information from the advice map, saving them into
 #! memory, and sequentially hashing them before comparing the final hash to the account code
 #! commitment.
 #!
@@ -403,44 +459,44 @@ end
 #! Stack: [CODE_COMMITMENT]
 #! Output: []
 proc.validate_account_procedures
-  # move procedure data from the advice map to the advice stack 
-  adv.push_mapval push.15161 drop               # FIX: wrap the decorator to ensure MAST uniqueness
-  
-  # push the number of procedures onto the operand stack before storing it in memory
-  adv_push.1
-  # => [num_procs, CODE_COMMITMENT]
+    # move procedure data from the advice map to the advice stack
+    adv.push_mapval push.15161 drop               # FIX: wrap the decorator to ensure MAST uniqueness
 
-  # assert that account does not exceed allowed maximum number of procedures
-  dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
-  # => [num_procs, CODE_COMMITMENT]
+    # push the number of procedures onto the operand stack before storing it in memory
+    adv_push.1
+    # => [num_procs, CODE_COMMITMENT]
 
-  # store number of procedures in memory
-  dup exec.memory::set_num_account_procedures
-  # => [num_procs, CODE_COMMITMENT]
+    # assert that account does not exceed allowed maximum number of procedures
+    dup exec.account::get_max_num_procedures lt assert.err=ERR_ACCT_TOO_MANY_PROCEDURES
+    # => [num_procs, CODE_COMMITMENT]
 
-  # setup acct_proc_offset and end_ptr for reading from advice stack
-  mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
-  # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # store number of procedures in memory
+    dup exec.memory::set_num_account_procedures
+    # => [num_procs, CODE_COMMITMENT]
 
-  # pad stack before reading from advice stack
-  padw padw padw
-  # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
+    # setup acct_proc_offset and end_ptr for reading from advice stack
+    mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
+    # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  # read the data from advice stack to memory and hash
-  exec.mem::pipe_double_words_to_memory
-  # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
+    # pad stack before reading from advice stack
+    padw padw padw
+    # => [PAD, PAD, PAD, acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
-  # extract the digest
-  exec.native::state_to_digest
-  # => [DIGEST, end_ptr, CODE_COMMITMENT]
+    # read the data from advice stack to memory and hash
+    exec.mem::pipe_double_words_to_memory
+    # => [PERM, PERM, PERM, end_ptr, CODE_COMMITMENT]
 
-  # drop end_ptr
-  movup.4 drop
-  # => [DIGEST, CODE_COMMITMENT]
+    # extract the digest
+    exec.native::state_to_digest
+    # => [DIGEST, end_ptr, CODE_COMMITMENT]
 
-  # verify hashed account procedures match account code commitment
-  assert_eqw.err=ERR_ACCT_CODE_HASH_MISMATCH
-  # => []
+    # drop end_ptr
+    movup.4 drop
+    # => [DIGEST, CODE_COMMITMENT]
+
+    # verify hashed account procedures match account code commitment
+    assert_eqw.err=ERR_ACCT_CODE_COMMITMENT_MISMATCH
+    # => []
 end
 
 #! Saves the account data to memory and validates it.
@@ -493,7 +549,7 @@ proc.process_account_data
     # => [is_new, ACCT_HASH]
 
     # ingest storage slot type data
-    exec.ingest_acct_storage_types
+    # exec.ingest_acct_storage_types
     # => [is_new, ACCT_HASH]
 
     # process conditional logic depending on whether the account is new or existing
@@ -535,6 +591,10 @@ proc.process_account_data
     # code commitment updates
     exec.memory::get_acct_code_commitment
     exec.memory::set_new_acct_code_commitment
+
+    # validates and stores account storage slots in memory.
+    exec.validate_account_storage_slots
+    # => []
 
     # validates and stores account procedures in memory.
     exec.validate_account_procedures
@@ -986,7 +1046,7 @@ proc.process_input_notes_data
     # if there are input notes, load input notes data from the advice map onto the advice stack
     dup neq.0
     if.true
-        exec.memory::get_input_notes_commitment 
+        exec.memory::get_input_notes_commitment
         adv.push_mapval push.15787 drop         # FIX: wrap the decorator to ensure MAST uniqueness
         dropw
     end

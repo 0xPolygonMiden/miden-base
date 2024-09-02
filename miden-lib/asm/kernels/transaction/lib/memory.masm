@@ -120,6 +120,12 @@ const.ACCT_CORE_DATA_SECTION_END_OFFSET=404
 # The memory address at which the account storage slot type data begins
 const.ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET=405
 
+# The memory address at which the number of storage slots contained in the account storage is stored
+const.NUM_ACCT_STORAGE_SLOTS_PTR=499
+
+# The memory address at which the account storage slots section begins
+const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=500
+
 # The memory address at which the number of procedures contained in the account code is stored
 const.NUM_ACCT_PROCEDURES_PTR=999
 
@@ -650,6 +656,39 @@ export.set_acct_nonce
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end
 
+#! Sets the number of storage slots contained in the account code.
+#!
+#! Stack: [num_storage_slots]
+#! Output: []
+#!
+#! Where:
+#! - num_storage_slots is the number of storage slots contained in the account storage.
+export.set_num_storage_slots
+    push.NUM_ACCT_STORAGE_SLOTS_PTR mem_store
+end
+
+#! Returns the number of storage slots contained in the account storage.
+#!
+#! Stack: []
+#! Output: [num_storage_slots]
+#!
+#! Where:
+#! - num_storage_slots is the number of storage slots contained in the account storage.
+export.get_num_storage_slots
+    push.NUM_ACCT_STORAGE_SLOTS_PTR mem_load
+end
+
+#! Returns the account storage slots section offset.
+#!
+#! Stack: []
+#! Output: [storage_slots_section_offset]
+#!
+#! Where:
+#! - storage_slots_section_offset is the account storage slots section offset.
+export.get_account_storage_slots_section_offset
+    push.ACCT_STORAGE_SLOTS_SECTION_OFFSET
+end
+
 #! Sets the number of procedures contained in the account code.
 #!
 #! Stack: [num_procedures]
@@ -675,10 +714,10 @@ end
 #! Returns the account procedures section offset.
 #!
 #! Stack: []
-#! Output: [section_offset]
+#! Output: [account_procedures_section_offset]
 #!
 #! Where:
-#! - section_offset is the account procedures section offset.
+#! - account_procedures_section_offset is the account procedures section offset.
 export.get_account_procedures_section_offset
     push.ACCT_PROCEDURES_SECTION_OFFSET
 end

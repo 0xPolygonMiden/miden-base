@@ -17,6 +17,7 @@ pub type StorageSlot = u8;
 // | Block header      | 200           | 207          |
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
+// | Account storage   | 499           | ?            |
 // | Account procedures| 999           | ?            |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
@@ -185,6 +186,12 @@ pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
 
 /// The memory address at which the account storage slot type data begins
 pub const ACCT_STORAGE_SLOT_TYPE_DATA_OFFSET: MemoryAddress = 405;
+
+/// The memory address at which the number of storage slots contained in the account storage is stored
+pub const NUM_STORAGE_SLOTS_PTR: MemoryAddress = 499;
+
+/// The memory address at which the account storage slots section begins.
+pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 500;
 
 /// The memory address at which the number of procedures contained in the account code is stored
 pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 999;

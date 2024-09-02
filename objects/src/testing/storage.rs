@@ -121,23 +121,27 @@ impl AccountStorage {
     pub fn mock() -> Self {
         let mut maps = BTreeMap::new();
         maps.insert(STORAGE_INDEX_2, Self::mock_map_2());
-        AccountStorage::new(vec![Self::mock_item_0(), Self::mock_item_1(), Self::mock_item_2()])
-            .unwrap()
+        AccountStorage::new(vec![
+            Self::mock_item_0().0,
+            Self::mock_item_1().0,
+            Self::mock_item_2().0,
+        ])
+        .unwrap()
     }
 
     /// Creates Slot with [STORAGE_VALUE_0]
-    pub fn mock_item_0() -> StorageSlot {
-        StorageSlot::Value(STORAGE_VALUE_0)
+    pub fn mock_item_0() -> (StorageSlot, u8) {
+        (StorageSlot::Value(STORAGE_VALUE_0), STORAGE_INDEX_0)
     }
 
     /// Creates Slot with [STORAGE_VALUE_1]
-    pub fn mock_item_1() -> StorageSlot {
-        StorageSlot::Value(STORAGE_VALUE_1)
+    pub fn mock_item_1() -> (StorageSlot, u8) {
+        (StorageSlot::Value(STORAGE_VALUE_1), STORAGE_INDEX_1)
     }
 
     /// Creates Slot with a map with [STORAGE_LEAVES_2]
-    pub fn mock_item_2() -> StorageSlot {
-        StorageSlot::Map(Self::mock_map_2())
+    pub fn mock_item_2() -> (StorageSlot, u8) {
+        (StorageSlot::Map(Self::mock_map_2()), STORAGE_INDEX_2)
     }
 
     /// Creates map with [STORAGE_LEAVES_2]
