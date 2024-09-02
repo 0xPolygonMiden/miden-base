@@ -357,7 +357,8 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .build(TransactionKernel::assembler_testing())
+        .default_code(TransactionKernel::assembler_testing())
+        .build()
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
 
@@ -481,8 +482,9 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .default_code(TransactionKernel::assembler_testing())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .build(TransactionKernel::assembler_testing())
+        .build()
         .unwrap();
 
     let code = "

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
@@ -12,14 +10,15 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
-        StorageSlotType,
+        AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType, StorageSlotType,
     },
-    assets::AssetVault,
     crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    testing::{prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{account::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
     transaction::TransactionScript,
+    FieldElement,
 };
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
 use vm_processor::{Felt, MemAdviceProvider};
 
 use super::{ProcessState, StackInputs, Word, ONE, ZERO};
@@ -454,11 +453,6 @@ fn test_storage_offset() {
     // setup assembler
     let assembler = TransactionKernel::assembler_testing();
 
-    // setup account
-    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let vault = AssetVault::mock();
-    let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
-
     // The following code will execute the following logic that will be asserted during the test:
     //
     // 1. foo_write will set word [5, 6, 7, 8] in storage at location 1 (0 offset by 1)
@@ -492,10 +486,13 @@ fn test_storage_offset() {
         export.bar_read
             push.0
             exec.account::get_item
+            push.1 exec.account::incr_nonce
+
             swapw dropw
         end
     ";
-    let code = AccountCode::mock_with_code(source_code, assembler.clone());
+    // Setup account
+    let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
 
     // modify procedure offsets
     // TODO: We manually set the offsets here because we do not have the ability to set the offsets
@@ -506,11 +503,13 @@ fn test_storage_offset() {
         AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
         AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
     ];
-
-    // rebuild [AccountCode] using new procedures with offsets
     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
-    let nonce = ONE;
-    let account = Account::from_parts(id, vault, storage, code, nonce);
+
+    let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .code(code)
+        .nonce(Felt::ONE)
+        .build()
+        .unwrap();
 
     // setup transaction script
     let tx_script_source_code = format!(
@@ -531,35 +530,22 @@ fn test_storage_offset() {
     let tx_script = TransactionScript::new(tx_script_program, vec![]);
 
     // setup transaction context
-    let tx_context = TransactionContextBuilder::new(account).tx_script(tx_script).build();
-
-    // setup code to be executed
-    let code = "
-        use.kernel::memory
-        use.kernel::prologue
-
-        begin
-            exec.prologue::prepare_transaction
-
-            # execute transaction script
-            exec.memory::get_tx_script_root
-            dyncall
-        end
-        ";
+    let tx_context = TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
 
     // execute code in context
-    let process = tx_context.execute_code(code).unwrap();
+    let tx = tx_context.execute().unwrap();
+    account.apply_delta(tx.account_delta()).unwrap();
 
     // assert that storage has been correctly set and that both
     // storage accesses have been correctly offset
     assert_eq!(
-        process.get_stack_word(0),
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]
+        account.storage().get_item(2),
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
     );
 
     assert_eq!(
-        process.get_stack_word(1),
-        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]
+        account.storage().get_item(1),
+        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
 }
 
