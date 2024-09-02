@@ -51,3 +51,25 @@ impl Deserializable for StorageSlotType {
         }
     }
 }
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use vm_core::utils::{Deserializable, Serializable};
+
+    use crate::accounts::StorageSlotType;
+
+    #[test]
+    fn test_serde_account_storage_slot_type() {
+        let type_0 = StorageSlotType::Value;
+        let type_1 = StorageSlotType::Value;
+        let type_0_bytes = type_0.to_bytes();
+        let type_1_bytes = type_1.to_bytes();
+        let deserialized_0 = StorageSlotType::read_from_bytes(&type_0_bytes).unwrap();
+        let deserialized_1 = StorageSlotType::read_from_bytes(&type_1_bytes).unwrap();
+        assert_eq!(type_0, deserialized_0);
+        assert_eq!(type_1, deserialized_1);
+    }
+}

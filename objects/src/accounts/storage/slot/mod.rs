@@ -72,8 +72,8 @@ impl Default for StorageSlot {
 impl From<StorageSlot> for [Felt; 8] {
     fn from(value: StorageSlot) -> Self {
         let mut elements = [ZERO; 8];
-        elements.copy_from_slice(&value.get_value_as_word());
-        elements.copy_from_slice(&value.get_slot_type().as_word());
+        elements[0..4].copy_from_slice(&value.get_value_as_word());
+        elements[4..8].copy_from_slice(&value.get_slot_type().as_word());
         elements
     }
 }
@@ -115,15 +115,22 @@ impl Deserializable for StorageSlot {
     }
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
 mod tests {
+    use std::println;
+
     use vm_core::utils::{Deserializable, Serializable};
 
     use crate::accounts::{storage::build_slots_commitment, AccountStorage};
 
     #[test]
-    fn test_serde() {
+    fn test_serde_account_storage_slot() {
+        println!("hello world");
         let storage = AccountStorage::mock();
+        println!("Storage: {:?}", storage);
         let serialized = storage.to_bytes();
         let deserialized = AccountStorage::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage)

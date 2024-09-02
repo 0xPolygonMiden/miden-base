@@ -1,3 +1,5 @@
+use std::println;
+
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
@@ -228,9 +230,8 @@ fn test_get_item() {
             use.kernel::prologue
 
             begin
-                debug.mem
-
                 exec.prologue::prepare_transaction
+
                 # push the account storage item index
                 push.{item_index}
 

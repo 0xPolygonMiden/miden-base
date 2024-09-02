@@ -422,7 +422,7 @@ proc.validate_account_storage_slots
     # => [num_procs, STORAGE_COMMITMENT]
 
     # setup acct_storage_slots_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_account_storage_slots_section_offset dup movdn.2 add swap
+    mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
     # => [acct_storage_slots_offset, end_ptr, STORAGE_COMMITMENT]
 
     # pad stack before reading from advice stack
@@ -475,7 +475,7 @@ proc.validate_account_procedures
     # => [num_procs, CODE_COMMITMENT]
 
     # setup acct_proc_offset and end_ptr for reading from advice stack
-    mul.2 exec.memory::get_account_procedures_section_offset dup movdn.2 add swap
+    mul.2 exec.memory::get_acct_procedures_section_offset dup movdn.2 add swap
     # => [acct_proc_offset, end_ptr, CODE_COMMITMENT]
 
     # pad stack before reading from advice stack
@@ -591,13 +591,15 @@ proc.process_account_data
     # code commitment updates
     exec.memory::get_acct_code_commitment
     exec.memory::set_new_acct_code_commitment
-
-    # validates and stores account storage slots in memory.
-    exec.validate_account_storage_slots
-    # => []
+    # => [ACCOUNT_CODE_COMMITMENT]
 
     # validates and stores account procedures in memory.
     exec.validate_account_procedures
+    # => []
+
+    # validates and stores account storage slots in memory.
+    exec.memory::get_acct_storage_root
+    exec.validate_account_storage_slots
     # => []
 
     # copy the initial account vault hash to the input vault hash to support transaction asset

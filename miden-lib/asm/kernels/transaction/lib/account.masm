@@ -392,11 +392,11 @@ end
 #! - VALUE is the value of the item.
 export.get_item
     # get account storage slots section offset
-    exec.memory::get_account_storage_slots_section_offset
+    exec.memory::get_acct_storage_slots_section_offset
     # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
-    add mem_loadw
+    swap mul.2 add mem_loadw
     # => [VALUE]
 
     # get the storage root
@@ -557,7 +557,7 @@ export.get_procedure_info
     # => [index]
 
     # get procedure section ptr
-    push.2 mul exec.memory::get_account_procedures_section_offset add dup push.1 add
+    push.2 mul exec.memory::get_acct_procedures_section_offset add dup push.1 add
     # => [proc_ptr, offset_ptr]
 
     # load procedure information from memory

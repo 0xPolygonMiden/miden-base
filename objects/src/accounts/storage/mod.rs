@@ -1,3 +1,5 @@
+use core::usize;
+
 use alloc::{string::ToString, vec::Vec};
 
 use vm_core::EMPTY_WORD;
@@ -206,13 +208,7 @@ impl AccountStorage {
 
 /// Converts given slots into field elements
 fn slots_as_elements(slots: &[StorageSlot]) -> Vec<Felt> {
-    let mut elements = Vec::new();
-
-    slots.iter().for_each(|slot| {
-        elements.extend_from_slice(&slot.as_elements());
-    });
-
-    elements
+    slots.iter().flat_map(|slot| slot.as_elements()).collect()
 }
 
 /// Computes the commitment to the given slots
@@ -226,16 +222,14 @@ fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
 
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // since the number of procedures is guaranteed to be between 1 and 256, we can store the
-        // number as a single byte - but we do have to subtract 1 to store 256 as 255.
-        target.write_u8((self.slots.len() - 1) as u8);
+        target.write_u16(self.slots().len() as u16);
         target.write_many(self.slots());
     }
 }
 
 impl Deserializable for AccountStorage {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_slots = (source.read_u8()? as usize) + 1;
+        let num_slots = source.read_u16()? as usize;
         let slots = source.read_many::<StorageSlot>(num_slots)?;
 
         Ok(Self::new(slots).map_err(|err| DeserializationError::InvalidValue(err.to_string()))?)
@@ -252,7 +246,7 @@ mod tests {
     use crate::accounts::StorageSlot;
 
     #[test]
-    fn account_storage_serialization() {
+    fn test_serde_account_storage() {
         // empty storage
         let storage = AccountStorage::new(vec![]).unwrap();
         let bytes = storage.to_bytes();

@@ -500,7 +500,7 @@ end
 #!
 #! Where:
 #! - ACCT_ROOT is the account root of the last known block.
-export.get_account_db_root
+export.get_acct_db_root
     padw push.ACCT_DB_ROOT_PTR mem_loadw
 end
 
@@ -685,7 +685,7 @@ end
 #!
 #! Where:
 #! - storage_slots_section_offset is the account storage slots section offset.
-export.get_account_storage_slots_section_offset
+export.get_acct_storage_slots_section_offset
     push.ACCT_STORAGE_SLOTS_SECTION_OFFSET
 end
 
@@ -718,7 +718,7 @@ end
 #!
 #! Where:
 #! - account_procedures_section_offset is the account procedures section offset.
-export.get_account_procedures_section_offset
+export.get_acct_procedures_section_offset
     push.ACCT_PROCEDURES_SECTION_OFFSET
 end
 

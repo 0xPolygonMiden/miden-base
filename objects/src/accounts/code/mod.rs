@@ -254,7 +254,7 @@ mod tests {
     use crate::accounts::code::build_procedure_commitment;
 
     #[test]
-    fn test_serde() {
+    fn test_serde_account_code() {
         let code = AccountCode::mock();
         let serialized = code.to_bytes();
         let deserialized = AccountCode::read_from_bytes(&serialized).unwrap();
