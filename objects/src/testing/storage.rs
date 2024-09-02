@@ -95,12 +95,8 @@ impl AccountStorageDeltaBuilder {
 
 pub const FAUCET_STORAGE_DATA_SLOT: u8 = 254;
 
-pub const STORAGE_INDEX_0: u8 = 20;
 pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-pub const STORAGE_INDEX_1: u8 = 30;
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
-
-pub const STORAGE_INDEX_2: u8 = 40;
 pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
     (
         Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
@@ -117,10 +113,7 @@ impl AccountStorage {
     /// Item [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
     /// Item [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
     /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
-    /// Map with [STORAGE_LEAVES_2]
     pub fn mock() -> Self {
-        let mut maps = BTreeMap::new();
-        maps.insert(STORAGE_INDEX_2, Self::mock_map_2());
         AccountStorage::new(vec![
             Self::mock_item_0().0,
             Self::mock_item_1().0,
@@ -131,17 +124,17 @@ impl AccountStorage {
 
     /// Creates Slot with [STORAGE_VALUE_0]
     pub fn mock_item_0() -> (StorageSlot, u8) {
-        (StorageSlot::Value(STORAGE_VALUE_0), STORAGE_INDEX_0)
+        (StorageSlot::Value(STORAGE_VALUE_0), 0)
     }
 
     /// Creates Slot with [STORAGE_VALUE_1]
     pub fn mock_item_1() -> (StorageSlot, u8) {
-        (StorageSlot::Value(STORAGE_VALUE_1), STORAGE_INDEX_1)
+        (StorageSlot::Value(STORAGE_VALUE_1), 1)
     }
 
     /// Creates Slot with a map with [STORAGE_LEAVES_2]
     pub fn mock_item_2() -> (StorageSlot, u8) {
-        (StorageSlot::Map(Self::mock_map_2()), STORAGE_INDEX_2)
+        (StorageSlot::Map(Self::mock_map_2()), 2)
     }
 
     /// Creates map with [STORAGE_LEAVES_2]

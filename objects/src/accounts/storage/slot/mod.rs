@@ -114,3 +114,25 @@ impl Deserializable for StorageSlot {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use vm_core::utils::{Deserializable, Serializable};
+
+    use crate::accounts::{storage::build_slots_commitment, AccountStorage};
+
+    #[test]
+    fn test_serde() {
+        let storage = AccountStorage::mock();
+        let serialized = storage.to_bytes();
+        let deserialized = AccountStorage::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, storage)
+    }
+
+    #[test]
+    fn test_account_storage_slots_commitment() {
+        let storage = AccountStorage::mock();
+        let storage_slots_commitment = build_slots_commitment(storage.slots());
+        assert_eq!(storage_slots_commitment, storage.commitment())
+    }
+}
