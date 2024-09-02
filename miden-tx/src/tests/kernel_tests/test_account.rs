@@ -480,9 +480,11 @@ fn test_storage_offset() {
             swapw dropw
         end
     ";
-    let code = AccountCode::mock_specific(source_code, assembler.clone());
+    let code = AccountCode::mock_with_code(source_code, assembler.clone());
 
     // modify procedure offsets
+    // TODO: We manually set the offsets here because we do not have the ability to set the offsets
+    // through MASM for now. Remove this code when we enable this functionality.
     let procedures_with_offsets = vec![
         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 1),
