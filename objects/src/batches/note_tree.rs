@@ -5,15 +5,15 @@ use miden_crypto::{
 
 use crate::{
     notes::{compute_note_hash, NoteId, NoteMetadata},
-    BATCH_NOTES_TREE_DEPTH,
+    BATCH_NOTE_TREE_DEPTH,
 };
 
-/// Wrapper over [SimpleSmt<BATCH_NOTES_TREE_DEPTH>] for batch note tree.
+/// Wrapper over [SimpleSmt<BATCH_NOTE_TREE_DEPTH>] for batch note tree.
 ///
-/// Each leaf value is calculated as: `hash(note_id || note_metadata)`.
+/// Value of each leaf is computed as: `hash(note_id || note_metadata)`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct BatchNoteTree(SimpleSmt<BATCH_NOTES_TREE_DEPTH>);
+pub struct BatchNoteTree(SimpleSmt<BATCH_NOTE_TREE_DEPTH>);
 
 impl BatchNoteTree {
     /// Wrapper around [`SimpleSmt::with_contiguous_leaves`] which populates notes at contiguous

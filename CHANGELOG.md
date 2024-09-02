@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 (TBD)
+
+### Changes
+
+- [BREAKING] Refactored batch/block note trees (#834).
+
 ## 0.5.0 (2024-08-27)
 
 ### Features
@@ -27,7 +33,6 @@
 - Added serialization and equality comparison for `TransactionScript` (#824).
 - [BREAKING] Migrated to Miden VM v0.10 (#826).
 - Added conversions for `NoteExecutionHint` (#827).
-- Refactored batch/block note trees (#834).
 
 ## 0.4.0 (2024-07-03)
 
