@@ -4,7 +4,7 @@ use miden_objects::{
     accounts::Account,
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
+    Felt, FieldElement, Hasher, Word, EMPTY_WORD, ZERO,
 };
 
 // ADVICE INPUTS
@@ -19,7 +19,7 @@ use miden_objects::{
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
-    kernel_procs: Vec<Felt>,
+    kernel_procs: (usize, Vec<Felt>),
     advice_inputs: &mut AdviceInputs,
 ) {
     build_advice_stack(tx_inputs, tx_args.tx_script(), kernel_procs, advice_inputs);
@@ -39,7 +39,9 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
+///     number_of_kernel_procedures,
 ///     [KERNEL_PROCS_HASHES],
+///     KERNEL_HASH,
 ///     PREVIOUS_BLOCK_HASH,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
@@ -59,11 +61,20 @@ pub(super) fn extend_advice_inputs(
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
-    kernel_procs: Vec<Felt>,
+    kernel_procs: (usize, Vec<Felt>),
     inputs: &mut AdviceInputs,
 ) {
+    // compute the kernel procs hash
+    let kernel_hash = Hasher::hash_elements(&kernel_procs.1);
+
+    // push the number of kernel procedures to the advice stack
+    inputs.extend_stack([Felt::new(kernel_procs.0 as u64)]);
+
     // push hashes of the kernel procedures to the advice stack
-    inputs.extend_stack(kernel_procs);
+    inputs.extend_stack(kernel_procs.1);
+
+    // push the hash of the kernel to the advice stack
+    inputs.extend_stack(kernel_hash);
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure

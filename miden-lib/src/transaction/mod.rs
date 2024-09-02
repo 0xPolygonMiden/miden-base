@@ -8,7 +8,7 @@ use miden_objects::{
     },
     utils::{group_slice_elements, serde::Deserializable},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
-    Digest, Felt, Hasher, TransactionOutputError, Word, EMPTY_WORD,
+    Digest, Felt, TransactionOutputError, Word, EMPTY_WORD,
 };
 use miden_stdlib::StdLibrary;
 
@@ -30,6 +30,8 @@ mod errors;
 pub use errors::{
     TransactionEventParsingError, TransactionKernelError, TransactionTraceParsingError,
 };
+
+mod procedures;
 
 // CONSTANTS
 // ================================================================================================
@@ -91,25 +93,24 @@ impl TransactionKernel {
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
 
-        let kernel_lib = Self::kernel();
-        let kernel = kernel_lib.kernel();
-
-        // we need to get &[Felt] from &[Digest]
-        let kernel_procs_as_felts = Digest::digests_as_elements(kernel.proc_hashes().iter())
+        let kernel_procs_as_felts = Digest::digests_as_elements(Self::PROCEDURES.iter())
             .cloned()
             .collect::<Vec<Felt>>();
-        let kernel_hash = Hasher::hash_elements(&kernel_procs_as_felts);
 
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
             tx_inputs.input_notes().commitment(),
             tx_inputs.block_header().hash(),
-            (kernel.proc_hashes().len(), kernel_hash),
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
-        inputs::extend_advice_inputs(tx_inputs, tx_args, kernel_procs_as_felts, &mut advice_inputs);
+        inputs::extend_advice_inputs(
+            tx_inputs,
+            tx_args,
+            (Self::PROCEDURES.len(), kernel_procs_as_felts),
+            &mut advice_inputs,
+        );
 
         (stack_inputs, advice_inputs)
     }
@@ -141,8 +142,6 @@ impl TransactionKernel {
     ///     acct_id,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
-    ///     kernel_procs_len,
-    ///     KERNEL_HASH
     /// ]
     /// ```
     ///
@@ -151,19 +150,14 @@ impl TransactionKernel {
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
-    /// - kernel_procs_len, number of the procedures in the used kernel.
-    /// - KERNEL_HASH, hash of the entire kernel.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
-        kernel: (usize, Digest),
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
-        let mut inputs: Vec<Felt> = Vec::with_capacity(18);
-        inputs.extend(kernel.1);
-        inputs.push(Felt::from(kernel.0 as u16));
+        let mut inputs: Vec<Felt> = Vec::with_capacity(13);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(acct_id.into());

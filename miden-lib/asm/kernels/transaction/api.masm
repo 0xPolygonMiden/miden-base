@@ -766,27 +766,32 @@ end
 
 #! Executes a kernel procedure specified by its offset.
 #!
-#! Inputs: [procedure_offset, *executed_procedure_input*, PAD(*)]
-#! Outputs: [*executed_procedure_output*, PAD(*)]
+#! Inputs: [procedure_offset, procedure_inputs, PAD(*)]
+#! Outputs: [procedure_outputs, PAD(*)]
 #!
+#! Where:
 #! - procedure_offset is an offset of the kernel procedure, specified in the 
-#! `miden/kernel_invocation.masm` file.
+#!   `miden/kernel_invocation.masm` file.
+#! - procedure_inputs are inputs of the procedure to be executed, which is specified by the 
+#!   procedure_offset. Note that the length of this inputs cannot exceed 12 elements, since the 
+#!   first word on the stack will be occupied by the procedure hash. 
+#! - procedure_outputs are the outputs of the procedure to be executed. 
 export.exec_kernel_proc
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
-    # => [procedure_pointer, *executed_procedure_input*, PAD(*)]
+    # => [procedure_pointer, procedure_inputs, PAD(*)]
 
     # prepare stack for procedure hash obtaining
     padw movup.4
-    # => [procedure_pointer, 0, 0, 0, 0, *executed_procedure_input*, PAD(*)]
+    # => [procedure_pointer, 0, 0, 0, 0, procedure_inputs, PAD(*)]
 
     # load kernel procedure hash
     mem_loadw
-    # => [KERNEL_PROCEDURE_HASH, *executed_procedure_input*, PAD(*)]
+    # => [KERNEL_PROCEDURE_HASH, procedure_inputs, PAD(*)]
 
     # execute loaded procedure
     dynexec
-    # => [*executed_procedure_output*, PAD(*)]
+    # => [procedure_outputs, PAD(*)]
 
     exec.sys::truncate_stack
 end

@@ -7,11 +7,8 @@ use.miden::kernel_invocation
 #!
 #! - acct_id is the account id.
 export.get_id
-    push.0
-    # => [0]
-
     # start padding the stack
-    push.0.0
+    push.0.0.0
 
     exec.kernel_invocation::get_account_id_offset
     # => [offset, 0, 0, 0]
@@ -35,11 +32,8 @@ end
 #!
 #! - nonce is the account nonce.
 export.get_nonce
-    push.0
-    # => [0]
-
     # start padding the stack
-    push.0.0
+    push.0.0.0
 
     exec.kernel_invocation::get_account_nonce_offset
     # => [offset, 0, 0, 0]

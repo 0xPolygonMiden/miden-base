@@ -104,23 +104,32 @@ end
 #! Saves the hashes of the kernel procedures to memory and verifies that it matches the KERNEL_HASH
 #! public input.
 #! 
-#! Stack: [kernel_procs_len, KERNEL_HASH]
 #! Advice stack: [
-#!     [KERNEL_PROCS]
+#!     kernel_procs_len,
+#!     [KERNEL_PROCS],
+#!     KERNEL_HASH
 #! ]
 #! Output: []
 #! 
 #! Where:
 #! - kernel_procs_len, number of kernel procedures.
-#! - KERNEL_HASH, hash of all kernel procedures.
 #! - [KERNEL_PROCS], array of hashes of the kernel procedures.
+#! - KERNEL_HASH, hash of all kernel procedures.
 proc.process_kernel_data
+    # get the number of kernel procedures
+    adv_push.1
+    # => [kernel_procs_len]
+
     # get the pointer to the memory where hashes of the kernel procedures will be stored
     exec.memory::get_kernel_procedures_ptr swap
-    # => [kernel_procs_len, kernel_procs_ptr, KERNEL_HASH]
+    # => [kernel_procs_len, kernel_procs_ptr]
 
     # store the kernel procedures to the memory
-    exec.mem::pipe_preimage_to_memory
+    exec.mem::pipe_words_to_memory
+    # => [SEQ_HASH, kernel_procs_ptr']
+
+    # get the precomputed hash and assert that it matches the computed one 
+    padw adv_loadw assert_eqw
     # => [kernel_procs_ptr']
 
     drop
@@ -1124,11 +1133,11 @@ end
 #!     account_id, 
 #!     INITIAL_ACCOUNT_HASH, 
 #!     INPUT_NOTES_COMMITMENT, 
-#!     kernel_procs_len, 
-#!     KERNEL_HASH
 #!  ]
 #! Advice stack: [
+#!     kernel_procs_len, 
 #!     [KERNEL_PROCS]
+#!     KERNEL_HASH
 #!     PREVIOUS_BLOCK_HASH,
 #!     CHAIN_MMR_HASH,
 #!     ACCOUNT_ROOT,
