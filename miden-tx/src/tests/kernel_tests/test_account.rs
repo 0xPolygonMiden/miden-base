@@ -458,35 +458,53 @@ fn test_storage_offset() {
     let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
     let vault = AssetVault::mock();
     let storage = AccountStorage::new(vec![], BTreeMap::new()).unwrap();
+
+    // The following code will execute the following logic that will be asserted during the test:
+    //
+    // 1. foo_write will set word [5, 6, 7, 8] in storage at location 1 (0 offset by 1)
+    // 2. foo_read will read word [5, 6, 7, 8] in storage from location 1 (0 offset by 1)
+    // 3. bar_write will set word [1, 2, 3, 4] in storage at location 2 (0 offset by 2)
+    // 4. bar_read will read word [1, 2, 3, 4] in storage from location 2 (0 offset by 2)
+    //
+    // The final output of the stack should be [1, 2, 3, 4, 5, 6, 7, 8, Word2, Word3]
     let source_code = "
         use.miden::account
         use.kernel::memory
 
-        export.set_item
-            push.4.5.6.7.0
+        export.foo_write
+            push.5.6.7.8.0
             exec.account::set_item
             dropw dropw
         end
 
-        export.get_item_0
+        export.foo_read
             push.0
             exec.account::get_item
             swapw dropw swapw
         end
 
-        export.get_item_1
-            push.1
+        export.bar_write
+            push.1.2.3.4.0
+            exec.account::set_item
+            dropw dropw swapw
+        end
+
+        export.bar_read
+            push.0
             exec.account::get_item
             swapw dropw
         end
     ";
-    let code = AccountCode::mock_specific(source_code, assembler.clone());
+    let code = AccountCode::mock_with_code(source_code, assembler.clone());
 
     // modify procedure offsets
+    // TODO: We manually set the offsets here because we do not have the ability to set the offsets
+    // through MASM for now. Remove this code when we enable this functionality.
     let procedures_with_offsets = vec![
         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 1),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
+        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
     ];
 
     // rebuild [AccountCode] using new procedures with offsets
@@ -498,14 +516,16 @@ fn test_storage_offset() {
     let tx_script_source_code = format!(
         "
     begin
-        call.{set_item}
-        call.{get_item_0}
-        call.{get_item_1}
+        call.{foo_write}
+        call.{foo_read}
+        call.{bar_write}
+        call.{bar_read}
     end
     ",
-        set_item = procedures_with_offsets[2].mast_root(),
-        get_item_0 = procedures_with_offsets[0].mast_root(),
-        get_item_1 = procedures_with_offsets[1].mast_root(),
+        foo_write = procedures_with_offsets[3].mast_root(),
+        foo_read = procedures_with_offsets[2].mast_root(),
+        bar_write = procedures_with_offsets[1].mast_root(),
+        bar_read = procedures_with_offsets[0].mast_root(),
     );
     let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
     let tx_script = TransactionScript::new(tx_script_program, vec![]);
@@ -534,12 +554,12 @@ fn test_storage_offset() {
     // storage accesses have been correctly offset
     assert_eq!(
         process.get_stack_word(0),
-        [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]
     );
 
     assert_eq!(
         process.get_stack_word(1),
-        [Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]
+        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]
     );
 }
 

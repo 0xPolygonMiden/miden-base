@@ -142,16 +142,6 @@ export.get_max_slot_type
     push.MAX_SLOT_TYPE
 end
 
-#! Returns the maximum storage slot index (255).
-#!
-#! Stack: []
-#! Output: [max_storage_slot_index]
-#!
-#! - max_storage_slot_index is the maximum storage slot index.
-export.get_max_storage_slot_index
-    push.MAX_STORAGE_SLOT_INDEX
-end
-
 #! Returns the maximum number of account interface procedures.
 #!
 #! Stack: []
@@ -365,7 +355,7 @@ export.get_storage_slot_type_info
     exec.memory::get_acct_storage_slot_type_data u32split
 end
 
-#! Offsets provided storage slot index for storage access
+#! Applies offset to provided storage slot index for storage access
 #!
 #! Panics:
 #!   - slot index is out of bounds
@@ -373,13 +363,13 @@ end
 #!
 #! Stack: [storage_offset, slot_index]
 #! Output: [offset_slot_index]
-export.offset_storage_index
+export.apply_storage_offset
     # verify that slot_index is in bounds
-    dup.1 exec.get_max_storage_slot_index lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    dup.1 push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [storage_offset, slot_index]
 
     # verify that the computed offset_slot_index is in bounds
-    add dup exec.get_max_storage_slot_index lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    add dup push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 

@@ -161,7 +161,7 @@ impl AccountCode {
     }
 
     /// Creates a mock [AccountCode] with specific code and assembler
-    pub fn mock_specific(source_code: &str, assembler: Assembler) -> AccountCode {
+    pub fn mock_with_code(source_code: &str, assembler: Assembler) -> AccountCode {
         Self::compile(source_code, assembler).unwrap()
     }
 
