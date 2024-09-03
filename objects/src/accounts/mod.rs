@@ -28,8 +28,8 @@ pub use seed::{get_account_seed, get_account_seed_single};
 mod storage;
 pub use storage::{AccountStorage, SlotItem, StorageMap, StorageSlot, StorageSlotType};
 
-mod stub;
-pub use stub::AccountStub;
+mod header;
+pub use header::AccountHeader;
 
 mod data;
 pub use data::AccountData;

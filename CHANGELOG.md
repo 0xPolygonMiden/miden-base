@@ -2,7 +2,8 @@
 
 ## 0.6.0 (TBD)
 
-- Implemented offset based storage access (#843)
+- Implemented offset based storage access (#843).
+- [BREAKING] `AccountStub` structure was renamed to `AccountHeader` (#855).
 
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 

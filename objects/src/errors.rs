@@ -32,6 +32,7 @@ pub enum AccountError {
     DuplicateStorageItems(MerkleError),
     FungibleFaucetIdInvalidFirstBit,
     FungibleFaucetInvalidMetadata(String),
+    HeaderDataIncorrectLength(usize, usize),
     HexParseError(String),
     InvalidAccountStorageType,
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
@@ -42,7 +43,6 @@ pub enum AccountError {
     StorageSlotMapOrArrayNotAllowed(u8, StorageSlotType),
     StorageMapNotFound(u8),
     StorageMapTooManyMaps { expected: usize, actual: usize },
-    StubDataIncorrectLength(usize, usize),
 }
 
 impl fmt::Display for AccountError {
@@ -274,7 +274,7 @@ impl std::error::Error for TransactionInputError {}
 pub enum TransactionOutputError {
     DuplicateOutputNote(NoteId),
     FinalAccountDataNotFound,
-    FinalAccountStubDataInvalid(AccountError),
+    FinalAccountHeaderDataInvalid(AccountError),
     OutputNoteDataNotFound,
     OutputNoteDataInvalid(NoteError),
     OutputNotesCommitmentInconsistent(Digest, Digest),

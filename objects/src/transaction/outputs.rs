@@ -5,7 +5,7 @@ use miden_crypto::utils::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_processor::DeserializationError;
 
 use crate::{
-    accounts::AccountStub,
+    accounts::AccountHeader,
     notes::{compute_note_hash, Note, NoteAssets, NoteHeader, NoteId, NoteMetadata, PartialNote},
     Digest, Felt, Hasher, TransactionOutputError, Word, MAX_OUTPUT_NOTES_PER_TX,
 };
@@ -15,7 +15,7 @@ use crate::{
 /// Describes the result of executing a transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionOutputs {
-    pub account: AccountStub,
+    pub account: AccountHeader,
     pub output_notes: OutputNotes,
 }
 
