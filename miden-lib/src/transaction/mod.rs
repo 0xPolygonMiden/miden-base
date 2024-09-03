@@ -23,7 +23,7 @@ mod inputs;
 
 mod outputs;
 pub use outputs::{
-    parse_final_account_stub, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
+    parse_final_account_header, FINAL_ACCOUNT_HASH_WORD_IDX, OUTPUT_NOTES_COMMITMENT_WORD_IDX,
 };
 
 mod errors;
@@ -234,8 +234,8 @@ impl TransactionKernel {
                 .get(&final_acct_hash)
                 .ok_or(TransactionOutputError::FinalAccountDataNotFound)?,
         );
-        let account = parse_final_account_stub(final_account_data)
-            .map_err(TransactionOutputError::FinalAccountStubDataInvalid)?;
+        let account = parse_final_account_header(final_account_data)
+            .map_err(TransactionOutputError::FinalAccountHeaderDataInvalid)?;
 
         // validate output notes
         let output_notes = OutputNotes::new(output_notes)?;

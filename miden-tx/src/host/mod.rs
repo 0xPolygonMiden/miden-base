@@ -4,7 +4,7 @@ use miden_lib::transaction::{
     memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountStorage, AccountStub},
+    accounts::{AccountDelta, AccountHeader, AccountStorage},
     assets::Asset,
     notes::NoteId,
     transaction::{OutputNote, TransactionMeasurements},
@@ -92,7 +92,7 @@ pub struct TransactionHost<A, T> {
 impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     /// Returns a new [TransactionHost] instance with the provided [AdviceProvider].
     pub fn new(
-        account: AccountStub,
+        account: AccountHeader,
         adv_provider: A,
         mast_store: Rc<TransactionMastStore>,
         authenticator: Option<Rc<T>>,

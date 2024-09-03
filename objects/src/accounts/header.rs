@@ -1,12 +1,12 @@
 use super::{hash_account, Account, AccountId, Digest, Felt};
 
-// ACCOUNT STUB
+// ACCOUNT HEADER
 // ================================================================================================
 
-/// A stub of an account which contains information that succinctly describes the state of the
+/// A header of an account which contains information that succinctly describes the state of the
 /// components of the account.
 ///
-/// The [AccountStub] is composed of:
+/// The [AccountHeader] is composed of:
 /// - id: the account id ([AccountId]) of the account.
 /// - nonce: the nonce of the account.
 /// - vault_root: a commitment to the account's vault ([super::AssetVault]).
@@ -14,7 +14,7 @@ use super::{hash_account, Account, AccountId, Digest, Felt};
 /// - code_commitment: a commitment to the account's code ([super::AccountCode]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct AccountStub {
+pub struct AccountHeader {
     id: AccountId,
     nonce: Felt,
     vault_root: Digest,
@@ -22,10 +22,10 @@ pub struct AccountStub {
     code_commitment: Digest,
 }
 
-impl AccountStub {
+impl AccountHeader {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Creates a new [AccountStub].
+    /// Creates a new [AccountHeader].
     pub fn new(
         id: AccountId,
         nonce: Felt,
@@ -79,13 +79,13 @@ impl AccountStub {
     }
 }
 
-impl From<Account> for AccountStub {
+impl From<Account> for AccountHeader {
     fn from(account: Account) -> Self {
         (&account).into()
     }
 }
 
-impl From<&Account> for AccountStub {
+impl From<&Account> for AccountHeader {
     fn from(account: &Account) -> Self {
         Self {
             id: account.id(),
