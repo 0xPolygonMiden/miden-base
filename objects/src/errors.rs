@@ -34,7 +34,7 @@ pub enum AccountError {
     FungibleFaucetInvalidMetadata(String),
     HeaderDataIncorrectLength(usize, usize),
     HexParseError(String),
-    InvalidAccountStorageType,
+    InvalidAccountStorageMode,
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },

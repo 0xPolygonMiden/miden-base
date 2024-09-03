@@ -3,7 +3,7 @@ use rand::Rng;
 
 use super::{account::AccountBuilderError, account_code::DEFAULT_ACCOUNT_CODE};
 use crate::{
-    accounts::{AccountCode, AccountId, AccountStorageType, AccountType},
+    accounts::{AccountCode, AccountId, AccountStorageMode, AccountType},
     Digest, Word,
 };
 
@@ -11,7 +11,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct AccountIdBuilder<T> {
     account_type: AccountType,
-    storage_type: AccountStorageType,
+    storage_mode: AccountStorageMode,
     code: Option<AccountCode>,
     storage_root: Digest,
     rng: T,
@@ -21,7 +21,7 @@ impl<T: Rng> AccountIdBuilder<T> {
     pub fn new(rng: T) -> Self {
         Self {
             account_type: AccountType::RegularAccountUpdatableCode,
-            storage_type: AccountStorageType::OffChain,
+            storage_mode: AccountStorageMode::Private,
             code: None,
             storage_root: Digest::default(),
             rng,
@@ -33,8 +33,8 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn storage_type(&mut self, storage_type: AccountStorageType) -> &mut Self {
-        self.storage_type = storage_type;
+    pub fn storage_mode(&mut self, storage_mode: AccountStorageMode) -> &mut Self {
+        self.storage_mode = storage_mode;
         self
     }
 
@@ -64,7 +64,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             &mut self.rng,
             account_code,
             self.account_type,
-            self.storage_type,
+            self.storage_mode,
             self.storage_root,
         )?;
 
@@ -85,7 +85,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             return Err(AccountBuilderError::SeedAndAccountTypeMismatch);
         }
 
-        if account_id.storage_type() != self.storage_type {
+        if account_id.storage_mode() != self.storage_mode {
             return Err(AccountBuilderError::SeedAndOnChainMismatch);
         }
 
@@ -103,7 +103,7 @@ pub fn account_id_build_details<T: Rng>(
     rng: &mut T,
     code: AccountCode,
     account_type: AccountType,
-    storage_type: AccountStorageType,
+    storage_mode: AccountStorageMode,
     storage_root: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
@@ -111,7 +111,7 @@ pub fn account_id_build_details<T: Rng>(
     let seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        storage_type,
+        storage_mode,
         code_commitment,
         storage_root,
     )

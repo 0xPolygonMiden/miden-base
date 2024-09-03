@@ -89,7 +89,7 @@ impl TransactionProver {
         .add_input_notes(input_notes)
         .add_output_notes(output_notes);
 
-        let builder = match account.is_on_chain() {
+        let builder = match account.is_public() {
             true => {
                 let account_update_details = if account.is_new() {
                     let mut account = account.clone();
