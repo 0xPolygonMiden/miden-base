@@ -76,15 +76,15 @@ impl From<u64> for AccountType {
 // ACCOUNT STORAGE TYPES
 // ================================================================================================
 
-pub const ON_CHAIN: u64 = 0b00;
-pub const OFF_CHAIN: u64 = 0b10;
+pub const PUBLIC: u64 = 0b00;
+pub const PRIVATE: u64 = 0b10;
 
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u64)]
-pub enum AccountStorageType {
-    OnChain = ON_CHAIN,
-    OffChain = OFF_CHAIN,
+pub enum AccountStorageMode {
+    Public = PUBLIC,
+    Private = PRIVATE,
 }
 
 // ACCOUNT ID
@@ -95,7 +95,7 @@ pub enum AccountStorageType {
 /// Account ID consists of 1 field element (~64 bits). The most significant bits in the id are used
 /// to encode the account' storage and type.
 ///
-/// The top two bits are used to encode the storage type. The values [OFF_CHAIN] and [ON_CHAIN]
+/// The top two bits are used to encode the storage type. The values [PRIVATE] and [PUBLIC]
 /// encode the account's storage type. The next two bits encode the account type. The values
 /// [FUNGIBLE_FAUCET], [NON_FUNGIBLE_FAUCET], [REGULAR_ACCOUNT_IMMUTABLE_CODE], and
 /// [REGULAR_ACCOUNT_UPDATABLE_CODE] encode the account's type.
@@ -171,7 +171,7 @@ impl AccountId {
         let seed = get_account_seed(
             init_seed,
             account_type,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
             code_commitment,
             storage_root,
         )
@@ -201,19 +201,19 @@ impl AccountId {
         is_regular_account(self.0.as_int())
     }
 
-    /// Returns the storage type of this account (e.g., on-chain or off-chain).
-    pub fn storage_type(&self) -> AccountStorageType {
+    /// Returns the storage type of this account (e.g., public or private).
+    pub fn storage_mode(&self) -> AccountStorageMode {
         let bits = (self.0.as_int() & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
         match bits {
-            ON_CHAIN => AccountStorageType::OnChain,
-            OFF_CHAIN => AccountStorageType::OffChain,
+            PUBLIC => AccountStorageMode::Public,
+            PRIVATE => AccountStorageMode::Private,
             _ => panic!("Account with invalid storage bits created"),
         }
     }
 
-    /// Returns true if an account with this ID is an on-chain account.
-    pub fn is_on_chain(&self) -> bool {
-        self.storage_type() == AccountStorageType::OnChain
+    /// Returns true if an account with this ID is a public account.
+    pub fn is_public(&self) -> bool {
+        self.storage_mode() == AccountStorageMode::Public
     }
 
     /// Finds and returns a seed suitable for creating an account ID for the specified account type
@@ -221,11 +221,11 @@ impl AccountId {
     pub fn get_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,
-        storage_type: AccountStorageType,
+        storage_mode: AccountStorageMode,
         code_commitment: Digest,
         storage_root: Digest,
     ) -> Result<Word, AccountError> {
-        get_account_seed(init_seed, account_type, storage_type, code_commitment, storage_root)
+        get_account_seed(init_seed, account_type, storage_mode, code_commitment, storage_root)
     }
 
     /// Creates an Account Id from a hex string. Assumes the string starts with "0x" and
@@ -340,8 +340,8 @@ pub const fn account_id_from_felt(value: Felt) -> Result<AccountId, AccountError
 
     let bits = (int_value & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
     match bits {
-        ON_CHAIN | OFF_CHAIN => (),
-        _ => return Err(AccountError::InvalidAccountStorageType),
+        PUBLIC | PRIVATE => (),
+        _ => return Err(AccountError::InvalidAccountStorageMode),
     };
 
     Ok(AccountId(value))
@@ -434,7 +434,7 @@ fn is_regular_account(account_id: u64) -> bool {
 #[cfg(any(feature = "testing", test))]
 pub mod testing {
     use super::{
-        AccountStorageType, AccountType, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
+        AccountStorageMode, AccountType, ACCOUNT_STORAGE_MASK_SHIFT, ACCOUNT_TYPE_MASK_SHIFT,
     };
 
     // CONSTANTS
@@ -443,76 +443,76 @@ pub mod testing {
     // REGULAR ACCOUNTS - OFF-CHAIN
     pub const ACCOUNT_ID_SENDER: u64 = account_id(
         AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OffChain,
+        AccountStorageMode::Private,
         0b0001_1111,
     );
     pub const ACCOUNT_ID_OFF_CHAIN_SENDER: u64 = account_id(
         AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OffChain,
+        AccountStorageMode::Private,
         0b0010_1111,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN: u64 = account_id(
         AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OffChain,
+        AccountStorageMode::Private,
         0b0011_1111,
     );
     // REGULAR ACCOUNTS - ON-CHAIN
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN: u64 = account_id(
         AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OnChain,
+        AccountStorageMode::Public,
         0b0001_1111,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN_2: u64 = account_id(
         AccountType::RegularAccountImmutableCode,
-        AccountStorageType::OnChain,
+        AccountStorageMode::Public,
         0b0010_1111,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN: u64 = account_id(
         AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OnChain,
+        AccountStorageMode::Public,
         0b0011_1111,
     );
     pub const ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u64 = account_id(
         AccountType::RegularAccountUpdatableCode,
-        AccountStorageType::OnChain,
+        AccountStorageMode::Public,
         0b0100_1111,
     );
 
     // FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
     // FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0001_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0001_1111);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
     pub const ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_3: u64 =
-        account_id(AccountType::FungibleFaucet, AccountStorageType::OnChain, 0b0100_1111);
+        account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0b0100_1111);
 
     // NON-FUNGIBLE TOKENS - OFF-CHAIN
     pub const ACCOUNT_ID_INSUFFICIENT_ONES: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0000_0000); // invalid
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0000_0000); // invalid
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OffChain, 0b0001_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0b0001_1111);
     // NON-FUNGIBLE TOKENS - ON-CHAIN
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0010_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0010_1111);
     pub const ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN_1: u64 =
-        account_id(AccountType::NonFungibleFaucet, AccountStorageType::OnChain, 0b0011_1111);
+        account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0b0011_1111);
 
     // UTILITIES
     // --------------------------------------------------------------------------------------------
 
     pub const fn account_id(
         account_type: AccountType,
-        storage: AccountStorageType,
+        storage_mode: AccountStorageMode,
         rest: u64,
     ) -> u64 {
         let mut id = 0;
 
-        id ^= (storage as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
+        id ^= (storage_mode as u64) << ACCOUNT_STORAGE_MASK_SHIFT;
         id ^= (account_type as u64) << ACCOUNT_TYPE_MASK_SHIFT;
         id ^= rest;
 
@@ -527,7 +527,7 @@ mod tests {
     use miden_crypto::utils::{Deserializable, Serializable};
 
     use super::{
-        testing::*, AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK,
+        testing::*, AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK,
         ACCOUNT_TYPE_MASK_SHIFT, FUNGIBLE_FAUCET, NON_FUNGIBLE_FAUCET,
         REGULAR_ACCOUNT_IMMUTABLE_CODE, REGULAR_ACCOUNT_UPDATABLE_CODE,
     };
@@ -542,11 +542,11 @@ mod tests {
             AccountType::NonFungibleFaucet,
             AccountType::FungibleFaucet,
         ] {
-            for storage_type in [AccountStorageType::OnChain, AccountStorageType::OffChain] {
-                let acc = AccountId::try_from(account_id(account_type, storage_type, 0b1111_1111))
+            for storage_mode in [AccountStorageMode::Public, AccountStorageMode::Private] {
+                let acc = AccountId::try_from(account_id(account_type, storage_mode, 0b1111_1111))
                     .unwrap();
                 assert_eq!(acc.account_type(), account_type);
-                assert_eq!(acc.storage_type(), storage_type);
+                assert_eq!(acc.storage_mode(), storage_mode);
             }
         }
     }
@@ -612,25 +612,25 @@ mod tests {
             .expect("Valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountImmutableCode);
-        assert!(account_id.is_on_chain());
+        assert!(account_id.is_public());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN)
             .expect("Valid account ID");
         assert!(account_id.is_regular_account());
         assert_eq!(account_id.account_type(), AccountType::RegularAccountUpdatableCode);
-        assert!(!account_id.is_on_chain());
+        assert!(!account_id.is_public());
 
         let account_id =
             AccountId::try_from(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN).expect("Valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::FungibleFaucet);
-        assert!(account_id.is_on_chain());
+        assert!(account_id.is_public());
 
         let account_id = AccountId::try_from(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN)
             .expect("Valid account ID");
         assert!(account_id.is_faucet());
         assert_eq!(account_id.account_type(), AccountType::NonFungibleFaucet);
-        assert!(!account_id.is_on_chain());
+        assert!(!account_id.is_public());
     }
 
     /// The following test ensure there is a bit available to identify an account as a faucet or
