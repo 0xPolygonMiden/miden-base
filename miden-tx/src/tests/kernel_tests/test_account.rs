@@ -1,7 +1,4 @@
-use miden_lib::transaction::{
-    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
-    TransactionKernel,
-};
+use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -9,19 +6,13 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        },
-        Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
+        }, AccountId, AccountStorage, AccountType,
     },
-    assets::AssetVault,
-    testing::{account::AccountBuilder, prepare_word},
-    transaction::TransactionScript,
-    FieldElement,
+    testing::prepare_word,
 };
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use vm_processor::{Felt, MemAdviceProvider};
 
-use super::{ProcessState, StackInputs, ONE, ZERO};
+use super::{StackInputs, ONE, ZERO};
 use crate::{
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
@@ -461,8 +452,8 @@ fn test_get_item() {
 //     // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
 //     // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
 //     //
-//     // We will then assert that we are able to retrieve the correct elements from storage insuring
-//     // consistent "set" and "get" using offsets.
+//     // We will then assert that we are able to retrieve the correct elements from storage
+// insuring     // consistent "set" and "get" using offsets.
 //     let source_code = "
 //         use.miden::account
 //         use.kernel::memory
@@ -503,8 +494,8 @@ fn test_get_item() {
 //     let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
 //
 //     // modify procedure offsets
-//     // TODO: We manually set the offsets here because we do not have the ability to set the offsets
-//     // through MASM for now. Remove this code when we enable this functionality.
+//     // TODO: We manually set the offsets here because we do not have the ability to set the
+// offsets     // through MASM for now. Remove this code when we enable this functionality.
 //     let procedures_with_offsets = vec![
 //         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
 //         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
@@ -538,7 +529,8 @@ fn test_get_item() {
 //     let tx_script = TransactionScript::new(tx_script_program, vec![]);
 //
 //     // setup transaction context
-//     let tx_context = TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
+//     let tx_context =
+// TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
 //
 //     // execute code in context
 //     let tx = tx_context.execute().unwrap();
