@@ -464,31 +464,37 @@ fn test_storage_offset() {
     let source_code = "
         use.miden::account
         use.kernel::memory
+        use.std::sys
 
         export.foo_write
-            push.5.6.7.8.0
+            push.1.2.3.4.0
             exec.account::set_item
+
             dropw dropw
         end
 
         export.foo_read
             push.0
             exec.account::get_item
-            swapw dropw swapw
+            push.1.2.3.4 eqw assert
+
+            dropw dropw
         end
 
         export.bar_write
-            push.1.2.3.4.0
+            push.5.6.7.8.0
             exec.account::set_item
-            dropw dropw swapw
+
+            dropw dropw
         end
 
         export.bar_read
             push.0
             exec.account::get_item
-            push.1 exec.account::incr_nonce
+            push.5.6.7.8 eqw assert
 
-            swapw dropw
+            push.1 exec.account::incr_nonce
+            dropw dropw
         end
     ";
     // Setup account
@@ -536,15 +542,16 @@ fn test_storage_offset() {
     let tx = tx_context.execute().unwrap();
     account.apply_delta(tx.account_delta()).unwrap();
 
-    // assert that storage has been correctly set and that both
-    // storage accesses have been correctly offset
+    // assert that storage has been correctly set
+    // assertions regarding correct offset access are being
+    // done directly in the MASM.
     assert_eq!(
-        account.storage().get_item(2),
+        account.storage().get_item(1),
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
     );
 
     assert_eq!(
-        account.storage().get_item(1),
+        account.storage().get_item(2),
         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
 }
