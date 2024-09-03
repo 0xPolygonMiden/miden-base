@@ -1,5 +1,3 @@
-use core::usize;
-
 use alloc::{string::ToString, vec::Vec};
 
 use vm_core::EMPTY_WORD;
@@ -232,7 +230,7 @@ impl Deserializable for AccountStorage {
         let num_slots = source.read_u16()? as usize;
         let slots = source.read_many::<StorageSlot>(num_slots)?;
 
-        Ok(Self::new(slots).map_err(|err| DeserializationError::InvalidValue(err.to_string()))?)
+        Self::new(slots).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 

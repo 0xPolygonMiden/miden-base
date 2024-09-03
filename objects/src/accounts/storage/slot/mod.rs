@@ -48,7 +48,7 @@ impl StorageSlot {
             Self::Value(value) => *value,
             Self::Map(map) => {
                 let mut word = [ZERO; 4];
-                word.copy_from_slice(&map.root().as_elements());
+                word.copy_from_slice(map.root().as_elements());
                 word
             },
         }

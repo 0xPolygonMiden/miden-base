@@ -1,14 +1,11 @@
-use alloc::{collections::BTreeMap, rc::Rc, string::String, vec::Vec};
+use alloc::{rc::Rc, string::String, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::{
-        account_id::testing::{
-            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
-        },
-        AccountCode,
+    accounts::account_id::testing::{
+        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
     },
     assets::{Asset, FungibleAsset},
     notes::{
@@ -18,8 +15,7 @@ use miden_objects::{
     testing::{
         account_code::{
             ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_INCR_NONCE_MAST_ROOT,
-            ACCOUNT_REMOVE_ASSET_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
-            ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
+            ACCOUNT_REMOVE_ASSET_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
@@ -109,8 +105,8 @@ fn transaction_executor_witness() {
 //         .with_mock_notes_preserved_with_account_vault_delta()
 //         .build();
 //
-//     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
-//     let account_id = tx_context.tx_inputs().account().id();
+//     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(),
+// None);     let account_id = tx_context.tx_inputs().account().id();
 //
 //     let new_acct_code_src = "\
 //     export.account_proc_1
@@ -144,8 +140,9 @@ fn transaction_executor_witness() {
 //         .expect("asset is valid"),
 //     );
 //     let removed_asset_3 =
-//         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
-//     let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
+//         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+// &NON_FUNGIBLE_ASSET_DATA);     let removed_assets = [removed_asset_1, removed_asset_2,
+// removed_asset_3];
 //
 //     let tag1 = NoteTag::from_account_id(
 //         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
@@ -172,7 +169,8 @@ fn transaction_executor_witness() {
 //         use.miden::account
 //
 //         ## ACCOUNT PROCEDURE WRAPPERS
-//         ## ========================================================================================
+//         ##
+// ========================================================================================
 //         #TODO: Move this into an account library
 //         proc.set_item
 //             push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
@@ -207,12 +205,13 @@ fn transaction_executor_witness() {
 //         end
 //
 //         ## TRANSACTION SCRIPT
-//         ## ========================================================================================
+//         ##
+// ========================================================================================
 //         begin
 //             ## Update account storage item
-//             ## ------------------------------------------------------------------------------------
-//             # push a new value for the storage slot onto the stack
-//             push.{UPDATED_SLOT_VALUE}
+//             ##
+// ------------------------------------------------------------------------------------
+// # push a new value for the storage slot onto the stack             push.{UPDATED_SLOT_VALUE}
 //             # => [13, 11, 9, 7]
 //
 //             # get the index of account storage slot
@@ -224,9 +223,9 @@ fn transaction_executor_witness() {
 //             # => []
 //
 //             ## Update account storage map
-//             ## ------------------------------------------------------------------------------------
-//             # push a new VALUE for the storage map onto the stack
-//             push.{UPDATED_MAP_VALUE}
+//             ##
+// ------------------------------------------------------------------------------------
+// # push a new VALUE for the storage map onto the stack             push.{UPDATED_MAP_VALUE}
 //             # => [18, 19, 20, 21]
 //
 //             # push a new KEY for the storage map onto the stack
@@ -242,9 +241,9 @@ fn transaction_executor_witness() {
 //             # => []
 //
 //             ## Send some assets from the account vault
-//             ## ------------------------------------------------------------------------------------
-//             # partially deplete fungible asset balance
-//             push.0.1.2.3            # recipient
+//             ##
+// ------------------------------------------------------------------------------------
+// # partially deplete fungible asset balance             push.0.1.2.3            # recipient
 //             push.{EXECUTION_HINT_1} # note_execution_hint
 //             push.{NOTETYPE1}        # note_type
 //             push.{aux1}             # aux
@@ -280,14 +279,14 @@ fn transaction_executor_witness() {
 //             # => []
 //
 //             ## Update account code
-//             ## ------------------------------------------------------------------------------------
-//             push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw
-//             # => []
+//             ##
+// ------------------------------------------------------------------------------------
+// push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw             # => []
 //
 //             ## Update the account nonce
-//             ## ------------------------------------------------------------------------------------
-//             push.1 exec.incr_nonce drop
-//             # => []
+//             ##
+// ------------------------------------------------------------------------------------
+// push.1 exec.incr_nonce drop             # => []
 //         end
 //     ",
 //         NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
