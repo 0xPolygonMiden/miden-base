@@ -201,7 +201,7 @@ impl AccountId {
         is_regular_account(self.0.as_int())
     }
 
-    /// Returns the storage type of this account (e.g., public or private).
+    /// Returns the storage mode of this account (e.g., public or private).
     pub fn storage_mode(&self) -> AccountStorageMode {
         let bits = (self.0.as_int() & ACCOUNT_STORAGE_MASK) >> ACCOUNT_STORAGE_MASK_SHIFT;
         match bits {
