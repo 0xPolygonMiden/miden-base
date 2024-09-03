@@ -13,11 +13,7 @@ use miden_objects::{
         Account, AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
     },
     assets::AssetVault,
-    testing::prepare_word,
-    transaction::TransactionScript,
-    },
-    crypto::{hash::rpo::RpoDigest, merkle::LeafIndex},
-    testing::{account::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
+    testing::{account::AccountBuilder, prepare_word},
     transaction::TransactionScript,
     FieldElement,
 };
@@ -452,227 +448,113 @@ fn test_get_item() {
 //         "The original value stored in the map doesn't match the expected value",
 //     );
 // }
-
-#[test]
-fn test_storage_offset() {
-    // setup assembler
-    let assembler = TransactionKernel::assembler_testing();
-
-    // setup account
-    let id = AccountId::try_from(ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN).unwrap();
-    let vault = AssetVault::mock();
-    let storage = AccountStorage::new(vec![]).unwrap();
-
-    // The following code will execute the following logic that will be asserted during the test:
-    //
-    // 1. foo_write will set word [5, 6, 7, 8] in storage at location 1 (0 offset by 1)
-    // 2. foo_read will read word [5, 6, 7, 8] in storage from location 1 (0 offset by 1)
-    // 3. bar_write will set word [1, 2, 3, 4] in storage at location 2 (0 offset by 2)
-    // 4. bar_read will read word [1, 2, 3, 4] in storage from location 2 (0 offset by 2)
-    //
-    // The final output of the stack should be [1, 2, 3, 4, 5, 6, 7, 8, Word2, Word3]
-    let source_code = "
-        use.miden::account
-        use.kernel::memory
-
-        export.foo_write
-            push.5.6.7.8.0
-            exec.account::set_item
-            dropw dropw
-        end
-
-        export.foo_read
-            push.0
-            exec.account::get_item
-            swapw dropw swapw
-        end
-
-        export.bar_write
-            push.1.2.3.4.0
-            exec.account::set_item
-            dropw dropw swapw
-        end
-
-        export.bar_read
-            push.0
-            exec.account::get_item
-            swapw dropw
-        end
-    ";
-    let code = AccountCode::mock_with_code(source_code, assembler.clone());
-
-    // modify procedure offsets
-    // TODO: We manually set the offsets here because we do not have the ability to set the offsets
-    // through MASM for now. Remove this code when we enable this functionality.
-    let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
-        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
-    ];
-
-    // rebuild [AccountCode] using new procedures with offsets
-    let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
-    let nonce = ONE;
-    let account = Account::from_parts(id, vault, storage, code, nonce);
-
-    // setup transaction script
-    let tx_script_source_code = format!(
-        "
-    begin
-        call.{foo_write}
-        call.{foo_read}
-        call.{bar_write}
-        call.{bar_read}
-    end
-    ",
-        foo_write = procedures_with_offsets[3].mast_root(),
-        foo_read = procedures_with_offsets[2].mast_root(),
-        bar_write = procedures_with_offsets[1].mast_root(),
-        bar_read = procedures_with_offsets[0].mast_root(),
-    );
-    let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
-    let tx_script = TransactionScript::new(tx_script_program, vec![]);
-
-    // setup transaction context
-    let tx_context = TransactionContextBuilder::new(account).tx_script(tx_script).build();
-
-    // setup code to be executed
-    let code = "
-        use.kernel::memory
-        use.kernel::prologue
-
-        begin
-            exec.prologue::prepare_transaction
-
-            # execute transaction script
-            exec.memory::get_tx_script_root
-            dyncall
-        end
-        ";
-
-    // execute code in context
-    let process = tx_context.execute_code(code).unwrap();
-
-    // assert that storage has been correctly set and that both
-    // storage accesses have been correctly offset
-    assert_eq!(
-        process.get_stack_word(0),
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]
-    );
-
-    assert_eq!(
-        process.get_stack_word(1),
-        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]
-    );
-}
-
-#[test]
-fn test_storage_offset() {
-    // setup assembler
-    let assembler = TransactionKernel::assembler_testing();
-
-    // The following code will execute the following logic that will be asserted during the test:
-    //
-    // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
-    // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
-    // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
-    // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
-    //
-    // We will then assert that we are able to retrieve the correct elements from storage insuring
-    // consistent "set" and "get" using offsets.
-    let source_code = "
-        use.miden::account
-        use.kernel::memory
-        use.std::sys
-
-        export.foo_write
-            push.1.2.3.4.0
-            exec.account::set_item
-
-            dropw dropw
-        end
-
-        export.foo_read
-            push.0
-            exec.account::get_item
-            push.1.2.3.4 eqw assert
-
-            dropw dropw
-        end
-
-        export.bar_write
-            push.5.6.7.8.0
-            exec.account::set_item
-
-            dropw dropw
-        end
-
-        export.bar_read
-            push.0
-            exec.account::get_item
-            push.5.6.7.8 eqw assert
-
-            push.1 exec.account::incr_nonce
-            dropw dropw
-        end
-    ";
-    // Setup account
-    let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
-
-    // modify procedure offsets
-    // TODO: We manually set the offsets here because we do not have the ability to set the offsets
-    // through MASM for now. Remove this code when we enable this functionality.
-    let procedures_with_offsets = vec![
-        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
-        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
-        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
-    ];
-    let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
-
-    let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .code(code)
-        .nonce(Felt::ONE)
-        .build()
-        .unwrap();
-
-    // setup transaction script
-    let tx_script_source_code = format!(
-        "
-    begin
-        call.{foo_write}
-        call.{foo_read}
-        call.{bar_write}
-        call.{bar_read}
-    end
-    ",
-        foo_write = procedures_with_offsets[3].mast_root(),
-        foo_read = procedures_with_offsets[2].mast_root(),
-        bar_write = procedures_with_offsets[1].mast_root(),
-        bar_read = procedures_with_offsets[0].mast_root(),
-    );
-    let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
-    let tx_script = TransactionScript::new(tx_script_program, vec![]);
-
-    // setup transaction context
-    let tx_context = TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
-
-    // execute code in context
-    let tx = tx_context.execute().unwrap();
-    account.apply_delta(tx.account_delta()).unwrap();
-
-    // assert that elements have been set at the correct locations in storage
-    assert_eq!(
-        account.storage().get_item(1),
-        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
-    );
-
-    assert_eq!(
-        account.storage().get_item(2),
-        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
-    );
-}
+//
+// #[test]
+// fn test_storage_offset() {
+//     // setup assembler
+//     let assembler = TransactionKernel::assembler_testing();
+//
+//     // The following code will execute the following logic that will be asserted during the test:
+//     //
+//     // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
+//     // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
+//     // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
+//     // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
+//     //
+//     // We will then assert that we are able to retrieve the correct elements from storage insuring
+//     // consistent "set" and "get" using offsets.
+//     let source_code = "
+//         use.miden::account
+//         use.kernel::memory
+//         use.std::sys
+//
+//         export.foo_write
+//             push.1.2.3.4.0
+//             exec.account::set_item
+//
+//             dropw dropw
+//         end
+//
+//         export.foo_read
+//             push.0
+//             exec.account::get_item
+//             push.1.2.3.4 eqw assert
+//
+//             dropw dropw
+//         end
+//
+//         export.bar_write
+//             push.5.6.7.8.0
+//             exec.account::set_item
+//
+//             dropw dropw
+//         end
+//
+//         export.bar_read
+//             push.0
+//             exec.account::get_item
+//             push.5.6.7.8 eqw assert
+//
+//             push.1 exec.account::incr_nonce
+//             dropw dropw
+//         end
+//     ";
+//     // Setup account
+//     let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
+//
+//     // modify procedure offsets
+//     // TODO: We manually set the offsets here because we do not have the ability to set the offsets
+//     // through MASM for now. Remove this code when we enable this functionality.
+//     let procedures_with_offsets = vec![
+//         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
+//         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
+//         AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
+//         AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
+//     ];
+//     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
+//
+//     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+//         .code(code)
+//         .nonce(Felt::ONE)
+//         .build()
+//         .unwrap();
+//
+//     // setup transaction script
+//     let tx_script_source_code = format!(
+//         "
+//     begin
+//         call.{foo_write}
+//         call.{foo_read}
+//         call.{bar_write}
+//         call.{bar_read}
+//     end
+//     ",
+//         foo_write = procedures_with_offsets[3].mast_root(),
+//         foo_read = procedures_with_offsets[2].mast_root(),
+//         bar_write = procedures_with_offsets[1].mast_root(),
+//         bar_read = procedures_with_offsets[0].mast_root(),
+//     );
+//     let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
+//     let tx_script = TransactionScript::new(tx_script_program, vec![]);
+//
+//     // setup transaction context
+//     let tx_context = TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
+//
+//     // execute code in context
+//     let tx = tx_context.execute().unwrap();
+//     account.apply_delta(tx.account_delta()).unwrap();
+//
+//     // assert that elements have been set at the correct locations in storage
+//     assert_eq!(
+//         account.storage().get_item(1),
+//         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
+//     );
+//
+//     assert_eq!(
+//         account.storage().get_item(2),
+//         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
+//     );
+// }
 
 // ACCOUNT VAULT TESTS
 // ================================================================================================

@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::vec::Vec;
 use core::fmt::Display;
 
 use assembly::Assembler;
@@ -131,7 +128,6 @@ impl<T: Rng> AccountBuilder<T> {
         mut self,
         seed: Word,
         storage: AccountStorage,
-        assembler: Assembler,
     ) -> Result<Account, AccountBuilderError> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
 
@@ -157,7 +153,7 @@ impl<T: Rng> AccountBuilder<T> {
         let pub_key: Word = sec_key.public_key().into();
 
         let storage_slot = StorageSlot::Value(pub_key);
-        let (account, seed) = self.add_storage_slot(storage_slot).build(assembler.clone())?;
+        let (account, seed) = self.add_storage_slot(storage_slot).build()?;
 
         Ok((account, seed, sec_key))
     }
