@@ -455,12 +455,13 @@ fn test_storage_offset() {
 
     // The following code will execute the following logic that will be asserted during the test:
     //
-    // 1. foo_write will set word [5, 6, 7, 8] in storage at location 1 (0 offset by 1)
-    // 2. foo_read will read word [5, 6, 7, 8] in storage from location 1 (0 offset by 1)
-    // 3. bar_write will set word [1, 2, 3, 4] in storage at location 2 (0 offset by 2)
-    // 4. bar_read will read word [1, 2, 3, 4] in storage from location 2 (0 offset by 2)
+    // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
+    // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
+    // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
+    // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
     //
-    // The final output of the stack should be [1, 2, 3, 4, 5, 6, 7, 8, Word2, Word3]
+    // We will then assert that we are able to retrieve the correct elements from storage insuring
+    // consistent "set" and "get" using offsets.
     let source_code = "
         use.miden::account
         use.kernel::memory
@@ -542,9 +543,7 @@ fn test_storage_offset() {
     let tx = tx_context.execute().unwrap();
     account.apply_delta(tx.account_delta()).unwrap();
 
-    // assert that storage has been correctly set
-    // assertions regarding correct offset access are being
-    // done directly in the MASM.
+    // assert that elements have been set at the correct locations in storage
     assert_eq!(
         account.storage().get_item(1),
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
