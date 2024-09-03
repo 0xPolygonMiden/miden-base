@@ -75,6 +75,9 @@ const.FAUCET_STORAGE_DATA_SLOT=254
 # The account storage slot at which the slot types commitment is stored.
 const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
 
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=255
+
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
 
