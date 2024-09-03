@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 (TBD)
+
+- Implemented offset based storage access (#843)
+
 ## 0.5.1 (2024-08-28) - `miden-objects` crate only
 
 - Implemented `PrettyPrint` and `Display` for `NoteScript`.

@@ -31,8 +31,11 @@ const.ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x00020048
 # Account procedure is not part of the account code
 const.ERR_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002004A
 
-# Provided index is out of bounds
+# Provided procedure index is out of bounds
 const.ERR_PROC_INDEX_OUT_OF_BOUNDS=0x0002004B
+
+# Provided storage slot index is out of bounds
+const.ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x0002004E
 
 # CONSTANTS
 # =================================================================================================
@@ -71,6 +74,9 @@ const.FAUCET_STORAGE_DATA_SLOT=254
 
 # The account storage slot at which the slot types commitment is stored.
 const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
+
+# The maximum storage slot index
+const.MAX_STORAGE_SLOT_INDEX=255
 
 # The maximum value a slot type can take (An array of depth 64).
 const.MAX_SLOT_TYPE=64
@@ -349,6 +355,24 @@ export.get_storage_slot_type_info
     exec.memory::get_acct_storage_slot_type_data u32split
 end
 
+#! Applies offset to provided storage slot index for storage access
+#!
+#! Panics:
+#!   - slot index is out of bounds
+#!   - computed index is out of bounds
+#!
+#! Stack: [storage_offset, slot_index]
+#! Output: [offset_slot_index]
+export.apply_storage_offset
+    # verify that slot_index is in bounds
+    dup.1 push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [storage_offset, slot_index]
+
+    # verify that the computed offset_slot_index is in bounds
+    add dup push.MAX_STORAGE_SLOT_INDEX lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [offset_slot_index]
+end
+
 #! Gets an item from the account storage. Panics if the index is out of bounds.
 #!
 #! Stack: [index]
@@ -427,7 +451,7 @@ export.set_item
     # => [V, V', index]
 
     # emit event to signal that an account storage item is being updated
-    swapw movup.8 
+    swapw movup.8
     push.20551 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_AFTER_SET_ITEM_EVENT drop dropw
     # => [V]
@@ -509,7 +533,6 @@ export.get_procedure_info
   dup push.255 neq
   # => [is_255, index]
 
-  # load procedure information from memory
   if.true
     # check that index < number of procedures contained in the account code
     dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
@@ -552,14 +575,13 @@ export.authenticate_procedure
     dup push.255 neq
     # => [is_255, index, PROC_ROOT]
 
-    # verify that PROC_ROOT matches returned procedure information
     if.true
       # verify that PROC_ROOT exists in memory at index
       movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
       # => [storage_offset]
     else
       # drop PROC_ROOT
-      movdn.4 dropw
+      movdn.4 dropw drop push.0
     end
 end
 
