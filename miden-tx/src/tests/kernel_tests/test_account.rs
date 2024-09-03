@@ -6,13 +6,14 @@ use miden_objects::{
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_OFF_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
-        }, AccountId, AccountStorage, AccountType,
+        },
+        AccountId, AccountStorage, AccountType,
     },
     testing::prepare_word,
 };
 use vm_processor::{Felt, MemAdviceProvider};
 
-use super::{StackInputs, ONE, ZERO};
+use super::{StackInputs, Word, ONE, ZERO};
 use crate::{
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
@@ -239,53 +240,46 @@ fn test_get_item() {
     }
 }
 
-// #[test]
-// fn test_set_item() {
-//     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-//
-//     // copy the initial account slots (SMT)
-//     let mut account_smt = tx_context.account().storage().slots().clone();
-//     let init_root = account_smt.root();
-//
-//     // insert a new leaf value
-//     let new_item_index = LeafIndex::new(12).unwrap();
-//     let new_item_value: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
-//     account_smt.insert(new_item_index, new_item_value);
-//     assert_ne!(account_smt.root(), init_root);
-//
-//     let code = format!(
-//         "
-//         use.kernel::account
-//         use.kernel::memory
-//         use.kernel::prologue
-//
-//         begin
-//             exec.prologue::prepare_transaction
-//
-//             # set the storage item
-//             push.{new_value}
-//             push.{new_item_index}
-//             exec.account::set_item
-//
-//             # assert old value was empty
-//             padw assert_eqw
-//             dropw
-//             # assert the new item value is properly stored
-//             exec.memory::get_acct_storage_root
-//             push.{new_root} assert_eqw
-//             dropw dropw
-//             dropw dropw
-//
-//         end
-//         ",
-//         new_value = prepare_word(&new_item_value),
-//         new_item_index = new_item_index.value(),
-//         new_root = prepare_word(&account_smt.root()),
-//     );
-//
-//     tx_context.execute_code(&code).unwrap();
-// }
-//
+#[test]
+fn test_set_item() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    // insert a new value
+    let new_storage_slot_value: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
+
+    let code = format!(
+        "
+        use.kernel::account
+        use.kernel::memory
+        use.kernel::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # set the storage item
+            push.{new_storage_slot_value}
+            push.{new_storage_slot_index}
+            exec.account::set_item
+
+            # assert old value was correctly returned
+            push.1.2.3.4 assert_eqw.err=111
+
+            # assert new value has been correctly set
+            debug.mem
+            push.{new_storage_slot_index}
+            exec.account::get_item
+            push.{new_storage_slot_value}
+            debug.stack
+            assert_eqw.err=112
+        end
+        ",
+        new_storage_slot_value = prepare_word(&new_storage_slot_value),
+        new_storage_slot_index = 0,
+    );
+
+    tx_context.execute_code(&code).unwrap();
+}
+
 // // Test different account storage types
 // #[test]
 // fn test_get_storage_data_type() {

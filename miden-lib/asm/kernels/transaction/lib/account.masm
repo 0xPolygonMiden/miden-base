@@ -394,24 +394,16 @@ end
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_item
+    # check that index is in bounds
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [index, V']
+
     # get account storage slots section offset
     exec.memory::get_acct_storage_slots_section_offset
     # => [acct_storage_slots_section_offset, index]
 
     # get the item from storage
-    swap mul.2 add mem_loadw
-    # => [VALUE]
-
-    # get the storage root
-    # exec.memory::get_acct_storage_root
-    # => [STORAGE_ROOT, index]
-
-    # get the item from storage
-    # movup.4 push.STORAGE_TREE_DEPTH mtree_get
-    # => [VALUE, ROOT]
-
-    # drop the root
-    # swapw dropw
+    swap mul.2 add padw movup.4 mem_loadw
     # => [VALUE]
 end
 
@@ -423,19 +415,25 @@ end
 #! - index is the index of the item to set.
 #! - NEW_VALUE is the value to set.
 #! - OLD_VALUE is the previous value of the item.
-#! - OLD_ROOT is the old storage root.
-#! - NEW_ROOT is the new storage root.
 proc.set_item_raw
-    # get the storage root
-    exec.memory::get_acct_storage_root
-    # => [OLD_ROOT, index, NEW_VALUE]
+    # get old value from storage
+    dup movdn.5 exec.get_item
+    # => [OLD_VALUE, NEW_VALUE, index]
 
-    # set the item in storage
-    movup.4 push.STORAGE_TREE_DEPTH mtree_set
-    # => [OLD_VALUE, NEW_ROOT]
+    # arrange stack for storage update
+    swapw movup.8
+    # => [index, NEW_VALUE, OLD_VALUE]
 
-    # set the new storage root
-    swapw exec.memory::set_acct_storage_root dropw
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index, NEW_VALUE, OLD_VALUE]
+
+    # update storage
+    swap mul.2 add mem_storew
+    # => [NEW_VALUE, OLD_VALUE]
+
+    # drop value
+    dropw
     # => [OLD_VALUE]
 end
 
@@ -454,16 +452,20 @@ export.set_item
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
     # => [index, V']
 
-    # check if storage type is slot
-    dup exec.memory::get_acct_storage_slot_type_data u32split drop
-    # => [slot_type, index, V', 0, 0, 0]
+    # check that index is in bounds
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [index, V']
 
-    # fails if slot_type is not 0 = value
+    # get storage slot type
+    dup exec.get_storage_slot_type
+    # => [storage_slot_type, index, V']
+
+    # check if type == slot
     exec.constants::get_storage_slot_type_value eq assert.err=ERR_SETTING_NON_VALUE_ITEM_ON_VALUE_SLOT
-    # => [index, V', 0, 0, 0]
+    # => [index, V']
 
-    # duplicate the index and the V' to be able to emit an event after an account storage item is
-    # being updated
+    # duplicate the index and the V' enabling emission of an
+    # event after an account storage item is being updated
     movdn.4 dupw dup.8
     # => [index, V', V', index]
 
@@ -536,6 +538,30 @@ export.set_map_item.3
     # set the root of the map in the respective account storage slot
     loc_load.0 exec.set_item_raw
     # => [OLD_MAP_ROOT, OLD_VALUE, ...]
+end
+
+#! Returns the type of the requested storage slot
+#!
+#! Stack: [index, ...]
+#! Output: [storage_slot_type, ...]
+#!
+#! - index is the location in memory of the storage slot.
+#! - storage_slot_type is the type of the storage slot.
+#!
+#! Panics if
+#! - index is out of bounds
+export.get_storage_slot_type
+    # check that index is in bounds
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [index, V']
+
+    # get account storage slots section offset
+    exec.memory::get_acct_storage_slots_section_offset
+    # => [acct_storage_slots_section_offset, index]
+
+    # get storage slot type
+    swap mul.2 add add.1 mem_load
+    # => [slot_type]
 end
 
 #! Returns the procedure information
