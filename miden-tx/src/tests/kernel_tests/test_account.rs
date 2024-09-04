@@ -1,3 +1,5 @@
+use std::println;
+
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
@@ -335,49 +337,49 @@ fn test_get_storage_slot_type() {
     }
 }
 
-// #[test]
-// fn test_set_item() {
-//     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-//
-//     let new_storage_item: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
-//
-//     let code = format!(
-//         "
-//         use.kernel::account
-//         use.kernel::memory
-//         use.kernel::prologue
-//
-//         begin
-//             exec.prologue::prepare_transaction
-//
-//             # set the storage item
-//             push.{new_storage_item}
-//             push.{new_storage_item_index}
-//             exec.account::set_item
-//
-//             # assert old value was correctly returned
-//             push.1.2.3.4 assert_eqw.err=111
-//
-//             # assert new value has been correctly set
-//             debug.mem
-//             push.{new_storage_item_index}
-//             exec.account::get_item
-//             push.{new_storage_item}
-//             debug.stack
-//             assert_eqw.err=112
-//         end
-//         ",
-//         new_storage_item = prepare_word(&new_storage_item),
-//         new_storage_item_index = 0,
-//     );
-//
-//     tx_context.execute_code(&code).unwrap();
-//
-//     println!("Slots: {:?}", tx_context.account().storage().slots());
-//
-//     // assert new storage item was correctly set
-//     // assert_eq!(tx_context.account().storage().get_item(0), new_storage_item.into())
-// }
+#[test]
+fn test_set_item() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let new_storage_item: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
+
+    let code = format!(
+        "
+        use.kernel::account
+        use.kernel::memory
+        use.kernel::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # set the storage item
+            push.{new_storage_item}
+            push.{new_storage_item_index}
+            exec.account::set_item
+
+            # assert old value was correctly returned
+            push.1.2.3.4 assert_eqw.err=111
+
+            # assert new value has been correctly set
+            debug.mem
+            push.{new_storage_item_index}
+            exec.account::get_item
+            push.{new_storage_item}
+            debug.stack
+            assert_eqw.err=112
+        end
+        ",
+        new_storage_item = prepare_word(&new_storage_item),
+        new_storage_item_index = 0,
+    );
+
+    tx_context.execute_code(&code).unwrap();
+
+    println!("Slots: {:?}", tx_context.account().storage().slots());
+
+    // assert new storage item was correctly set
+    assert_eq!(tx_context.account().storage().get_item(0), new_storage_item.into())
+}
 
 // #[test]
 // fn test_set_map_item() {
