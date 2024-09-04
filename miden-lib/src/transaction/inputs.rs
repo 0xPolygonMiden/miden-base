@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::{Account, StorageSlot, StorageSlotType},
+    accounts::{Account, StorageSlot},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
     Felt, FieldElement, Word, EMPTY_WORD, ZERO,
