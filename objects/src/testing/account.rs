@@ -18,7 +18,7 @@ use crate::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_1,
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2, ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
         },
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
         StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
@@ -91,8 +91,8 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn storage_type(mut self, storage_type: AccountStorageType) -> Self {
-        self.account_id_builder.storage_type(storage_type);
+    pub fn storage_mode(mut self, storage_mode: AccountStorageMode) -> Self {
+        self.account_id_builder.storage_mode(storage_mode);
         self
     }
 

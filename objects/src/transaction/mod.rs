@@ -1,5 +1,5 @@
 use super::{
-    accounts::{Account, AccountDelta, AccountId, AccountStub},
+    accounts::{Account, AccountDelta, AccountHeader, AccountId},
     notes::{NoteId, Nullifier},
     vm::AdviceInputs,
     BlockHeader, Digest, Felt, Hasher, Word, WORD_SIZE, ZERO,

@@ -200,7 +200,7 @@ const ERR_EPILOGUE_ASSETS_DONT_ADD_UP: u32 = 131082;
 const ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH: u32 = 131083;
 const ERR_PROLOGUE_ACCT_STORAGE_MISMATCH: u32 = 131084;
 const ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH: u32 = 131085;
-const ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID: u32 = 131086;
+const ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID: u32 = 131086;
 const ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY: u32 = 131087;
 const ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE: u32 = 131088;
 const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT: u32 = 131089;
@@ -284,7 +284,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 82] = [
     (ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH, "The global inputs provided do not match the block hash commitment"),
     (ERR_PROLOGUE_ACCT_STORAGE_MISMATCH, "The account storage data does not match its commitment"),
     (ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH, "Data store in account's storage exceeds the maximum capacity of 256 elements"),
-    (ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID, "Data store in account's storage contains invalid type discriminant"),
+    (ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID, "Data store in account's storage contains invalid type discriminant"),
     (ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY, "New account must have an empty vault"),
     (ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE, "New account must have valid slot types"),
     (ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT, "Reserved slot for new fungible faucet is not empty"),

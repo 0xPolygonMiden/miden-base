@@ -22,7 +22,7 @@ const.ERR_PROLOGUE_ACCT_STORAGE_MISMATCH=0x0002000C
 const.ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH=0x0002000D
 
 # Data store in account's storage contains invalid type discriminant
-const.ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID=0x0002000E
+const.ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID=0x0002000E
 
 # New account must have an empty vault
 const.ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY=0x0002000F
@@ -271,8 +271,8 @@ proc.validate_storage_slot_types
             # => [type, ...]
 
             # assert the slot type is valid
-            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID
-            exec.account::get_max_slot_type u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID
+            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
+            exec.account::get_max_slot_type u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
             # => [...]
         end
         # => [slot_type_data_ptr]
