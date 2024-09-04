@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    accounts::Account,
+    accounts::{Account, StorageSlot, StorageSlotType},
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
     Felt, FieldElement, Word, EMPTY_WORD, ZERO,
@@ -144,12 +144,22 @@ fn add_account_to_advice_inputs(
     // --- account storage ----------------------------------------------------
     let storage = account.storage();
 
+    for slot in storage.slots() {
+        // if there are storage maps, we populate the merkle store and advice map
+        if let StorageSlot::Map(map) = slot {
+            // extend the merkle store and map with the storage maps
+            inputs.extend_merkle_store(map.inner_nodes());
+            // populate advice map with Sparse Merkle Tree leaf nodes
+            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+        }
+    }
+
     // extend advice map with storage commitment |-> storage slots
     let mut storage_slots: Vec<Felt> = vec![(storage.num_slots() as u8).into()];
-    storage_slots.append(&mut storage.as_elements());
-    inputs.extend_map([(storage.commitment(), storage_slots)]);
+    storage_slots.append(&mut storage.slots_as_elements());
 
-    // TODO: Populate merkle store with all StorageSlot::Map()
+    // extend the advice map with the storage slots
+    inputs.extend_map([(storage.commitment(), storage_slots)]);
 
     // --- account vault ------------------------------------------------------
     let vault = account.vault();

@@ -86,7 +86,7 @@ impl AccountStorage {
     /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
-    pub fn as_elements(&self) -> Vec<Felt> {
+    pub fn slots_as_elements(&self) -> Vec<Felt> {
         slots_as_elements(self.slots())
     }
 

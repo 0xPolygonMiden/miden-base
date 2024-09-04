@@ -1,11 +1,11 @@
 // STORAGE SLOT TYPE
 // ================================================================================================
 
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Word, ONE, ZERO,
+    Felt, Word, ONE, ZERO,
 };
 use vm_processor::DeserializationError;
 
@@ -24,6 +24,20 @@ impl StorageSlotType {
         match self {
             StorageSlotType::Value => [ZERO, ZERO, ZERO, ZERO],
             StorageSlotType::Map => [ONE, ZERO, ZERO, ZERO],
+        }
+    }
+}
+
+impl TryFrom<Felt> for StorageSlotType {
+    type Error = String;
+
+    fn try_from(value: Felt) -> Result<Self, Self::Error> {
+        let value = value.as_int();
+
+        match value {
+            0 => Ok(StorageSlotType::Value),
+            1 => Ok(StorageSlotType::Map),
+            _ => Err("No storage slot type exists for this field element.".to_string()),
         }
     }
 }
