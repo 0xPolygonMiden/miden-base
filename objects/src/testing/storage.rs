@@ -109,10 +109,7 @@ pub const STORAGE_LEAVES_2: [(Digest, Word); 2] = [
 ];
 
 impl AccountStorage {
-    /// Create account storage with:
-    /// Item [STORAGE_INDEX_0] = [STORAGE_VALUE_0]
-    /// Item [STORAGE_INDEX_1] = [STORAGE_VALUE_1]
-    /// Creates map with [STORAGE_INDEX_2] = Map with [STORAGE_LEAVES_2]
+    /// Create account storage:
     pub fn mock() -> Self {
         AccountStorage::new(vec![
             Self::mock_item_0().0,
