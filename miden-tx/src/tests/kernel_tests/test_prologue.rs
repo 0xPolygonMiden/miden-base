@@ -10,8 +10,9 @@ use miden_lib::transaction::{
         INPUT_NOTE_ASSETS_HASH_OFFSET, INPUT_NOTE_ASSETS_OFFSET, INPUT_NOTE_ID_OFFSET,
         INPUT_NOTE_INPUTS_HASH_OFFSET, INPUT_NOTE_METADATA_OFFSET, INPUT_NOTE_NUM_ASSETS_OFFSET,
         INPUT_NOTE_SCRIPT_ROOT_OFFSET, INPUT_NOTE_SECTION_OFFSET, INPUT_NOTE_SERIAL_NUM_OFFSET,
-        NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR, PREV_BLOCK_HASH_PTR,
-        PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR, TX_SCRIPT_ROOT_PTR,
+        KERNEL_ROOT_PTR, NOTE_ROOT_PTR, NULLIFIER_DB_ROOT_PTR, NUM_ACCT_PROCEDURES_PTR,
+        PREV_BLOCK_HASH_PTR, PROOF_HASH_PTR, PROTOCOL_VERSION_IDX, TIMESTAMP_IDX, TX_HASH_PTR,
+        TX_SCRIPT_ROOT_PTR,
     },
     TransactionKernel,
 };
@@ -165,9 +166,9 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
     );
 
     assert_eq!(
-        read_root_mem_value(process, NOTE_ROOT_PTR),
-        inputs.tx_inputs().block_header().note_root().as_elements(),
-        "The note root should be stored at the NOTE_ROOT_PTR"
+        read_root_mem_value(process, KERNEL_ROOT_PTR),
+        inputs.tx_inputs().block_header().kernel_root().as_elements(),
+        "The kernel root should be stored at the KERNEL_ROOT_PTR"
     );
 
     assert_eq!(
@@ -192,6 +193,12 @@ fn block_data_memory_assertions(process: &Process<MockHost>, inputs: &Transactio
         read_root_mem_value(process, BLOCK_METADATA_PTR)[TIMESTAMP_IDX],
         inputs.tx_inputs().block_header().timestamp().into(),
         "The timestamp should be stored at BLOCK_METADATA_PTR[TIMESTAMP_IDX]"
+    );
+
+    assert_eq!(
+        read_root_mem_value(process, NOTE_ROOT_PTR),
+        inputs.tx_inputs().block_header().note_root().as_elements(),
+        "The note root should be stored at the NOTE_ROOT_PTR"
     );
 }
 

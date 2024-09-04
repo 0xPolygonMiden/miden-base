@@ -512,6 +512,9 @@ impl MockChain {
         let tx_hash =
             compute_tx_hash(self.pending_objects.included_transactions.clone().into_iter());
 
+        // get the hash of all kernels
+        let kernel_root = TransactionKernel::kernel_root();
+
         // TODO: Set `proof_hash` to the correct value once the kernel is available.
         let proof_hash = Digest::default();
 
@@ -524,6 +527,7 @@ impl MockChain {
             nullifier_root,
             note_root,
             tx_hash,
+            kernel_root,
             proof_hash,
             timestamp,
         );

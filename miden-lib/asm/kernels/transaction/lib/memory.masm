@@ -70,14 +70,17 @@ const.NULLIFIER_ROOT_PTR=203
 # The memory address at which the tx hash is stored
 const.TX_HASH_PTR=204
 
+# The memory address at which the kernel root is stored
+const.KERNEL_ROOT_PTR=205
+
 # The memory address at which the proof hash is stored
-const.PROOF_HASH_PTR=205
+const.PROOF_HASH_PTR=206
 
 # The memory address at which the block metadata is stored [block_number, version, timestamp, 0]
-const.BLOCK_METADATA_PTR=206
+const.BLOCK_METADATA_PTR=207
 
 # The memory address at which the note root is stored
-const.NOTE_ROOT_PTR=207
+const.NOTE_ROOT_PTR=208
 
 # CHAIN MMR
 # -------------------------------------------------------------------------------------------------

@@ -14,7 +14,7 @@ pub type StorageSlot = u8;
 // | -------------     | :------------:| :-----------:|
 // | Bookkeeping       | 0             | 4            |
 // | Global inputs     | 100           | 105          |
-// | Block header      | 200           | 207          |
+// | Block header      | 200           | 208          |
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
 // | Account procedures| 999           | ?            |
@@ -97,11 +97,14 @@ pub const NULLIFIER_DB_ROOT_PTR: MemoryAddress = 203;
 /// The memory address at which the TX hash is stored
 pub const TX_HASH_PTR: MemoryAddress = 204;
 
+/// The memory address at which the kernel root is stored
+pub const KERNEL_ROOT_PTR: MemoryAddress = 205;
+
 /// The memory address at which the proof hash is stored
-pub const PROOF_HASH_PTR: MemoryAddress = 205;
+pub const PROOF_HASH_PTR: MemoryAddress = 206;
 
 /// The memory address at which the block number is stored
-pub const BLOCK_METADATA_PTR: MemoryAddress = 206;
+pub const BLOCK_METADATA_PTR: MemoryAddress = 207;
 
 /// The index of the block number within the block metadata
 pub const BLOCK_NUMBER_IDX: DataIndex = 0;
@@ -113,7 +116,7 @@ pub const PROTOCOL_VERSION_IDX: DataIndex = 1;
 pub const TIMESTAMP_IDX: DataIndex = 2;
 
 /// The memory address at which the note root is stored
-pub const NOTE_ROOT_PTR: MemoryAddress = 207;
+pub const NOTE_ROOT_PTR: MemoryAddress = 208;
 
 // CHAIN DATA
 // ------------------------------------------------------------------------------------------------

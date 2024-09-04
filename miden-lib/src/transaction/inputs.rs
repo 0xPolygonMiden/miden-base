@@ -4,8 +4,10 @@ use miden_objects::{
     accounts::Account,
     transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
     vm::AdviceInputs,
-    Felt, FieldElement, Hasher, Word, EMPTY_WORD, ZERO,
+    Felt, FieldElement, Word, EMPTY_WORD, ZERO,
 };
+
+use super::TransactionKernel;
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -19,12 +21,12 @@ use miden_objects::{
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
-    kernel_procs: (usize, Vec<Felt>),
     advice_inputs: &mut AdviceInputs,
 ) {
-    build_advice_stack(tx_inputs, tx_args.tx_script(), kernel_procs, advice_inputs);
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
 
     // build the advice map and Merkle store for relevant components
+    add_kernel_hashes_to_advice_inputs(advice_inputs);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
@@ -39,17 +41,15 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
-///     number_of_kernel_procedures,
-///     [KERNEL_PROCS_HASHES],
-///     KERNEL_HASH,
+///     KERNEL_ROOT
 ///     PREVIOUS_BLOCK_HASH,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_HASH,
+///     KERNEL_ROOT
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
-///     ZERO,
 ///     NOTE_ROOT,
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
@@ -61,29 +61,21 @@ pub(super) fn extend_advice_inputs(
 fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
-    kernel_procs: (usize, Vec<Felt>),
     inputs: &mut AdviceInputs,
 ) {
-    // compute the kernel procs hash
-    let kernel_hash = Hasher::hash_elements(&kernel_procs.1);
+    let header = tx_inputs.block_header();
 
-    // push the number of kernel procedures to the advice stack
-    inputs.extend_stack([Felt::new(kernel_procs.0 as u64)]);
-
-    // push hashes of the kernel procedures to the advice stack
-    inputs.extend_stack(kernel_procs.1);
-
-    // push the hash of the kernel to the advice stack
-    inputs.extend_stack(kernel_hash);
+    // push the accumulative hash of all kernels to the advice stack
+    inputs.extend_stack(header.kernel_root());
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
-    let header = tx_inputs.block_header();
     inputs.extend_stack(header.prev_hash());
     inputs.extend_stack(header.chain_root());
     inputs.extend_stack(header.account_root());
     inputs.extend_stack(header.nullifier_root());
     inputs.extend_stack(header.tx_hash());
+    inputs.extend_stack(header.kernel_root());
     inputs.extend_stack(header.proof_hash());
     inputs.extend_stack([
         header.block_num().into(),
@@ -91,7 +83,6 @@ fn build_advice_stack(
         header.timestamp().into(),
         ZERO,
     ]);
-    inputs.extend_stack(EMPTY_WORD);
     inputs.extend_stack(header.note_root());
 
     // push core account items onto the stack
@@ -306,4 +297,24 @@ fn add_input_notes_to_advice_inputs(
 
     // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
     inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
+}
+
+// KERNEL HASHES INJECTOR
+// ------------------------------------------------------------------------------------------------
+
+/// Inserts kernel hashes and hashes of their procedures into the provided advice inputs.
+///
+/// Inserts the following entries into the advice map:
+/// - The accumulative hash of all kernels |-> array of each kernel hash.
+/// - The hash of the kernel `i` (for every `i`) |-> array of the current kernel's procedure hashes.
+pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs) {
+    let kernel_hashes = [TransactionKernel::kernel_hash().as_elements()].concat();
+
+    // insert kernels root with kernel hashes into the advice map
+    inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
+
+    // insert kernel hash with procedure hashes into the advice map
+    // TODO: insert kernel procedures iterating over kernels
+    inputs
+        .extend_map([(TransactionKernel::kernel_hash(), TransactionKernel::procedures_as_felts())]);
 }

@@ -93,24 +93,17 @@ impl TransactionKernel {
     ) -> (StackInputs, AdviceInputs) {
         let account = tx_inputs.account();
 
-        let kernel_procs_as_felts = Digest::digests_as_elements(Self::PROCEDURES.iter())
-            .cloned()
-            .collect::<Vec<Felt>>();
-
         let stack_inputs = TransactionKernel::build_input_stack(
             account.id(),
             account.init_hash(),
             tx_inputs.input_notes().commitment(),
             tx_inputs.block_header().hash(),
+            // TODO: change the hardcoded offset to the kernel index provided by user
+            0,
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
-        inputs::extend_advice_inputs(
-            tx_inputs,
-            tx_args,
-            (Self::PROCEDURES.len(), kernel_procs_as_felts),
-            &mut advice_inputs,
-        );
+        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
 
         (stack_inputs, advice_inputs)
     }
@@ -142,6 +135,7 @@ impl TransactionKernel {
     ///     acct_id,
     ///     INITIAL_ACCOUNT_HASH,
     ///     INPUT_NOTES_COMMITMENT,
+    ///     kernel_offset
     /// ]
     /// ```
     ///
@@ -150,14 +144,18 @@ impl TransactionKernel {
     /// - acct_id, the account that the transaction is being executed against.
     /// - INITIAL_ACCOUNT_HASH, account state prior to the transaction, EMPTY_WORD for new accounts.
     /// - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
+    /// - kernel_offset, index of the desired kernel in the array of all kernels available for the
+    ///   current transaction.
     pub fn build_input_stack(
         acct_id: AccountId,
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
+        kernel_offset: u8,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
         let mut inputs: Vec<Felt> = Vec::with_capacity(13);
+        inputs.push(Felt::from(kernel_offset));
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(acct_id.into());

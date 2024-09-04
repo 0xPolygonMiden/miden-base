@@ -1,8 +1,11 @@
-use miden_objects::{Digest, Felt};
+use alloc::vec::Vec;
+
+use miden_objects::{Digest, Felt, Hasher};
 
 use super::TransactionKernel;
 
 impl TransactionKernel {
+    /// Hashes of all dynamically executed kernel procedures.
     pub const PROCEDURES: [Digest; 28] = [
         // get_account_id
         Digest::new([
@@ -201,4 +204,20 @@ impl TransactionKernel {
             Felt::new(8345006103126977916),
         ]),
     ];
+
+    pub fn procedures_as_felts() -> Vec<Felt> {
+        Digest::digests_as_elements(Self::PROCEDURES.iter())
+            .cloned()
+            .collect::<Vec<Felt>>()
+    }
+
+    /// Computes the accumulative hash of all kernel procedures.
+    pub fn kernel_hash() -> Digest {
+        Hasher::hash_elements(&Self::procedures_as_felts())
+    }
+
+    /// Computes a hash from all kernel hashes.
+    pub fn kernel_root() -> Digest {
+        Hasher::hash_elements(&[Self::kernel_hash().as_elements()].concat())
+    }
 }
