@@ -1,4 +1,7 @@
-use miden_lib::transaction::memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR};
+use miden_lib::transaction::{
+    memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
+    TransactionKernel,
+};
 use miden_objects::{
     accounts::{
         account_id::testing::{
@@ -7,13 +10,16 @@ use miden_objects::{
             ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        AccountId, AccountStorage, AccountType,
+        AccountCode, AccountId, AccountProcedureInfo, AccountStorage, AccountType,
     },
-    testing::prepare_word,
+    testing::{account::AccountBuilder, prepare_word, storage::STORAGE_LEAVES_2},
+    transaction::TransactionScript,
 };
-use vm_processor::{Felt, MemAdviceProvider};
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use vm_processor::ProcessState;
 
-use super::{StackInputs, Word, ONE, ZERO};
+use super::{Felt, MemAdviceProvider, StackInputs, Word, ONE, ZERO};
 use crate::{
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
@@ -241,147 +247,138 @@ fn test_get_item() {
 }
 
 #[test]
-fn test_set_item() {
+fn test_get_map_item() {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 
-    // insert a new value
-    let new_storage_slot_value: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
+    let storage_item = AccountStorage::mock_item_2();
+    for (key, value) in STORAGE_LEAVES_2 {
+        let code = format!(
+            "
+            use.miden::account
+            use.kernel::prologue
 
-    let code = format!(
-        "
-        use.kernel::account
-        use.kernel::memory
-        use.kernel::prologue
+            begin
+                exec.prologue::prepare_transaction
 
-        begin
-            exec.prologue::prepare_transaction
+                # get the map item
+                push.{map_key}
+                push.{item_index}
+                exec.account::get_map_item
+            end
+            ",
+            item_index = storage_item.1,
+            map_key = prepare_word(&key),
+        );
+        let process = tx_context.execute_code(&code).unwrap();
 
-            # set the storage item
-            push.{new_storage_slot_value}
-            push.{new_storage_slot_index}
-            exec.account::set_item
-
-            # assert old value was correctly returned
-            push.1.2.3.4 assert_eqw.err=111
-
-            # assert new value has been correctly set
-            debug.mem
-            push.{new_storage_slot_index}
-            exec.account::get_item
-            push.{new_storage_slot_value}
-            debug.stack
-            assert_eqw.err=112
-        end
-        ",
-        new_storage_slot_value = prepare_word(&new_storage_slot_value),
-        new_storage_slot_index = 0,
-    );
-
-    tx_context.execute_code(&code).unwrap();
+        assert_eq!(
+            value,
+            process.get_stack_word(0),
+            "get_map_item result doesn't match the expected value",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(1),
+            "The rest of the stack must be cleared",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(2),
+            "The rest of the stack must be cleared",
+        );
+        assert_eq!(
+            Word::default(),
+            process.get_stack_word(3),
+            "The rest of the stack must be cleared",
+        );
+    }
 }
 
-// // Test different account storage types
+#[test]
+fn test_get_storage_slot_type() {
+    for storage_item in [
+        AccountStorage::mock_item_0(),
+        AccountStorage::mock_item_1(),
+        AccountStorage::mock_item_2(),
+    ] {
+        let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+        let code = format!(
+            "
+            use.kernel::account
+            use.kernel::prologue
+
+            begin
+                exec.prologue::prepare_transaction
+
+                # push the account storage item index
+                push.{item_index}
+
+                # get the type of the respective storage slot
+                exec.account::get_storage_slot_type
+            end
+            ",
+            item_index = storage_item.1,
+        );
+
+        let process = tx_context.execute_code(&code).unwrap();
+
+        let storage_slot_type = storage_item.0.get_slot_type();
+
+        assert_eq!(storage_slot_type, process.get_stack_item(0).try_into().unwrap());
+        assert_eq!(process.get_stack_item(1), ZERO, "the rest of the stack is empty");
+        assert_eq!(process.get_stack_item(2), ZERO, "the rest of the stack is empty");
+        assert_eq!(process.get_stack_item(3), ZERO, "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(1), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(2), "the rest of the stack is empty");
+        assert_eq!(Word::default(), process.get_stack_word(3), "the rest of the stack is empty");
+    }
+}
+
 // #[test]
-// fn test_get_storage_data_type() {
-//     for storage_item in [
-//         AccountStorage::mock_item_0(),
-//         AccountStorage::mock_item_1(),
-//         AccountStorage::mock_item_2(),
-//     ] {
-//         let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-//
-//         let code = format!(
-//             "
-//             use.kernel::account
-//             use.kernel::prologue
-//
-//             begin
-//                 exec.prologue::prepare_transaction
-//
-//                 # push the account storage item index
-//                 push.{item_index}
-//
-//                 # get the data type of the respective storage slot
-//                 exec.account::get_storage_slot_type_info
-//             end
-//             ",
-//             item_index = storage_item.index,
-//         );
-//
-//         let process = tx_context.execute_code(&code).unwrap();
-//
-//         let storage_slot_data_type = match storage_item.slot.slot_type {
-//             StorageSlotType::Value { value_arity } => (value_arity, 0),
-//             StorageSlotType::Map { value_arity } => (value_arity, 1),
-//             StorageSlotType::Array { value_arity, depth } => (value_arity, depth),
-//         };
-//
-//         assert_eq!(
-//             process.get_stack_item(0),
-//             Felt::from(storage_slot_data_type.0),
-//             "Arity must match",
-//         );
-//         assert_eq!(
-//             process.get_stack_item(1),
-//             Felt::from(storage_slot_data_type.1),
-//             "Depth must match",
-//         );
-//         assert_eq!(process.get_stack_item(2), ZERO, "the rest of the stack is empty");
-//         assert_eq!(process.get_stack_item(3), ZERO, "the rest of the stack is empty");
-//         assert_eq!(Word::default(), process.get_stack_word(1), "the rest of the stack is empty");
-//         assert_eq!(Word::default(), process.get_stack_word(2), "the rest of the stack is empty");
-//         assert_eq!(Word::default(), process.get_stack_word(3), "the rest of the stack is empty");
-//     }
-// }
-//
-// #[test]
-// fn test_get_map_item() {
+// fn test_set_item() {
 //     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
 //
-//     let storage_item = AccountStorage::mock_item_2();
-//     for (key, value) in STORAGE_LEAVES_2 {
-//         let code = format!(
-//             "
-//             use.miden::account
-//             use.kernel::prologue
+//     let new_storage_item: Word = [Felt::new(91), Felt::new(92), Felt::new(93), Felt::new(94)];
 //
-//             begin
-//                 exec.prologue::prepare_transaction
+//     let code = format!(
+//         "
+//         use.kernel::account
+//         use.kernel::memory
+//         use.kernel::prologue
 //
-//                 # get the map item
-//                 push.{map_key}
-//                 push.{item_index}
-//                 exec.account::get_map_item
-//             end
-//             ",
-//             item_index = storage_item.index,
-//             map_key = prepare_word(&key),
-//         );
-//         let process = tx_context.execute_code(&code).unwrap();
+//         begin
+//             exec.prologue::prepare_transaction
 //
-//         assert_eq!(
-//             value,
-//             process.get_stack_word(0),
-//             "get_map_item result doesn't match the expected value",
-//         );
-//         assert_eq!(
-//             Word::default(),
-//             process.get_stack_word(1),
-//             "The rest of the stack must be cleared",
-//         );
-//         assert_eq!(
-//             Word::default(),
-//             process.get_stack_word(2),
-//             "The rest of the stack must be cleared",
-//         );
-//         assert_eq!(
-//             Word::default(),
-//             process.get_stack_word(3),
-//             "The rest of the stack must be cleared",
-//         );
-//     }
+//             # set the storage item
+//             push.{new_storage_item}
+//             push.{new_storage_item_index}
+//             exec.account::set_item
+//
+//             # assert old value was correctly returned
+//             push.1.2.3.4 assert_eqw.err=111
+//
+//             # assert new value has been correctly set
+//             debug.mem
+//             push.{new_storage_item_index}
+//             exec.account::get_item
+//             push.{new_storage_item}
+//             debug.stack
+//             assert_eqw.err=112
+//         end
+//         ",
+//         new_storage_item = prepare_word(&new_storage_item),
+//         new_storage_item_index = 0,
+//     );
+//
+//     tx_context.execute_code(&code).unwrap();
+//
+//     println!("Slots: {:?}", tx_context.account().storage().slots());
+//
+//     // assert new storage item was correctly set
+//     // assert_eq!(tx_context.account().storage().get_item(0), new_storage_item.into())
 // }
-//
+
 // #[test]
 // fn test_set_map_item() {
 //     let (new_key, new_value) = (
@@ -433,114 +430,113 @@ fn test_set_item() {
 //         "The original value stored in the map doesn't match the expected value",
 //     );
 // }
-//
-// #[test]
-// fn test_storage_offset() {
-//     // setup assembler
-//     let assembler = TransactionKernel::assembler_testing();
-//
-//     // The following code will execute the following logic that will be asserted during the test:
-//     //
-//     // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
-//     // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
-//     // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
-//     // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
-//     //
-//     // We will then assert that we are able to retrieve the correct elements from storage
-// insuring     // consistent "set" and "get" using offsets.
-//     let source_code = "
-//         use.miden::account
-//         use.kernel::memory
-//         use.std::sys
-//
-//         export.foo_write
-//             push.1.2.3.4.0
-//             exec.account::set_item
-//
-//             dropw dropw
-//         end
-//
-//         export.foo_read
-//             push.0
-//             exec.account::get_item
-//             push.1.2.3.4 eqw assert
-//
-//             dropw dropw
-//         end
-//
-//         export.bar_write
-//             push.5.6.7.8.0
-//             exec.account::set_item
-//
-//             dropw dropw
-//         end
-//
-//         export.bar_read
-//             push.0
-//             exec.account::get_item
-//             push.5.6.7.8 eqw assert
-//
-//             push.1 exec.account::incr_nonce
-//             dropw dropw
-//         end
-//     ";
-//     // Setup account
-//     let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
-//
-//     // modify procedure offsets
-//     // TODO: We manually set the offsets here because we do not have the ability to set the
-// offsets     // through MASM for now. Remove this code when we enable this functionality.
-//     let procedures_with_offsets = vec![
-//         AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
-//         AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
-//         AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
-//         AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
-//     ];
-//     let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
-//
-//     let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-//         .code(code)
-//         .nonce(Felt::ONE)
-//         .build()
-//         .unwrap();
-//
-//     // setup transaction script
-//     let tx_script_source_code = format!(
-//         "
-//     begin
-//         call.{foo_write}
-//         call.{foo_read}
-//         call.{bar_write}
-//         call.{bar_read}
-//     end
-//     ",
-//         foo_write = procedures_with_offsets[3].mast_root(),
-//         foo_read = procedures_with_offsets[2].mast_root(),
-//         bar_write = procedures_with_offsets[1].mast_root(),
-//         bar_read = procedures_with_offsets[0].mast_root(),
-//     );
-//     let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
-//     let tx_script = TransactionScript::new(tx_script_program, vec![]);
-//
-//     // setup transaction context
-//     let tx_context =
-// TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
-//
-//     // execute code in context
-//     let tx = tx_context.execute().unwrap();
-//     account.apply_delta(tx.account_delta()).unwrap();
-//
-//     // assert that elements have been set at the correct locations in storage
-//     assert_eq!(
-//         account.storage().get_item(1),
-//         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
-//     );
-//
-//     assert_eq!(
-//         account.storage().get_item(2),
-//         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
-//     );
-// }
+
+#[test]
+fn test_storage_offset() {
+    // setup assembler
+    let assembler = TransactionKernel::assembler_testing();
+
+    // The following code will execute the following logic that will be asserted during the test:
+    //
+    // 1. foo_write will set word [1, 2, 3, 4] in storage at location 1 (0 offset by 1)
+    // 2. foo_read will read word [1, 2, 3, 4] in storage from location 1 (0 offset by 1)
+    // 3. bar_write will set word [5, 6, 7, 8] in storage at location 2 (0 offset by 2)
+    // 4. bar_read will read word [5, 6, 7, 8] in storage from location 2 (0 offset by 2)
+    //
+    // We will then assert that we are able to retrieve the correct elements from storage
+    // insuring consistent "set" and "get" using offsets.
+    let source_code = "
+        use.miden::account
+        use.kernel::memory
+        use.std::sys
+
+        export.foo_write
+            push.1.2.3.4.0
+            exec.account::set_item
+
+            dropw dropw
+        end
+
+        export.foo_read
+            push.0
+            exec.account::get_item
+            push.1.2.3.4 eqw assert
+
+            dropw dropw
+        end
+
+        export.bar_write
+            push.5.6.7.8.0
+            exec.account::set_item
+
+            dropw dropw
+        end
+
+        export.bar_read
+            push.0
+            exec.account::get_item
+            push.5.6.7.8 eqw assert
+
+            push.1 exec.account::incr_nonce
+            dropw dropw
+        end
+    ";
+    // Setup account
+    let code = AccountCode::compile(source_code, assembler.clone()).unwrap();
+
+    // modify procedure offsets
+    // TODO: We manually set the offsets here because we do not have the ability to set the
+    // offsets through MASM for now. Remove this code when we enable this functionality.
+    let procedures_with_offsets = vec![
+        AccountProcedureInfo::new(*code.procedures()[0].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[1].mast_root(), 2),
+        AccountProcedureInfo::new(*code.procedures()[2].mast_root(), 1),
+        AccountProcedureInfo::new(*code.procedures()[3].mast_root(), 1),
+    ];
+    let code = AccountCode::from_parts(code.mast().clone(), procedures_with_offsets.clone());
+
+    let (mut account, _) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .code(code)
+        .nonce(ONE)
+        .build()
+        .unwrap();
+
+    // setup transaction script
+    let tx_script_source_code = format!(
+        "
+    begin
+        call.{foo_write}
+        call.{foo_read}
+        call.{bar_write}
+        call.{bar_read}
+    end
+    ",
+        foo_write = procedures_with_offsets[3].mast_root(),
+        foo_read = procedures_with_offsets[2].mast_root(),
+        bar_write = procedures_with_offsets[1].mast_root(),
+        bar_read = procedures_with_offsets[0].mast_root(),
+    );
+    let tx_script_program = assembler.assemble_program(tx_script_source_code).unwrap();
+    let tx_script = TransactionScript::new(tx_script_program, vec![]);
+
+    // setup transaction context
+    let tx_context = TransactionContextBuilder::new(account.clone()).tx_script(tx_script).build();
+
+    // execute code in context
+    let tx = tx_context.execute().unwrap();
+    account.apply_delta(tx.account_delta()).unwrap();
+
+    // assert that elements have been set at the correct locations in storage
+    assert_eq!(
+        account.storage().get_item(1),
+        [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
+    );
+
+    assert_eq!(
+        account.storage().get_item(2),
+        [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
+    );
+}
 
 // ACCOUNT VAULT TESTS
 // ================================================================================================
