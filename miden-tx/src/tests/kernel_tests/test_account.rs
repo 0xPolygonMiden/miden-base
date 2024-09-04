@@ -1,5 +1,3 @@
-use std::println;
-
 use miden_lib::transaction::{
     memory::{ACCT_CODE_COMMITMENT_PTR, ACCT_NEW_CODE_COMMITMENT_PTR},
     TransactionKernel,
@@ -19,7 +17,7 @@ use miden_objects::{
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use vm_processor::ProcessState;
+use vm_processor::{Digest, ProcessState};
 
 use super::{Felt, MemAdviceProvider, StackInputs, Word, ONE, ZERO};
 use crate::{
@@ -358,15 +356,13 @@ fn test_set_item() {
             exec.account::set_item
 
             # assert old value was correctly returned
-            push.1.2.3.4 assert_eqw.err=111
+            push.1.2.3.4 assert_eqw
 
             # assert new value has been correctly set
-            debug.mem
             push.{new_storage_item_index}
             exec.account::get_item
             push.{new_storage_item}
-            debug.stack
-            assert_eqw.err=112
+            assert_eqw
         end
         ",
         new_storage_item = prepare_word(&new_storage_item),
@@ -374,64 +370,59 @@ fn test_set_item() {
     );
 
     tx_context.execute_code(&code).unwrap();
-
-    println!("Slots: {:?}", tx_context.account().storage().slots());
-
-    // assert new storage item was correctly set
-    assert_eq!(tx_context.account().storage().get_item(0), new_storage_item.into())
 }
 
-// #[test]
-// fn test_set_map_item() {
-//     let (new_key, new_value) = (
-//         RpoDigest::new([Felt::new(109), Felt::new(110), Felt::new(111), Felt::new(112)]),
-//         [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
-//     );
-//
-//     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-//
-//     let storage_item = AccountStorage::mock_item_2();
-//
-//     let code = format!(
-//         "
-//         use.miden::account
-//         use.kernel::prologue
-//
-//         begin
-//             exec.prologue::prepare_transaction
-//
-//             # set the map item
-//             push.{new_value}
-//             push.{new_key}
-//             push.{item_index}
-//             exec.account::set_map_item
-//
-//             # double check that on storage slot is indeed the new map
-//             push.{item_index}
-//             exec.account::get_item
-//         end
-//         ",
-//         item_index = storage_item.index,
-//         new_key = prepare_word(&new_key),
-//         new_value = prepare_word(&new_value),
-//     );
-//
-//     let process = tx_context.execute_code(&code).unwrap();
-//
-//     let mut new_storage_map = AccountStorage::mock_map_2();
-//     new_storage_map.insert(new_key, new_value);
-//
-//     assert_eq!(
-//         new_storage_map.root(),
-//         RpoDigest::from(process.get_stack_word(0)),
-//         "get_item must return the new updated value",
-//     );
-//     assert_eq!(
-//         storage_item.slot.value,
-//         process.get_stack_word(1),
-//         "The original value stored in the map doesn't match the expected value",
-//     );
-// }
+#[test]
+fn test_set_map_item() {
+    let (new_key, new_value) = (
+        Digest::new([Felt::new(109), Felt::new(110), Felt::new(111), Felt::new(112)]),
+        [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
+    );
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
+
+    let storage_item = AccountStorage::mock_item_2();
+
+    let code = format!(
+        "
+        use.miden::account
+        use.kernel::prologue
+
+        begin
+            exec.prologue::prepare_transaction
+
+            # set the map item
+            push.{new_value}
+            push.{new_key}
+            push.{item_index}
+            exec.account::set_map_item
+
+            # double check that on storage slot is indeed the new map
+            push.{item_index}
+            exec.account::get_item
+        end
+        ",
+        item_index = storage_item.1,
+        new_key = prepare_word(&new_key),
+        new_value = prepare_word(&new_value),
+    );
+
+    let process = tx_context.execute_code(&code).unwrap();
+
+    let mut new_storage_map = AccountStorage::mock_map_2();
+    new_storage_map.insert(new_key, new_value);
+
+    assert_eq!(
+        new_storage_map.root(),
+        Digest::from(process.get_stack_word(0)),
+        "get_item must return the new updated value",
+    );
+    assert_eq!(
+        storage_item.0.get_value_as_word(),
+        process.get_stack_word(1),
+        "The original value stored in the map doesn't match the expected value",
+    );
+}
 
 #[test]
 fn test_storage_offset() {
