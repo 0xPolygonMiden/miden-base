@@ -37,45 +37,45 @@ impl TransactionKernel {
         ]),
         // incr_account_nonce
         Digest::new([
-            Felt::new(11251993684560653453),
-            Felt::new(5231315954748375505),
-            Felt::new(6829555386766719516),
-            Felt::new(861981902332051880),
+            Felt::new(6166980265541679115),
+            Felt::new(14180799872462142156),
+            Felt::new(2778474088493363690),
+            Felt::new(1238401418236321485),
         ]),
         // get_account_item
         Digest::new([
-            Felt::new(6804600891105189676),
-            Felt::new(16357628444217998414),
-            Felt::new(9431845352605151209),
-            Felt::new(15608374733320272356),
+            Felt::new(8242100606610843280),
+            Felt::new(12256919645951393204),
+            Felt::new(2951068718765716503),
+            Felt::new(8986453979900819291),
         ]),
         // set_account_item
         Digest::new([
-            Felt::new(16244037745099512397),
-            Felt::new(16681829146325299211),
-            Felt::new(1331329308944150161),
-            Felt::new(16938907804846009042),
+            Felt::new(7498941893890508814),
+            Felt::new(5585745677648937735),
+            Felt::new(13176054907168595727),
+            Felt::new(14561446422739981128),
         ]),
         // get_account_map_item
         Digest::new([
-            Felt::new(3623586774841825559),
-            Felt::new(3709840750311142467),
-            Felt::new(12112504263612227679),
-            Felt::new(7718484063050107365),
+            Felt::new(5940336313866490980),
+            Felt::new(9709935953040633522),
+            Felt::new(2215378650076306714),
+            Felt::new(7584412679403612847),
         ]),
         // set_account_map_item
         Digest::new([
-            Felt::new(17054146566056119736),
-            Felt::new(16675792548721351168),
-            Felt::new(17840066796402754003),
-            Felt::new(4494493169083431642),
+            Felt::new(9257525779338879284),
+            Felt::new(5994228928952574041),
+            Felt::new(3477745056362616903),
+            Felt::new(1514247258411024664),
         ]),
         // set_account_code
         Digest::new([
-            Felt::new(4526386433602912172),
-            Felt::new(15601621292843281722),
-            Felt::new(6836940574893007865),
-            Felt::new(4561881232782527243),
+            Felt::new(4083640213314520131),
+            Felt::new(11866061748990108757),
+            Felt::new(7174634238671132507),
+            Felt::new(16972174329470134023),
         ]),
         // account_vault_get_balance
         Digest::new([
@@ -93,17 +93,17 @@ impl TransactionKernel {
         ]),
         // account_vault_add_asset
         Digest::new([
-            Felt::new(2077165816463172772),
-            Felt::new(6872053568248293880),
-            Felt::new(11884643902037361372),
-            Felt::new(11504756226677395192),
+            Felt::new(441011557193836424),
+            Felt::new(14128779488787237713),
+            Felt::new(9097945909079837843),
+            Felt::new(1927790173066110370),
         ]),
         // account_vault_remove_asset
         Digest::new([
-            Felt::new(14790659034050634409),
-            Felt::new(10792738914573874947),
-            Felt::new(15240944025598720155),
-            Felt::new(12388802549660890868),
+            Felt::new(6000868439702831595),
+            Felt::new(9778474833766934115),
+            Felt::new(1146161010038681475),
+            Felt::new(1950819778618127304),
         ]),
         // get_note_assets_info
         Digest::new([
@@ -156,17 +156,17 @@ impl TransactionKernel {
         ]),
         // create_note
         Digest::new([
-            Felt::new(14929021903257629840),
-            Felt::new(8604463029064930594),
-            Felt::new(988290775185352928),
-            Felt::new(8754535948183372308),
+            Felt::new(14778603067944873506),
+            Felt::new(14071319835769664212),
+            Felt::new(13946705703761691189),
+            Felt::new(68248535266635199),
         ]),
         // add_asset_to_note
         Digest::new([
-            Felt::new(1388074421163142360),
-            Felt::new(9875906781970083545),
-            Felt::new(11032933281715356329),
-            Felt::new(6589288277095637140),
+            Felt::new(14950372948135486500),
+            Felt::new(16795936443880575519),
+            Felt::new(10590371208545379138),
+            Felt::new(3493796503081669802),
         ]),
         // get_account_vault_commitment
         Digest::new([
@@ -177,17 +177,17 @@ impl TransactionKernel {
         ]),
         // mint_asset
         Digest::new([
-            Felt::new(7447962799646185052),
-            Felt::new(2576161227455352778),
-            Felt::new(17024702477581969886),
-            Felt::new(1577277405866978216),
+            Felt::new(11833462197234963951),
+            Felt::new(521365474344899632),
+            Felt::new(12219339115593432087),
+            Felt::new(3026752009521887157),
         ]),
         // burn_asset
         Digest::new([
-            Felt::new(4798014337306650503),
-            Felt::new(9491313619529755262),
-            Felt::new(9813790657994357862),
-            Felt::new(18320657353147964360),
+            Felt::new(2613729911428583836),
+            Felt::new(3409713366391106845),
+            Felt::new(4618787175150657117),
+            Felt::new(13550289764852635265),
         ]),
         // get_fungible_faucet_total_issuance
         Digest::new([
