@@ -500,10 +500,10 @@ export.set_map_item.3
     # => [index, KEY, NEW_VALUE, ...]
 
     # check if storage type is map
-    dup exec.memory::get_acct_storage_slot_type_data u32split drop
+    dup exec.get_storage_slot_type
     # => [slot_type, index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # fails if slot_type is not 1 = map
+    # check if slot_type == map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_SETTING_MAP_ITEM_ON_NON_MAP_SLOT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
@@ -543,10 +543,10 @@ end
 #! Returns the type of the requested storage slot
 #!
 #! Stack: [index, ...]
-#! Output: [storage_slot_type, ...]
+#! Output: [slot_type, ...]
 #!
 #! - index is the location in memory of the storage slot.
-#! - storage_slot_type is the type of the storage slot.
+#! - slot_type is the type of the storage slot.
 #!
 #! Panics if
 #! - index is out of bounds
