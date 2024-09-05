@@ -4,6 +4,8 @@ use.kernel::constants
 use.kernel::memory
 use.kernel::note
 
+use.std::crypto::hashes::native
+
 # ERRORS
 # =================================================================================================
 
@@ -161,6 +163,56 @@ proc.update_account_code
     # => []
 end
 
+
+# ACCOUNT STORAGE UPDATE
+# =================================================================================================
+
+#! Updates the account storage commitment by hashing the storage slots and setting the storage
+#! commitment to the newly computed storage hash.
+#!
+#! Stack: []
+#! Output: []
+proc.update_account_storage
+    # get number of storage slots
+    exec.memory::get_num_storage_slots
+    # => [num_storage_slots]
+
+    # check if there are storage slots
+    push.0 neq
+    # => [storage_slots_is_not_empty]
+
+    # only loop and hash over storage if there are storage slots
+    if.true
+        # get num storage slots
+        exec.memory::get_num_storage_slots
+        # => [num_storage_slots]
+
+        # setup start and end ptr
+        mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
+        # => [start_ptr, end_ptr]
+
+        # pad stack to read and hash from memory
+        padw padw padw
+        # => [PAD, PAD, PAD, start_ptr, end_ptr]
+
+        # hash elements from memory
+        exec.native::hash_memory_even
+        # => [PERM, PERM, PERM, start_ptr, end_ptr]
+
+        # extract the digest
+        exec.native::state_to_digest
+        # => [DIGEST, end_ptr, end_ptr]
+
+        # clean stack
+        movup.4 drop movup.4 drop
+        # => [DIGEST]
+
+        # set new account storage hash
+        exec.memory::set_acct_storage_root
+        # => []
+    end
+end
+
 # TRANSACTION EPILOGUE PROCEDURE
 # =================================================================================================
 
@@ -179,6 +231,10 @@ end
 export.finalize_transaction
     # update account code
     exec.update_account_code
+    # => []
+
+    # update account storage
+    exec.update_account_storage
     # => []
 
     # get the initial account hash

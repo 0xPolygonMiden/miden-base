@@ -126,17 +126,13 @@ impl Deserializable for StorageSlot {
 
 #[cfg(test)]
 mod tests {
-    use std::println;
-
     use vm_core::utils::{Deserializable, Serializable};
 
     use crate::accounts::{storage::build_slots_commitment, AccountStorage};
 
     #[test]
     fn test_serde_account_storage_slot() {
-        println!("hello world");
         let storage = AccountStorage::mock();
-        println!("Storage: {:?}", storage);
         let serialized = storage.to_bytes();
         let deserialized = AccountStorage::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage)

@@ -68,9 +68,9 @@ const.STORAGE_TREE_DEPTH=8
 const.ACCOUNT_CODE_TREE_DEPTH=8
 
 # The account storage slot at which faucet data is stored.
-# Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
+# Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 # Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
-const.FAUCET_STORAGE_DATA_SLOT=254
+const.FAUCET_STORAGE_DATA_SLOT=0
 
 # The account storage slot at which the slot types commitment is stored.
 const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255

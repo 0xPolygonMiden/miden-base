@@ -239,7 +239,6 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-
     use super::{AccountStorage, Deserializable, Serializable, StorageMap, Word};
     use crate::accounts::StorageSlot;
 

@@ -202,91 +202,6 @@ end
 # ACCOUNT DATA
 # =================================================================================================
 
-#! Ingests the account storage slot type data and stores it in memory at the appropriate memory
-#! addresses.
-#!
-#! This is achieved by reading the storage type commitment from storage slot 255 and then reading
-#! the storage type data from the advice provider.
-#!
-#! Stack: []
-#! Merkle Store: { ACCT_STORAGE[slot_255] -> TYPES_COM }
-#! Advice Map: { TYPES_COM: [slot_0_type, slot_1_type, ..., slot_255_type] }
-#! Output: []
-proc.ingest_acct_storage_types
-    # get the storage slot types commitment
-    exec.account::get_slot_types_commitment_storage_slot exec.account::get_item
-    # => [TYPES_COM]
-
-    adv.push_mapval push.15683 drop             # FIX: wrap the decorator to ensure MAST uniqueness
-    # => [TYPES_COM]
-
-    # get the storage slot types data pointer
-    exec.memory::get_acct_storage_slot_type_data_ptr
-    # => [slot_type_data_ptr, TYPES_COM]
-
-    # prepare the stack for reading storage slot types
-    padw padw padw
-    # => [PERM, PERM, PERM, slot_type_data_ptr, TYPES_COM]
-
-    # read slot types and compute its digest. See `Advice Map` above for details.
-    repeat.32
-        adv_pipe hperm
-        # => [PERM, PERM, PERM, slot_type_data_ptr', TYPES_COM]
-    end
-
-    # extract the digest and drop the memory pointer
-    exec.native::state_to_digest movup.4 drop
-    # => [DIGEST, TYPES_COM]
-
-    # assert the digest matches the commitment
-    assert_eqw.err=ERR_PROLOGUE_ACCT_STORAGE_MISMATCH
-    # => []
-end
-
-#! Validates that storage slot types are well formed.
-#!
-#! This is achieved by reading the storage slot types from memory and asserting that they are
-#! well formed. Currently we only support scalar slots with an entry of maximum arity of 256.
-#!
-#! Stack: []
-#! Output: []
-proc.validate_storage_slot_types
-    # get the pointer at which the storage slot type data begins
-    exec.memory::get_acct_storage_slot_type_data_ptr
-    # => [slot_type_data_ptr]
-
-    repeat.32
-        # read the storage slot types from memory
-        padw dup.4 mem_loadw
-        # => [slot_i_type, slot_i+1_type, slot_i+2_type, slot_i+3_type, slot_type_data_ptr]
-
-        repeat.4
-            # split the type to get the slot type and entry arity
-            u32split
-            # => [arity, type, ...]
-
-            # assert the entry arity is less than or equal to 255
-            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH
-            push.255 u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH
-            # => [type, ...]
-
-            # assert the slot type is valid
-            u32split assertz.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
-            exec.account::get_max_slot_type u32lte assert.err=ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID
-            # => [...]
-        end
-        # => [slot_type_data_ptr]
-
-        # increment the slot type data pointer
-        add.1
-        # => [slot_type_data_ptr']
-    end
-
-    # drop the slot type data pointer
-    drop
-    # => []
-end
-
 #! Validates that the account the transaction is being executed against satisfies the criteria
 #! for a new account.
 #!
@@ -295,10 +210,10 @@ end
 #!
 #!
 #! Apply the following validation to the new account:
-#!   * assert that the account id is valid.
-#!   * assert that the account vault is empty.
-#!   * assert that the account nonce is set to 0.
-#!   * read the account seed from the advice provider and assert it satisfies seed requirements.
+#!   - assert that the account id is valid.
+#!   - assert that the account vault is empty.
+#!   - assert that the account nonce is set to 0.
+#!   - read the account seed from the advice provider and assert it satisfies seed requirements.
 proc.validate_new_account
     # Assert the account id of the account is valid
     exec.memory::get_acct_id exec.account::validate_id
@@ -321,25 +236,6 @@ proc.validate_new_account
     assert_eqw.err=ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY
     # => []
 
-    # Assert storage slot types are well formed
-    # ---------------------------------------------------------------------------------------------
-    # validate storage slot types
-    exec.validate_storage_slot_types
-    # => []
-
-    # Assert slot types reserved slot is correctly initialized
-    # ---------------------------------------------------------------------------------------------
-    exec.account::get_slot_types_commitment_storage_slot exec.account::get_storage_slot_type_info
-    # => [entry_arity, storage_type]
-
-    # assert the slot type is a scalar of arity 64
-    push.64
-    assert_eq.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
-    assertz.err=ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE
-    # => []
-
-    drop drop
-
     # Assert faucet reserved slot is correctly initialized
     # ---------------------------------------------------------------------------------------------
     # check if the account is a faucet
@@ -361,13 +257,12 @@ proc.validate_new_account
             or or or assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
             # => []
 
-            # get the faucet reserved storage data slot type and entry arity
-            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type_info
-            # => [entry_arity, storage_type]
+            # get the faucet reserved storage data slot type
+            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            # => [slot_type]
 
-            # assert the fungible faucet reserved slot type is a scalar of arity 0
-            assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-            assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            # assert the fungible faucet reserved slot type == value
+            exec.constants::get_storage_slot_type_value eq assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
             # => []
         else
             # assert the non-fungible faucet reserved slot is initialized correctly (root of
@@ -375,13 +270,12 @@ proc.validate_new_account
             exec.constants::get_empty_smt_root assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
             # => []
 
-            # get the faucet reserved storage data slot type and entry arity
-            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type_info
-            # => [entry_arity, storage_type]
+            # get the faucet reserved storage data slot type
+            exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type
+            # => [slot_type]
 
-            # assert the non-fungible faucet reserved slot type is a map of arity 0
-            assertz.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_NON_ZERO_RESERVED_SLOT
-            assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
+            # assert the non-fungible faucet reserved slot type == map
+            exec.constants::get_storage_slot_type_map eq assert.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_TYPE_RESERVED_SLOT
             # => []
         end
     else
@@ -546,10 +440,6 @@ proc.process_account_data
 
     # clean the stack
     movdn.8 dropw dropw
-    # => [is_new, ACCT_HASH]
-
-    # ingest storage slot type data
-    # exec.ingest_acct_storage_types
     # => [is_new, ACCT_HASH]
 
     # process conditional logic depending on whether the account is new or existing

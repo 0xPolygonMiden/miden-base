@@ -440,8 +440,6 @@ fn test_storage_offset() {
     // insuring consistent "set" and "get" using offsets.
     let source_code = "
         use.miden::account
-        use.kernel::memory
-        use.std::sys
 
         export.foo_write
             push.1.2.3.4.0
