@@ -128,10 +128,10 @@ impl TransactionKernel {
         ]),
         // get_block_number
         Digest::new([
-            Felt::new(16172105872838937242),
-            Felt::new(15451169972362006388),
-            Felt::new(10194691898988719168),
-            Felt::new(4396119213036826856),
+            Felt::new(957081505105679725),
+            Felt::new(18012382143736246386),
+            Felt::new(13337406348155951825),
+            Felt::new(4537613255382865554),
         ]),
         // get_block_hash
         Digest::new([
