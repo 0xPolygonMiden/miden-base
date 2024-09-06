@@ -1,6 +1,5 @@
-use std::println;
-
 use alloc::collections::BTreeMap;
+use std::println;
 
 use miden_lib::transaction::{
     memory::{
