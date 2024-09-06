@@ -33,6 +33,10 @@ fn test_epilogue() {
         begin
             exec.prologue::prepare_transaction
 
+            push.0 drop
+            debug.stack
+            debug.mem
+
             exec.create_mock_notes
 
             push.1
