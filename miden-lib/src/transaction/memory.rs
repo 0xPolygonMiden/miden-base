@@ -30,10 +30,7 @@ pub type StorageSlot = u8;
 /// - Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance].
 /// - Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible
 ///   assets.
-pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 254;
-
-/// The account storage slot at which the slot types commitment is stored.
-pub const SLOT_TYPES_COMMITMENT_STORAGE_SLOT: StorageSlot = 255;
+pub const FAUCET_STORAGE_DATA_SLOT: StorageSlot = 0;
 
 // BOOKKEEPING
 // ------------------------------------------------------------------------------------------------

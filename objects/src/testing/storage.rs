@@ -101,7 +101,7 @@ impl AccountStorageDeltaBuilder {
 // ACCOUNT STORAGE UTILS
 // ================================================================================================
 
-pub const FAUCET_STORAGE_DATA_SLOT: u8 = 254;
+pub const FAUCET_STORAGE_DATA_SLOT: u8 = 0;
 
 pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];

@@ -270,7 +270,7 @@ const ERR_ACCT_TOO_MANY_STORAGE_SLOTS: u32 = 131151;
 const ERR_ACCT_STORAGE_COMMITMENT_MISMATCH: u32 = 131152;
 
 pub const KERNEL_ERRORS: [(u32, &str); 82] = [
-    (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
+    (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 0 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
     (ERR_P2ID_TARGET_ACCT_MISMATCH, "P2ID's target account address and transaction address do not match"),
