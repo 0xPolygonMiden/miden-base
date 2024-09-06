@@ -33,10 +33,6 @@ fn test_epilogue() {
         begin
             exec.prologue::prepare_transaction
 
-            push.0 drop
-            debug.stack
-            debug.mem
-
             exec.create_mock_notes
 
             push.1
@@ -250,7 +246,7 @@ fn test_epilogue_increment_nonce_violation() {
 
             exec.create_mock_notes
 
-            push.1.2.3.4
+            push.91.92.93.94
             push.0
             exec.account::set_item
             dropw

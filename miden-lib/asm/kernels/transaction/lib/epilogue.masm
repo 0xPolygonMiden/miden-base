@@ -172,7 +172,7 @@ end
 #!
 #! Stack: []
 #! Output: []
-proc.update_account_storage
+export.update_account_storage
     # get number of storage slots
     exec.memory::get_num_storage_slots
     # => [num_storage_slots]
@@ -208,7 +208,7 @@ proc.update_account_storage
         # => [DIGEST]
 
         # set new account storage hash
-        exec.memory::set_acct_storage_root
+        exec.memory::set_acct_storage_root dropw
         # => []
     end
 end
