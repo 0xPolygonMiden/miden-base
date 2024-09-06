@@ -345,7 +345,7 @@ mod tests {
         let (asset_0, asset_1) = build_assets();
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta =
@@ -362,12 +362,12 @@ mod tests {
         let init_nonce = Felt::new(1);
         let (asset_0, asset_1) = build_assets();
 
-        // Simple StorageSlot
-        let word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
-        let storage_slot_value = StorageSlot::Value(word);
-
-        // StorageMap with values
-        let storage_map_leaves_2: [(Digest, Word); 2] = [
+        // build storage slots
+        let storage_slot_value_0 =
+            StorageSlot::Value([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+        let storage_slot_value_1 =
+            StorageSlot::Value([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
+        let mut storage_map = StorageMap::with_entries([
             (
                 Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
                 [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
@@ -376,19 +376,22 @@ mod tests {
                 Digest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
                 [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
             ),
-        ];
-        let mut storage_map = StorageMap::with_entries(storage_map_leaves_2).unwrap();
+        ])
+        .unwrap();
+        let storage_slot_map = StorageSlot::Map(storage_map.clone());
 
         let mut account = build_account(
             vec![asset_0],
             init_nonce,
-            vec![storage_slot_value, StorageSlot::Map(storage_map.clone())],
+            vec![storage_slot_value_0, storage_slot_value_1, storage_slot_map],
         );
 
+        // update storage map
         let new_map_entry = (
             Digest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
             [Felt::new(9_u64), Felt::new(10_u64), Felt::new(11_u64), Felt::new(12_u64)],
         );
+
         let updated_map =
             StorageMapDelta::from_iters([], [(new_map_entry.0.into(), new_map_entry.1)]);
         storage_map.insert(new_map_entry.0, new_map_entry.1);
@@ -397,8 +400,8 @@ mod tests {
         let final_nonce = Felt::new(2);
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
-            .add_updated_maps([(2_u8, updated_map)])
+            .add_updated_values([(1, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_maps([(2, updated_map)])
             .build()
             .unwrap();
         let account_delta =
@@ -412,7 +415,7 @@ mod tests {
             final_nonce,
             vec![
                 StorageSlot::Value(Word::default()),
-                StorageSlot::Value(word),
+                StorageSlot::Value([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
                 StorageSlot::Map(storage_map),
             ],
         );
@@ -433,7 +436,7 @@ mod tests {
         // build account delta
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta = build_account_delta(vec![], vec![asset], init_nonce, storage_delta);
@@ -455,7 +458,7 @@ mod tests {
         let final_nonce = Felt::new(1);
         let storage_delta = AccountStorageDeltaBuilder::default()
             .add_cleared_items([0])
-            .add_updated_items([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
+            .add_updated_values([(1_u8, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)])])
             .build()
             .unwrap();
         let account_delta = build_account_delta(vec![], vec![asset], final_nonce, storage_delta);

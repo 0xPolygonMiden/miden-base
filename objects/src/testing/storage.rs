@@ -64,7 +64,7 @@ impl AccountStorageBuilder {
 
 #[derive(Clone, Debug, Default)]
 pub struct AccountStorageDeltaBuilder {
-    slots: BTreeMap<u8, Word>,
+    values: BTreeMap<u8, Word>,
     maps: BTreeMap<u8, StorageMapDelta>,
 }
 
@@ -73,12 +73,12 @@ impl AccountStorageDeltaBuilder {
     // -------------------------------------------------------------------------------------------
 
     pub fn add_cleared_items(mut self, items: impl IntoIterator<Item = u8>) -> Self {
-        self.slots.extend(items.into_iter().map(|slot| (slot, EMPTY_WORD)));
+        self.values.extend(items.into_iter().map(|slot| (slot, EMPTY_WORD)));
         self
     }
 
-    pub fn add_updated_items(mut self, items: impl IntoIterator<Item = (u8, Word)>) -> Self {
-        self.slots.extend(items);
+    pub fn add_updated_values(mut self, items: impl IntoIterator<Item = (u8, Word)>) -> Self {
+        self.values.extend(items);
         self
     }
 
@@ -94,7 +94,7 @@ impl AccountStorageDeltaBuilder {
     // -------------------------------------------------------------------------------------------
 
     pub fn build(self) -> Result<AccountStorageDelta, AccountDeltaError> {
-        AccountStorageDelta::new(self.slots, self.maps)
+        AccountStorageDelta::new(self.values, self.maps)
     }
 }
 

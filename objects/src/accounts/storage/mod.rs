@@ -34,7 +34,6 @@ pub use map::StorageMap;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: Vec<StorageSlot>,
-    commitment: Digest,
 }
 
 impl AccountStorage {
@@ -55,10 +54,7 @@ impl AccountStorage {
             return Err(AccountError::StorageTooManySlots(len as u64));
         }
 
-        Ok(Self {
-            commitment: build_slots_commitment(&slots),
-            slots,
-        })
+        Ok(Self { slots })
     }
 
     // PUBLIC ACCESSORS
@@ -71,7 +67,7 @@ impl AccountStorage {
 
     /// Returns a commitment to this storage.
     pub fn commitment(&self) -> Digest {
-        self.commitment
+        build_slots_commitment(&self.slots)
     }
 
     /// Returns the number of storage slots contained in this storage.
@@ -119,28 +115,26 @@ impl AccountStorage {
     /// Applies the provided delta to this account storage.
     ///
     /// # Errors
-    /// Returns an error if the updates violate storage layout constraints.
+    /// Returns an error if the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // --- update storage maps --------------------------------------------
 
-        for (&slot_idx, map_delta) in delta.maps().iter() {
-            let storage_slot = self
-                .slots
-                .get_mut(slot_idx as usize)
-                .ok_or(AccountError::StorageMapNotFound(slot_idx))?;
+        for (&idx, map) in delta.maps().iter() {
+            let storage_slot =
+                self.slots.get_mut(idx as usize).ok_or(AccountError::StorageMapNotFound(idx))?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
-                _ => return Err(AccountError::StorageMapNotFound(slot_idx)),
+                _ => return Err(AccountError::StorageMapNotFound(idx)),
             };
 
-            storage_map.apply_delta(map_delta);
+            storage_map.apply_delta(map);
         }
 
         // --- update storage slots -------------------------------------------
 
-        for (&slot_idx, &slot_value) in delta.slots().iter() {
-            self.set_item(slot_idx, slot_value)?;
+        for (&idx, &value) in delta.values().iter() {
+            self.set_item(idx, value)?;
         }
 
         Ok(())
@@ -151,17 +145,18 @@ impl AccountStorage {
     /// This method should be used only to update simple value slots. For updating values
     /// in storage maps, please see [AccountStorage::set_map_item()].
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
-        let len = self.slots.len() - 1;
+        let len = self.slots.len();
 
-        if len < index as usize {
+        if index as usize >= len {
             return Err(AccountError::StorageIndexOutOfBounds(index));
         }
 
         // update the slot and return
-        let slot_value = self.slots[index as usize].clone();
-        self.slots.insert(index as usize, StorageSlot::Value(value));
+        let old_value = self.slots[index as usize].clone();
 
-        Ok(slot_value.get_value_as_word())
+        self.slots[index as usize] = StorageSlot::Value(value);
+
+        Ok(old_value.get_value_as_word())
     }
 
     /// Updates the value of a key-value pair of a storage map at the specified index.

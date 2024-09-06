@@ -442,7 +442,7 @@ fn test_empty_delta_nonce_update() {
     // storage delta
     // --------------------------------------------------------------------------------------------
     // We expect one updated item and one updated map
-    assert_eq!(executed_transaction.account_delta().storage().slots().len(), 0);
+    assert_eq!(executed_transaction.account_delta().storage().values().len(), 0);
 
     assert_eq!(executed_transaction.account_delta().storage().maps().len(), 0);
 }

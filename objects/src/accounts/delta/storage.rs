@@ -29,25 +29,25 @@ const IMMUTABLE_STORAGE_SLOT: u8 = u8::MAX;
 ///   storage slots  and the values are corresponding storage map delta objects.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AccountStorageDelta {
-    slots: BTreeMap<u8, Word>,
+    values: BTreeMap<u8, Word>,
     maps: BTreeMap<u8, StorageMapDelta>,
 }
 
 impl AccountStorageDelta {
     /// Creates a new storage delta from the provided fields.
     pub fn new(
-        slots: BTreeMap<u8, Word>,
+        values: BTreeMap<u8, Word>,
         maps: BTreeMap<u8, StorageMapDelta>,
     ) -> Result<Self, AccountDeltaError> {
-        let result = Self { slots, maps };
+        let result = Self { values, maps };
         result.validate()?;
 
         Ok(result)
     }
 
-    /// Returns a reference to the updated slots in this storage delta.
-    pub fn slots(&self) -> &BTreeMap<u8, Word> {
-        &self.slots
+    /// Returns a reference to the updated values in this storage delta.
+    pub fn values(&self) -> &BTreeMap<u8, Word> {
+        &self.values
     }
 
     /// Returns a reference to the updated maps in this storage delta.
@@ -57,12 +57,12 @@ impl AccountStorageDelta {
 
     /// Returns true if storage delta contains no updates.
     pub fn is_empty(&self) -> bool {
-        self.slots.is_empty() && self.maps.is_empty()
+        self.values.is_empty() && self.maps.is_empty()
     }
 
     /// Tracks a slot change
     pub fn set_item(&mut self, slot_index: u8, new_slot_value: Word) {
-        self.slots.insert(slot_index, new_slot_value);
+        self.values.insert(slot_index, new_slot_value);
     }
 
     /// Tracks a map item change
@@ -72,7 +72,7 @@ impl AccountStorageDelta {
 
     /// Merges another delta into this one, overwriting any existing values.
     pub fn merge(&mut self, other: Self) -> Result<(), AccountDeltaError> {
-        self.slots.extend(other.slots);
+        self.values.extend(other.values);
 
         // merge maps
         for (slot, update) in other.maps.into_iter() {
@@ -94,14 +94,14 @@ impl AccountStorageDelta {
     /// - Any of updated items are at slot 255 (i.e., immutable slot).
     /// - Any of the updated slot is referenced from both maps (e.g., updated twice).
     fn validate(&self) -> Result<(), AccountDeltaError> {
-        if self.slots.contains_key(&IMMUTABLE_STORAGE_SLOT)
+        if self.values.contains_key(&IMMUTABLE_STORAGE_SLOT)
             || self.maps.contains_key(&IMMUTABLE_STORAGE_SLOT)
         {
             return Err(AccountDeltaError::ImmutableStorageSlot(IMMUTABLE_STORAGE_SLOT as usize));
         }
 
         for slot in self.maps.keys() {
-            if self.slots.contains_key(slot) {
+            if self.values.contains_key(slot) {
                 return Err(AccountDeltaError::DuplicateStorageItemUpdate(*slot as usize));
             }
         }
@@ -115,12 +115,12 @@ impl AccountStorageDelta {
     /// Creates an [AccountStorageDelta] from the given iterators.
     pub fn from_iters(
         cleared_items: impl IntoIterator<Item = u8>,
-        updated_items: impl IntoIterator<Item = (u8, Word)>,
+        updated_values: impl IntoIterator<Item = (u8, Word)>,
         updated_maps: impl IntoIterator<Item = (u8, StorageMapDelta)>,
     ) -> Self {
         Self {
-            slots: BTreeMap::from_iter(
-                cleared_items.into_iter().map(|key| (key, EMPTY_WORD)).chain(updated_items),
+            values: BTreeMap::from_iter(
+                cleared_items.into_iter().map(|key| (key, EMPTY_WORD)).chain(updated_values),
             ),
             maps: BTreeMap::from_iter(updated_maps),
         }
@@ -130,13 +130,13 @@ impl AccountStorageDelta {
 impl Serializable for AccountStorageDelta {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         let cleared: Vec<u8> = self
-            .slots
+            .values
             .iter()
             .filter(|&(_, value)| (value == &EMPTY_WORD))
             .map(|(slot, _)| *slot)
             .collect();
         let updated: Vec<_> =
-            self.slots.iter().filter(|&(_, value)| value != &EMPTY_WORD).collect();
+            self.values.iter().filter(|&(_, value)| value != &EMPTY_WORD).collect();
 
         target.write_u8(cleared.len() as u8);
         target.write_many(cleared.iter());
@@ -151,24 +151,24 @@ impl Serializable for AccountStorageDelta {
 
 impl Deserializable for AccountStorageDelta {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let mut slots = BTreeMap::new();
+        let mut values = BTreeMap::new();
 
         let num_cleared_items = source.read_u8()? as usize;
         for _ in 0..num_cleared_items {
             let cleared_slot = source.read_u8()?;
-            slots.insert(cleared_slot, EMPTY_WORD);
+            values.insert(cleared_slot, EMPTY_WORD);
         }
 
         let num_updated_items = source.read_u8()? as usize;
         for _ in 0..num_updated_items {
             let (updated_slot, updated_value) = source.read()?;
-            slots.insert(updated_slot, updated_value);
+            values.insert(updated_slot, updated_value);
         }
 
         let num_maps = source.read_u8()? as usize;
         let maps = source.read_many::<(u8, StorageMapDelta)>(num_maps)?.into_iter().collect();
 
-        Self::new(slots, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+        Self::new(values, maps).map_err(|err| DeserializationError::InvalidValue(err.to_string()))
     }
 }
 
@@ -406,7 +406,7 @@ mod tests {
 
             AccountStorageDeltaBuilder::default()
                 .add_cleared_items(item.is_none().then_some(SLOT))
-                .add_updated_items(item)
+                .add_updated_values(item)
                 .build()
                 .unwrap()
         }
