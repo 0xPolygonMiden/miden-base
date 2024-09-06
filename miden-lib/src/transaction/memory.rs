@@ -18,7 +18,7 @@ pub type StorageSlot = u8;
 // | Chain MMR         | 300           | 332?         |
 // | Account data      | 400           | 651?         |
 // | Account storage   | 499           | ?            |
-// | Account procedures| 999           | ?            |
+// | Account procedures| 1499          | ?            |
 // | Input notes       | 1_048_576     | ?            |
 // | Output notes      | 4_194_304     | ?            |
 
@@ -195,10 +195,10 @@ pub const NUM_STORAGE_SLOTS_PTR: MemoryAddress = 499;
 pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 500;
 
 /// The memory address at which the number of procedures contained in the account code is stored
-pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 999;
+pub const NUM_ACCT_PROCEDURES_PTR: MemoryAddress = 1499;
 
 /// The memory address at which the account procedures section begins.
-pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1000;
+pub const ACCT_PROCEDURES_SECTION_OFFSET: MemoryAddress = 1500;
 
 // NOTES DATA
 // ================================================================================================

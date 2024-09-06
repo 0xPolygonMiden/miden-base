@@ -395,7 +395,7 @@ end
 #! - VALUE is the value of the item.
 export.get_item
     # check that index is in bounds
-    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    dup exec.get_max_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [index, V']
 
     # get account storage slots section offset

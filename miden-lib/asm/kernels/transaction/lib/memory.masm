@@ -127,10 +127,10 @@ const.NUM_ACCT_STORAGE_SLOTS_PTR=499
 const.ACCT_STORAGE_SLOTS_SECTION_OFFSET=500
 
 # The memory address at which the number of procedures contained in the account code is stored
-const.NUM_ACCT_PROCEDURES_PTR=999
+const.NUM_ACCT_PROCEDURES_PTR=1499
 
 # The memory address at which the account procedures section begins
-const.ACCT_PROCEDURES_SECTION_OFFSET=1000
+const.ACCT_PROCEDURES_SECTION_OFFSET=1500
 
 # INPUT NOTES DATA
 # -------------------------------------------------------------------------------------------------
