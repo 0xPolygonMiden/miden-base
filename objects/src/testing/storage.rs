@@ -33,11 +33,9 @@ impl AccountStorageBuilder {
     pub fn new() -> Self {
         Self {
             slots: vec![
-                AccountStorage::mock_item_0().0,
-                AccountStorage::mock_item_0().0,
-                AccountStorage::mock_item_1().0,
-                AccountStorage::mock_item_1().0,
                 AccountStorage::mock_item_2().0,
+                AccountStorage::mock_item_0().0,
+                AccountStorage::mock_item_1().0,
             ],
         }
     }

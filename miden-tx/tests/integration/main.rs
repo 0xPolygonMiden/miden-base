@@ -76,7 +76,13 @@ pub fn get_account_with_default_account_code(
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
     let account_code = AccountCode::compile(account_code_src, assembler).unwrap();
-    let account_storage = AccountStorage::new(vec![StorageSlot::Value(public_key)]).unwrap();
+    let account_storage = AccountStorage::new(vec![
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(Word::default()),
+        StorageSlot::Value(public_key),
+    ])
+    .unwrap();
 
     let account_vault = match assets {
         Some(asset) => AssetVault::new(&[asset]).unwrap(),

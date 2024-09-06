@@ -9,7 +9,7 @@ use miden_objects::{
     assets::{Asset, AssetVault, FungibleAsset},
     notes::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     testing::prepare_word,
-    Felt, Word,
+    Felt, Word, ZERO,
 };
 use miden_tx::{testing::TransactionContextBuilder, TransactionExecutor};
 
@@ -239,20 +239,22 @@ fn get_faucet_account_with_max_supply_and_total_issuance(
     let assembler = TransactionKernel::assembler();
     let faucet_account_code = AccountCode::compile(FUNGIBLE_FAUCET_SOURCE, assembler).unwrap();
 
-    let faucet_storage_slot_1 = [Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)];
-    let mut faucet_account_storage = AccountStorage::new(vec![
-        StorageSlot::Value(public_key),
-        StorageSlot::Value(faucet_storage_slot_1),
+    let faucet_storage_slot_0 = match total_issuance {
+        Some(issuance) => StorageSlot::Value([ZERO, ZERO, ZERO, Felt::new(issuance)]),
+        None => StorageSlot::Value(Word::default()),
+    };
+    let faucet_storage_slot_1 =
+        StorageSlot::Value([Felt::new(max_supply), Felt::new(0), Felt::new(0), Felt::new(0)]);
+    let faucet_storage_slot_2 =
+        StorageSlot::Value([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(0)]);
+    let faucet_storage_slot_3 = StorageSlot::Value(public_key);
+    let faucet_account_storage = AccountStorage::new(vec![
+        faucet_storage_slot_0,
+        faucet_storage_slot_1,
+        faucet_storage_slot_2,
+        faucet_storage_slot_3,
     ])
     .unwrap();
-
-    if total_issuance.is_some() {
-        let faucet_storage_slot_254 =
-            [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(total_issuance.unwrap())];
-        faucet_account_storage
-            .set_item(FAUCET_STORAGE_DATA_SLOT, faucet_storage_slot_254)
-            .unwrap();
-    };
 
     Account::from_parts(
         faucet_account_id,
