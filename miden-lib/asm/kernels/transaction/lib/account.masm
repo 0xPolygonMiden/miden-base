@@ -61,12 +61,6 @@ const.FAUCET_ACCOUNT=536870912 # 0b00100000_00000000_00000000_00000000
 # Specifies a minimum number of ones for a valid account ID.
 const.MIN_ACCOUNT_ONES=5
 
-# The depth of the account storage Sparse Merkle Tree
-const.STORAGE_TREE_DEPTH=8
-
-# The depth of the account code tree
-const.ACCOUNT_CODE_TREE_DEPTH=8
-
 # The account storage slot at which faucet data is stored.
 # Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 # Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.

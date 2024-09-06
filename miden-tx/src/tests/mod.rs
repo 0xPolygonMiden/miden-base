@@ -1,11 +1,14 @@
-use alloc::{rc::Rc, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, rc::Rc, string::String, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
-    accounts::account_id::testing::{
-        ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+    accounts::{
+        account_id::testing::{
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
+            ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
+            ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN,
+        },
+        AccountCode,
     },
     assets::{Asset, FungibleAsset},
     notes::{
@@ -15,11 +18,13 @@ use miden_objects::{
     testing::{
         account_code::{
             ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT, ACCOUNT_INCR_NONCE_MAST_ROOT,
-            ACCOUNT_REMOVE_ASSET_MAST_ROOT,
+            ACCOUNT_REMOVE_ASSET_MAST_ROOT, ACCOUNT_SET_CODE_MAST_ROOT, ACCOUNT_SET_ITEM_MAST_ROOT,
+            ACCOUNT_SET_MAP_ITEM_MAST_ROOT,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
         notes::DEFAULT_NOTE_CODE,
         prepare_word,
+        storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{ProvenTransaction, TransactionArgs, TransactionScript},
     Felt, Word, MIN_PROOF_SECURITY_LEVEL,
@@ -99,297 +104,294 @@ fn transaction_executor_witness() {
     assert_eq!(executed_transaction.output_notes(), &tx_outputs.output_notes);
 }
 
-// #[test]
-// fn executed_transaction_account_delta() {
-//     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-//         .with_mock_notes_preserved_with_account_vault_delta()
-//         .build();
-//
-//     let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(),
-// None);     let account_id = tx_context.tx_inputs().account().id();
-//
-//     let new_acct_code_src = "\
-//     export.account_proc_1
-//         push.9.9.9.9
-//         dropw
-//     end
-//     ";
-//     let new_acct_code =
-//         AccountCode::compile(new_acct_code_src, TransactionKernel::assembler_testing()).unwrap();
-//
-//     // updated storage
-//     let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
-//
-//     // updated storage map
-//     let updated_map_key = [Felt::new(14), Felt::new(15), Felt::new(16), Felt::new(17)];
-//     let updated_map_value = [Felt::new(18), Felt::new(19), Felt::new(20), Felt::new(21)];
-//
-//     // removed assets
-//     let removed_asset_1 = Asset::Fungible(
-//         FungibleAsset::new(
-//             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
-//             FUNGIBLE_ASSET_AMOUNT / 2,
-//         )
-//         .expect("asset is valid"),
-//     );
-//     let removed_asset_2 = Asset::Fungible(
-//         FungibleAsset::new(
-//             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
-//             FUNGIBLE_ASSET_AMOUNT,
-//         )
-//         .expect("asset is valid"),
-//     );
-//     let removed_asset_3 =
-//         Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-// &NON_FUNGIBLE_ASSET_DATA);     let removed_assets = [removed_asset_1, removed_asset_2,
-// removed_asset_3];
-//
-//     let tag1 = NoteTag::from_account_id(
-//         ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
-//         NoteExecutionMode::Local,
-//     )
-//     .unwrap();
-//     let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
-//     let tag3 = NoteTag::for_local_use_case(0, 0).unwrap();
-//
-//     let aux1 = Felt::new(27);
-//     let aux2 = Felt::new(28);
-//     let aux3 = Felt::new(29);
-//
-//     let note_type1 = NoteType::Private;
-//     let note_type2 = NoteType::Private;
-//     let note_type3 = NoteType::Private;
-//
-//     assert_eq!(tag1.validate(note_type1), Ok(tag1));
-//     assert_eq!(tag2.validate(note_type2), Ok(tag2));
-//     assert_eq!(tag3.validate(note_type3), Ok(tag3));
-//
-//     let tx_script_src = format!(
-//         "\
-//         use.miden::account
-//
-//         ## ACCOUNT PROCEDURE WRAPPERS
-//         ##
-// ========================================================================================
-//         #TODO: Move this into an account library
-//         proc.set_item
-//             push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
-//             # => [index, V', 0, 0, 0]
-//
-//             call.{ACCOUNT_SET_ITEM_MAST_ROOT}
-//             # => [R', V]
-//         end
-//
-//         proc.set_map_item
-//             #push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
-//             # => [index, KEY, VALUE, 0, 0, 0]
-//
-//             call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
-//             # => [R', V]
-//         end
-//
-//         proc.set_code
-//             call.{ACCOUNT_SET_CODE_MAST_ROOT}
-//             # => [0, 0, 0, 0]
-//
-//             dropw
-//             # => []
-//         end
-//
-//         proc.incr_nonce
-//             call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
-//             # => [0]
-//
-//             drop
-//             # => []
-//         end
-//
-//         ## TRANSACTION SCRIPT
-//         ##
-// ========================================================================================
-//         begin
-//             ## Update account storage item
-//             ##
-// ------------------------------------------------------------------------------------
-// # push a new value for the storage slot onto the stack             push.{UPDATED_SLOT_VALUE}
-//             # => [13, 11, 9, 7]
-//
-//             # get the index of account storage slot
-//             push.{STORAGE_INDEX_0}
-//             # => [idx, 13, 11, 9, 7]
-//
-//             # update the storage value
-//             exec.set_item dropw dropw
-//             # => []
-//
-//             ## Update account storage map
-//             ##
-// ------------------------------------------------------------------------------------
-// # push a new VALUE for the storage map onto the stack             push.{UPDATED_MAP_VALUE}
-//             # => [18, 19, 20, 21]
-//
-//             # push a new KEY for the storage map onto the stack
-//             push.{UPDATED_MAP_KEY}
-//             # => [14, 15, 16, 17, 18, 19, 20, 21]
-//
-//             # get the index of account storage slot
-//             push.{STORAGE_INDEX_2}
-//             # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
-//
-//             # update the storage value
-//             exec.set_map_item dropw dropw dropw
-//             # => []
-//
-//             ## Send some assets from the account vault
-//             ##
-// ------------------------------------------------------------------------------------
-// # partially deplete fungible asset balance             push.0.1.2.3            # recipient
-//             push.{EXECUTION_HINT_1} # note_execution_hint
-//             push.{NOTETYPE1}        # note_type
-//             push.{aux1}             # aux
-//             push.{tag1}             # tag
-//             push.{REMOVED_ASSET_1}  # asset
-//             # => [ASSET, tag, aux, note_type, RECIPIENT]
-//
-//             call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-//             # => []
-//
-//             # totally deplete fungible asset balance
-//             push.0.1.2.3            # recipient
-//             push.{EXECUTION_HINT_2} # note_execution_hint
-//             push.{NOTETYPE2}        # note_type
-//             push.{aux2}             # aux
-//             push.{tag2}             # tag
-//             push.{REMOVED_ASSET_2}  # asset
-//             # => [ASSET, tag, aux, note_type, RECIPIENT]
-//
-//             call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-//             # => []
-//
-//             # send non-fungible asset
-//             push.0.1.2.3            # recipient
-//             push.{EXECUTION_HINT_3} # note_execution_hint
-//             push.{NOTETYPE3}        # note_type
-//             push.{aux3}             # aux
-//             push.{tag3}             # tag
-//             push.{REMOVED_ASSET_3}  # asset
-//             # => [ASSET, tag, aux, note_type, RECIPIENT]
-//
-//             call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
-//             # => []
-//
-//             ## Update account code
-//             ##
-// ------------------------------------------------------------------------------------
-// push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw             # => []
-//
-//             ## Update the account nonce
-//             ##
-// ------------------------------------------------------------------------------------
-// push.1 exec.incr_nonce drop             # => []
-//         end
-//     ",
-//         NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
-//         UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
-//         UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
-//         UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
-//         REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
-//         REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
-//         REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
-//         NOTETYPE1 = note_type1 as u8,
-//         NOTETYPE2 = note_type2 as u8,
-//         NOTETYPE3 = note_type3 as u8,
-//         EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
-//         EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
-//         EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
-//     );
-//
-//     let tx_script =
-//         TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
-//             .unwrap();
-//     let tx_args = TransactionArgs::new(
-//         Some(tx_script),
-//         None,
-//         tx_context.tx_args().advice_inputs().clone().map,
-//     );
-//
-//     let block_ref = tx_context.tx_inputs().block_header().block_num();
-//     let note_ids = tx_context
-//         .tx_inputs()
-//         .input_notes()
-//         .iter()
-//         .map(|note| note.id())
-//         .collect::<Vec<_>>();
-//
-//     // expected delta
-//     // --------------------------------------------------------------------------------------------
-//     // execute the transaction and get the witness
-//     let executed_transaction =
-//         executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
-//
-//     // nonce delta
-//     // --------------------------------------------------------------------------------------------
-//     assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
-//
-//     // storage delta
-//     // --------------------------------------------------------------------------------------------
-//     // We expect one updated item and one updated map
-//     assert_eq!(executed_transaction.account_delta().storage().slots().len(), 1);
-//     assert_eq!(
-//         executed_transaction.account_delta().storage().slots().get(&STORAGE_INDEX_0),
-//         Some(&updated_slot_value)
-//     );
-//
-//     assert_eq!(executed_transaction.account_delta().storage().maps().len(), 1);
-//     assert_eq!(
-//         executed_transaction
-//             .account_delta()
-//             .storage()
-//             .maps()
-//             .get(&STORAGE_INDEX_2)
-//             .unwrap()
-//             .leaves(),
-//         &Some((updated_map_key.into(), updated_map_value))
-//             .into_iter()
-//             .collect::<BTreeMap<Digest, _>>()
-//     );
-//
-//     // vault delta
-//     // --------------------------------------------------------------------------------------------
-//     // assert that added assets are tracked
-//     let added_assets = tx_context
-//         .tx_inputs()
-//         .input_notes()
-//         .iter()
-//         .find(|n| n.note().assets().num_assets() == 3)
-//         .unwrap()
-//         .note()
-//         .assets()
-//         .iter()
-//         .cloned()
-//         .collect::<Vec<_>>();
-//
-//     assert!(executed_transaction
-//         .account_delta()
-//         .vault()
-//         .added_assets()
-//         .all(|x| added_assets.contains(&x)));
-//     assert_eq!(
-//         added_assets.len(),
-//         executed_transaction.account_delta().vault().added_assets().count()
-//     );
-//
-//     // assert that removed assets are tracked
-//     assert!(executed_transaction
-//         .account_delta()
-//         .vault()
-//         .removed_assets()
-//         .all(|x| removed_assets.contains(&x)));
-//     assert_eq!(
-//         removed_assets.len(),
-//         executed_transaction.account_delta().vault().removed_assets().count()
-//     );
-// }
+#[test]
+fn executed_transaction_account_delta() {
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved_with_account_vault_delta()
+        .build();
+
+    let executor: TransactionExecutor<_, ()> = TransactionExecutor::new(tx_context.clone(), None);
+    let account_id = tx_context.tx_inputs().account().id();
+
+    let new_acct_code_src = "\
+    export.account_proc_1
+        push.9.9.9.9
+        dropw
+    end
+    ";
+    let new_acct_code =
+        AccountCode::compile(new_acct_code_src, TransactionKernel::assembler_testing()).unwrap();
+
+    // updated storage
+    let updated_slot_value = [Felt::new(7), Felt::new(9), Felt::new(11), Felt::new(13)];
+
+    // updated storage map
+    let updated_map_key = [Felt::new(14), Felt::new(15), Felt::new(16), Felt::new(17)];
+    let updated_map_value = [Felt::new(18), Felt::new(19), Felt::new(20), Felt::new(21)];
+
+    // removed assets
+    let removed_asset_1 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT / 2,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_2 = Asset::Fungible(
+        FungibleAsset::new(
+            ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2.try_into().expect("id is valid"),
+            FUNGIBLE_ASSET_AMOUNT,
+        )
+        .expect("asset is valid"),
+    );
+    let removed_asset_3 =
+        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA);
+    let removed_assets = [removed_asset_1, removed_asset_2, removed_asset_3];
+
+    let tag1 = NoteTag::from_account_id(
+        ACCOUNT_ID_REGULAR_ACCOUNT_IMMUTABLE_CODE_ON_CHAIN.try_into().unwrap(),
+        NoteExecutionMode::Local,
+    )
+    .unwrap();
+    let tag2 = NoteTag::for_local_use_case(0, 0).unwrap();
+    let tag3 = NoteTag::for_local_use_case(0, 0).unwrap();
+
+    let aux1 = Felt::new(27);
+    let aux2 = Felt::new(28);
+    let aux3 = Felt::new(29);
+
+    let note_type1 = NoteType::Private;
+    let note_type2 = NoteType::Private;
+    let note_type3 = NoteType::Private;
+
+    assert_eq!(tag1.validate(note_type1), Ok(tag1));
+    assert_eq!(tag2.validate(note_type2), Ok(tag2));
+    assert_eq!(tag3.validate(note_type3), Ok(tag3));
+
+    let tx_script_src = format!(
+        "\
+        use.miden::account
+
+        ## ACCOUNT PROCEDURE WRAPPERS
+        ## ========================================================================================
+        #TODO: Move this into an account library
+        proc.set_item
+            push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
+            # => [index, V', 0, 0, 0]
+
+            call.{ACCOUNT_SET_ITEM_MAST_ROOT}
+            # => [R', V]
+        end
+
+        proc.set_map_item
+            #push.0 movdn.9 push.0 movdn.9 push.0 movdn.9
+            # => [index, KEY, VALUE, 0, 0, 0]
+
+            call.{ACCOUNT_SET_MAP_ITEM_MAST_ROOT}
+            # => [R', V]
+        end
+
+        proc.set_code
+            call.{ACCOUNT_SET_CODE_MAST_ROOT}
+            # => [0, 0, 0, 0]
+
+            dropw
+            # => []
+        end
+
+        proc.incr_nonce
+            call.{ACCOUNT_INCR_NONCE_MAST_ROOT}
+            # => [0]
+
+            drop
+            # => []
+        end
+
+        ## TRANSACTION SCRIPT
+        ## ========================================================================================
+        begin
+            ## Update account storage item
+            ## ------------------------------------------------------------------------------------
+            # push a new value for the storage slot onto the stack
+            push.{UPDATED_SLOT_VALUE}
+            # => [13, 11, 9, 7]
+
+            # get the index of account storage slot
+            push.{STORAGE_INDEX_0}
+            # => [idx, 13, 11, 9, 7]
+
+            # update the storage value
+            exec.set_item dropw dropw
+            # => []
+
+            ## Update account storage map
+            ## ------------------------------------------------------------------------------------
+            # push a new VALUE for the storage map onto the stack
+            push.{UPDATED_MAP_VALUE}
+            # => [18, 19, 20, 21]
+
+            # push a new KEY for the storage map onto the stack
+            push.{UPDATED_MAP_KEY}
+            # => [14, 15, 16, 17, 18, 19, 20, 21]
+
+            # get the index of account storage slot
+            push.{STORAGE_INDEX_2}
+            # => [idx, 14, 15, 16, 17, 18, 19, 20, 21]
+
+            # update the storage value
+            exec.set_map_item dropw dropw dropw
+            # => []
+
+            ## Send some assets from the account vault
+            ## ------------------------------------------------------------------------------------
+            # partially deplete fungible asset balance
+            push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_1} # note_execution_hint
+            push.{NOTETYPE1}        # note_type
+            push.{aux1}             # aux
+            push.{tag1}             # tag
+            push.{REMOVED_ASSET_1}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
+            # => []
+
+            # totally deplete fungible asset balance
+            push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_2} # note_execution_hint
+            push.{NOTETYPE2}        # note_type
+            push.{aux2}             # aux
+            push.{tag2}             # tag
+            push.{REMOVED_ASSET_2}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
+            # => []
+
+            # send non-fungible asset
+            push.0.1.2.3            # recipient
+            push.{EXECUTION_HINT_3} # note_execution_hint
+            push.{NOTETYPE3}        # note_type
+            push.{aux3}             # aux
+            push.{tag3}             # tag
+            push.{REMOVED_ASSET_3}  # asset
+            # => [ASSET, tag, aux, note_type, RECIPIENT]
+
+            call.::miden::contracts::wallets::basic::send_asset dropw dropw dropw dropw
+            # => []
+
+            ## Update account code
+            ## ------------------------------------------------------------------------------------
+            push.{NEW_ACCOUNT_COMMITMENT} exec.set_code dropw
+            # => []
+
+            ## Update the account nonce
+            ## ------------------------------------------------------------------------------------
+            push.1 exec.incr_nonce drop
+            # => []
+        end
+    ",
+        NEW_ACCOUNT_COMMITMENT = prepare_word(&new_acct_code.commitment()),
+        UPDATED_SLOT_VALUE = prepare_word(&Word::from(updated_slot_value)),
+        UPDATED_MAP_VALUE = prepare_word(&Word::from(updated_map_value)),
+        UPDATED_MAP_KEY = prepare_word(&Word::from(updated_map_key)),
+        REMOVED_ASSET_1 = prepare_word(&Word::from(removed_asset_1)),
+        REMOVED_ASSET_2 = prepare_word(&Word::from(removed_asset_2)),
+        REMOVED_ASSET_3 = prepare_word(&Word::from(removed_asset_3)),
+        NOTETYPE1 = note_type1 as u8,
+        NOTETYPE2 = note_type2 as u8,
+        NOTETYPE3 = note_type3 as u8,
+        EXECUTION_HINT_1 = Felt::from(NoteExecutionHint::always()),
+        EXECUTION_HINT_2 = Felt::from(NoteExecutionHint::none()),
+        EXECUTION_HINT_3 = Felt::from(NoteExecutionHint::on_block_slot(1, 1, 1)),
+    );
+
+    let tx_script =
+        TransactionScript::compile(tx_script_src, [], TransactionKernel::assembler_testing())
+            .unwrap();
+    let tx_args = TransactionArgs::new(
+        Some(tx_script),
+        None,
+        tx_context.tx_args().advice_inputs().clone().map,
+    );
+
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let note_ids = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .map(|note| note.id())
+        .collect::<Vec<_>>();
+
+    // expected delta
+    // --------------------------------------------------------------------------------------------
+    // execute the transaction and get the witness
+    let executed_transaction =
+        executor.execute_transaction(account_id, block_ref, &note_ids, tx_args).unwrap();
+
+    // nonce delta
+    // --------------------------------------------------------------------------------------------
+    assert_eq!(executed_transaction.account_delta().nonce(), Some(Felt::new(2)));
+
+    // storage delta
+    // --------------------------------------------------------------------------------------------
+    // We expect one updated item and one updated map
+    assert_eq!(executed_transaction.account_delta().storage().values().len(), 1);
+    assert_eq!(
+        executed_transaction.account_delta().storage().values().get(&STORAGE_INDEX_0),
+        Some(&updated_slot_value)
+    );
+
+    assert_eq!(executed_transaction.account_delta().storage().maps().len(), 1);
+    assert_eq!(
+        executed_transaction
+            .account_delta()
+            .storage()
+            .maps()
+            .get(&STORAGE_INDEX_2)
+            .unwrap()
+            .leaves(),
+        &Some((updated_map_key.into(), updated_map_value))
+            .into_iter()
+            .collect::<BTreeMap<Digest, _>>()
+    );
+
+    // vault delta
+    // --------------------------------------------------------------------------------------------
+    // assert that added assets are tracked
+    let added_assets = tx_context
+        .tx_inputs()
+        .input_notes()
+        .iter()
+        .find(|n| n.note().assets().num_assets() == 3)
+        .unwrap()
+        .note()
+        .assets()
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+
+    assert!(executed_transaction
+        .account_delta()
+        .vault()
+        .added_assets()
+        .all(|x| added_assets.contains(&x)));
+    assert_eq!(
+        added_assets.len(),
+        executed_transaction.account_delta().vault().added_assets().count()
+    );
+
+    // assert that removed assets are tracked
+    assert!(executed_transaction
+        .account_delta()
+        .vault()
+        .removed_assets()
+        .all(|x| removed_assets.contains(&x)));
+    assert_eq!(
+        removed_assets.len(),
+        executed_transaction.account_delta().vault().removed_assets().count()
+    );
+}
 
 #[test]
 fn test_empty_delta_nonce_update() {

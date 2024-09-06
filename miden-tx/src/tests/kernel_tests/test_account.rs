@@ -238,8 +238,8 @@ fn test_get_item() {
                 assert_eqw
             end
             ",
-            item_index = storage_item.1,
-            item_value = prepare_word(&storage_item.0.get_value_as_word())
+            item_index = storage_item.index,
+            item_value = prepare_word(&storage_item.slot.get_value_as_word())
         );
 
         tx_context.execute_code(&code).unwrap();
@@ -266,7 +266,7 @@ fn test_get_map_item() {
                 exec.account::get_map_item
             end
             ",
-            item_index = storage_item.1,
+            item_index = storage_item.index,
             map_key = prepare_word(&key),
         );
         let process = tx_context.execute_code(&code).unwrap();
@@ -318,12 +318,12 @@ fn test_get_storage_slot_type() {
                 exec.account::get_storage_slot_type
             end
             ",
-            item_index = storage_item.1,
+            item_index = storage_item.index,
         );
 
         let process = tx_context.execute_code(&code).unwrap();
 
-        let storage_slot_type = storage_item.0.get_slot_type();
+        let storage_slot_type = storage_item.slot.get_slot_type();
 
         assert_eq!(storage_slot_type, process.get_stack_item(0).try_into().unwrap());
         assert_eq!(process.get_stack_item(1), ZERO, "the rest of the stack is empty");
@@ -402,7 +402,7 @@ fn test_set_map_item() {
             exec.account::get_item
         end
         ",
-        item_index = storage_item.1,
+        item_index = storage_item.index,
         new_key = prepare_word(&new_key),
         new_value = prepare_word(&new_value),
     );
@@ -418,7 +418,7 @@ fn test_set_map_item() {
         "get_item must return the new updated value",
     );
     assert_eq!(
-        storage_item.0.get_value_as_word(),
+        storage_item.slot.get_value_as_word(),
         process.get_stack_word(1),
         "The original value stored in the map doesn't match the expected value",
     );

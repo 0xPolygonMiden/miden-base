@@ -69,7 +69,7 @@ impl TransactionContextBuilder {
     }
 
     pub fn with_standard_account(nonce: Felt) -> Self {
-        let assembler = TransactionKernel::assembler_testing().with_debug_mode(true);
+        let assembler = TransactionKernel::assembler_testing();
         let account = Account::mock(
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
             nonce,

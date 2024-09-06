@@ -33,9 +33,9 @@ impl AccountStorageBuilder {
     pub fn new() -> Self {
         Self {
             slots: vec![
-                AccountStorage::mock_item_2().0,
-                AccountStorage::mock_item_0().0,
-                AccountStorage::mock_item_1().0,
+                AccountStorage::mock_item_2().slot,
+                AccountStorage::mock_item_0().slot,
+                AccountStorage::mock_item_1().slot,
             ],
         }
     }
@@ -99,7 +99,19 @@ impl AccountStorageDeltaBuilder {
 // ACCOUNT STORAGE UTILS
 // ================================================================================================
 
+pub struct SlotWithIndex {
+    pub slot: StorageSlot,
+    pub index: u8,
+}
+
+// CONSTANTS
+// ================================================================================================
+
 pub const FAUCET_STORAGE_DATA_SLOT: u8 = 0;
+
+pub const STORAGE_INDEX_0: u8 = 0;
+pub const STORAGE_INDEX_1: u8 = 1;
+pub const STORAGE_INDEX_2: u8 = 2;
 
 pub const STORAGE_VALUE_0: Word = [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)];
 pub const STORAGE_VALUE_1: Word = [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)];
@@ -118,29 +130,34 @@ impl AccountStorage {
     /// Create account storage:
     pub fn mock() -> Self {
         AccountStorage::new(vec![
-            Self::mock_item_0().0,
-            Self::mock_item_1().0,
-            Self::mock_item_2().0,
+            Self::mock_item_0().slot,
+            Self::mock_item_1().slot,
+            Self::mock_item_2().slot,
         ])
         .unwrap()
     }
 
-    /// Creates Slot with [STORAGE_VALUE_0]
-    pub fn mock_item_0() -> (StorageSlot, u8) {
-        (StorageSlot::Value(STORAGE_VALUE_0), 0)
+    pub fn mock_item_0() -> SlotWithIndex {
+        SlotWithIndex {
+            slot: StorageSlot::Value(STORAGE_VALUE_0),
+            index: STORAGE_INDEX_0,
+        }
     }
 
-    /// Creates Slot with [STORAGE_VALUE_1]
-    pub fn mock_item_1() -> (StorageSlot, u8) {
-        (StorageSlot::Value(STORAGE_VALUE_1), 1)
+    pub fn mock_item_1() -> SlotWithIndex {
+        SlotWithIndex {
+            slot: StorageSlot::Value(STORAGE_VALUE_1),
+            index: STORAGE_INDEX_1,
+        }
     }
 
-    /// Creates Slot with a map with [STORAGE_LEAVES_2]
-    pub fn mock_item_2() -> (StorageSlot, u8) {
-        (StorageSlot::Map(Self::mock_map_2()), 2)
+    pub fn mock_item_2() -> SlotWithIndex {
+        SlotWithIndex {
+            slot: StorageSlot::Map(Self::mock_map_2()),
+            index: STORAGE_INDEX_2,
+        }
     }
 
-    /// Creates map with [STORAGE_LEAVES_2]
     pub fn mock_map_2() -> StorageMap {
         StorageMap::with_entries(STORAGE_LEAVES_2).unwrap()
     }
