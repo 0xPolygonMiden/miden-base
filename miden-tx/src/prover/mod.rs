@@ -69,7 +69,8 @@ impl TransactionProver {
                 .map_err(TransactionProverError::ProveTransactionProgramFailed)?;
 
         // extract transaction outputs and process transaction data
-        let (advice_provider, account_delta, output_notes, _signatures) = host.into_parts();
+        let (advice_provider, account_delta, output_notes, _signatures, _tx_progress) =
+            host.into_parts();
         let (_, map, _) = advice_provider.into_parts();
         let tx_outputs =
             TransactionKernel::from_transaction_parts(&stack_outputs, &map.into(), output_notes)
@@ -88,7 +89,7 @@ impl TransactionProver {
         .add_input_notes(input_notes)
         .add_output_notes(output_notes);
 
-        let builder = match account.is_on_chain() {
+        let builder = match account.is_public() {
             true => {
                 let account_update_details = if account.is_new() {
                     let mut account = account.clone();

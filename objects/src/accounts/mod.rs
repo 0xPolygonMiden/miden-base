@@ -6,7 +6,7 @@ use crate::{
 
 pub mod account_id;
 pub use account_id::{
-    AccountId, AccountStorageType, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
+    AccountId, AccountStorageMode, AccountType, ACCOUNT_ISFAUCET_MASK, ACCOUNT_STORAGE_MASK_SHIFT,
     ACCOUNT_TYPE_MASK_SHIFT,
 };
 
@@ -28,8 +28,8 @@ pub use seed::{get_account_seed, get_account_seed_single};
 mod storage;
 pub use storage::{AccountStorage, SlotItem, StorageMap, StorageSlot, StorageSlotType};
 
-mod stub;
-pub use stub::AccountStub;
+mod header;
+pub use header::AccountHeader;
 
 mod data;
 pub use data::AccountData;
@@ -169,9 +169,9 @@ impl Account {
         self.id.is_regular_account()
     }
 
-    /// Returns true if this account is on-chain.
-    pub fn is_on_chain(&self) -> bool {
-        self.id.is_on_chain()
+    /// Returns true if this account is public.
+    pub fn is_public(&self) -> bool {
+        self.id.is_public()
     }
 
     /// Returns true if the account is new (i.e. it has not been initialized yet).

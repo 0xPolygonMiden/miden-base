@@ -68,13 +68,13 @@ proc.main.1
     exec.prologue::prepare_transaction
     # => []
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.1 drop                         # TODO: remove line, see miden-vm/#1122
     trace.PROLOGUE_END
 
     # Note Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.2 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_START
 
     exec.memory::get_num_input_notes
@@ -88,7 +88,7 @@ proc.main.1
     # => [should_loop]
 
     while.true
-        push.0 drop                     # TODO: remove line, see miden-vm/#1122
+        push.4 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_START
         # => []
 
@@ -110,20 +110,20 @@ proc.main.1
         loc_load.0 neq
         # => [should_loop]
 
-        push.0 drop                     # TODO: remove line, see miden-vm/#1122
+        push.5 drop                     # TODO: remove line, see miden-vm/#1122
         trace.NOTE_EXECUTION_END
     end
 
     exec.note::note_processing_teardown
     # => []
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.3 drop                         # TODO: remove line, see miden-vm/#1122
     trace.NOTES_PROCESSING_END
 
     # Transaction Script Processing
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.6 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_START
 
     # execute the transaction script
@@ -147,20 +147,20 @@ proc.main.1
         # => []
     end
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.7 drop                         # TODO: remove line, see miden-vm/#1122
     trace.TX_SCRIPT_PROCESSING_END
 
     # Epilogue
     # ---------------------------------------------------------------------------------------------
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.8 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_START
 
     # execute the transaction epilogue
     exec.epilogue::finalize_transaction
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 
-    push.0 drop                         # TODO: remove line, see miden-vm/#1122
+    push.9 drop                         # TODO: remove line, see miden-vm/#1122
     trace.EPILOGUE_END
     # => [OUTPUT_NOTES_COMMITMENT, FINAL_ACCOUNT_HASH]
 end

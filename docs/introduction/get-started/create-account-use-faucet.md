@@ -23,7 +23,7 @@ The Miden client facilitates interaction with the Miden rollup and provides a wa
       ```shell
       cargo install miden-cli --features testing,concurrent
       ```
-      You can now use the `miden --version` command, and you should see `Miden 0.4.0`.
+      You can now use the `miden --version` command, and you should see `Miden 0.6.0`.
 
 3. Initialize the client. This creates the `miden-client.toml` file.
 

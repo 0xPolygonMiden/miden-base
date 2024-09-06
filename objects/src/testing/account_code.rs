@@ -7,16 +7,16 @@ use crate::accounts::AccountCode;
 const MASTS: [&str; 12] = [
     "0xff06b90f849c4b262cbfbea67042c4ea017ea0e9c558848a951d44b23370bec5",
     "0x8ef0092134469a1330e3c468f57c7f085ce611645d09cc7516c786fefc71d794",
-    "0x86472c62c0f9d2f93369f793abd66127f9cf4a77d4339dcacfb118aba0cf79b6",
-    "0xa5e47b6219605992b497ab85404425da4b88ad58789d86ab09bea9ed0ec12897",
-    "0x56723c7bd5e46ce33f99f256ae1b8f4856600744191f8a18d1c572a925f41ced",
-    "0x6be2be94390361792f5becf18f3e916fa2458c67b809ad144d8ec5fb144ce9c3",
-    "0x0f0447bc4eb9a366d8158274427445fcc169949e4ab9092d45ff55c2a7753e2a",
-    "0x3d77d6c0727fa8c78695123bcd9413e88a5d92e72a60453557fb93dfa575c81a",
-    "0x383067a3ef06a0fad1f11ab7707c67c286db851cc9edece3ea53a76520a014fa",
-    "0x59e26d0f909ce76298f12ba6a6a4120b0cf541622128756eb572fd17dbe8732d",
-    "0xe55e8abaa5a3a8ff89537111b490f22983a7012e65c11ead8478f7a645ba49bd",
-    "0xad0d0d771f4a301c658c61366b4436a4b45b7e317d0f3ae2c76f37e1f8bd63e6",
+    "0xed87fcbdaf52f9d544d6362c0177f7294d917dfdbf48ee31b3df7b28be6f4ea0",
+    "0xf26ab9001bbe615e3f39e6bf5c12dd32754b99d9476c6dd003881c3c52a6bfc1",
+    "0x3f4b2dadf8a08e963898bc172f3fb1f4cbd7c560cb1d5f88eec582d0f9819edb",
+    "0x31c806646881424c912cf5af6ad8002fe1f24cdc83e769525dd6c68df94a8f3b",
+    "0x1b4fd4fc6d711276c4b25dc9e9b8dff6feb8f3762562fcecf45b85c7e4ed2437",
+    "0x8197f4791b030c86bd4e3e4a241de840de47fa1ec338b8668ddb37052eee00a6",
+    "0x16d574d4d5a70f83c86843a62a19ca647d2110c11cfd5cb2fc93a149f3c9c2c5",
+    "0x70573a57c1b809e6feacf3bfeda3c6a22e4ef018979d2a0f9d466e54ed9c44a5",
+    "0x60cc189b72db5eae2de193245a5c979bc8c322a98d3980bff068e1c80c066306",
+    "0x875149b782d20eeda59477e260c173fbb477d1f6f755820d0bfb214ce0ebe78b",
 ];
 
 pub const ACCOUNT_ADD_ASSET_TO_NOTE_MAST_ROOT: &str = MASTS[2];
@@ -160,8 +160,13 @@ impl AccountCode {
         code
     }
 
+    /// Creates a mock [AccountCode] with specific code and assembler
+    pub fn mock_with_code(source_code: &str, assembler: Assembler) -> AccountCode {
+        Self::compile(source_code, assembler).unwrap()
+    }
+
     /// Creates a mock [AccountCode] with default assembler and mock code
     pub fn mock() -> AccountCode {
-        AccountCode::compile(CODE, Assembler::default()).unwrap()
+        Self::compile(CODE, Assembler::default()).unwrap()
     }
 }

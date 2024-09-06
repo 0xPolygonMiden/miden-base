@@ -5,7 +5,7 @@ use alloc::{
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType, SlotItem,
     },
     AccountError, Word,
 };
@@ -30,7 +30,7 @@ pub fn create_basic_wallet(
     init_seed: [u8; 32],
     auth_scheme: AuthScheme,
     account_type: AccountType,
-    account_storage_type: AccountStorageType,
+    account_storage_mode: AccountStorageMode,
 ) -> Result<(Account, Word), AccountError> {
     if matches!(account_type, AccountType::FungibleFaucet | AccountType::NonFungibleFaucet) {
         return Err(AccountError::AccountIdInvalidFieldElement(
@@ -59,7 +59,7 @@ pub fn create_basic_wallet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
-        account_storage_type,
+        account_storage_mode,
         account_code.commitment(),
         account_storage.root(),
     )?;
@@ -74,8 +74,9 @@ pub fn create_basic_wallet(
 mod tests {
 
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
+    use vm_processor::utils::{Deserializable, Serializable};
 
-    use super::{create_basic_wallet, AccountStorageType, AccountType, AuthScheme};
+    use super::{create_basic_wallet, Account, AccountStorageMode, AccountType, AuthScheme};
 
     #[test]
     fn test_create_basic_wallet() {
@@ -84,11 +85,28 @@ mod tests {
             [1; 32],
             AuthScheme::RpoFalcon512 { pub_key },
             AccountType::RegularAccountImmutableCode,
-            AccountStorageType::OnChain,
+            AccountStorageMode::Public,
         );
 
         wallet.unwrap_or_else(|err| {
             panic!("{}", err);
         });
+    }
+
+    #[test]
+    fn test_serialize_basic_wallet() {
+        let pub_key = rpo_falcon512::PublicKey::new([ONE; 4]);
+        let wallet = create_basic_wallet(
+            [1; 32],
+            AuthScheme::RpoFalcon512 { pub_key },
+            AccountType::RegularAccountImmutableCode,
+            AccountStorageMode::Public,
+        )
+        .unwrap()
+        .0;
+
+        let bytes = wallet.to_bytes();
+        let deserialized_wallet = Account::read_from_bytes(&bytes).unwrap();
+        assert_eq!(wallet, deserialized_wallet);
     }
 }

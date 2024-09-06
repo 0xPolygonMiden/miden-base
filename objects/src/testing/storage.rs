@@ -15,7 +15,7 @@ use crate::{
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_ON_CHAIN,
         },
         get_account_seed_single, Account, AccountCode, AccountDelta, AccountId, AccountStorage,
-        AccountStorageDelta, AccountStorageType, AccountType, AccountVaultDelta, SlotItem,
+        AccountStorageDelta, AccountStorageMode, AccountType, AccountVaultDelta, SlotItem,
         StorageMap, StorageMapDelta, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
@@ -242,7 +242,7 @@ pub fn generate_account_seed(
     let seed = get_account_seed_single(
         init_seed,
         account_type,
-        AccountStorageType::OnChain,
+        AccountStorageMode::Public,
         account.code().commitment(),
         account.storage().root(),
     )

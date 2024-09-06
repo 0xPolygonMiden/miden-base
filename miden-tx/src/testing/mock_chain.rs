@@ -301,6 +301,7 @@ impl MockChain {
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .default_code(TransactionKernel::assembler_testing())
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -308,6 +309,7 @@ impl MockChain {
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .default_code(TransactionKernel::assembler_testing())
             .nonce(Felt::ONE)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -329,6 +331,7 @@ impl MockChain {
         let faucet_metadata = SlotItem::new_value(1, 0, metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .default_code(TransactionKernel::assembler_testing())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
             .add_storage_item(faucet_metadata);
@@ -354,6 +357,7 @@ impl MockChain {
         let faucet_metadata = SlotItem::new_value(1, 0, metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
+            .default_code(TransactionKernel::assembler_testing())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
             .add_storage_item(faucet_metadata);
@@ -369,8 +373,9 @@ impl MockChain {
     ) -> Account {
         let (account, seed, authenticator) = match auth_method {
             Auth::BasicAuth => {
-                let (acc, seed, auth) =
-                    account_builder.build_with_auth(&TransactionKernel::assembler()).unwrap();
+                let mut rng = StdRng::from_entropy();
+
+                let (acc, seed, auth) = account_builder.build_with_auth(&mut rng).unwrap();
 
                 let authenticator = BasicAuthenticator::<StdRng>::new(&[(
                     auth.public_key().into(),
@@ -380,8 +385,7 @@ impl MockChain {
                 (acc, seed, Some(authenticator))
             },
             Auth::NoAuth => {
-                let (account, seed) =
-                    account_builder.build(TransactionKernel::assembler_testing()).unwrap();
+                let (account, seed) = account_builder.build().unwrap();
                 (account, seed, None)
             },
         };

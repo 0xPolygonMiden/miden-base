@@ -200,7 +200,7 @@ const ERR_EPILOGUE_ASSETS_DONT_ADD_UP: u32 = 131082;
 const ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH: u32 = 131083;
 const ERR_PROLOGUE_ACCT_STORAGE_MISMATCH: u32 = 131084;
 const ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH: u32 = 131085;
-const ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID: u32 = 131086;
+const ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID: u32 = 131086;
 const ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY: u32 = 131087;
 const ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE: u32 = 131088;
 const ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT: u32 = 131089;
@@ -265,8 +265,9 @@ const ERR_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 131146;
 const ERR_PROC_INDEX_OUT_OF_BOUNDS: u32 = 131147;
 const ERR_ACCT_CODE_HASH_MISMATCH: u32 = 131148;
 const ERR_ACCT_TOO_MANY_PROCEDURES: u32 = 131149;
+const ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 131150;
 
-pub const KERNEL_ERRORS: [(u32, &str); 79] = [
+pub const KERNEL_ERRORS: [(u32, &str); 80] = [
     (ERR_FAUCET_RESERVED_DATA_SLOT, "For faucets, storage slot 254 is reserved and can not be used with set_account_item procedure"),
     (ERR_ACCT_MUST_BE_A_FAUCET, "Procedure can only be called from faucet accounts"),
     (ERR_P2ID_WRONG_NUMBER_OF_INPUTS, "P2ID scripts expect exactly 1 note input"),
@@ -281,7 +282,7 @@ pub const KERNEL_ERRORS: [(u32, &str); 79] = [
     (ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH, "The global inputs provided do not match the block hash commitment"),
     (ERR_PROLOGUE_ACCT_STORAGE_MISMATCH, "The account storage data does not match its commitment"),
     (ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH, "Data store in account's storage exceeds the maximum capacity of 256 elements"),
-    (ERR_PROLOGUE_ACCT_STORAGE_TYPE_INVALID, "Data store in account's storage contains invalid type discriminant"),
+    (ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID, "Data store in account's storage contains invalid type discriminant"),
     (ERR_PROLOGUE_NEW_ACCT_VAULT_NOT_EMPTY, "New account must have an empty vault"),
     (ERR_PROLOGUE_NEW_ACCT_INVALID_SLOT_TYPE, "New account must have valid slot types"),
     (ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT, "Reserved slot for new fungible faucet is not empty"),
@@ -345,5 +346,6 @@ pub const KERNEL_ERRORS: [(u32, &str); 79] = [
     (ERR_PROC_NOT_PART_OF_ACCOUNT_CODE, "Provided procedure is not part of account code"),
     (ERR_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds"),
     (ERR_ACCT_CODE_HASH_MISMATCH, "Provided account hash does not match stored account hash"),
-    (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 65535")
+    (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 256"),
+    (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds")
 ];

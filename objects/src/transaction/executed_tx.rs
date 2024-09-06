@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
 use core::cell::OnceCell;
 
 use super::{
-    Account, AccountDelta, AccountId, AccountStub, AdviceInputs, BlockHeader, InputNote,
-    InputNotes, OutputNotes, TransactionArgs, TransactionId, TransactionInputs, TransactionOutputs,
-    TransactionWitness,
+    Account, AccountDelta, AccountHeader, AccountId, AdviceInputs, BlockHeader, InputNote,
+    InputNotes, NoteId, OutputNotes, TransactionArgs, TransactionId, TransactionInputs,
+    TransactionOutputs, TransactionWitness,
 };
 
 // EXECUTED TRANSACTION
@@ -27,6 +28,7 @@ pub struct ExecutedTransaction {
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
+    tx_measurements: TransactionMeasurements,
 }
 
 impl ExecutedTransaction {
@@ -43,6 +45,7 @@ impl ExecutedTransaction {
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
+        tx_measurements: TransactionMeasurements,
     ) -> Self {
         // make sure account IDs are consistent across transaction inputs and outputs
         assert_eq!(tx_inputs.account().id(), tx_outputs.account.id());
@@ -54,6 +57,7 @@ impl ExecutedTransaction {
             account_delta,
             tx_args,
             advice_witness,
+            tx_measurements,
         }
     }
 
@@ -76,7 +80,7 @@ impl ExecutedTransaction {
     }
 
     /// Returns description of the account after the transaction was executed.
-    pub fn final_account(&self) -> &AccountStub {
+    pub fn final_account(&self) -> &AccountHeader {
         &self.tx_outputs.account
     }
 
@@ -120,20 +124,42 @@ impl ExecutedTransaction {
     // --------------------------------------------------------------------------------------------
 
     /// Returns individual components of this transaction.
-    pub fn into_parts(self) -> (AccountDelta, TransactionOutputs, TransactionWitness) {
+    pub fn into_parts(
+        self,
+    ) -> (AccountDelta, TransactionOutputs, TransactionWitness, TransactionMeasurements) {
         let tx_witness = TransactionWitness {
             tx_inputs: self.tx_inputs,
             tx_args: self.tx_args,
             advice_witness: self.advice_witness,
         };
-
-        (self.account_delta, self.tx_outputs, tx_witness)
+        (self.account_delta, self.tx_outputs, tx_witness, self.tx_measurements)
     }
 }
 
 impl From<ExecutedTransaction> for TransactionWitness {
     fn from(tx: ExecutedTransaction) -> Self {
-        let (_, _, tx_witness) = tx.into_parts();
+        let (_, _, tx_witness, _) = tx.into_parts();
         tx_witness
     }
+}
+
+impl From<ExecutedTransaction> for TransactionMeasurements {
+    fn from(tx: ExecutedTransaction) -> Self {
+        let (_, _, _, tx_progress) = tx.into_parts();
+        tx_progress
+    }
+}
+
+// TRANSACTION MEASUREMENTS
+// ================================================================================================
+
+/// Stores the resulting number of cycles for each transaction execution stage obtained from the
+/// `TransactionProgress` struct.
+#[derive(Debug, Clone)]
+pub struct TransactionMeasurements {
+    pub prologue: usize,
+    pub notes_processing: usize,
+    pub note_execution: Vec<(NoteId, usize)>,
+    pub tx_script_processing: usize,
+    pub epilogue: usize,
 }

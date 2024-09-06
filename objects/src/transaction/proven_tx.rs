@@ -92,7 +92,7 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if self.account_id().is_on_chain() {
+        if self.account_id().is_public() {
             let is_new_account = self.account_update.init_state_hash() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {

@@ -60,6 +60,7 @@ pub use file::NoteFile;
 // ================================================================================================
 
 /// The depth of the leafs in the note Merkle tree used to commit to notes produced in a block.
+///
 /// This is equal `NOTE_TREE_DEPTH + 1`. In the kernel we do not authenticate leaf data directly
 /// but rather authenticate hash(left_leaf, right_leaf).
 pub const NOTE_LEAF_DEPTH: u8 = NOTE_TREE_DEPTH + 1;

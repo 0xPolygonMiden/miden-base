@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, string::ToString};
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageType, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType, SlotItem,
     },
     assets::TokenSymbol,
     AccountError, Felt, Word, ZERO,
@@ -34,7 +34,7 @@ pub fn create_basic_fungible_faucet(
     symbol: TokenSymbol,
     decimals: u8,
     max_supply: Felt,
-    account_storage_type: AccountStorageType,
+    account_storage_mode: AccountStorageMode,
     auth_scheme: AuthScheme,
 ) -> Result<(Account, Word), AccountError> {
     // Atm we only have RpoFalcon512 as authentication scheme and this is also the default in the
@@ -80,7 +80,7 @@ pub fn create_basic_fungible_faucet(
     let account_seed = AccountId::get_account_seed(
         init_seed,
         AccountType::FungibleFaucet,
-        account_storage_type,
+        account_storage_mode,
         account_code.commitment(),
         account_storage.root(),
     )?;
@@ -96,7 +96,7 @@ mod tests {
     use miden_objects::{crypto::dsa::rpo_falcon512, ONE};
 
     use super::{
-        create_basic_fungible_faucet, AccountStorageType, AuthScheme, Felt, TokenSymbol, ZERO,
+        create_basic_fungible_faucet, AccountStorageMode, AuthScheme, Felt, TokenSymbol, ZERO,
     };
 
     #[test]
@@ -114,14 +114,14 @@ mod tests {
         let token_symbol_string = "POL";
         let token_symbol = TokenSymbol::try_from(token_symbol_string).unwrap();
         let decimals = 2u8;
-        let storage_type = AccountStorageType::OffChain;
+        let storage_mode = AccountStorageMode::Private;
 
         let (faucet_account, _) = create_basic_fungible_faucet(
             init_seed,
             token_symbol,
             decimals,
             max_supply,
-            storage_type,
+            storage_mode,
             auth_scheme,
         )
         .unwrap();
