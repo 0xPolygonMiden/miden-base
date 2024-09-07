@@ -107,7 +107,7 @@ const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 # =================================================================================================
 
 #! Returns the account storage slot at which faucet data is stored.
-#! Fungible faucet: The faucet data consists of [EMPTY_WORD, EMPTY_WORD, EMPTY_WORD, total_issuance]
+#! Fungible faucet: The faucet data consists of [0, 0, 0, total_issuance]
 #! Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 #!
 #! Stack: []
@@ -118,8 +118,6 @@ export.get_faucet_storage_data_slot
     push.FAUCET_STORAGE_DATA_SLOT
 end
 
-#! Returns the account storage slot at which the slot types commitment is stored.
-#!
 #! Stack: []
 #! Output: [slot_types_commitment_storage_slot]
 #!
@@ -348,18 +346,6 @@ export.set_code
     # set the code commitment
     exec.memory::set_new_acct_code_commitment dropw
     # => []
-end
-
-#! Returns the type info (slot type, entry arity) of the slot at the provided index.
-#!
-#! Stack: [idx]
-#! Output: [entry_arity, slot_type]
-#!
-#! - idx is the index of the slot to get the type info of.
-#! - slot_type is the type of the slot.
-#! - entry_arity is the arity of the slot.
-export.get_storage_slot_type_info
-    exec.memory::get_acct_storage_slot_type_data u32split
 end
 
 #! Applies offset to provided storage slot index for storage access

@@ -172,7 +172,7 @@ end
 #!
 #! Stack: []
 #! Output: []
-export.update_account_storage
+proc.update_account_storage
     # get number of storage slots
     exec.memory::get_num_storage_slots
     # => [num_storage_slots]

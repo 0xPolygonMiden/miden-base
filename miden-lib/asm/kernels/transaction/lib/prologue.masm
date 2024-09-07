@@ -254,7 +254,7 @@ proc.validate_new_account
 
         if.true
             # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
-            or or or assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
+            padw eqw assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
             # => []
 
             # get the faucet reserved storage data slot type
@@ -415,7 +415,7 @@ end
 #! - ACCOUNT_STORAGE_ROOT, account's storage root.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
-    # Copy the account data from the advice stack to memory and hash it
+    # Copy the account data from the advice provider to memory and hash it
     # ---------------------------------------------------------------------------------------------
 
     exec.memory::get_acct_data_ptr
@@ -429,6 +429,37 @@ proc.process_account_data
     # => [ACCT_HASH, acct_data_ptr']
 
     movup.4 drop
+    # => [ACCT_HASH]
+
+    # assert the account id matches the account id in global inputs
+    exec.memory::get_global_acct_id
+    exec.memory::get_acct_id
+    assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
+    # => [ACCT_HASH]
+
+    # store a copy of the initial nonce in global inputs
+    exec.memory::get_acct_nonce
+    exec.memory::set_init_nonce
+    # => [ACCT_HASH]
+
+    # set the new account code commitment to the initial account code root this is used for managing
+    # code commitment updates
+    exec.memory::get_acct_code_commitment
+    exec.memory::set_new_acct_code_commitment
+    # => [ACCOUNT_CODE_COMMITMENT, ACCT_HASH]
+
+    # validates and stores account procedures in memory.
+    exec.validate_account_procedures
+    # => [ACCT_HASH]
+
+    # validates and stores account storage slots in memory.
+    exec.memory::get_acct_storage_root
+    exec.validate_account_storage_slots
+    # => [ACCT_HASH]
+
+    # copy the initial account vault hash to the input vault hash to support transaction asset
+    # invariant checking
+    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
     # => [ACCT_HASH]
 
     # Validate the account
@@ -462,40 +493,6 @@ proc.process_account_data
         assert.err=ERR_PROLOGUE_OLD_ACCT_NONCE_ZERO
         # => []
     end
-
-    # Set the account storage, vault, code, and nonce memory locations
-    # ---------------------------------------------------------------------------------------------
-
-    # assert the account id matches the account id in global inputs
-    exec.memory::get_global_acct_id
-    exec.memory::get_acct_id
-    assert_eq.err=ERR_PROLOGUE_ACCT_ID_MISMATCH
-    # => []
-
-    # store a copy of the initial nonce in global inputs
-    exec.memory::get_acct_nonce
-    exec.memory::set_init_nonce
-    # => []
-
-    # set the new account code commitment to the initial account code root this is used for managing
-    # code commitment updates
-    exec.memory::get_acct_code_commitment
-    exec.memory::set_new_acct_code_commitment
-    # => [ACCOUNT_CODE_COMMITMENT]
-
-    # validates and stores account procedures in memory.
-    exec.validate_account_procedures
-    # => []
-
-    # validates and stores account storage slots in memory.
-    exec.memory::get_acct_storage_root
-    exec.validate_account_storage_slots
-    # => []
-
-    # copy the initial account vault hash to the input vault hash to support transaction asset
-    # invariant checking
-    exec.memory::get_acct_vault_root exec.memory::set_input_vault_root dropw
-    # => []
 end
 
 # INPUT NOTES DATA

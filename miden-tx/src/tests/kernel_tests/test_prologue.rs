@@ -1,5 +1,4 @@
 use alloc::collections::BTreeMap;
-use std::println;
 
 use miden_lib::transaction::{
     memory::{
@@ -383,12 +382,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 
     let process = tx_context.execute_code(code);
 
-    match process {
-        Ok(_) => (),
-        Err(e) => println!("Error: {e}"),
-    }
-
-    // assert!(process.is_ok());
+    assert!(process.is_ok());
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -442,12 +436,7 @@ pub fn test_prologue_create_account_valid_non_fungible_faucet_reserved_slot() {
 
     let process = tx_context.execute_code(code);
 
-    match process {
-        Ok(_) => (),
-        Err(e) => println!("Error: {e}"),
-    }
-
-    // assert!(process.is_ok())
+    assert!(process.is_ok())
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
