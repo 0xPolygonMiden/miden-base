@@ -154,11 +154,9 @@ fn add_account_to_advice_inputs(
         }
     }
 
-    // extend advice map with storage commitment |-> storage slots
-    let mut storage_slots: Vec<Felt> = vec![(storage.num_slots() as u8).into()];
-    storage_slots.append(&mut storage.slots_as_elements());
-
-    // extend the advice map with the storage slots
+    // extend advice map with storage commitment |-> length, storage slots and types vector
+    let mut storage_slots: Vec<Felt> = vec![(storage.slots().len() as u8).into()];
+    storage_slots.append(&mut storage.as_elements());
     inputs.extend_map([(storage.commitment(), storage_slots)]);
 
     // --- account vault ------------------------------------------------------
@@ -175,7 +173,7 @@ fn add_account_to_advice_inputs(
     let code = account.code();
 
     // extend the advice map with the account code data and number of procedures
-    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u32).into()];
+    let mut procedures: Vec<Felt> = vec![(code.num_procedures() as u8).into()];
     procedures.append(&mut code.as_elements());
     inputs.extend_map([(code.commitment(), procedures)]);
 

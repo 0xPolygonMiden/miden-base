@@ -64,7 +64,7 @@ impl<T: Rng> AccountBuilder<T> {
         self
     }
 
-    pub fn add_storage_items<I: IntoIterator<Item = StorageSlot>>(mut self, slots: I) -> Self {
+    pub fn add_storage_slots<I: IntoIterator<Item = StorageSlot>>(mut self, slots: I) -> Self {
         self.storage_builder.add_slots(slots);
         self
     }

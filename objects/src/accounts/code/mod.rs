@@ -39,9 +39,6 @@ pub struct AccountCode {
 }
 
 impl AccountCode {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// The maximum number of account interface procedures.
     pub const MAX_NUM_PROCEDURES: usize = 256;
 

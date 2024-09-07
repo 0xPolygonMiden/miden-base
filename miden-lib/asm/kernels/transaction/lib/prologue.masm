@@ -18,9 +18,6 @@ const.ERR_PROLOGUE_GLOBAL_INPUTS_MISMATCH=0x0002000B
 # The account storage data does not match its commitment
 const.ERR_PROLOGUE_ACCT_STORAGE_MISMATCH=0x0002000C
 
-# Data store in account's storage exceeds the maximum capacity of 256 elements
-const.ERR_PROLOGUE_ACCT_STORAGE_ARITY_TOO_HIGH=0x0002000D
-
 # Data store in account's storage contains invalid type discriminant
 const.ERR_PROLOGUE_ACCT_STORAGE_MODE_INVALID=0x0002000E
 
@@ -295,7 +292,6 @@ end
 #!
 #! This is achieved by reading the storage slots from the advice map, saving them into memory,
 #! and sequentially hashing them before comparing the final hash to the storage commitment.
-#! well formed. Currently we only support scalar slots with an entry of maximum arity of 256.
 #!
 #! Stack: [STORAGE_COMMITMENT]
 #! Output: []

@@ -71,7 +71,10 @@ pub fn get_account_with_default_account_code(
     public_key: Word,
     assets: Option<Asset>,
 ) -> Account {
-    use miden_objects::{accounts::StorageSlot, testing::account_code::DEFAULT_ACCOUNT_CODE};
+    use miden_objects::{
+        accounts::{StorageMap, StorageSlot},
+        testing::account_code::DEFAULT_ACCOUNT_CODE,
+    };
     let account_code_src = DEFAULT_ACCOUNT_CODE;
     let assembler = TransactionKernel::assembler().with_debug_mode(true);
 
@@ -81,6 +84,7 @@ pub fn get_account_with_default_account_code(
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(public_key),
+        StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();
 

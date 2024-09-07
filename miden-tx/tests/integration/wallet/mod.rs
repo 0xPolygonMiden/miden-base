@@ -5,7 +5,7 @@ use miden_objects::{
             ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_OFF_CHAIN_SENDER,
             ACCOUNT_ID_REGULAR_ACCOUNT_UPDATABLE_CODE_OFF_CHAIN,
         },
-        Account, AccountId, AccountStorage, StorageSlot,
+        Account, AccountId, AccountStorage, StorageMap, StorageSlot,
     },
     assets::{Asset, AssetVault, FungibleAsset},
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -86,6 +86,7 @@ fn prove_receive_asset_via_wallet() {
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(target_pub_key),
+        StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();
     let account_code = target_account.code().clone();
@@ -169,6 +170,7 @@ fn prove_send_asset_via_wallet() {
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(Word::default()),
         StorageSlot::Value(sender_pub_key),
+        StorageSlot::Map(StorageMap::default()),
     ])
     .unwrap();
     let sender_account_code = sender_account.code().clone();

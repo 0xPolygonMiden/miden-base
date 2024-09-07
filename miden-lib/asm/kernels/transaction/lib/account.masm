@@ -66,14 +66,8 @@ const.MIN_ACCOUNT_ONES=5
 # Non-fungible faucet: The faucet data consists of SMT root containing minted non-fungible assets.
 const.FAUCET_STORAGE_DATA_SLOT=0
 
-# The account storage slot at which the slot types commitment is stored.
-const.SLOT_TYPES_COMMITMENT_STORAGE_SLOT=255
-
 # The maximum storage slot index
 const.MAX_STORAGE_SLOT_INDEX=255
-
-# The maximum value a slot type can take (An array of depth 64).
-const.MAX_SLOT_TYPE=64
 
 # The maximum number of account interface procedures.
 const.MAX_NUM_PROCEDURES=256
@@ -116,25 +110,6 @@ const.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT=131082
 #! - faucet_storage_data_slot is the account storage slot at which faucet data is stored.
 export.get_faucet_storage_data_slot
     push.FAUCET_STORAGE_DATA_SLOT
-end
-
-#! Stack: []
-#! Output: [slot_types_commitment_storage_slot]
-#!
-#! - slot_types_commitment_storage_slot is the account storage slot at which the slot types
-#!   commitment is stored.
-export.get_slot_types_commitment_storage_slot
-    push.SLOT_TYPES_COMMITMENT_STORAGE_SLOT
-end
-
-#! Returns the maximum value a slot type can take (An array of depth 64).
-#!
-#! Stack: []
-#! Output: [max_slot_type]
-#!
-#! - max_slot_type is the maximum value a slot type can take (An array of depth 64).
-export.get_max_slot_type
-    push.MAX_SLOT_TYPE
 end
 
 #! Returns the maximum number of account storage slots.
@@ -358,11 +333,11 @@ end
 #! Output: [offset_slot_index]
 export.apply_storage_offset
     # verify that slot_index is in bounds
-    dup.1 exec.get_max_num_storage_slots sub.1 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    dup.1 exec.get_max_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [storage_offset, slot_index]
 
     # verify that the computed offset_slot_index is in bounds
-    add dup exec.get_max_num_storage_slots sub.1 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    add dup exec.get_max_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 

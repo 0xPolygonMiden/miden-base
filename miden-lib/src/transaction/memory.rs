@@ -183,7 +183,7 @@ pub const ACCT_NEW_CODE_COMMITMENT_PTR: MemoryAddress =
 
 /// The memory address at which the number of storage slots contained in the account storage is
 /// stored
-pub const NUM_STORAGE_SLOTS_PTR: MemoryAddress = 499;
+pub const NUM_ACCT_STORAGE_SLOTS_PTR: MemoryAddress = 499;
 
 /// The memory address at which the account storage slots section begins.
 pub const ACCT_STORAGE_SLOTS_SECTION_OFFSET: MemoryAddress = 500;

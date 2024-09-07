@@ -67,7 +67,6 @@ pub enum AccountDeltaError {
         this: i64,
         other: i64,
     },
-    ImmutableStorageSlot(usize),
     IncompatibleAccountUpdates(AccountUpdateDetails, AccountUpdateDetails),
     InconsistentNonceUpdate(String),
     NotAFungibleFaucetId(AccountId),

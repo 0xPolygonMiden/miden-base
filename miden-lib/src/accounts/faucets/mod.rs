@@ -67,7 +67,7 @@ pub fn create_basic_fungible_faucet(
         ));
     }
 
-    // fungible faucets store an empty word in their reserved faucet
+    // newly created fungible faucets store an empty word in their reserved faucet
     // data storage slot to track token issuance
     let reserved_data = Word::default();
 
@@ -78,7 +78,7 @@ pub fn create_basic_fungible_faucet(
     // - slot 0: reserved faucet data
     // - slot 1: token metadata as [max_supply, decimals, token_symbol, 0]
     // - slot 2: any
-    // - slot 3: authentication data
+    // - slot 3: authentication data (must be at location 3 in storage)
     let account_storage = AccountStorage::new(vec![
         StorageSlot::Value(reserved_data),
         StorageSlot::Value(metadata),

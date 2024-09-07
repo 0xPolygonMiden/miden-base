@@ -20,8 +20,8 @@ pub use map::StorageMap;
 /// Each slot has a type which defines the size and the structure of the slot. Currently, the
 /// following types are supported:
 /// - [StorageSlot::Value]: a [Word]
-/// - [StorageSlot::Map]: a [StorageMap] composed of a key-value map where keys are words
-/// and values contain up to 256 words.
+/// - [StorageSlot::Map]: a [StorageMap] composed of a key-value map where keys are words and values
+///   contain up to 256 words.
 ///
 /// Storage slots are stored in a vector.
 ///
@@ -34,9 +34,6 @@ pub struct AccountStorage {
 }
 
 impl AccountStorage {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// Total number of storage slots.
     pub const NUM_STORAGE_SLOTS: usize = 256;
 
@@ -67,11 +64,6 @@ impl AccountStorage {
         build_slots_commitment(&self.slots)
     }
 
-    /// Returns the number of storage slots contained in this storage.
-    pub fn num_slots(&self) -> usize {
-        self.slots.len()
-    }
-
     /// Converts storage slots of this [AccountStorage] into a vector of field elements.
     ///
     /// This is done by first converting each procedure into exactly 8 elements as follows:
@@ -79,7 +71,7 @@ impl AccountStorage {
     /// [STORAGE_SLOT_VALUE, storage_slot_type, 0, 0, 0]
     /// ```
     /// And then concatenating the resulting elements into a single vector.
-    pub fn slots_as_elements(&self) -> Vec<Felt> {
+    pub fn as_elements(&self) -> Vec<Felt> {
         slots_as_elements(self.slots())
     }
 
@@ -89,7 +81,7 @@ impl AccountStorage {
     /// - If the index is out of bounds
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
         // check if index is in bounds
-        let num_slots = self.num_slots();
+        let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
@@ -105,7 +97,7 @@ impl AccountStorage {
     /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
         // check if index is in bounds
-        let num_slots = self.num_slots();
+        let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
@@ -125,8 +117,7 @@ impl AccountStorage {
     /// Errors:
     /// - If the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
-        // --- update storage maps --------------------------------------------
-
+        // update storage maps
         for (&idx, map) in delta.maps().iter() {
             let storage_slot =
                 self.slots.get_mut(idx as usize).ok_or(AccountError::StorageSlotNotMap(idx))?;
@@ -139,8 +130,7 @@ impl AccountStorage {
             storage_map.apply_delta(map);
         }
 
-        // --- update storage slots -------------------------------------------
-
+        // update storage values
         for (&idx, &value) in delta.values().iter() {
             self.set_item(idx, value)?;
         }
@@ -158,7 +148,7 @@ impl AccountStorage {
     /// - If the [StorageSlotType] is not [StorageSlotType::Value]
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
         // check if index is in bounds
-        let num_slots = self.num_slots();
+        let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
@@ -191,7 +181,7 @@ impl AccountStorage {
         value: Word,
     ) -> Result<(Word, Word), AccountError> {
         // check if index is in bounds
-        let num_slots = self.num_slots();
+        let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
@@ -252,7 +242,9 @@ impl Deserializable for AccountStorage {
 
 #[cfg(test)]
 mod tests {
-    use super::{AccountStorage, Deserializable, Serializable, StorageMap, Word};
+    use super::{
+        build_slots_commitment, AccountStorage, Deserializable, Serializable, StorageMap, Word,
+    };
     use crate::accounts::StorageSlot;
 
     #[test]
@@ -270,5 +262,12 @@ mod tests {
         .unwrap();
         let bytes = storage.to_bytes();
         assert_eq!(storage, AccountStorage::read_from_bytes(&bytes).unwrap());
+    }
+
+    #[test]
+    fn test_account_storage_slots_commitment() {
+        let storage = AccountStorage::mock();
+        let storage_slots_commitment = build_slots_commitment(storage.slots());
+        assert_eq!(storage_slots_commitment, storage.commitment())
     }
 }

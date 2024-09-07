@@ -1,6 +1,3 @@
-// STORAGE SLOT TYPE
-// ================================================================================================
-
 use alloc::string::{String, ToString};
 
 use vm_core::{
@@ -9,12 +6,15 @@ use vm_core::{
 };
 use vm_processor::DeserializationError;
 
+// STORAGE SLOT TYPE
+// ================================================================================================
+
 /// An object that represents the type of a storage slot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageSlotType {
     /// Represents a slot that contains a value.
     Value,
-    /// Represents a slot that contains a commitment to a map with values.
+    /// Represents a slot that contains a commitment to a map with key-value pairs.
     Map,
 }
 

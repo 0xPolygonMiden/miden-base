@@ -1,10 +1,10 @@
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    Word, EMPTY_WORD, ZERO,
+    EMPTY_WORD, ZERO,
 };
 use vm_processor::DeserializationError;
 
-use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, StorageMap};
+use super::{map::EMPTY_STORAGE_MAP_ROOT, Felt, StorageMap, Word};
 
 mod r#type;
 pub use r#type::StorageSlotType;
@@ -13,7 +13,6 @@ pub use r#type::StorageSlotType;
 // ================================================================================================
 
 /// An object that represents the type of a storage slot.
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StorageSlot {
     Value(Word),
@@ -21,9 +20,6 @@ pub enum StorageSlot {
 }
 
 impl StorageSlot {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// The number of field elements needed to represent a [StorageSlot] in kernel memory.
     pub const NUM_ELEMENTS_PER_STORAGE_SLOT: usize = 8;
 
@@ -128,7 +124,7 @@ impl Deserializable for StorageSlot {
 mod tests {
     use vm_core::utils::{Deserializable, Serializable};
 
-    use crate::accounts::{storage::build_slots_commitment, AccountStorage};
+    use crate::accounts::AccountStorage;
 
     #[test]
     fn test_serde_account_storage_slot() {
@@ -136,12 +132,5 @@ mod tests {
         let serialized = storage.to_bytes();
         let deserialized = AccountStorage::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, storage)
-    }
-
-    #[test]
-    fn test_account_storage_slots_commitment() {
-        let storage = AccountStorage::mock();
-        let storage_slots_commitment = build_slots_commitment(storage.slots());
-        assert_eq!(storage_slots_commitment, storage.commitment())
     }
 }

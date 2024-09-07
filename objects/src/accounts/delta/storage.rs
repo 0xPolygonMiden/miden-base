@@ -12,21 +12,16 @@ use super::{
 };
 use crate::Digest;
 
-// CONSTANTS
-// ================================================================================================
-
-const IMMUTABLE_STORAGE_SLOT: u8 = u8::MAX;
-
 // ACCOUNT STORAGE DELTA
 // ================================================================================================
 
 /// [AccountStorageDelta] stores the differences between two states of account storage.
 ///
 /// The delta consists of two maps:
-/// - A map containing the updates to simple storage slots. The keys in this map are indexes of the
+/// - A map containing the updates to value storage slots. The keys in this map are indexes of the
 ///   updated storage slots and the values are the new values for these slots.
-/// - A map containing updates to storage maps. The keys in this map are also indexes of the updated
-///   storage slots  and the values are corresponding storage map delta objects.
+/// - A map containing updates to storage maps. The keys in this map are indexes of the updated
+///   storage slots and the values are corresponding storage map delta objects.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AccountStorageDelta {
     values: BTreeMap<u8, Word>,
@@ -89,17 +84,9 @@ impl AccountStorageDelta {
 
     /// Checks whether this storage delta is valid.
     ///
-    /// # Errors
-    /// Returns an error if:
-    /// - Any of updated items are at slot 255 (i.e., immutable slot).
+    /// Errors:
     /// - Any of the updated slot is referenced from both maps (e.g., updated twice).
     fn validate(&self) -> Result<(), AccountDeltaError> {
-        if self.values.contains_key(&IMMUTABLE_STORAGE_SLOT)
-            || self.maps.contains_key(&IMMUTABLE_STORAGE_SLOT)
-        {
-            return Err(AccountDeltaError::ImmutableStorageSlot(IMMUTABLE_STORAGE_SLOT as usize));
-        }
-
         for slot in self.maps.keys() {
             if self.values.contains_key(slot) {
                 return Err(AccountDeltaError::DuplicateStorageItemUpdate(*slot as usize));
@@ -286,30 +273,6 @@ mod tests {
 
         let bytes = delta.to_bytes();
         assert_eq!(AccountStorageDelta::read_from_bytes(&bytes), Ok(delta));
-
-        // invalid index in cleared items
-        let delta = AccountStorageDelta::from_iters([1, 2, 255], [], []);
-        assert!(delta.validate().is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
-
-        // invalid index in updated items
-        let delta = AccountStorageDelta::from_iters(
-            [],
-            [(4, [ONE, ONE, ONE, ONE]), (255, [ONE, ONE, ONE, ZERO])],
-            [],
-        );
-        assert!(delta.validate().is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
-
-        let bytes = delta.to_bytes();
-        assert!(AccountStorageDelta::read_from_bytes(&bytes).is_err());
 
         // duplicate across cleared items and maps
         let delta = AccountStorageDelta::from_iters(

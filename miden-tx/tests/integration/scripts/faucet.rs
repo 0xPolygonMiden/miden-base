@@ -169,7 +169,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let fungible_asset = FungibleAsset::new(faucet_account.id(), 100).unwrap();
 
-    // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
+    // check that max_supply (slot 1) is 200 and amount already issued (slot 0) is 100
     assert_eq!(
         faucet_account.storage().get_item(1).unwrap(),
         [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
