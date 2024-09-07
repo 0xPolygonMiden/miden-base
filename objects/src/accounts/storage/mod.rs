@@ -1,7 +1,5 @@
 use alloc::{string::ToString, vec::Vec};
 
-use vm_core::EMPTY_WORD;
-
 use super::{
     AccountError, AccountStorageDelta, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Digest, Felt, Hasher, Serializable, Word,
@@ -16,21 +14,20 @@ pub use map::StorageMap;
 // ACCOUNT STORAGE
 // ================================================================================================
 
-/// Account storage consists of 256 index-addressable storage slots.
+/// Account storage is composed of a variable number of [StorageSlot] and up to 256
+/// index-addressable storage slots.
 ///
 /// Each slot has a type which defines the size and the structure of the slot. Currently, the
 /// following types are supported:
-/// - Scalar: a sequence of up to 256 words.
-/// - Array: a sparse array of up to 2^n values where n > 1 and n <= 64 and each value contains up
-///   to 256 words.
-/// - Map: a key-value map where keys are words and values contain up to 256 words.
+/// - [StorageSlot::Value]: a [Word]
+/// - [StorageSlot::Map]: a [StorageMap] composed of a key-value map where keys are words
+/// and values contain up to 256 words.
 ///
-/// Storage slots are stored in a simple Sparse Merkle Tree of depth 8. Slot 255 is always reserved
-/// and contains information about slot types of all other slots.
+/// Storage slots are stored in a vector.
 ///
 /// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
-/// they can hold more data as there is in plain usage of the storage slots. The root of the SMT
-/// consumes one storage slot.
+/// they can hold more data as there is in plain usage of the storage slots using a value.
+/// The root of the SMT consumes one storage slot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: Vec<StorageSlot>,
@@ -88,24 +85,35 @@ impl AccountStorage {
 
     /// Returns an item from the storage at the specified index.
     ///
-    /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
-    pub fn get_item(&self, index: u8) -> Digest {
-        Digest::from(
-            self.slots
-                .get(index as usize)
-                .map(|slot| slot.get_value_as_word())
-                .unwrap_or(EMPTY_WORD),
-        )
+    /// Errors:
+    /// - If the index is out of bounds
+    pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
+        // check if index is in bounds
+        let num_slots = self.num_slots();
+
+        if index as usize >= num_slots {
+            return Err(AccountError::StorageIndexOutOfBounds(index));
+        }
+
+        Ok(self.slots[index as usize].get_value_as_word().into())
     }
 
-    /// Returns a map item from the storage at the specified index.
+    /// Returns a map item from a map located in storage at the specified index.
     ///
-    /// If the item is not present in the storage, [crate::EMPTY_WORD] is returned.
+    /// Errors:
+    /// - If the index is out of bounds
+    /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
-        match self.slots.get(index as usize) {
-            Some(StorageSlot::Map(map)) => Ok(map.get_value(&Digest::from(key))),
-            Some(_) => Err(AccountError::StorageSlotNotMap(index)),
-            None => Ok(EMPTY_WORD),
+        // check if index is in bounds
+        let num_slots = self.num_slots();
+
+        if index as usize >= num_slots {
+            return Err(AccountError::StorageIndexOutOfBounds(index));
+        }
+
+        match &self.slots[index as usize] {
+            StorageSlot::Map(map) => Ok(map.get_value(&Digest::from(key))),
+            _ => Err(AccountError::StorageSlotNotMap(index)),
         }
     }
 
@@ -114,18 +122,18 @@ impl AccountStorage {
 
     /// Applies the provided delta to this account storage.
     ///
-    /// # Errors
-    /// Returns an error if the updates violate storage constraints.
+    /// Errors:
+    /// - If the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // --- update storage maps --------------------------------------------
 
         for (&idx, map) in delta.maps().iter() {
             let storage_slot =
-                self.slots.get_mut(idx as usize).ok_or(AccountError::StorageMapNotFound(idx))?;
+                self.slots.get_mut(idx as usize).ok_or(AccountError::StorageSlotNotMap(idx))?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
-                _ => return Err(AccountError::StorageMapNotFound(idx)),
+                _ => return Err(AccountError::StorageSlotNotMap(idx)),
             };
 
             storage_map.apply_delta(map);
@@ -142,21 +150,30 @@ impl AccountStorage {
 
     /// Updates the value of the storage slot at the specified index.
     ///
-    /// This method should be used only to update simple value slots. For updating values
+    /// This method should be used only to update value slots. For updating values
     /// in storage maps, please see [AccountStorage::set_map_item()].
+    ///
+    /// Errors:
+    /// - If the index is out of bounds
+    /// - If the [StorageSlotType] is not [StorageSlotType::Value]
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
-        let len = self.slots.len();
+        // check if index is in bounds
+        let num_slots = self.num_slots();
 
-        if index as usize >= len {
+        if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
         }
 
-        // update the slot and return
-        let old_value = self.slots[index as usize].clone();
+        let old_value = match self.slots[index as usize] {
+            StorageSlot::Value(value) => value,
+            // return an error if the type != Value
+            _ => return Err(AccountError::StorageSlotNotValue(index)),
+        };
 
+        // update the value of the storage slot
         self.slots[index as usize] = StorageSlot::Value(value);
 
-        Ok(old_value.get_value_as_word())
+        Ok(old_value)
     }
 
     /// Updates the value of a key-value pair of a storage map at the specified index.
@@ -164,18 +181,19 @@ impl AccountStorage {
     /// This method should be used only to update storage maps. For updating values
     /// in storage slots, please see [AccountStorage::set_item()].
     ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The index is not a map slot.
+    /// Errors:
+    /// - If the index is out of bounds
+    /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn set_map_item(
         &mut self,
         index: u8,
         key: Word,
         value: Word,
     ) -> Result<(Word, Word), AccountError> {
-        let len = self.slots.len() - 1;
+        // check if index is in bounds
+        let num_slots = self.num_slots();
 
-        if len < index as usize {
+        if index as usize >= num_slots {
             return Err(AccountError::StorageIndexOutOfBounds(index));
         }
 
@@ -183,7 +201,7 @@ impl AccountStorage {
 
         let mut storage_map = match storage_slot {
             StorageSlot::Map(map) => map,
-            _ => return Err(AccountError::StorageMapNotFound(index)),
+            _ => return Err(AccountError::StorageSlotNotMap(index)),
         };
 
         // get old map root to return

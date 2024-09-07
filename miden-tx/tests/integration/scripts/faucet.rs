@@ -171,11 +171,11 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     // check that max_supply (slot 1) is 200 and amount already issued (slot 255) is 100
     assert_eq!(
-        faucet_account.storage().get_item(1),
+        faucet_account.storage().get_item(1).unwrap(),
         [Felt::new(200), Felt::new(0), Felt::new(0), Felt::new(0)].into()
     );
     assert_eq!(
-        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT),
+        faucet_account.storage().get_item(FAUCET_STORAGE_DATA_SLOT).unwrap(),
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(100)].into()
     );
 

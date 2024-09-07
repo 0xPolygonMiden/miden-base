@@ -519,12 +519,12 @@ fn test_storage_offset() {
 
     // assert that elements have been set at the correct locations in storage
     assert_eq!(
-        account.storage().get_item(1),
+        account.storage().get_item(1).unwrap(),
         [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into()
     );
 
     assert_eq!(
-        account.storage().get_item(2),
+        account.storage().get_item(2).unwrap(),
         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
 }

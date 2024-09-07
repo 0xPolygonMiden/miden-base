@@ -366,7 +366,10 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
-#! Gets an item from the account storage. Panics if the index is out of bounds.
+#! Gets an item from the account storage
+#!
+#! Panics:
+#!    - index is out of bounds.
 #!
 #! Stack: [index]
 #! Output: [VALUE]
@@ -417,9 +420,11 @@ proc.set_item_raw
     # => [OLD_VALUE]
 end
 
-#! Sets an item in the account storage. Panics if
-#! - the index is out of bounds
-#! - the slot type is not value
+#! Sets an item in the account storage.
+#!
+#! Panics:
+#!    - index is out of bounds
+#!    - storage slot type is not value
 #!
 #! Stack: [index, V']
 #! Output: [V]
@@ -462,6 +467,11 @@ end
 
 #! Sets an item in the specified account storage map.
 #!
+#! Panics:
+#! - index is out of bounds
+#! - storage slot type is not map
+#! - no map is found for ROOT
+#!
 #! Stack: [index, KEY, NEW_VALUE, OLD_ROOT, ...]
 #! Output: [OLD_VALUE, NEW_ROOT, ...]
 #!
@@ -470,13 +480,13 @@ end
 #! - KEY is the key to set.
 #! - OLD_VALUE is the previous value of the item.
 #! - NEW_ROOT is the new root of the map.
-#!
-#! Panics if
-#! - the slot type is not map
-#! - no map is found for ROOT
 export.set_map_item.3
     # store index for later
     dup loc_store.0
+    # => [index, KEY, NEW_VALUE, ...]
+
+    # check that index is in bounds
+    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [index, KEY, NEW_VALUE, ...]
 
     # check if storage type is map
@@ -522,14 +532,14 @@ end
 
 #! Returns the type of the requested storage slot
 #!
+#! Panics:
+#! - index is out of bounds
+#!
 #! Stack: [index, ...]
 #! Output: [slot_type, ...]
 #!
 #! - index is the location in memory of the storage slot.
 #! - slot_type is the type of the storage slot.
-#!
-#! Panics if
-#! - index is out of bounds
 export.get_storage_slot_type
     # check that index is in bounds
     dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS

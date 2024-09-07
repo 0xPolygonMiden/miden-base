@@ -137,7 +137,7 @@ mod tests {
 
         // check that max_supply (slot 1) is 123
         assert_eq!(
-            faucet_account.storage().get_item(1),
+            faucet_account.storage().get_item(1).unwrap(),
             [Felt::new(123), Felt::new(2), token_symbol.into(), ZERO].into()
         );
 
