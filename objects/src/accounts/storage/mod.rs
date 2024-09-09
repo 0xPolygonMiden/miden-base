@@ -75,14 +75,10 @@ impl AccountStorage {
     /// # Errors:
     /// - If the index is out of bounds
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
-        // check if index is in bounds
-        let num_slots = self.slots.len();
-
-        if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index));
-        }
-
-        Ok(self.slots[index as usize].value().into())
+        self.slots
+            .get(index as usize)
+            .ok_or(AccountError::StorageIndexOutOfBounds(index))
+            .map(|slot| slot.value().into())
     }
 
     /// Returns a map item from a map located in storage at the specified index.
@@ -91,15 +87,12 @@ impl AccountStorage {
     /// - If the index is out of bounds
     /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
-        // check if index is in bounds
-        let num_slots = self.slots.len();
-
-        if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index));
-        }
-
-        match &self.slots[index as usize] {
-            StorageSlot::Map(map) => Ok(map.get_value(&Digest::from(key))),
+        match self
+            .slots
+            .get(index as usize)
+            .ok_or(AccountError::StorageIndexOutOfBounds(index))?
+        {
+            StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
         }
     }
@@ -182,10 +175,8 @@ impl AccountStorage {
             return Err(AccountError::StorageIndexOutOfBounds(index));
         }
 
-        let storage_slot = self.slots[index as usize].clone();
-
-        let mut storage_map = match storage_slot {
-            StorageSlot::Map(map) => map,
+        let storage_map = match self.slots[index as usize] {
+            StorageSlot::Map(ref mut map) => map,
             _ => return Err(AccountError::StorageSlotNotMap(index)),
         };
 

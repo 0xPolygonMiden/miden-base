@@ -251,7 +251,7 @@ proc.validate_new_account
 
         if.true
             # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
-            padw eqw assert.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
+            or or or assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
             # => []
 
             # get the faucet reserved storage data slot type
@@ -309,7 +309,7 @@ proc.validate_account_storage_slots
 
     # store number of storage slots in memory
     dup exec.memory::set_num_storage_slots
-    # => [num_procs, STORAGE_COMMITMENT]
+    # => [num_storage_slots, STORAGE_COMMITMENT]
 
     # setup acct_storage_slots_offset and end_ptr for reading from advice stack
     mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
@@ -438,6 +438,11 @@ proc.process_account_data
     exec.memory::set_init_nonce
     # => [ACCT_HASH]
 
+    # validates and stores account storage slots in memory.
+    exec.memory::get_acct_storage_root
+    exec.validate_account_storage_slots
+    # => [ACCT_HASH]
+
     # set the new account code commitment to the initial account code root this is used for managing
     # code commitment updates
     exec.memory::get_acct_code_commitment
@@ -446,11 +451,6 @@ proc.process_account_data
 
     # validates and stores account procedures in memory.
     exec.validate_account_procedures
-    # => [ACCT_HASH]
-
-    # validates and stores account storage slots in memory.
-    exec.memory::get_acct_storage_root
-    exec.validate_account_storage_slots
     # => [ACCT_HASH]
 
     # copy the initial account vault hash to the input vault hash to support transaction asset

@@ -38,12 +38,10 @@ pub enum AccountError {
     MapsUpdateToNonMapsSlot(u8, StorageSlotType),
     NonceNotMonotonicallyIncreasing { current: u64, new: u64 },
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
-    StorageSlotIsReserved(u8),
     StorageSlotNotMap(u8),
     StorageSlotNotValue(u8),
     StorageIndexOutOfBounds(u8),
     StorageTooManySlots(u64),
-    StubDataIncorrectLength(usize, usize),
 }
 
 impl fmt::Display for AccountError {

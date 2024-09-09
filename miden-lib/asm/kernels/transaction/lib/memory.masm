@@ -656,7 +656,7 @@ export.set_acct_nonce
     drop movup.3 push.ACCT_ID_AND_NONCE_PTR mem_storew dropw
 end
 
-#! Sets the number of storage slots contained in the account code.
+#! Sets the number of storage slots contained in the account storage.
 #!
 #! Stack: [num_storage_slots]
 #! Output: []
