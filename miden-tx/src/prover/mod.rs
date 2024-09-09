@@ -56,6 +56,7 @@ impl LocalTransactionProver {
 }
 
 impl TransactionProver for LocalTransactionProver {
+    #[maybe_async]
     fn prove(
         &self,
         transaction: impl Into<TransactionWitness>,
