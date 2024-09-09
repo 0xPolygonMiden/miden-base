@@ -172,21 +172,17 @@ end
 #!
 #! Stack: []
 #! Output: []
-proc.update_account_storage
+proc.update_account_storage_commitment
     # get number of storage slots
     exec.memory::get_num_storage_slots
     # => [num_storage_slots]
 
     # check if there are storage slots
-    push.0 neq
-    # => [storage_slots_is_not_empty]
+    dup push.0 neq
+    # => [storage_slots_is_not_empty, num_storage_slots]
 
     # only loop and hash over storage if there are storage slots
     if.true
-        # get num storage slots
-        exec.memory::get_num_storage_slots
-        # => [num_storage_slots]
-
         # setup start and end ptr
         mul.2 exec.memory::get_acct_storage_slots_section_offset dup movdn.2 add swap
         # => [start_ptr, end_ptr]
@@ -207,8 +203,12 @@ proc.update_account_storage
         movup.4 drop movup.4 drop
         # => [DIGEST]
 
-        # set new account storage hash
-        exec.memory::set_acct_storage_root dropw
+        # set new account storage commitment
+        exec.memory::set_acct_storage_commitment dropw
+        # => []
+    else
+        # drop number of storage slots
+        drop
         # => []
     end
 end
@@ -233,8 +233,8 @@ export.finalize_transaction
     exec.update_account_code
     # => []
 
-    # update account storage
-    exec.update_account_storage
+    # update account storage commitment
+    exec.update_account_storage_commitment
     # => []
 
     # get the initial account hash

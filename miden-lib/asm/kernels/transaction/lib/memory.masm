@@ -106,7 +106,7 @@ const.ACCT_ID_AND_NONCE_PTR=400
 const.ACCT_VAULT_ROOT_PTR=401
 
 # The memory address at which the account storage root is stored
-const.ACCT_STORAGE_ROOT_PTR=402
+const.ACCT_STORAGE_COMMITMENT_PTR=402
 
 # The memory address at which the account code commitment is stored
 const.ACCT_CODE_COMMITMENT_PTR=403
@@ -768,27 +768,26 @@ export.get_new_acct_code_commitment
     padw push.ACCT_NEW_CODE_COMMITMENT_PTR mem_loadw
 end
 
-#! Returns the account storage root.
+#! Returns the account storage commitment.
 #!
 #! Stack: []
-#! Output: [STORAGE_ROOT]
+#! Output: [STORAGE_COMMITMENT]
 #!
 #! Where:
-#! - STORAGE_ROOT is the account storage root.
-export.get_acct_storage_root
-    padw push.ACCT_STORAGE_ROOT_PTR mem_loadw
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.get_acct_storage_commitment
+    padw push.ACCT_STORAGE_COMMITMENT_PTR mem_loadw
 end
 
-#! Sets the account storage root.
+#! Sets the account storage commitment.
 #!
-#! Stack: [STORAGE_ROOT]
-#! Output: [STORAGE_ROOT]
+#! Stack: [STORAGE_COMMITMENT]
+#! Output: [STORAGE_COMMITMENT]
 #!
 #! Where:
-#! - STORAGE_ROOT is the account storage root.
-export.set_acct_storage_root
-    push.ACCT_STORAGE_ROOT_PTR
-    mem_storew
+#! - STORAGE_COMMITMENT is the account storage commitment.
+export.set_acct_storage_commitment
+    push.ACCT_STORAGE_COMMITMENT_PTR mem_storew
 end
 
 #! Returns a pointer to the memory address at which the account vault root is stored.

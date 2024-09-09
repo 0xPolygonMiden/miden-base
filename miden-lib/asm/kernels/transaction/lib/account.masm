@@ -600,7 +600,7 @@ end
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.
 #!
 #! Validation is performed via the following steps:
-#! 1. compute the hash of (SEED, CODE_commitment, STORAGE_ROOT, 0, 0, 0, 0)
+#! 1. compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, 0, 0, 0, 0)
 #! 2. Assert the least significant element of the digest is equal to the account id of the account
 #!    the transaction is being executed against.
 #! 3. Assert the most significant element has sufficient proof of work (trailing zeros) for the account
@@ -627,8 +627,8 @@ export.validate_seed
         dropw dropw
         # => [PERM]
 
-        # perform second permutation perm(storage_root, 0, 0, 0, 0)
-        exec.memory::get_acct_storage_root padw hperm
+        # perform second permutation perm(storage_commitment, 0, 0, 0, 0)
+        exec.memory::get_acct_storage_commitment padw hperm
         # => [RATE, RATE, CAP]
 
         # extract digest

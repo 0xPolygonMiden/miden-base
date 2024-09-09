@@ -102,7 +102,7 @@ impl<T: Rng> AccountBuilder<T> {
         let account_code = self.code.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
         self.account_id_builder.code(account_code.clone());
-        self.account_id_builder.storage_root(storage.commitment());
+        self.account_id_builder.storage_commitment(storage.commitment());
         let (account_id, seed) = self.account_id_builder.build()?;
 
         let account = Account::from_parts(account_id, vault, storage, account_code, self.nonce);
@@ -114,7 +114,7 @@ impl<T: Rng> AccountBuilder<T> {
         let vault = AssetVault::new(&self.assets).map_err(AccountBuilderError::AssetVaultError)?;
         let storage = self.storage_builder.build();
 
-        self.account_id_builder.storage_root(storage.commitment());
+        self.account_id_builder.storage_commitment(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed)?;
         let account_code = self.code.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
@@ -134,7 +134,7 @@ impl<T: Rng> AccountBuilder<T> {
         let account_code = self.code.ok_or(AccountBuilderError::AccountCodeNotSet)?;
 
         self.account_id_builder.code(account_code.clone());
-        self.account_id_builder.storage_root(storage.commitment());
+        self.account_id_builder.storage_commitment(storage.commitment());
         let account_id = self.account_id_builder.with_seed(seed)?;
 
         Ok(Account::from_parts(account_id, vault, storage, account_code, self.nonce))

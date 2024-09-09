@@ -3,7 +3,7 @@ use alloc::collections::BTreeMap;
 use miden_lib::transaction::{
     memory::{
         MemoryOffset, ACCT_CODE_COMMITMENT_PTR, ACCT_DB_ROOT_PTR, ACCT_ID_AND_NONCE_PTR,
-        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_ROOT_PTR,
+        ACCT_ID_PTR, ACCT_PROCEDURES_SECTION_OFFSET, ACCT_STORAGE_COMMITMENT_OFFSET,
         ACCT_STORAGE_SLOTS_SECTION_OFFSET, ACCT_VAULT_ROOT_PTR, BLK_HASH_PTR, BLOCK_METADATA_PTR,
         BLOCK_NUMBER_IDX, CHAIN_MMR_NUM_LEAVES_PTR, CHAIN_MMR_PEAKS_PTR, CHAIN_ROOT_PTR,
         INIT_ACCT_HASH_PTR, INIT_NONCE_PTR, INPUT_NOTES_COMMITMENT_PTR, INPUT_NOTE_ARGS_OFFSET,
@@ -231,9 +231,9 @@ fn account_data_memory_assertions(process: &Process<MockHost>, inputs: &Transact
     );
 
     assert_eq!(
-        read_root_mem_value(process, ACCT_STORAGE_ROOT_PTR),
+        read_root_mem_value(process, ACCT_STORAGE_COMMITMENT_OFFSET),
         Word::from(inputs.account().storage().commitment()),
-        "The account storage root commitment should be stored at ACCT_STORAGE_ROOT_PTR"
+        "The account storage root commitment should be stored at ACCT_STORAGE_COMMITMENT_PTR"
     );
 
     assert_eq!(
