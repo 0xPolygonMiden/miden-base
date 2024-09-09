@@ -107,8 +107,10 @@ impl AccountStorage {
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // update storage maps
         for (&idx, map) in delta.maps().iter() {
-            let storage_slot =
-                self.slots.get_mut(idx as usize).ok_or(AccountError::StorageSlotNotMap(idx))?;
+            let storage_slot = self
+                .slots
+                .get_mut(idx as usize)
+                .ok_or(AccountError::StorageIndexOutOfBounds(idx))?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
