@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::fmt;
+use core::{fmt, str::FromStr};
 
 use super::{
     get_account_seed, AccountError, ByteReader, Deserializable, DeserializationError, Digest, Felt,
@@ -108,7 +108,15 @@ impl TryFrom<&str> for AccountStorageMode {
     }
 }
 
-impl core::str::FromStr for AccountStorageMode {
+impl TryFrom<String> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: String) -> Result<Self, AccountError> {
+        AccountStorageMode::from_str(&value)
+    }
+}
+
+impl FromStr for AccountStorageMode {
     type Err = AccountError;
 
     fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
