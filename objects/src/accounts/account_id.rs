@@ -87,6 +87,27 @@ pub enum AccountStorageMode {
     Private = PRIVATE,
 }
 
+impl fmt::Display for AccountStorageMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AccountStorageMode::Public => write!(f, "public"),
+            AccountStorageMode::Private => write!(f, "private"),
+        }
+    }
+}
+
+impl TryFrom<&str> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: &str) -> Result<Self, AccountError> {
+        match value.to_lowercase().as_str() {
+            "public" => Ok(AccountStorageMode::Public),
+            "private" => Ok(AccountStorageMode::Private),
+            _ => Err(AccountError::InvalidAccountStorageMode),
+        }
+    }
+}
+
 // ACCOUNT ID
 // ================================================================================================
 
