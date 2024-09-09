@@ -15,7 +15,7 @@ pub mod host;
 pub use host::{TransactionHost, TransactionProgress};
 
 mod prover;
-pub use prover::{ProvingOptions, TransactionProver};
+pub use prover::{LocalTransactionProver, ProvingOptions, TransactionProver};
 
 mod verifier;
 pub use verifier::TransactionVerifier;

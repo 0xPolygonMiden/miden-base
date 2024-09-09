@@ -8,41 +8,55 @@ use miden_objects::{
 use miden_prover::prove;
 pub use miden_prover::ProvingOptions;
 use vm_processor::MemAdviceProvider;
+use winter_maybe_async::maybe_async;
 
 use super::{TransactionHost, TransactionProverError};
 use crate::executor::TransactionMastStore;
 
-/// Transaction prover is a stateless component which is responsible for proving transactions.
-///
-/// Transaction prover exposes the `prove_transaction` method which takes a [TransactionWitness],
-/// or anything that can be converted into a [TransactionWitness], and returns a
-/// [ProvenTransaction].
-pub struct TransactionProver {
-    mast_store: Rc<TransactionMastStore>,
-    proof_options: ProvingOptions,
-}
+// TRANSACTION PROVER TRAIT
+// ================================================================================================
 
-impl TransactionProver {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Creates a new [TransactionProver] instance.
-    pub fn new(proof_options: ProvingOptions) -> Self {
-        Self {
-            mast_store: Rc::new(TransactionMastStore::new()),
-            proof_options,
-        }
-    }
-
-    // TRANSACTION PROVER
-    // --------------------------------------------------------------------------------------------
-
+/// The [TransactionProver] trait defines the interface that transaction witness objects use to
+/// prove transactions and generate a [ProvenTransaction].
+pub trait TransactionProver {
     /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
     /// # Errors
     /// - If the input note data in the transaction witness is corrupt.
     /// - If the transaction program cannot be proven.
     /// - If the transaction result is corrupt.
-    pub fn prove_transaction(
+    #[maybe_async]
+    fn prove(
+        &self,
+        transaction: impl Into<TransactionWitness>,
+    ) -> Result<ProvenTransaction, TransactionProverError>;
+}
+
+// LOCAL TRANSACTION PROVER
+// ------------------------------------------------------------------------------------------------
+
+/// Local Transaction prover is a stateless component which is responsible for proving transactions.
+///
+/// Local Transaction Prover implements the [TransactionProver] trait.
+pub struct LocalTransactionProver {
+    mast_store: Rc<TransactionMastStore>,
+    proof_options: ProvingOptions,
+}
+
+impl LocalTransactionProver {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Creates a new [LocalTransactionProver] instance.
+    pub fn new(proof_options: ProvingOptions) -> Self {
+        Self {
+            mast_store: Rc::new(TransactionMastStore::new()),
+            proof_options,
+        }
+    }
+}
+
+impl TransactionProver for LocalTransactionProver {
+    fn prove(
         &self,
         transaction: impl Into<TransactionWitness>,
     ) -> Result<ProvenTransaction, TransactionProverError> {
