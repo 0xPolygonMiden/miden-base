@@ -408,7 +408,7 @@ end
 #! - account_id, the account that the transaction is being executed against.
 #! - account_nonce, account's nonce.
 #! - ACCOUNT_VAULT_ROOT, account's vault root.
-#! - ACCOUNT_STORAGE_COMMITMENT, account's storage root.
+#! - ACCOUNT_STORAGE_COMMITMENT, account's storage commitment.
 #! - ACCOUNT_CODE_COMMITMENT, account's code commitment.
 proc.process_account_data
     # Copy the account data from the advice provider to memory and hash it

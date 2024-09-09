@@ -105,7 +105,7 @@ const.ACCT_ID_AND_NONCE_PTR=400
 # The memory address at which the account vault root is stored
 const.ACCT_VAULT_ROOT_PTR=401
 
-# The memory address at which the account storage root is stored
+# The memory address at which the account storage commitment is stored
 const.ACCT_STORAGE_COMMITMENT_PTR=402
 
 # The memory address at which the account code commitment is stored

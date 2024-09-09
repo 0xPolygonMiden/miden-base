@@ -127,9 +127,10 @@ impl AccountId {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new account ID derived from the specified seed, code commitment and storage root.
+    /// Returns a new account ID derived from the specified seed, code commitment and storage
+    /// commitment.
     ///
-    /// The account ID is computed by hashing the seed, code commitment and storage root and using 1
+    /// The account ID is computed by hashing the seed, code commitment and storage commitment and using 1
     /// element of the resulting digest to form the ID. Specifically we take element 0. We also
     /// require that the last element of the seed digest has at least `23` trailing zeros if it
     /// is a regular account, or `31` trailing zeros if it is a faucet account.
@@ -403,8 +404,8 @@ fn parse_felt(bytes: &[u8]) -> Result<Felt, AccountError> {
     Felt::try_from(bytes).map_err(|err| AccountError::AccountIdInvalidFieldElement(err.to_string()))
 }
 
-/// Returns the digest of two hashing permutations over the seed, code commitment, storage root and
-/// padding.
+/// Returns the digest of two hashing permutations over the seed, code commitment, storage
+/// commitment and padding.
 pub(super) fn compute_digest(
     seed: Word,
     code_commitment: Digest,

@@ -21,7 +21,7 @@ pub const FINAL_ACCOUNT_HASH_WORD_IDX: usize = 1;
 // ================================================================================================
 
 /// Parses the account header data returned by the VM into individual account component commitments.
-/// Returns a tuple of account ID, vault root, storage root, code commitment, and nonce.
+/// Returns a tuple of account ID, vault root, storage commitment, code commitment, and nonce.
 pub fn parse_final_account_header(elements: &[Word]) -> Result<AccountHeader, AccountError> {
     if elements.len() != ACCT_DATA_MEM_SIZE {
         return Err(AccountError::HeaderDataIncorrectLength(elements.len(), ACCT_DATA_MEM_SIZE));
