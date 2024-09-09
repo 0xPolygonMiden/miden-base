@@ -226,7 +226,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
-        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
+        if slot_index.as_int() as usize >= AccountStorage::MAX_NUM_STORAGE_SLOTS {
             return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
         }
 
@@ -265,7 +265,7 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
-        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
+        if slot_index.as_int() as usize >= AccountStorage::MAX_NUM_STORAGE_SLOTS {
             return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
         }
 

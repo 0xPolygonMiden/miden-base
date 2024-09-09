@@ -75,7 +75,7 @@ const.ERR_ACCT_CODE_COMMITMENT_MISMATCH=0x0002004C
 # Number of account procedures exceeded the maximum limit of 256
 const.ERR_ACCT_TOO_MANY_PROCEDURES=0x0002004D
 
-# Number of account storage slots exceeded the maximum limit of 256
+# Number of account storage slots exceeded the maximum limit of 255
 const.ERR_ACCT_TOO_MANY_STORAGE_SLOTS=0x0002004F
 
 # Computed account storage commitment does not match recorded account storage commitment

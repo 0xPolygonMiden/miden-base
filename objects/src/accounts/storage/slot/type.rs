@@ -48,8 +48,8 @@ impl TryFrom<Felt> for StorageSlotType {
 impl Serializable for StorageSlotType {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            Self::Value { .. } => target.write_u8(0),
-            Self::Map { .. } => target.write_u8(1),
+            Self::Value => target.write_u8(0),
+            Self::Map => target.write_u8(1),
         }
     }
 }

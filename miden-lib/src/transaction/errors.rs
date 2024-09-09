@@ -50,7 +50,7 @@ impl fmt::Display for TransactionKernelError {
                 )
             },
             TransactionKernelError::InvalidStorageSlotIndex(index) => {
-                let num_slots = AccountStorage::NUM_STORAGE_SLOTS;
+                let num_slots = AccountStorage::MAX_NUM_STORAGE_SLOTS;
                 write!(f, "Storage slot index {index} is invalid, must be smaller than {num_slots}")
             },
             TransactionKernelError::MalformedAccountId(err) => {

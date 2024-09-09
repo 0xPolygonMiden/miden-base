@@ -348,6 +348,6 @@ pub const KERNEL_ERRORS: [(u32, &str); 81] = [
     (ERR_ACCT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
     (ERR_ACCT_TOO_MANY_PROCEDURES, "Number of account procedures exceeded the maximum limit of 256"),
     (ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
-    (ERR_ACCT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeded the maximum limit of 256"),
+    (ERR_ACCT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeded the maximum limit of 255"),
     (ERR_ACCT_STORAGE_COMMITMENT_MISMATCH,  "Computed account storage commitment does not match recorded account storage commitment")
 ];

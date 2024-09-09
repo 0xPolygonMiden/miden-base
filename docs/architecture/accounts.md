@@ -32,9 +32,9 @@ The four most significant bits specify the [account type](#account-types) - regu
 
 Storage for user-defined data that is composed of two components.
 
-1. Storage slots: Users have access to a variable number of storage slots up to `265`. Per slot, users can store a `word` (~32 bytes).
+1. Storage slots: Users have access to a variable number of storage slots up to `255`. Per slot, users can store a `word` (~32 bytes).
 
-2. Storage maps: Users requiring additional storage can use a `StorageMap`. A storage map is a key-value store where both keys and values are `word`s (~32 bytes). A single storage map can store huge amounts of data (e.g., up to $2^{256}$ words per map). The roots of the storage maps are stored in storage slots. So, a single account can contain up to 256 storage maps.
+2. Storage maps: Users requiring additional storage can use a `StorageMap`. A storage map is a key-value store where both keys and values are `word`s (~32 bytes). A single storage map can store huge amounts of data (e.g., up to $2^{256}$ words per map). The roots of the storage maps are stored in storage slots. So, a single account can contain up to 255 storage maps.
 
 As described below, accounts can be stored off-chain (private) and on-chain (public). Accounts that store huge amounts of data, as it is possible using storage maps, are better designed as off-chain accounts.
 
@@ -215,4 +215,3 @@ Users can decide whether to keep their accounts private or public at account cre
 - Accounts with private state: Only the hash of the account is stored on-chain. Users who want to stay private, and manage their own data, should choose this option. Users who want to interact with private accounts need to know the account's interface.
 
 </br>
-

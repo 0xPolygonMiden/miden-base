@@ -239,7 +239,7 @@ fn test_get_item() {
             end
             ",
             item_index = storage_item.index,
-            item_value = prepare_word(&storage_item.slot.get_value_as_word())
+            item_value = prepare_word(&storage_item.slot.value())
         );
 
         tx_context.execute_code(&code).unwrap();
@@ -323,7 +323,7 @@ fn test_get_storage_slot_type() {
 
         let process = tx_context.execute_code(&code).unwrap();
 
-        let storage_slot_type = storage_item.slot.get_slot_type();
+        let storage_slot_type = storage_item.slot.slot_type();
 
         assert_eq!(storage_slot_type, process.get_stack_item(0).try_into().unwrap());
         assert_eq!(process.get_stack_item(1), ZERO, "the rest of the stack is empty");
@@ -418,7 +418,7 @@ fn test_set_map_item() {
         "get_item must return the new updated value",
     );
     assert_eq!(
-        storage_item.slot.get_value_as_word(),
+        storage_item.slot.value(),
         process.get_stack_word(1),
         "The original value stored in the map doesn't match the expected value",
     );

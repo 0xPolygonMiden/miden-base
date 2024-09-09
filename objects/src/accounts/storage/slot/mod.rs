@@ -23,7 +23,7 @@ impl StorageSlot {
     /// The number of field elements needed to represent a [StorageSlot] in kernel memory.
     pub const NUM_ELEMENTS_PER_STORAGE_SLOT: usize = 8;
 
-    /// Returns true if this storage slot has the default of this type.
+    /// Returns true if this storage slot has a value equal the default of it's type
     pub fn is_default(&self) -> bool {
         match self {
             StorageSlot::Value(value) => *value == EMPTY_WORD,
@@ -31,7 +31,7 @@ impl StorageSlot {
         }
     }
 
-    /// Returns the empty [Word] for a value of this type.
+    /// Returns the empty [Word] for a storage slot of this type
     pub fn default_word(&self) -> Word {
         match self {
             StorageSlot::Value(_) => EMPTY_WORD,
@@ -39,50 +39,37 @@ impl StorageSlot {
         }
     }
 
-    /// Returns the storage slot as field elements
-    pub fn as_elements(&self) -> [Felt; 8] {
-        self.into()
+    /// Returns this storage slot as field elements
+    ///
+    /// This is done by converting this storage slot into 8 field elements as follows:
+    /// ```text
+    /// [SLOT_VALUE, slot_type, 0, 0, 0]
+    /// ```
+    pub fn as_elements(&self) -> [Felt; Self::NUM_ELEMENTS_PER_STORAGE_SLOT] {
+        let mut elements = [ZERO; 8];
+        elements[0..4].copy_from_slice(&self.value());
+        elements[4..8].copy_from_slice(&self.slot_type().as_word());
+        elements
     }
 
-    /// Returns the storage slot value as a [Word]
-    pub fn get_value_as_word(&self) -> Word {
+    /// Returns this storage slot value as a [Word]
+    ///
+    /// Returns:
+    /// - For [StorageSlot::Value] the value
+    /// - For [StorageSlot::Map] the root of the [StorageMap]
+    pub fn value(&self) -> Word {
         match self {
             Self::Value(value) => *value,
-            Self::Map(map) => {
-                let mut word = [ZERO; 4];
-                word.copy_from_slice(map.root().as_elements());
-                word
-            },
+            Self::Map(map) => map.root().into(),
         }
     }
 
-    /// Returns the type for a certain storage slot
-    pub fn get_slot_type(&self) -> StorageSlotType {
+    /// Returns the type of this storage slot
+    pub fn slot_type(&self) -> StorageSlotType {
         match self {
             StorageSlot::Value(_) => StorageSlotType::Value,
             StorageSlot::Map(_) => StorageSlotType::Map,
         }
-    }
-}
-
-impl Default for StorageSlot {
-    fn default() -> Self {
-        StorageSlot::Value(EMPTY_WORD)
-    }
-}
-
-impl From<StorageSlot> for [Felt; 8] {
-    fn from(value: StorageSlot) -> Self {
-        let mut elements = [ZERO; 8];
-        elements[0..4].copy_from_slice(&value.get_value_as_word());
-        elements[4..8].copy_from_slice(&value.get_slot_type().as_word());
-        elements
-    }
-}
-
-impl From<&StorageSlot> for [Felt; 8] {
-    fn from(value: &StorageSlot) -> Self {
-        Self::from(value.clone())
     }
 }
 
@@ -91,7 +78,7 @@ impl From<&StorageSlot> for [Felt; 8] {
 
 impl Serializable for StorageSlot {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(self.get_slot_type());
+        target.write(self.slot_type());
 
         match self {
             Self::Value(value) => target.write(value),

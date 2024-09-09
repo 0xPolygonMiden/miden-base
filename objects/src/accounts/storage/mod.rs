@@ -14,38 +14,33 @@ pub use map::StorageMap;
 // ACCOUNT STORAGE
 // ================================================================================================
 
-/// Account storage is composed of a variable number of [StorageSlot] and up to 256
-/// index-addressable storage slots.
+/// Account storage is composed of a variable number of index-addressable [StorageSlot]s up to
+/// 255 slots in total.
 ///
-/// Each slot has a type which defines the size and the structure of the slot. Currently, the
-/// following types are supported:
-/// - [StorageSlot::Value]: a [Word]
-/// - [StorageSlot::Map]: a [StorageMap] composed of a key-value map where keys are words and values
-///   contain up to 256 words.
-///
-/// Storage slots are stored in a vector.
-///
-/// Optionally, a user can make use of storage maps. Storage maps are represented by a SMT and
-/// they can hold more data as there is in plain usage of the storage slots using a value.
-/// The root of the SMT consumes one storage slot.
+/// Each slot has a type which defines its size and structure. Currently, the following types are
+/// supported:
+/// - [StorageSlot::Value]: contains a single [Word] of data.
+/// - [StorageSlot::Map]: contains a [StorageMap] which is a key-value map where both keys and
+///   values are [Word]s. The value of a storage slot containing a map is the commitment to the
+///   underlying map.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountStorage {
     slots: Vec<StorageSlot>,
 }
 
 impl AccountStorage {
-    /// Total number of storage slots.
-    pub const NUM_STORAGE_SLOTS: usize = 256;
+    /// The maximum number of storage slots allowed in an [AccountStorage]
+    pub const MAX_NUM_STORAGE_SLOTS: usize = 255;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new instance of account storage initialized with the provided items.
     pub fn new(slots: Vec<StorageSlot>) -> Result<AccountStorage, AccountError> {
-        let len = slots.len();
+        let num_slots = slots.len();
 
-        if len > Self::NUM_STORAGE_SLOTS {
-            return Err(AccountError::StorageTooManySlots(len as u64));
+        if num_slots > Self::MAX_NUM_STORAGE_SLOTS {
+            return Err(AccountError::StorageTooManySlots(num_slots as u64));
         }
 
         Ok(Self { slots })
@@ -77,7 +72,7 @@ impl AccountStorage {
 
     /// Returns an item from the storage at the specified index.
     ///
-    /// Errors:
+    /// # Errors:
     /// - If the index is out of bounds
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
         // check if index is in bounds
@@ -87,12 +82,12 @@ impl AccountStorage {
             return Err(AccountError::StorageIndexOutOfBounds(index));
         }
 
-        Ok(self.slots[index as usize].get_value_as_word().into())
+        Ok(self.slots[index as usize].value().into())
     }
 
     /// Returns a map item from a map located in storage at the specified index.
     ///
-    /// Errors:
+    /// # Errors:
     /// - If the index is out of bounds
     /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
@@ -114,7 +109,7 @@ impl AccountStorage {
 
     /// Applies the provided delta to this account storage.
     ///
-    /// Errors:
+    /// # Errors:
     /// - If the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
         // update storage maps
@@ -143,7 +138,7 @@ impl AccountStorage {
     /// This method should be used only to update value slots. For updating values
     /// in storage maps, please see [AccountStorage::set_map_item()].
     ///
-    /// Errors:
+    /// # Errors:
     /// - If the index is out of bounds
     /// - If the [StorageSlotType] is not [StorageSlotType::Value]
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
@@ -171,7 +166,7 @@ impl AccountStorage {
     /// This method should be used only to update storage maps. For updating values
     /// in storage slots, please see [AccountStorage::set_item()].
     ///
-    /// Errors:
+    /// # Errors:
     /// - If the index is out of bounds
     /// - If the [StorageSlotType] is not [StorageSlotType::Map]
     pub fn set_map_item(
@@ -223,14 +218,14 @@ fn build_slots_commitment(slots: &[StorageSlot]) -> Digest {
 
 impl Serializable for AccountStorage {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u16(self.slots().len() as u16);
+        target.write_u8(self.slots().len() as u8);
         target.write_many(self.slots());
     }
 }
 
 impl Deserializable for AccountStorage {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_slots = source.read_u16()? as usize;
+        let num_slots = source.read_u8()? as usize;
         let slots = source.read_many::<StorageSlot>(num_slots)?;
 
         Self::new(slots).map_err(|err| DeserializationError::InvalidValue(err.to_string()))

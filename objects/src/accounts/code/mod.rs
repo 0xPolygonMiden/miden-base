@@ -179,7 +179,7 @@ impl AccountCode {
 
     /// Converts procedure information in this [AccountCode] into a vector of field elements.
     ///
-    /// This is done by first converting each procedure into exactly 8 elements as follows:
+    /// This is done by first converting each procedure into 8 field elements as follows:
     /// ```text
     /// [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0]
     /// ```

@@ -84,7 +84,7 @@ impl AccountStorageDelta {
 
     /// Checks whether this storage delta is valid.
     ///
-    /// Errors:
+    /// # Errors:
     /// - Any of the updated slot is referenced from both maps (e.g., updated twice).
     fn validate(&self) -> Result<(), AccountDeltaError> {
         for slot in self.maps.keys() {
