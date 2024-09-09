@@ -55,6 +55,12 @@ impl LocalTransactionProver {
     }
 }
 
+impl Default for LocalTransactionProver {
+    fn default() -> Self {
+        Self { mast_store: Rc::new(TransactionMastStore::new()), proof_options: Default::default() }
+    }
+}
+
 impl TransactionProver for LocalTransactionProver {
     #[maybe_async]
     fn prove(
