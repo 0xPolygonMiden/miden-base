@@ -286,11 +286,11 @@ impl<'de> serde::Deserialize<'de> for Account {
 // HELPERS
 // ================================================================================================
 
-/// Returns hash of an account with the specified ID, nonce, vault root, storage commitment, and code
-/// commitment.
+/// Returns hash of an account with the specified ID, nonce, vault root, storage commitment, and
+/// code commitment.
 ///
-/// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment, code_commitment).
-/// Computing the account hash requires 2 permutations of the hash function.
+/// Hash of an account is computed as hash(id, nonce, vault_root, storage_commitment,
+/// code_commitment). Computing the account hash requires 2 permutations of the hash function.
 pub fn hash_account(
     id: AccountId,
     nonce: Felt,

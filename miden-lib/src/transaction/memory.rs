@@ -157,8 +157,8 @@ pub const ACCT_VAULT_ROOT_OFFSET: MemoryOffset = 1;
 /// The memory address at which the account vault root is stored.
 pub const ACCT_VAULT_ROOT_PTR: MemoryAddress = ACCT_DATA_SECTION_OFFSET + ACCT_VAULT_ROOT_OFFSET;
 
-/// The offset at which the account storage commitment is stored relative to the start of the account
-/// data segment.
+/// The offset at which the account storage commitment is stored relative to the start of the
+/// account data segment.
 pub const ACCT_STORAGE_COMMITMENT_OFFSET: MemoryOffset = 2;
 
 /// The memory address at which the account storage commitment is stored.
