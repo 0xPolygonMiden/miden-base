@@ -108,7 +108,7 @@ impl TryFrom<&str> for AccountStorageMode {
     }
 }
 
-impl std::str::FromStr for AccountStorageMode {
+impl core::str::FromStr for AccountStorageMode {
     type Err = AccountError;
 
     fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
