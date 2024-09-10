@@ -343,19 +343,12 @@ end
 
 #! Gets an item from the account storage
 #!
-#! Panics:
-#!    - index is out of bounds.
-#!
 #! Stack: [index]
 #! Output: [VALUE]
 #!
 #! - index is the index of the item to get.
 #! - VALUE is the value of the item.
 export.get_item
-    # check that index is in bounds
-    dup exec.get_max_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-    # => [index]
-
     # get account storage slots section offset
     exec.memory::get_acct_storage_slots_section_offset
     # => [acct_storage_slots_section_offset, index]
@@ -398,7 +391,6 @@ end
 #! Sets an item in the account storage.
 #!
 #! Panics:
-#!    - index is out of bounds
 #!    - storage slot type is not value
 #!
 #! Stack: [index, V']
@@ -410,10 +402,6 @@ end
 export.set_item
     push.20443 drop                                     # TODO: remove line, see miden-vm/#1122
     emit.ACCOUNT_STORAGE_BEFORE_SET_ITEM_EVENT
-    # => [index, V']
-
-    # check that index is in bounds
-    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [index, V']
 
     # get storage slot type
@@ -443,7 +431,6 @@ end
 #! Sets an item in the specified account storage map.
 #!
 #! Panics:
-#! - index is out of bounds
 #! - storage slot type is not map
 #! - no map is found for ROOT
 #!
@@ -458,10 +445,6 @@ end
 export.set_map_item.3
     # store index for later
     dup loc_store.0
-    # => [index, KEY, NEW_VALUE, ...]
-
-    # check that index is in bounds
-    dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [index, KEY, NEW_VALUE, ...]
 
     # check if storage type is map
