@@ -85,7 +85,7 @@ impl AccountStorage {
     ///
     /// # Errors:
     /// - If the index is out of bounds
-    /// - If the [StorageSlotType] is not [StorageSlotType::Map]
+    /// - If the [StorageSlot] is not [StorageSlotType::Map]
     pub fn get_map_item(&self, index: u8, key: Word) -> Result<Word, AccountError> {
         match self
             .slots
@@ -135,7 +135,7 @@ impl AccountStorage {
     ///
     /// # Errors:
     /// - If the index is out of bounds
-    /// - If the [StorageSlotType] is not [StorageSlotType::Value]
+    /// - If the [StorageSlot] is not [StorageSlotType::Value]
     pub fn set_item(&mut self, index: u8, value: Word) -> Result<Word, AccountError> {
         // check if index is in bounds
         let num_slots = self.slots.len();
@@ -163,7 +163,7 @@ impl AccountStorage {
     ///
     /// # Errors:
     /// - If the index is out of bounds
-    /// - If the [StorageSlotType] is not [StorageSlotType::Map]
+    /// - If the [StorageSlot] is not [StorageSlotType::Map]
     pub fn set_map_item(
         &mut self,
         index: u8,

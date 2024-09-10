@@ -594,7 +594,7 @@ end
 export.validate_seed
         # pad capacity elements of hasher and populate first four elements of the rate with the account id seed
         padw exec.memory::get_acct_id push.0.0.0
-        adv.push_mapval push.15263 drop         # FIX: wrap the decorator to ensure MAST uniqueness
+        adv.push_mapval push.15263 drop         # TODO: remove line, see miden-vm/#1122
         adv_loadw
         # => [SEED, 0, 0, 0, 0]
 
