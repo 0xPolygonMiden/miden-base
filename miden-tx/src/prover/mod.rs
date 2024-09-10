@@ -1,5 +1,6 @@
 use alloc::{rc::Rc, vec::Vec};
 
+use async_trait::async_trait;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     accounts::delta::AccountUpdateDetails,
@@ -18,6 +19,7 @@ use crate::executor::TransactionMastStore;
 
 /// The [TransactionProver] trait defines the interface that transaction witness objects use to
 /// prove transactions and generate a [ProvenTransaction].
+#[async_trait]
 pub trait TransactionProver {
     /// Proves the provided transaction and returns a [ProvenTransaction].
     ///
@@ -64,6 +66,7 @@ impl Default for LocalTransactionProver {
     }
 }
 
+#[async_trait]
 impl TransactionProver for LocalTransactionProver {
     #[maybe_async]
     fn prove(
