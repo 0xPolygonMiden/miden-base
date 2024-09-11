@@ -98,8 +98,6 @@ impl TransactionKernel {
             account.init_hash(),
             tx_inputs.input_notes().commitment(),
             tx_inputs.block_header().hash(),
-            // TODO: change the hardcoded offset to the kernel index provided by user
-            0,
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
@@ -151,11 +149,9 @@ impl TransactionKernel {
         init_acct_hash: Digest,
         input_notes_hash: Digest,
         block_hash: Digest,
-        kernel_offset: u8,
     ) -> StackInputs {
         // Note: Must be kept in sync with the transaction's kernel prepare_transaction procedure
-        let mut inputs: Vec<Felt> = Vec::with_capacity(13);
-        inputs.push(Felt::from(kernel_offset));
+        let mut inputs: Vec<Felt> = Vec::with_capacity(12);
         inputs.extend(input_notes_hash);
         inputs.extend_from_slice(init_acct_hash.as_elements());
         inputs.push(acct_id.into());
@@ -295,6 +291,5 @@ impl TransactionKernel {
             .expect("failed to load miden-lib")
             .with_library(kernel_library)
             .expect("failed to load kernel library (/lib)")
-            .with_debug_mode(true)
     }
 }

@@ -1,4 +1,4 @@
-use.miden::kernel_invocation
+use.miden::kernel_proc_offsets
 use.std::crypto::hashes::native
 use.std::mem
 
@@ -50,7 +50,7 @@ export.get_assets
     padw padw padw push.0.0.0
     # => [PAD(15), dest_ptr]
 
-    exec.kernel_invocation::get_note_assets_info_offset
+    exec.kernel_proc_offsets::get_note_assets_info_offset
     # => [offset, PAD(15), dest_ptr]
 
     syscall.exec_kernel_proc
@@ -95,7 +95,7 @@ export.get_inputs
     padw padw padw push.0.0.0
     # => [PAD(15), dest_ptr]
 
-    exec.kernel_invocation::get_note_inputs_hash_offset
+    exec.kernel_proc_offsets::get_note_inputs_hash_offset
     # => [offset, PAD(15), dest_ptr]
 
     syscall.exec_kernel_proc
@@ -145,7 +145,7 @@ export.get_sender
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_invocation::get_note_sender_offset
+    exec.kernel_proc_offsets::get_note_sender_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc
@@ -168,7 +168,7 @@ export.get_serial_number
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_invocation::get_note_serial_number_offset
+    exec.kernel_proc_offsets::get_note_serial_number_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc

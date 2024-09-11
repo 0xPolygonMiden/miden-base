@@ -529,6 +529,17 @@ export.get_tx_hash
     padw push.TX_HASH_PTR mem_loadw
 end
 
+#! Returns the kernel root used in the last known block.
+#!
+#! Stack: []
+#! Output: [KERNEL_ROOT]
+#!
+#! Where:
+#! - KERNEL_ROOT is an accumulative hash from all kernel hashes.
+export.get_kernel_root
+    padw push.KERNEL_ROOT_PTR mem_loadw
+end
+
 #! Returns the proof hash of the last known block.
 #!
 #! Stack: []

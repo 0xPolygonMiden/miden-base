@@ -37,9 +37,6 @@ impl TransactionVerifier {
             transaction.account_update().init_state_hash(),
             transaction.input_notes().commitment(),
             transaction.block_ref(),
-            // TODO: change the hardcoded offset to the kernel index used in the current
-            // transaction
-            0,
         );
         let stack_outputs = TransactionKernel::build_output_stack(
             transaction.account_update().final_state_hash(),

@@ -23,10 +23,13 @@ pub(super) fn extend_advice_inputs(
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
 ) {
-    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs);
+    // TODO: remove this value and use a user input instead
+    let kernel_offset = 0;
+
+    build_advice_stack(tx_inputs, tx_args.tx_script(), advice_inputs, kernel_offset);
 
     // build the advice map and Merkle store for relevant components
-    add_kernel_hashes_to_advice_inputs(advice_inputs);
+    add_kernel_hashes_to_advice_inputs(advice_inputs, kernel_offset);
     add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
@@ -41,7 +44,6 @@ pub(super) fn extend_advice_inputs(
 /// The following data is pushed to the advice stack:
 ///
 /// [
-///     KERNEL_ROOT
 ///     PREVIOUS_BLOCK_HASH,
 ///     CHAIN_MMR_HASH,
 ///     ACCOUNT_ROOT,
@@ -51,6 +53,7 @@ pub(super) fn extend_advice_inputs(
 ///     PROOF_HASH,
 ///     [block_num, version, timestamp, 0],
 ///     NOTE_ROOT,
+///     kernel_offset
 ///     [account_id, 0, 0, account_nonce],
 ///     ACCOUNT_VAULT_ROOT,
 ///     ACCOUNT_STORAGE_ROOT,
@@ -62,11 +65,9 @@ fn build_advice_stack(
     tx_inputs: &TransactionInputs,
     tx_script: Option<&TransactionScript>,
     inputs: &mut AdviceInputs,
+    kernel_offset: u8,
 ) {
     let header = tx_inputs.block_header();
-
-    // push the accumulative hash of all kernels to the advice stack
-    inputs.extend_stack(header.kernel_root());
 
     // push block header info into the stack
     // Note: keep in sync with the process_block_data kernel procedure
@@ -84,6 +85,10 @@ fn build_advice_stack(
         ZERO,
     ]);
     inputs.extend_stack(header.note_root());
+
+    // push the offset of the kernel which will be used for this transaction
+    // Note: keep in sync with the process_kernel_data kernel procedure
+    inputs.extend_stack([Felt::from(kernel_offset)]);
 
     // push core account items onto the stack
     // Note: keep in sync with the process_account_data kernel procedure
@@ -306,15 +311,16 @@ fn add_input_notes_to_advice_inputs(
 ///
 /// Inserts the following entries into the advice map:
 /// - The accumulative hash of all kernels |-> array of each kernel hash.
-/// - The hash of the kernel `i` (for every `i`) |-> array of the current kernel's procedure hashes.
-pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs) {
-    let kernel_hashes = [TransactionKernel::kernel_hash().as_elements()].concat();
+/// - The hash of the selected kernel |-> array of the kernel's procedure hashes.
+pub fn add_kernel_hashes_to_advice_inputs(inputs: &mut AdviceInputs, kernel_offset: u8) {
+    let kernel_hashes = [TransactionKernel::kernel_hash(kernel_offset).as_elements()].concat();
 
     // insert kernels root with kernel hashes into the advice map
     inputs.extend_map([(TransactionKernel::kernel_root(), kernel_hashes)]);
 
-    // insert kernel hash with procedure hashes into the advice map
-    // TODO: insert kernel procedures iterating over kernels
-    inputs
-        .extend_map([(TransactionKernel::kernel_hash(), TransactionKernel::procedures_as_felts())]);
+    // insert the selected kernel hash with its procedure hashes into the advice map
+    inputs.extend_map([(
+        TransactionKernel::kernel_hash(kernel_offset),
+        TransactionKernel::procedures_as_elements(kernel_offset),
+    )]);
 }

@@ -19,6 +19,7 @@ use crate::utils::serde::{
 /// - `note_root` is a commitment to all notes created in the current block.
 /// - `tx_hash` is a commitment to a set of IDs of transactions which affected accounts in the
 ///   block.
+/// - `kernel_root` is an accumulative hash from all kernel hashes.
 /// - `proof_hash` is a hash of a STARK proof attesting to the correct state transition.
 /// - `timestamp` is the time when the block was created, in seconds since UNIX epoch. Current
 ///   representation is sufficient to represent time up to year 2106.
@@ -179,7 +180,8 @@ impl BlockHeader {
     ///
     /// The sub hash is computed as a sequential hash of the following fields:
     /// `prev_hash`, `chain_root`, `account_root`, `nullifier_root`, `note_root`, `tx_hash`,
-    /// `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the `note_root`).
+    /// `kernel_root`, `proof_hash`, `version`, `timestamp`, `block_num` (all fields except the
+    /// `note_root`).
     #[allow(clippy::too_many_arguments)]
     fn compute_sub_hash(
         version: u32,
@@ -202,7 +204,6 @@ impl BlockHeader {
         elements.extend_from_slice(kernel_root.as_elements());
         elements.extend_from_slice(proof_hash.as_elements());
         elements.extend([block_num.into(), version.into(), timestamp.into(), ZERO]);
-        elements.resize(32, ZERO);
         Hasher::hash_elements(&elements)
     }
 }

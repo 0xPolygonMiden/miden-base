@@ -1,4 +1,4 @@
-use.miden::kernel_invocation
+use.miden::kernel_proc_offsets
 
 #! Returns the account id.
 #!
@@ -10,7 +10,7 @@ export.get_id
     # start padding the stack
     push.0.0.0
 
-    exec.kernel_invocation::get_account_id_offset
+    exec.kernel_proc_offsets::get_account_id_offset
     # => [offset, 0, 0, 0]
 
     # pad the stack
@@ -35,7 +35,7 @@ export.get_nonce
     # start padding the stack
     push.0.0.0
 
-    exec.kernel_invocation::get_account_nonce_offset
+    exec.kernel_proc_offsets::get_account_nonce_offset
     # => [offset, 0, 0, 0]
 
     # pad the stack
@@ -61,7 +61,7 @@ export.get_initial_hash
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_invocation::get_initial_account_hash_offset
+    exec.kernel_proc_offsets::get_initial_account_hash_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc
@@ -83,7 +83,7 @@ export.get_current_hash
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_invocation::get_current_account_hash_offset
+    exec.kernel_proc_offsets::get_current_account_hash_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc
@@ -106,7 +106,7 @@ export.incr_nonce
     push.0.0 movup.2
     # => [value, 0, 0]
 
-    exec.kernel_invocation::incr_account_nonce_offset
+    exec.kernel_proc_offsets::incr_account_nonce_offset
     # => [offset, value, 0, 0]
 
     # pad the stack
@@ -130,7 +130,7 @@ export.get_item
     push.0.0 movup.2
     # => [index, 0, 0]
 
-    exec.kernel_invocation::get_account_item_offset
+    exec.kernel_proc_offsets::get_account_item_offset
     # => [offset, index, 0, 0]
 
     # pad the stack
@@ -155,7 +155,7 @@ end
 #! - V is the previous value of the item.
 #! - R' is the new storage root.
 export.set_item
-    exec.kernel_invocation::set_account_item_offset
+    exec.kernel_proc_offsets::set_account_item_offset
     # => [offset, index, V']
 
     # pad the stack
@@ -180,7 +180,7 @@ end
 #! - KEY is the key of the item to get.
 #! - VALUE is the value of the item.
 export.get_map_item
-    exec.kernel_invocation::get_account_map_item_offset
+    exec.kernel_proc_offsets::get_account_map_item_offset
     # => [offset, index, KEY]
 
     # pad the stack
@@ -208,7 +208,7 @@ end
 #! - OLD_MAP_ROOT is the old map root.
 #! - OLD_MAP_VALUE is the old value at KEY.
 export.set_map_item
-    exec.kernel_invocation::set_account_map_item_offset
+    exec.kernel_proc_offsets::set_account_map_item_offset
     # => [offset, index, KEY, VALUE]
 
     # pad the stack
@@ -231,7 +231,7 @@ end
 #!
 #! - CODE_COMMITMENT is the hash of the code to set.
 export.set_code
-    exec.kernel_invocation::set_account_code_offset
+    exec.kernel_proc_offsets::set_account_code_offset
     # => [offset, CODE_COMMITMENT]
 
     # pad the stack
@@ -255,7 +255,7 @@ end
 #! - faucet_id is the faucet id of the fungible asset of interest.
 #! - balance is the vault balance of the fungible asset.
 export.get_balance
-    exec.kernel_invocation::account_vault_get_balance_offset
+    exec.kernel_proc_offsets::account_vault_get_balance_offset
     # => [offset, faucet_id]
 
     # pad the stack
@@ -279,7 +279,7 @@ end
 #! - ASSET is the non-fungible asset of interest
 #! - has_asset is a boolean indicating whether the account vault has the asset of interest
 export.has_non_fungible_asset
-    exec.kernel_invocation::account_vault_has_non_fungible_asset_offset
+    exec.kernel_proc_offsets::account_vault_has_non_fungible_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -309,7 +309,7 @@ end
 #!   - If ASSET is a fungible asset, then ASSET' is the total fungible asset in the account vault
 #!     after ASSET was added to it.
 export.add_asset
-    exec.kernel_invocation::account_vault_add_asset_offset
+    exec.kernel_proc_offsets::account_vault_add_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -336,7 +336,7 @@ end
 #!
 #! - ASSET is the asset to remove from the vault.
 export.remove_asset
-    exec.kernel_invocation::account_vault_remove_asset_offset
+    exec.kernel_proc_offsets::account_vault_remove_asset_offset
     # => [offset, ASSET]
 
     # pad the stack
@@ -362,7 +362,7 @@ export.get_vault_commitment
     padw padw padw push.0.0.0
     # => [PAD(15)]
 
-    exec.kernel_invocation::get_account_vault_commitment_offset
+    exec.kernel_proc_offsets::get_account_vault_commitment_offset
     # => [offset, PAD(15)]
 
     syscall.exec_kernel_proc

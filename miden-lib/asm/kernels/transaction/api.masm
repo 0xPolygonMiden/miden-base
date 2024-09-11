@@ -12,10 +12,10 @@ use.kernel::tx
 # NOTE
 # =================================================================================================
 # `exec_kernel_proc` procedure is expected to be invoked using a `syscall` instruction. It makes  #
-# no guarantees about the contents of the `PAD` elements shown in the inputs and outputs. It is   #
+# no guarantees about the contents of the `pad` elements shown in the inputs and outputs. It is   #
 # the caller's responsibility to make sure these elements do not contain any meaningful data.     #
-# All other procedures must be invoked only using a `dynexec` instruction by their hashes stored  #
-# in the memory.                                                                                  #
+# All other procedures must be invoked using a `dynexec` instruction by their hashes stored in    #
+# the memory.                                                                                     #
 # =================================================================================================
 
 # ERRORS
@@ -598,8 +598,8 @@ end
 
 #! Creates a new note and returns the index of the note.
 #!
-#! Inputs: [KERNEL_PROCEDURE_HASH, tag, aux, note_type, execution_hint, RECIPIENT, PAD(4)]
-#! Outputs: [note_idx, PAD(15)]
+#! Inputs: [KERNEL_PROCEDURE_HASH, tag, aux, note_type, execution_hint, RECIPIENT, pad(4)]
+#! Outputs: [note_idx, pad(15)]
 #!
 #! tag is the tag to be included in the note.
 #! aux is the auxiliary metadata to be included in the note.
@@ -613,16 +613,16 @@ export.create_note
     
     # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin drop
-    # => [tag, aux, note_type, execution_hint, RECIPIENT, PAD(8)]
+    # => [tag, aux, note_type, execution_hint, RECIPIENT, pad(8)]
 
     exec.tx::create_note
-    # => [note_idx, PAD(15)]
+    # => [note_idx, pad(15)]
 end
 
 #! Adds the ASSET to the note specified by the index.
 #!
-#! Inputs:  [KERNEL_PROCEDURE_HASH, note_idx, ASSET, PAD(7)]
-#! Outputs: [note_idx, ASSET, PAD(11)]
+#! Inputs:  [KERNEL_PROCEDURE_HASH, note_idx, ASSET, pad(7)]
+#! Outputs: [note_idx, ASSET, pad(11)]
 #!
 #! note_idx is the index of the the note to which the asset is added.
 #! ASSET can be a fungible or non-fungible asset.
@@ -766,12 +766,12 @@ end
 
 #! Executes a kernel procedure specified by its offset.
 #!
-#! Inputs: [procedure_offset, procedure_inputs, PAD(*)]
-#! Outputs: [procedure_outputs, PAD(*)]
+#! Inputs: [procedure_offset, <procedure_inputs>, <pad>]
+#! Outputs: [<procedure_outputs>, <pad>]
 #!
 #! Where:
 #! - procedure_offset is an offset of the kernel procedure, specified in the 
-#!   `miden/kernel_invocation.masm` file.
+#!   `miden/kernel_proc_offsets.masm` file.
 #! - procedure_inputs are inputs of the procedure to be executed, which is specified by the 
 #!   procedure_offset. Note that the length of this inputs cannot exceed 12 elements, since the 
 #!   first word on the stack will be occupied by the procedure hash. 
@@ -779,19 +779,19 @@ end
 export.exec_kernel_proc
     # compute the memory pointer at which desired procedure is stored
     exec.memory::get_kernel_procedures_ptr add
-    # => [procedure_pointer, procedure_inputs, PAD(*)]
+    # => [procedure_pointer, <procedure_inputs>, <pad>]
 
     # prepare stack for procedure hash obtaining
     padw movup.4
-    # => [procedure_pointer, 0, 0, 0, 0, procedure_inputs, PAD(*)]
+    # => [procedure_pointer, 0, 0, 0, 0, <procedure_inputs>, <pad>]
 
     # load kernel procedure hash
     mem_loadw
-    # => [KERNEL_PROCEDURE_HASH, procedure_inputs, PAD(*)]
+    # => [KERNEL_PROCEDURE_HASH, <procedure_inputs>, <pad>]
 
     # execute loaded procedure
     dynexec
-    # => [procedure_outputs, PAD(*)]
+    # => [<procedure_outputs>, <pad>]
 
     exec.sys::truncate_stack
 end
