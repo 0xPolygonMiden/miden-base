@@ -15,7 +15,9 @@ use miden_objects::{
     Felt, Word, ZERO,
 };
 use miden_prover::ProvingOptions;
-use miden_tx::{TransactionProver, TransactionVerifier, TransactionVerifierError};
+use miden_tx::{
+    LocalTransactionProver, TransactionProver, TransactionVerifier, TransactionVerifierError,
+};
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use vm_processor::utils::Deserializable;
 
@@ -30,8 +32,8 @@ pub fn prove_and_verify_transaction(
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
-    let prover = TransactionProver::new(proof_options);
-    let proven_transaction = prover.prove_transaction(executed_transaction).unwrap();
+    let prover = LocalTransactionProver::new(proof_options);
+    let proven_transaction = prover.prove(executed_transaction).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
