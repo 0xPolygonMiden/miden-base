@@ -528,12 +528,6 @@ end
 #! Panics if
 #! - index is out of bounds
 export.get_procedure_info
-  # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-  # check if index == 255
-  dup push.255 neq
-  # => [is_255, index]
-
-  if.true
     # check that index < number of procedures contained in the account code
     dup exec.memory::get_num_account_procedures lt assert.err=ERR_PROC_INDEX_OUT_OF_BOUNDS
     # => [index]
@@ -545,7 +539,6 @@ export.get_procedure_info
     # load procedure information from memory
     mem_load swap padw movup.4 mem_loadw
     # => [PROC_ROOT, storage_offset]
-  end
  end
 
 #! Verifies that the procedure root is part of the account code
@@ -563,26 +556,13 @@ export.authenticate_procedure
     emit.ACCOUNT_PUSH_PROCEDURE_INDEX_EVENT adv_push.1
     # => [index, PROC_ROOT]
 
-    # get procedure info (PROC_ELEMENTS, storage_offset) from memory stored at index
+    # get procedure info (PROC_ROOT, storage_offset) from memory stored at index
     exec.get_procedure_info
-    # In production:
-    # => [PROC_ELEMENTS, storage_offset, PROC_ROOT]
-    # During testing:
-    # => [255, PROC_ROOT]
+    # => [PROC_ROOT, storage_offset, PROC_ROOT]
 
-    # TODO: Fix VM caller == [0,0,0,0] bug and remove this check
-    # check if get_procedure_info returned 255
-    dup push.255 neq
-    # => [is_255, index, PROC_ROOT]
-
-    if.true
-      # verify that PROC_ROOT exists in memory at index
-      movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
-      # => [storage_offset]
-    else
-      # drop PROC_ROOT
-      movdn.4 dropw drop push.0
-    end
+    # verify that PROC_ROOT exists in memory at index
+    movup.4 movdn.8 assert_eqw.err=ERR_PROC_NOT_PART_OF_ACCOUNT_CODE
+    # => [storage_offset]
 end
 
 #! Validates that the account seed, provided via the advice map, satisfies the seed requirements.

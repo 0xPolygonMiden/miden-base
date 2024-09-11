@@ -11,7 +11,12 @@ use miden_objects::{
 use vm_processor::ONE;
 
 use super::{output_notes_data_procedure, ZERO};
-use crate::{testing::TransactionContextBuilder, tests::kernel_tests::read_root_mem_value};
+use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::{ERR_EPILOGUE_ASSETS_DONT_ADD_UP, ERR_NONCE_DID_NOT_INCREASE},
+    testing::TransactionContextBuilder,
+    tests::kernel_tests::read_root_mem_value,
+};
 
 #[test]
 fn test_epilogue() {
@@ -135,7 +140,7 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
         use.kernel::epilogue
 
         {output_notes_data_procedure}
@@ -144,14 +149,14 @@ fn test_epilogue_asset_preservation_violation_too_few_input() {
             exec.prologue::prepare_transaction
             exec.create_mock_notes
             push.1
-            exec.account::incr_nonce
+            call.account::incr_nonce
             exec.epilogue::finalize_transaction
         end
         "
     );
 
     let process = tx_context.execute_code(&code);
-    assert!(process.is_err(), "Violating asset preservation must result in a failure");
+    assert_execution_error!(process, ERR_EPILOGUE_ASSETS_DONT_ADD_UP);
 }
 
 #[test]
@@ -166,7 +171,7 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
         use.kernel::epilogue
 
         {output_notes_data_procedure}
@@ -175,14 +180,15 @@ fn test_epilogue_asset_preservation_violation_too_many_fungible_input() {
             exec.prologue::prepare_transaction
             exec.create_mock_notes
             push.1
-            exec.account::incr_nonce
+            call.account::incr_nonce
             exec.epilogue::finalize_transaction
         end
         "
     );
 
     let process = tx_context.execute_code(&code);
-    assert!(process.is_err(), "Violating asset preservation must result in a failure");
+
+    assert_execution_error!(process, ERR_EPILOGUE_ASSETS_DONT_ADD_UP);
 }
 
 #[test]
@@ -197,7 +203,7 @@ fn test_epilogue_increment_nonce_success() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
         use.kernel::epilogue
 
         {output_notes_data_procedure}
@@ -209,19 +215,18 @@ fn test_epilogue_increment_nonce_success() {
 
             push.1.2.3.4
             push.0
-            exec.account::set_item
+            call.account::set_item
             dropw
 
             push.1
-            exec.account::incr_nonce
+            call.account::incr_nonce
 
             exec.epilogue::finalize_transaction
         end
         "
     );
 
-    let process = tx_context.execute_code(&code);
-    assert!(process.is_ok(), "Calling incr_nonce should succeed");
+    tx_context.execute_code(&code).unwrap();
 }
 
 #[test]
@@ -236,7 +241,7 @@ fn test_epilogue_increment_nonce_violation() {
     let code = format!(
         "
         use.kernel::prologue
-        use.miden::account
+        use.test::account
         use.kernel::epilogue
 
         {output_notes_data_procedure}
@@ -248,7 +253,7 @@ fn test_epilogue_increment_nonce_violation() {
 
             push.1.2.3.4
             push.0
-            exec.account::set_item
+            call.account::set_item
             dropw
 
             exec.epilogue::finalize_transaction
@@ -257,8 +262,5 @@ fn test_epilogue_increment_nonce_violation() {
     );
 
     let process = tx_context.execute_code(&code);
-    assert!(
-        process.is_err(),
-        "Not incrementing the nonce when the state changes must be an error",
-    );
+    assert_execution_error!(process, ERR_NONCE_DID_NOT_INCREASE)
 }

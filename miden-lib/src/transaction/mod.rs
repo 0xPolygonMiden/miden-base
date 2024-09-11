@@ -285,6 +285,7 @@ impl TransactionKernel {
     pub fn testing_assembler_with_mock_account() -> Assembler {
         let assembler = Self::testing_assembler();
         let library = AccountCode::mock_library(assembler.clone());
+
         assembler.with_library(library).expect("failed to add mock account code")
     }
 }
