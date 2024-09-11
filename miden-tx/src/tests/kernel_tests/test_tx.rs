@@ -9,7 +9,7 @@ use miden_objects::{
         ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN, ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2,
         ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
     },
-    assets::Asset,
+    assets::NonFungibleAsset,
     notes::{
         Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteType,
     },
@@ -378,10 +378,8 @@ fn test_create_note_and_add_multiple_assets() {
     let asset_3 = [Felt::new(30), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
     let asset_2_and_3 =
         [Felt::new(50), ZERO, ZERO, Felt::new(ACCOUNT_ID_FUNGIBLE_FAUCET_ON_CHAIN_2)];
-    let non_fungible_asset = Asset::mock_non_fungible(
-        ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
-        &NON_FUNGIBLE_ASSET_DATA_2,
-    );
+    let non_fungible_asset =
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &NON_FUNGIBLE_ASSET_DATA_2);
     let non_fungible_asset_encoded = Word::from(non_fungible_asset);
 
     let code = format!(
@@ -460,7 +458,7 @@ fn test_create_note_and_add_same_nft_twice() {
     let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
     let tag = Felt::new(4);
     let non_fungible_asset =
-        Asset::mock_non_fungible(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
+        NonFungibleAsset::mock(ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN, &[1, 2, 3]);
     let encoded = Word::from(non_fungible_asset);
 
     let code = format!(
