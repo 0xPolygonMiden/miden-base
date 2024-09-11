@@ -29,7 +29,7 @@ mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
 use crate::{
-    auth::TransactionAuthenticator, error::TransactionHostError, executor::TransactionMastStore,
+    auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
     KERNEL_ERRORS,
 };
 

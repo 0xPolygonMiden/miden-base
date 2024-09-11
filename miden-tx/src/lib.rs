@@ -20,10 +20,10 @@ pub use prover::{LocalTransactionProver, ProvingOptions, TransactionProver};
 mod verifier;
 pub use verifier::TransactionVerifier;
 
-mod error;
-pub use error::{
-    AuthenticationError, DataStoreError, TransactionCompilerError, TransactionExecutorError,
-    TransactionProverError, TransactionVerifierError, KERNEL_ERRORS,
+mod errors;
+pub use errors::{
+    tx_kernel_errors::KERNEL_ERRORS, AuthenticationError, DataStoreError, TransactionCompilerError,
+    TransactionExecutorError, TransactionProverError, TransactionVerifierError,
 };
 
 pub mod auth;

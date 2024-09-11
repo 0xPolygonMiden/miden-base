@@ -6,7 +6,7 @@ use rand::Rng;
 use vm_processor::{Digest, Felt, Word};
 
 use super::signatures::get_falcon_signature;
-use crate::error::AuthenticationError;
+use crate::errors::AuthenticationError;
 
 // TRANSACTION AUTHENTICATOR
 // ================================================================================================

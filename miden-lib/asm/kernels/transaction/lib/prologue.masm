@@ -352,7 +352,8 @@ proc.validate_new_account
 
         if.true
             # assert the fungible faucet reserved slot is initialized correctly (EMPTY_WORD)
-            or or or assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
+            # TODO: Switch to standard library implementation when available (miden-vm/#1483)
+            exec.is_empty_word_dropped not assertz.err=ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT
             # => []
 
             # get the faucet reserved storage data slot type and entry arity
@@ -368,6 +369,7 @@ proc.validate_new_account
             # empty SMT)
             exec.constants::get_empty_smt_root assert_eqw.err=ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT
             # => []
+            push.1001 drop                              # TODO: remove line, see miden-vm/#1122
 
             # get the faucet reserved storage data slot type and entry arity
             exec.account::get_faucet_storage_data_slot exec.account::get_storage_slot_type_info
@@ -388,6 +390,19 @@ proc.validate_new_account
     # ---------------------------------------------------------------------------------------------
     exec.account::validate_seed
     # => []
+end
+
+#! Returns whether the input word is equal to EMPTY_WORD as a boolean value.
+#!
+#! This procedure drops the input word.
+#! Stack: [INPUT_WORD]
+#! Output: [is_empty]
+#!
+#! Where:
+#! - INPUT_WORD is the word is compared with EMPTY_WORD.
+#! - is_empty is a boolean value that is 1 if INPUT_WORD is equal to EMPTY_WORD, and 0 otherwise.
+proc.is_empty_word_dropped
+    eq.0 swap eq.0 and swap eq.0 and swap eq.0 and
 end
 
 #! Validates that account procedures match account code commitment and saves procedure information
