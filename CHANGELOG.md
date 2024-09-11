@@ -2,8 +2,7 @@
 
 ## 0.6.0 (TBD)
 
-- Adds the `TransactionProver` trait (#865).
-- [BREAKING] Renames the `TransactionProver` struct to `LocalTransactionProver` (#865).
+- [BREAKING] Renamed the `TransactionProver` struct to `LocalTransactionProver` and added the `TransactionProver` trait (#865).
 - Implemented `Display`, `TryFrom<&str>` and `FromStr` for `AccountStorageMode` (#861).
 - Implemented offset based storage access (#843).
 - [BREAKING] `AccountStorageType` enum was renamed to `AccountStorageMode` along with its variants (#854).
