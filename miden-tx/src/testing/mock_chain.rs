@@ -301,7 +301,7 @@ impl MockChain {
 
     pub fn add_new_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -309,7 +309,7 @@ impl MockChain {
 
     pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .add_assets(assets);
         self.add_from_account_builder(auth_method, account_builder)
@@ -331,7 +331,7 @@ impl MockChain {
         let faucet_metadata = SlotItem::new_value(1, 0, metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ZERO)
             .account_type(AccountType::FungibleFaucet)
             .add_storage_item(faucet_metadata);
@@ -357,7 +357,7 @@ impl MockChain {
         let faucet_metadata = SlotItem::new_value(1, 0, metadata);
 
         let account_builder = AccountBuilder::new(ChaCha20Rng::from_entropy())
-            .default_code(TransactionKernel::assembler_testing())
+            .default_code(TransactionKernel::testing_assembler())
             .nonce(Felt::ONE)
             .account_type(AccountType::FungibleFaucet)
             .add_storage_item(faucet_metadata);
