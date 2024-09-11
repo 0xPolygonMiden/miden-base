@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec::Vec};
+use alloc::string::ToString;
 
 use miden_crypto::{
     hash::rpo::RpoDigest,
@@ -8,7 +8,7 @@ use miden_crypto::{
 use crate::{
     notes::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
-    BLOCK_NOTE_TREE_DEPTH, MAX_NOTES_PER_BATCH,
+    BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -36,12 +36,9 @@ impl BlockNoteTree {
     pub fn with_entries(
         entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
-        let leaves = entries
-            .into_iter()
-            .map(|(index, note_id, metadata)| {
-                Ok((index.leaf_index()?.value(), compute_note_hash(note_id, &metadata).into()))
-            })
-            .collect::<Result<Vec<_>, MerkleError>>()?;
+        let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
+            (index.leaf_index().value(), compute_note_hash(note_id, &metadata).into())
+        });
 
         SimpleSmt::with_leaves(leaves).map(Self)
     }
@@ -52,9 +49,9 @@ impl BlockNoteTree {
     }
 
     /// Returns merkle path for the note with specified batch/note indexes.
-    pub fn get_note_path(&self, index: BlockNoteIndex) -> Result<MerklePath, MerkleError> {
+    pub fn get_note_path(&self, index: BlockNoteIndex) -> MerklePath {
         // get the path to the leaf containing the note (path len = 16)
-        Ok(self.0.open(&index.leaf_index()?).path)
+        self.0.open(&index.leaf_index()).path
     }
 }
 
@@ -73,8 +70,15 @@ pub struct BlockNoteIndex {
 
 impl BlockNoteIndex {
     /// Creates a new [BlockNoteIndex].
-    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Self {
-        Self { batch_idx, note_idx_in_batch }
+    pub fn new(batch_idx: usize, note_idx_in_batch: usize) -> Result<Self, BlockError> {
+        if note_idx_in_batch >= MAX_NOTES_PER_BATCH {
+            return Err(BlockError::TooManyNotesInBatch(note_idx_in_batch));
+        }
+        if batch_idx >= MAX_BATCHES_PER_BLOCK {
+            return Err(BlockError::TooManyTransactionBatches(batch_idx));
+        }
+
+        Ok(Self { batch_idx, note_idx_in_batch })
     }
 
     /// Returns the batch index.
@@ -88,8 +92,9 @@ impl BlockNoteIndex {
     }
 
     /// Returns the leaf index of the note in the note tree.
-    pub fn leaf_index(&self) -> Result<LeafIndex<BLOCK_NOTE_TREE_DEPTH>, MerkleError> {
+    pub fn leaf_index(&self) -> LeafIndex<BLOCK_NOTE_TREE_DEPTH> {
         LeafIndex::new((self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64)
+            .expect("Unreachable: Input values must be valid at this point")
     }
 }
 

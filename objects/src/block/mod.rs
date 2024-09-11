@@ -102,7 +102,12 @@ impl Block {
     pub fn notes(&self) -> impl Iterator<Item = (BlockNoteIndex, &OutputNote)> {
         self.output_note_batches.iter().enumerate().flat_map(|(batch_idx, notes)| {
             notes.iter().enumerate().map(move |(note_idx_in_batch, note)| {
-                (BlockNoteIndex::new(batch_idx, note_idx_in_batch), note)
+                (
+                    BlockNoteIndex::new(batch_idx, note_idx_in_batch).expect(
+                        "Something went wrong: block is invalid, but passed or skipped validation",
+                    ),
+                    note,
+                )
             })
         })
     }
