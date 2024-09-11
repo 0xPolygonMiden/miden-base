@@ -542,7 +542,7 @@ impl MockChain {
                         let note_path = notes_tree.get_note_path(block_note_index);
                         let note_inclusion_proof = NoteInclusionProof::new(
                             block.header().block_num(),
-                            block_note_index.leaf_index().value().try_into().unwrap(),
+                            block_note_index.leaf_index_value(),
                             note_path,
                         )
                         .unwrap();

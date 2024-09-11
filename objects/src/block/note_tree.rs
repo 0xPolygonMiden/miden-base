@@ -9,6 +9,7 @@ use crate::{
     notes::{compute_note_hash, NoteId, NoteMetadata},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
     BlockError, BLOCK_NOTE_TREE_DEPTH, MAX_BATCHES_PER_BLOCK, MAX_NOTES_PER_BATCH,
+    MAX_NOTES_PER_BLOCK,
 };
 
 /// Wrapper over [SimpleSmt<BLOCK_NOTE_TREE_DEPTH>] for notes tree.
@@ -37,7 +38,7 @@ impl BlockNoteTree {
         entries: impl IntoIterator<Item = (BlockNoteIndex, NoteId, NoteMetadata)>,
     ) -> Result<Self, MerkleError> {
         let leaves = entries.into_iter().map(|(index, note_id, metadata)| {
-            (index.leaf_index().value(), compute_note_hash(note_id, &metadata).into())
+            (index.leaf_index_value() as u64, compute_note_hash(note_id, &metadata).into())
         });
 
         SimpleSmt::with_leaves(leaves).map(Self)
@@ -94,6 +95,19 @@ impl BlockNoteIndex {
     /// Returns the leaf index of the note in the note tree.
     pub fn leaf_index(&self) -> LeafIndex<BLOCK_NOTE_TREE_DEPTH> {
         LeafIndex::new((self.batch_idx() * MAX_NOTES_PER_BATCH + self.note_idx_in_batch()) as u64)
+            .expect("Unreachable: Input values must be valid at this point")
+    }
+
+    /// Returns the leaf index value of the note in the note tree.
+    pub fn leaf_index_value(&self) -> u16 {
+        const _: () = assert!(
+            MAX_NOTES_PER_BLOCK <= u16::MAX as usize,
+            "Any note index is expected to fit in `u16`"
+        );
+
+        self.leaf_index()
+            .value()
+            .try_into()
             .expect("Unreachable: Input values must be valid at this point")
     }
 }
