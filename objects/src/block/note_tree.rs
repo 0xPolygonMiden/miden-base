@@ -101,7 +101,7 @@ impl BlockNoteIndex {
     /// Returns the leaf index value of the note in the note tree.
     pub fn leaf_index_value(&self) -> u16 {
         const _: () = assert!(
-            MAX_NOTES_PER_BLOCK <= u16::MAX as usize,
+            MAX_NOTES_PER_BLOCK - 1 <= u16::MAX as usize,
             "Any note index is expected to fit in `u16`"
         );
 
