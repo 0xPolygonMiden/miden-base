@@ -359,7 +359,7 @@ fn create_new_account() -> (Account, Word, Rc<BasicAuthenticator<StdRng>>) {
 
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
         .add_storage_slot(storage_slot)
-        .default_code(TransactionKernel::assembler_testing())
+        .default_code(TransactionKernel::testing_assembler())
         .account_type(AccountType::RegularAccountUpdatableCode)
         .nonce(Felt::ZERO)
         .build()

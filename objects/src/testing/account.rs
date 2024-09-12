@@ -21,7 +21,7 @@ use crate::{
         Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
         StorageMap, StorageSlot,
     },
-    assets::{Asset, AssetVault, FungibleAsset},
+    assets::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
     AccountError, AssetVaultError, Felt, Word, ZERO,
 };
 
@@ -225,7 +225,7 @@ impl Account {
         let entries = match empty_reserved_slot {
             true => vec![],
             false => {
-                let asset = Asset::mock_non_fungible(
+                let asset = NonFungibleAsset::mock(
                     ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
                     &constants::NON_FUNGIBLE_ASSET_DATA_2,
                 );
@@ -264,7 +264,7 @@ impl AssetVault {
         let fungible_asset_2 =
             Asset::Fungible(FungibleAsset::new(faucet_id_2, FUNGIBLE_ASSET_AMOUNT).unwrap());
 
-        let non_fungible_asset = Asset::mock_non_fungible(
+        let non_fungible_asset = NonFungibleAsset::mock(
             ACCOUNT_ID_NON_FUNGIBLE_FAUCET_ON_CHAIN,
             &NON_FUNGIBLE_ASSET_DATA,
         );

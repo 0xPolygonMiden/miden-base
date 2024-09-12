@@ -275,6 +275,8 @@ export.finalize_transaction
         exec.memory::get_acct_nonce
         # => [current_nonce, init_nonce, FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]
 
+        push.1005 drop                              # TODO: remove line, see miden-vm/#1122
+
         # assert that initial nonce is less than current nonce
         lt assert.err=ERR_NONCE_DID_NOT_INCREASE
         # => [FINAL_ACCOUNT_HASH, INIT_ACCT_HASH]

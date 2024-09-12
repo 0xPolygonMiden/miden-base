@@ -17,9 +17,9 @@ use miden_objects::{
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{Digest, ProcessState};
+use vm_processor::{Digest, MemAdviceProvider, ProcessState};
 
-use super::{Felt, MemAdviceProvider, StackInputs, Word, ONE, ZERO};
+use super::{Felt, StackInputs, Word, ONE, ZERO};
 use crate::{
     testing::{executor::CodeExecutor, TransactionContextBuilder},
     tests::kernel_tests::{output_notes_data_procedure, read_root_mem_value},
@@ -254,7 +254,6 @@ fn test_get_map_item() {
     for (key, value) in STORAGE_LEAVES_2 {
         let code = format!(
             "
-            use.miden::account
             use.kernel::prologue
 
             begin
@@ -263,7 +262,7 @@ fn test_get_map_item() {
                 # get the map item
                 push.{map_key}
                 push.{item_index}
-                exec.account::get_map_item
+                call.::test::account::get_map_item
             end
             ",
             item_index = storage_item.index,
@@ -380,12 +379,11 @@ fn test_set_map_item() {
     );
 
     let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-
     let storage_item = AccountStorage::mock_item_2();
 
     let code = format!(
         "
-        use.miden::account
+        use.test::account
         use.kernel::prologue
 
         begin
@@ -395,11 +393,11 @@ fn test_set_map_item() {
             push.{new_value}
             push.{new_key}
             push.{item_index}
-            exec.account::set_map_item
+            call.account::set_map_item
 
             # double check that on storage slot is indeed the new map
             push.{item_index}
-            exec.account::get_item
+            call.account::get_item
         end
         ",
         item_index = storage_item.index,
@@ -427,7 +425,7 @@ fn test_set_map_item() {
 #[test]
 fn test_storage_offset() {
     // setup assembler
-    let assembler = TransactionKernel::assembler_testing();
+    let assembler = TransactionKernel::testing_assembler();
 
     // The following code will execute the following logic that will be asserted during the test:
     //
@@ -562,18 +560,17 @@ fn test_get_vault_commitment() {
 
 #[test]
 fn test_authenticate_procedure() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-    let account = tx_context.tx_inputs().account();
+    let account_code = AccountCode::mock_wallet(TransactionKernel::assembler());
 
     let tc_0: [Felt; 4] =
-        account.code().procedures()[0].mast_root().as_elements().try_into().unwrap();
+        account_code.procedures()[0].mast_root().as_elements().try_into().unwrap();
     let tc_1: [Felt; 4] =
-        account.code().procedures()[1].mast_root().as_elements().try_into().unwrap();
+        account_code.procedures()[1].mast_root().as_elements().try_into().unwrap();
     let tc_2: [Felt; 4] =
-        account.code().procedures()[2].mast_root().as_elements().try_into().unwrap();
+        account_code.procedures()[2].mast_root().as_elements().try_into().unwrap();
 
     let test_cases =
-        vec![(tc_0, true), ([ONE, ZERO, ONE, ZERO], false), (tc_1, true), (tc_2, true)];
+        vec![(tc_0, true), (tc_1, true), (tc_2, true), ([ONE, ZERO, ONE, ZERO], false)];
 
     for (root, valid) in test_cases.into_iter() {
         let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
@@ -594,11 +591,13 @@ fn test_authenticate_procedure() {
             root = prepare_word(&root)
         );
 
+        // Execution of this code will return an EventError(UnknownAccountProcedure) for procs
+        // that are not in the advice provider.
         let process = tx_context.execute_code(&code);
 
         match valid {
             true => assert!(process.is_ok(), "A valid procedure must successfully authenticate"),
-            false => assert!(process.is_err(), "An invalid procedure must fail to authenticate"),
+            false => assert!(process.is_err(), "An invalid procedure should fail to authenticate"),
         }
     }
 }

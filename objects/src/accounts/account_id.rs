@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::fmt;
+use core::{fmt, str::FromStr};
 
 use super::{
     get_account_seed, AccountError, ByteReader, Deserializable, DeserializationError, Digest, Felt,
@@ -85,6 +85,43 @@ pub const PRIVATE: u64 = 0b10;
 pub enum AccountStorageMode {
     Public = PUBLIC,
     Private = PRIVATE,
+}
+
+impl fmt::Display for AccountStorageMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AccountStorageMode::Public => write!(f, "public"),
+            AccountStorageMode::Private => write!(f, "private"),
+        }
+    }
+}
+
+impl TryFrom<&str> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: &str) -> Result<Self, AccountError> {
+        match value.to_lowercase().as_str() {
+            "public" => Ok(AccountStorageMode::Public),
+            "private" => Ok(AccountStorageMode::Private),
+            _ => Err(AccountError::InvalidAccountStorageMode),
+        }
+    }
+}
+
+impl TryFrom<String> for AccountStorageMode {
+    type Error = AccountError;
+
+    fn try_from(value: String) -> Result<Self, AccountError> {
+        AccountStorageMode::from_str(&value)
+    }
+}
+
+impl FromStr for AccountStorageMode {
+    type Err = AccountError;
+
+    fn from_str(input: &str) -> Result<AccountStorageMode, AccountError> {
+        AccountStorageMode::try_from(input)
+    }
 }
 
 // ACCOUNT ID

@@ -32,6 +32,11 @@ use vm_processor::{AdviceInputs, ONE};
 
 use super::{Felt, Process, Word, ZERO};
 use crate::{
+    assert_execution_error,
+    errors::tx_kernel_errors::{
+        ERR_ACCOUNT_SEED_DIGEST_MISMATCH, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT,
+        ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT,
+    },
     testing::{
         utils::input_note_data_ptr, MockHost, TransactionContext, TransactionContextBuilder,
     },
@@ -375,7 +380,7 @@ fn input_notes_memory_assertions(
 #[test]
 pub fn test_prologue_create_account() {
     let (account, seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
-        .default_code(TransactionKernel::assembler_testing())
+        .default_code(TransactionKernel::testing_assembler())
         .build()
         .unwrap();
     let tx_context = TransactionContextBuilder::new(account).account_seed(Some(seed)).build();
@@ -422,7 +427,7 @@ pub fn test_prologue_create_account_valid_fungible_faucet_reserved_slot() {
 pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     let (acct_id, account_seed) = generate_account_seed(
         AccountSeedType::FungibleFaucetInvalidInitialBalance,
-        TransactionKernel::assembler().with_debug_mode(true),
+        TransactionKernel::assembler(),
     );
 
     let tx_context = TransactionContextBuilder::with_fungible_faucet(
@@ -442,7 +447,7 @@ pub fn test_prologue_create_account_invalid_fungible_faucet_reserved_slot() {
     ";
 
     let process = tx_context.execute_code(code);
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_PROLOGUE_NEW_FUNGIBLE_FAUCET_NON_EMPTY_RESERVED_SLOT);
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
@@ -494,15 +499,16 @@ pub fn test_prologue_create_account_invalid_non_fungible_faucet_reserved_slot() 
 
     let process = tx_context.execute_code(code);
 
-    assert!(process.is_err());
+    assert_execution_error!(process, ERR_PROLOGUE_NEW_NON_FUNGIBLE_FAUCET_INVALID_RESERVED_SLOT);
 }
 
 #[cfg_attr(not(feature = "testing"), ignore)]
 #[test]
 pub fn test_prologue_create_account_invalid_seed() {
     let (acct, account_seed) = AccountBuilder::new(ChaCha20Rng::from_entropy())
+        .default_code(TransactionKernel::testing_assembler())
         .account_type(miden_objects::accounts::AccountType::RegularAccountUpdatableCode)
-        .default_code(TransactionKernel::assembler_testing())
+        .default_code(TransactionKernel::testing_assembler())
         .build()
         .unwrap();
 
@@ -524,7 +530,8 @@ pub fn test_prologue_create_account_invalid_seed() {
         .advice_inputs(adv_inputs)
         .build();
     let process = tx_context.execute_code(code);
-    assert!(process.is_err());
+
+    assert_execution_error!(process, ERR_ACCOUNT_SEED_DIGEST_MISMATCH)
 }
 
 #[test]
