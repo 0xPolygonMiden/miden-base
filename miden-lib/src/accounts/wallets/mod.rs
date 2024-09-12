@@ -1,11 +1,9 @@
-use alloc::{
-    collections::BTreeMap,
-    string::{String, ToString},
-};
+use alloc::string::{String, ToString};
 
 use miden_objects::{
     accounts::{
-        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType, SlotItem,
+        Account, AccountCode, AccountId, AccountStorage, AccountStorageMode, AccountType,
+        StorageSlot,
     },
     AccountError, Word,
 };
@@ -53,15 +51,14 @@ pub fn create_basic_wallet(
     let assembler = TransactionKernel::assembler();
     let account_code = AccountCode::compile(source_code, assembler)?;
 
-    let account_storage =
-        AccountStorage::new(vec![SlotItem::new_value(0, 0, storage_slot_0_data)], BTreeMap::new())?;
+    let account_storage = AccountStorage::new(vec![StorageSlot::Value(storage_slot_0_data)])?;
 
     let account_seed = AccountId::get_account_seed(
         init_seed,
         account_type,
         account_storage_mode,
         account_code.commitment(),
-        account_storage.root(),
+        account_storage.commitment(),
     )?;
 
     Ok((Account::new(account_seed, account_code, account_storage)?, account_seed))

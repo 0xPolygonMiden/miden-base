@@ -63,8 +63,8 @@ impl AccountCode {
         end
 
         export.get_item
-            exec.account::get_item 
-            movup.8 drop movup.8 drop movup.8 drop 
+            exec.account::get_item
+            movup.8 drop movup.8 drop movup.8 drop
         end
 
         export.set_map_item
@@ -110,7 +110,7 @@ impl AccountCode {
         end
 
         export.mint
-            exec.faucet::mint 
+            exec.faucet::mint
         end
 
         export.burn

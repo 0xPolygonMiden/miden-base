@@ -177,7 +177,7 @@ end
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
-#! - R' is the new storage root.
+#! - R' is the new storage commitment.
 export.set_account_item
     # if the transaction is being executed against a faucet account then assert
     # index != FAUCET_STORAGE_DATA_SLOT (reserved slot)
@@ -215,14 +215,14 @@ end
 #! - VALUE is the value of the item.
 export.get_account_map_item
     # check if storage type is map
-    dup exec.account::get_storage_slot_type_info drop
+    dup exec.account::get_storage_slot_type
     # => [slot_type, index, KEY, ...]
 
-    # fails if slot_type is not 1 = map
+    # check if type == map
     exec.constants::get_storage_slot_type_map eq assert.err=ERR_READING_MAP_VALUE_FROM_NON_MAP_SLOT
     # => [index, KEY, ...]
 
-     # authenticate that the procedure invocation originates from the account context
+    # authenticate that the procedure invocation originates from the account context
     exec.authenticate_account_origin
     # => [storage_offset, index, KEY, ...]
 

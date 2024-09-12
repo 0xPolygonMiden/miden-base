@@ -1,10 +1,11 @@
 use alloc::{collections::BTreeMap, rc::Rc, string::ToString, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::{
-    memory::CURRENT_INPUT_NOTE_PTR, TransactionEvent, TransactionKernelError, TransactionTrace,
+    memory::{CURRENT_INPUT_NOTE_PTR, NUM_ACCT_STORAGE_SLOTS_PTR},
+    TransactionEvent, TransactionKernelError, TransactionTrace,
 };
 use miden_objects::{
-    accounts::{AccountDelta, AccountHeader, AccountStorage},
+    accounts::{AccountDelta, AccountHeader},
     assets::Asset,
     notes::NoteId,
     transaction::{OutputNote, TransactionMeasurements},
@@ -32,11 +33,6 @@ use crate::{
     auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
     KERNEL_ERRORS,
 };
-
-// CONSTANTS
-// ================================================================================================
-
-pub const STORAGE_TREE_DEPTH: Felt = Felt::new(AccountStorage::STORAGE_TREE_DEPTH as u64);
 
 // TRANSACTION HOST
 // ================================================================================================
@@ -231,8 +227,18 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
-        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
-            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
+
+        let num_storage_slots_word = process
+            .get_mem_value(process.ctx(), NUM_ACCT_STORAGE_SLOTS_PTR)
+            .ok_or(TransactionKernelError::MissingMemoryValue(NUM_ACCT_STORAGE_SLOTS_PTR))?;
+
+        let num_storage_slot = num_storage_slots_word[0].as_int();
+
+        if slot_index.as_int() >= num_storage_slot {
+            return Err(TransactionKernelError::InvalidStorageSlotIndex(
+                slot_index.as_int(),
+                num_storage_slot,
+            ));
         }
 
         // get the value to which the slot is being updated
@@ -270,8 +276,18 @@ impl<A: AdviceProvider, T: TransactionAuthenticator> TransactionHost<A, T> {
     ) -> Result<(), TransactionKernelError> {
         // get slot index from the stack and make sure it is valid
         let slot_index = process.get_stack_item(0);
-        if slot_index.as_int() as usize >= AccountStorage::NUM_STORAGE_SLOTS {
-            return Err(TransactionKernelError::InvalidStorageSlotIndex(slot_index.as_int()));
+
+        let num_storage_slots_word = process
+            .get_mem_value(process.ctx(), NUM_ACCT_STORAGE_SLOTS_PTR)
+            .ok_or(TransactionKernelError::MissingMemoryValue(NUM_ACCT_STORAGE_SLOTS_PTR))?;
+
+        let num_storage_slot = num_storage_slots_word[0].as_int();
+
+        if slot_index.as_int() >= num_storage_slot {
+            return Err(TransactionKernelError::InvalidStorageSlotIndex(
+                slot_index.as_int(),
+                num_storage_slot,
+            ));
         }
 
         // get the KEY to which the slot is being updated

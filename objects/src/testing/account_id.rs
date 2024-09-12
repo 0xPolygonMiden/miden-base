@@ -13,7 +13,7 @@ pub struct AccountIdBuilder<T> {
     account_type: AccountType,
     storage_mode: AccountStorageMode,
     code: Option<AccountCode>,
-    storage_root: Digest,
+    storage_commitment: Digest,
     rng: T,
 }
 
@@ -23,7 +23,7 @@ impl<T: Rng> AccountIdBuilder<T> {
             account_type: AccountType::RegularAccountUpdatableCode,
             storage_mode: AccountStorageMode::Private,
             code: None,
-            storage_root: Digest::default(),
+            storage_commitment: Digest::default(),
             rng,
         }
     }
@@ -52,8 +52,8 @@ impl<T: Rng> AccountIdBuilder<T> {
         self
     }
 
-    pub fn storage_root(&mut self, storage_root: Digest) -> &mut Self {
-        self.storage_root = storage_root;
+    pub fn storage_commitment(&mut self, storage_commitment: Digest) -> &mut Self {
+        self.storage_commitment = storage_commitment;
         self
     }
 
@@ -65,10 +65,10 @@ impl<T: Rng> AccountIdBuilder<T> {
             account_code,
             self.account_type,
             self.storage_mode,
-            self.storage_root,
+            self.storage_commitment,
         )?;
 
-        let account_id = AccountId::new(seed, code_commitment, self.storage_root)
+        let account_id = AccountId::new(seed, code_commitment, self.storage_commitment)
             .map_err(AccountBuilderError::AccountError)?;
 
         Ok((account_id, seed))
@@ -78,7 +78,7 @@ impl<T: Rng> AccountIdBuilder<T> {
         let account_code = self.code.clone().ok_or(AccountBuilderError::AccountCodeNotSet)?;
         let code_commitment = account_code.commitment();
 
-        let account_id = AccountId::new(seed, code_commitment, self.storage_root)
+        let account_id = AccountId::new(seed, code_commitment, self.storage_commitment)
             .map_err(AccountBuilderError::AccountError)?;
 
         if account_id.account_type() != self.account_type {
@@ -104,7 +104,7 @@ pub fn account_id_build_details<T: Rng>(
     code: AccountCode,
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    storage_root: Digest,
+    storage_commitment: Digest,
 ) -> Result<(Word, Digest), AccountBuilderError> {
     let init_seed: [u8; 32] = rng.gen();
     let code_commitment = code.commitment();
@@ -113,7 +113,7 @@ pub fn account_id_build_details<T: Rng>(
         account_type,
         storage_mode,
         code_commitment,
-        storage_root,
+        storage_commitment,
     )
     .map_err(AccountBuilderError::AccountError)?;
 

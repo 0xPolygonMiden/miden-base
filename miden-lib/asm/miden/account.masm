@@ -92,7 +92,7 @@ end
 #! - index is the index of the item to set.
 #! - V' is the value to set.
 #! - V is the previous value of the item.
-#! - R' is the new storage root.
+#! - R' is the new storage commitment.
 export.set_item
     push.0 movdn.5 push.0 movdn.5 push.0 movdn.5
     # => [index, V', 0, 0, 0]
