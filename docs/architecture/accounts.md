@@ -35,7 +35,7 @@ The [storage of an account](../../objects/src/accounts/storage/mod.rs) is compos
 
 Each slot has a type which defines its size and structure. Currently, the following types are supported:
 
- * `StorageSlot::Value`: contains a single `Word` of data.
+ * `StorageSlot::Value`: contains a single `Word` of data (i.e., 32 bytes).
  * `StorageSlot::Map`: contains a [StorageMap](../../objects/src/accounts/storage/map.rs) which is a key-value map where both keys and
    values are `Word`s. The value of a storage slot containing a map is the commitment to the
    underlying map.

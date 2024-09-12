@@ -19,7 +19,7 @@ pub use map::StorageMap;
 ///
 /// Each slot has a type which defines its size and structure. Currently, the following types are
 /// supported:
-/// - [StorageSlot::Value]: contains a single [Word] of data.
+/// - [StorageSlot::Value]: contains a single [Word] of data (i.e., 32 bytes).
 /// - [StorageSlot::Map]: contains a [StorageMap] which is a key-value map where both keys and
 ///   values are [Word]s. The value of a storage slot containing a map is the commitment to the
 ///   underlying map.
@@ -77,7 +77,7 @@ impl AccountStorage {
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
         self.slots
             .get(index as usize)
-            .ok_or(AccountError::StorageIndexOutOfBounds(index))
+            .ok_or(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8))
             .map(|slot| slot.value().into())
     }
 
@@ -90,7 +90,7 @@ impl AccountStorage {
         match self
             .slots
             .get(index as usize)
-            .ok_or(AccountError::StorageIndexOutOfBounds(index))?
+            .ok_or(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8))?
         {
             StorageSlot::Map(ref map) => Ok(map.get_value(&Digest::from(key))),
             _ => Err(AccountError::StorageSlotNotMap(index)),
@@ -105,12 +105,14 @@ impl AccountStorage {
     /// # Errors:
     /// - If the updates violate storage constraints.
     pub(super) fn apply_delta(&mut self, delta: &AccountStorageDelta) -> Result<(), AccountError> {
+        let len = self.slots().len() as u8;
+
         // update storage maps
         for (&idx, map) in delta.maps().iter() {
             let storage_slot = self
                 .slots
                 .get_mut(idx as usize)
-                .ok_or(AccountError::StorageIndexOutOfBounds(idx))?;
+                .ok_or(AccountError::StorageIndexOutOfBounds(idx, len))?;
 
             let storage_map = match storage_slot {
                 StorageSlot::Map(map) => map,
@@ -141,7 +143,7 @@ impl AccountStorage {
         let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index));
+            return Err(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8));
         }
 
         let old_value = match self.slots[index as usize] {
@@ -174,7 +176,7 @@ impl AccountStorage {
         let num_slots = self.slots.len();
 
         if index as usize >= num_slots {
-            return Err(AccountError::StorageIndexOutOfBounds(index));
+            return Err(AccountError::StorageIndexOutOfBounds(index, self.slots().len() as u8));
         }
 
         let storage_map = match self.slots[index as usize] {

@@ -40,7 +40,7 @@ pub enum AccountError {
     SeedDigestTooFewTrailingZeros { expected: u32, actual: u32 },
     StorageSlotNotMap(u8),
     StorageSlotNotValue(u8),
-    StorageIndexOutOfBounds(u8),
+    StorageIndexOutOfBounds(u8, u8),
     StorageTooManySlots(u64),
 }
 

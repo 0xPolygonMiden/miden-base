@@ -326,22 +326,25 @@ end
 #! Applies offset to provided storage slot index for storage access
 #!
 #! Panics:
-#!   - slot index is out of bounds
-#!   - computed index is out of bounds
+#! - slot index is out of bounds
+#! - computed index is out of bounds
 #!
 #! Stack: [storage_offset, slot_index]
 #! Output: [offset_slot_index]
 export.apply_storage_offset
     # verify that slot_index is in bounds
-    dup.1 exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-    # => [storage_offset, slot_index]
+    dup.1 exec.memory::get_num_storage_slots dup movdn.4 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    # => [storage_offset, slot_index, num_storage_slots]
 
     # verify that the computed offset_slot_index is in bounds
-    add dup exec.memory::get_num_storage_slots lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
+    add dup movup.2 lt assert.err=ERR_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
     # => [offset_slot_index]
 end
 
 #! Gets an item from the account storage
+#!
+#! Note:
+#! - We assume that index has been validated and is within bounds
 #!
 #! Stack: [index]
 #! Output: [VALUE]
@@ -390,8 +393,11 @@ end
 
 #! Sets an item in the account storage.
 #!
+#! Note:
+#! - We assume that index has been validated and is within bounds
+#!
 #! Panics:
-#!    - storage slot type is not value
+#! - storage slot type is not value
 #!
 #! Stack: [index, V']
 #! Output: [V]
@@ -429,6 +435,9 @@ export.set_item
 end
 
 #! Sets an item in the specified account storage map.
+#!
+#! Note:
+#! - We assume that index has been validated and is within bounds
 #!
 #! Panics:
 #! - storage slot type is not map
